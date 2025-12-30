@@ -1,7 +1,7 @@
 {
   "author": "Josh Gachnang",
   "bugs": {
-    "url": "https://github.com/FlourishHealth/ferns/issues"
+    "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
     "@sentry/node": "^10.25.0",
@@ -55,7 +55,7 @@
     "typedoc": "~0.27.9",
     "typescript": "5.8.2"
   },
-  "homepage": "https://github.com/FlourishHealth/ferns#readme",
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "rest",
     "api",
@@ -64,13 +64,13 @@
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
-  "name": "ferns-api",
+  "name": "@terreno/api",
   "peerDependencies": {
     "mongoose": "^8.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/FlourishHealth/ferns-api.git"
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
   },
   "resolutions": {
     "json5": "2.2.3"

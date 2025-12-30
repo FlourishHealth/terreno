@@ -20,7 +20,11 @@ jobs:
           # "ref" specifies the branch to check out.
           # "github.event.release.target_commitish" is a global variable and specifies the branch the release targeted
           ref: ${{ github.event.release.target_commitish }}
-      # install Node.js
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      # Node.js is still needed for npm publish
       - name: Use Node.js 18
         uses: actions/setup-node@v6
         with:
@@ -32,16 +36,16 @@ jobs:
         with:
           mongodb-version: 6.0
       - name: Install dependencies
-        run: yarn --frozen-lockfile
+        run: bun install --frozen-lockfile
       # set up git since we will later push to the repo
       - run: git config --global user.name "GitHub CD bot"
       - run: git config --global user.email "github-cd-bot@nang.io"
       # upgrade npm version in package.json to the tag used in the release.
       - run: npm version ${{ github.event.release.tag_name }}
       # build the project
-      - run: yarn build
+      - run: bun run compile
       # run tests just in case
-      - run: yarn test
+      - run: bun run test
       # publish to NPM -> there is one caveat, continue reading for the fix
       - run: npm publish
         env:
@@ -64,6 +68,6 @@ jobs:
           SLACK_CHANNEL: bots
           SLACK_COLOR: "#4BB543"
           # SLACK_MESSAGE: "Post Content :rocket:"
-          SLACK_TITLE: Released ferns-ui@${{ github.event.release.target_commitish }}
+          SLACK_TITLE: Released ferns-api@${{ github.event.release.tag_name }}
           SLACK_USERNAME: Flourish
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

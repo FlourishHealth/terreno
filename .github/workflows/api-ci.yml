@@ -20,26 +20,25 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
         mongodb-version: ["6.0"]
     steps:
       - uses: actions/checkout@v6
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ matrix.node-version }}
+          bun-version: latest
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
 
       - name: Install dependencies
-        run: yarn --frozen-lockfile
-      - name: yarn lint
-        run: yarn lint
-      - name: yarn build
-        run: yarn build
-      - name: yarn test
-        run: yarn test
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Build
+        run: bun run compile
+      - name: Test
+        run: bun run test
         env:
           CI: true

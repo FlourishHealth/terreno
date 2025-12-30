@@ -181,7 +181,9 @@ export async function authAsUser(
 }
 
 export async function setupDb() {
-  await mongoose.connect("mongodb://127.0.0.1/ferns?&connectTimeoutMS=360000").catch(logger.catch);
+  await mongoose
+    .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
+    .catch(logger.catch);
 
   process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
   process.env.TOKEN_SECRET = "secret";

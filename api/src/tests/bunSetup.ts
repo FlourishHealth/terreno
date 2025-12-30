@@ -8,7 +8,9 @@ import {logger, winstonLogger} from "../logger";
 
 // Connect to MongoDB once for all tests
 beforeAll(async () => {
-  await mongoose.connect("mongodb://127.0.0.1/ferns?&connectTimeoutMS=360000").catch(logger.catch);
+  await mongoose
+    .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
+    .catch(logger.catch);
 });
 
 // Close MongoDB connection after all tests
@@ -75,7 +77,7 @@ captureConsoleMethod("debug");
 // Setup before each test
 beforeEach(() => {
   process.env.TOKEN_SECRET = "secret";
-  process.env.TOKEN_ISSUER = "ferns-api.test";
+  process.env.TOKEN_ISSUER = "terreno-api.test";
   process.env.SESSION_SECRET = "sessionSecret";
   process.env.REFRESH_TOKEN_SECRET = "refreshTokenSecret";
   setupEnvironment();
