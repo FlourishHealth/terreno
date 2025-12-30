@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "example-package-in-monorepo": "workspace:*"
+  },
+  "name": "@terreno/root",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "api",
+    "ui",
+    "example"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
+  "extends": ["../biome.jsonc"],
+  "files": {
+    "includes": ["package.json", "src/**/*.ts", "src/**/*.tsx"]
+  }
+}
