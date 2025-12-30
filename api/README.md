@@ -143,29 +143,28 @@ import "./sentryInstrument";
 
 ## Example
 
-To test out how the API works, you can look at and run [example.ts] by running `yarn build` then running `node dist/example.js` in /@terreno/api; while running, you can use a mongoDB client such as Compass to view collections.
+To test out how the API works, you can look at and run [example.ts] by running `bun run compile` then running `bun dist/example.js` in /@terreno/api; while running, you can use a mongoDB client such as Compass to view collections.
 
 ## Dev
 
 To continuously compile the package:
 
-    yarn dev
+    bun run dev
 
 To run tests, linting, and fixing up lint issues:
 
-    yarn lint
-    yarn lintfix
-    yarn test
+    bun run lint
+    bun run lint:fix
+    bun run test
 
 To see how your changes will affect the docs:
 
-    yarn docs
+    bun run docs
     cd docs/
-    npx http-server
+    bunx http-server
 
-A lot of dev may require using yarn link. You'll want to keep the `yarn dev` window running to continuously compile:
+A lot of dev may require using bun link. You'll want to keep the `bun run dev` window running to continuously compile:
 
-    yarn link
+    bun link
     cd $your-api-repo
-    yarn link @terreno/api
-
+    bun link @terreno/api
