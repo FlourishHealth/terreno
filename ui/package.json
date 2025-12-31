@@ -36,7 +36,6 @@
     "libphonenumber-js": "^1.12.31",
     "lodash": "^4.17.21",
     "luxon": "^3.7.2",
-    "patch-package": "^8.0.1",
     "react-app-polyfill": "^3.0.0",
     "react-date-picker": "^12.0.1",
     "react-datetime-picker": "^7.0.1",
@@ -118,7 +117,6 @@
     "lint:fix": "biome check --write src",
     "lint:unsafefix": "biome check --write --unsafe src",
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/ferns-ui/dist\"",
-    "postinstall": "cd ../.. && patch-package",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
     "types": "npx typedoc"

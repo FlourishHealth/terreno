@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "workspaces": [
     "api",
-    "ui",
-    "example"
+    "demo",
+    "example",
+    "ui"
   ]
 }
