@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import {ImageManipulator, type ImageResult, SaveFormat} from "expo-image-manipulator";
 import {launchImageLibraryAsync} from "expo-image-picker";
 import {LinearGradient} from "expo-linear-gradient";

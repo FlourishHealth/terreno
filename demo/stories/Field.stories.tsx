@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import {type AddressInterface, Box, Field, Heading, TapToEdit, Text} from "ferns-ui";
 import {printDateAndTime} from "ferns-ui/dist/DateUtilities";
 import {DateTime} from "luxon";

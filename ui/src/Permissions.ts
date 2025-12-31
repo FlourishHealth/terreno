@@ -1,4 +1,3 @@
-/* eslint-disable unused-imports/no-unused-vars */
 // import {Tracking} from "./Tracking";
 // import capitalize from "lodash/capitalize";
 // import Permissions from "react-native-permissions";

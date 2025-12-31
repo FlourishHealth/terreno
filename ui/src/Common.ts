@@ -727,7 +727,6 @@ export function getRounding(rounding: Rounding) {
   return ROUNDING_MAP[rounding];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface HeadingProps {
   align?: "left" | "right" | "center" | "justify"; // default "left"
   children?: React.ReactNode;

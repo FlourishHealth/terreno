@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import {forwardRef, useEffect, useRef} from "react";
 import {Animated} from "react-native";
 import {Modalize} from "react-native-modalize";

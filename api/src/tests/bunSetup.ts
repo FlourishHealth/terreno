@@ -48,7 +48,6 @@ winstonLogger.clear();
 winstonLogger.add(silentTransport);
 
 // Capture and silence console methods
-/* eslint-disable no-console */
 const originalConsole = {
   debug: console.debug,
   error: console.error,
@@ -56,7 +55,6 @@ const originalConsole = {
   log: console.log,
   warn: console.warn,
 };
-/* eslint-enable no-console */
 
 const captureConsoleMethod = (method: keyof typeof originalConsole): void => {
   (console as any)[method] = (...args: any[]) => {

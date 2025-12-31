@@ -1,5 +1,3 @@
-/* eslint-disable react/prop-types */
-
 import type React from "react";
 import {Component, createRef} from "react";
 import {
@@ -578,7 +576,6 @@ export class ActionSheet extends Component<Props, State, any> {
     this.setState({
       keyboard: true,
     });
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const ReactNativeVersion = require("react-native/Libraries/Core/ReactNativeVersion");
 
     let v = ReactNativeVersion.version.major + ReactNativeVersion.version.minor;

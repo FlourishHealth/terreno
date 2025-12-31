@@ -136,7 +136,6 @@ describe("openApi", () => {
 
   it("gets food with populated paths", async () => {
     server = supertest(app);
-    // eslint-disable-next-line unused-imports/no-unused-vars
     const [_admin, notAdmin] = await setupDb();
     const food = await FoodModel.create({
       name: "test",

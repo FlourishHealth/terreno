@@ -8,7 +8,6 @@ export const TableTitle: FC<TableTitleProps> = ({title, align = "left"}) => {
   const {theme} = useTheme();
   return (
     // No hint needed for a title.
-    // eslint-disable-next-line react-native-a11y/has-accessibility-hint
     <Text
       aria-label={`Table title: ${title}`}
       aria-role="header"

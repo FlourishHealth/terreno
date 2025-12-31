@@ -57,7 +57,6 @@ const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
           <TableHeaderCell index={1} title="Type" />
           <TableHeaderCell index={2} title="Default" />
         </TableHeader>
-        {/* eslint-disable-next-line react/prop-types */}
         {sortedProps.map((p) => (
           <TableRow key={p.name}>
             <Box direction="row">

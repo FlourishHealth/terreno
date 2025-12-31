@@ -20,7 +20,6 @@ export const TimezonePicker: FC<TimezonePickerProps> = ({
   shortTimezone = false,
   ...fieldProps
 }: TimezonePickerProps): React.ReactElement => {
-  // eslint-disable-next-line react/display-name
   const tzOptions = React.useMemo(
     () => getTimezoneOptions(location, shortTimezone),
     [location, shortTimezone]

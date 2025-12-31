@@ -120,7 +120,6 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
         setShow(!isSeen);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, dismissible]);
 
   const dismiss = async (): Promise<void> => {

@@ -32,7 +32,6 @@ export const MobileAddressAutocomplete = ({
     if (ref?.current) {
       ref.current.setAddressText(inputValue);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [googleMapsApiKey, inputValue]);
 
   const textInputContainerStyles = {

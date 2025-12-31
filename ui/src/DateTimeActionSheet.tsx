@@ -1,4 +1,3 @@
-/* eslint-disable react-native-a11y/has-accessibility-hint */
 import {FontAwesome6} from "@expo/vector-icons";
 import {Picker} from "@react-native-picker/picker";
 import {getCalendars} from "expo-localization";
@@ -457,7 +456,6 @@ export const DateTimeActionSheet = ({
     setDate(datetime.toISO());
     // Reset timezone when the sent date changes.
     setTimezone(originalTimezone);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, originalTimezone]);
 
   // TODO Support 24 hour time for time picker.

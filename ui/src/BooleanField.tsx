@@ -70,7 +70,6 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   // Update animation when value changes without pressing
   useEffect(() => {
     animateSwitch(value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, animateSwitch]);
 
   const interpolatedColorAnimation = backgroundColor.interpolate({

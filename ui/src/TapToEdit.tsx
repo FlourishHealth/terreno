@@ -87,7 +87,6 @@ export const TapToEdit: FC<TapToEditProps> = ({
   useEffect(() => {
     setInitialValue(value);
     // do not update if value changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility

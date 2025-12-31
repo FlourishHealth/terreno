@@ -1,4 +1,3 @@
-/* eslint-disable react-native-a11y/has-accessibility-hint */
 // accessibility hint handled in IconButton.tsx
 
 import type {FC} from "react";

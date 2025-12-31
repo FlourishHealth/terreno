@@ -39,7 +39,6 @@ export const useStoredState = <T>(
     return () => {
       isMounted.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchData]);
 
   const setAsyncStorageState = async (newValue: T | undefined): Promise<void> => {

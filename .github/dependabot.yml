@@ -14,10 +14,8 @@ updates:
   - package-ecosystem: "npm"
     directory: "/api"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     ignore:
-      - dependency-name: "eslint"
-        versions: ["9.x"]
       # ESM only in 3.x
       - dependency-name: "@thream/socketio-jwt"
         versions: ["3.x"]
@@ -37,6 +35,16 @@ updates:
     # Note: security PRs will still be their own for visibility.
     groups:
       api:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  # Maintain dependencies for npm in demo/
+  - package-ecosystem: "npm"
+    directory: "/demo"
+    schedule:
+      interval: "monthly"
+    groups:
+      demo:
         applies-to: version-updates
         patterns:
           - "*"

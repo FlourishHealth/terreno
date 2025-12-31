@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import React, {useImperativeHandle} from "react";
 import {
   type AccessibilityProps,
@@ -61,7 +60,6 @@ const isValidWidthHeight = (value: number | string): boolean => {
   return typeof value === "number" || !Number.isNaN(Number(value)) || isValidPercentage(value);
 };
 
-// eslint-disable-next-line react/display-name
 export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
 

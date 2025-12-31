@@ -97,7 +97,6 @@ export class APIError extends Error {
     );
     this.name = "APIError";
 
-    // eslint-disable-next-line prefer-const
     let {title, id, links, status, code, detail, source, meta, fields, error} = data;
 
     if (!status) {
