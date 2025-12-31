@@ -1,0 +1,162 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Box snapshots should match snapshot with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Box snapshots should match snapshot with layout props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "column",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "justifyContent": "center",
+      "margin": 8,
+      "padding": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Box snapshots should match snapshot with clickable props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "accessibilityHint": "Tap to trigger action",
+    "aria-label": "Click me",
+    "aria-role": "button",
+    "onLayout": undefined,
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "onPress": [Function: AsyncFunction],
+    "style": {
+      "accessibilityHint": "Tap to trigger action",
+      "accessibilityLabel": "Click me",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Box snapshots should match snapshot with scroll enabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "scroll": true,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "contentContainerStyle": {
+      "alignContent": undefined,
+      "alignItems": undefined,
+      "justifyContent": undefined,
+    },
+    "horizontal": false,
+    "keyboardShouldPersistTaps": "handled",
+    "nestedScrollEnabled": true,
+    "onScroll": [Function],
+    "ref": {
+      "current": null,
+    },
+    "scrollEventThrottle": 50,
+    "style": {
+      "scroll": true,
+    },
+  },
+  "type": "ScrollView",
+}
+`;
+
+exports[`Box snapshots should match snapshot with keyboard avoidance 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Box snapshots should match snapshot with border and rounding 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": "#0E9DCD",
+      "borderColor": "#CDCDCD",
+      "borderRadius": 4,
+      "borderWidth": 1,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

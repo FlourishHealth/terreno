@@ -1,0 +1,76 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "RCT_METRO_PORT=8085 NODE_OPTIONS=--openssl-legacy-provider expo start --port 8085",
+    "android": "NODE_OPTIONS=--openssl-legacy-provider expo start --android --port 8085",
+    "ios": "NODE_OPTIONS=--openssl-legacy-provider expo start --ios --port 8085",
+    "web": "NODE_OPTIONS=--openssl-legacy-provider expo start --web --port 8085",
+    "build": "tsc",
+    "build-preview": "NODE_OPTIONS=--openssl-legacy-provider yarn build-web",
+    "build-web": "NODE_OPTIONS=--openssl-legacy-provider npx expo export",
+    "lint": "biome check app components demoConfig.tsx stories story-config",
+    "lintfix": "biome check --write app components demoConfig.tsx stories story-config",
+    "lintfixunsafe": "biome check --write --unsafe app components demoConfig.tsx stories story-config"
+  },
+  "dependencies": {
+    "@expo-google-fonts/comfortaa": "^0.4.1",
+    "crypto-browserify": "^3.12.1",
+    "expo": "^54",
+    "expo-constants": "~18.0.11",
+    "expo-crypto": "~15.0.8",
+    "expo-linking": "~8.0.10",
+    "expo-router": "~6.0.19",
+    "expo-status-bar": "~3.0.9",
+    "ferns-ui": "*",
+    "lodash": "^4.17.21",
+    "mdurl": "^2.0.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-keyed-flatten-children": "^5.1.1",
+    "react-native": "0.81.5",
+    "react-native-haptic-feedback": "^2.0.3",
+    "react-native-hyperlink": "^0.1.0",
+    "react-native-markdown-display": "^7.0.2",
+    "react-native-reanimated": "~4.1.1",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-svg": "15.12.1",
+    "react-native-swiper-flatlist": "^3.2.5",
+    "react-native-web": "^0.21.0",
+    "react-native-worklets": "0.5.1",
+    "stream-browserify": "^3.0.0",
+    "swiper": "^11.2.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.27.1",
+    "@babel/plugin-proposal-export-namespace-from": "^7.18.9",
+    "@expo/config-plugins": "~54.0.4",
+    "@expo/metro-runtime": "~6.1.2",
+    "@expo/webpack-config": "^19.0.1",
+    "@shopify/flash-list": "1.7.6",
+    "@types/lodash": "^4.17.17",
+    "@biomejs/biome": "^2.3.6",
+    "postcss": "8.5.6",
+    "prettier": "^3.3.3",
+    "typedoc": "^0.28.5",
+    "typescript": "~5.9.2"
+  },
+  "private": true,
+  "prettier": {
+    "arrowParens": "always",
+    "bracketSpacing": false,
+    "printWidth": 100,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "es5",
+    "useTabs": false
+  },
+  "resolutions": {
+    "@expo/cli": "0.17.0"
+  },
+  "engine": {
+    "node": "22"
+  }
+}

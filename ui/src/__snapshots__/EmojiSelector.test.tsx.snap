@@ -1,0 +1,422 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`EmojiSelector matches snapshot 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "⚾️",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "😀",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🏳️‍🌈",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🍔",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🕘",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🦄",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "💡",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🧑",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#007AFF",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "✈️",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "🔣",
+              ],
+              "props": {
+                "style": {
+                  "fontSize": 18,
+                  "paddingBottom": 8,
+                  "textAlign": "center",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "alignItems": "center",
+              "borderBottomWidth": 2,
+              "borderColor": "#EEEEEE",
+              "flex": 1,
+              "justifyContent": "center",
+              "maxHeight": 60,
+              "minHeight": 44,
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+          "maxHeight": 60,
+          "minHeight": 44,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "autoCorrect": false,
+                "clearButtonMode": "always",
+                "onChangeText": [Function],
+                "placeholder": "Search emojis",
+                "returnKeyType": "done",
+                "style": {
+                  "backgroundColor": "#E5E8E9",
+                  "borderRadius": 10,
+                  "height": 36,
+                  "margin": 8,
+                  "paddingLeft": 8,
+                },
+                "underlineColorAndroid": "#007AFF",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "backgroundColor": "rgba(255,255,255,0.75)",
+              "width": "100%",
+              "zIndex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "color": "#000000",
+                "size": "large",
+              },
+              "type": "ActivityIndicator",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flex": 1,
+              "justifyContent": "center",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flex": 1,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onLayout": [Function],
+    "style": {
+      "flex": 1,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

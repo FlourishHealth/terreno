@@ -1,0 +1,126 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Accordion renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Test Title",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-bold",
+                      "fontSize": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "column",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-role": "button",
+                "hitSlop": {
+                  "bottom": 20,
+                  "left": 20,
+                  "right": 20,
+                  "top": 20,
+                },
+                "onPress": [Function],
+                "testID": "accordion-toggle",
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": undefined,
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Test Content",
+          ],
+          "props": {
+            "style": undefined,
+            "testID": "test-content",
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "marginTop": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "borderBottomColor": "#CDCDCD",
+      "borderBottomWidth": 2,
+      "borderTopColor": "#CDCDCD",
+      "borderTopWidth": 2,
+      "padding": 16,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
