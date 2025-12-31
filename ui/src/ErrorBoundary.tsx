@@ -1,6 +1,6 @@
 import React from "react";
 
-import {ErrorBoundaryProps} from "./Common";
+import type {ErrorBoundaryProps} from "./Common";
 import {ErrorPage} from "./ErrorPage";
 
 interface State {

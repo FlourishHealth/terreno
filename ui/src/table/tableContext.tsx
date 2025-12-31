@@ -1,16 +1,17 @@
-import React, {Context, createContext, useContext} from "react";
+import type React from "react";
+import {type Context, createContext, useContext} from "react";
 
-import {TableContextProviderProps, TableContextType} from "../Common";
+import type {TableContextProviderProps, TableContextType} from "../Common";
 
 const TableContext: Context<TableContextType> = createContext<TableContextType>({
+  alternateRowBackground: true,
+  borderStyle: "sm",
   columns: [],
   hasDrawerContents: false,
-  sortColumn: undefined,
-  setSortColumn: () => {},
-  stickyHeader: true,
-  borderStyle: "sm",
-  alternateRowBackground: true,
   page: 1,
+  setSortColumn: () => {},
+  sortColumn: undefined,
+  stickyHeader: true,
 });
 
 export const {Provider} = TableContext;
@@ -29,14 +30,14 @@ export const TableContextProvider = ({
   return (
     <Provider
       value={{
-        columns,
         alternateRowBackground,
         borderStyle,
+        columns,
         hasDrawerContents,
-        sortColumn,
-        setSortColumn,
-        stickyHeader,
         page,
+        setSortColumn,
+        sortColumn,
+        stickyHeader,
       }}
     >
       {children}
@@ -55,12 +56,12 @@ export function useTableContext(): TableContextType {
     borderStyle,
   } = useContext(TableContext);
   return {
+    alternateRowBackground,
+    borderStyle,
     columns,
     hasDrawerContents,
     setSortColumn,
     sortColumn,
     stickyHeader,
-    alternateRowBackground,
-    borderStyle,
   };
 }

@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import {Linking, Pressable} from "react-native";
 
-import {LinkProps} from "./Common";
+import type {LinkProps} from "./Common";
 import {Text} from "./Text";
 
 export const Link = ({text, href, onClick}: LinkProps): React.ReactElement => {

@@ -1,9 +1,9 @@
-import React, {FC, useEffect, useRef, useState} from "react";
+import {type FC, useEffect, useRef, useState} from "react";
 import {Linking, View} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {AddressInterface, FieldProps, TapToEditProps} from "./Common";
+import type {AddressInterface, FieldProps, TapToEditProps} from "./Common";
 import {Field} from "./Field";
 import {Icon} from "./Icon";
 // import {useOpenAPISpec} from "./OpenAPIContext";
@@ -88,7 +88,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
     setInitialValue(value);
     // do not update if value changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [value]);
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
   const inputRef = useRef<any>(null);
@@ -120,28 +120,26 @@ export const TapToEdit: FC<TapToEditProps> = ({
                 ? (ref: any) => (inputRef.current = ref)
                 : undefined
             }
+            onChange={setValue ?? (() => {})}
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}
-            onChange={setValue ?? (() => {})}
             {...(fieldProps as any)}
           />
           {editing && !isEditing && (
-            <View style={{flexDirection: "row", justifyContent: "flex-end", gap: 16}}>
+            <View style={{flexDirection: "row", gap: 16, justifyContent: "flex-end"}}>
               <Button
-                text="Cancel"
-                variant="muted"
                 onClick={(): void => {
                   if (setValue) {
                     setValue(initialValue);
                   }
                   setEditing(false);
                 }}
+                text="Cancel"
+                variant="muted"
               />
               {(showClearButton || ["date", "datetime", "time"].includes(fieldProps?.type)) && (
                 <Button
-                  text="Clear"
-                  variant="muted"
                   onClick={(): void => {
                     if (setValue) {
                       setValue("");
@@ -152,14 +150,14 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  text="Clear"
+                  variant="muted"
                 />
               )}
               <View style={{marginLeft: 8}}>
                 <Button
                   confirmationText={confirmationText}
                   modalTitle={confirmationTitle}
-                  text="Save"
-                  withConfirmation={withConfirmation}
                   onClick={async (): Promise<void> => {
                     if (!onSave) {
                       console.error("No onSave provided for editable TapToEdit");
@@ -169,6 +167,8 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     }
                     setEditing(false);
                   }}
+                  text="Save"
+                  withConfirmation={withConfirmation}
                 />
               </View>
             </View>
@@ -242,7 +242,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
           width: "100%",
         }}
       >
-        <View style={{flexDirection: "row", width: "100%", gap: 16}}>
+        <View style={{flexDirection: "row", gap: 16, width: "100%"}}>
           <TapToEditTitle
             helperText={helperText}
             onlyShowHelperTextWhileEditing={onlyShowHelperTextWhileEditing}
@@ -250,8 +250,8 @@ export const TapToEdit: FC<TapToEditProps> = ({
           />
           <View
             style={{
-              flexDirection: "row",
               flex: 1,
+              flexDirection: "row",
               justifyContent: "flex-end",
             }}
           >
@@ -272,8 +272,8 @@ export const TapToEdit: FC<TapToEditProps> = ({
                 accessibilityHint=""
                 accessibilityLabel="Edit"
                 marginLeft={2}
-                width={16}
                 onClick={(): void => setEditing(true)}
+                width={16}
               >
                 <Icon iconName="pencil" size="md" />
               </Box>

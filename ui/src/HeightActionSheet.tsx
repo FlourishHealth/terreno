@@ -5,7 +5,7 @@ import React from "react";
 import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {HeightActionSheetProps} from "./Common";
+import type {HeightActionSheetProps} from "./Common";
 
 const PICKER_HEIGHT = 104;
 
@@ -28,15 +28,15 @@ export class HeightActionSheet extends React.Component<
 
   render() {
     return (
-      <ActionSheet ref={this.props.actionSheetRef} bounceOnOpen gestureEnabled>
+      <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
           <Box alignItems="end" display="flex" width="100%">
             <Box width="33%">
               <Button
-                text="Close"
                 onClick={() => {
                   this.props.actionSheetRef?.current?.setModalVisible(false);
                 }}
+                text="Close"
               />
             </Box>
           </Box>
@@ -46,14 +46,14 @@ export class HeightActionSheet extends React.Component<
                 itemStyle={{
                   height: PICKER_HEIGHT,
                 }}
-                selectedValue={this.state.feet}
-                style={{
-                  height: PICKER_HEIGHT,
-                  backgroundColor: "#FFFFFF",
-                }}
                 onValueChange={(feet) => {
                   this.setState({feet: String(feet)});
                   this.props.onChange(String(Number(feet) * 12 + Number(this.state.inches)));
+                }}
+                selectedValue={this.state.feet}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  height: PICKER_HEIGHT,
                 }}
               >
                 {range(4, 8).map((n) => {
@@ -67,14 +67,14 @@ export class HeightActionSheet extends React.Component<
                 itemStyle={{
                   height: PICKER_HEIGHT,
                 }}
-                selectedValue={this.state.inches}
-                style={{
-                  height: PICKER_HEIGHT,
-                  backgroundColor: "#FFFFFF",
-                }}
                 onValueChange={(inches) => {
                   this.setState({inches: String(inches)});
                   this.props.onChange(String(Number(this.state.feet) * 12 + Number(inches)));
+                }}
+                selectedValue={this.state.inches}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  height: PICKER_HEIGHT,
                 }}
               >
                 {range(0, 12).map((n) => {

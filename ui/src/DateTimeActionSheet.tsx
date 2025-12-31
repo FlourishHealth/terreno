@@ -4,12 +4,13 @@ import {Picker} from "@react-native-picker/picker";
 import {getCalendars} from "expo-localization";
 import range from "lodash/range";
 import {DateTime} from "luxon";
-import React, {useEffect, useMemo, useState} from "react";
-import {Platform, Pressable, StyleProp, TextInput, TextStyle, View} from "react-native";
+import type React from "react";
+import {useEffect, useMemo, useState} from "react";
+import {Platform, Pressable, type StyleProp, TextInput, type TextStyle, View} from "react-native";
 import {Calendar} from "react-native-calendars";
 
 import {Box} from "./Box";
-import {DateTimeActionSheetProps, IconName} from "./Common";
+import type {DateTimeActionSheetProps, IconName} from "./Common";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
@@ -48,32 +49,32 @@ const TimeInput = ({
 
   // Broken out because types don't think "outline" is a valid style.
   const textInputStyle: StyleProp<TextStyle> = {
+    color: theme.text.primary,
     flex: 1,
-    paddingTop: 4,
-    paddingRight: 4,
+    fontFamily: "text",
+    height: INPUT_HEIGHT,
     paddingBottom: 4,
     paddingLeft: 0,
-    height: INPUT_HEIGHT,
+    paddingRight: 4,
+    paddingTop: 4,
     width: "100%",
-    color: theme.text.primary,
-    fontFamily: "text",
   };
 
   return (
     <View
       style={{
-        flexDirection: "row",
-        justifyContent: "center",
         alignItems: "center",
+        backgroundColor: theme.surface.base,
+        borderColor: error ? theme.border.error : theme.border.default,
+        borderRadius: 5,
+        borderWidth: focused ? 5 : 1,
+        flexDirection: "row",
         height: INPUT_HEIGHT,
-        width: "100%",
+        justifyContent: "center",
         // Add padding so the border doesn't mess up layouts
         paddingHorizontal: focused ? 10 : 14,
         paddingVertical: focused ? 0 : 4,
-        borderColor: error ? theme.border.error : theme.border.default,
-        borderWidth: focused ? 5 : 1,
-        borderRadius: 5,
-        backgroundColor: theme.surface.base,
+        width: "100%",
       }}
     >
       <TextInput
@@ -81,16 +82,6 @@ const TimeInput = ({
         aria-label="Text input field"
         enterKeyHint="done"
         keyboardType="number-pad"
-        selectTextOnFocus
-        style={
-          {
-            ...textInputStyle,
-            outline: Platform.select({web: "none"}),
-          } as StyleProp<TextStyle>
-        }
-        textContentType="none"
-        underlineColorAndroid="transparent"
-        value={text}
         onBlur={() => {
           setFocused(false);
         }}
@@ -101,6 +92,16 @@ const TimeInput = ({
         onFocus={() => {
           setFocused(true);
         }}
+        selectTextOnFocus
+        style={
+          {
+            ...textInputStyle,
+            outline: Platform.select({web: "none"}),
+          } as StyleProp<TextStyle>
+        }
+        textContentType="none"
+        underlineColorAndroid="transparent"
+        value={text}
       />
     </View>
   );
@@ -214,12 +215,12 @@ const MobileTime = ({
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
             }}
+            onValueChange={(itemValue) => setHour(itemValue)}
             selectedValue={hour}
             style={{
-              height: TIME_PICKER_HEIGHT,
               backgroundColor: "#FFFFFF",
+              height: TIME_PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => setHour(itemValue)}
           >
             {hours.map((n) => (
               <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
@@ -231,12 +232,12 @@ const MobileTime = ({
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
             }}
+            onValueChange={(itemValue) => setMinute(itemValue)}
             selectedValue={minute}
             style={{
-              height: TIME_PICKER_HEIGHT,
               backgroundColor: "#FFFFFF",
+              height: TIME_PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => setMinute(itemValue)}
           >
             {minutes.map((n) => (
               <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
@@ -248,12 +249,12 @@ const MobileTime = ({
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
             }}
+            onValueChange={(itemValue) => setAmPm(itemValue)}
             selectedValue={amPm}
             style={{
-              height: TIME_PICKER_HEIGHT,
               backgroundColor: "#FFFFFF",
+              height: TIME_PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => setAmPm(itemValue)}
           >
             <Picker.Item key="am" label="am" value="am" />
             <Picker.Item key="pm" label="pm" value="pm" />
@@ -262,7 +263,7 @@ const MobileTime = ({
       </Box>
       {Boolean(type === "time" || type === "datetime") && (
         <Box paddingY={2}>
-          <TimezonePicker hideTitle timezone={timezone} onChange={setTimezone} />
+          <TimezonePicker hideTitle onChange={setTimezone} timezone={timezone} />
         </Box>
       )}
     </Box>
@@ -284,7 +285,7 @@ const WebTime = ({
   return (
     <Box direction="row" justifyContent="center" width="100%">
       <Box width={60}>
-        <TimeInput type="hour" value={hour} onChange={(v) => setHour(v)} />
+        <TimeInput onChange={(v) => setHour(v)} type="hour" value={hour} />
       </Box>
       <Box
         alignItems="center"
@@ -296,24 +297,24 @@ const WebTime = ({
         <Heading size="md">:</Heading>
       </Box>
       <Box marginRight={2} width={60}>
-        <TimeInput type="minute" value={minute} onChange={(v) => setMinute(v)} />
+        <TimeInput onChange={(v) => setMinute(v)} type="minute" value={minute} />
       </Box>
 
       <Box marginRight={2} width={60}>
         <SelectField
+          onChange={(result) => {
+            setAmPm(result as "am" | "pm");
+          }}
           options={[
             {label: "am", value: "am"},
             {label: "pm", value: "pm"},
           ]}
           value={amPm}
-          onChange={(result) => {
-            setAmPm(result as "am" | "pm");
-          }}
         />
       </Box>
       {Boolean(type === "time" || type === "datetime") && (
         <Box>
-          <TimezonePicker hideTitle timezone={timezone} onChange={setTimezone} />
+          <TimezonePicker hideTitle onChange={setTimezone} timezone={timezone} />
         </Box>
       )}
     </Box>
@@ -356,14 +357,14 @@ const DateCalendar = ({
       ? DateTime.fromISO(dateString).setZone(timezone).toFormat("yyyy-MM-dd")
       : DateTime.fromISO(dateString).toFormat("yyyy-MM-dd");
     markedDates[displayDate] = {
-      selected: true,
-      selectedColor: theme.text.primary,
       customStyles: {
         container: {
           backgroundColor: theme.surface.secondaryDark,
           borderRadius: 4,
         },
       },
+      selected: true,
+      selectedColor: theme.text.primary,
     };
   }
   return (
@@ -374,13 +375,6 @@ const DateCalendar = ({
           initialDate={dateString}
           markedDates={markedDates}
           markingType="custom"
-          theme={{
-            todayTextColor: theme.text.accent,
-            dayTextColor: theme.text.primary,
-            textDayFontFamily: "text",
-            textDayFontWeight: "400",
-            textDayFontSize: 16,
-          }}
           onDayPress={(day: {dateString: string}) => {
             setDate(day.dateString);
             // If type is just date, we can shortcut and close right away.
@@ -389,6 +383,13 @@ const DateCalendar = ({
               onChange(day.dateString);
               onDismiss();
             }
+          }}
+          theme={{
+            dayTextColor: theme.text.primary,
+            textDayFontFamily: "text",
+            textDayFontSize: 16,
+            textDayFontWeight: "400",
+            todayTextColor: theme.text.accent,
           }}
         />
       </Box>
@@ -473,14 +474,14 @@ export const DateTimeActionSheet = ({
     const dateTime = DateTime.fromISO(date, {zone: timezone});
 
     if (type === "date") {
-      const v = dateTime.set({hour: 0, minute: 0, second: 0, millisecond: 0}).toUTC().toISO();
+      const v = dateTime.set({hour: 0, millisecond: 0, minute: 0, second: 0}).toUTC().toISO();
       if (!v || !DateTime.fromISO(v).isValid) {
         throw new Error(`Invalid date: ${date}`);
       }
       onChange(v);
     } else if (type === "time") {
       const v = dateTime
-        .set({hour: militaryHour, minute, second: 0, millisecond: 0})
+        .set({hour: militaryHour, millisecond: 0, minute, second: 0})
         .toUTC()
         .toISO();
       if (!v || !DateTime.fromISO(v).isValid) {
@@ -489,7 +490,7 @@ export const DateTimeActionSheet = ({
       onChange(v);
     } else if (type === "datetime") {
       const v = dateTime
-        .set({hour: militaryHour, minute, second: 0, millisecond: 0})
+        .set({hour: militaryHour, millisecond: 0, minute, second: 0})
         .toUTC()
         .toISO();
       if (!v || !DateTime.fromISO(v).isValid) {
@@ -508,41 +509,41 @@ export const DateTimeActionSheet = ({
   const dateProps = useMemo(
     () => ({
       date,
-      type,
-      timezone,
-      setDate,
       onChange,
       onDismiss,
+      setDate,
+      timezone,
+      type,
     }),
-    [date, type, setDate, onChange, onDismiss, timezone]
+    [date, type, onChange, onDismiss, timezone]
   );
 
   const timeProps = useMemo(
     () => ({
-      type,
-      timezone,
-      setTimezone,
-      hour,
-      setHour,
-      minute,
-      setMinute,
       amPm,
+      hour,
+      minute,
       setAmPm,
+      setHour,
+      setMinute,
+      setTimezone,
+      timezone,
+      type,
     }),
-    [type, timezone, setTimezone, hour, setHour, minute, setMinute, amPm, setAmPm]
+    [type, timezone, hour, minute, amPm]
   );
 
   return (
     <Modal
+      onDismiss={onDismiss}
       primaryButtonOnClick={sendOnChange}
       primaryButtonText="Save"
       secondaryButtonOnClick={sendClear}
       secondaryButtonText="Clear"
       size="sm"
       visible={visible}
-      onDismiss={onDismiss}
     >
-      <View style={{width: "100%", display: "flex", justifyContent: "center"}}>
+      <View style={{display: "flex", justifyContent: "center", width: "100%"}}>
         {Boolean(type === "date") && <DateCalendar {...dateProps} />}
         {Boolean(type === "time" && isMobileDevice()) && <MobileTime {...timeProps} />}
         {Boolean(type === "time" && !isMobileDevice()) && <WebTime {...timeProps} />}

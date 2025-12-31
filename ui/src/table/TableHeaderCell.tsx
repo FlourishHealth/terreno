@@ -1,10 +1,10 @@
 // TableHeaderCell.tsx
 import {FontAwesome6} from "@expo/vector-icons";
-import React, {ReactElement, useCallback} from "react";
+import {type ReactElement, useCallback} from "react";
 import {View} from "react-native";
 
 import {Box} from "../Box";
-import {AlignItems, TableHeaderCellProps} from "../Common";
+import type {AlignItems, TableHeaderCellProps} from "../Common";
 import {useTheme} from "../Theme";
 import {TableTitle} from "./TableTitle";
 import {useTableContext} from "./tableContext";
@@ -74,8 +74,8 @@ export const TableHeaderCell = ({
               alignItems: "center",
               backgroundColor: theme.surface.primary,
               borderRadius: theme.radius.rounded as any,
-              justifyContent: "center",
               height: 16,
+              justifyContent: "center",
               width: 16,
             }}
           >

@@ -9,7 +9,7 @@ import {
   TitilliumWeb_700Bold,
   useFonts as useHeadingFonts,
 } from "@expo-google-fonts/titillium-web";
-import React from "react";
+import type React from "react";
 import {Platform} from "react-native";
 import Markdown from "react-native-markdown-display";
 
@@ -29,9 +29,9 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
   // Mobile sizes: sm:14, md:16, lg:20, xl:28
   const isWeb = Platform.OS === "web";
   const sizes = {
-    sm: isWeb ? 16 : 14,
-    md: isWeb ? 18 : 16,
     lg: isWeb ? 24 : 20,
+    md: isWeb ? 18 : 16,
+    sm: isWeb ? 16 : 14,
     xl: isWeb ? 32 : 28,
   } as const;
 
@@ -43,9 +43,9 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
   });
   useTextFonts({
     text: Nunito_400Regular,
-    "text-regular": Nunito_400Regular,
-    "text-medium": Nunito_500Medium,
     "text-bold": Nunito_700Bold,
+    "text-medium": Nunito_500Medium,
+    "text-regular": Nunito_400Regular,
   });
 
   return (

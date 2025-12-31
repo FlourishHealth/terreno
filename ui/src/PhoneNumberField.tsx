@@ -1,7 +1,7 @@
 import {AsYouType, parsePhoneNumberFromString} from "libphonenumber-js";
-import React, {FC, useCallback, useEffect, useState} from "react";
+import {type FC, useCallback, useEffect, useState} from "react";
 
-import {PhoneNumberFieldProps} from "./Common";
+import type {PhoneNumberFieldProps} from "./Common";
 import {TextField} from "./TextField";
 
 export const PhoneNumberField: FC<PhoneNumberFieldProps> = ({
@@ -98,11 +98,11 @@ export const PhoneNumberField: FC<PhoneNumberFieldProps> = ({
     <TextField
       errorText={error}
       iconName={iconName}
+      onBlur={(inputValue) => handleBlur(inputValue)}
+      onChange={(inputValue) => handleChange(inputValue)}
       placeholder={placeholder}
       type="phoneNumber"
       value={localValue}
-      onBlur={(inputValue) => handleBlur(inputValue)}
-      onChange={(inputValue) => handleChange(inputValue)}
       {...rest}
     />
   );

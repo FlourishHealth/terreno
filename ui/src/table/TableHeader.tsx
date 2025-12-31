@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 
 import {Box} from "../Box";
-import {TableHeaderProps} from "../Common";
+import type {TableHeaderProps} from "../Common";
 import {TableRow} from "./TableRow";
 
 /**

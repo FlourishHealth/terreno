@@ -1,35 +1,35 @@
 import {getCalendars} from "expo-localization";
-import React, {FC, useMemo, useState} from "react";
+import {type FC, useMemo, useState} from "react";
 import {
-  DimensionValue,
-  KeyboardTypeOptions,
+  type DimensionValue,
+  type KeyboardTypeOptions,
   Platform,
   Pressable,
-  StyleProp,
+  type StyleProp,
   TextInput,
   View,
 } from "react-native";
 
-import {TextFieldProps, TextStyleWithOutline} from "./Common";
+import type {TextFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
+  decimal: "decimal-pad",
+  decimalRange: "decimal-pad",
   email: "email-address",
+  height: "default",
   number: "number-pad",
   numberRange: "number-pad",
-  decimalRange: "decimal-pad",
-  decimal: "decimal-pad",
-  height: "default",
   password: "default",
   phoneNumber: "number-pad",
   search: "default",
   text: "default",
   url: Platform.select({
-    ios: "url",
     android: "default",
+    ios: "url",
   }),
   username: "default",
 };
@@ -39,17 +39,17 @@ const textContentMap: {
   [id: string]: "none" | "emailAddress" | "password" | "username" | "URL" | undefined;
 } = {
   date: "none",
-  email: "emailAddress",
-  number: "none",
   decimal: "none",
   decimalRange: "none",
+  email: "emailAddress",
   height: "none",
+  number: "none",
   password: "password",
   search: "none",
   text: "none",
   url: Platform.select({
-    ios: "URL",
     android: "none",
+    ios: "URL",
   }),
   username: "username",
 };
@@ -109,14 +109,14 @@ export const TextField: FC<TextFieldProps> = ({
 
   const defaultTextInputStyles = useMemo(() => {
     const style: StyleProp<TextStyleWithOutline> = {
-      flex: 1,
-      width: "100%",
-      height: calculatedHeight,
       color: theme.text.primary,
+      flex: 1,
       fontFamily: "text",
       fontSize: 16,
-      paddingVertical: 0,
       gap: 10,
+      height: calculatedHeight,
+      paddingVertical: 0,
+      width: "100%",
     };
 
     if (Platform.OS === "web") {
@@ -146,23 +146,18 @@ export const TextField: FC<TextFieldProps> = ({
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <View
         style={{
-          flexDirection: "row",
           alignItems: "center",
           backgroundColor: disabled ? theme.surface.neutralLight : theme.surface.base,
           borderColor,
+          borderRadius: 4,
           borderWidth: focused ? 3 : 1,
+          flexDirection: "row",
+          overflow: "hidden",
           paddingHorizontal: focused ? 10 : 12,
           paddingVertical: focused ? 6 : 8,
-          borderRadius: 4,
-          overflow: "hidden",
         }}
       >
         <TextInput
-          ref={(ref) => {
-            if (inputRef) {
-              inputRef(ref);
-            }
-          }}
           accessibilityHint="Enter text here"
           accessibilityState={{disabled}}
           aria-label="Text input field"
@@ -173,15 +168,6 @@ export const TextField: FC<TextFieldProps> = ({
           keyboardType={keyboardType as KeyboardTypeOptions}
           multiline={multiline}
           numberOfLines={rows || 4}
-          placeholder={placeholder}
-          placeholderTextColor={theme.text.secondaryLight}
-          readOnly={disabled}
-          secureTextEntry={type === "password"}
-          style={defaultTextInputStyles}
-          testID={testID}
-          textContentType={textContentType}
-          underlineColorAndroid="transparent"
-          value={value}
           onBlur={() => {
             if (disabled) return;
             let finalValue = value ?? "";
@@ -220,6 +206,20 @@ export const TextField: FC<TextFieldProps> = ({
               onSubmitEditing();
             }
           }}
+          placeholder={placeholder}
+          placeholderTextColor={theme.text.secondaryLight}
+          readOnly={disabled}
+          ref={(ref) => {
+            if (inputRef) {
+              inputRef(ref);
+            }
+          }}
+          secureTextEntry={type === "password"}
+          style={defaultTextInputStyles}
+          testID={testID}
+          textContentType={textContentType}
+          underlineColorAndroid="transparent"
+          value={value}
         />
         {Boolean(iconName) && (
           <Pressable aria-role="button" onPress={onIconClick}>

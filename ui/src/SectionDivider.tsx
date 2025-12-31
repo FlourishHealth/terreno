@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import {View} from "react-native";
 import {useTheme} from "./Theme";
 
@@ -9,9 +9,9 @@ export const SectionDivider: React.FC<{}> = () => {
       accessibilityRole="none"
       aria-hidden={true}
       style={{
-        width: "100%",
-        height: 1,
         backgroundColor: theme.primitives.neutral500,
+        height: 1,
+        width: "100%",
       }}
     />
   );

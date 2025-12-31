@@ -1,5 +1,5 @@
 declare module "react-native-swiper-flatlist" {
-  import type {ReactNode, RefObject} from "react";
+  import type {ReactNode} from "react";
   import type {FlatListProps, StyleProp, ViewStyle} from "react-native";
 
   export interface SwiperFlatListProps<T> extends Omit<FlatListProps<T>, "renderItem"> {

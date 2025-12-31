@@ -2,7 +2,7 @@ import React from "react";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {PageProps} from "./Common";
+import type {PageProps} from "./Common";
 import {ErrorBoundary} from "./ErrorBoundary";
 import {Heading} from "./Heading";
 import {IconButton} from "./IconButton";
@@ -45,9 +45,9 @@ export class Page extends React.Component<PageProps, {}> {
         {this.props.rightButton && (
           <Box alignItems="center" display="block" justifyContent="center" paddingY={3}>
             <Button
+              onClick={() => this.props.rightButtonOnClick?.()}
               text={this.props.rightButton}
               variant="muted"
-              onClick={() => this.props.rightButtonOnClick?.()}
             />
           </Box>
         )}

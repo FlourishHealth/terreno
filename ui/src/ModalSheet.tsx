@@ -1,5 +1,5 @@
 /* eslint-disable react/display-name */
-import React, {forwardRef, useEffect, useRef} from "react";
+import {forwardRef, useEffect, useRef} from "react";
 import {Animated} from "react-native";
 import {Modalize} from "react-native-modalize";
 import {Portal} from "react-native-portalize";
@@ -44,9 +44,9 @@ export const SimpleContent = forwardRef((props: Props, ref) => {
     <Portal>
       <Modalize
         // HeaderComponent={renderHeader}
-        ref={combinedRef}
         adjustToContentHeight
         panGestureAnimatedValue={animated}
+        ref={combinedRef}
         scrollViewProps={{
           showsVerticalScrollIndicator: false,
           stickyHeaderIndices: [0],

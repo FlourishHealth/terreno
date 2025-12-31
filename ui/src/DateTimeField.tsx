@@ -1,9 +1,9 @@
 import {DateTime} from "luxon";
-import React, {FC, useCallback, useEffect, useRef, useState} from "react";
+import React, {type FC, useCallback, useEffect, useRef, useState} from "react";
 import {TextInput, View} from "react-native";
 
 import {Box} from "./Box";
-import {DateTimeFieldProps, IconName} from "./Common";
+import type {DateTimeFieldProps, IconName} from "./Common";
 import {DateTimeActionSheet} from "./DateTimeActionSheet";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {IconButton} from "./IconButton";
@@ -50,35 +50,35 @@ const DateTimeSegment: FC<DateTimeSegmentProps> = ({
   return (
     <View
       style={{
-        flexDirection: "row",
         alignItems: "center",
-        width: config.width,
-        borderColor: error ? theme.border.error : "transparent",
         backgroundColor: "transparent",
-        overflow: "hidden",
-        padding: 0,
+        borderColor: error ? theme.border.error : "transparent",
+        flexDirection: "row",
         flexShrink: 1,
         height: 50,
+        overflow: "hidden",
+        padding: 0,
+        width: config.width,
       }}
     >
       <TextInput
-        ref={(el) => onRef(el, index)}
         accessibilityHint={`Enter the ${config.placeholder}`}
         aria-label="Text input field"
         inputMode="numeric"
-        placeholder={config.placeholder}
-        readOnly={disabled}
-        selectTextOnFocus
-        style={{
-          width: config.width - 2,
-          textAlign: "center",
-          color: error ? theme.text.error : theme.text.primary,
-        }}
-        value={getFieldValue(index)}
         onBlur={() => onBlur()}
         onChangeText={(text) => {
           handleFieldChange(index, text, config);
         }}
+        placeholder={config.placeholder}
+        readOnly={disabled}
+        ref={(el) => onRef(el, index)}
+        selectTextOnFocus
+        style={{
+          color: error ? theme.text.error : theme.text.primary,
+          textAlign: "center",
+          width: config.width - 2,
+        }}
+        value={getFieldValue(index)}
       />
     </View>
   );
@@ -94,8 +94,8 @@ const DateField: FC<DateTimeProps> = ({fieldErrors, ...segmentProps}) => {
   return (
     <View
       style={{
-        flexDirection: "row",
         alignItems: "center",
+        flexDirection: "row",
         justifyContent: "space-between",
         width: 130,
       }}
@@ -128,7 +128,7 @@ const TimeField: FC<DateTimeProps> = ({type, onBlur, fieldErrors, ...segmentProp
   const hourIndex = type === "time" ? 0 : 3;
   const minuteIndex = type === "time" ? 1 : 4;
   return (
-    <View style={{flexDirection: "row", alignItems: "center", width: 65}}>
+    <View style={{alignItems: "center", flexDirection: "row", width: 65}}>
       <DateTimeSegment
         {...segmentProps}
         config={segmentProps.fieldConfigs[hourIndex]}
@@ -331,13 +331,13 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         }
         date = DateTime.fromObject(
           {
-            year: parseInt(yearVal, 10),
-            month: parseInt(monthVal, 10),
             day: parseInt(dayVal, 10),
             hour: hourNum,
-            minute: parseInt(minuteVal, 10),
-            second: 0,
             millisecond: 0,
+            minute: parseInt(minuteVal, 10),
+            month: parseInt(monthVal, 10),
+            second: 0,
+            year: parseInt(yearVal, 10),
           },
           {
             zone: override?.timezone ?? timezone,
@@ -349,13 +349,13 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         }
         date = DateTime.fromObject(
           {
-            year: parseInt(yearVal, 10),
-            month: parseInt(monthVal, 10),
             day: parseInt(dayVal, 10),
             hour: 0,
-            minute: 0,
-            second: 0,
             millisecond: 0,
+            minute: 0,
+            month: parseInt(monthVal, 10),
+            second: 0,
+            year: parseInt(yearVal, 10),
           },
           {
             zone: "UTC",
@@ -374,9 +374,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         date = DateTime.fromObject(
           {
             hour: hourNum,
+            millisecond: 0,
             minute: parseInt(minuteVal, 10),
             second: 0,
-            millisecond: 0,
           },
           {
             zone: override?.timezone ?? timezone,
@@ -484,7 +484,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
         const yearComplete = yearVal?.length === 4;
         const haveAllDateParts = monthComplete && dayComplete && yearComplete;
         if (haveAllDateParts) {
-          const result = getISOFromFields({month: monthVal, day: dayVal, year: yearVal});
+          const result = getISOFromFields({day: dayVal, month: monthVal, year: yearVal});
           if (result) {
             const currentValueUTC = value ? DateTime.fromISO(value).toUTC().toISO() : undefined;
             if (result !== currentValueUTC) {
@@ -538,10 +538,10 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           ? parsedDate
               .setZone("UTC")
               .startOf("day")
-              .set({second: 0, millisecond: 0})
+              .set({millisecond: 0, second: 0})
               .toUTC()
               .toISO()
-          : parsedDate.set({second: 0, millisecond: 0}).toUTC().toISO();
+          : parsedDate.set({millisecond: 0, second: 0}).toUTC().toISO();
       if (!normalized) {
         console.warn("Invalid date passed to DateTimeField", parsedDate);
         return;
@@ -649,12 +649,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   const segmentProps = {
     disabled,
+    fieldConfigs,
+    fieldErrors,
     getFieldValue,
     handleFieldChange,
     onBlur,
-    fieldConfigs,
     onRef: (el: TextInput | null, i: number) => (inputRefs.current[i] = el),
-    fieldErrors,
   };
 
   return (
@@ -662,22 +662,22 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       {Boolean(title) && <FieldTitle text={title!} />}
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <View
+        onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
         style={{
-          flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
-          borderColor,
+          alignItems: "center",
           backgroundColor: theme.surface.base,
+          borderColor,
+          borderRadius: 4,
           borderWidth: 1,
+          flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
+          maxWidth: maximumWidth,
+          minWidth: minimumWidth,
           paddingHorizontal: 6,
           paddingVertical: 2,
-          borderRadius: 4,
-          alignItems: "center",
-          minWidth: minimumWidth,
-          maxWidth: maximumWidth,
         }}
-        onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
       >
         {(type === "date" || type === "datetime") && (
-          <View style={{flexDirection: "row", alignItems: "center"}}>
+          <View style={{alignItems: "center", flexDirection: "row"}}>
             <DateField {...segmentProps} type={type} />
             {!disabled &&
               (type === "date" ||
@@ -686,26 +686,20 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
                   accessibilityHint="Opens the calendar to select a date and time"
                   accessibilityLabel="Show calendar"
                   iconName={iconName!}
-                  variant="muted"
                   onClick={() => setShowDate(true)}
+                  variant="muted"
                 />
               )}
           </View>
         )}
 
-        <View style={{flexDirection: "row", alignItems: "center"}}>
+        <View style={{alignItems: "center", flexDirection: "row"}}>
           {(type === "time" || type === "datetime") && <TimeField {...segmentProps} type={type} />}
           {Boolean(type === "datetime" || type === "time") && (
             <>
               <Box direction="column" marginLeft={2} marginRight={2} width={60}>
                 <SelectField
                   disabled={disabled}
-                  options={[
-                    {label: "am", value: "am"},
-                    {label: "pm", value: "pm"},
-                  ]}
-                  requireValue
-                  value={amPm}
                   onChange={(result) => {
                     setAmPm(result as "am" | "pm");
                     // No onblur, so we need to manually update the value
@@ -718,14 +712,18 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
                       onChange(iso);
                     }
                   }}
+                  options={[
+                    {label: "am", value: "am"},
+                    {label: "pm", value: "pm"},
+                  ]}
+                  requireValue
+                  value={amPm}
                 />
               </Box>
               <Box direction="column" width={70}>
                 <TimezonePicker
                   disabled={disabled}
                   hideTitle
-                  shortTimezone
-                  timezone={timezone}
                   onChange={(t) => {
                     if (onTimezoneChange) {
                       onTimezoneChange(t);
@@ -741,6 +739,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
                       onChange(iso);
                     }
                   }}
+                  shortTimezone
+                  timezone={timezone}
                 />
               </Box>
             </>
@@ -752,8 +752,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
                 accessibilityHint="Opens the calendar to select a date and time"
                 accessibilityLabel="Show calendar"
                 iconName={iconName!}
-                variant="muted"
                 onClick={() => setShowDate(true)}
+                variant="muted"
               />
             </Box>
           )}
@@ -763,12 +763,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       {!disabled && (
         <DateTimeActionSheet
           actionSheetRef={dateActionSheetRef}
+          onChange={onActionSheetChange}
+          onDismiss={() => setShowDate(false)}
           timezone={timezone}
           type={type}
           value={value}
           visible={showDate}
-          onChange={onActionSheetChange}
-          onDismiss={() => setShowDate(false)}
         />
       )}
       {Boolean(helperText) && <FieldHelperText text={helperText!} />}

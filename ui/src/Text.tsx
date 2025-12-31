@@ -7,27 +7,27 @@ import {
   Nunito_700Bold_Italic,
   useFonts,
 } from "@expo-google-fonts/nunito";
-import React from "react";
-import {Text as NativeText, Platform, TextStyle} from "react-native";
+import type React from "react";
+import {Text as NativeText, Platform, type TextStyle} from "react-native";
 
-import {TextProps} from "./Common";
+import type {TextProps} from "./Common";
 import {Hyperlink} from "./Hyperlink";
 import {useTheme} from "./Theme";
 
 const fontSizeAndWeightWeb = {
-  sm: {size: 12, weight: "regular"},
-  md: {size: 16, weight: "regular"},
-  lg: {size: 18, weight: "medium"},
-  xl: {size: 20, weight: "medium"},
   "2xl": {size: 48, weight: "medium"},
+  lg: {size: 18, weight: "medium"},
+  md: {size: 16, weight: "regular"},
+  sm: {size: 12, weight: "regular"},
+  xl: {size: 20, weight: "medium"},
 };
 
 const fontSizeAndWeighMobile = {
-  sm: {size: 10, weight: "regular"},
-  md: {size: 14, weight: "regular"},
-  lg: {size: 16, weight: "medium"},
-  xl: {size: 18, weight: "medium"},
   "2xl": {size: 40, weight: "medium"},
+  lg: {size: 16, weight: "medium"},
+  md: {size: 14, weight: "regular"},
+  sm: {size: 10, weight: "regular"},
+  xl: {size: 18, weight: "medium"},
 };
 
 const fontSizes = Platform.OS === "web" ? fontSizeAndWeightWeb : fontSizeAndWeighMobile;
@@ -48,11 +48,11 @@ export const Text = ({
   const {theme} = useTheme();
 
   useFonts({
+    text: Nunito_400Regular,
     "text-bold": Nunito_700Bold,
     "text-bold-italic": Nunito_700Bold_Italic,
     "text-medium": Nunito_500Medium,
     "text-medium-italic": Nunito_500Medium_Italic,
-    text: Nunito_400Regular,
     "text-regular": Nunito_400Regular,
     "text-regular-italic": Nunito_400Regular_Italic,
   });

@@ -1,43 +1,43 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import React, {FC} from "react";
+import type {FC} from "react";
 import {View} from "react-native";
 
-import {CheckBoxProps} from "./Common";
+import type {CheckBoxProps} from "./Common";
 import {useTheme} from "./Theme";
 
 export const CheckBox: FC<CheckBoxProps> = ({selected, size = "md", bgColor = "default"}) => {
   const {theme} = useTheme();
   const px = {
-    sm: {container: 10, icon: 8},
-    md: {container: 16, icon: 13},
     lg: {container: 24, icon: 16},
+    md: {container: 16, icon: 13},
+    sm: {container: 10, icon: 8},
   };
 
   const backgroundColor = {
-    default: theme.text.link,
     accent: theme.text.accent,
     black: theme.text.primary,
+    default: theme.text.link,
   };
   return (
     <View
       style={{
-        height: px[size].container,
-        width: px[size].container,
+        alignItems: "center",
+        backgroundColor: selected ? backgroundColor[bgColor] : "transparent",
+        borderColor: backgroundColor[bgColor],
         borderRadius: 3,
         borderWidth: 1,
-        borderColor: backgroundColor[bgColor],
-        alignItems: "center",
+        height: px[size].container,
         justifyContent: "center",
-        backgroundColor: selected ? backgroundColor[bgColor] : "transparent",
+        width: px[size].container,
       }}
     >
       {selected ? (
         <FontAwesome6
           color={theme.surface.base}
           name="check"
+          selectable={undefined}
           size={px[size].icon}
           solid
-          selectable={undefined}
         />
       ) : null}
     </View>

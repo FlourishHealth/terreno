@@ -1,15 +1,15 @@
-import React, {ReactElement, useCallback} from "react";
-import {Platform, SafeAreaView, StyleProp, ViewStyle} from "react-native";
+import {type ReactElement, useCallback} from "react";
+import {Platform, SafeAreaView, type StyleProp, type ViewStyle} from "react-native";
 import {Drawer} from "react-native-drawer-layout";
 
-import {SideDrawerProps} from "./Common";
+import type {SideDrawerProps} from "./Common";
 import {useTheme} from "./Theme";
 
 const DEFAULT_STYLES: StyleProp<ViewStyle> = {
-  width: Platform.OS === "web" ? "40%" : "95%",
-  height: "100%",
-  borderWidth: 1,
   borderColor: "gray",
+  borderWidth: 1,
+  height: "100%",
+  width: Platform.OS === "web" ? "40%" : "95%",
 };
 
 const addWebScroll = (isOpen: boolean): ViewStyle => {
@@ -45,10 +45,10 @@ export const SideDrawer = ({
         addWebScroll(isOpen),
       ]}
       drawerType={drawerType}
-      open={isOpen}
-      renderDrawerContent={renderDrawerContent}
       onClose={onClose}
       onOpen={onOpen}
+      open={isOpen}
+      renderDrawerContent={renderDrawerContent}
     >
       {children}
     </Drawer>

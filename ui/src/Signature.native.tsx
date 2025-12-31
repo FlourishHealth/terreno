@@ -1,6 +1,6 @@
-import React, {FC, useRef} from "react";
+import {type FC, useRef} from "react";
 import {Text, View} from "react-native";
-import SignatureScreen, {SignatureViewRef} from "react-native-signature-canvas";
+import SignatureScreen, {type SignatureViewRef} from "react-native-signature-canvas";
 
 import {useTheme} from "./Theme";
 
@@ -35,19 +35,19 @@ export const Signature: FC<Props> = ({onChange, onStart, onEnd}: Props) => {
     <View style={{minWidth: 220}}>
       <View style={{borderColor: theme.border.dark, borderWidth: 1, minHeight: 90}}>
         <SignatureScreen
-          ref={ref}
           backgroundColor={theme.surface.base}
-          trimWhitespace
-          webStyle={style}
           onBegin={onBegin}
           onEnd={handleEnd}
           onOK={(img) => onChange(img)}
+          ref={ref}
+          trimWhitespace
+          webStyle={style}
         />
       </View>
       <View style={{flexDirection: "row"}}>
         <Text
-          style={{color: theme.text.link, textDecorationLine: "underline"}}
           onPress={handleClear}
+          style={{color: theme.text.link, textDecorationLine: "underline"}}
         >
           Clear
         </Text>

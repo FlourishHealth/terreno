@@ -1,6 +1,6 @@
-import React, {FC, useCallback, useEffect, useState} from "react";
+import {type FC, useCallback, useEffect, useState} from "react";
 
-import {NumberFieldProps} from "./Common";
+import type {NumberFieldProps} from "./Common";
 import {TextField} from "./TextField";
 
 export const NumberField: FC<NumberFieldProps> = ({
@@ -9,6 +9,7 @@ export const NumberField: FC<NumberFieldProps> = ({
   max,
   min,
   type,
+  onChange,
   ...rest
 }: NumberFieldProps) => {
   const [value, setValue] = useState(valueProp ?? "");
@@ -50,17 +51,17 @@ export const NumberField: FC<NumberFieldProps> = ({
       if (type === "decimal" && v === ".") {
         // if type is decimal and dot is the first character add 0 before it
         setValue("0.");
-        rest.onChange("0.");
+        onChange("0.");
         return;
       }
       const err = getError(v);
       if (!err) {
         setValue(v);
-        rest.onChange(v);
+        onChange(v);
       }
     },
-    [getError, rest, type]
+    [getError, onChange, type]
   );
 
-  return <TextField {...rest} errorText={error} value={value} onChange={localOnChange} />;
+  return <TextField {...rest} errorText={error} onChange={localOnChange} value={value} />;
 };

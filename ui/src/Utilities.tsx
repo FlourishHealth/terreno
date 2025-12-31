@@ -3,7 +3,7 @@
 import get from "lodash/get";
 import {Platform} from "react-native";
 
-import {APIError, BaseProfile, IconSize} from "./Common";
+import type {APIError, BaseProfile, IconSize} from "./Common";
 import {COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES} from "./Constants";
 
 export function mergeInlineStyles(inlineStyle?: any, newStyle?: any) {
@@ -144,7 +144,7 @@ export const toggle =
 //     <Box alignItems="center" />
 //
 export const mapping = (map: {[key: string]: string}) => (val: string) =>
-  Object.prototype.hasOwnProperty.call(map, val) ? fromClassName(map[val]) : identity();
+  Object.hasOwn(map, val) ? fromClassName(map[val]) : identity();
 
 // Maps a range of integers to a range of classnames
 //
@@ -231,8 +231,8 @@ export const processAddressComponents = (
     if (options?.includeCounty) {
       return {
         ...processedAddressComponents,
-        countyName: "",
         countyCode: "",
+        countyName: "",
       };
     } else {
       return processedAddressComponents;
@@ -258,8 +258,8 @@ export const processAddressComponents = (
       const countyCode = formattedCountyCode(state, countyName);
       processedAddressComponents = {
         ...processedAddressComponents,
-        countyName,
         countyCode,
+        countyName,
       };
     } else {
       processedAddressComponents = {

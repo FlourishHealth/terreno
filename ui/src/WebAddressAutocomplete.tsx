@@ -1,6 +1,6 @@
-import React, {ReactElement, useEffect, useRef, useState} from "react";
+import {type ReactElement, useEffect, useRef, useState} from "react";
 
-import {AddressAutocompleteProps} from "./Common";
+import type {AddressAutocompleteProps} from "./Common";
 import {GOOGLE_PLACES_API_RESTRICTIONS} from "./Constants";
 import {TextField} from "./TextField";
 import {processAddressComponents} from "./Utilities";
@@ -73,12 +73,12 @@ export const WebAddressAutocomplete = ({
     <TextField
       disabled={disabled}
       inputRef={scriptLoaded ? (ref: any): void => (autocompleteInputRef.current = ref) : undefined}
-      placeholder="Enter an address"
-      type="text"
-      value={inputValue}
       onChange={(value): void => {
         handleAddressChange(value);
       }}
+      placeholder="Enter an address"
+      type="text"
+      value={inputValue}
     />
   );
 };

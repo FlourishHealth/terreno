@@ -1,4 +1,3 @@
-import * as React from "react";
 import {type FC, useCallback, useEffect, useRef, useState} from "react";
 import {
   Dimensions,
@@ -206,7 +205,7 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
     touched.current = false;
     setVisible(false);
     resetMeasurement();
-  }, [resetMeasurement, setVisible]);
+  }, [resetMeasurement]);
 
   // If the tooltip is visible, and the user clicks outside of the tooltip, hide it.
   useEffect(() => {
@@ -273,7 +272,7 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
         }
       });
     },
-    [setMeasurement, idealPosition]
+    [idealPosition]
   );
 
   const handleTouchStart = useCallback(() => {
@@ -301,7 +300,7 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
       touched.current = true;
       setVisible(true);
     }, hoverDelay);
-  }, [hoverDelay]);
+  }, []);
 
   const handleHoverOut = useCallback(() => {
     if (showTooltipTimer.current) {
@@ -314,7 +313,7 @@ export const Tooltip: FC<TooltipProps> = ({text, children, idealPosition, includ
     hideTooltipTimer.current = setTimeout(() => {
       hideTooltip();
     }, hoverEndDelay);
-  }, [hideTooltip, hoverEndDelay]);
+  }, [hideTooltip]);
 
   const handleClick = useCallback(() => {
     if (visible) {

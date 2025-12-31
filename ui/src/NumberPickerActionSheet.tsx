@@ -5,7 +5,7 @@ import React from "react";
 import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {NumberPickerActionSheetProps} from "./Common";
+import type {NumberPickerActionSheetProps} from "./Common";
 
 const PICKER_HEIGHT = 104;
 
@@ -17,15 +17,15 @@ export class NumberPickerActionSheet extends React.Component<
 > {
   render() {
     return (
-      <ActionSheet ref={this.props.actionSheetRef} bounceOnOpen gestureEnabled>
+      <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
           <Box alignItems="end" display="flex" width="100%">
             <Box width="33%">
               <Button
-                text="Close"
                 onClick={() => {
                   this.props.actionSheetRef?.current?.setModalVisible(false);
                 }}
+                text="Close"
               />
             </Box>
           </Box>
@@ -33,12 +33,12 @@ export class NumberPickerActionSheet extends React.Component<
             itemStyle={{
               height: PICKER_HEIGHT,
             }}
+            onValueChange={(itemValue) => this.props.onChange(String(itemValue))}
             selectedValue={String(this.props.value)}
             style={{
-              height: PICKER_HEIGHT,
               backgroundColor: "#FFFFFF",
+              height: PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => this.props.onChange(String(itemValue))}
           >
             {range(this.props.min, this.props.max).map((n) => (
               <Picker.Item key={String(n)} label={String(n)} value={String(n)} />

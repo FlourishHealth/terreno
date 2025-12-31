@@ -2,7 +2,7 @@ import React from "react";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {ErrorPageProps} from "./Common";
+import type {ErrorPageProps} from "./Common";
 import {Text} from "./Text";
 
 export class ErrorPage extends React.Component<ErrorPageProps, {}> {
@@ -34,7 +34,7 @@ export class ErrorPage extends React.Component<ErrorPageProps, {}> {
         <Box paddingY={3}>
           <Text>{this.props.error.toString()}</Text>
         </Box>
-        <Button text="Try again" onClick={this.props.resetError} />
+        <Button onClick={this.props.resetError} text="Try again" />
       </Box>
     );
   }

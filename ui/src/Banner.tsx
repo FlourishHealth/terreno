@@ -1,9 +1,10 @@
 import debounce from "lodash/debounce";
-import React, {useEffect, useState} from "react";
+import type React from "react";
+import {useEffect, useState} from "react";
 import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
 import {Box} from "./Box";
-import {BannerProps, IconName, SurfaceTheme} from "./Common";
+import type {BannerProps, IconName, SurfaceTheme} from "./Common";
 import {DismissButton} from "./DismissButton";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
@@ -34,16 +35,6 @@ const BannerButton = ({
       accessibilityHint={`Press to perform action ${buttonText}`}
       aria-label={buttonText}
       aria-role="button"
-      style={{
-        alignItems: "center",
-        alignSelf: "stretch",
-        backgroundColor: theme.surface.base,
-        borderRadius: theme.radius.rounded as any,
-        flexDirection: "column",
-        justifyContent: "center",
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-      }}
       onPress={debounce(
         async () => {
           await Unifier.utils.haptic();
@@ -59,6 +50,16 @@ const BannerButton = ({
         500,
         {leading: true}
       )}
+      style={{
+        alignItems: "center",
+        alignSelf: "stretch",
+        backgroundColor: theme.surface.base,
+        borderRadius: theme.radius.rounded as any,
+        flexDirection: "column",
+        justifyContent: "center",
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+      }}
     >
       <View style={{flexDirection: "row"}}>
         <View style={{flexDirection: "row-reverse"}}>
@@ -66,8 +67,8 @@ const BannerButton = ({
             <View
               style={{
                 alignSelf: "center",
-                marginRight: 0,
                 marginLeft: 8,
+                marginRight: 0,
               }}
             >
               <Icon iconName={buttonIconName as IconName} type="solid" />
@@ -120,7 +121,7 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, dismissible]);
 
   const dismiss = async (): Promise<void> => {
     if (!dismissible) {
@@ -139,35 +140,35 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
       style={{
         alignItems: "center",
         backgroundColor: theme.surface[bgColor],
-        height: "auto",
-        width: "100%",
-        margin: "auto",
-        flexDirection: "row",
         borderRadius: theme.radius.default,
+        flexDirection: "row",
+        height: "auto",
+        margin: "auto",
         minHeight: theme.spacing.xl,
         padding: theme.spacing.xs,
+        width: "100%",
       }}
     >
       <View
         style={{
-          flexDirection: "row",
-          flex: 1,
           alignItems: "center",
+          flex: 1,
+          flexDirection: "row",
           justifyContent: "center",
         }}
       >
         {Boolean(hasIcon) && (
-          <View style={{paddingRight: 12, paddingLeft: 10}}>
+          <View style={{paddingLeft: 10, paddingRight: 12}}>
             <Icon color="inverted" iconName="triangle-exclamation" />
           </View>
         )}
         <NativeText
           style={{
             color: theme.text.inverted,
-            fontWeight: "bold",
-            textAlign: "center",
             flexShrink: 1,
             flexWrap: "wrap",
+            fontWeight: "bold",
+            textAlign: "center",
           }}
         >
           {text}

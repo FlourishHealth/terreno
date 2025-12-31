@@ -1,6 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, userEvent} from "@testing-library/react-native";
-import React from "react";
 import {TextField} from "./TextField";
 import {renderWithTheme} from "./test-utils";
 
@@ -24,7 +23,7 @@ describe("TextField", () => {
   describe("basic rendering", () => {
     it("should render with default props", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test value" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} value="test value" />
       );
 
       expect(getByDisplayValue("test value").props.value).toBe("test value");
@@ -32,7 +31,7 @@ describe("TextField", () => {
 
     it("should render with title", () => {
       const {getByText} = renderWithTheme(
-        <TextField title="Test Title" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} title="Test Title" value="" />
       );
 
       expect(getByText("Test Title")).toBeTruthy();
@@ -40,7 +39,7 @@ describe("TextField", () => {
 
     it("should render with placeholder", () => {
       const {getByPlaceholderText} = renderWithTheme(
-        <TextField placeholder="Enter text" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} placeholder="Enter text" value="" />
       );
 
       expect(getByPlaceholderText("Enter text")).toBeTruthy();
@@ -48,7 +47,7 @@ describe("TextField", () => {
 
     it("should render helper text", () => {
       const {getByText} = renderWithTheme(
-        <TextField helperText="This is helper text" value="" onChange={mockOnChange} />
+        <TextField helperText="This is helper text" onChange={mockOnChange} value="" />
       );
 
       expect(getByText("This is helper text")).toBeTruthy();
@@ -56,7 +55,7 @@ describe("TextField", () => {
 
     it("should render error text", () => {
       const {getByText} = renderWithTheme(
-        <TextField errorText="This is an error" value="" onChange={mockOnChange} />
+        <TextField errorText="This is an error" onChange={mockOnChange} value="" />
       );
 
       expect(getByText("This is an error")).toBeTruthy();
@@ -66,7 +65,7 @@ describe("TextField", () => {
   describe("user interactions", () => {
     it("should call onChange when text is entered", async () => {
       const user = userEvent.setup();
-      const {getByDisplayValue} = renderWithTheme(<TextField value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextField onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       await user.type(input, "hello");
@@ -77,7 +76,7 @@ describe("TextField", () => {
 
     it("should call onFocus when input is focused", async () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="" onChange={mockOnChange} onFocus={mockOnFocus} />
+        <TextField onChange={mockOnChange} onFocus={mockOnFocus} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -87,7 +86,7 @@ describe("TextField", () => {
     it("should call onBlur when input loses focus", async () => {
       const user = userEvent.setup();
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test" onBlur={mockOnBlur} onChange={mockOnChange} />
+        <TextField onBlur={mockOnBlur} onChange={mockOnChange} value="test" />
       );
 
       const input = getByDisplayValue("test");
@@ -103,7 +102,7 @@ describe("TextField", () => {
     it("should call onEnter when enter key is pressed", async () => {
       const _user = userEvent.setup();
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="" onChange={mockOnChange} onEnter={mockOnEnter} />
+        <TextField onChange={mockOnChange} onEnter={mockOnEnter} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -116,7 +115,7 @@ describe("TextField", () => {
 
     it("should trim value on blur if trimOnBlur is true, even if onBlur prop is not provided", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test    " trimOnBlur onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} trimOnBlur value="test    " />
       );
 
       const input = getByDisplayValue("test    ");
@@ -131,7 +130,7 @@ describe("TextField", () => {
 
     it("should trim value on blur if trimOnBlur is true, with onBlur prop provided", async () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test    " trimOnBlur={true} onChange={mockOnChange} onBlur={mockOnBlur} />
+        <TextField onBlur={mockOnBlur} onChange={mockOnChange} trimOnBlur={true} value="test    " />
       );
 
       const input = getByDisplayValue("test    ");
@@ -150,7 +149,7 @@ describe("TextField", () => {
 
     it("should NOT trim value on blur if trimOnBlur is false", async () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test    " trimOnBlur={false} onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} trimOnBlur={false} value="test    " />
       );
 
       const input = getByDisplayValue("test    ");
@@ -162,7 +161,7 @@ describe("TextField", () => {
 
     it("trims on blur by default when no prop is provided", async () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value="test    " onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} value="test    " />
       );
 
       const input = getByDisplayValue("test    ");
@@ -178,7 +177,7 @@ describe("TextField", () => {
   describe("field types", () => {
     it("should render email type with correct keyboard", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="email" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="email" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -187,7 +186,7 @@ describe("TextField", () => {
 
     it("should render password type with secure text entry", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="password" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="password" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -196,7 +195,7 @@ describe("TextField", () => {
 
     it("should render url type with correct keyboard", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="url" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="url" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -207,7 +206,7 @@ describe("TextField", () => {
 
     it("should render phoneNumber type with number keyboard", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="phoneNumber" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="phoneNumber" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -216,7 +215,7 @@ describe("TextField", () => {
 
     it("should render search type with default keyboard", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="search" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="search" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -227,7 +226,7 @@ describe("TextField", () => {
   describe("multiline behavior", () => {
     it("should render as multiline when multiline prop is true", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField multiline value="" onChange={mockOnChange} />
+        <TextField multiline onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -236,7 +235,7 @@ describe("TextField", () => {
 
     it("should set number of lines when rows prop is provided", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField multiline rows={5} value="" onChange={mockOnChange} />
+        <TextField multiline onChange={mockOnChange} rows={5} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -245,7 +244,7 @@ describe("TextField", () => {
 
     it("should handle grow behavior with multiline", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField grow multiline value="" onChange={mockOnChange} />
+        <TextField grow multiline onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -256,7 +255,7 @@ describe("TextField", () => {
   describe("disabled state", () => {
     it("should be read-only when disabled", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField disabled value="test" onChange={mockOnChange} />
+        <TextField disabled onChange={mockOnChange} value="test" />
       );
 
       const input = getByDisplayValue("test");
@@ -266,7 +265,7 @@ describe("TextField", () => {
     it("should not call onFocus when disabled", async () => {
       const _user = userEvent.setup();
       const {getByDisplayValue} = renderWithTheme(
-        <TextField disabled value="" onChange={mockOnChange} onFocus={mockOnFocus} />
+        <TextField disabled onChange={mockOnChange} onFocus={mockOnFocus} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -275,7 +274,7 @@ describe("TextField", () => {
 
     it("should not call onBlur when disabled", async () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField disabled value="test" onBlur={mockOnBlur} onChange={mockOnChange} />
+        <TextField disabled onBlur={mockOnBlur} onChange={mockOnChange} value="test" />
       );
 
       const input = getByDisplayValue("test");
@@ -290,7 +289,7 @@ describe("TextField", () => {
   describe("icon functionality", () => {
     it("should render icon when iconName is provided", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField iconName="check" value="" onChange={mockOnChange} />
+        <TextField iconName="check" onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -302,9 +301,9 @@ describe("TextField", () => {
       const {getByDisplayValue} = renderWithTheme(
         <TextField
           iconName="check"
-          value=""
           onChange={mockOnChange}
           onIconClick={mockOnIconClick}
+          value=""
         />
       );
 
@@ -315,7 +314,7 @@ describe("TextField", () => {
 
   describe("accessibility", () => {
     it("should have correct accessibility properties", () => {
-      const {getByDisplayValue} = renderWithTheme(<TextField value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextField onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       expect(input.props.accessibilityHint).toBe("Enter text here");
@@ -324,7 +323,7 @@ describe("TextField", () => {
 
     it("should indicate disabled state in accessibility", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField disabled value="" onChange={mockOnChange} />
+        <TextField disabled onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -335,7 +334,7 @@ describe("TextField", () => {
   describe("auto-complete and text content", () => {
     it("should set autoComplete property", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField autoComplete="username" value="" onChange={mockOnChange} />
+        <TextField autoComplete="username" onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -344,7 +343,7 @@ describe("TextField", () => {
 
     it("should handle text content type for email", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="email" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="email" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -353,7 +352,7 @@ describe("TextField", () => {
 
     it("should handle text content type for password", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField type="password" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} type="password" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -363,14 +362,14 @@ describe("TextField", () => {
 
   describe("edge cases", () => {
     it("should handle empty value", () => {
-      const {getByDisplayValue} = renderWithTheme(<TextField value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextField onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       expect(input.props.value).toBe("");
     });
 
     it("should handle undefined value", () => {
-      const {root} = renderWithTheme(<TextField value={undefined} onChange={mockOnChange} />);
+      const {root} = renderWithTheme(<TextField onChange={mockOnChange} value={undefined} />);
 
       expect(root).toBeTruthy();
     });
@@ -378,7 +377,7 @@ describe("TextField", () => {
     it("should handle long text values", () => {
       const longText = "a".repeat(1000);
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value={longText} onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} value={longText} />
       );
 
       const input = getByDisplayValue(longText);
@@ -388,7 +387,7 @@ describe("TextField", () => {
     it("should handle special characters", () => {
       const specialText = "!@#$%^&*()_+-=[]{}|;':\",./<>?";
       const {getByDisplayValue} = renderWithTheme(
-        <TextField value={specialText} onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} value={specialText} />
       );
 
       const input = getByDisplayValue(specialText);
@@ -399,7 +398,7 @@ describe("TextField", () => {
   describe("return key behavior", () => {
     it("should set return key type", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField returnKeyType="done" value="" onChange={mockOnChange} />
+        <TextField onChange={mockOnChange} returnKeyType="done" value="" />
       );
 
       const input = getByDisplayValue("");
@@ -408,7 +407,7 @@ describe("TextField", () => {
 
     it("should handle blur on submit", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextField blurOnSubmit={false} value="" onChange={mockOnChange} />
+        <TextField blurOnSubmit={false} onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -419,7 +418,7 @@ describe("TextField", () => {
   describe("input ref", () => {
     it("should call inputRef with the input reference", () => {
       const mockInputRef = mock(() => {});
-      renderWithTheme(<TextField inputRef={mockInputRef} value="" onChange={mockOnChange} />);
+      renderWithTheme(<TextField inputRef={mockInputRef} onChange={mockOnChange} value="" />);
 
       expect(mockInputRef).toHaveBeenCalled();
     });
@@ -427,7 +426,7 @@ describe("TextField", () => {
 
   describe("snapshots", () => {
     it("should match snapshot with default props", () => {
-      const component = renderWithTheme(<TextField value="test value" onChange={mockOnChange} />);
+      const component = renderWithTheme(<TextField onChange={mockOnChange} value="test value" />);
       expect(component.toJSON()).toMatchSnapshot();
     });
 
@@ -439,15 +438,15 @@ describe("TextField", () => {
           helperText="Helper text"
           iconName="check"
           multiline={false}
-          placeholder="Enter text"
-          title="Test Title"
-          type="text"
-          value="test value"
           onBlur={mockOnBlur}
           onChange={mockOnChange}
           onEnter={mockOnEnter}
           onFocus={mockOnFocus}
           onIconClick={mock(() => {})}
+          placeholder="Enter text"
+          title="Test Title"
+          type="text"
+          value="test value"
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -455,7 +454,7 @@ describe("TextField", () => {
 
     it("should match snapshot when disabled", () => {
       const component = renderWithTheme(
-        <TextField disabled title="Disabled Field" value="disabled value" onChange={mockOnChange} />
+        <TextField disabled onChange={mockOnChange} title="Disabled Field" value="disabled value" />
       );
       expect(component.toJSON()).toMatchSnapshot();
     });
@@ -464,10 +463,10 @@ describe("TextField", () => {
       const component = renderWithTheme(
         <TextField
           multiline
+          onChange={mockOnChange}
           rows={3}
           title="Multiline Field"
           value="line 1\nline 2"
-          onChange={mockOnChange}
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -477,9 +476,9 @@ describe("TextField", () => {
       const component = renderWithTheme(
         <TextField
           errorText="This field is required"
+          onChange={mockOnChange}
           title="Error Field"
           value=""
-          onChange={mockOnChange}
         />
       );
       expect(component.toJSON()).toMatchSnapshot();

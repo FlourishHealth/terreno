@@ -1,8 +1,8 @@
-import React, {FC, useState} from "react";
+import {type FC, useState} from "react";
 import {View} from "react-native";
 
 import {Badge} from "../Badge";
-import {TableBadgeProps} from "../Common";
+import type {TableBadgeProps} from "../Common";
 import {SelectField} from "../SelectField";
 
 export interface TableBadgeHandles {
@@ -30,12 +30,12 @@ export const TableBadge: FC<TableBadgeProps> = ({
   return (
     <View
       style={{
-        justifyContent: "center",
         alignItems: "center",
+        justifyContent: "center",
       }}
     >
       {isEditing && editingOptions ? (
-        <SelectField options={editingOptions} value={selected} onChange={handleChange} />
+        <SelectField onChange={handleChange} options={editingOptions} value={selected} />
       ) : (
         <Badge iconName={badgeIconName} secondary status={badgeStatus} value={value} />
       )}

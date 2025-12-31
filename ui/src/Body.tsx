@@ -1,8 +1,8 @@
-import React from "react";
+import type React from "react";
 import {ActivityIndicator, KeyboardAvoidingView} from "react-native";
 
 import {Box} from "./Box";
-import {BodyProps} from "./Common";
+import type {BodyProps} from "./Common";
 import {useTheme} from "./Theme";
 
 export const Body = ({

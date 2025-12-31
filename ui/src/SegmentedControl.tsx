@@ -1,8 +1,8 @@
-import React, {FC, useCallback, useState} from "react";
+import {type FC, useCallback, useState} from "react";
 import {Pressable, View} from "react-native";
 
 import {Badge} from "./Badge";
-import {SegmentedControlProps} from "./Common";
+import type {SegmentedControlProps} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
@@ -21,7 +21,7 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
 
   const handlePrevious = useCallback(() => {
     setStartIndex((prev) => Math.max(0, prev - (maxItems ?? 4)));
-  }, []);
+  }, [maxItems]);
 
   const handleNext = useCallback(() => {
     setStartIndex((prev) =>
@@ -38,9 +38,9 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
   return (
     <View
       style={{
+        alignItems: "center",
         display: "flex",
         flexDirection: "row",
-        alignItems: "center",
         gap: 8,
       }}
     >
@@ -55,49 +55,49 @@ export const SegmentedControl: FC<SegmentedControlProps> = ({
       )}
       <View
         style={{
-          display: "flex",
-          flexGrow: 1,
-          flexDirection: "row",
-          flexShrink: 1,
           alignItems: "center",
+          backgroundColor: theme.primitives.neutral300,
+          borderRadius: theme.primitives.radius3xl,
+          display: "flex",
+          flexDirection: "row",
+          flexGrow: 1,
+          flexShrink: 1,
           height,
           maxHeight: height,
-          backgroundColor: theme.primitives.neutral300,
           overflow: "hidden",
-          borderRadius: theme.primitives.radius3xl,
         }}
       >
         <View
           style={{
             display: "flex",
             flexDirection: "row",
-            gap: 4,
             flexGrow: 1,
-            paddingHorizontal: 4,
+            gap: 4,
             height: height - 4,
+            paddingHorizontal: 4,
           }}
         >
           {visibleItems.map((item, index) => {
             const actualIndex = startIndex + index;
             return (
               <Pressable
-                key={actualIndex}
                 aria-role="button"
-                style={{
-                  display: "flex",
-                  paddingHorizontal: 2,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  height: "100%",
-                  flexDirection: "row",
-                  gap: 8,
-                  flexGrow: 1,
-                  flexBasis: 0,
-                  borderRadius: theme.primitives.radius3xl,
-                  backgroundColor: actualIndex === selectedIndex ? theme.surface.base : undefined,
-                  overflow: "hidden",
-                }}
+                key={actualIndex}
                 onPress={() => onChange(actualIndex)}
+                style={{
+                  alignItems: "center",
+                  backgroundColor: actualIndex === selectedIndex ? theme.surface.base : undefined,
+                  borderRadius: theme.primitives.radius3xl,
+                  display: "flex",
+                  flexBasis: 0,
+                  flexDirection: "row",
+                  flexGrow: 1,
+                  gap: 8,
+                  height: "100%",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  paddingHorizontal: 2,
+                }}
               >
                 <Heading size="sm">{item}</Heading>
                 {visibleBadges[index] && (

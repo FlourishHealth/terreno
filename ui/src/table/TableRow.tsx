@@ -1,7 +1,7 @@
 import React, {Children, useRef} from "react";
 
 import {Box} from "../Box";
-import {TableRowProps} from "../Common";
+import type {TableRowProps} from "../Common";
 import {IconButton} from "../IconButton";
 import {useTableContext} from "./tableContext";
 
@@ -31,7 +31,7 @@ export const TableRow = ({
   const border = {__style: {borderBottom: `${headerRow ? 2 : 1}px solid #e0e0e0`}};
 
   return (
-    <Box ref={rowRef} color={color} dangerouslySetInlineStyle={border} width="100%">
+    <Box color={color} dangerouslySetInlineStyle={border} ref={rowRef} width="100%">
       <Box direction="row" paddingY={1} width="100%">
         {Boolean(drawerContents) && (
           <TableCell index={-1}>
@@ -40,10 +40,10 @@ export const TableRow = ({
               accessibilityHint="press to expand"
               accessibilityLabel="expand"
               iconName={isExpanded ? "chevron-up" : "chevron-down"}
-              variant="secondary"
               onClick={() => {
                 setIsExpanded(!isExpanded);
               }}
+              variant="secondary"
             />
           </TableCell>
         )}

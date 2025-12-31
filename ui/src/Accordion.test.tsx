@@ -1,6 +1,5 @@
 import {describe, expect, it} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
-import React from "react";
 import {Text} from "react-native";
 
 import {Accordion} from "./Accordion";
@@ -8,8 +7,8 @@ import {renderWithTheme} from "./test-utils";
 
 describe("Accordion", () => {
   const defaultProps = {
-    title: "Test Title",
     children: <Text testID="test-content">Test Content</Text>,
+    title: "Test Title",
   };
 
   it("renders correctly with default props", () => {

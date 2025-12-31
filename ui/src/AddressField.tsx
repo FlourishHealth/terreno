@@ -1,7 +1,7 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 import {View} from "react-native";
 
-import {AddressFieldProps, AddressInterface} from "./Common";
+import type {AddressFieldProps, AddressInterface} from "./Common";
 import {USSTATESLIST} from "./Constants";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
@@ -54,41 +54,41 @@ export const AddressField: FC<AddressFieldProps> = ({
         <TextField
           disabled={disabled}
           id="address2"
+          onChange={(result) => handleAddressChange("address2", result)}
           testID={`${testID}-address2`}
           title="Apt, suite, etc"
           type="text"
           value={address2}
-          onChange={(result) => handleAddressChange("address2", result)}
         />
       </View>
       <View style={{marginBottom: 16}}>
         <TextField
           disabled={disabled}
           id="city"
+          onChange={(result) => handleAddressChange("city", result)}
           testID={`${testID}-city`}
           title="City"
           type="text"
           value={city}
-          onChange={(result) => handleAddressChange("city", result)}
         />
       </View>
       <View style={{marginBottom: 16}}>
         <SelectField
+          onChange={(result) => handleAddressChange("state", result!)}
           options={USSTATESLIST}
           title="State"
           value={state}
-          onChange={(result) => handleAddressChange("state", result!)}
         />
       </View>
       <View style={{marginBottom: 16}}>
         <TextField
           disabled={disabled}
           id="zipcode"
+          onChange={(result) => handleAddressChange("zipcode", result)}
           testID={`${testID}-zip`}
           title="Zipcode"
           type="text"
           value={zipcode}
-          onChange={(result) => handleAddressChange("zipcode", result)}
         />
       </View>
       {includeCounty && (
@@ -97,22 +97,22 @@ export const AddressField: FC<AddressFieldProps> = ({
             <TextField
               disabled={disabled}
               id="countyName"
+              onChange={(result) => handleAddressChange("countyName", result)}
               testID={`${testID}-county`}
               title="County Name"
               type="text"
               value={countyName}
-              onChange={(result) => handleAddressChange("countyName", result)}
             />
           </View>
           <View style={{marginBottom: 16}}>
             <TextField
               disabled={disabled}
               id="countyCode"
+              onChange={(result) => handleAddressChange("countyCode", result)}
               testID={`${testID}-county-code`}
               title="County Code"
               type="text"
               value={countyCode}
-              onChange={(result) => handleAddressChange("countyCode", result)}
             />
           </View>
         </>

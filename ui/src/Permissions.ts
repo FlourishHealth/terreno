@@ -2,7 +2,7 @@
 // import {Tracking} from "./Tracking";
 // import capitalize from "lodash/capitalize";
 // import Permissions from "react-native-permissions";
-import {PermissionKind, PermissionStatus} from "./Common";
+import type {PermissionKind, PermissionStatus} from "./Common";
 
 export async function requestPermissions(_kind: PermissionKind): Promise<PermissionStatus> {
   return new Promise((_resolve, _reject) => {

@@ -1,7 +1,7 @@
-import React, {FC, useEffect, useRef} from "react";
+import {type FC, useCallback, useEffect, useRef} from "react";
 import {Animated, TouchableWithoutFeedback, View} from "react-native";
 
-import {BooleanFieldProps} from "./Common";
+import type {BooleanFieldProps} from "./Common";
 import {FieldHelperText, FieldTitle} from "./fieldElements";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
@@ -32,29 +32,32 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   ).current;
   const transformSwitch = useRef(new Animated.Value(value ? OFFSET : -1 * OFFSET)).current;
 
-  const animateSwitch = (newValue: boolean) => {
-    Animated.parallel([
-      Animated.spring(transformSwitch, {
-        toValue: newValue ? OFFSET : -1 * OFFSET,
-        useNativeDriver: false,
-      }),
-      Animated.timing(backgroundColor, {
-        toValue: newValue ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-      Animated.timing(circleColor, {
-        toValue: newValue ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-      Animated.timing(circleBorderColor, {
-        toValue: value ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
+  const animateSwitch = useCallback(
+    (newValue: boolean) => {
+      Animated.parallel([
+        Animated.spring(transformSwitch, {
+          toValue: newValue ? OFFSET : -1 * OFFSET,
+          useNativeDriver: false,
+        }),
+        Animated.timing(backgroundColor, {
+          duration: 200,
+          toValue: newValue ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
+          useNativeDriver: false,
+        }),
+        Animated.timing(circleColor, {
+          duration: 200,
+          toValue: newValue ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
+          useNativeDriver: false,
+        }),
+        Animated.timing(circleBorderColor, {
+          duration: 200,
+          toValue: value ? WIDTH_WITH_OFFSET : -1 * WIDTH_WITH_OFFSET,
+          useNativeDriver: false,
+        }),
+      ]).start();
+    },
+    [backgroundColor, circleColor, circleBorderColor, transformSwitch, value]
+  );
 
   const handleSwitch = () => {
     if (disabled) {
@@ -68,7 +71,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   useEffect(() => {
     animateSwitch(value);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+  }, [value, animateSwitch]);
 
   const interpolatedColorAnimation = backgroundColor.interpolate({
     inputRange: [-1 * WIDTH_WITH_OFFSET, WIDTH_WITH_OFFSET],
@@ -78,52 +81,52 @@ export const BooleanField: FC<BooleanFieldProps> = ({
   return (
     <View
       style={{
-        flexDirection: "column",
         alignItems: "flex-start",
+        flexDirection: "column",
       }}
     >
       <View
         style={{
-          flexDirection: variant === "title" ? "column" : "row",
           alignItems: variant === "title" ? "flex-start" : "center",
+          flexDirection: variant === "title" ? "column" : "row",
           justifyContent: variant === "title" ? "flex-start" : "center",
         }}
       >
         {Boolean(title) && <FieldTitle text={title!} />}
         <TouchableWithoutFeedback aria-role="button" onPress={handleSwitch}>
-          <View style={{flexDirection: "row", alignItems: "center", justifyContent: "center"}}>
+          <View style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}>
             <Animated.View
               style={{
-                width: WIDTH,
-                height: TOUCHABLE_SIZE,
-                borderRadius: TOUCHABLE_SIZE,
                 backgroundColor: disabled ? theme.surface.disabled : interpolatedColorAnimation,
                 borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
+                borderRadius: TOUCHABLE_SIZE,
                 borderWidth: 1,
+                height: TOUCHABLE_SIZE,
                 marginHorizontal: variant === "title" ? undefined : OFFSET,
                 marginRight: variant === "title" ? OFFSET : undefined,
+                width: WIDTH,
               }}
             >
               <Animated.View
                 style={{
+                  alignItems: "center",
                   flex: 1,
-                  width: WIDTH,
                   flexDirection: "row",
                   justifyContent: "center",
-                  alignItems: "center",
                   left: transformSwitch,
+                  width: WIDTH,
                 }}
               >
                 <Animated.View
                   style={{
-                    borderWidth: 1,
-                    borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
-                    backgroundColor: theme.surface.base,
-                    width: TOUCHABLE_SIZE,
-                    height: TOUCHABLE_SIZE,
-                    borderRadius: 10,
                     alignItems: "center",
+                    backgroundColor: theme.surface.base,
+                    borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    height: TOUCHABLE_SIZE,
                     justifyContent: "center",
+                    width: TOUCHABLE_SIZE,
                   }}
                 />
               </Animated.View>
@@ -133,7 +136,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         </TouchableWithoutFeedback>
       </View>
       {disabled && disabledHelperText && <FieldHelperText text={disabledHelperText} />}
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
     </View>
   );
 };

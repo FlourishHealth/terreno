@@ -38,7 +38,7 @@ import * as mdurl from "mdurl";
 import React from "react";
 import {Linking, Platform, Text, View} from "react-native";
 
-import {HyperlinkProps} from "./Common";
+import type {HyperlinkProps} from "./Common";
 
 const linkifyLib = require("linkify-it")();
 
@@ -65,8 +65,8 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
 
     const componentProps = {
       ...component.props,
-      ref: undefined,
       key: undefined,
+      ref: undefined,
     };
 
     try {
@@ -122,8 +122,8 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
 
     const componentProps = {
       ...component.props,
-      ref: undefined,
       key: undefined,
+      ref: undefined,
     };
 
     const linkifyIt = this.props.linkify || linkifyLib;

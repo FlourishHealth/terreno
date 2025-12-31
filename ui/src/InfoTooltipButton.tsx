@@ -1,6 +1,6 @@
-import React from "react";
+import type React from "react";
 
-import {InfoTooltipButtonProps} from "./Common";
+import type {InfoTooltipButtonProps} from "./Common";
 import {IconButton} from "./IconButton";
 
 export const InfoTooltipButton = ({text}: InfoTooltipButtonProps): React.ReactElement => {
@@ -9,8 +9,8 @@ export const InfoTooltipButton = ({text}: InfoTooltipButtonProps): React.ReactEl
       accessibilityHint="Show info tooltip"
       accessibilityLabel="info"
       iconName="exclamation"
-      tooltipText={text}
       onClick={() => {}}
+      tooltipText={text}
     />
   );
 };

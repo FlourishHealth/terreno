@@ -1,6 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {userEvent} from "@testing-library/react-native";
-import React from "react";
 
 import {TextArea} from "./TextArea";
 import {renderWithTheme} from "./test-utils";
@@ -19,7 +18,7 @@ describe("TextArea", () => {
   describe("basic functionality", () => {
     it("should render as multiline text field", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea value="test content" onChange={mockOnChange} />
+        <TextArea onChange={mockOnChange} value="test content" />
       );
 
       const input = getByDisplayValue("test content");
@@ -29,7 +28,7 @@ describe("TextArea", () => {
 
     it("should render with title", () => {
       const {getByText} = renderWithTheme(
-        <TextArea title="Description" value="" onChange={mockOnChange} />
+        <TextArea onChange={mockOnChange} title="Description" value="" />
       );
 
       expect(getByText("Description")).toBeTruthy();
@@ -37,7 +36,7 @@ describe("TextArea", () => {
 
     it("should render with placeholder", () => {
       const {getByPlaceholderText} = renderWithTheme(
-        <TextArea placeholder="Enter description" value="" onChange={mockOnChange} />
+        <TextArea onChange={mockOnChange} placeholder="Enter description" value="" />
       );
 
       expect(getByPlaceholderText("Enter description")).toBeTruthy();
@@ -45,7 +44,7 @@ describe("TextArea", () => {
 
     it("should render helper text", () => {
       const {getByText} = renderWithTheme(
-        <TextArea helperText="Maximum 500 characters" value="" onChange={mockOnChange} />
+        <TextArea helperText="Maximum 500 characters" onChange={mockOnChange} value="" />
       );
 
       expect(getByText("Maximum 500 characters")).toBeTruthy();
@@ -53,7 +52,7 @@ describe("TextArea", () => {
 
     it("should render error text", () => {
       const {getByText} = renderWithTheme(
-        <TextArea errorText="This field is required" value="" onChange={mockOnChange} />
+        <TextArea errorText="This field is required" onChange={mockOnChange} value="" />
       );
 
       expect(getByText("This field is required")).toBeTruthy();
@@ -61,7 +60,7 @@ describe("TextArea", () => {
 
     it("should support grow behavior", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea grow value="" onChange={mockOnChange} />
+        <TextArea grow onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -70,7 +69,7 @@ describe("TextArea", () => {
 
     it("should be disabled when disabled prop is true", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea disabled value="test" onChange={mockOnChange} />
+        <TextArea disabled onChange={mockOnChange} value="test" />
       );
 
       const input = getByDisplayValue("test");
@@ -78,7 +77,7 @@ describe("TextArea", () => {
     });
 
     it("should always have text type", () => {
-      const {getByDisplayValue} = renderWithTheme(<TextArea value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextArea onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       expect(input.props.keyboardType).toBe("default");
@@ -88,7 +87,7 @@ describe("TextArea", () => {
   describe("user interactions", () => {
     it("should call onChange when text is entered", async () => {
       const user = userEvent.setup();
-      const {getByDisplayValue} = renderWithTheme(<TextArea value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextArea onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       await user.type(input, "hello world");
@@ -100,7 +99,7 @@ describe("TextArea", () => {
     it("should handle multiline text input", async () => {
       const user = userEvent.setup();
       const multilineText = "Line 1\nLine 2\nLine 3";
-      const {getByDisplayValue} = renderWithTheme(<TextArea value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextArea onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       await user.type(input, multilineText);
@@ -112,7 +111,7 @@ describe("TextArea", () => {
 
   describe("accessibility", () => {
     it("should have correct accessibility properties", () => {
-      const {getByDisplayValue} = renderWithTheme(<TextArea value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextArea onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       expect(input.props.accessibilityHint).toBe("Enter text here");
@@ -121,7 +120,7 @@ describe("TextArea", () => {
 
     it("should indicate disabled state in accessibility", () => {
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea disabled value="" onChange={mockOnChange} />
+        <TextArea disabled onChange={mockOnChange} value="" />
       );
 
       const input = getByDisplayValue("");
@@ -131,14 +130,14 @@ describe("TextArea", () => {
 
   describe("edge cases", () => {
     it("should handle empty value", () => {
-      const {getByDisplayValue} = renderWithTheme(<TextArea value="" onChange={mockOnChange} />);
+      const {getByDisplayValue} = renderWithTheme(<TextArea onChange={mockOnChange} value="" />);
 
       const input = getByDisplayValue("");
       expect(input.props.value).toBe("");
     });
 
     it("should handle undefined value", () => {
-      const {root} = renderWithTheme(<TextArea value={undefined} onChange={mockOnChange} />);
+      const {root} = renderWithTheme(<TextArea onChange={mockOnChange} value={undefined} />);
 
       expect(root).toBeTruthy();
     });
@@ -146,7 +145,7 @@ describe("TextArea", () => {
     it("should handle long text values", () => {
       const longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(50);
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea value={longText} onChange={mockOnChange} />
+        <TextArea onChange={mockOnChange} value={longText} />
       );
 
       const input = getByDisplayValue(longText);
@@ -156,7 +155,7 @@ describe("TextArea", () => {
     it("should handle text with line breaks", () => {
       const textWithBreaks = "First line\nSecond line\n\nFourth line";
       const {getByDisplayValue} = renderWithTheme(
-        <TextArea value={textWithBreaks} onChange={mockOnChange} />
+        <TextArea onChange={mockOnChange} value={textWithBreaks} />
       );
 
       const input = getByDisplayValue(textWithBreaks);
@@ -171,13 +170,13 @@ describe("TextArea", () => {
 
       const {getByDisplayValue} = renderWithTheme(
         <TextArea
-          value="test"
+          disabled={false}
+          onBlur={mockOnBlur}
           onChange={mockOnChange}
           onFocus={mockOnFocus}
-          onBlur={mockOnBlur}
           placeholder="Test placeholder"
-          disabled={false}
           rows={5}
+          value="test"
         />
       );
 
@@ -189,7 +188,7 @@ describe("TextArea", () => {
 
     it("should support inputRef", () => {
       const mockInputRef = mock(() => {});
-      renderWithTheme(<TextArea inputRef={mockInputRef} value="" onChange={mockOnChange} />);
+      renderWithTheme(<TextArea inputRef={mockInputRef} onChange={mockOnChange} value="" />);
 
       expect(mockInputRef).toHaveBeenCalled();
     });
@@ -197,21 +196,21 @@ describe("TextArea", () => {
 
   describe("snapshots", () => {
     it("should match snapshot with default props", () => {
-      const component = renderWithTheme(<TextArea value="test content" onChange={mockOnChange} />);
+      const component = renderWithTheme(<TextArea onChange={mockOnChange} value="test content" />);
       expect(component.toJSON()).toMatchSnapshot();
     });
 
     it("should match snapshot with all props", () => {
       const component = renderWithTheme(
         <TextArea
-          title="Description"
-          placeholder="Enter description"
-          helperText="Maximum 500 characters"
-          value="test content"
-          onChange={mockOnChange}
           disabled={false}
           grow={true}
+          helperText="Maximum 500 characters"
+          onChange={mockOnChange}
+          placeholder="Enter description"
           rows={5}
+          title="Description"
+          value="test content"
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -220,10 +219,10 @@ describe("TextArea", () => {
     it("should match snapshot when disabled", () => {
       const component = renderWithTheme(
         <TextArea
+          disabled={true}
+          onChange={mockOnChange}
           title="Disabled TextArea"
           value="disabled content"
-          onChange={mockOnChange}
-          disabled={true}
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -232,10 +231,10 @@ describe("TextArea", () => {
     it("should match snapshot with error state", () => {
       const component = renderWithTheme(
         <TextArea
+          errorText="This field is required"
+          onChange={mockOnChange}
           title="Error TextArea"
           value=""
-          onChange={mockOnChange}
-          errorText="This field is required"
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -244,10 +243,10 @@ describe("TextArea", () => {
     it("should match snapshot with multiline content", () => {
       const component = renderWithTheme(
         <TextArea
-          title="Multiline Content"
-          value="Line 1\nLine 2\nLine 3"
           onChange={mockOnChange}
           rows={4}
+          title="Multiline Content"
+          value="Line 1\nLine 2\nLine 3"
         />
       );
       expect(component.toJSON()).toMatchSnapshot();

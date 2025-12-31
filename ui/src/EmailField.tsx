@@ -1,6 +1,6 @@
-import React, {FC, useCallback, useEffect, useState} from "react";
+import {type FC, useCallback, useEffect, useState} from "react";
 
-import {EmailFieldProps} from "./Common";
+import type {EmailFieldProps} from "./Common";
 import {TextField} from "./TextField";
 
 export const EmailField: FC<EmailFieldProps> = ({
@@ -38,7 +38,7 @@ export const EmailField: FC<EmailFieldProps> = ({
         onChange(e);
       }
     },
-    [onChange, validateEmail, setLocalValue]
+    [onChange, validateEmail]
   );
 
   const localOnBlur = useCallback(
@@ -55,11 +55,11 @@ export const EmailField: FC<EmailFieldProps> = ({
     <TextField
       errorText={errorText || validateEmail(localValue)}
       iconName={iconName}
+      onBlur={localOnBlur}
+      onChange={localOnChange}
       placeholder={placeholder}
       type="email"
       value={localValue}
-      onBlur={localOnBlur}
-      onChange={localOnChange}
       {...rest}
     />
   );

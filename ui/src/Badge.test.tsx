@@ -1,5 +1,4 @@
 import {describe, expect, it} from "bun:test";
-import React from "react";
 
 import {Badge} from "./Badge";
 import {renderWithTheme} from "./test-utils";
@@ -74,9 +73,9 @@ describe("Badge", () => {
   it("applies custom colors when status is custom", () => {
     const customColors = {
       customBackgroundColor: "#123456",
-      customTextColor: "#ffffff",
       customBorderColor: "#654321",
       customIconColor: "#ffcc00",
+      customTextColor: "#ffffff",
     };
 
     const {getByTestId} = renderWithTheme(

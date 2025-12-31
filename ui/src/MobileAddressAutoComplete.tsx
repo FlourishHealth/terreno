@@ -1,11 +1,11 @@
-import React, {useEffect, useRef, useState} from "react";
-import {TextStyle, TouchableOpacity, View} from "react-native";
+import {useEffect, useRef, useState} from "react";
+import {type TextStyle, TouchableOpacity, View} from "react-native";
 import {
   GooglePlacesAutocomplete,
-  GooglePlacesAutocompleteRef,
+  type GooglePlacesAutocompleteRef,
 } from "react-native-google-places-autocomplete";
 
-import {AddressAutocompleteProps} from "./Common";
+import type {AddressAutocompleteProps} from "./Common";
 import {GOOGLE_PLACES_API_RESTRICTIONS} from "./Constants";
 import {TextField} from "./TextField";
 import {useTheme} from "./Theme";
@@ -33,13 +33,13 @@ export const MobileAddressAutocomplete = ({
       ref.current.setAddressText(inputValue);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [googleMapsApiKey, inputValue]);
 
   const textInputContainerStyles = {
     backgroundColor: theme.surface.base,
     borderColor: isFocused ? theme.border.hover : theme.border.default,
-    borderWidth: isFocused ? 5 : 1,
     borderRadius: theme.radius.default,
+    borderWidth: isFocused ? 5 : 1,
     paddingHorizontal: isFocused ? 10 : 14,
     paddingVertical: isFocused ? 0 : 4,
     ...(styles?.textInputContainer as object),
@@ -63,10 +63,10 @@ export const MobileAddressAutocomplete = ({
       <TextField
         disabled={disabled}
         id="address1"
+        onChange={(result) => handleAddressChange(result)}
         testID={testID}
         type="text"
         value={inputValue}
-        onChange={(result) => handleAddressChange(result)}
       />
     );
   }
@@ -75,38 +75,15 @@ export const MobileAddressAutocomplete = ({
     <TouchableOpacity
       activeOpacity={1}
       aria-role="button"
-      style={{flex: 1}}
       onPress={() => setIsFocused(false)}
+      style={{flex: 1}}
     >
       <View>
         <GooglePlacesAutocomplete
-          ref={ref}
-          GooglePlacesDetailsQuery={{
-            fields: Object.values(GOOGLE_PLACES_API_RESTRICTIONS.fields).join(","),
-          }}
           disableScroll
           fetchDetails
-          placeholder="Street Address"
-          query={{
-            key: googleMapsApiKey,
-            language: "en",
-            components: `country:${GOOGLE_PLACES_API_RESTRICTIONS.components.country}`,
-          }}
-          styles={{
-            textInputContainer: {
-              ...textInputContainerStyles,
-            },
-            textInput: {
-              ...textInputStyles,
-            },
-            ...styles,
-          }}
-          textInputProps={{
-            onFocus: () => setIsFocused(true),
-            onBlur: () => setIsFocused(false),
-            onChange: (event) => {
-              handleAddressChange(event.nativeEvent.text);
-            },
+          GooglePlacesDetailsQuery={{
+            fields: Object.values(GOOGLE_PLACES_API_RESTRICTIONS.fields).join(","),
           }}
           onPress={(_data, details = null) => {
             const addressComponents = details?.address_components;
@@ -119,6 +96,29 @@ export const MobileAddressAutocomplete = ({
               ref.current.setAddressText(address1);
             }
             setIsFocused(false);
+          }}
+          placeholder="Street Address"
+          query={{
+            components: `country:${GOOGLE_PLACES_API_RESTRICTIONS.components.country}`,
+            key: googleMapsApiKey,
+            language: "en",
+          }}
+          ref={ref}
+          styles={{
+            textInput: {
+              ...textInputStyles,
+            },
+            textInputContainer: {
+              ...textInputContainerStyles,
+            },
+            ...styles,
+          }}
+          textInputProps={{
+            onBlur: () => setIsFocused(false),
+            onChange: (event) => {
+              handleAddressChange(event.nativeEvent.text);
+            },
+            onFocus: () => setIsFocused(true),
           }}
         />
       </View>

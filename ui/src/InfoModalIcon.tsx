@@ -1,7 +1,7 @@
-import React, {FC, useState} from "react";
+import {type FC, useState} from "react";
 import {Pressable} from "react-native";
 
-import {InfoModalIconProps} from "./Common";
+import type {InfoModalIconProps} from "./Common";
 import {Heading} from "./Heading";
 import {Modal} from "./Modal";
 
@@ -15,6 +15,7 @@ export const InfoModalIcon: FC<InfoModalIconProps> = ({
   return (
     <>
       <Modal
+        onDismiss={() => setInfoModalVisibleState(false)}
         primaryButtonOnClick={() => setInfoModalVisibleState(false)}
         primaryButtonText="Close"
         size="md"
@@ -22,16 +23,15 @@ export const InfoModalIcon: FC<InfoModalIconProps> = ({
         text={infoModalText}
         title={infoModalTitle}
         visible={infoModalVisibleState}
-        onDismiss={() => setInfoModalVisibleState(false)}
       >
         {infoModalChildren}
       </Modal>
       <Pressable
         aria-role="button"
-        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+        hitSlop={{bottom: 10, left: 10, right: 10, top: 10}}
+        onPress={() => setInfoModalVisibleState(true)}
         style={{marginLeft: 8}}
         testID="info-icon"
-        onPress={() => setInfoModalVisibleState(true)}
       >
         <Heading color="secondaryLight" size="sm">
           ⓘ

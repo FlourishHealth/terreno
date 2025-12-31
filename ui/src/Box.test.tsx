@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
+import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";
 
@@ -33,8 +33,8 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box direction="column" />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        flexDirection: "column",
         display: "flex",
+        flexDirection: "column",
       });
     });
 
@@ -47,9 +47,9 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box flex="grow" />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
+        display: "flex",
         flexGrow: 1,
         flexShrink: 1,
-        display: "flex",
       });
     });
 
@@ -57,8 +57,8 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box flex="shrink" />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        flexShrink: 1,
         display: "flex",
+        flexShrink: 1,
       });
     });
 
@@ -66,8 +66,8 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box flex="none" />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        flex: 0,
         display: "flex",
+        flex: 0,
       });
     });
 
@@ -107,8 +107,8 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box wrap />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        flexWrap: "wrap",
         alignItems: "flex-start",
+        flexWrap: "wrap",
       });
     });
 
@@ -143,8 +143,8 @@ describe("Box", () => {
       const {root} = renderWithTheme(<Box paddingY={3} />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        paddingTop: 12,
         paddingBottom: 12,
+        paddingTop: 12,
       });
     });
 
@@ -344,7 +344,7 @@ describe("Box", () => {
     });
 
     it("should apply circle rounding with height", () => {
-      const {root} = renderWithTheme(<Box rounding="circle" height={50} />);
+      const {root} = renderWithTheme(<Box height={50} rounding="circle" />);
       const view = root.findByType("View");
       expect(view.props.style.borderRadius).toBe(50);
     });
@@ -425,9 +425,9 @@ describe("Box", () => {
       const mockOnClick = mock(() => {});
       const {root} = renderWithTheme(
         <Box
-          onClick={mockOnClick}
-          accessibilityLabel="Click me"
           accessibilityHint="Tap to trigger action"
+          accessibilityLabel="Click me"
+          onClick={mockOnClick}
         >
           <Text>Clickable content</Text>
         </Box>
@@ -441,10 +441,10 @@ describe("Box", () => {
       const mockOnClick = mock(() => {});
       const {getByTestId} = renderWithTheme(
         <Box
+          accessibilityHint="Tap to trigger action"
+          accessibilityLabel="Click me"
           onClick={mockOnClick}
           testID="clickable-box"
-          accessibilityLabel="Click me"
-          accessibilityHint="Tap to trigger action"
         />
       );
 
@@ -460,10 +460,10 @@ describe("Box", () => {
       const mockOnClick = mock(() => {});
       const {getByTestId} = renderWithTheme(
         <Box
+          accessibilityHint="Tap to trigger action"
+          accessibilityLabel="Click me"
           onClick={mockOnClick}
           testID="accessible-box"
-          accessibilityLabel="Click me"
-          accessibilityHint="Tap to trigger action"
         />
       );
 
@@ -482,14 +482,14 @@ describe("Box", () => {
     });
 
     it("should enable horizontal scrolling when overflow is scrollX", () => {
-      const {root} = renderWithTheme(<Box scroll overflow="scrollX" />);
+      const {root} = renderWithTheme(<Box overflow="scrollX" scroll />);
       expect(root).toBeTruthy();
       // Just verify the component renders without error when horizontal scroll is enabled
     });
 
     it("should call onScroll callback", () => {
       const mockOnScroll = mock(() => {});
-      const {root} = renderWithTheme(<Box scroll onScroll={mockOnScroll} />);
+      const {root} = renderWithTheme(<Box onScroll={mockOnScroll} scroll />);
       expect(root).toBeTruthy();
       // Just verify the component renders without error when onScroll is provided
     });
@@ -570,7 +570,7 @@ describe("Box", () => {
   describe("warnings", () => {
     it("should warn when using wrap and alignItems together", () => {
       const consoleSpy = spyOn(console, "warn").mockImplementation(() => {});
-      renderWithTheme(<Box wrap alignItems="center" />);
+      renderWithTheme(<Box alignItems="center" wrap />);
       expect(consoleSpy).toHaveBeenCalledWith(
         "React Native doesn't support wrap and alignItems together."
       );
@@ -601,12 +601,12 @@ describe("Box", () => {
     });
 
     it("should handle zero values", () => {
-      const {root} = renderWithTheme(<Box padding={0} margin={0} gap={0} />);
+      const {root} = renderWithTheme(<Box gap={0} margin={0} padding={0} />);
       const view = root.findByType("View");
       expect(view.props.style).toMatchObject({
-        padding: 0,
-        margin: 0,
         gap: 0,
+        margin: 0,
+        padding: 0,
       });
     });
   });
@@ -620,12 +620,12 @@ describe("Box", () => {
     it("should match snapshot with layout props", () => {
       const component = renderWithTheme(
         <Box
+          alignItems="center"
           direction="column"
           flex="grow"
           justifyContent="center"
-          alignItems="center"
-          padding={4}
           margin={2}
+          padding={4}
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -634,9 +634,9 @@ describe("Box", () => {
     it("should match snapshot with clickable props", () => {
       const component = renderWithTheme(
         <Box
-          onClick={mock(() => {})}
-          accessibilityLabel="Click me"
           accessibilityHint="Tap to trigger action"
+          accessibilityLabel="Click me"
+          onClick={mock(() => {})}
         />
       );
       expect(component.toJSON()).toMatchSnapshot();
@@ -654,7 +654,7 @@ describe("Box", () => {
 
     it("should match snapshot with border and rounding", () => {
       const component = renderWithTheme(
-        <Box border="default" rounding="md" color="primary" shadow />
+        <Box border="default" color="primary" rounding="md" shadow />
       );
       expect(component.toJSON()).toMatchSnapshot();
     });

@@ -1,6 +1,6 @@
-import React, {useMemo} from "react";
+import {useMemo} from "react";
 
-import {AddressAutocompleteProps} from "./Common";
+import type {AddressAutocompleteProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import {MobileAddressAutocomplete} from "./MobileAddressAutoComplete";
 import {TextField} from "./TextField";
@@ -52,14 +52,14 @@ export const UnifiedAddressAutoCompleteField = ({
     return (
       <TextField
         disabled={disabled}
+        onChange={(value): void => {
+          handleAddressChange(value);
+        }}
         placeholder="Enter an address"
         testID={testID}
         title="Street Address"
         type="text"
         value={inputValue}
-        onChange={(value): void => {
-          handleAddressChange(value);
-        }}
       />
     );
   }

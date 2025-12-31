@@ -1,8 +1,8 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import React, {FC, useEffect, useState} from "react";
+import {type FC, useEffect, useState} from "react";
 import {Pressable, View} from "react-native";
 
-import {AccordionProps} from "./Common";
+import type {AccordionProps} from "./Common";
 import {Heading} from "./Heading";
 import {InfoModalIcon} from "./InfoModalIcon";
 import {Text} from "./Text";
@@ -31,17 +31,17 @@ export const Accordion: FC<AccordionProps> = ({
   return (
     <View
       style={{
-        padding: 16,
         borderBottomColor: theme.border.default,
+        borderBottomWidth: 2,
         borderTopColor: theme.border.default,
         borderTopWidth: 2,
-        borderBottomWidth: 2,
+        padding: 16,
         width: "100%",
       }}
     >
-      <View style={{flexDirection: "row", justifyContent: "space-between", alignItems: "center"}}>
+      <View style={{alignItems: "center", flexDirection: "row", justifyContent: "space-between"}}>
         <View style={{flexDirection: "column", gap: 4}}>
-          <View style={{flexDirection: "row", alignItems: "center"}}>
+          <View style={{alignItems: "center", flexDirection: "row"}}>
             <Heading>{title}</Heading>
             {includeInfoModal && infoModalTitle && (
               <InfoModalIcon
@@ -57,14 +57,14 @@ export const Accordion: FC<AccordionProps> = ({
         <View>
           <Pressable
             aria-role="button"
-            hitSlop={{top: 20, bottom: 20, left: 20, right: 20}}
-            testID="accordion-toggle"
+            hitSlop={{bottom: 20, left: 20, right: 20, top: 20}}
             onPress={() => {
               setCollapsed(!collapsed);
               if (onToggle) {
                 onToggle(!collapsed);
               }
             }}
+            testID="accordion-toggle"
           >
             <FontAwesome6
               color={theme.text.link}

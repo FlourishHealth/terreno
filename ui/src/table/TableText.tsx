@@ -1,7 +1,7 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 import {Text} from "react-native";
 
-import {TableTextProps} from "../Common";
+import type {TableTextProps} from "../Common";
 import {useTheme} from "../Theme";
 
 // TODO: Implement isEditing to TableText

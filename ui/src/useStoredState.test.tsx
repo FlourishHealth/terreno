@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, renderHook} from "@testing-library/react-native";
 
 import {Unifier} from "./Unifier";
@@ -19,7 +19,9 @@ describe("useStoredState", () => {
   });
 
   it("should return initialValue and isLoading=true on initial render", async () => {
-    getItemMock = mock(() => new Promise((resolve) => setTimeout(() => resolve("stored value"), 100)));
+    getItemMock = mock(
+      () => new Promise((resolve) => setTimeout(() => resolve("stored value"), 100))
+    );
     Unifier.storage.getItem = getItemMock;
 
     const {result} = renderHook(() => useStoredState("testKey", "initial value"));
@@ -119,7 +121,9 @@ describe("useStoredState", () => {
   });
 
   it("should not update state if component unmounts before storage resolves", async () => {
-    getItemMock = mock(() => new Promise((resolve) => setTimeout(() => resolve("stored value"), 100)));
+    getItemMock = mock(
+      () => new Promise((resolve) => setTimeout(() => resolve("stored value"), 100))
+    );
     Unifier.storage.getItem = getItemMock;
 
     const {result, unmount} = renderHook(() => useStoredState("testKey", "initial value"));

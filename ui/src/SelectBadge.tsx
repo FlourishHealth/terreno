@@ -1,8 +1,9 @@
 import {Picker} from "@react-native-picker/picker";
-import React, {useCallback, useMemo, useState} from "react";
+import type React from "react";
+import {useCallback, useMemo, useState} from "react";
 import {Modal, Platform, Text, TouchableOpacity, View} from "react-native";
 
-import {FieldOption, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
+import type {FieldOption, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 
@@ -24,12 +25,12 @@ export const SelectBadge = ({
   const [iosDisplayValue, setIosDisplayValue] = useState<string | undefined>(value);
 
   const secondaryBorderColors = {
-    error: "#F39E9E",
-    warning: "#FCC58F",
-    info: "#8FC1D2",
-    success: "#7FD898",
-    neutral: "#AAAAAA",
     custom: "#AAAAAA",
+    error: "#F39E9E",
+    info: "#8FC1D2",
+    neutral: "#AAAAAA",
+    success: "#7FD898",
+    warning: "#FCC58F",
   };
 
   let borderWidth = 0;
@@ -113,53 +114,53 @@ export const SelectBadge = ({
     return (
       <Modal
         animationType="slide"
+        onRequestClose={handleDismiss}
         supportedOrientations={["portrait", "landscape"]}
         transparent
         visible={showPicker}
-        onRequestClose={handleDismiss}
       >
         <View style={{flex: 1, justifyContent: "flex-end"}}>
           <TouchableOpacity
             accessibilityHint="Closes the picker modal"
             accessibilityLabel="Dismiss picker modal"
             activeOpacity={1}
-            style={{flex: 1}}
             onPress={handleDismiss}
+            style={{flex: 1}}
           />
           <View
             style={{
               backgroundColor: theme.surface.neutralLight,
-              borderTopWidth: 1,
               borderTopColor: theme.border.default,
+              borderTopWidth: 1,
               height: 215,
             }}
           >
             <View
               style={{
-                width: "100%",
-                height: 45,
-                backgroundColor: "#f8f8f8",
                 alignItems: "center",
+                backgroundColor: "#f8f8f8",
+                height: 45,
                 justifyContent: "center",
+                width: "100%",
               }}
             >
               <TouchableOpacity
                 accessibilityHint="Saves the selected value"
                 accessibilityLabel="Save selected value"
                 aria-role="button"
-                hitSlop={{top: 4, right: 4, bottom: 4, left: 4}}
+                hitSlop={{bottom: 4, left: 4, right: 4, top: 4}}
+                onPress={handleSave}
                 style={{
                   alignSelf: "flex-end",
                   paddingRight: 12,
                 }}
-                onPress={handleSave}
               >
                 <View>
                   <Text
                     style={{
                       color: "#007aff",
-                      fontWeight: "600",
                       fontSize: 17,
+                      fontWeight: "600",
                       paddingTop: 1,
                     }}
                   >
@@ -170,8 +171,8 @@ export const SelectBadge = ({
             </View>
             <Picker
               enabled={!disabled}
-              selectedValue={iosDisplayValue}
               onValueChange={handleValueChangeIos}
+              selectedValue={iosDisplayValue}
             >
               {renderPickerItems()}
             </Picker>
@@ -185,19 +186,19 @@ export const SelectBadge = ({
     return (
       <Picker
         enabled={!disabled}
+        onValueChange={handleOnChange}
         selectedValue={findSelectedItem(value)?.value ?? undefined}
         style={[
           {
+            color: "transparent",
+            height: "100%",
+            opacity: 0,
             position: "absolute",
             width: "100%",
-            height: "100%",
-            color: "transparent",
-            opacity: 0,
           },
           // Android headless picker: transparent overlay to capture touches without visible UI.
           Platform.OS !== "web" && {backgroundColor: "transparent"},
         ]}
-        onValueChange={handleOnChange}
       >
         {renderPickerItems()}
       </Picker>
@@ -215,34 +216,34 @@ export const SelectBadge = ({
       >
         <View
           style={{
+            alignItems: "center",
             display: "flex",
             flexDirection: "row",
-            alignItems: "center",
             height: 20,
             width: "auto",
           }}
         >
           <View
             style={{
-              justifyContent: "center",
               alignItems: "center",
-              paddingHorizontal: theme.spacing.sm,
-              flexDirection: "row",
-              borderTopLeftRadius: 4,
-              borderBottomLeftRadius: 4,
               backgroundColor,
-              height: 20,
-              width: "auto",
-              borderWidth,
+              borderBottomLeftRadius: 4,
               borderColor,
+              borderTopLeftRadius: 4,
+              borderWidth,
+              flexDirection: "row",
+              height: 20,
+              justifyContent: "center",
+              paddingHorizontal: theme.spacing.sm,
+              width: "auto",
             }}
           >
             <Text
               style={{
                 color: textColor,
+                fontFamily: "text",
                 fontSize: 10,
                 fontWeight: "700",
-                fontFamily: "text",
               }}
             >
               {displayVal}
@@ -250,19 +251,19 @@ export const SelectBadge = ({
           </View>
           <View
             style={{
-              justifyContent: "center",
               alignItems: "center",
-              paddingVertical: 1,
-              paddingHorizontal: theme.spacing.xs,
-              flexDirection: "row",
-              borderTopRightRadius: 4,
-              borderBottomRightRadius: 4,
               backgroundColor,
-              height: 20,
-              width: "auto",
-              borderWidth,
-              borderLeftWidth: 1,
+              borderBottomRightRadius: 4,
               borderColor: leftOfChevronBorderColor,
+              borderLeftWidth: 1,
+              borderTopRightRadius: 4,
+              borderWidth,
+              flexDirection: "row",
+              height: 20,
+              justifyContent: "center",
+              paddingHorizontal: theme.spacing.xs,
+              paddingVertical: 1,
+              width: "auto",
             }}
           >
             <Icon

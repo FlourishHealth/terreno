@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import {Pressable, View} from "react-native";
 
-import {DismissButtonProps} from "./Common";
+import type {DismissButtonProps} from "./Common";
 import {Icon} from "./Icon";
 
 export const DismissButton = ({
@@ -15,13 +15,13 @@ export const DismissButton = ({
       accessibilityHint={accessibilityHint}
       aria-label={accessibilityLabel}
       aria-role="button"
+      onPress={onClick}
       style={{
         alignItems: "center",
-        justifyContent: "center",
         height: 24.5,
+        justifyContent: "center",
         width: 24.5,
       }}
-      onPress={onClick}
     >
       <View>
         <Icon color={color} iconName="x" type="solid" />

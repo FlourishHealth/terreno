@@ -1,7 +1,7 @@
-import React, {FC, useEffect, useMemo, useRef, useState} from "react";
-import {TextInput, View} from "react-native";
+import {type FC, useEffect, useMemo, useRef, useState} from "react";
+import {type TextInput, View} from "react-native";
 
-import {CustomSelectFieldProps} from "./Common";
+import type {CustomSelectFieldProps} from "./Common";
 import {FieldHelperText} from "./fieldElements";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
@@ -84,11 +84,11 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
         <SelectField
           disabled={disabled}
           errorText={errorText}
+          onChange={handleCustomSelectListChange}
           options={[...options, {label: "Custom", value: "custom"}]}
           placeholder={placeholder}
           title={title}
           value={isValueCustom ? "custom" : currentValue}
-          onChange={handleCustomSelectListChange}
         />
       </View>
       {Boolean(showCustomInput) && (
@@ -103,10 +103,10 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             disabled={disabled}
             id="customOptions"
             inputRef={(ref: any) => (textInputRef.current = ref)}
+            onChange={onChange}
             placeholder="None selected"
             type="text"
             value={value}
-            onChange={onChange}
           />
         </View>
       )}

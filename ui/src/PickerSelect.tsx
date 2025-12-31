@@ -25,7 +25,7 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   Keyboard,
   Modal,
@@ -42,28 +42,27 @@ import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 
 export const defaultStyles = StyleSheet.create({
-  viewContainer: {
-    alignSelf: "stretch",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: 40,
-    width: "100%",
-    borderWidth: 1,
-    borderRadius: 4,
-  },
-
   chevron: {
-    width: 15,
-    height: 15,
     backgroundColor: "transparent",
     borderColor: "#a1a1a1",
-    borderTopWidth: 1.5,
     borderRightWidth: 1.5,
+    borderTopWidth: 1.5,
+    height: 15,
+    width: 15,
   },
 
   chevronActive: {
     borderColor: "#007aff",
+  },
+  viewContainer: {
+    alignItems: "center",
+    alignSelf: "stretch",
+    borderRadius: 4,
+    borderWidth: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    minHeight: 40,
+    width: "100%",
   },
 });
 
@@ -151,8 +150,8 @@ export function RNPickerSelect({
         idx = 0;
       }
       return {
-        selectedItem: options[idx] || {},
         idx,
+        selectedItem: options[idx] || {},
       };
     },
     [options]
@@ -217,8 +216,8 @@ export function RNPickerSelect({
     return options?.map((item: any) => {
       return (
         <Picker.Item
-          key={item.key || item.label}
           color={item.color}
+          key={item.key || item.label}
           label={item.label}
           value={item.value}
         />
@@ -234,14 +233,14 @@ export function RNPickerSelect({
     return (
       <View
         style={{
-          height: 45,
-          flexDirection: "row",
-          justifyContent: "space-between",
           alignItems: "center",
-          paddingHorizontal: 10,
           backgroundColor: "#f8f8f8",
-          borderTopWidth: 1,
           borderTopColor: "#dedede",
+          borderTopWidth: 1,
+          flexDirection: "row",
+          height: 45,
+          justifyContent: "space-between",
+          paddingHorizontal: 10,
           zIndex: 2,
         }}
         testID="input_accessory_view"
@@ -291,8 +290,7 @@ export function RNPickerSelect({
           )}
         </View>
         <Pressable
-          hitSlop={{top: 4, right: 4, bottom: 4, left: 4}}
-          testID="done_button"
+          hitSlop={{bottom: 4, left: 4, right: 4, top: 4}}
           onPress={() => {
             togglePicker(true, onDonePress);
           }}
@@ -302,6 +300,7 @@ export function RNPickerSelect({
           onPressOut={() => {
             setDoneDepressed(false);
           }}
+          testID="done_button"
           {...touchableDoneProps}
         >
           <View testID="needed_for_touchable">
@@ -310,10 +309,10 @@ export function RNPickerSelect({
               style={[
                 {
                   color: "#007aff",
-                  fontWeight: "600",
                   fontSize: 17,
-                  paddingTop: 1,
+                  fontWeight: "600",
                   paddingRight: 11,
+                  paddingTop: 1,
                 },
                 doneDepressed
                   ? {
@@ -376,8 +375,8 @@ export function RNPickerSelect({
         style={[
           defaultStyles.viewContainer,
           {
-            borderColor: theme.border.dark,
             backgroundColor: theme.surface.base,
+            borderColor: theme.border.dark,
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
@@ -386,54 +385,54 @@ export function RNPickerSelect({
       >
         <Pressable
           activeOpacity={1}
+          onPress={() => {
+            togglePicker(true);
+          }}
           style={{
+            alignItems: "center",
             flexDirection: "row",
             justifyContent: "center",
-            alignItems: "center",
             minHeight: 40,
             width: "95%",
           }}
           testID="ios_touchable_wrapper"
-          onPress={() => {
-            togglePicker(true);
-          }}
           {...touchableWrapperProps}
         >
           {renderTextInputOrChildren()}
         </Pressable>
         <Modal
           animationType={animationType}
+          onOrientationChange={onOrientationChange}
           supportedOrientations={["portrait", "landscape"]}
           testID="ios_modal"
           transparent
           visible={showPicker}
-          onOrientationChange={onOrientationChange}
           {...modalProps}
         >
           <Pressable
             aria-role="button"
+            onPress={() => {
+              togglePicker(true);
+            }}
             style={{
               flex: 1,
             }}
             testID="ios_modal_top"
-            onPress={() => {
-              togglePicker(true);
-            }}
           />
           {renderInputAccessoryView()}
           <View
             style={[
               {
-                justifyContent: "center",
                 backgroundColor: "#d0d4da",
+                justifyContent: "center",
               },
               {height: orientation === "portrait" ? 215 : 162},
             ]}
           >
             <Picker
+              onValueChange={onValueChangeEvent}
               selectedValue={selectedItem?.value}
               testID="ios_picker"
-              onValueChange={onValueChangeEvent}
             >
               {renderPickerItems()}
             </Picker>
@@ -448,27 +447,27 @@ export function RNPickerSelect({
     return (
       <Component
         activeOpacity={1}
-        testID="android_touchable_wrapper"
         onPress={onOpen}
+        testID="android_touchable_wrapper"
         {...touchableWrapperProps}
       >
         <View>
           {renderTextInputOrChildren()}
           <Picker
             enabled={!disabled}
+            onValueChange={onValueChangeEvent}
             selectedValue={selectedItem?.value}
             style={[
               Platform.OS !== "web" ? {backgroundColor: "transparent"} : {}, // to hide native icon
               {
+                color: "transparent",
+                height: "100%",
+                opacity: 0,
                 position: "absolute",
                 width: "100%",
-                height: "100%",
-                color: "transparent",
-                opacity: 0,
               },
             ]}
             testID="android_picker_headless"
-            onValueChange={onValueChangeEvent}
           >
             {renderPickerItems()}
           </Picker>
@@ -483,9 +482,9 @@ export function RNPickerSelect({
         style={[
           defaultStyles.viewContainer,
           {
-            height: 40,
-            borderColor: theme.border.dark,
             backgroundColor: theme.surface.base,
+            borderColor: theme.border.dark,
+            height: 40,
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
@@ -494,13 +493,13 @@ export function RNPickerSelect({
       >
         <Picker
           enabled={!disabled}
+          onValueChange={onValueChangeEvent}
           selectedValue={selectedItem?.value}
           style={[
             Platform.OS !== "web" ? {backgroundColor: "transparent"} : {}, // to hide native icon
-            {width: "100%", color: theme.text.primary},
+            {color: theme.text.primary, width: "100%"},
           ]}
           testID="android_picker"
-          onValueChange={onValueChangeEvent}
         >
           {renderPickerItems()}
         </Picker>
@@ -515,8 +514,8 @@ export function RNPickerSelect({
         style={[
           defaultStyles.viewContainer,
           {
-            borderColor: theme.border.dark,
             backgroundColor: theme.surface.base,
+            borderColor: theme.border.dark,
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
@@ -525,26 +524,26 @@ export function RNPickerSelect({
       >
         <Picker
           enabled={!disabled}
+          onValueChange={onValueChangeEvent}
           selectedValue={selectedItem?.value}
           style={[
             {
-              width: "100%",
-              height: "100%",
-              borderWidth: 0,
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-              borderRadius: 4,
               backgroundColor: theme.surface.base,
               borderColor: "black",
+              borderRadius: 4,
+              borderWidth: 0,
+              height: "100%",
+              paddingHorizontal: 8,
+              paddingVertical: 8,
+              width: "100%",
             },
             disabled && {
-              color: theme.text.secondaryLight,
               backgroundColor: theme.surface.neutralLight,
+              color: theme.text.secondaryLight,
               opacity: 1,
             },
           ]}
           testID="web_picker"
-          onValueChange={onValueChangeEvent}
         >
           {renderPickerItems()}
         </Picker>

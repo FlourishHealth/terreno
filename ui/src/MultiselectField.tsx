@@ -1,8 +1,8 @@
-import React, {FC, useEffect, useState} from "react";
+import {type FC, useEffect, useState} from "react";
 import {TouchableOpacity, View} from "react-native";
 
 import {CheckBox} from "./CheckBox";
-import {MultiselectFieldProps} from "./Common";
+import type {MultiselectFieldProps} from "./Common";
 import {FieldError, FieldHelperText} from "./fieldElements";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
@@ -29,20 +29,20 @@ const Option: FC<OptionProps> = ({value, label, isDefault, selected, onSelect}) 
         <Text>{label ?? value}</Text>
       </View>
       <TouchableOpacity
-        key={value}
         accessibilityHint={`Select ${label ?? value} from list of options`}
         aria-label={label ?? value}
         aria-role="checkbox"
-        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+        hitSlop={{bottom: 10, left: 10, right: 10, top: 10}}
+        key={value}
+        onPress={onSelect}
         style={{
           justifyContent: "center",
         }}
-        onPress={onSelect}
       >
         <View
           style={{
-            paddingStart: isDefault ? 8 : 0,
             paddingEnd: isDefault ? 0 : 8,
+            paddingStart: isDefault ? 8 : 0,
           }}
         >
           <CheckBox selected={selected} />
@@ -84,25 +84,25 @@ export const MultiselectField: FC<MultiselectFieldProps> = ({
       aria-role="combobox"
       style={{
         display: "flex",
-        width: "100%",
         gap: isMobile ? 16 : 8,
+        width: "100%",
       }}
     >
       <Heading color="primary" size="sm">
         {title}
       </Heading>
       {Boolean(errorText) && <FieldError text={errorText!} />}
-      {Boolean(disabled) ? (
+      {disabled ? (
         <Text>{value.join(", ")}</Text>
       ) : (
         options.map((option) => (
           <Option
-            key={option.key ?? option.value}
             isDefault={isDefault}
+            key={option.key ?? option.value}
             label={option.label}
+            onSelect={() => toggleItem(option.value)}
             selected={selectedItems.includes(option.value)}
             value={option.value}
-            onSelect={() => toggleItem(option.value)}
           />
         ))
       )}

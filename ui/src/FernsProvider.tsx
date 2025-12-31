@@ -1,4 +1,5 @@
-import React, {FC} from "react";
+import type React from "react";
+import type {FC} from "react";
 import {Host} from "react-native-portalize";
 import {ToastProvider} from "react-native-toast-notifications";
 

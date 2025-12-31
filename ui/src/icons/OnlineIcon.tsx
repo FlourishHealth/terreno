@@ -1,9 +1,8 @@
 // Generated with https://react-svgr.com/playground/?native=true&typescript=true
 
-import * as React from "react";
 import Svg, {Path} from "react-native-svg";
 
-import {CustomSvgProps} from "../Common";
+import type {CustomSvgProps} from "../Common";
 
 export const OnlineIcon = ({doNotDisturb, ...props}: CustomSvgProps) => {
   return (

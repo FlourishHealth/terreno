@@ -1,11 +1,12 @@
 /* eslint-disable no-console */
-import {ImageManipulator, ImageResult, SaveFormat} from "expo-image-manipulator";
+import {ImageManipulator, type ImageResult, SaveFormat} from "expo-image-manipulator";
 import {launchImageLibraryAsync} from "expo-image-picker";
 import {LinearGradient} from "expo-linear-gradient";
-import React, {FC, useState} from "react";
+import type React from "react";
+import {type FC, useState} from "react";
 import {Image, Pressable, Text, View} from "react-native";
 
-import {AvatarProps, CustomSvgProps} from "./Common";
+import type {AvatarProps, CustomSvgProps} from "./Common";
 import {Icon} from "./Icon";
 import {MobileIcon, OfflineIcon, OnlineIcon, OutOfOfficeIcon} from "./icons";
 import {isMobileDevice} from "./MediaQuery";
@@ -13,35 +14,35 @@ import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
 
 const sizes = {
-  xs: 28,
-  sm: 38,
-  md: 56,
   lg: 72,
+  md: 56,
+  sm: 38,
   xl: 120,
+  xs: 28,
 };
 
 const initialsFontSizes = {
-  xs: 12,
-  sm: 16,
-  md: 24,
   lg: 32,
+  md: 24,
+  sm: 16,
   xl: 60,
+  xs: 12,
 };
 
 const iconSizeScale = {
-  xs: 0.5,
-  sm: 0.7,
-  md: 0.9,
   lg: 1.1,
+  md: 0.9,
+  sm: 0.7,
   xl: 1.5,
+  xs: 0.5,
 };
 
 const sizeIconPadding = {
-  xs: 12,
-  sm: 10,
-  md: 9,
   lg: 7,
+  md: 9,
+  sm: 10,
   xl: 0,
+  xs: 12,
 };
 
 export const Avatar: FC<AvatarProps> = ({
@@ -74,14 +75,14 @@ export const Avatar: FC<AvatarProps> = ({
       label: string;
     };
   } = {
-    online: {icon: OnlineIcon, label: "Online"},
-    offline: {icon: OfflineIcon, label: "Offline"},
-    outOfOffice: {icon: OutOfOfficeIcon, label: "Out of Office"},
     activeMobile: {
       icon: MobileIcon,
 
       label: "Active on Mobile",
     },
+    offline: {icon: OfflineIcon, label: "Offline"},
+    online: {icon: OnlineIcon, label: "Online"},
+    outOfOffice: {icon: OutOfOfficeIcon, label: "Out of Office"},
   };
 
   if (showEditIcon && !onChange) {
@@ -96,9 +97,9 @@ export const Avatar: FC<AvatarProps> = ({
   const pickImage = async () => {
     // TODO: Add permission request to use camera to take a picture
     const result = await launchImageLibraryAsync({
-      mediaTypes: "images",
       allowsEditing: true,
       base64: true,
+      mediaTypes: "images",
     });
 
     if (!result.canceled && result.assets) {
@@ -117,7 +118,7 @@ export const Avatar: FC<AvatarProps> = ({
       height: avatarImageDiameter,
     });
     const renderedImage = await resizedImage.renderAsync();
-    return await renderedImage.saveAsync({format: avatarImageFormat, base64: true});
+    return await renderedImage.saveAsync({base64: true, format: avatarImageFormat});
   };
 
   const renderEditIcon = () => {
@@ -129,6 +130,7 @@ export const Avatar: FC<AvatarProps> = ({
     return (
       <Pressable
         aria-role="button"
+        onPress={pickImage}
         style={{
           alignItems: "center",
           backgroundColor: "rgba(255,255,255,0.75)",
@@ -139,15 +141,14 @@ export const Avatar: FC<AvatarProps> = ({
           width: avatarImageDiameter,
           zIndex: 5,
         }}
-        onPress={pickImage}
       >
         <Icon color="primary" iconName="pen-to-square" size="2xl" type="regular" />
         <Text
           style={{
-            textAlign: "center",
-            fontWeight: "bold",
             fontSize: 12,
+            fontWeight: "bold",
             marginTop: 10,
+            textAlign: "center",
           }}
         >
           Upload Image
@@ -195,10 +196,10 @@ export const Avatar: FC<AvatarProps> = ({
       <Pressable
         aria-role="button"
         style={{
-          overflow: "hidden",
-          position: "relative",
           borderRadius: 1,
           cursor: showEditIcon ? "pointer" : "auto",
+          overflow: "hidden",
+          position: "relative",
         }}
       >
         {src && isImageLoaded ? (
@@ -206,36 +207,36 @@ export const Avatar: FC<AvatarProps> = ({
           // Currently it creates an unrounded box around the Image.
           <Image
             accessibilityIgnoresInvertColors
-            source={{uri: src, cache: "force-cache"}}
+            onError={handleImageError}
+            source={{cache: "force-cache", uri: src}}
             style={{
+              borderColor: hasBorder ? "white" : "transparent",
               borderRadius: avatarRadius,
               borderWidth: hasBorder && status !== "imagePicker" ? avatarImageDiameter * 0.04 : 0,
-              borderColor: hasBorder ? "white" : "transparent",
               height: avatarImageDiameter,
               overflow: "hidden",
             }}
             testID="avatar-image"
-            onError={handleImageError}
           />
         ) : (
           <View
             style={{
-              height: avatarImageDiameter,
-              width: avatarImageDiameter,
+              alignItems: "center",
+              backgroundColor: theme.surface.secondaryDark,
+              borderColor: hasBorder && status !== "imagePicker" ? "white" : "transparent",
               borderRadius: avatarRadius,
               borderWidth: hasBorder && status !== "imagePicker" ? avatarImageDiameter * 0.04 : 0,
-              borderColor: hasBorder && status !== "imagePicker" ? "white" : "transparent",
               display: "flex",
-              alignItems: "center",
+              height: avatarImageDiameter,
               justifyContent: "center",
-              backgroundColor: theme.surface.secondaryDark,
+              width: avatarImageDiameter,
             }}
           >
             <Text
               style={{
-                fontWeight: 500,
-                fontSize: initialsFontSizes[size],
                 color: theme.text.inverted,
+                fontSize: initialsFontSizes[size],
+                fontWeight: 500,
               }}
             >
               {computedInitials}
@@ -261,11 +262,11 @@ export const Avatar: FC<AvatarProps> = ({
         end={{x: 1, y: 1}}
         start={{x: 0, y: 0}}
         style={{
-          height: gradientDiameter,
-          width: gradientDiameter,
-          borderRadius: gradientDiameter / 2,
           alignItems: "center",
+          borderRadius: gradientDiameter / 2,
+          height: gradientDiameter,
           justifyContent: "center",
+          width: gradientDiameter,
         }}
       >
         {avatar}
@@ -281,9 +282,9 @@ export const Avatar: FC<AvatarProps> = ({
     avatar = (
       <View
         style={{
-          width: widthPlusPadding,
-          paddingRight: sizeIconPadding[size],
           paddingBottom: sizeIconPadding[size],
+          paddingRight: sizeIconPadding[size],
+          width: widthPlusPadding,
         }}
       >
         <Tooltip idealPosition="top" text={isMobileDevice() ? undefined : status}>

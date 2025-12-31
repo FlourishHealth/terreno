@@ -1,8 +1,8 @@
-import React from "react";
+import type React from "react";
 import {Platform, Pressable, View} from "react-native";
 import {useToast as useRNToast} from "react-native-toast-notifications";
 
-import {IconName, SurfaceColor, TextColor, ToastProps} from "./Common";
+import type {IconName, SurfaceColor, TextColor, ToastProps} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
@@ -44,24 +44,6 @@ export function useToast(): {
     });
   };
   return {
-    show,
-    warn: (title: string, options?: UseToastVariantOptions): string => {
-      console.warn(title);
-      return show(title, {...options, variant: "warning"});
-    },
-    error: (title: string, options?: UseToastVariantOptions): string => {
-      console.error(title);
-      return show(title, {...options, variant: "error"});
-    },
-    success: (title: string, options?: UseToastVariantOptions): string => {
-      console.info(title);
-      return show(title, {...options, variant: "success"});
-    },
-    info: (title: string, options?: UseToastVariantOptions): string => {
-      console.info(title);
-      return show(title, {...options, variant: "info"});
-    },
-    hide: (id: string) => toast.hide(id),
     catch: (error: any, message?: string, options?: UseToastVariantOptions): void => {
       let exceptionMsg;
       if (isAPIError(error)) {
@@ -73,6 +55,24 @@ export function useToast(): {
         console.error(`${message}: ${exceptionMsg}`);
       }
       show(exceptionMsg, {...options, variant: "error"});
+    },
+    error: (title: string, options?: UseToastVariantOptions): string => {
+      console.error(title);
+      return show(title, {...options, variant: "error"});
+    },
+    hide: (id: string) => toast.hide(id),
+    info: (title: string, options?: UseToastVariantOptions): string => {
+      console.info(title);
+      return show(title, {...options, variant: "info"});
+    },
+    show,
+    success: (title: string, options?: UseToastVariantOptions): string => {
+      console.info(title);
+      return show(title, {...options, variant: "success"});
+    },
+    warn: (title: string, options?: UseToastVariantOptions): string => {
+      console.warn(title);
+      return show(title, {...options, variant: "warning"});
     },
   };
 }
@@ -126,77 +126,77 @@ export const Toast = ({
       style={{
         display: "flex",
         flexDirection: "row",
+        flexGrow: 1,
         justifyContent: "center",
-        width: "100%",
-        paddingLeft: Platform.OS === "web" ? "10%" : theme.spacing.sm,
-        paddingRight: Platform.OS === "web" ? "10%" : theme.spacing.sm,
         marginTop: theme.spacing.sm,
         maxWidth: Platform.OS === "web" ? 900 : "100%",
-        flexGrow: 1,
+        paddingLeft: Platform.OS === "web" ? "10%" : theme.spacing.sm,
+        paddingRight: Platform.OS === "web" ? "10%" : theme.spacing.sm,
+        width: "100%",
       }}
     >
       <View
         style={{
+          alignItems: "center",
+          alignSelf: "flex-start",
+          backgroundColor: theme.surface[color],
+          borderRadius: theme.radius.default,
           display: "flex",
-          flexShrink: 1,
           flexDirection: "row",
+          flexShrink: 1,
+          gap: 10,
+          maxWidth: "100%", // Ensure the content does not overflow
+          minHeight: size === "lg" ? 32 : undefined,
           minWidth: 150,
-          paddingTop: theme.spacing.xs,
           paddingBottom: theme.spacing.xs,
           paddingRight: theme.spacing.sm,
-          alignItems: "center",
-          gap: 10,
-          borderRadius: theme.radius.default,
-          backgroundColor: theme.surface[color],
-          alignSelf: "flex-start",
-          minHeight: size === "lg" ? 32 : undefined,
-          maxWidth: "100%", // Ensure the content does not overflow
+          paddingTop: theme.spacing.xs,
         }}
       >
         <View
           style={{
-            paddingLeft: 8,
-            paddingRight: 8,
+            alignItems: "center",
             display: "flex",
             flexDirection: "row",
-            alignItems: "center",
+            flexGrow: 1,
+            flexShrink: 1, // Ensure the content can shrink properly
             gap: 12,
             maxWidth: "100%",
-            flexShrink: 1, // Ensure the content can shrink properly
-            flexGrow: 1,
+            paddingLeft: 8,
+            paddingRight: 8,
           }}
         >
           <View
             style={{
+              alignItems: size === "lg" ? "center" : undefined,
+              alignSelf: size === "lg" ? "stretch" : undefined,
+              borderBottomLeftRadius: theme.radius.default,
+              borderTopLeftRadius: theme.radius.default,
               display: "flex",
               flexDirection: "row",
-              paddingTop: size === "lg" ? 8 : 0,
               paddingBottom: size === "lg" ? 8 : 0,
               paddingLeft: size === "lg" ? 4 : 0,
               paddingRight: size === "lg" ? 4 : 0,
-              alignItems: size === "lg" ? "center" : undefined,
-              alignSelf: size === "lg" ? "stretch" : undefined,
-              borderTopLeftRadius: theme.radius.default,
-              borderBottomLeftRadius: theme.radius.default,
+              paddingTop: size === "lg" ? 8 : 0,
             }}
           >
             <Icon color={textColor} iconName={iconName} size={size === "lg" ? "2xl" : "md"} />
           </View>
           <View
             style={{
-              display: "flex",
-              paddingTop: 8,
-              paddingBottom: 8,
-              flexDirection: "column",
-              justifyContent: "center",
               alignItems: "flex-start",
-              gap: 2,
               alignSelf: "stretch",
-              flexWrap: "wrap",
+              display: "flex",
+              flexDirection: "column",
               flexShrink: 1, // Ensure the content can shrink properly
+              flexWrap: "wrap",
+              gap: 2,
+              justifyContent: "center",
+              paddingBottom: 8,
+              paddingTop: 8,
             }}
           >
-            {Boolean(size === "lg") ? (
+            {size === "lg" ? (
               <Heading color={textColor} size="sm">
                 {title}
               </Heading>
@@ -215,15 +215,15 @@ export const Toast = ({
         {Boolean(persistent && onDismiss) && (
           <Pressable
             aria-role="button"
+            onPress={onDismiss}
             style={{
-              display: "flex",
               alignItems: "center",
               alignSelf: "center",
+              display: "flex",
               gap: 12,
               marginLeft: 10,
               padding: size === "lg" ? 8 : 0,
             }}
-            onPress={onDismiss}
           >
             <Icon color={textColor} iconName="xmark" />
           </Pressable>

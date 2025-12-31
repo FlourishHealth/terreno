@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import {Text, View} from "react-native";
 
-import {BadgeProps, SurfaceTheme, TextTheme} from "./Common";
+import type {BadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 
@@ -26,12 +26,12 @@ export const Badge = ({
 
   // TODO: Move to theme
   const secondaryBorderColors = {
-    error: "#F39E9E",
-    warning: "#FCC58F",
-    info: "#8FC1D2",
-    success: "#7FD898",
-    neutral: "#AAAAAA",
     custom: "#AAAAAA",
+    error: "#F39E9E",
+    info: "#8FC1D2",
+    neutral: "#AAAAAA",
+    success: "#7FD898",
+    warning: "#FCC58F",
   };
 
   if (secondary) {
@@ -98,18 +98,18 @@ export const Badge = ({
       <View
         style={[
           {
-            justifyContent: "center",
             alignItems: "center",
-            paddingVertical: variant === "iconOnly" ? 1 : theme.spacing.xs,
-            paddingHorizontal: variant === "iconOnly" ? theme.spacing.xs : theme.spacing.sm,
-            flexDirection: "row",
-            borderRadius: badgeBorderRadius,
             backgroundColor,
+            borderRadius: badgeBorderRadius,
+            flexDirection: "row",
             height: variant === "iconOnly" ? 16 : "auto",
+            justifyContent: "center",
+            paddingHorizontal: variant === "iconOnly" ? theme.spacing.xs : theme.spacing.sm,
+            paddingVertical: variant === "iconOnly" ? 1 : theme.spacing.xs,
             width: variant === "iconOnly" ? 16 : "auto",
           },
           isIconOnly && {height: 16, width: 16},
-          secondary && {borderWidth: 1, borderColor},
+          secondary && {borderColor, borderWidth: 1},
         ]}
         testID={testID}
       >
@@ -122,9 +122,9 @@ export const Badge = ({
           <Text
             style={{
               color: textColor,
+              fontFamily: "text",
               fontSize: 10,
               fontWeight: "700",
-              fontFamily: "text",
             }}
           >
             {badgeValue}

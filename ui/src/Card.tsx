@@ -1,7 +1,5 @@
-import React from "react";
-
 import {Box} from "./Box";
-import {BoxProps} from "./Common";
+import type {BoxProps} from "./Common";
 
 export const Card = ({children, color = "base", padding = 4, width, ...rest}: BoxProps) => {
   return (

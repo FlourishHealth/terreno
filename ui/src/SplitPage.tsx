@@ -1,4 +1,4 @@
-import React, {Children, useCallback, useEffect, useState} from "react";
+import {Children, useCallback, useEffect, useState} from "react";
 import {Dimensions, type ListRenderItemInfo, ScrollView, View} from "react-native";
 import {SwiperFlatList} from "react-native-swiper-flatlist";
 

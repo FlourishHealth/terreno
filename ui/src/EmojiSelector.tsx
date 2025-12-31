@@ -27,7 +27,7 @@
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import emoji from "emoji-datasource";
-import React, {useCallback, useEffect, useRef, useState} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import type {FlatListProps, LayoutChangeEvent} from "react-native";
 import {
   ActivityIndicator,

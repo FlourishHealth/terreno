@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import {TouchableOpacity, View} from "react-native";
 
-import {RadioFieldProps} from "./Common";
+import type {RadioFieldProps} from "./Common";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
 import {Radio} from "./Radio";
@@ -19,15 +19,15 @@ export const RadioField = ({
       <Heading size="sm">{title}</Heading>
       {options.map((option) => (
         <TouchableOpacity
-          key={option.key ?? option.value}
           accessibilityHint={`Select ${option} from list of options`}
           aria-label={option.label ?? option.value}
           aria-role="button"
+          key={option.key ?? option.value}
+          onPress={() => onChange(option.value)}
           style={{
             flexDirection: "row",
             justifyContent: "space-between",
           }}
-          onPress={() => onChange(option.value)}
         >
           {variant === "leftText" && <Text>{option.label ?? option.value}</Text>}
           <Radio key={option.key ?? option.value} selected={option.value === value} />

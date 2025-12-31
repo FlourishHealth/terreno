@@ -1,11 +1,12 @@
-import {CountryCode} from "libphonenumber-js";
-import React, {ReactElement, ReactNode} from "react";
-import {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
-import {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
-import {Styles} from "react-native-google-places-autocomplete";
-import {SvgProps} from "react-native-svg";
+import type {CountryCode} from "libphonenumber-js";
+import type React from "react";
+import type {ReactElement, ReactNode} from "react";
+import type {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
+import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
+import type {Styles} from "react-native-google-places-autocomplete";
+import type {SvgProps} from "react-native-svg";
 
-import {
+import type {
   FontAwesome6BrandNames,
   FontAwesome6RegularNames,
   FontAwesome6SolidNames,
@@ -414,12 +415,12 @@ export type IconSize = "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 
 export const iconSizeToNumber = (size?: IconSize) => {
   return {
-    xs: 8,
-    sm: 12,
-    md: 16,
-    lg: 20,
-    xl: 24,
     "2xl": 28,
+    lg: 20,
+    md: 16,
+    sm: 12,
+    xl: 24,
+    xs: 8,
   }[size || "md"];
 };
 
@@ -710,16 +711,16 @@ export type Rounding =
   | "3xl";
 
 const ROUNDING_MAP = {
-  minimal: 2,
-  default: 3,
-  full: 16,
-  rounded: 360,
-  sm: 2,
-  md: 4,
-  lg: 16,
-  xl: 32,
   "2xl": 128,
   "3xl": 360,
+  default: 3,
+  full: 16,
+  lg: 16,
+  md: 4,
+  minimal: 2,
+  rounded: 360,
+  sm: 2,
+  xl: 32,
 };
 
 export function getRounding(rounding: Rounding) {

@@ -1,7 +1,7 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 import {Text} from "react-native";
 
-import {TableNumberProps} from "../Common";
+import type {TableNumberProps} from "../Common";
 import {useTheme} from "../Theme";
 
 // TODO: Implement isEditing to TableNumber

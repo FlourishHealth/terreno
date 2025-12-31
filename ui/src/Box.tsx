@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import React, {useImperativeHandle} from "react";
 import {
-  AccessibilityProps,
+  type AccessibilityProps,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 
 import {getRounding, getSpacing, useTheme} from ".";
-import {
+import type {
   AlignContent,
   AlignItems,
   AlignSelf,
@@ -24,30 +24,30 @@ import {mediaQueryLargerThan} from "./MediaQuery";
 import {Unifier} from "./Unifier";
 
 const ALIGN_CONTENT = {
-  start: "flex-start",
-  end: "flex-end",
-  center: "center",
-  between: "space-between",
   around: "space-around",
+  between: "space-between",
+  center: "center",
+  end: "flex-end",
+  start: "flex-start",
   stretch: "stretch",
 };
 
 const ALIGN_ITEMS = {
-  start: "flex-start",
-  end: "flex-end",
-  center: "center",
   baseline: "baseline",
+  center: "center",
+  end: "flex-end",
+  start: "flex-start",
   stretch: "stretch",
 };
 
 const ALIGN_SELF = {
+  around: "space-around",
   auto: "auto",
   baseline: "baseline",
-  start: "flex-start",
-  end: "flex-end",
-  center: "center",
   between: "space-between",
-  around: "space-around",
+  center: "center",
+  end: "flex-end",
+  start: "flex-start",
   stretch: "stretch",
 };
 
@@ -66,22 +66,21 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   const {theme} = useTheme();
 
   useImperativeHandle(ref, () => ({
-    scrollToEnd: () => {
-      if (scrollRef?.current) {
-        // HACK HACK HACK...but it works. Probably need to do some onContentSizeChange or onLayout
-        // to avoid this, but it works well enough.
-        setTimeout(() => {
-          scrollRef?.current?.scrollToEnd();
-        }, 50);
-      }
-    },
-
     scrollTo: (y: number) => {
       if (scrollRef?.current) {
         // HACK HACK HACK...but it works. Probably need to do some onContentSizeChange or onLayout
         // to avoid this, but it works well enough.
         setTimeout(() => {
           scrollRef?.current?.scrollTo({y});
+        }, 50);
+      }
+    },
+    scrollToEnd: () => {
+      if (scrollRef?.current) {
+        // HACK HACK HACK...but it works. Probably need to do some onContentSizeChange or onLayout
+        // to avoid this, but it works well enough.
+        setTimeout(() => {
+          scrollRef?.current?.scrollToEnd();
         }, 50);
       }
     },
@@ -128,13 +127,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     bottom: (bottom) => ({bottom: bottom ? 0 : undefined}),
     color: (value: keyof SurfaceTheme) => ({backgroundColor: theme.surface[value]}),
-    direction: (value: any) => ({flexDirection: value, display: "flex"}),
-    smDirection: (value: any) =>
-      mediaQueryLargerThan("sm") ? {flexDirection: value, display: "flex"} : {},
-    mdDirection: (value: any) =>
-      mediaQueryLargerThan("md") ? {flexDirection: value, display: "flex"} : {},
-    lgDirection: (value: any) =>
-      mediaQueryLargerThan("lg") ? {flexDirection: value, display: "flex"} : {},
+    direction: (value: any) => ({display: "flex", flexDirection: value}),
     display: (value: any) => {
       if (value === "none") {
         return {display: "none"};
@@ -143,11 +136,11 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     flex: (value: string) => {
       if (value === "grow") {
-        return {flexGrow: 1, flexShrink: 1, display: "flex"};
+        return {display: "flex", flexGrow: 1, flexShrink: 1};
       } else if (value === "shrink") {
-        return {flexShrink: 1, display: "flex"};
+        return {display: "flex", flexShrink: 1};
       } else {
-        return {flex: 0, display: "flex"};
+        return {display: "flex", flex: 0};
       }
     },
     gap: (value) => ({gap: getSpacing(value)}),
@@ -166,11 +159,51 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     justifyContent: (value: JustifyContent) => ({justifyContent: ALIGN_CONTENT[value]}),
     left: (left) => ({left: left ? 0 : undefined}),
+    lgDirection: (value: any) =>
+      mediaQueryLargerThan("lg") ? {display: "flex", flexDirection: value} : {},
     margin: (value) => ({margin: getSpacing(value)}),
     marginBottom: (value) => ({marginBottom: getSpacing(value)}),
     marginLeft: (value) => ({marginLeft: getSpacing(value)}),
     marginRight: (value) => ({marginRight: getSpacing(value)}),
     marginTop: (value) => ({marginTop: getSpacing(value)}),
+    maxHeight: (value) => {
+      if (!isValidWidthHeight(value)) {
+        console.warn(
+          `Box: maxHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+        );
+        return {};
+      }
+      return {maxHeight: value};
+    },
+    maxWidth: (value) => {
+      if (!isValidWidthHeight(value)) {
+        console.warn(
+          `Box: maxWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+        );
+        return {};
+      }
+      return {maxWidth: value};
+    },
+    mdDirection: (value: any) =>
+      mediaQueryLargerThan("md") ? {display: "flex", flexDirection: value} : {},
+    minHeight: (value) => {
+      if (!isValidWidthHeight(value)) {
+        console.warn(
+          `Box: minHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+        );
+        return {};
+      }
+      return {minHeight: value};
+    },
+    minWidth: (value) => {
+      if (!isValidWidthHeight(value)) {
+        console.warn(
+          `Box: minWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
+        );
+        return {};
+      }
+      return {minWidth: value};
+    },
     overflow: (value) => {
       if (value === "scrollY" || value === "scroll") {
         return {overflow: "scroll"};
@@ -179,7 +212,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
     },
     padding: (value) => ({padding: getSpacing(value)}),
     paddingX: (value) => ({paddingLeft: getSpacing(value), paddingRight: getSpacing(value)}),
-    paddingY: (value) => ({paddingTop: getSpacing(value), paddingBottom: getSpacing(value)}),
+    paddingY: (value) => ({paddingBottom: getSpacing(value), paddingTop: getSpacing(value)}),
     position: (value) => ({position: value}),
     right: (right) => ({right: right ? 0 : undefined}),
     rounding: (rounding, allProps) => {
@@ -209,6 +242,8 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         return {elevation: 4};
       }
     },
+    smDirection: (value: any) =>
+      mediaQueryLargerThan("sm") ? {display: "flex", flexDirection: value} : {},
     top: (top) => ({top: top ? 0 : undefined}),
     width: (value) => {
       if (!isValidWidthHeight(value)) {
@@ -223,43 +258,7 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         return {width: value};
       }
     },
-    maxHeight: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: maxHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {maxHeight: value};
-    },
-    maxWidth: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: maxWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {maxWidth: value};
-    },
-    minHeight: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: minHeight prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {minHeight: value};
-    },
-    minWidth: (value) => {
-      if (!isValidWidthHeight(value)) {
-        console.warn(
-          `Box: minWidth prop must be a number or percentage string (e.g., "50%"), received: ${value}`
-        );
-        return {};
-      }
-      return {minWidth: value};
-    },
-    wrap: (value) => ({flexWrap: value ? "wrap" : "nowrap", alignItems: "flex-start"}),
+    wrap: (value) => ({alignItems: "flex-start", flexWrap: value ? "wrap" : "nowrap"}),
     zIndex: (value) => ({zIndex: value ? value : undefined}),
   };
 
@@ -307,15 +306,15 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
         accessibilityHint={(props as AccessibilityProps).accessibilityHint}
         aria-label={(props as AccessibilityProps).accessibilityLabel}
         aria-role="button"
-        style={propsToStyle()}
-        testID={props.testID ? `${props.testID}-clickable` : undefined}
         onLayout={props.onLayout}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
         onPress={async () => {
           await Unifier.utils.haptic();
-          await props.onClick!();
+          await props.onClick?.();
         }}
+        style={propsToStyle()}
+        testID={props.testID ? `${props.testID}-clickable` : undefined}
       >
         {props.children}
       </Pressable>
@@ -323,10 +322,10 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
   } else {
     box = (
       <View
-        style={propsToStyle()}
-        testID={props.testID}
         onPointerEnter={onHoverIn}
         onPointerLeave={onHoverOut}
+        style={propsToStyle()}
+        testID={props.testID}
       >
         {props.children}
       </View>
@@ -338,18 +337,18 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
 
     box = (
       <ScrollView
-        ref={props.scrollRef || scrollRef}
-        contentContainerStyle={{justifyContent, alignContent, alignItems}}
+        contentContainerStyle={{alignContent, alignItems, justifyContent}}
         horizontal={props.overflow === "scrollX"}
         keyboardShouldPersistTaps="handled"
         nestedScrollEnabled
-        scrollEventThrottle={50}
-        style={scrollStyle}
         onScroll={(event) => {
           if (props.onScroll && event) {
             props.onScroll(event.nativeEvent.contentOffset.y);
           }
         }}
+        ref={props.scrollRef || scrollRef}
+        scrollEventThrottle={50}
+        style={scrollStyle}
       >
         {box}
       </ScrollView>
@@ -361,9 +360,9 @@ export const Box = React.forwardRef((props: BoxProps, ref) => {
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={props.keyboardOffset}
-        style={{flex: 1, display: "flex"}}
+        style={{display: "flex", flex: 1}}
       >
-        <SafeAreaView style={{flex: 1, display: "flex"}}>{box}</SafeAreaView>
+        <SafeAreaView style={{display: "flex", flex: 1}}>{box}</SafeAreaView>
       </KeyboardAvoidingView>
     );
   }

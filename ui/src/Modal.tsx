@@ -1,6 +1,6 @@
-import React, {FC, useEffect, useRef} from "react";
-import {Dimensions, DimensionValue, Pressable, Modal as RNModal, View} from "react-native";
-import ActionSheet, {ActionSheetRef} from "react-native-actions-sheet";
+import {type FC, useEffect, useRef} from "react";
+import {Dimensions, type DimensionValue, Pressable, Modal as RNModal, View} from "react-native";
+import ActionSheet, {type ActionSheetRef} from "react-native-actions-sheet";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {runOnJS} from "react-native-reanimated";
 
@@ -15,9 +15,9 @@ import {isNative} from "./Utilities";
 
 const getModalSize = (size: "sm" | "md" | "lg"): DimensionValue => {
   const sizeMap = {
-    sm: 540,
-    md: 720,
     lg: 900,
+    md: 720,
+    sm: 540,
   };
   let sizePx: DimensionValue = sizeMap[size] || sizeMap.sm;
   if (sizePx > Dimensions.get("window").width) {
@@ -58,20 +58,20 @@ const ModalContent: FC<{
   return (
     <View
       style={{
-        padding: 32,
         alignItems: "center",
         alignSelf: "center",
-        zIndex: 1,
         backgroundColor: theme.surface.base,
         borderRadius: theme.radius.default,
-        width: sizePx,
         maxHeight: "100%",
+        padding: 32,
+        width: sizePx,
+        zIndex: 1,
         ...(isMobile
           ? {}
           : {
-              margin: "auto",
               boxShadow: "0px 4px 24px rgba(0, 0, 0, 0.5)",
               elevation: 24,
+              margin: "auto",
             }),
       }}
     >
@@ -80,17 +80,17 @@ const ModalContent: FC<{
           accessibilityHint="Closes the modal"
           aria-label="Close modal"
           aria-role="button"
+          onPress={onDismiss}
           style={{
+            alignItems: "center",
+            bottom: -8,
             flex: 1,
             justifyContent: "center",
-            alignItems: "center",
-            position: "absolute",
-            top: -8,
-            bottom: -8,
             left: -8,
+            position: "absolute",
             right: -8,
+            top: -8,
           }}
-          onPress={onDismiss}
         >
           <Icon iconName="x" size="sm" />
         </Pressable>
@@ -120,7 +120,7 @@ const ModalContent: FC<{
           accessibilityHint="Modal body text"
           aria-label={text}
           aria-role="text"
-          style={{marginVertical: text ? 12 : 0, alignSelf: "flex-start"}}
+          style={{alignSelf: "flex-start", marginVertical: text ? 12 : 0}}
         >
           <Text>{text}</Text>
         </View>
@@ -128,9 +128,9 @@ const ModalContent: FC<{
       {children && (
         <View
           style={{
+            flex: isMobile ? undefined : 1,
             marginTop: text ? 0 : 12,
             width: "100%",
-            flex: isMobile ? undefined : 1,
           }}
         >
           {children}
@@ -138,25 +138,25 @@ const ModalContent: FC<{
       )}
       <View
         style={{
-          marginTop: text && !children ? 20 : 32,
-          flexDirection: "row",
           alignSelf: "flex-end",
+          flexDirection: "row",
+          marginTop: text && !children ? 20 : 32,
         }}
       >
         {Boolean(secondaryButtonText && secondaryButtonOnClick) && (
           <View style={{marginRight: primaryButtonText ? 20 : 0}}>
             <Button
+              onClick={secondaryButtonOnClick!}
               text={secondaryButtonText as string}
               variant="muted"
-              onClick={secondaryButtonOnClick!}
             />
           </View>
         )}
         {Boolean(primaryButtonText && primaryButtonOnClick) && (
           <Button
             disabled={primaryButtonDisabled}
-            text={primaryButtonText as string}
             onClick={primaryButtonOnClick!}
+            text={primaryButtonText as string}
           />
         )}
       </View>
@@ -222,29 +222,29 @@ export const Modal: FC<ModalProps> = ({
   const sizePx = getModalSize(size);
 
   const modalContentProps = {
+    isMobile,
+    onDismiss: handleDismiss,
     persistOnBackgroundClick,
-    title,
+    primaryButtonDisabled,
+    primaryButtonOnClick: handlePrimaryButtonClick,
+    primaryButtonText,
+    secondaryButtonOnClick: handleSecondaryButtonClick,
+    secondaryButtonText,
+    sizePx,
     subtitle,
     text,
-    primaryButtonText,
-    primaryButtonDisabled,
-    secondaryButtonText,
-    primaryButtonOnClick: handlePrimaryButtonClick,
-    secondaryButtonOnClick: handleSecondaryButtonClick,
-    onDismiss: handleDismiss,
-    sizePx,
     theme,
-    isMobile,
+    title,
   };
 
   if (isMobile) {
     return (
       <ActionSheet
-        ref={actionSheetRef}
         closeOnTouchBackdrop={!persistOnBackgroundClick}
-        // Disable ActionSheet's built-in gestures to avoid conflicts with scrolling
         gestureEnabled={false}
+        // Disable ActionSheet's built-in gestures to avoid conflicts with scrolling
         onClose={handleDismiss}
+        ref={actionSheetRef}
       >
         <View>
           {/* Attach our own swipe-to-dismiss gesture to the top handle */}
@@ -254,17 +254,17 @@ export const Modal: FC<ModalProps> = ({
               aria-label="Pull down bar"
               aria-role="adjustable"
               // add hitSlop to make the bar easier to hit since it's small
-              hitSlop={{top: 20, bottom: 20, left: 50, right: 50}}
+              hitSlop={{bottom: 20, left: 50, right: 50, top: 20}}
               style={{
-                justifyContent: "center",
                 alignItems: "center",
                 alignSelf: "center",
-                padding: 2,
                 backgroundColor: "#9A9A9A",
                 borderRadius: 5,
-                width: "30%",
                 height: 3,
+                justifyContent: "center",
                 marginTop: 10,
+                padding: 2,
+                width: "30%",
               }}
             />
           </GestureDetector>
@@ -275,21 +275,21 @@ export const Modal: FC<ModalProps> = ({
     );
   } else {
     return (
-      <RNModal animationType="slide" transparent visible={visible} onRequestClose={handleDismiss}>
+      <RNModal animationType="slide" onRequestClose={handleDismiss} transparent visible={visible}>
         <Pressable
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
           onPress={persistOnBackgroundClick ? undefined : handleDismiss}
+          style={{
+            alignItems: "center",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            flex: 1,
+            justifyContent: "center",
+          }}
         >
           <Pressable
-            style={{cursor: "auto"}}
             onPress={(e) => {
               persistOnBackgroundClick ? null : e.stopPropagation();
             }}
+            style={{cursor: "auto"}}
           >
             <ModalContent {...modalContentProps}>{children}</ModalContent>
           </Pressable>

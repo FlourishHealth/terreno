@@ -1,9 +1,9 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
-import React, {FC, useState} from "react";
+import {type FC, useState} from "react";
 import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
-import {IconButtonProps} from "./Common";
+import type {IconButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
@@ -31,6 +31,7 @@ const ConfirmationModal: FC<ConfirmationModalProps> = ({
 }) => {
   return (
     <Modal
+      onDismiss={onCancel}
       primaryButtonOnClick={onConfirm}
       primaryButtonText="Confirm"
       secondaryButtonOnClick={onCancel}
@@ -38,7 +39,6 @@ const ConfirmationModal: FC<ConfirmationModalProps> = ({
       subtitle={subtitle}
       title={title}
       visible={visible}
-      onDismiss={onCancel}
     >
       <Text>{text}</Text>
     </Modal>
@@ -105,15 +105,6 @@ const IconButtonComponent: FC<IconButtonProps> = ({
       aria-label={accessLabel}
       aria-role="button"
       disabled={loading || disabled}
-      style={{
-        alignItems: "center",
-        backgroundColor,
-        borderRadius: theme.radius.rounded,
-        justifyContent: "center",
-        height: 32,
-        width: 32,
-      }}
-      testID={testID}
       onPress={debounce(
         // TODO: Allow for a click outside of the confirmation modal to close it.
         async () => {
@@ -137,8 +128,17 @@ const IconButtonComponent: FC<IconButtonProps> = ({
         500,
         {leading: true}
       )}
+      style={{
+        alignItems: "center",
+        backgroundColor,
+        borderRadius: theme.radius.rounded,
+        height: 32,
+        justifyContent: "center",
+        width: 32,
+      }}
+      testID={testID}
     >
-      {Boolean(loading) ? (
+      {loading ? (
         <ActivityIndicator color={color} size="small" />
       ) : (
         <FontAwesome6
@@ -152,27 +152,27 @@ const IconButtonComponent: FC<IconButtonProps> = ({
       {Boolean(indicator) && (
         <View
           style={{
+            alignItems: "center",
+            backgroundColor: indicatorColor,
+            borderRadius: 10,
+            bottom: 0,
             display: "flex",
             height: 12,
-            width: 12,
-            borderRadius: 10,
-            padding: theme.spacing.xs as any,
-            backgroundColor: indicatorColor,
-            position: "absolute",
-            alignItems: "center",
             justifyContent: "center",
-            bottom: 0,
+            padding: theme.spacing.xs as any,
+            position: "absolute",
             right: 0,
+            width: 12,
           }}
         >
           {Boolean(indicatorText) && (
             <NativeText
               style={{
                 color: theme.text.inverted,
-                textAlign: "center",
                 fontFamily: "text",
                 fontSize: 10,
                 fontWeight: 700,
+                textAlign: "center",
               }}
             >
               {indicatorText}
@@ -182,15 +182,15 @@ const IconButtonComponent: FC<IconButtonProps> = ({
       )}
       {withConfirmation && (
         <ConfirmationModal
-          subtitle={undefined}
-          text={confirmationText}
-          title={confirmationHeading}
-          visible={showConfirmation}
           onCancel={() => setShowConfirmation(false)}
           onConfirm={async () => {
             await onClick();
             setShowConfirmation(false);
           }}
+          subtitle={undefined}
+          text={confirmationText}
+          title={confirmationHeading}
+          visible={showConfirmation}
         />
       )}
     </Pressable>

@@ -1,4 +1,4 @@
-import React, {ReactElement, useRef} from "react";
+import {type ReactElement, useRef} from "react";
 import {Text, View} from "react-native";
 import SignatureCanvas from "react-signature-canvas";
 
@@ -26,16 +26,16 @@ export const Signature = ({onChange}: SignatureProps): ReactElement | null => {
   };
   return (
     <View>
-      <View style={{borderColor: theme.border.dark, borderWidth: 1, width: "100%", maxWidth: 300}}>
+      <View style={{borderColor: theme.border.dark, borderWidth: 1, maxWidth: 300, width: "100%"}}>
         <SignatureCanvas
-          ref={ref}
           backgroundColor={theme.surface.base}
-          penColor={theme.text.secondaryDark}
           onEnd={onUpdatedSignature}
+          penColor={theme.text.secondaryDark}
+          ref={ref}
         />
       </View>
       <View>
-        <Text style={{color: theme.text.link, textDecorationLine: "underline"}} onPress={onClear}>
+        <Text onPress={onClear} style={{color: theme.text.link, textDecorationLine: "underline"}}>
           Clear
         </Text>
       </View>

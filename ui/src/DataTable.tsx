@@ -1,10 +1,17 @@
 import {FontAwesome6} from "@expo/vector-icons";
-import React, {FC, useCallback, useMemo, useRef, useState} from "react";
-import {NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, View} from "react-native";
+import type React from "react";
+import {type FC, useCallback, useMemo, useRef, useState} from "react";
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  View,
+} from "react-native";
 import Markdown from "react-native-markdown-display";
 
 import {Box} from "./Box";
-import {
+import type {
   ColumnSortInterface,
   DataTableCellData,
   DataTableCellProps,
@@ -75,28 +82,28 @@ const DataTableCell: FC<DataTableCellProps> = ({
   return (
     <View
       style={{
-        padding: 16,
-        justifyContent: "center",
-        height,
-        width: columnDef.width,
         backgroundColor,
-        overflow: "hidden",
-        position: "relative",
-        zIndex: 1,
-        borderBottomWidth: 1,
         borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
+        height,
+        justifyContent: "center",
+        overflow: "hidden",
+        padding: 16,
+        position: "relative",
+        width: columnDef.width,
+        zIndex: 1,
         // For pinned columns: use absolute positioning to stay fixed while scrolling horizontally
         ...(isPinnedHorizontal && {
-          position: "absolute",
           // Position each pinned column by summing widths of all previous columns
           left: columnWidths.slice(0, colIndex).reduce((sum, width) => sum + width, 0),
+          position: "absolute",
           // Higher z-index keeps pinned columns above scrollable ones, decreasing by column index
           zIndex: 10 - colIndex,
         }),
         // Visual separator after last pinned column
         ...(isLastPinnedColumn && {
-          borderRightWidth: 3,
           borderRightColor: theme.border.default,
+          borderRightWidth: 3,
         }),
       }}
     >
@@ -133,15 +140,14 @@ const DataTableRow: FC<DataTableRowProps> = ({
   return (
     <View
       style={{
+        borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
         flexDirection: "row",
         height: rowHeight,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.border.default,
       }}
     >
       {rowData.map((cell, colIndex) => (
         <DataTableCell
-          key={colIndex}
           backgroundColor={
             cell.highlight ? theme.surface[cell.highlight as SurfaceColor] : backgroundColor
           }
@@ -151,6 +157,7 @@ const DataTableRow: FC<DataTableRowProps> = ({
           customColumnComponentMap={customColumnComponentMap}
           height={rowHeight}
           isPinnedHorizontal={colIndex < pinnedColumns}
+          key={colIndex}
           pinnedColumns={pinnedColumns}
           textSize={cell.textSize}
           value={cell}
@@ -179,34 +186,34 @@ const MoreButtonCell: FC<MoreButtonCellProps> = ({
   return (
     <View
       style={{
-        width: 48,
-        height: rowHeight ?? 54,
-        justifyContent: "center",
         alignItems: "center",
         backgroundColor:
           alternateRowBackground && rowIndex % 2 === 1
             ? theme.surface.neutralLight
             : theme.surface.base,
-        borderBottomWidth: 1,
         borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
+        height: rowHeight ?? 54,
+        justifyContent: "center",
+        width: 48,
       }}
     >
       <Pressable
         accessibilityHint="View details"
         accessibilityLabel="Open modal"
         accessibilityRole="button"
+        onPress={() => onClick(rowIndex)}
         style={{
-          borderRadius: theme.radius.rounded,
+          alignItems: "center",
           backgroundColor:
             alternateRowBackground && rowIndex % 2 === 1
               ? theme.surface.base
               : theme.surface.neutralLight,
-          width: 32,
+          borderRadius: theme.radius.rounded,
           height: 32,
           justifyContent: "center",
-          alignItems: "center",
+          width: 32,
         }}
-        onPress={() => onClick(rowIndex)}
       >
         <Icon color="secondaryDark" iconName="info" size="md" />
       </Pressable>
@@ -242,24 +249,24 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
   return (
     <View
       style={{
-        padding: 16,
-        flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        height: headerHeight ?? rowHeight,
-        width: column.width,
         backgroundColor: theme.surface.base,
-        borderBottomWidth: 1,
         borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
+        flexDirection: "row",
+        height: headerHeight ?? rowHeight,
+        justifyContent: "space-between",
+        padding: 16,
+        width: column.width,
         ...(isPinnedHorizontal && {
-          position: "absolute",
           left: columnWidths.slice(0, index).reduce((sum, width) => sum + width, 0),
+          position: "absolute",
           zIndex: 10 - index,
         }),
       }}
     >
       {Boolean(column.title) && <TableTitle align="left" title={column.title!} />}
-      <View style={{flexDirection: "row", alignItems: "center"}}>
+      <View style={{alignItems: "center", flexDirection: "row"}}>
         {column.infoModalText && (
           <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
         )}
@@ -270,10 +277,10 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
                 alignItems: "center",
                 backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
                 borderRadius: theme.radius.rounded,
-                justifyContent: "center",
                 height: 16,
-                width: 16,
+                justifyContent: "center",
                 marginLeft: 8,
+                width: 16,
               }}
             >
               <FontAwesome6
@@ -326,11 +333,11 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
       {hasMoreContent && (
         <View
           style={{
-            width: 48,
-            height: headerHeight ?? rowHeight,
             backgroundColor: theme.surface.base,
-            borderBottomWidth: 1,
             borderBottomColor: theme.border.default,
+            borderBottomWidth: 1,
+            height: headerHeight ?? rowHeight,
+            width: 48,
             zIndex: 11,
           }}
         />
@@ -340,24 +347,24 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
       {pinnedColumns > 0 && (
         <View
           style={{
-            position: "absolute",
             // Offset left position if there's a "more" content button
             left: hasMoreContent ? 48 : 0,
+            position: "absolute",
             top: 0,
             zIndex: 10,
           }}
         >
           {columns.slice(0, pinnedColumns).map((column, index) => (
             <DataTableHeaderCell
-              key={`pinned-header-${index}`}
               column={column}
               columnWidths={columnWidths}
               headerHeight={headerHeight}
               index={index}
               isPinnedHorizontal
+              key={`pinned-header-${index}`}
+              onSort={onSort}
               rowHeight={rowHeight}
               sortColumn={sortColumn}
-              onSort={onSort}
             />
           ))}
         </View>
@@ -365,27 +372,27 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
 
       {/* Scrollable container for non-pinned header columns */}
       <ScrollView
-        ref={headerScrollRef}
         horizontal
+        onScroll={(e) => onScroll(e, true)}
+        ref={headerScrollRef}
         scrollEventThrottle={16}
         showsHorizontalScrollIndicator={false}
         style={{
           // Offset scrollable area by total width of pinned columns
           marginLeft: columnWidths.slice(0, pinnedColumns).reduce((sum, width) => sum + width, 0),
         }}
-        onScroll={(e) => onScroll(e, true)}
       >
         {columns.slice(pinnedColumns).map((column, index) => (
           <DataTableHeaderCell
-            key={`scrollable-header-${index + pinnedColumns}`}
             column={column}
             columnWidths={columnWidths}
             headerHeight={headerHeight}
             index={index + pinnedColumns}
             isPinnedHorizontal={false}
+            key={`scrollable-header-${index + pinnedColumns}`}
+            onSort={onSort}
             rowHeight={rowHeight}
             sortColumn={sortColumn}
-            onSort={onSort}
           />
         ))}
       </ScrollView>
@@ -443,22 +450,22 @@ const DataTableContent: FC<DataTableContentProps> = ({
           {Boolean(MoreContentContent) && (
             <View
               style={{
-                position: "absolute",
+                backgroundColor: theme.surface.base,
                 left: 0,
+                position: "absolute",
                 top: 0,
                 width: 48,
                 zIndex: 1,
-                backgroundColor: theme.surface.base,
               }}
             >
               {data.map((_, rowIndex) => (
                 <MoreButtonCell
-                  key={`expand-${rowIndex}`}
                   alternateRowBackground={alternateRowBackground}
                   column={columns[0]}
+                  key={`expand-${rowIndex}`}
+                  onClick={setModalRow}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
-                  onClick={setModalRow}
                 />
               ))}
             </View>
@@ -468,19 +475,19 @@ const DataTableContent: FC<DataTableContentProps> = ({
           {pinnedColumns > 0 && (
             <View
               style={{
+                left: MoreContentContent ? 48 : 0,
                 position: "absolute",
-                left: Boolean(MoreContentContent) ? 48 : 0,
                 top: 0,
                 zIndex: 10,
               }}
             >
               {data.map((row, rowIndex) => (
                 <DataTableRow
-                  key={`pinned-${rowIndex}`}
                   alternateRowBackground={alternateRowBackground}
-                  columnWidths={columnWidths}
                   columns={columns.slice(0, pinnedColumns)}
+                  columnWidths={columnWidths}
                   customColumnComponentMap={customColumnComponentMap}
+                  key={`pinned-${rowIndex}`}
                   pinnedColumns={pinnedColumns}
                   rowData={row.slice(0, pinnedColumns)}
                   rowHeight={rowHeight}
@@ -492,26 +499,26 @@ const DataTableContent: FC<DataTableContentProps> = ({
 
           {/* Scrollable container for non-pinned rows */}
           <ScrollView
-            ref={bodyScrollRef}
             horizontal
+            onScroll={(e) => onScroll(e, false)}
+            ref={bodyScrollRef}
             scrollEventThrottle={16}
             showsHorizontalScrollIndicator
             style={{
               flex: 1,
               marginLeft:
                 columnWidths.slice(0, pinnedColumns).reduce((sum, width) => sum + width, 0) +
-                (Boolean(MoreContentContent) ? 48 : 0),
+                (MoreContentContent ? 48 : 0),
             }}
-            onScroll={(e) => onScroll(e, false)}
           >
             <View>
               {data.map((row, rowIndex) => (
                 <DataTableRow
-                  key={`scrollable-${rowIndex}`}
                   alternateRowBackground={alternateRowBackground}
-                  columnWidths={columnWidths}
                   columns={columns.slice(pinnedColumns)}
+                  columnWidths={columnWidths}
                   customColumnComponentMap={customColumnComponentMap}
+                  key={`scrollable-${rowIndex}`}
                   pinnedColumns={0}
                   rowData={row.slice(pinnedColumns)}
                   rowHeight={rowHeight}
@@ -525,9 +532,9 @@ const DataTableContent: FC<DataTableContentProps> = ({
 
       {MoreContentContent && (
         <Modal
+          onDismiss={() => setModalRow(null)}
           size={moreContentSize}
           visible={modalRow !== null}
-          onDismiss={() => setModalRow(null)}
         >
           <MoreContentContent
             column={columns[0]}
@@ -568,9 +575,9 @@ export const DataTable: FC<DataTableProps> = ({
     (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => {
       const scrollX = event.nativeEvent.contentOffset.x;
       if (isHeader && bodyScrollRef.current) {
-        bodyScrollRef.current.scrollTo({x: scrollX, animated: false});
+        bodyScrollRef.current.scrollTo({animated: false, x: scrollX});
       } else if (!isHeader && headerScrollRef.current) {
-        headerScrollRef.current.scrollTo({x: scrollX, animated: false});
+        headerScrollRef.current.scrollTo({animated: false, x: scrollX});
       }
     },
     []
@@ -611,42 +618,42 @@ export const DataTable: FC<DataTableProps> = ({
   }, [data, defaultTextSize]);
 
   return (
-    <View style={{height: "100%", display: "flex", flexDirection: "column"}}>
+    <View style={{display: "flex", flexDirection: "column", height: "100%"}}>
       <View
         style={{
-          flex: 1,
-          minHeight: 0,
-          borderWidth: 1,
           borderColor: theme.border.default,
+          borderWidth: 1,
+          flex: 1,
           height: "100%",
+          minHeight: 0,
         }}
       >
         <DataTableHeader
-          columnWidths={columnWidths}
           columns={columns}
+          columnWidths={columnWidths}
           hasMoreContent={Boolean(moreContentComponent)}
           headerHeight={headerHeight}
           headerScrollRef={headerScrollRef}
+          onScroll={handleScroll}
+          onSort={handleSort}
           pinnedColumns={pinnedColumns}
           rowHeight={rowHeight}
           sortColumn={sortColumn}
-          onScroll={handleScroll}
-          onSort={handleSort}
         />
 
         <View style={{flex: 1, minHeight: 0}}>
           <DataTableContent
             alternateRowBackground={alternateRowBackground}
             bodyScrollRef={bodyScrollRef}
-            columnWidths={columnWidths}
             columns={columns}
+            columnWidths={columnWidths}
             customColumnComponentMap={customColumnComponentMap}
             data={processedData}
             moreContentComponent={moreContentComponent}
             moreContentExtraData={moreContentExtraData}
+            onScroll={handleScroll}
             pinnedColumns={pinnedColumns}
             rowHeight={rowHeight}
-            onScroll={handleScroll}
           />
         </View>
       </View>
@@ -654,9 +661,9 @@ export const DataTable: FC<DataTableProps> = ({
       {Boolean(setPage && totalPages > 1) && (
         <View
           style={{
+            alignItems: "center",
             height: 60,
             padding: 16,
-            alignItems: "center",
           }}
         >
           <Pagination page={page} setPage={setPage!} totalPages={totalPages} />

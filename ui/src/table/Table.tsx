@@ -1,9 +1,9 @@
-import React, {Children, ReactElement, useEffect} from "react";
+import React, {Children, type ReactElement, useEffect} from "react";
 import {ScrollView} from "react-native";
-import {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
+import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 
 import {Box} from "../Box";
-import {ColumnSortInterface, TableProps, TableRowProps} from "../Common";
+import type {ColumnSortInterface, TableProps, TableRowProps} from "../Common";
 import {Pagination} from "../Pagination";
 import {TableContextProvider} from "./tableContext";
 
@@ -76,12 +76,12 @@ export const Table = ({
         }}
         width={width}
       >
-        <ScrollView horizontal style={{width, maxWidth: "100%"}}>
+        <ScrollView horizontal style={{maxWidth: "100%", width}}>
           {/* TODO: Replace table scrollview with flat list */}
           <ScrollView
             // nestedScrollEnabled
             stickyHeaderIndices={stickyHeader ? [0] : undefined}
-            style={{width, maxWidth: "100%", flex: 1, maxHeight}}
+            style={{flex: 1, maxHeight, maxWidth: "100%", width}}
           >
             {Children.map(
               children,

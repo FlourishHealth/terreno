@@ -98,9 +98,9 @@ export function humanDateAndTime(
   let time: string = "";
   if (showTimezone) {
     time = clonedDate.toLocaleString({
-      timeZoneName: "short",
       hour: "numeric",
       minute: "2-digit",
+      timeZoneName: "short",
     });
   } else {
     time = clonedDate.toFormat("h:mm a");
@@ -202,7 +202,7 @@ export function printTime(
     timezone: string;
     showTimezone?: boolean;
     defaultValue?: string;
-  } = {timezone: "America/New_York", defaultValue: "Invalid Date"}
+  } = {defaultValue: "Invalid Date", timezone: "America/New_York"}
 ): string {
   if (!date) {
     return defaultValue ?? "Invalid Date";
@@ -218,9 +218,9 @@ export function printTime(
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
-      timeZoneName: "short",
       hour: "numeric",
       minute: "2-digit",
+      timeZoneName: "short",
     });
   } else {
     return clonedDate.toLocaleString(DateTime.TIME_SIMPLE);
@@ -251,11 +251,11 @@ export function printDateAndTime(
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
-      timeZoneName: "short",
+      day: "numeric",
       hour: "numeric",
       minute: "2-digit",
       month: "numeric",
-      day: "numeric",
+      timeZoneName: "short",
       year: "numeric",
     });
   } else {
@@ -275,11 +275,11 @@ export function printDateRange(
     timeOnly,
   }: {timezone: string; showTimezone?: boolean; timeOnly?: boolean}
 ): string {
-  const startDate = printDate(start, {timezone, showTimezone: false});
-  const endDate = printDate(end, {timezone, showTimezone: false});
+  const startDate = printDate(start, {showTimezone: false, timezone});
+  const endDate = printDate(end, {showTimezone: false, timezone});
 
-  const startTime = printTime(start, {timezone, showTimezone: false});
-  const endTime = printTime(end, {timezone, showTimezone});
+  const startTime = printTime(start, {showTimezone: false, timezone});
+  const endTime = printTime(end, {showTimezone, timezone});
   if (timeOnly) {
     if (startDate !== endDate) {
       console.warn(

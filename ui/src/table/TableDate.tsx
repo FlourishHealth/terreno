@@ -1,8 +1,8 @@
 import {DateTime} from "luxon";
-import React, {FC, useState} from "react";
+import {type FC, useState} from "react";
 import {Text} from "react-native";
 
-import {TableDateProps} from "../Common";
+import type {TableDateProps} from "../Common";
 
 export const TableDate: FC<TableDateProps> = ({value, annotated = false}) => {
   const initialDate =

@@ -1,8 +1,8 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 
 import {AddressField} from "./AddressField";
 import {BooleanField} from "./BooleanField";
-import {
+import type {
   AddressFieldProps,
   BooleanFieldProps,
   CustomSelectFieldProps,

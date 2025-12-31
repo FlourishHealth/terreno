@@ -1,7 +1,7 @@
-import React, {ReactElement} from "react";
+import type {ReactElement} from "react";
 import {Image, View} from "react-native";
 
-import {SignatureFieldProps} from "./Common";
+import type {SignatureFieldProps} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {Signature} from "./Signature";
@@ -38,10 +38,10 @@ export const SignatureField = ({
         <View>
           <View
             style={{
-              height: 90,
-              width: 300,
               backgroundColor: theme.surface.neutralLight,
+              height: 90,
               marginVertical: 8,
+              width: 300,
             }}
           />
           <Text size="sm">{disabledText}</Text>
@@ -82,10 +82,10 @@ const SignatureImage = (image: string): ReactElement => {
       resizeMode="contain"
       source={{uri: image}}
       style={{
-        width: 300,
-        height: 80,
-        borderWidth: 1,
         borderColor: "black",
+        borderWidth: 1,
+        height: 80,
+        width: 300,
       }}
     />
   );

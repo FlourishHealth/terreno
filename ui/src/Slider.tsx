@@ -1,8 +1,9 @@
 import SliderComponent from "@react-native-community/slider";
-import React, {FC} from "react";
+import type React from "react";
+import type {FC} from "react";
 
 import {Box} from "./Box";
-import {IconName, SliderProps, ValueMappingItem} from "./Common";
+import type {IconName, SliderProps, ValueMappingItem} from "./Common";
 import {FieldError} from "./fieldElements/FieldError";
 import {FieldHelperText} from "./fieldElements/FieldHelperText";
 import {FieldTitle} from "./fieldElements/FieldTitle";
@@ -55,8 +56,8 @@ const getCenterContent = (
     return (
       <Icon
         color={disabled ? "secondaryLight" : "primary"}
-        iconName={currentOption!.label as IconName}
-        size={currentOption!.size || "md"}
+        iconName={currentOption?.label as IconName}
+        size={currentOption?.size || "md"}
       />
     );
   }
@@ -102,7 +103,7 @@ const getSliderContent = (
             </Text>
           )}
           {labels.custom?.map((customLabel, index) => (
-            <Text key={index} color="secondaryDark" size="sm">
+            <Text color="secondaryDark" key={index} size="sm">
               {customLabel.label}
             </Text>
           ))}
@@ -147,22 +148,22 @@ export const Slider: FC<SliderProps> = ({
   const thumbColor = thumbTintColor || theme.surface.primary;
 
   const sliderStyles = {
-    trackStyle: {
-      height: 10,
-    },
     thumbStyle: {
-      width: 48,
-      height: 48,
       backgroundColor: "white",
       borderRadius: 24,
+      elevation: 5,
+      height: 48,
       shadowColor: "#000",
       shadowOffset: {
-        width: 0,
         height: 2,
+        width: 0,
       },
       shadowOpacity: 0.25,
       shadowRadius: 3.84,
-      elevation: 5,
+      width: 48,
+    },
+    trackStyle: {
+      height: 10,
     },
   };
 
@@ -173,10 +174,10 @@ export const Slider: FC<SliderProps> = ({
       maximumValue={maximumValue}
       minimumTrackTintColor={minTrackColor}
       minimumValue={minimumValue}
+      onValueChange={onChange}
       step={step}
       thumbTintColor={thumbColor}
       value={value}
-      onValueChange={onChange}
       {...sliderStyles}
     />
   );

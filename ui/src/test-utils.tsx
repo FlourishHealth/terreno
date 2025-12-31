@@ -1,6 +1,6 @@
 import {mock} from "bun:test";
 import {render} from "@testing-library/react-native";
-import React from "react";
+import type React from "react";
 
 import {ThemeProvider} from "./Theme";
 
@@ -9,12 +9,12 @@ export const renderWithTheme = (ui: React.ReactElement) => {
 };
 
 export const createCommonMocks = () => ({
-  onChange: mock(() => {}),
-  onFocus: mock(() => {}),
   onBlur: mock(() => {}),
+  onChange: mock(() => {}),
   onEnter: mock(() => {}),
-  onSubmitEditing: mock(() => {}),
+  onFocus: mock(() => {}),
   onIconClick: mock(() => {}),
+  onSubmitEditing: mock(() => {}),
 });
 
 export const setupComponentTest = () => {

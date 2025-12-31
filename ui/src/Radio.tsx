@@ -1,7 +1,7 @@
-import React from "react";
+import type React from "react";
 import {View} from "react-native";
 
-import {RadioProps} from "./Common";
+import type {RadioProps} from "./Common";
 import {useTheme} from "./Theme";
 
 export const Radio = ({selected}: RadioProps): React.ReactElement => {
@@ -9,22 +9,22 @@ export const Radio = ({selected}: RadioProps): React.ReactElement => {
   return (
     <View
       style={{
-        height: 16,
-        width: 16,
+        alignItems: "center",
+        borderColor: theme.text.secondaryDark,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: theme.text.secondaryDark,
-        alignItems: "center",
+        height: 16,
         justifyContent: "center",
+        width: 16,
       }}
     >
       {selected ? (
         <View
           style={{
+            backgroundColor: theme.text.secondaryDark,
+            borderRadius: 6,
             height: 10,
             width: 10,
-            borderRadius: 6,
-            backgroundColor: theme.text.secondaryDark,
           }}
         />
       ) : null}

@@ -1,7 +1,7 @@
-import React, {FC, useEffect, useState} from "react";
+import {type FC, useEffect, useState} from "react";
 import {ActivityIndicator} from "react-native";
 
-import {SpinnerProps} from "./Common";
+import type {SpinnerProps} from "./Common";
 import {useTheme} from "./Theme";
 
 export const Spinner: FC<SpinnerProps> = ({size = "md", color = "light"}) => {

@@ -1,7 +1,7 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 import {Text} from "react-native";
 
-import {TableTitleProps} from "../Common";
+import type {TableTitleProps} from "../Common";
 import {useTheme} from "../Theme";
 
 export const TableTitle: FC<TableTitleProps> = ({title, align = "left"}) => {
@@ -15,15 +15,15 @@ export const TableTitle: FC<TableTitleProps> = ({title, align = "left"}) => {
       ellipsizeMode="tail" // ensures that the text is clipped at the end of the line for all platforms
       numberOfLines={3}
       style={{
-        fontFamily: "text",
-        textTransform: "uppercase",
-        fontSize: 10,
-        lineHeight: 16,
-        fontWeight: "700",
-        textAlign: align,
-        flexWrap: "wrap",
-        overflow: "hidden",
         color: theme.text.primary,
+        flexWrap: "wrap",
+        fontFamily: "text",
+        fontSize: 10,
+        fontWeight: "700",
+        lineHeight: 16,
+        overflow: "hidden",
+        textAlign: align,
+        textTransform: "uppercase",
       }}
     >
       {title}

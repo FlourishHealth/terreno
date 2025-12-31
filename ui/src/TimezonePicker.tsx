@@ -1,6 +1,6 @@
-import React, {FC} from "react";
+import React, {type FC} from "react";
 
-import {SelectFieldPropsBase} from "./Common";
+import type {SelectFieldPropsBase} from "./Common";
 import {getTimezoneOptions} from "./DateUtilities";
 import {SelectField} from "./SelectField";
 
@@ -38,9 +38,9 @@ export const TimezonePicker: FC<TimezonePickerProps> = ({
     <SelectField
       title={title}
       {...fieldProps}
+      onChange={onChange}
       options={tzOptions}
       value={timezone}
-      onChange={onChange}
     />
   );
 };

@@ -1,7 +1,6 @@
-import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
+import {beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import * as ImageManipulator from "expo-image-manipulator";
-import React from "react";
 
 import {Avatar} from "./Avatar";
 import {renderWithTheme} from "./test-utils";
@@ -9,8 +8,8 @@ import {renderWithTheme} from "./test-utils";
 // Mock functions for image manipulation chain
 const mockSaveAsync = mock(() =>
   Promise.resolve({
-    uri: "test-uri",
     base64: "test-base64",
+    uri: "test-uri",
   })
 );
 const mockRenderAsync = mock(() =>
@@ -30,8 +29,8 @@ mock.module("expo-image-manipulator", () => ({
     })),
   },
   SaveFormat: {
-    PNG: "png",
     JPEG: "jpeg",
+    PNG: "png",
   },
 }));
 
@@ -39,14 +38,14 @@ mock.module("expo-image-manipulator", () => ({
 mock.module("expo-image-picker", () => ({
   launchImageLibraryAsync: mock(() =>
     Promise.resolve({
-      canceled: false,
       assets: [
         {
+          height: 100,
           uri: "test-uri",
           width: 100,
-          height: 100,
         },
       ],
+      canceled: false,
     })
   ),
 }));
@@ -120,7 +119,7 @@ describe("Avatar", () => {
   it("calls onChange when edit icon is pressed", async () => {
     const mockOnChange = mock(() => {});
     const {getByText} = renderWithTheme(
-      <Avatar {...defaultProps} size="xl" status="imagePicker" onChange={mockOnChange} />
+      <Avatar {...defaultProps} onChange={mockOnChange} size="xl" status="imagePicker" />
     );
 
     await act(async () => {
@@ -130,15 +129,15 @@ describe("Avatar", () => {
     // The onChange should be called with the processed image
     expect(mockOnChange).toHaveBeenCalledWith({
       avatarImageFormat: "png",
-      uri: "data:image/png;base64,test-base64",
       base64: "test-base64",
+      uri: "data:image/png;base64,test-base64",
     });
     expect(ImageManipulator.ImageManipulator.manipulate).toHaveBeenCalled();
     expect(mockResize).toHaveBeenCalled();
     expect(mockRenderAsync).toHaveBeenCalled();
     expect(mockSaveAsync).toHaveBeenCalledWith({
-      format: "png",
       base64: true,
+      format: "png",
     });
   });
 
@@ -147,8 +146,8 @@ describe("Avatar", () => {
     const avatar = getByTestId("avatar-image");
     // Check if the style contains border properties
     expect(avatar.props.style).toMatchObject({
-      borderWidth: expect.any(Number),
       borderColor: expect.any(String),
+      borderWidth: expect.any(Number),
     });
   });
 

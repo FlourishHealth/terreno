@@ -1,7 +1,7 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-import React, {FC} from "react";
+import type {FC} from "react";
 
-import {IconProps, iconSizeToNumber} from "./Common";
+import {type IconProps, iconSizeToNumber} from "./Common";
 import {useTheme} from "./Theme";
 
 // TODO: Update <Icon /> to be closer to Expo's Vector Icon, letting multiple icon packs be used,

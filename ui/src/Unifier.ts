@@ -6,7 +6,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import {Dimensions, Keyboard, Linking, Platform, Vibration} from "react-native";
 
-import {PermissionKind} from "./Common";
+import type {PermissionKind} from "./Common";
 import {requestPermissions} from "./Permissions";
 
 declare global {
@@ -81,15 +81,27 @@ class UnifierClass {
 
   // tracking: Tracking,
   utils = {
+    copyToClipboard: (text: string) => {
+      Clipboard.setString(text);
+    },
+    dimensions: () => ({
+      height: Dimensions.get("window").height,
+      width: Dimensions.get("window").width,
+    }),
     dismissKeyboard: () => {
       Keyboard.dismiss();
     },
-    dimensions: () => ({
-      width: Dimensions.get("window").width,
-      height: Dimensions.get("window").height,
-    }),
-    copyToClipboard: (text: string) => {
-      Clipboard.setString(text);
+    haptic: () => {
+      if (Platform.OS !== "web") {
+        return Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      return;
+    },
+    makePurchase: () => {
+      console.warn("Make purchase not supported yet.");
+    },
+    openUrl: async (url: string) => {
+      return Linking.openURL(url);
     },
     orientationChange: (callback: (orientation: "portrait" | "landscape") => void) => {
       Dimensions.addEventListener("change", () => {
@@ -98,27 +110,15 @@ class UnifierClass {
         callback(isPortrait ? "portrait" : "landscape");
       });
     },
+    PaymentService: () => {
+      console.warn("Make purchase not supported yet.");
+    },
     requestPermissions: async (_perm: PermissionKind) => {
       return requestPermissions(_perm);
       // return requestPermissions(perm);
     },
-    makePurchase: () => {
-      console.warn("Make purchase not supported yet.");
-    },
-    PaymentService: () => {
-      console.warn("Make purchase not supported yet.");
-    },
     vibrate: (pattern?: number[]) => {
       Vibration.vibrate(pattern || [100], false);
-    },
-    haptic: () => {
-      if (Platform.OS !== "web") {
-        return Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      }
-      return;
-    },
-    openUrl: async (url: string) => {
-      return Linking.openURL(url);
     },
     // keepAwake: (activate: boolean) => {
     //   if (activate) {

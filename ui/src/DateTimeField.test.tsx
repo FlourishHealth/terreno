@@ -1,7 +1,6 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, type mock} from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
 import {DateTime} from "luxon";
-import React from "react";
 
 import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
@@ -21,7 +20,7 @@ describe("DateTimeField", () => {
   describe("date type", () => {
     it("should render correctly", () => {
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T00:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
       );
 
       expect(getByPlaceholderText("MM").props.value).toBe("05");
@@ -32,7 +31,7 @@ describe("DateTimeField", () => {
     it("should call onChange when date is changed", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T00:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
       );
 
       const dayInput = getByPlaceholderText("DD");
@@ -57,7 +56,7 @@ describe("DateTimeField", () => {
     it("should call onChange when date is changed, starting with a non-zero time", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T14:30:45.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T14:30:45.000Z" />
       );
 
       const dayInput = getByPlaceholderText("DD");
@@ -84,7 +83,7 @@ describe("DateTimeField", () => {
 
       // Start with a value that has a non-zero time
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T14:30:45.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T14:30:45.000Z" />
       );
 
       const monthInput = getByPlaceholderText("MM");
@@ -112,10 +111,10 @@ describe("DateTimeField", () => {
     it("should render correctly", () => {
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
+          onChange={mockOnChange}
           timezone="America/New_York"
           type="time"
           value="2023-05-15T15:30:00.000Z"
-          onChange={mockOnChange}
         />
       );
 
@@ -126,10 +125,10 @@ describe("DateTimeField", () => {
     it("should render correctly in different timezone", () => {
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
+          onChange={mockOnChange}
           timezone="America/Chicago"
           type="time"
           value="2023-05-15T15:30:00.000Z"
-          onChange={mockOnChange}
         />
       );
 
@@ -140,7 +139,7 @@ describe("DateTimeField", () => {
     it("should preserve the date portion when changing only the time", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="time" value="2023-05-15T15:30:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="time" value="2023-05-15T15:30:00.000Z" />
       );
 
       const minuteInput = getByPlaceholderText("mm");
@@ -166,7 +165,7 @@ describe("DateTimeField", () => {
   describe("datetime type", () => {
     it("should render correctly with date and time", () => {
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="datetime" value="2023-05-15T15:30:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="datetime" value="2023-05-15T15:30:00.000Z" />
       );
 
       // Validate placeholders for month, hour, and minute
@@ -180,10 +179,10 @@ describe("DateTimeField", () => {
     it("should respect provided timezone", () => {
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
+          onChange={mockOnChange}
           timezone="America/Los_Angeles"
           type="date"
           value="2023-05-15T00:00:00.000Z"
-          onChange={mockOnChange}
         />
       );
 
@@ -196,10 +195,10 @@ describe("DateTimeField", () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
+          onChange={mockOnChange}
           timezone="America/Los_Angeles"
           type="date"
           value="2023-05-15T00:00:00.000Z"
-          onChange={mockOnChange}
         />
       );
 
@@ -220,7 +219,7 @@ describe("DateTimeField", () => {
     it("should handle invalid date inputs gracefully", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T00:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
       );
 
       mockOnChange.mockClear();
@@ -247,7 +246,7 @@ describe("DateTimeField", () => {
     it("should handle invalid time inputs gracefully", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="time" value="2023-05-15T15:30:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="time" value="2023-05-15T15:30:00.000Z" />
       );
 
       // Try to set an invalid minute
@@ -283,7 +282,7 @@ describe("DateTimeField", () => {
       const user = userEvent.setup();
       // Test with a non-midnight time as input
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T14:30:45.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T14:30:45.000Z" />
       );
 
       const dayInput = getByPlaceholderText("DD");
@@ -309,7 +308,7 @@ describe("DateTimeField", () => {
     it("should preserve the 00:00:00 time when updating any date component", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T00:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
       );
 
       // Change month
@@ -328,7 +327,7 @@ describe("DateTimeField", () => {
     // New tests for dates ending at 0 minutes
     it("should correctly display dates with 0 minutes", () => {
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T14:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T14:00:00.000Z" />
       );
 
       // Check that the date is displayed correctly
@@ -340,7 +339,7 @@ describe("DateTimeField", () => {
     it("should maintain 00:00:00 time when modifying a date that originally had 0 minutes", async () => {
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T16:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T16:00:00.000Z" />
       );
 
       // Change day
@@ -370,7 +369,7 @@ describe("DateTimeField", () => {
       mockOnChange.mockClear();
 
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T12:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T12:00:00.000Z" />
       );
 
       // Verify that the date is displayed correctly
@@ -382,7 +381,7 @@ describe("DateTimeField", () => {
     it("should handle dates with exactly 0 minutes", () => {
       // Use a non-midnight time with exactly 0 minutes
       const {getByPlaceholderText} = renderWithTheme(
-        <DateTimeField type="date" value="2023-05-15T14:00:00.000Z" onChange={mockOnChange} />
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T14:00:00.000Z" />
       );
 
       // UI should show the date component only

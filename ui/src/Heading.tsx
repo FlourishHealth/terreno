@@ -3,26 +3,26 @@ import {
   TitilliumWeb_700Bold,
   useFonts,
 } from "@expo-google-fonts/titillium-web";
-import React from "react";
-import {Text as NativeText, Platform, StyleProp, TextStyle} from "react-native";
+import type React from "react";
+import {Text as NativeText, Platform, type StyleProp, type TextStyle} from "react-native";
 
-import {HeadingProps} from "./Common";
+import type {HeadingProps} from "./Common";
 import {useTheme} from "./Theme";
 
 const fontSizeAndWeightWeb = {
-  sm: {size: 16, weight: "semibold"},
-  md: {size: 18, weight: "bold"},
-  lg: {size: 24, weight: "bold"},
-  xl: {size: 32, weight: "bold"},
   "2xl": {size: 48, weight: "bold"},
+  lg: {size: 24, weight: "bold"},
+  md: {size: 18, weight: "bold"},
+  sm: {size: 16, weight: "semibold"},
+  xl: {size: 32, weight: "bold"},
 };
 
 const fontSizeAndWeighMobile = {
-  sm: {size: 14, weight: "semibold"},
-  md: {size: 16, weight: "bold"},
-  lg: {size: 20, weight: "bold"},
-  xl: {size: 28, weight: "bold"},
   "2xl": {size: 32, weight: "bold"},
+  lg: {size: 20, weight: "bold"},
+  md: {size: 16, weight: "bold"},
+  sm: {size: 14, weight: "semibold"},
+  xl: {size: 28, weight: "bold"},
 };
 
 const fontSizes = Platform.OS === "web" ? fontSizeAndWeightWeb : fontSizeAndWeighMobile;

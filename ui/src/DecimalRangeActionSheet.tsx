@@ -5,7 +5,7 @@ import React from "react";
 import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
-import {DecimalRangeActionSheetProps, DecimalRangeActionSheetState} from "./Common";
+import type {DecimalRangeActionSheetProps, DecimalRangeActionSheetState} from "./Common";
 
 const PICKER_HEIGHT = 104;
 
@@ -16,22 +16,22 @@ export class DecimalRangeActionSheet extends React.Component<
   constructor(props: DecimalRangeActionSheetProps) {
     super(props);
     this.state = {
-      whole: String(Math.floor(Number(props.value))),
       decimal: String((Number(props.value) * 10) % 10),
+      whole: String(Math.floor(Number(props.value))),
     };
   }
 
   render() {
     return (
-      <ActionSheet ref={this.props.actionSheetRef} bounceOnOpen gestureEnabled>
+      <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
           <Box alignItems="end" display="flex" width="100%">
             <Box width="33%">
               <Button
-                text="Close"
                 onClick={() => {
                   this.props.actionSheetRef?.current?.setModalVisible(false);
                 }}
+                text="Close"
               />
             </Box>
           </Box>
@@ -41,14 +41,14 @@ export class DecimalRangeActionSheet extends React.Component<
                 itemStyle={{
                   height: PICKER_HEIGHT,
                 }}
-                selectedValue={this.state.whole}
-                style={{
-                  height: PICKER_HEIGHT,
-                  backgroundColor: "#FFFFFF",
-                }}
                 onValueChange={(whole) => {
                   this.setState({whole: String(whole)});
                   this.props.onChange(String(Number(whole) + Number(this.state.decimal) * 0.1));
+                }}
+                selectedValue={this.state.whole}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  height: PICKER_HEIGHT,
                 }}
               >
                 {range(this.props.min, this.props.max + 1).map((n) => {
@@ -61,14 +61,14 @@ export class DecimalRangeActionSheet extends React.Component<
                 itemStyle={{
                   height: PICKER_HEIGHT,
                 }}
-                selectedValue={this.state.decimal}
-                style={{
-                  height: PICKER_HEIGHT,
-                  backgroundColor: "#FFFFFF",
-                }}
                 onValueChange={(decimal) => {
                   this.setState({decimal: String(decimal)});
                   this.props.onChange(String(Number(this.state.whole) + Number(decimal) * 0.1));
+                }}
+                selectedValue={this.state.decimal}
+                style={{
+                  backgroundColor: "#FFFFFF",
+                  height: PICKER_HEIGHT,
                 }}
               >
                 {range(0, 10).map((n) => {

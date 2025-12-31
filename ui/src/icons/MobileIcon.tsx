@@ -1,7 +1,6 @@
-import * as React from "react";
 import Svg, {Path} from "react-native-svg";
 
-import {CustomSvgProps} from "../Common";
+import type {CustomSvgProps} from "../Common";
 
 export const MobileIcon = ({doNotDisturb, ...props}: CustomSvgProps) => {
   return (

@@ -1,6 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
-import React from "react";
 
 import {AddressField} from "./AddressField";
 import {renderWithTheme} from "./test-utils";
@@ -13,10 +12,10 @@ describe("AddressField", () => {
     address1: "123 Main St",
     address2: "Apt 4B",
     city: "Springfield",
+    countyCode: "17167",
+    countyName: "Sangamon",
     state: "IL",
     zipcode: "62701",
-    countyName: "Sangamon",
-    countyCode: "17167",
   };
 
   beforeEach(() => {
@@ -29,22 +28,22 @@ describe("AddressField", () => {
   });
 
   const defaultProps = {
+    onBlur: mockOnBlur,
+    onChange: mockOnChange,
     testID: "test-address",
     value: defaultValue,
-    onChange: mockOnChange,
-    onBlur: mockOnBlur,
   };
 
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} />
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
     );
     expect(toJSON()).toMatchSnapshot();
   });
 
   it("renders all address fields", () => {
     const {getByTestId} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} />
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
     );
 
     expect(getByTestId("test-address-address1")).toBeTruthy();
@@ -55,7 +54,7 @@ describe("AddressField", () => {
 
   it("calls onChange when address fields are updated", () => {
     const {getByTestId} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} />
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
     );
 
     const cityInput = getByTestId("test-address-city");
@@ -69,7 +68,7 @@ describe("AddressField", () => {
 
   it("calls onBlur when a field is blurred", () => {
     const {getByTestId} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} />
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
     );
     // Reset mock since it was called during render
     mockOnBlur.mockClear();
@@ -85,7 +84,7 @@ describe("AddressField", () => {
 
   it("renders county fields when includeCounty is true", () => {
     const {getByTestId} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} includeCounty />
+      <AddressField {...defaultProps} includeCounty onBlur={mockOnBlur} onChange={mockOnChange} />
     );
 
     expect(getByTestId("test-address-county")).toBeTruthy();
@@ -96,9 +95,9 @@ describe("AddressField", () => {
     const {queryByTestId} = renderWithTheme(
       <AddressField
         {...defaultProps}
-        onChange={mockOnChange}
-        onBlur={mockOnBlur}
         includeCounty={false}
+        onBlur={mockOnBlur}
+        onChange={mockOnChange}
       />
     );
 
@@ -108,7 +107,7 @@ describe("AddressField", () => {
 
   it("disables all fields when disabled prop is true", () => {
     const {getByTestId} = renderWithTheme(
-      <AddressField {...defaultProps} onChange={mockOnChange} onBlur={mockOnBlur} disabled />
+      <AddressField {...defaultProps} disabled onBlur={mockOnBlur} onChange={mockOnChange} />
     );
 
     const address1Input = getByTestId("test-address-address1");

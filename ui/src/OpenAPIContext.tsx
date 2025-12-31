@@ -1,7 +1,8 @@
 import camelCase from "lodash/camelCase";
-import React, {createContext, useContext, useEffect, useState} from "react";
+import type React from "react";
+import {createContext, useContext, useEffect, useState} from "react";
 
-import {
+import type {
   ModelFieldConfig,
   ModelFields,
   OpenAPIContextType,
@@ -58,7 +59,7 @@ export const OpenAPIProvider = ({children, specUrl}: OpenAPIProviderProps): Reac
   }, [specUrl]);
 
   return (
-    <OpenAPIContext.Provider value={{spec, getModelFields, getModelField}}>
+    <OpenAPIContext.Provider value={{getModelField, getModelFields, spec}}>
       {children}
     </OpenAPIContext.Provider>
   );

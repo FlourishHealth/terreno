@@ -1,7 +1,6 @@
-import * as React from "react";
 import Svg, {Path} from "react-native-svg";
 
-import {CustomSvgProps} from "../Common";
+import type {CustomSvgProps} from "../Common";
 export const OfflineIcon = ({doNotDisturb, ...props}: CustomSvgProps) => (
   <Svg fill="none" height={33} width={30} {...props}>
     <Path

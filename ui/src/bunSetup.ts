@@ -23,14 +23,15 @@ mock.module("react-native", () => {
   const ScrollView = ({children, ...props}: any) =>
     React.createElement("ScrollView", props, children);
   const Image = (props: any) => React.createElement("Image", props);
-  const ImageBackground = ({children, ...props}: any) => React.createElement("ImageBackground", props, children);
+  const ImageBackground = ({children, ...props}: any) =>
+    React.createElement("ImageBackground", props, children);
   const ActivityIndicator = (props: any) => React.createElement("ActivityIndicator", props);
   const FlatList = ({data, renderItem, keyExtractor, ...props}: any) =>
     React.createElement(
       "FlatList",
       props,
       data?.map((item: any, index: number) =>
-        renderItem({item, index, separators: {highlight: () => {}, unhighlight: () => {}}})
+        renderItem({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
       )
     );
   const SectionList = (props: any) => React.createElement("SectionList", props);
@@ -41,26 +42,26 @@ mock.module("react-native", () => {
   const Modal = ({children, ...props}: any) => React.createElement("Modal", props, children);
   const Switch = (props: any) => React.createElement("Switch", props);
   const Animated = {
-    View,
-    Text,
+    createAnimatedComponent: (comp: any) => comp,
+    event: mock(() => () => {}),
+    FlatList,
     Image,
     ScrollView,
-    FlatList,
-    createAnimatedComponent: (comp: any) => comp,
-    timing: mock(() => ({start: mock(() => {})})),
     spring: mock(() => ({start: mock(() => {})})),
+    Text,
+    timing: mock(() => ({start: mock(() => {})})),
     Value: class Value {
       constructor(public _value: number = 0) {}
       setValue = mock(() => {});
       interpolate = mock(() => this);
     },
-    event: mock(() => () => {}),
+    View,
   };
   const StyleSheet = {
+    absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
+    absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
     create: (styles: any) => styles,
     flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
-    absoluteFill: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
-    absoluteFillObject: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
     hairlineWidth: 1,
   };
   const Platform = {
@@ -69,43 +70,43 @@ mock.module("react-native", () => {
     Version: "14.0",
   };
   const Dimensions = {
-    get: mock(() => ({width: 375, height: 812, scale: 2, fontScale: 1})),
     addEventListener: mock(() => ({remove: mock(() => {})})),
+    get: mock(() => ({fontScale: 1, height: 812, scale: 2, width: 375})),
   };
   const useColorScheme = mock(() => "light");
-  const useWindowDimensions = mock(() => ({width: 375, height: 812, scale: 2, fontScale: 1}));
+  const useWindowDimensions = mock(() => ({fontScale: 1, height: 812, scale: 2, width: 375}));
   const Keyboard = {
-    dismiss: mock(() => {}),
     addListener: mock(() => ({remove: mock(() => {})})),
+    dismiss: mock(() => {}),
   };
   const LayoutAnimation = {
     configureNext: mock(() => {}),
     create: mock(() => ({})),
-    Types: {},
-    Properties: {},
     Presets: {},
+    Properties: {},
+    Types: {},
   };
   const Linking = {
-    openURL: mock(() => Promise.resolve()),
+    addEventListener: mock(() => ({remove: mock(() => {})})),
     canOpenURL: mock(() => Promise.resolve(true)),
     getInitialURL: mock(() => Promise.resolve(null)),
-    addEventListener: mock(() => ({remove: mock(() => {})})),
+    openURL: mock(() => Promise.resolve()),
   };
   const Alert = {
     alert: mock(() => {}),
   };
   const Appearance = {
-    getColorScheme: mock(() => "light"),
     addChangeListener: mock(() => ({remove: mock(() => {})})),
+    getColorScheme: mock(() => "light"),
   };
   const Vibration = {
-    vibrate: mock(() => {}),
     cancel: mock(() => {}),
+    vibrate: mock(() => {}),
   };
   const NativeModules = {};
   const StatusBar = {
-    setBarStyle: mock(() => {}),
     setBackgroundColor: mock(() => {}),
+    setBarStyle: mock(() => {}),
     setHidden: mock(() => {}),
     setNetworkActivityIndicatorVisible: mock(() => {}),
     setTranslucent: mock(() => {}),
@@ -123,8 +124,8 @@ mock.module("react-native", () => {
     setAccessibilityFocus: mock(() => {}),
   };
   const Share = {
-    share: mock(() => Promise.resolve({action: "sharedAction"})),
     dismiss: mock(() => Promise.resolve()),
+    share: mock(() => Promise.resolve({action: "sharedAction"})),
   };
   const PixelRatio = {
     get: mock(() => 2),
@@ -133,10 +134,10 @@ mock.module("react-native", () => {
     roundToNearestPixel: mock((size: number) => size),
   };
   const I18nManager = {
-    isRTL: false,
-    doLeftAndRightSwapInRTL: true,
     allowRTL: mock(() => {}),
+    doLeftAndRightSwapInRTL: true,
     forceRTL: mock(() => {}),
+    isRTL: false,
     swapLeftAndRightInRTL: mock(() => {}),
   };
   const BackHandler = {
@@ -152,15 +153,15 @@ mock.module("react-native", () => {
   const Touchable = {
     Mixin: {
       touchableGetInitialState: () => ({}),
-      touchableHandleStartShouldSetResponder: () => true,
-      touchableHandleResponderTerminationRequest: () => true,
       touchableHandleResponderGrant: mock(() => {}),
       touchableHandleResponderMove: mock(() => {}),
       touchableHandleResponderRelease: mock(() => {}),
       touchableHandleResponderTerminate: mock(() => {}),
+      touchableHandleResponderTerminationRequest: () => true,
+      touchableHandleStartShouldSetResponder: () => true,
     },
-    TOUCH_TARGET_DEBUG: false,
     renderDebugView: mock(() => null),
+    TOUCH_TARGET_DEBUG: false,
   };
   const processColor = (color: string | number | null | undefined) => {
     if (color === null || color === undefined) {
@@ -184,142 +185,141 @@ mock.module("react-native", () => {
   };
   const PanResponder = {
     create: mock(() => ({
+      getInteractionHandle: mock(() => null),
       panHandlers: {
-        onStartShouldSetResponder: mock(() => false),
         onMoveShouldSetResponder: mock(() => false),
-        onStartShouldSetResponderCapture: mock(() => false),
         onMoveShouldSetResponderCapture: mock(() => false),
+        onResponderEnd: mock(() => {}),
         onResponderGrant: mock(() => {}),
         onResponderMove: mock(() => {}),
+        onResponderReject: mock(() => {}),
         onResponderRelease: mock(() => {}),
+        onResponderStart: mock(() => {}),
         onResponderTerminate: mock(() => {}),
         onResponderTerminationRequest: mock(() => true),
-        onResponderReject: mock(() => {}),
-        onResponderStart: mock(() => {}),
-        onResponderEnd: mock(() => {}),
+        onStartShouldSetResponder: mock(() => false),
+        onStartShouldSetResponderCapture: mock(() => false),
       },
-      getInteractionHandle: mock(() => null),
     })),
   };
   const Easing = {
-    linear: mock((t: number) => t),
-    ease: mock((t: number) => t),
-    quad: mock((t: number) => t * t),
-    cubic: mock((t: number) => t * t * t),
-    poly: mock(() => (t: number) => t),
-    sin: mock((t: number) => Math.sin(t)),
-    circle: mock((t: number) => t),
-    exp: mock((t: number) => t),
-    elastic: mock(() => (t: number) => t),
     back: mock(() => (t: number) => t),
-    bounce: mock((t: number) => t),
     bezier: mock(() => (t: number) => t),
+    bounce: mock((t: number) => t),
+    circle: mock((t: number) => t),
+    cubic: mock((t: number) => t * t * t),
+    ease: mock((t: number) => t),
+    elastic: mock(() => (t: number) => t),
+    exp: mock((t: number) => t),
     in: mock((f: any) => f),
-    out: mock((f: any) => f),
     inOut: mock((f: any) => f),
+    linear: mock((t: number) => t),
+    out: mock((f: any) => f),
+    poly: mock(() => (t: number) => t),
+    quad: mock((t: number) => t * t),
+    sin: mock((t: number) => Math.sin(t)),
   };
   const NativeEventEmitter = class {
-    constructor(_nativeModule?: any) {}
     addListener = mock(() => ({remove: mock(() => {})}));
     removeAllListeners = mock(() => {});
     removeSubscription = mock(() => {});
   };
 
   return {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    Pressable,
-    ScrollView,
-    Image,
-    ImageBackground,
-    ActivityIndicator,
-    FlatList,
-    SectionList,
-    KeyboardAvoidingView,
-    SafeAreaView,
-    Modal,
-    Switch,
-    Animated,
-    StyleSheet,
-    Platform,
-    Dimensions,
-    useColorScheme,
-    useWindowDimensions,
-    Keyboard,
-    LayoutAnimation,
-    Linking,
-    Alert,
-    Appearance,
-    Vibration,
-    NativeModules,
-    StatusBar,
     AccessibilityInfo,
-    Share,
-    PixelRatio,
-    I18nManager,
+    ActivityIndicator,
+    Alert,
+    Animated,
+    Appearance,
     BackHandler,
-    TouchableWithoutFeedback,
-    TouchableHighlight,
-    TouchableNativeFeedback,
-    Touchable,
-    processColor,
-    UIManager,
-    findNodeHandle,
-    requireNativeComponent,
-    TurboModuleRegistry,
-    PanResponder,
-    Easing,
-    NativeEventEmitter,
+    Dimensions,
     default: {
-      View,
-      Text,
-      TextInput,
-      TouchableOpacity,
-      Pressable,
-      ScrollView,
+      AccessibilityInfo,
+      ActivityIndicator,
+      Alert,
+      Animated,
+      Appearance,
+      BackHandler,
+      Dimensions,
+      Easing,
+      FlatList,
+      findNodeHandle,
+      I18nManager,
       Image,
       ImageBackground,
-      ActivityIndicator,
-      FlatList,
-      SectionList,
-      KeyboardAvoidingView,
-      SafeAreaView,
-      Modal,
-      Switch,
-      Animated,
-      StyleSheet,
-      Platform,
-      Dimensions,
-      useColorScheme,
-      useWindowDimensions,
       Keyboard,
+      KeyboardAvoidingView,
       LayoutAnimation,
       Linking,
-      Alert,
-      Appearance,
-      Vibration,
+      Modal,
+      NativeEventEmitter,
       NativeModules,
-      StatusBar,
-      AccessibilityInfo,
-      Share,
+      PanResponder,
       PixelRatio,
-      I18nManager,
-      BackHandler,
-      TouchableWithoutFeedback,
+      Platform,
+      Pressable,
+      processColor,
+      requireNativeComponent,
+      SafeAreaView,
+      ScrollView,
+      SectionList,
+      Share,
+      StatusBar,
+      StyleSheet,
+      Switch,
+      Text,
+      TextInput,
+      Touchable,
       TouchableHighlight,
       TouchableNativeFeedback,
-      Touchable,
-      processColor,
-      UIManager,
-      findNodeHandle,
-      requireNativeComponent,
+      TouchableOpacity,
+      TouchableWithoutFeedback,
       TurboModuleRegistry,
-      PanResponder,
-      Easing,
-      NativeEventEmitter,
+      UIManager,
+      useColorScheme,
+      useWindowDimensions,
+      Vibration,
+      View,
     },
+    Easing,
+    FlatList,
+    findNodeHandle,
+    I18nManager,
+    Image,
+    ImageBackground,
+    Keyboard,
+    KeyboardAvoidingView,
+    LayoutAnimation,
+    Linking,
+    Modal,
+    NativeEventEmitter,
+    NativeModules,
+    PanResponder,
+    PixelRatio,
+    Platform,
+    Pressable,
+    processColor,
+    requireNativeComponent,
+    SafeAreaView,
+    ScrollView,
+    SectionList,
+    Share,
+    StatusBar,
+    StyleSheet,
+    Switch,
+    Text,
+    TextInput,
+    Touchable,
+    TouchableHighlight,
+    TouchableNativeFeedback,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    TurboModuleRegistry,
+    UIManager,
+    useColorScheme,
+    useWindowDimensions,
+    Vibration,
+    View,
   };
 });
 
@@ -341,26 +341,26 @@ if (typeof globalThis.expo === "undefined") {
 
 // Mock @react-native-async-storage/async-storage
 mock.module("@react-native-async-storage/async-storage", () => ({
-  setItem: mock(() => Promise.resolve()),
-  getItem: mock(() => Promise.resolve(null)),
-  removeItem: mock(() => Promise.resolve()),
   clear: mock(() => Promise.resolve()),
-  getAllKeys: mock(() => Promise.resolve([])),
-  multiGet: mock(() => Promise.resolve([])),
-  multiSet: mock(() => Promise.resolve()),
-  multiRemove: mock(() => Promise.resolve()),
-  mergeItem: mock(() => Promise.resolve()),
   default: {
-    setItem: mock(() => Promise.resolve()),
-    getItem: mock(() => Promise.resolve(null)),
-    removeItem: mock(() => Promise.resolve()),
     clear: mock(() => Promise.resolve()),
     getAllKeys: mock(() => Promise.resolve([])),
-    multiGet: mock(() => Promise.resolve([])),
-    multiSet: mock(() => Promise.resolve()),
-    multiRemove: mock(() => Promise.resolve()),
+    getItem: mock(() => Promise.resolve(null)),
     mergeItem: mock(() => Promise.resolve()),
+    multiGet: mock(() => Promise.resolve([])),
+    multiRemove: mock(() => Promise.resolve()),
+    multiSet: mock(() => Promise.resolve()),
+    removeItem: mock(() => Promise.resolve()),
+    setItem: mock(() => Promise.resolve()),
   },
+  getAllKeys: mock(() => Promise.resolve([])),
+  getItem: mock(() => Promise.resolve(null)),
+  mergeItem: mock(() => Promise.resolve()),
+  multiGet: mock(() => Promise.resolve([])),
+  multiRemove: mock(() => Promise.resolve()),
+  multiSet: mock(() => Promise.resolve()),
+  removeItem: mock(() => Promise.resolve()),
+  setItem: mock(() => Promise.resolve()),
 }));
 
 // Mock react-native-signature-canvas
@@ -376,34 +376,33 @@ mock.module("./IconButton", () => ({
 // Mock expo-font
 mock.module("expo-font", () => ({
   isLoaded: mock(() => true),
-  loadNativeFonts: mock(() => Promise.resolve()),
   loadAsync: mock(() => Promise.resolve()),
+  loadNativeFonts: mock(() => Promise.resolve()),
   useFonts: mock(() => [true, null]),
 }));
 
 // Mock Google fonts packages
 mock.module("@expo-google-fonts/nunito", () => ({
-  useFonts: mock(() => [true, null]),
   Nunito_200ExtraLight: "Nunito_200ExtraLight",
-  Nunito_300Light: "Nunito_300Light",
-  Nunito_400Regular: "Nunito_400Regular",
-  Nunito_500Medium: "Nunito_500Medium",
-  Nunito_600SemiBold: "Nunito_600SemiBold",
-  Nunito_700Bold: "Nunito_700Bold",
-  Nunito_800ExtraBold: "Nunito_800ExtraBold",
-  Nunito_900Black: "Nunito_900Black",
   Nunito_200ExtraLight_Italic: "Nunito_200ExtraLight_Italic",
+  Nunito_300Light: "Nunito_300Light",
   Nunito_300Light_Italic: "Nunito_300Light_Italic",
+  Nunito_400Regular: "Nunito_400Regular",
   Nunito_400Regular_Italic: "Nunito_400Regular_Italic",
+  Nunito_500Medium: "Nunito_500Medium",
   Nunito_500Medium_Italic: "Nunito_500Medium_Italic",
+  Nunito_600SemiBold: "Nunito_600SemiBold",
   Nunito_600SemiBold_Italic: "Nunito_600SemiBold_Italic",
+  Nunito_700Bold: "Nunito_700Bold",
   Nunito_700Bold_Italic: "Nunito_700Bold_Italic",
+  Nunito_800ExtraBold: "Nunito_800ExtraBold",
   Nunito_800ExtraBold_Italic: "Nunito_800ExtraBold_Italic",
+  Nunito_900Black: "Nunito_900Black",
   Nunito_900Black_Italic: "Nunito_900Black_Italic",
+  useFonts: mock(() => [true, null]),
 }));
 
 mock.module("@expo-google-fonts/titillium-web", () => ({
-  useFonts: mock(() => [true, null]),
   TitilliumWeb_200ExtraLight: "TitilliumWeb_200ExtraLight",
   TitilliumWeb_200ExtraLight_Italic: "TitilliumWeb_200ExtraLight_Italic",
   TitilliumWeb_300Light: "TitilliumWeb_300Light",
@@ -415,6 +414,7 @@ mock.module("@expo-google-fonts/titillium-web", () => ({
   TitilliumWeb_700Bold: "TitilliumWeb_700Bold",
   TitilliumWeb_700Bold_Italic: "TitilliumWeb_700Bold_Italic",
   TitilliumWeb_900Black: "TitilliumWeb_900Black",
+  useFonts: mock(() => [true, null]),
 }));
 
 // Mock DateTimeActionSheet
@@ -434,33 +434,33 @@ mock.module("expo-image-manipulator", () => ({
     manipulateAsync: mock(() => {}),
   },
   SaveFormat: {
-    PNG: "png",
     JPEG: "jpeg",
+    PNG: "png",
   },
 }));
 
 // Mock expo-image-picker
 mock.module("expo-image-picker", () => ({
   launchImageLibraryAsync: mock(() => {}),
-  requestMediaLibraryPermissionsAsync: mock(() => {}),
   MediaTypeOptions: {
     Images: "images",
   },
+  requestMediaLibraryPermissionsAsync: mock(() => {}),
 }));
 
 // Mock expo-haptics
 mock.module("expo-haptics", () => ({
   ImpactFeedbackStyle: {
+    Heavy: "heavy",
     Light: "light",
     Medium: "medium",
-    Heavy: "heavy",
-  },
-  NotificationFeedbackType: {
-    Success: "success",
-    Warning: "warning",
-    Error: "error",
   },
   impactAsync: mock(() => {}),
+  NotificationFeedbackType: {
+    Error: "error",
+    Success: "success",
+    Warning: "warning",
+  },
   notificationAsync: mock(() => {}),
   selectionAsync: mock(() => {}),
 }));
@@ -468,43 +468,43 @@ mock.module("expo-haptics", () => ({
 // Mock expo-clipboard
 mock.module("expo-clipboard", () => ({
   getStringAsync: mock(() => Promise.resolve("")),
-  setStringAsync: mock(() => Promise.resolve(undefined)),
   hasStringAsync: mock(() => Promise.resolve(false)),
+  setStringAsync: mock(() => Promise.resolve(undefined)),
 }));
 
 // Mock expo-localization
 mock.module("expo-localization", () => ({
   getCalendars: mock(() => [
     {
-      id: "gregorian",
       calendar: "gregorian",
+      id: "gregorian",
       locale: "en-US",
       timeZone: "America/New_York",
     },
   ]),
   getLocales: mock(() => [
     {
-      languageCode: "en",
       countryCode: "US",
-      textDirection: "ltr",
-      digitGroupingSeparator: ",",
       decimalSeparator: ".",
+      digitGroupingSeparator: ",",
+      languageCode: "en",
       measurementSystem: "US",
+      temperatureUnit: "F",
+      textDirection: "ltr",
       uses24hourClock: false,
       usesMetricSystem: false,
-      temperatureUnit: "F",
     },
   ]),
-  timezone: "America/New_York",
   isRTL: false,
   locale: "en-US",
   locales: ["en-US"],
+  timezone: "America/New_York",
 }));
 
 // Mock @expo/vector-icons
 mock.module("@expo/vector-icons", () => ({
-  FontAwesome6: mock(() => null),
   default: mock(() => null),
+  FontAwesome6: mock(() => null),
 }));
 
 // Mock @expo/vector-icons/FontAwesome6
@@ -527,7 +527,7 @@ mock.module("react-native/Libraries/StyleSheet/processColor", () => {
     if (typeof color === "number") return color;
     return 0xff000000;
   };
-  return { default: processColor, __esModule: true };
+  return {__esModule: true, default: processColor};
 });
 
 mock.module("react-native/Libraries/StyleSheet/normalizeColor", () => {
@@ -536,28 +536,28 @@ mock.module("react-native/Libraries/StyleSheet/normalizeColor", () => {
     if (typeof color === "number") return color;
     return 0xff000000;
   };
-  return { default: normalizeColor, __esModule: true };
+  return {__esModule: true, default: normalizeColor};
 });
 
 mock.module("react-native/Libraries/StyleSheet/PlatformColorValueTypes", () => ({
-  PlatformColor: (...args: any[]) => args[0],
   DynamicColorIOS: (obj: any) => obj.light,
   normalizeColorObject: (color: any) => color,
+  PlatformColor: (...args: any[]) => args[0],
   processColorObject: (color: any) => color,
 }));
 
 mock.module("react-native/Libraries/StyleSheet/StyleSheet", () => ({
+  absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
+  absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
+  create: (styles: any) => styles,
   default: {
+    absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
+    absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
     create: (styles: any) => styles,
     flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
-    absoluteFill: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
-    absoluteFillObject: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
     hairlineWidth: 1,
   },
-  create: (styles: any) => styles,
   flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
-  absoluteFill: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
-  absoluteFillObject: {position: "absolute", top: 0, left: 0, right: 0, bottom: 0},
   hairlineWidth: 1,
 }));
 
@@ -569,10 +569,10 @@ mock.module("react-native/Libraries/NativeComponent/NativeComponentRegistry", ()
 }));
 
 mock.module("react-native/Libraries/NativeComponent/ViewConfigIgnore", () => ({
+  ConditionallyIgnoredEventHandlers: (handlers: any) => handlers,
   DifferentHeuristics: {},
   ignoredViewConfigPropNames: new Set(),
   isIgnoredViewConfigProp: mock(() => false),
-  ConditionallyIgnoredEventHandlers: (handlers: any) => handlers,
 }));
 
 // Mock @react-native-community/slider
@@ -583,29 +583,19 @@ mock.module("@react-native-community/slider", () => ({
 
 // Mock react-native-swiper-flatlist
 mock.module("react-native-swiper-flatlist", () => ({
-  SwiperFlatList: ({children, ...props}: any) => React.createElement("SwiperFlatList", props, children),
   default: ({children, ...props}: any) => React.createElement("SwiperFlatList", props, children),
+  SwiperFlatList: ({children, ...props}: any) =>
+    React.createElement("SwiperFlatList", props, children),
 }));
 
 // Mock Unifier module
 mock.module("./Unifier", () => ({
+  changeColorLuminance: mock((hex: string, _luminanceChange: string) => hex),
   Unifier: {
-    web: false,
     dev: false,
+    initIcons: mock(() => {}),
     navigation: {
       dismissOverlay: mock(() => {}),
-    },
-    utils: {
-      dismissKeyboard: mock(() => {}),
-      dimensions: mock(() => ({width: 375, height: 812})),
-      copyToClipboard: mock(() => {}),
-      orientationChange: mock(() => {}),
-      requestPermissions: mock(() => Promise.resolve(true)),
-      makePurchase: mock(() => {}),
-      PaymentService: mock(() => {}),
-      vibrate: mock(() => {}),
-      haptic: mock(() => Promise.resolve()),
-      openUrl: mock(() => Promise.resolve()),
     },
     storage: {
       getItem: mock(() => Promise.resolve(null)),
@@ -614,9 +604,20 @@ mock.module("./Unifier", () => ({
     tracking: {
       log: mock(() => {}),
     },
-    initIcons: mock(() => {}),
+    utils: {
+      copyToClipboard: mock(() => {}),
+      dimensions: mock(() => ({height: 812, width: 375})),
+      dismissKeyboard: mock(() => {}),
+      haptic: mock(() => Promise.resolve()),
+      makePurchase: mock(() => {}),
+      openUrl: mock(() => Promise.resolve()),
+      orientationChange: mock(() => {}),
+      PaymentService: mock(() => {}),
+      requestPermissions: mock(() => Promise.resolve(true)),
+      vibrate: mock(() => {}),
+    },
+    web: false,
   },
-  changeColorLuminance: mock((hex: string, luminanceChange: string) => hex),
 }));
 
 mock.module("react-native/Libraries/Utilities/codegenNativeComponent", () => ({
@@ -630,19 +631,18 @@ mock.module("react-native/Libraries/Utilities/codegenNativeCommands", () => ({
 // Image related
 mock.module("react-native/Libraries/Image/resolveAssetSource", () => {
   const resolveAssetSource = (source: any) => ({
-    uri: source?.uri || "",
-    width: source?.width || 0,
     height: source?.height || 0,
     scale: 1,
+    uri: source?.uri || "",
+    width: source?.width || 0,
   });
-  return { default: resolveAssetSource, __esModule: true };
+  return {__esModule: true, default: resolveAssetSource};
 });
 
 mock.module("react-native/Libraries/Image/AssetSourceResolver", () => ({
   default: class AssetSourceResolver {
-    constructor() {}
-    defaultAsset = () => ({uri: "", width: 0, height: 0, scale: 1});
-    fromSource = () => ({uri: "", width: 0, height: 0, scale: 1});
+    defaultAsset = () => ({height: 0, scale: 1, uri: "", width: 0});
+    fromSource = () => ({height: 0, scale: 1, uri: "", width: 0});
   },
 }));
 
@@ -657,8 +657,12 @@ mock.module("react-native/Libraries/Animated/Animated", () => {
   const Image = (props: any) => React.createElement("Image", props);
   const ScrollView = ({children}: any) => React.createElement("ScrollView", {}, children);
   return {
-    default: { View, Text, Image, ScrollView, createAnimatedComponent: (c: any) => c },
-    View, Text, Image, ScrollView, createAnimatedComponent: (c: any) => c,
+    createAnimatedComponent: (c: any) => c,
+    default: {createAnimatedComponent: (c: any) => c, Image, ScrollView, Text, View},
+    Image,
+    ScrollView,
+    Text,
+    View,
   };
 });
 
@@ -670,7 +674,6 @@ mock.module("react-native/Libraries/Animated/NativeAnimatedHelper", () => ({
 // Event related
 mock.module("react-native/Libraries/EventEmitter/NativeEventEmitter", () => ({
   default: class NativeEventEmitter {
-    constructor() {}
     addListener = mock(() => ({remove: mock(() => {})}));
     removeAllListeners = mock(() => {});
   },
@@ -684,19 +687,19 @@ mock.module("react-native/Libraries/TurboModule/TurboModuleRegistry", () => ({
 
 // Utilities
 mock.module("react-native/Libraries/Utilities/Platform", () => ({
-  default: { OS: "ios", select: (obj: any) => obj.ios || obj.default, Version: "14.0" },
+  default: {OS: "ios", select: (obj: any) => obj.ios || obj.default, Version: "14.0"},
   OS: "ios",
   select: (obj: any) => obj.ios || obj.default,
   Version: "14.0",
 }));
 
 mock.module("react-native/Libraries/Utilities/Dimensions", () => ({
-  default: {
-    get: () => ({width: 375, height: 812, scale: 2, fontScale: 1}),
-    addEventListener: () => ({remove: () => {}}),
-  },
-  get: () => ({width: 375, height: 812, scale: 2, fontScale: 1}),
   addEventListener: () => ({remove: () => {}}),
+  default: {
+    addEventListener: () => ({remove: () => {}}),
+    get: () => ({fontScale: 1, height: 812, scale: 2, width: 375}),
+  },
+  get: () => ({fontScale: 1, height: 812, scale: 2, width: 375}),
 }));
 
 mock.module("react-native/Libraries/Utilities/PixelRatio", () => ({
@@ -709,7 +712,7 @@ mock.module("react-native/Libraries/Utilities/PixelRatio", () => ({
 }));
 
 mock.module("react-native/Libraries/Utilities/useWindowDimensions", () => ({
-  default: () => ({width: 375, height: 812, scale: 2, fontScale: 1}),
+  default: () => ({fontScale: 1, height: 812, scale: 2, width: 375}),
 }));
 
 mock.module("react-native/Libraries/Utilities/useColorScheme", () => ({
@@ -761,9 +764,13 @@ mock.module("react-native/Libraries/Components/Switch/Switch", () => ({
 
 mock.module("react-native/Libraries/Lists/FlatList", () => ({
   default: ({data, renderItem, ...props}: any) =>
-    React.createElement("FlatList", props, data?.map((item: any, index: number) =>
-      renderItem({item, index, separators: {highlight: () => {}, unhighlight: () => {}}})
-    )),
+    React.createElement(
+      "FlatList",
+      props,
+      data?.map((item: any, index: number) =>
+        renderItem({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
+      )
+    ),
 }));
 
 mock.module("react-native/Libraries/Lists/SectionList", () => ({
@@ -772,51 +779,51 @@ mock.module("react-native/Libraries/Lists/SectionList", () => ({
 
 // APIs
 mock.module("react-native/Libraries/Alert/Alert", () => ({
-  default: { alert: mock(() => {}) },
+  default: {alert: mock(() => {})},
 }));
 
 mock.module("react-native/Libraries/Linking/Linking", () => ({
   default: {
-    openURL: mock(() => Promise.resolve()),
+    addEventListener: mock(() => ({remove: mock(() => {})})),
     canOpenURL: mock(() => Promise.resolve(true)),
     getInitialURL: mock(() => Promise.resolve(null)),
-    addEventListener: mock(() => ({remove: mock(() => {})})),
+    openURL: mock(() => Promise.resolve()),
   },
 }));
 
 mock.module("react-native/Libraries/Share/Share", () => ({
   default: {
-    share: mock(() => Promise.resolve({action: "sharedAction"})),
     dismiss: mock(() => Promise.resolve()),
+    share: mock(() => Promise.resolve({action: "sharedAction"})),
   },
 }));
 
 mock.module("react-native/Libraries/Vibration/Vibration", () => ({
   default: {
-    vibrate: mock(() => {}),
     cancel: mock(() => {}),
+    vibrate: mock(() => {}),
   },
 }));
 
 mock.module("react-native/Libraries/Components/Keyboard/Keyboard", () => ({
   default: {
-    dismiss: mock(() => {}),
     addListener: mock(() => ({remove: mock(() => {})})),
+    dismiss: mock(() => {}),
   },
 }));
 
 mock.module("react-native/Libraries/AppState/AppState", () => ({
   default: {
-    currentState: "active",
     addEventListener: mock(() => ({remove: mock(() => {})})),
+    currentState: "active",
   },
 }));
 
 mock.module("react-native/Libraries/Interaction/PanResponder", () => ({
   default: {
     create: mock(() => ({
-      panHandlers: {},
       getInteractionHandle: mock(() => null),
+      panHandlers: {},
     })),
   },
 }));
@@ -825,9 +832,9 @@ mock.module("react-native/Libraries/LayoutAnimation/LayoutAnimation", () => ({
   default: {
     configureNext: mock(() => {}),
     create: mock(() => ({})),
-    Types: {},
-    Properties: {},
     Presets: {},
+    Properties: {},
+    Types: {},
   },
 }));
 
@@ -844,8 +851,8 @@ mock.module("react-native/Libraries/Renderer/shims/ReactNative", () => ({
 
 mock.module("react-native/Libraries/Components/StatusBar/StatusBar", () => ({
   default: {
-    setBarStyle: mock(() => {}),
     setBackgroundColor: mock(() => {}),
+    setBarStyle: mock(() => {}),
     setHidden: mock(() => {}),
     setNetworkActivityIndicatorVisible: mock(() => {}),
     setTranslucent: mock(() => {}),
@@ -876,17 +883,17 @@ mock.module("react-native/Libraries/Utilities/BackHandler", () => ({
 
 mock.module("react-native/Libraries/Utilities/Appearance", () => ({
   default: {
-    getColorScheme: mock(() => "light"),
     addChangeListener: mock(() => ({remove: mock(() => {})})),
+    getColorScheme: mock(() => "light"),
   },
 }));
 
 mock.module("react-native/Libraries/ReactNative/I18nManager", () => ({
   default: {
-    isRTL: false,
-    doLeftAndRightSwapInRTL: true,
     allowRTL: mock(() => {}),
+    doLeftAndRightSwapInRTL: true,
     forceRTL: mock(() => {}),
+    isRTL: false,
     swapLeftAndRightInRTL: mock(() => {}),
   },
 }));
@@ -897,21 +904,21 @@ mock.module("react-native/Libraries/BatchedBridge/NativeModules", () => ({
 
 mock.module("react-native/Libraries/Animated/Easing", () => ({
   default: {
-    linear: (t: number) => t,
-    ease: (t: number) => t,
-    quad: (t: number) => t * t,
-    cubic: (t: number) => t * t * t,
-    poly: () => (t: number) => t,
-    sin: (t: number) => Math.sin(t),
-    circle: (t: number) => t,
-    exp: (t: number) => t,
-    elastic: () => (t: number) => t,
     back: () => (t: number) => t,
-    bounce: (t: number) => t,
     bezier: () => (t: number) => t,
+    bounce: (t: number) => t,
+    circle: (t: number) => t,
+    cubic: (t: number) => t * t * t,
+    ease: (t: number) => t,
+    elastic: () => (t: number) => t,
+    exp: (t: number) => t,
     in: (f: any) => f,
-    out: (f: any) => f,
     inOut: (f: any) => f,
+    linear: (t: number) => t,
+    out: (f: any) => f,
+    poly: () => (t: number) => t,
+    quad: (t: number) => t * t,
+    sin: (t: number) => Math.sin(t),
   },
 }));
 
@@ -919,32 +926,32 @@ mock.module("react-native/Libraries/Components/Touchable/Touchable", () => ({
   default: {
     Mixin: {
       touchableGetInitialState: () => ({}),
-      touchableHandleStartShouldSetResponder: () => true,
-      touchableHandleResponderTerminationRequest: () => true,
       touchableHandleResponderGrant: mock(() => {}),
       touchableHandleResponderMove: mock(() => {}),
       touchableHandleResponderRelease: mock(() => {}),
       touchableHandleResponderTerminate: mock(() => {}),
+      touchableHandleResponderTerminationRequest: () => true,
+      touchableHandleStartShouldSetResponder: () => true,
     },
-    TOUCH_TARGET_DEBUG: false,
     renderDebugView: mock(() => null),
+    TOUCH_TARGET_DEBUG: false,
   },
   Mixin: {
     touchableGetInitialState: () => ({}),
-    touchableHandleStartShouldSetResponder: () => true,
-    touchableHandleResponderTerminationRequest: () => true,
     touchableHandleResponderGrant: mock(() => {}),
     touchableHandleResponderMove: mock(() => {}),
     touchableHandleResponderRelease: mock(() => {}),
     touchableHandleResponderTerminate: mock(() => {}),
+    touchableHandleResponderTerminationRequest: () => true,
+    touchableHandleStartShouldSetResponder: () => true,
   },
 }));
 
 // Additional internal modules
 mock.module("react-native/Libraries/vendor/core/ErrorUtils", () => ({
   default: {
-    setGlobalHandler: mock(() => {}),
     getGlobalHandler: mock(() => () => {}),
+    setGlobalHandler: mock(() => {}),
   },
 }));
 
@@ -966,16 +973,18 @@ mock.module("react-native/Libraries/Core/Devtools/parseErrorStack", () => ({
 
 mock.module("react-native/Libraries/LogBox/LogBox", () => ({
   default: {
+    ignoreAllLogs: mock(() => {}),
+    ignoreLogs: mock(() => {}),
     install: mock(() => {}),
     uninstall: mock(() => {}),
-    ignoreLogs: mock(() => {}),
-    ignoreAllLogs: mock(() => {}),
   },
 }));
 
 // Mock @react-native-picker/picker
-const PickerComponent = ({children, ...props}: any) => React.createElement("Picker", props, children);
-(PickerComponent as any).Item = ({children, ...props}: any) => React.createElement("Picker.Item", props, children);
+const PickerComponent = ({children, ...props}: any) =>
+  React.createElement("Picker", props, children);
+(PickerComponent as any).Item = ({children, ...props}: any) =>
+  React.createElement("Picker.Item", props, children);
 mock.module("@react-native-picker/picker", () => ({
   Picker: PickerComponent,
   PickerIOS: PickerComponent,
@@ -988,184 +997,215 @@ mock.module("react-native-picker-select", () => ({
 
 // Mock @react-native-community/datetimepicker
 mock.module("@react-native-community/datetimepicker", () => ({
-  default: (props: any) => React.createElement("DateTimePicker", props),
   DateTimePickerAndroid: {
-    open: mock(() => Promise.resolve({action: "dismissed"})),
     dismiss: mock(() => Promise.resolve()),
+    open: mock(() => Promise.resolve({action: "dismissed"})),
   },
+  default: (props: any) => React.createElement("DateTimePicker", props),
 }));
 
 // Mock react-native-calendars
 mock.module("react-native-calendars", () => ({
-  Calendar: (props: any) => React.createElement("Calendar", props),
-  CalendarList: (props: any) => React.createElement("CalendarList", props),
   Agenda: (props: any) => React.createElement("Agenda", props),
   AgendaList: (props: any) => React.createElement("AgendaList", props),
+  Calendar: (props: any) => React.createElement("Calendar", props),
+  CalendarList: (props: any) => React.createElement("CalendarList", props),
   ExpandableCalendar: (props: any) => React.createElement("ExpandableCalendar", props),
-  WeekCalendar: (props: any) => React.createElement("WeekCalendar", props),
   LocaleConfig: {
-    locales: {},
     defaultLocale: "en",
+    locales: {},
   },
+  WeekCalendar: (props: any) => React.createElement("WeekCalendar", props),
 }));
 
 // Mock more react-native internal modules with Flow types
 mock.module("react-native/Libraries/Image/resolveAssetSource", () => ({
   default: mock((source: any) => ({
-    uri: source?.uri || "",
-    width: source?.width || 0,
     height: source?.height || 0,
     scale: 1,
+    uri: source?.uri || "",
+    width: source?.width || 0,
   })),
 }));
 
 mock.module("react-native/Libraries/Image/AssetSourceResolver", () => ({
   default: class AssetSourceResolver {
-    constructor() {}
-    defaultAsset = mock(() => ({uri: "", width: 0, height: 0, scale: 1}));
-    fromSource = mock(() => ({uri: "", width: 0, height: 0, scale: 1}));
+    defaultAsset = mock(() => ({height: 0, scale: 1, uri: "", width: 0}));
+    fromSource = mock(() => ({height: 0, scale: 1, uri: "", width: 0}));
   },
 }));
 
 // Mock react-native-gesture-handler
 mock.module("react-native-gesture-handler", () => {
   const GestureHandler = ({children}: any) => children;
-  
+
   // Create a chainable gesture object that returns itself for all method calls
   const createChainableGesture = (): any => {
     const gesture: any = {};
     const chainableMethods = [
-      "onStart", "onEnd", "onUpdate", "onChange", "onFinalize", "onTouchesDown",
-      "onTouchesMove", "onTouchesUp", "onTouchesCancelled", "enabled", "shouldCancelWhenOutside",
-      "hitSlop", "simultaneousWithExternalGesture", "requireExternalGestureToFail",
-      "blocksExternalGesture", "withTestId", "minPointers", "maxPointers",
-      "minDistance", "minVelocity", "minVelocityX", "minVelocityY", "activeOffsetX",
-      "activeOffsetY", "failOffsetX", "failOffsetY", "averageTouches", "enableTrackpadTwoFingerGesture",
-      "numberOfTaps", "maxDuration", "maxDelay", "maxDist", "minDuration",
-      "numberOfPointers", "direction", "minScale", "minRotation", "runOnJS",
+      "onStart",
+      "onEnd",
+      "onUpdate",
+      "onChange",
+      "onFinalize",
+      "onTouchesDown",
+      "onTouchesMove",
+      "onTouchesUp",
+      "onTouchesCancelled",
+      "enabled",
+      "shouldCancelWhenOutside",
+      "hitSlop",
+      "simultaneousWithExternalGesture",
+      "requireExternalGestureToFail",
+      "blocksExternalGesture",
+      "withTestId",
+      "minPointers",
+      "maxPointers",
+      "minDistance",
+      "minVelocity",
+      "minVelocityX",
+      "minVelocityY",
+      "activeOffsetX",
+      "activeOffsetY",
+      "failOffsetX",
+      "failOffsetY",
+      "averageTouches",
+      "enableTrackpadTwoFingerGesture",
+      "numberOfTaps",
+      "maxDuration",
+      "maxDelay",
+      "maxDist",
+      "minDuration",
+      "numberOfPointers",
+      "direction",
+      "minScale",
+      "minRotation",
+      "runOnJS",
     ];
-    chainableMethods.forEach(method => {
+    chainableMethods.forEach((method) => {
       gesture[method] = mock(() => gesture);
     });
     return gesture;
   };
-  
+
   return {
-    GestureHandlerRootView: GestureHandler,
-    GestureDetector: GestureHandler,
-    Gesture: {
-      Pan: () => createChainableGesture(),
-      Tap: () => createChainableGesture(),
-      LongPress: () => createChainableGesture(),
-      Pinch: () => createChainableGesture(),
-      Rotation: () => createChainableGesture(),
-      Fling: () => createChainableGesture(),
-      Native: () => createChainableGesture(),
-      Manual: () => createChainableGesture(),
-      Race: (...gestures: any[]) => createChainableGesture(),
-      Simultaneous: (...gestures: any[]) => createChainableGesture(),
-      Exclusive: (...gestures: any[]) => createChainableGesture(),
-    },
+    BaseButton: GestureHandler,
+    BorderlessButton: GestureHandler,
+    createNativeWrapper: (comp: any) => comp,
     Directions: {
-      RIGHT: 1,
-      LEFT: 2,
-      UP: 4,
       DOWN: 8,
+      LEFT: 2,
+      RIGHT: 1,
+      UP: 4,
     },
+    DrawerLayout: GestureHandler,
+    FlatList: GestureHandler,
+    FlingGestureHandler: GestureHandler,
+    Gesture: {
+      Exclusive: (..._gestures: any[]) => createChainableGesture(),
+      Fling: () => createChainableGesture(),
+      LongPress: () => createChainableGesture(),
+      Manual: () => createChainableGesture(),
+      Native: () => createChainableGesture(),
+      Pan: () => createChainableGesture(),
+      Pinch: () => createChainableGesture(),
+      Race: (..._gestures: any[]) => createChainableGesture(),
+      Rotation: () => createChainableGesture(),
+      Simultaneous: (..._gestures: any[]) => createChainableGesture(),
+      Tap: () => createChainableGesture(),
+    },
+    GestureDetector: GestureHandler,
+    GestureHandlerRootView: GestureHandler,
+    gestureHandlerRootHOC: (comp: any) => comp,
+    LongPressGestureHandler: GestureHandler,
+    NativeViewGestureHandler: GestureHandler,
+    PanGestureHandler: GestureHandler,
+    PinchGestureHandler: GestureHandler,
+    RectButton: GestureHandler,
+    RotationGestureHandler: GestureHandler,
+    ScrollView: GestureHandler,
     State: {
-      UNDETERMINED: 0,
-      FAILED: 1,
+      ACTIVE: 4,
       BEGAN: 2,
       CANCELLED: 3,
-      ACTIVE: 4,
       END: 5,
+      FAILED: 1,
+      UNDETERMINED: 0,
     },
-    PanGestureHandler: GestureHandler,
-    TapGestureHandler: GestureHandler,
-    LongPressGestureHandler: GestureHandler,
-    PinchGestureHandler: GestureHandler,
-    RotationGestureHandler: GestureHandler,
-    FlingGestureHandler: GestureHandler,
-    NativeViewGestureHandler: GestureHandler,
-    gestureHandlerRootHOC: (comp: any) => comp,
     Swipeable: GestureHandler,
-    DrawerLayout: GestureHandler,
-    ScrollView: GestureHandler,
-    FlatList: GestureHandler,
-    TouchableOpacity: GestureHandler,
+    TapGestureHandler: GestureHandler,
     TouchableHighlight: GestureHandler,
-    TouchableWithoutFeedback: GestureHandler,
     TouchableNativeFeedback: GestureHandler,
-    RectButton: GestureHandler,
-    BorderlessButton: GestureHandler,
-    BaseButton: GestureHandler,
-    createNativeWrapper: (comp: any) => comp,
+    TouchableOpacity: GestureHandler,
+    TouchableWithoutFeedback: GestureHandler,
   };
 });
 
 // Mock react-native-reanimated
 mock.module("react-native-reanimated", () => {
   const Animated = {
-    View: ({children, style}: any) => React.createElement("View", {style}, children),
-    Text: ({children, style}: any) => React.createElement("Text", {style}, children),
+    createAnimatedComponent: (comp: any) => comp,
     Image: (props: any) => React.createElement("Image", props),
     ScrollView: ({children}: any) => React.createElement("ScrollView", {}, children),
-    createAnimatedComponent: (comp: any) => comp,
+    Text: ({children, style}: any) => React.createElement("Text", {style}, children),
+    View: ({children, style}: any) => React.createElement("View", {style}, children),
   };
   return {
     default: Animated,
-    useSharedValue: mock((val: any) => ({value: val})),
-    useAnimatedStyle: mock((fn: any) => fn()),
-    useDerivedValue: mock((fn: any) => ({value: fn()})),
-    useAnimatedGestureHandler: mock(() => ({})),
-    withTiming: mock((val: any) => val),
-    withSpring: mock((val: any) => val),
-    withDecay: mock((val: any) => val),
-    withSequence: mock((...vals: any[]) => vals[0]),
-    withRepeat: mock((val: any) => val),
-    withDelay: mock((delay: any, val: any) => val),
+    Easing: {
+      cubic: (t: number) => t,
+      ease: (t: number) => t,
+      linear: (t: number) => t,
+      quad: (t: number) => t,
+    },
     runOnJS: mock((fn: any) => fn),
     runOnUI: mock((fn: any) => fn),
-    Easing: {
-      linear: (t: number) => t,
-      ease: (t: number) => t,
-      quad: (t: number) => t,
-      cubic: (t: number) => t,
-    },
+    useAnimatedGestureHandler: mock(() => ({})),
+    useAnimatedStyle: mock((fn: any) => fn()),
+    useDerivedValue: mock((fn: any) => ({value: fn()})),
+    useSharedValue: mock((val: any) => ({value: val})),
+    withDecay: mock((val: any) => val),
+    withDelay: mock((_delay: any, val: any) => val),
+    withRepeat: mock((val: any) => val),
+    withSequence: mock((...vals: any[]) => vals[0]),
+    withSpring: mock((val: any) => val),
+    withTiming: mock((val: any) => val),
     ...Animated,
   };
 });
 
 // Mock react-native-svg
 mock.module("react-native-svg", () => {
-  const createSvgComponent = (name: string) =>
-    ({children, ...props}: any) => React.createElement(name, props, children);
-  
+  const createSvgComponent =
+    (name: string) =>
+    ({children, ...props}: any) =>
+      React.createElement(name, props, children);
+
   return {
-    Svg: createSvgComponent("Svg"),
     Circle: createSvgComponent("Circle"),
+    ClipPath: createSvgComponent("ClipPath"),
+    Defs: createSvgComponent("Defs"),
+    default: createSvgComponent("Svg"),
     Ellipse: createSvgComponent("Ellipse"),
+    ForeignObject: createSvgComponent("ForeignObject"),
     G: createSvgComponent("G"),
-    Text: createSvgComponent("SvgText"),
-    TSpan: createSvgComponent("TSpan"),
-    TextPath: createSvgComponent("TextPath"),
+    Image: createSvgComponent("SvgImage"),
+    Line: createSvgComponent("Line"),
+    LinearGradient: createSvgComponent("LinearGradient"),
+    Mask: createSvgComponent("Mask"),
     Path: createSvgComponent("Path"),
+    Pattern: createSvgComponent("Pattern"),
     Polygon: createSvgComponent("Polygon"),
     Polyline: createSvgComponent("Polyline"),
-    Line: createSvgComponent("Line"),
-    Rect: createSvgComponent("Rect"),
-    Use: createSvgComponent("Use"),
-    Image: createSvgComponent("SvgImage"),
-    Symbol: createSvgComponent("Symbol"),
-    Defs: createSvgComponent("Defs"),
-    LinearGradient: createSvgComponent("LinearGradient"),
     RadialGradient: createSvgComponent("RadialGradient"),
+    Rect: createSvgComponent("Rect"),
     Stop: createSvgComponent("Stop"),
-    ClipPath: createSvgComponent("ClipPath"),
-    Pattern: createSvgComponent("Pattern"),
-    Mask: createSvgComponent("Mask"),
-    ForeignObject: createSvgComponent("ForeignObject"),
-    default: createSvgComponent("Svg"),
+    Svg: createSvgComponent("Svg"),
+    Symbol: createSvgComponent("Symbol"),
+    Text: createSvgComponent("SvgText"),
+    TextPath: createSvgComponent("TextPath"),
+    TSpan: createSvgComponent("TSpan"),
+    Use: createSvgComponent("Use"),
   };
 });
 
@@ -1184,7 +1224,7 @@ mock.module("expo-modules-core/src/web/index.web", () => ({
 }));
 
 mock.module("expo-modules-core/src/uuid/uuid.web", () => ({
-  uuid4: mock(() => "mock-uuid-" + Math.random().toString(36).substr(2, 9)),
+  uuid4: mock(() => `mock-uuid-${Math.random().toString(36).substr(2, 9)}`),
 }));
 
 // Reset mock date before each test
@@ -1193,6 +1233,3 @@ beforeEach(() => {
   const fixedDate = new Date("2023-05-15T10:30:00.000Z");
   global.Date.now = mock(() => fixedDate.getTime());
 });
-
-export {};
-

@@ -1,8 +1,8 @@
-import React, {FC, useCallback, useState} from "react";
-import {TouchableOpacity, View, ViewStyle} from "react-native";
+import {type FC, useCallback, useState} from "react";
+import {TouchableOpacity, View, type ViewStyle} from "react-native";
 
 import {CheckBox} from "../CheckBox";
-import {TableBooleanProps} from "../Common";
+import type {TableBooleanProps} from "../Common";
 import {Icon} from "../Icon";
 import {useTheme} from "../Theme";
 
@@ -26,14 +26,14 @@ export const TableBoolean: FC<TableBooleanProps> = ({value, isEditing = false}) 
         accessibilityHint={`Tap to change the checkbox from ${oppositeValueString} to ${valueString}`}
         aria-label={`Checkbox is currently ${valueString}`}
         aria-role="checkbox"
-        hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+        hitSlop={{bottom: 10, left: 10, right: 10, top: 10}}
+        onPress={handlePress}
         style={
           {
             alignItems: "center",
             justifyContent: "center",
           } as ViewStyle
         }
-        onPress={handlePress}
       >
         <CheckBox selected={checked} size="lg" />
       </TouchableOpacity>
@@ -52,12 +52,12 @@ export const TableBoolean: FC<TableBooleanProps> = ({value, isEditing = false}) 
           aria-label={`The checkbox is ${valueString}`}
           aria-role="image"
           style={{
-            height: 32,
-            width: 32,
-            borderRadius: 16,
-            backgroundColor: value ? theme.surface.successLight : "transparent",
             alignItems: "center",
+            backgroundColor: value ? theme.surface.successLight : "transparent",
+            borderRadius: 16,
+            height: 32,
             justifyContent: "center",
+            width: 32,
           }}
         >
           <Icon color={value ? "success" : "error"} iconName={value ? "check" : "x"} />

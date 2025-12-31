@@ -1,10 +1,10 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
-import React, {FC, useMemo, useState} from "react";
+import {type FC, useMemo, useState} from "react";
 import {ActivityIndicator, Pressable, Text, View} from "react-native";
 
 import {Box} from "./Box";
-import {ButtonProps} from "./Common";
+import type {ButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {useTheme} from "./Theme";
@@ -22,6 +22,7 @@ const ConfirmationModal: FC<{
 }> = ({visible, title, subtitle, text, onConfirm, onCancel}) => {
   return (
     <Modal
+      onDismiss={onCancel}
       primaryButtonOnClick={onConfirm}
       primaryButtonText="Confirm"
       secondaryButtonOnClick={onCancel}
@@ -29,7 +30,6 @@ const ConfirmationModal: FC<{
       subtitle={subtitle}
       title={title}
       visible={visible}
-      onDismiss={onCancel}
     >
       <Text>{text}</Text>
     </Modal>
@@ -100,20 +100,6 @@ const ButtonComponent: FC<ButtonProps> = ({
       aria-label={text}
       aria-role="button"
       disabled={disabled || loading}
-      style={{
-        alignItems: "center",
-        alignSelf: fullWidth ? "stretch" : undefined,
-        backgroundColor,
-        borderColor,
-        borderRadius: theme.radius.rounded,
-        borderWidth,
-        flexDirection: "column",
-        justifyContent: "center",
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        width: fullWidth ? "100%" : "auto",
-      }}
-      testID={testID}
       onPress={debounce(
         async () => {
           await Unifier.utils.haptic();
@@ -137,6 +123,20 @@ const ButtonComponent: FC<ButtonProps> = ({
         500,
         {leading: true}
       )}
+      style={{
+        alignItems: "center",
+        alignSelf: fullWidth ? "stretch" : undefined,
+        backgroundColor,
+        borderColor,
+        borderRadius: theme.radius.rounded,
+        borderWidth,
+        flexDirection: "column",
+        justifyContent: "center",
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        width: fullWidth ? "100%" : "auto",
+      }}
+      testID={testID}
     >
       <View style={{flexDirection: "row"}}>
         <View style={{flexDirection: iconPosition === "left" ? "row" : "row-reverse"}}>
@@ -144,14 +144,14 @@ const ButtonComponent: FC<ButtonProps> = ({
             <View
               style={{
                 alignSelf: "center",
-                marginRight: iconPosition === "left" ? 8 : 0,
                 marginLeft: iconPosition === "right" ? 8 : 0,
+                marginRight: iconPosition === "left" ? 8 : 0,
               }}
             >
               <FontAwesome6 color={color} name={iconName} size={16} solid />
             </View>
           )}
-          <Text style={{color, fontWeight: "700", fontSize: 16}}>{text}</Text>
+          <Text style={{color, fontSize: 16, fontWeight: "700"}}>{text}</Text>
         </View>
         {Boolean(loading) && (
           <Box marginLeft={2}>
@@ -161,15 +161,15 @@ const ButtonComponent: FC<ButtonProps> = ({
       </View>
       {withConfirmation && (
         <ConfirmationModal
-          subtitle={modalSubTitle}
-          text={confirmationText}
-          title={modalTitle}
-          visible={showConfirmation}
           onCancel={() => setShowConfirmation(false)}
           onConfirm={async () => {
             await onClick();
             setShowConfirmation(false);
           }}
+          subtitle={modalSubTitle}
+          text={confirmationText}
+          title={modalTitle}
+          visible={showConfirmation}
         />
       )}
     </Pressable>

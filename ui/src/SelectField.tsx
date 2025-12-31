@@ -1,7 +1,7 @@
-import React, {FC} from "react";
+import type {FC} from "react";
 import {View} from "react-native";
 
-import {SelectFieldProps} from "./Common";
+import type {SelectFieldProps} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {RNPickerSelect} from "./PickerSelect";
 
@@ -25,8 +25,6 @@ export const SelectField: FC<SelectFieldProps> = ({
       <RNPickerSelect
         disabled={disabled}
         items={options}
-        placeholder={!requireValue ? clearOption : {}}
-        value={value ?? ""}
         onValueChange={(v) => {
           if (v === undefined || v === "") {
             onChange("");
@@ -34,6 +32,8 @@ export const SelectField: FC<SelectFieldProps> = ({
             onChange(v);
           }
         }}
+        placeholder={!requireValue ? clearOption : {}}
+        value={value ?? ""}
       />
       {helperText && <FieldHelperText text={helperText} />}
     </View>

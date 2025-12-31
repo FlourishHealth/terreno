@@ -1,8 +1,23 @@
 import React, {createContext, useMemo, useState} from "react";
 
-import {FernsTheme, FernsThemeConfig, ThemePrimitives} from "./Common";
+import type {FernsTheme, FernsThemeConfig, ThemePrimitives} from "./Common";
 
 const defaultPrimitives = {
+  accent000: "#FFFDF7",
+  accent050: "#FCECC2",
+  accent100: "#F9E0A1",
+  accent200: "#F7D582",
+  accent300: "#F2CB62",
+  accent400: "#E5B132",
+  accent500: "#D69C0E",
+  accent600: "#B58201",
+  accent700: "#956A00",
+  accent800: "#543C00",
+  accent900: "#332400",
+
+  error000: "#FDD7D7",
+  error100: "#D33232",
+  error200: "#BD1111",
   neutral000: "#FFFFFF",
   neutral050: "#F2F2F2",
   neutral100: "#E6E6E6",
@@ -26,6 +41,13 @@ const defaultPrimitives = {
   primary700: "#035D7E",
   primary800: "#004B64",
   primary900: "#013749",
+  radius2xl: 128,
+  radius3xl: 360,
+  radiusLg: 16,
+  radiusMd: 4,
+
+  radiusSm: 2,
+  radiusXl: 32,
 
   secondary000: "#F2F9FA",
   secondary050: "#D7E5EA",
@@ -38,30 +60,6 @@ const defaultPrimitives = {
   secondary700: "#0F3D4D",
   secondary800: "#092E3A",
   secondary900: "#041E27",
-
-  accent000: "#FFFDF7",
-  accent050: "#FCECC2",
-  accent100: "#F9E0A1",
-  accent200: "#F7D582",
-  accent300: "#F2CB62",
-  accent400: "#E5B132",
-  accent500: "#D69C0E",
-  accent600: "#B58201",
-  accent700: "#956A00",
-  accent800: "#543C00",
-  accent900: "#332400",
-
-  error000: "#FDD7D7",
-  error100: "#D33232",
-  error200: "#BD1111",
-
-  warning000: "#FFE3C6",
-  warning100: "#F36719",
-  warning200: "#B14202",
-
-  success000: "#DCF2E2",
-  success100: "#3EA45C",
-  success200: "#1A7F36",
 
   spacing0: 0,
   spacing1: 4,
@@ -77,77 +75,26 @@ const defaultPrimitives = {
   spacing11: 72,
   spacing12: 80,
 
-  radiusSm: 2,
-  radiusMd: 4,
-  radiusLg: 16,
-  radiusXl: 32,
-  radius2xl: 128,
-  radius3xl: 360,
+  success000: "#DCF2E2",
+  success100: "#3EA45C",
+  success200: "#1A7F36",
+
+  warning000: "#FFE3C6",
+  warning100: "#F36719",
+  warning200: "#B14202",
 };
 
 const defaultTheme: FernsThemeConfig = {
-  text: {
-    primary: "neutral900",
-    inverted: "neutral000",
-    // TODO: ask jo about the naming here, secondaryDark is a blue, secondaryLight is a gray.
-    secondaryLight: "neutral600",
-    extraLight: "neutral500",
-    secondaryDark: "secondary800",
-    link: "primary600",
-    linkLight: "primary400",
-    accent: "accent700",
-    error: "error200",
-    warning: "warning200",
-    success: "success200",
-  },
-  surface: {
-    base: "neutral000",
-    primary: "primary400",
-    secondaryLight: "secondary100",
-    secondaryDark: "secondary500",
-    secondaryExtraDark: "secondary800",
-    neutral: "neutral600",
-    neutralLight: "neutral200",
-    neutralDark: "neutral800",
-    disabled: "neutral500",
-    error: "error200",
-    errorLight: "error000",
-    success: "success200",
-    successLight: "success000",
-    warning: "warning100",
-    warningLight: "warning000",
-  },
   border: {
-    default: "neutral300",
-    dark: "neutral500",
-    activeNeutral: "neutral700",
     activeAccent: "accent500",
-    hover: "neutral200",
-    focus: "primary200",
+    activeNeutral: "neutral700",
+    dark: "neutral500",
+    default: "neutral300",
     error: "error100",
+    focus: "primary200",
+    hover: "neutral200",
     success: "success100",
     warning: "warning100",
-  },
-  status: {
-    active: "success100",
-    doNotDisturb: "error100",
-    away: "neutral500",
-  },
-  radius: {
-    minimal: "radiusSm",
-    default: "radiusMd",
-    full: "radiusLg",
-    rounded: "radius3xl",
-  },
-  spacing: {
-    none: "spacing0",
-    xs: "spacing1",
-    sm: "spacing2",
-    md: "spacing4",
-    lg: "spacing5",
-    xl: "spacing6",
-    "2xl": "spacing8",
-    "3xl": "spacing12",
   },
 
   // These will continue to throw errors until we have a proper font system in place.
@@ -158,6 +105,58 @@ const defaultTheme: FernsThemeConfig = {
     title: "Titillium Web",
   },
   primitives: defaultPrimitives,
+  radius: {
+    default: "radiusMd",
+    full: "radiusLg",
+    minimal: "radiusSm",
+    rounded: "radius3xl",
+  },
+  spacing: {
+    "2xl": "spacing8",
+    "3xl": "spacing12",
+    lg: "spacing5",
+    md: "spacing4",
+    none: "spacing0",
+    sm: "spacing2",
+    xl: "spacing6",
+    xs: "spacing1",
+  },
+  status: {
+    active: "success100",
+    away: "neutral500",
+    doNotDisturb: "error100",
+  },
+  surface: {
+    base: "neutral000",
+    disabled: "neutral500",
+    error: "error200",
+    errorLight: "error000",
+    neutral: "neutral600",
+    neutralDark: "neutral800",
+    neutralLight: "neutral200",
+    primary: "primary400",
+    secondaryDark: "secondary500",
+    secondaryExtraDark: "secondary800",
+    secondaryLight: "secondary100",
+    success: "success200",
+    successLight: "success000",
+    warning: "warning100",
+    warningLight: "warning000",
+  },
+  text: {
+    accent: "accent700",
+    error: "error200",
+    extraLight: "neutral500",
+    inverted: "neutral000",
+    link: "primary600",
+    linkLight: "primary400",
+    primary: "neutral900",
+    secondaryDark: "secondary800",
+    // TODO: ask jo about the naming here, secondaryDark is a blue, secondaryLight is a gray.
+    secondaryLight: "neutral600",
+    success: "success200",
+    warning: "warning200",
+  },
 };
 
 type DeepPartial<T> = {
@@ -165,10 +164,10 @@ type DeepPartial<T> = {
 };
 
 export const ThemeContext = createContext({
-  setTheme: (_theme: DeepPartial<FernsThemeConfig>) => {},
-  setPrimitives: (_primitives: DeepPartial<typeof defaultPrimitives>) => {},
-  theme: {} as FernsTheme,
   resetTheme: () => {},
+  setPrimitives: (_primitives: DeepPartial<typeof defaultPrimitives>) => {},
+  setTheme: (_theme: DeepPartial<FernsThemeConfig>) => {},
+  theme: {} as FernsTheme,
 });
 
 interface ThemeProviderProps {
@@ -215,7 +214,7 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
       const mergedTheme = {...prev};
 
       for (const key in newTheme) {
-        if (newTheme.hasOwnProperty(key)) {
+        if (Object.hasOwn(newTheme, key)) {
           const newSubTheme = newTheme[key as keyof FernsThemeConfig];
           const prevSubTheme = prev[key as keyof FernsThemeConfig];
 
@@ -237,7 +236,7 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
   };
 
   return (
-    <ThemeContext.Provider value={{theme: computedTheme, setTheme, setPrimitives, resetTheme}}>
+    <ThemeContext.Provider value={{resetTheme, setPrimitives, setTheme, theme: computedTheme}}>
       {children}
     </ThemeContext.Provider>
   );

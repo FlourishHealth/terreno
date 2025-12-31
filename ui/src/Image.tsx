@@ -2,7 +2,7 @@ import React from "react";
 import {Dimensions, Image as NativeImage} from "react-native";
 
 import {Box} from "./Box";
-import {ImageProps} from "./Common";
+import type {ImageProps} from "./Common";
 
 const {width: DEVICE_WIDTH} = Dimensions.get("window");
 
@@ -36,12 +36,12 @@ export class Image extends React.Component<ImageProps, {}> {
       <Box color={this.props.color}>
         <NativeImage
           resizeMode={this.resizeMode(this.props.fit)}
-          source={{uri: this.props.src, cache: "force-cache"}}
+          source={{cache: "force-cache", uri: this.props.src}}
           style={{
             height: this.height(),
-            width: this.width(),
             maxHeight: this.props.maxHeight,
             maxWidth: this.props.maxWidth,
+            width: this.width(),
             ...this.props.style,
           }}
         />
