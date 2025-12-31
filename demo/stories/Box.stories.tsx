@@ -1,5 +1,4 @@
-import {Box, SurfaceColor, Text} from "ferns-ui";
-import React from "react";
+import {Box, type SurfaceColor, Text} from "ferns-ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -64,15 +63,15 @@ export const BoxColors = () => {
   return (
     <StorybookContainer>
       {colors.map((c) => (
-        <Box key={c} direction="column" display="flex">
+        <Box direction="column" display="flex" key={c}>
           <Box alignSelf="start" marginBottom={2}>
             <Text align="center">{c}</Text>
           </Box>
           <Box
-            key={c}
             alignSelf="start"
             color={c}
             height={50}
+            key={c}
             marginBottom={2}
             rounding="circle"
             width={50}

@@ -1,5 +1,5 @@
-import {Box, Link, Text, TextColor, TextProps} from "ferns-ui";
-import React from "react";
+import {Box, Link, Text, type TextColor, type TextProps} from "ferns-ui";
+import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -33,8 +33,8 @@ export const Texts = (): React.ReactElement => {
 
         {renderText("bold", {bold: true})}
         {renderText("italic", {italic: true})}
-        {renderText("bold italic", {italic: true, bold: true})}
-        {renderText("bold italic accent", {italic: true, bold: true, color: "accent"})}
+        {renderText("bold italic", {bold: true, italic: true})}
+        {renderText("bold italic accent", {bold: true, color: "accent", italic: true})}
 
         {renderText("center", {align: "center"})}
         <Link href="https://github.com/FlourishHealth/ferns-ui" text="Linked Text" />

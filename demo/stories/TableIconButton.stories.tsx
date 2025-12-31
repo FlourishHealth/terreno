@@ -1,12 +1,11 @@
-import {Box, Heading, TableIconButton, TableIconButtonProps} from "ferns-ui";
-import React from "react";
+import {Box, Heading, TableIconButton, type TableIconButtonProps} from "ferns-ui";
 
 export const TableIconButtonDemo = (props: Partial<TableIconButtonProps>) => {
   return (
     <Box alignItems="center" justifyContent="center">
       <TableIconButton
-        tableIconButtonName="edit"
         onClick={() => console.info("hello table icon button")}
+        tableIconButtonName="edit"
         {...props}
       />
     </Box>
@@ -21,7 +20,7 @@ export const TableIconButtonStates = () => {
           <Heading>Edit</Heading>
         </Box>
         <Box alignItems="center">
-          <TableIconButton tableIconButtonName="edit" onClick={() => console.info("click edit")} />
+          <TableIconButton onClick={() => console.info("click edit")} tableIconButtonName="edit" />
         </Box>
       </Box>
       <Box padding={2}>
@@ -30,8 +29,8 @@ export const TableIconButtonStates = () => {
         </Box>
         <Box alignItems="center">
           <TableIconButton
-            tableIconButtonName="saveAndClose"
             onClick={() => console.info("save and close")}
+            tableIconButtonName="saveAndClose"
           />
         </Box>
       </Box>
@@ -41,8 +40,8 @@ export const TableIconButtonStates = () => {
         </Box>
         <Box alignItems="center">
           <TableIconButton
-            tableIconButtonName="insert"
             onClick={() => console.info("insert data")}
+            tableIconButtonName="insert"
           />
         </Box>
       </Box>
@@ -52,8 +51,8 @@ export const TableIconButtonStates = () => {
         </Box>
         <Box alignItems="center">
           <TableIconButton
-            tableIconButtonName="drawerOpen"
             onClick={() => console.info("open drawer")}
+            tableIconButtonName="drawerOpen"
           />
         </Box>
       </Box>
@@ -63,8 +62,8 @@ export const TableIconButtonStates = () => {
         </Box>
         <Box alignItems="center">
           <TableIconButton
-            tableIconButtonName="drawerClose"
             onClick={() => console.info("close drawer")}
+            tableIconButtonName="drawerClose"
           />
         </Box>
       </Box>

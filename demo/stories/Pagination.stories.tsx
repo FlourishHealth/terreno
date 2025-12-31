@@ -1,5 +1,5 @@
-import {Pagination, PaginationProps} from "ferns-ui";
-import React, {ReactElement, useState} from "react";
+import {Pagination, type PaginationProps} from "ferns-ui";
+import {type ReactElement, useState} from "react";
 
 export const PaginationDemo = ({totalPages = 5}: Partial<PaginationProps>): ReactElement => {
   // Something funky is going on with FieldProps through the config so this is a temp fix for demo

@@ -1,10 +1,9 @@
-import {Box, Heading, TableBoolean, TableBooleanProps} from "ferns-ui";
-import React from "react";
+import {Box, Heading, TableBoolean, type TableBooleanProps} from "ferns-ui";
 
 export const TableBooleanDemo = (props: Partial<TableBooleanProps>) => {
   return (
     <Box alignItems="center" justifyContent="center">
-      <TableBoolean value={false} onSave={() => console.info("hello table bool")} {...props} />
+      <TableBoolean onSave={() => console.info("hello table bool")} value={false} {...props} />
     </Box>
   );
 };
@@ -17,7 +16,7 @@ export const TableBooleanStates = () => {
           <Heading>Display True</Heading>
         </Box>
         <Box alignItems="center">
-          <TableBoolean value onSave={() => console.info("hello table bool")} />
+          <TableBoolean onSave={() => console.info("hello table bool")} value />
         </Box>
       </Box>
       <Box padding={2}>
@@ -25,7 +24,7 @@ export const TableBooleanStates = () => {
           <Heading>Display False</Heading>
         </Box>
         <Box alignItems="center">
-          <TableBoolean value={false} onSave={() => console.info("hello table bool")} />
+          <TableBoolean onSave={() => console.info("hello table bool")} value={false} />
         </Box>
       </Box>
       <Box padding={2}>
@@ -33,7 +32,7 @@ export const TableBooleanStates = () => {
           <Heading>Editing True</Heading>
         </Box>
         <Box alignItems="center">
-          <TableBoolean isEditing value onSave={() => console.info("hello table bool")} />
+          <TableBoolean isEditing onSave={() => console.info("hello table bool")} value />
         </Box>
       </Box>
       <Box padding={2}>
@@ -41,7 +40,7 @@ export const TableBooleanStates = () => {
           <Heading>Editing False</Heading>
         </Box>
         <Box alignItems="center">
-          <TableBoolean isEditing value={false} onSave={() => console.info("hello table bool")} />
+          <TableBoolean isEditing onSave={() => console.info("hello table bool")} value={false} />
         </Box>
       </Box>
     </Box>

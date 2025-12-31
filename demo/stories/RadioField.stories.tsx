@@ -1,4 +1,4 @@
-import {RadioField, RadioFieldProps} from "ferns-ui";
+import {RadioField, type RadioFieldProps} from "ferns-ui";
 import React from "react";
 import {View} from "react-native";
 
@@ -7,6 +7,7 @@ export const RadioFieldDemo = (props: Partial<RadioFieldProps>): React.ReactElem
   return (
     <View style={{width: 200}}>
       <RadioField
+        onChange={setSelectedOption}
         options={[
           {label: "Option 1", value: "Option 1"},
           {label: "Option 2", value: "Option 2"},
@@ -14,7 +15,6 @@ export const RadioFieldDemo = (props: Partial<RadioFieldProps>): React.ReactElem
         ]}
         title="Sample Radio Fields"
         value={selectedOption}
-        onChange={setSelectedOption}
         {...props}
       />
     </View>
@@ -25,8 +25,9 @@ export const RadioFieldsLeftText = (): React.ReactElement => {
   const [selectedOption, setSelectedOption] = React.useState("Option 1");
 
   return (
-    <View style={{width: 200, paddingVertical: 10}}>
+    <View style={{paddingVertical: 10, width: 200}}>
       <RadioField
+        onChange={setSelectedOption}
         options={[
           {label: "Option 1", value: "Option 1"},
           {label: "Option 2", value: "Option 2"},
@@ -35,7 +36,6 @@ export const RadioFieldsLeftText = (): React.ReactElement => {
         title="Sample Radio Fields - Left"
         value={selectedOption}
         variant="leftText"
-        onChange={setSelectedOption}
       />
     </View>
   );
@@ -45,8 +45,9 @@ export const RadioFieldsRightText = (): React.ReactElement => {
   const [selectedOption, setSelectedOption] = React.useState("Option 1");
 
   return (
-    <View style={{width: 200, paddingVertical: 10}}>
+    <View style={{paddingVertical: 10, width: 200}}>
       <RadioField
+        onChange={setSelectedOption}
         options={[
           {label: "Option 1", value: "Option 1"},
           {label: "Option 2", value: "Option 2"},
@@ -55,7 +56,6 @@ export const RadioFieldsRightText = (): React.ReactElement => {
         title="Sample Radio Fields - Right"
         value={selectedOption}
         variant="rightText"
-        onChange={setSelectedOption}
       />
     </View>
   );

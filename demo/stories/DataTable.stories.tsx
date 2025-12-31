@@ -1,7 +1,8 @@
-import {Box, Button, CellData, DataTable, DataTableColumn, Text} from "ferns-ui";
-import React, {FC, useState} from "react";
+import {Box, Button, DataTable, type DataTableColumn, Text} from "ferns-ui";
+import type React from "react";
+import {type FC, useState} from "react";
 
-const CustomColumnComponent: FC<{column: DataTableColumn; cellData: CellData}> = ({cellData}) => {
+const CustomColumnComponent: FC<{column: DataTableColumn; cellData: {value: {text: string}}}> = ({cellData}) => {
   return <Text>Custom: {cellData?.value.text}</Text>;
 };
 
@@ -11,7 +12,7 @@ const MoreModalContent: FC<{column: DataTableColumn; rowData: any[]; rowIndex: n
   return (
     <Box paddingY={8}>
       <Text>Drawer contents for row {rowIndex}</Text>
-      <Button text="Console.log()" onClick={() => console.info("Button clicked")} />
+      <Button onClick={() => console.info("Button clicked")} text="Console.log()" />
     </Box>
   );
 };
@@ -21,10 +22,10 @@ export const StandardDataTable = (): React.ReactElement => {
     [
       {value: "Data 1 has some data in it"},
       {value: "Data 2 has some longer data in it"},
-      {value: 5, highlight: "successLight"},
-      {value: 1000.4, highlight: "errorLight"},
-      {value: "2024-01-01", highlight: "warningLight"},
-      {value: true, highlight: "successLight"},
+      {highlight: "successLight" as const, value: 5},
+      {highlight: "errorLight" as const, value: 1000.4},
+      {highlight: "warningLight" as const, value: "2024-01-01"},
+      {highlight: "successLight" as const, value: true},
       {value: {text: "Custom text"}},
     ],
     [
@@ -38,9 +39,9 @@ export const StandardDataTable = (): React.ReactElement => {
     ],
     [
       {
+        highlight: "warningLight" as const,
         value:
           "Row 3 very long, lots of overflow here, wow is this still going? I hope it all fits!",
-        highlight: "warningLight",
       },
       {value: "Row 3 long"},
       {value: 1},
@@ -59,7 +60,7 @@ export const StandardDataTable = (): React.ReactElement => {
       {value: {text: "Custom text"}},
     ],
     [
-      {value: "Row 5", highlight: "error"},
+      {highlight: "error" as const, value: "Row 5"},
       {value: "Row 5"},
       {value: 1},
       {value: 2},
@@ -161,7 +162,7 @@ export const StandardDataTable = (): React.ReactElement => {
 
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
-  const rows = allRows.slice((page - 1) * rowsPerPage, page * rowsPerPage) as CellData[][];
+  const rows = allRows.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   const [sortColumn, setSortColumn] = useState<
     {column: number; direction: "asc" | "desc"} | undefined
@@ -169,18 +170,18 @@ export const StandardDataTable = (): React.ReactElement => {
 
   const columns: DataTableColumn[] = [
     {
+      columnType: "text",
+      infoModalText: `# This is a tooltip\n\nHello, this is some *italic text* and **bold text**.`,
+      sortable: true,
       title: "Column 1",
       width: 200,
-      columnType: "text",
-      sortable: true,
-      infoModalText: `# This is a tooltip\n\nHello, this is some *italic text* and **bold text**.`,
     },
-    {title: "Column 2", width: 200, columnType: "text", sortable: false},
-    {title: "Column 3", width: 200, columnType: "number", sortable: true},
-    {title: "Column 4", width: 200, columnType: "number", sortable: false},
-    {title: "Column 5", width: 200, columnType: "date", sortable: true},
-    {title: "Checked", width: 200, columnType: "boolean", sortable: false},
-    {title: "Custom", width: 200, columnType: "custom", sortable: false},
+    {columnType: "text", sortable: false, title: "Column 2", width: 200},
+    {columnType: "number", sortable: true, title: "Column 3", width: 200},
+    {columnType: "number", sortable: false, title: "Column 4", width: 200},
+    {columnType: "date", sortable: true, title: "Column 5", width: 200},
+    {columnType: "boolean", sortable: false, title: "Checked", width: 200},
+    {columnType: "custom", sortable: false, title: "Custom", width: 200},
   ];
 
   if (sortColumn) {
@@ -198,12 +199,12 @@ export const StandardDataTable = (): React.ReactElement => {
   return (
     <Box color="base" direction="column" height="100%" maxHeight={400} maxWidth={600} scroll>
       <DataTable
-        headerHeight={40}
         alternateRowBackground
         columns={columns}
         customColumnComponentMap={{custom: CustomColumnComponent}}
         data={rows}
         defaultTextSize="sm"
+        headerHeight={40}
         moreContentComponent={MoreModalContent}
         page={page}
         pinnedColumns={1}

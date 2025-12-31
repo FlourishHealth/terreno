@@ -7,9 +7,9 @@
       "@stories": ["stories"],
       "@components": ["components"],
       "@config": ["demoConfig"],
-      "@story-config": ["story-config"],
+      "@story-config": ["story-config"]
     },
-    "jsx": "react"
+    "jsx": "react-jsx"
   }
 }
 

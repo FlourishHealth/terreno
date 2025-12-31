@@ -1,5 +1,4 @@
-import {Box, TableTitle, TableTitleProps} from "ferns-ui";
-import React from "react";
+import {Box, TableTitle, type TableTitleProps} from "ferns-ui";
 
 export const TableTitleDemo = (props: Partial<TableTitleProps>) => {
   return (

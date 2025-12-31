@@ -51,8 +51,8 @@ import {
   ToastConfiguration,
   TooltipConfiguration,
 } from "@story-config";
-import {FieldProps} from "ferns-ui";
-import React from "react";
+import type {FieldProps} from "ferns-ui";
+import type React from "react";
 
 export type DemoConfigStatus = "planned" | "inProgress" | "ready" | "notSupported";
 

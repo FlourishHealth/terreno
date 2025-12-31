@@ -1,5 +1,5 @@
-import {Box, Spinner, SpinnerProps} from "ferns-ui";
-import React from "react";
+import {Box, Spinner, type SpinnerProps} from "ferns-ui";
+import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 

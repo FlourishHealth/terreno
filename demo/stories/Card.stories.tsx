@@ -1,5 +1,4 @@
 import {Box, Card, Text} from "ferns-ui";
-import React from "react";
 
 export const CardDemo = () => {
   return (

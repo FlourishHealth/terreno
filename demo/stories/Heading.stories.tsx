@@ -1,5 +1,5 @@
-import {Box, Heading, HeadingProps, TextColor} from "ferns-ui";
-import React from "react";
+import {Box, Heading, type HeadingProps, type TextColor} from "ferns-ui";
+import type React from "react";
 import {View} from "react-native";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -32,7 +32,7 @@ export const Headings = (): React.ReactElement => {
         "success",
       ].map((color) => renderHeadingText(color, {color: color as TextColor}))}
 
-      <View style={{paddingTop: 8, paddingBottom: 8, backgroundColor: "black"}}>
+      <View style={{backgroundColor: "black", paddingBottom: 8, paddingTop: 8}}>
         {renderHeadingText("inverted", {color: "inverted"})}
       </View>
       {renderHeadingText("center", {align: "center"})}

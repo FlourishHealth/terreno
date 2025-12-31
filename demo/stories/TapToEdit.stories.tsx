@@ -1,17 +1,17 @@
 import {Box, TapToEdit} from "ferns-ui";
-import React, {ReactElement, useState} from "react";
+import {type ReactElement, useState} from "react";
 
 export const TapDemo = (): ReactElement => {
   const [value, setValue] = useState("Santa Claus !");
   return (
     <TapToEdit
       helperText="This is a some helper text to help you understand what you are editing."
+      onSave={(): void => {}}
       setValue={setValue}
       title="Name"
       type="text"
       value={value}
       withConfirmation
-      onSave={(): void => {}}
     />
   );
 };
@@ -55,35 +55,35 @@ export const TapStory = (): ReactElement => {
     <Box direction="column" display="flex" height="100%" scroll width="100%">
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setText(value);
+          }}
           setValue={setText}
           title="Text"
           type="text"
           value={text}
-          onSave={(value): void => {
-            setText(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setTextArea(value);
+          }}
           setValue={setTextArea}
           title="Text Area"
           type="textarea"
           value={textArea}
-          onSave={(value): void => {
-            setTextArea(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setBool(value);
+          }}
           setValue={setBool}
           title="Boolean"
           type="boolean"
           value={bool}
-          onSave={(value): void => {
-            setBool(value);
-          }}
         />
       </Box>
       {/* <TapToEdit
@@ -106,6 +106,9 @@ export const TapStory = (): ReactElement => {
       /> */}
       <Box>
         <TapToEdit
+          onSave={(value: any): void => {
+            setSelect(value);
+          }}
           options={[
             {label: "Option1", value: "Option1"},
             {label: "Option2", value: "Option2"},
@@ -114,13 +117,13 @@ export const TapStory = (): ReactElement => {
           title="Select"
           type="select"
           value={select}
-          onSave={(value: any): void => {
-            setSelect(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setMultiselect(value);
+          }}
           options={[
             {label: "Option1", value: "Option1"},
             {label: "Option2", value: "Option2"},
@@ -134,57 +137,57 @@ export const TapStory = (): ReactElement => {
           title="Multi Select"
           type="multiselect"
           value={multiselect}
-          onSave={(value): void => {
-            setMultiselect(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setAddress(value);
+          }}
           setValue={setAddress}
           title="Address"
           type="address"
           value={address}
-          onSave={(value): void => {
-            setAddress(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setURL(value);
+          }}
           setValue={setURL}
           title="URL"
           type="url"
           value={url}
-          onSave={(value): void => {
-            setURL(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setNumber(value);
+          }}
           setValue={setNumber}
           title="Number"
           type="number"
           value={number}
-          onSave={(value): void => {
-            setNumber(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setEmail(value);
+          }}
           setValue={setEmail}
           title="Email"
           type="email"
           value={email}
-          onSave={(value): void => {
-            setEmail(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setCustomSelect(value);
+          }}
           options={[
             {label: "Option1", value: "Option1"},
             {label: "Option2", value: "Option2"},
@@ -193,75 +196,72 @@ export const TapStory = (): ReactElement => {
           title="Custom Select"
           type="customSelect"
           value={customSelect}
-          onSave={(value): void => {
-            setCustomSelect(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setPhoneNumber(value);
+          }}
           setValue={setPhoneNumber}
           title="Phone Number"
           type="phoneNumber"
           value={phoneNumber}
-          onSave={(value): void => {
-            setPhoneNumber(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setSecondPhoneNumber(value);
+          }}
           setValue={setSecondPhoneNumber}
           title="Second Phone Number"
           type="phoneNumber"
           value={secondPhoneNumber}
-          onSave={(value): void => {
-            setSecondPhoneNumber(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setDate(value);
+          }}
           setValue={setDate}
           title="Date (with initial value)"
           type="date"
           value={date}
-          onSave={(value): void => {
-            setDate(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setDatetime(value);
+          }}
           setValue={setDatetime}
           title="DateTime (with initial value)"
           type="datetime"
           value={datetime}
-          onSave={(value): void => {
-            setDatetime(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setTime(value);
+          }}
           setValue={setTime}
           title="Time (with initial value)"
           type="time"
           value={time}
-          onSave={(value): void => {
-            setTime(value);
-          }}
         />
       </Box>
       <Box>
         <TapToEdit
+          onSave={(value): void => {
+            setEmptyDate(value);
+          }}
           setValue={setEmptyDate}
           title="Date (empty - test clear button)"
           type="date"
           value={emptyDate}
-          onSave={(value): void => {
-            setEmptyDate(value);
-          }}
         />
       </Box>
     </Box>

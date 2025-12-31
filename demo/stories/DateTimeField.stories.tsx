@@ -2,13 +2,13 @@ import {
   Box,
   Button,
   DateTimeField,
-  DateTimeFieldProps,
+  type DateTimeFieldProps,
   Heading,
   printDateAndTime,
   Text,
 } from "ferns-ui";
 import {DateTime} from "luxon";
-import React, {ReactElement, useState} from "react";
+import {type ReactElement, useState} from "react";
 
 export const DateTimeFieldDemo = (props: Partial<DateTimeFieldProps>): ReactElement => {
   const [value, setValue] = useState("");
@@ -16,12 +16,12 @@ export const DateTimeFieldDemo = (props: Partial<DateTimeFieldProps>): ReactElem
     <Box maxWidth={500}>
       <DateTimeField
         helperText="Supporting helper text"
-        title="Date and Time Field"
-        type="datetime"
-        value={value}
         onChange={(v) => {
           setValue(v);
         }}
+        title="Date and Time Field"
+        type="datetime"
+        value={value}
         {...props}
       />
     </Box>
@@ -42,14 +42,14 @@ export const DateTimeFieldStory = (): ReactElement => {
       <DateTimeField
         disabled={disabled}
         helperText={disabled ? "Tell the user why this is disabled." : undefined}
-        timezone={timezone}
-        title="type datetime"
-        type="datetime"
-        value={value}
         onChange={(v) => {
           setValue(v);
         }}
         onTimezoneChange={setTimezone}
+        timezone={timezone}
+        title="type datetime"
+        type="datetime"
+        value={value}
       />
       <Box padding={2}>
         <Text>
@@ -58,18 +58,18 @@ export const DateTimeFieldStory = (): ReactElement => {
         <Text>Formatted: {value ? printDateAndTime(value) : "No date selected"}</Text>
       </Box>
 
-      <Button text="Toggle Disabled" onClick={() => setDisabled(!disabled)} />
+      <Button onClick={() => setDisabled(!disabled)} text="Toggle Disabled" />
 
       <Box padding={2}>
         <Heading>DateTimeField without timezone handling</Heading>
       </Box>
       <DateTimeField
-        title="datetime without timezone handling"
-        type="datetime"
-        value={value2}
         onChange={(v) => {
           setValue2(v);
         }}
+        title="datetime without timezone handling"
+        type="datetime"
+        value={value2}
       />
       <Box padding={2}>
         <Text>Current value: {value2 || "No date selected"}</Text>
@@ -90,38 +90,38 @@ export const DateTimeFieldTypes = (): ReactElement => {
       <Box padding={3}>
         <DateTimeField
           disabled={disabled}
-          title="type datetime"
-          type="datetime"
-          value={datetimeValue}
           onChange={(v) => {
             setDatetimeValue(v);
           }}
+          title="type datetime"
+          type="datetime"
+          value={datetimeValue}
         />
       </Box>
       <Box padding={3}>
         <DateTimeField
           disabled={disabled}
-          title="type date"
-          type="date"
-          value={dateValue}
           onChange={(v) => {
             setDateValue(v);
           }}
+          title="type date"
+          type="date"
+          value={dateValue}
         />
       </Box>
       <Box padding={3}>
         <DateTimeField
           disabled={disabled}
-          title="type time"
-          type="time"
-          value={timeValue}
           onChange={(v) => {
             setTimeValue(v);
           }}
+          title="type time"
+          type="time"
+          value={timeValue}
         />
       </Box>
       <Box width={200}>
-        <Button text="Toggle Disabled" onClick={() => setDisabled(!disabled)} />
+        <Button onClick={() => setDisabled(!disabled)} text="Toggle Disabled" />
       </Box>
       <Box paddingY={4}>
         <Text bold>Datetime: {datetimeValue}</Text>

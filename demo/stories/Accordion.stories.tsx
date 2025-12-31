@@ -29,8 +29,8 @@ export const AccordionDevDemo = () => {
     );
   };
   return (
-    <View style={{width: isMobile ? "100%" : "50%", backgroundColor: "white"}}>
-      <View style={{width: "100%", padding: 15}}>
+    <View style={{backgroundColor: "white", width: isMobile ? "100%" : "50%"}}>
+      <View style={{padding: 15, width: "100%"}}>
         <Accordion
           includeInfoModal
           infoModalChildren={<InfoChild />}
@@ -54,8 +54,8 @@ export const AccordionOnToggleDemo = () => {
   const isMobile = isMobileDevice();
 
   return (
-    <View style={{width: isMobile ? "100%" : isCollapsed ? 150 : 450, backgroundColor: "white"}}>
-      <View style={{width: "100%", padding: 15}}>
+    <View style={{backgroundColor: "white", width: isMobile ? "100%" : isCollapsed ? 150 : 450}}>
+      <View style={{padding: 15, width: "100%"}}>
         <Accordion
           isCollapsed={isCollapsed}
           onToggle={(isCollapse: boolean) => {

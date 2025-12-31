@@ -1,13 +1,13 @@
 import {
   Avatar,
-  AvatarImagePickerEvent,
-  AvatarProps,
-  AvatarStatus,
+  type AvatarImagePickerEvent,
+  type AvatarProps,
+  type AvatarStatus,
   Box,
   Heading,
   Text,
 } from "ferns-ui";
-import React, {ReactElement, useState} from "react";
+import {type ReactElement, useState} from "react";
 
 export const AvatarDemo = (props: Partial<AvatarProps>) => {
   const [src, setSrc] = useState<string | undefined>(props.src ?? undefined);
@@ -142,8 +142,8 @@ export const AvatarStatusDemo = () => {
 
 export const AvatarImage = (): ReactElement => {
   const [xlImage, setXLImage] = useState<AvatarImagePickerEvent>({
-    uri: "https://i.ibb.co/ZfCZrY8/keerthi.jpg",
     height: 0,
+    uri: "https://i.ibb.co/ZfCZrY8/keerthi.jpg",
     width: 0,
   });
 
@@ -156,10 +156,10 @@ export const AvatarImage = (): ReactElement => {
       <Avatar
         hasBorder
         name="Tony Stark"
+        onChange={(image) => setXLImage(image)}
         size="xl"
         src={xlImage.uri}
         status="imagePicker"
-        onChange={(image) => setXLImage(image)}
       />
     </Box>
   );

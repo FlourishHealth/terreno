@@ -130,6 +130,7 @@
         "@expo/webpack-config": "^19.0.1",
         "@shopify/flash-list": "2.0.2",
         "@types/lodash": "^4.17.17",
+        "@types/luxon": "^3.7.1",
         "@types/react": "~19.1.10",
         "babel-preset-expo": "~54.0.9",
         "postcss": "8.5.6",

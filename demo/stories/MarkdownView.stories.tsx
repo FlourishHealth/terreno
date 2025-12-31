@@ -1,5 +1,5 @@
 import {Box, MarkdownView} from "ferns-ui";
-import React from "react";
+import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -33,7 +33,7 @@ export const MarkdownOverview = (): React.ReactElement => (
 export const MarkdownViewDemo = (): React.ReactElement => (
   <StorybookContainer>
     <Box maxWidth={800} width="100%">
-      <MarkdownView></MarkdownView>
+      <MarkdownView>{_demo}</MarkdownView>
     </Box>
   </StorybookContainer>
 );

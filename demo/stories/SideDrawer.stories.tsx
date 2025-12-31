@@ -1,5 +1,5 @@
 import {Box, Button, FlatList, Heading, SideDrawer, Text} from "ferns-ui";
-import React, {useState} from "react";
+import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -11,13 +11,15 @@ export const DrawerStory = ({position}: DrawerStoryProps) => {
   const [open, setOpen] = useState(false);
 
   const users = Array.from(Array(100).keys()).map((i) => ({
-    name: `user${i}`,
     id: i,
+    name: `user${i}`,
   }));
 
   return (
     <SideDrawer
       isOpen={open}
+      onClose={() => setOpen(false)}
+      onOpen={() => setOpen(true)}
       position={position}
       renderContent={() => (
         <Box height="100%">
@@ -34,15 +36,13 @@ export const DrawerStory = ({position}: DrawerStoryProps) => {
           />
         </Box>
       )}
-      onClose={() => setOpen(false)}
-      onOpen={() => setOpen(true)}
     >
       <StorybookContainer>
         <Button
-          text="Open drawer"
           onClick={() => {
             setOpen((prevOpen) => !prevOpen);
           }}
+          text="Open drawer"
         />
       </StorybookContainer>
     </SideDrawer>

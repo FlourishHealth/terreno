@@ -1,5 +1,4 @@
-import {Box, Icon, IconProps, Text} from "ferns-ui";
-import React from "react";
+import {Box, Icon, type IconProps, Text} from "ferns-ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

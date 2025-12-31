@@ -1,6 +1,5 @@
 import {DemoHomePage} from "@components";
 import {router} from "expo-router";
-import React from "react";
 import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
@@ -26,11 +25,11 @@ export default function App() {
       <View
         style={{
           ...styles.container,
-          paddingTop: insets.top,
+          backgroundColor: "#fff",
           paddingBottom: insets.bottom,
           paddingLeft: insets.left,
           paddingRight: insets.right,
-          backgroundColor: "#fff",
+          paddingTop: insets.top,
           width: "100%",
         }}
       >
@@ -47,21 +46,21 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#fff",
-    width: "100%",
-    height: "100%",
-    maxHeight: "100%",
-    position: "absolute",
-    overflow: "hidden",
-  },
   body: {
-    width: "100%",
+    backgroundColor: "#eee",
     display: "flex",
     flex: 1,
     flexDirection: "column",
-    overflow: "scroll",
-    backgroundColor: "#eee",
     maxHeight: "100%",
+    overflow: "scroll",
+    width: "100%",
+  },
+  container: {
+    backgroundColor: "#fff",
+    height: "100%",
+    maxHeight: "100%",
+    overflow: "hidden",
+    position: "absolute",
+    width: "100%",
   },
 });

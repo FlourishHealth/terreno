@@ -1,5 +1,5 @@
-import {Box, SelectBadge, SelectBadgeProps, Text} from "ferns-ui";
-import React, {useState} from "react";
+import {Box, SelectBadge, type SelectBadgeProps, Text} from "ferns-ui";
+import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -12,7 +12,7 @@ export const SelectBadgeDemo = (props: Partial<SelectBadgeProps>) => {
   ];
   return (
     <Box alignItems="center" justifyContent="center">
-      <SelectBadge options={sampleOptions} value={value} onChange={setValue} {...props} />
+      <SelectBadge onChange={setValue} options={sampleOptions} value={value} {...props} />
     </Box>
   );
 };
@@ -27,7 +27,7 @@ const BadgeLine = (text: string, badgeProps: Partial<SelectBadgeProps>) => {
   return (
     <Box direction="row" paddingY={2}>
       <Box width={100}>
-        <SelectBadge options={sampleOptions} value={value} onChange={setValue} {...badgeProps} />
+        <SelectBadge onChange={setValue} options={sampleOptions} value={value} {...badgeProps} />
       </Box>
       <Box>
         <Text>{text}</Text>
@@ -48,10 +48,10 @@ export const SelectBadgeStories = () => {
         {BadgeLine("Success", {status: "success"})}
         {BadgeLine("Neutral", {status: "neutral"})}
         {BadgeLine("Custom", {
-          status: "custom",
           customBackgroundColor: "#FFD700",
-          customTextColor: "#000000",
           customBorderColor: "#007AFF",
+          customTextColor: "#000000",
+          status: "custom",
         })}
       </Box>
     </StorybookContainer>

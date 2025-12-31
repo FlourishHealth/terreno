@@ -1,13 +1,14 @@
-import {Box, Button, Modal, ModalProps, Text} from "ferns-ui";
-import React, {useState} from "react";
+import {Box, Button, Modal, type ModalProps, Text} from "ferns-ui";
+import {useState} from "react";
 
 export const ModalDemo = (props: Partial<ModalProps>) => {
   const [showModal, setShowModal] = useState<boolean>(false);
 
   return (
     <Box paddingY={1}>
-      <Button text="Default Modal" onClick={() => setShowModal(true)} />
+      <Button onClick={() => setShowModal(true)} text="Default Modal" />
       <Modal
+        onDismiss={() => setShowModal(false)}
         primaryButtonOnClick={() => setShowModal(false)}
         primaryButtonText="Accept"
         secondaryButtonOnClick={() => setShowModal(false)}
@@ -15,7 +16,6 @@ export const ModalDemo = (props: Partial<ModalProps>) => {
         text="This is the text of the modal."
         title="Demo modal"
         visible={showModal}
-        onDismiss={() => setShowModal(false)}
         {...props}
       />
     </Box>
@@ -34,22 +34,23 @@ export const Modals = () => {
     <>
       <Box>
         <Box paddingY={1}>
-          <Button text="Default/ Small Modal" onClick={() => setModalToShow("default")} />
+          <Button onClick={() => setModalToShow("default")} text="Default/ Small Modal" />
         </Box>
         <Box paddingY={1}>
-          <Button text="Medium Modal" onClick={() => setModalToShow("md")} />
+          <Button onClick={() => setModalToShow("md")} text="Medium Modal" />
         </Box>
         <Box paddingY={1}>
-          <Button text="Large Modal" onClick={() => setModalToShow("lg")} />
+          <Button onClick={() => setModalToShow("lg")} text="Large Modal" />
         </Box>
         <Box paddingY={1}>
-          <Button text="Secondary Button Modal" onClick={() => setModalToShow("secondary")} />
+          <Button onClick={() => setModalToShow("secondary")} text="Secondary Button Modal" />
         </Box>
         <Box paddingY={1}>
-          <Button text="Persist on Background Click" onClick={() => setModalToShow("persist")} />
+          <Button onClick={() => setModalToShow("persist")} text="Persist on Background Click" />
         </Box>
       </Box>
       <Modal
+        onDismiss={() => setModalToShow("")}
         persistOnBackgroundClick={modalToShow === "persist"}
         primaryButtonOnClick={() => setModalToShow("")}
         primaryButtonText="Accept"
@@ -66,7 +67,6 @@ export const Modals = () => {
           modalToShow === "secondary" ||
           modalToShow === "persist"
         }
-        onDismiss={() => setModalToShow("")}
       >
         <Text>Children inside the modal.</Text>
       </Modal>
@@ -74,9 +74,9 @@ export const Modals = () => {
   );
 };
 export const ModalStories = {
-  title: "Modal",
   component: Modal,
   stories: {
     Modals: () => <Modals />,
   },
+  title: "Modal",
 };

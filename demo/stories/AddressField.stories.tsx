@@ -1,6 +1,6 @@
 import {useSegments} from "expo-router";
-import {AddressInterface, Box, Field, formatAddress, Text} from "ferns-ui";
-import React, {useEffect, useState} from "react";
+import {type AddressInterface, Box, Field, formatAddress, Text} from "ferns-ui";
+import {useEffect, useState} from "react";
 
 export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: any) => {
   // Check if the component is being viewed in the detailed demo
@@ -29,10 +29,10 @@ export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: any) => {
         address1: "1234 Main St",
         address2: "Apt 123",
         city: "Anytown",
+        countyCode: "67890",
+        countyName: "Any County",
         state: "California",
         zipcode: "12345",
-        countyName: "Any County",
-        countyCode: "67890",
       });
     } else {
       setDemoAddress({
@@ -57,9 +57,9 @@ export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: any) => {
           <Field
             googleMapsApiKey={googleMapsApiKey}
             includeCounty={includeCounty}
+            onChange={(val: AddressInterface) => setDemoAddress(val)}
             type="address"
             value={demoAddress}
-            onChange={(val: AddressInterface) => setDemoAddress(val)}
           />
         </Box>
       )}

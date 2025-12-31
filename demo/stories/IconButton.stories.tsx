@@ -1,5 +1,4 @@
-import {Box, IconButton, IconButtonProps, Text} from "ferns-ui";
-import React from "react";
+import {Box, IconButton, type IconButtonProps, Text} from "ferns-ui";
 
 export const IconButtonDemo = (props: Partial<IconButtonProps>) => {
   return (
@@ -20,10 +19,10 @@ export const ConfirmationIconButton = (props: Partial<IconButtonProps>) => {
       <IconButton
         accessibilityLabel="add item"
         iconName="plus"
-        withConfirmation
         onClick={() => {
           console.info("Clicked!");
         }}
+        withConfirmation
         {...props}
       />
     </Box>
@@ -37,23 +36,23 @@ export const ToolTipIconButton = (props: Partial<IconButtonProps>) => {
         <IconButton
           accessibilityLabel=""
           iconName="trash"
-          tooltipIdealPosition="bottom"
-          tooltipText="Delete Demo"
           onClick={() => {
             console.info("Click delete");
           }}
+          tooltipIdealPosition="bottom"
+          tooltipText="Delete Demo"
           {...props}
         />
       </Box>
       <IconButton
         accessibilityLabel=""
         iconName="floppy-disk"
-        tooltipIdealPosition="top"
-        tooltipIncludeArrow
-        tooltipText="Save With Arrow Demo"
         onClick={() => {
           console.info("Click delete");
         }}
+        tooltipIdealPosition="top"
+        tooltipIncludeArrow
+        tooltipText="Save With Arrow Demo"
         {...props}
       />
     </Box>
@@ -127,8 +126,8 @@ export const NavigationIconButton = (props: Partial<IconButtonProps>) => {
           iconName="house"
           indicator="primary"
           indicatorText="2"
-          variant="navigation"
           onClick={() => {}}
+          variant="navigation"
           {...props}
         />
       </Box>
@@ -138,8 +137,8 @@ export const NavigationIconButton = (props: Partial<IconButtonProps>) => {
           iconName="triangle-exclamation"
           indicator="error"
           indicatorText="8"
-          variant="navigation"
           onClick={() => {}}
+          variant="navigation"
           {...props}
         />
       </Box>
@@ -181,8 +180,8 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
           <IconButton
             accessibilityLabel="add item"
             iconName="plus"
-            variant="secondary"
             onClick={() => console.info("clicked")}
+            variant="secondary"
             {...props}
           />
         </Box>
@@ -193,8 +192,8 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
           <IconButton
             accessibilityLabel="add item"
             iconName="plus"
-            variant="muted"
             onClick={() => console.info("clicked")}
+            variant="muted"
             {...props}
           />
         </Box>
@@ -205,8 +204,8 @@ export const AllButtonIconVariants = (props: Partial<IconButtonProps>) => {
           <IconButton
             accessibilityLabel="remove item"
             iconName="trash"
-            variant="destructive"
             onClick={() => console.info("clicked")}
+            variant="destructive"
             {...props}
           />
         </Box>

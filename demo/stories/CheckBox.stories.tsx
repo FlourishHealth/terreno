@@ -1,5 +1,4 @@
-import {Box, CheckBox, CheckBoxProps, Heading} from "ferns-ui";
-import React from "react";
+import {Box, CheckBox, type CheckBoxProps, Heading} from "ferns-ui";
 
 export const CheckboxDemo = (props: Partial<CheckBoxProps>) => {
   return (

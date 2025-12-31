@@ -1,4 +1,4 @@
-import {DemoConfiguration} from "@config";
+import type {DemoConfiguration} from "@config";
 import {useNavigation} from "expo-router";
 import React, {useEffect} from "react";
 import {Pressable, ScrollView, Text, View} from "react-native";
@@ -21,16 +21,16 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
         style={{
           display: "flex",
           flex: 1,
+          overflow: "scroll",
+          paddingBottom: 120, // ScrollView isn't the proper height so you can't get to the bottom.
           paddingLeft: 16,
           paddingRight: 16,
           paddingTop: 16,
-          overflow: "scroll",
-          paddingBottom: 120, // ScrollView isn't the proper height so you can't get to the bottom.
         }}
       >
         {demoConfig.map((config) => (
           <React.Fragment key={config.name}>
-            <Text style={{fontWeight: "bold", fontSize: 20, marginBottom: 12}}>{config.name}</Text>
+            <Text style={{fontSize: 20, fontWeight: "bold", marginBottom: 12}}>{config.name}</Text>
             {Object.keys(config.stories).map((title) => (
               <Pressable
                 key={title}

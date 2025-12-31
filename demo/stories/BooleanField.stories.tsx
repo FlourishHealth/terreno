@@ -1,5 +1,6 @@
 import {BooleanField, Text, useStoredState} from "ferns-ui";
-import React, {useState} from "react";
+import type React from "react";
+import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -9,10 +10,10 @@ export const BooleanFieldDemo = (): React.ReactElement => {
     <StorybookContainer>
       <BooleanField
         disabledHelperText="Here's some help text"
+        onChange={setValue}
         title="Boolean field"
         value={value}
         variant="simple"
-        onChange={setValue}
       />
     </StorybookContainer>
   );
@@ -25,9 +26,9 @@ export const BooleanFieldDisabledDemo = (): React.ReactElement => {
       <BooleanField
         disabled
         disabledHelperText="Here's some help text"
+        onChange={setValue}
         title="Boolean field"
         value={value}
-        onChange={setValue}
       />
     </StorybookContainer>
   );
@@ -39,10 +40,10 @@ export const BooleanFieldWithTitleDemo = (): React.ReactElement => {
     <StorybookContainer>
       <BooleanField
         disabledHelperText="Here's some help text"
+        onChange={setValue}
         title="Boolean field"
         value={value}
         variant="title"
-        onChange={setValue}
       />
     </StorybookContainer>
   );
@@ -55,10 +56,10 @@ export const BooleanFieldDisabledWithTitleDemo = (): React.ReactElement => {
       <BooleanField
         disabled
         disabledHelperText="Here's some help text"
+        onChange={setValue}
         title="Boolean field"
         value={value}
         variant="title"
-        onChange={setValue}
       />
     </StorybookContainer>
   );
@@ -68,7 +69,7 @@ export const BooleanFieldNoLabelDemo = (): React.ReactElement => {
   const [value, setValue] = useState(true);
   return (
     <StorybookContainer>
-      <BooleanField value={value} variant="simple" onChange={setValue} />
+      <BooleanField onChange={setValue} value={value} variant="simple" />
     </StorybookContainer>
   );
 };
@@ -87,13 +88,13 @@ export const BooleanFieldWithStoredStateDemo = (): React.ReactElement => {
   return (
     <StorybookContainer>
       <BooleanField
-        title="Persistent Boolean Field"
         helperText="This value persists after page refresh. Try toggling it and refreshing the page!"
-        value={value ?? false}
-        variant="title"
         onChange={(newValue) => {
           void setValue(newValue);
         }}
+        title="Persistent Boolean Field"
+        value={value ?? false}
+        variant="title"
       />
     </StorybookContainer>
   );

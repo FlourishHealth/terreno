@@ -1,5 +1,4 @@
 import {Box, Heading, SectionDivider, Text} from "ferns-ui";
-import React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -23,7 +22,7 @@ export const SectionDividerInCard = () => {
   return (
     <StorybookContainer>
       <Box direction="column" padding={3} width="100%">
-        <Box color="base" rounding="md" padding={3} shadow>
+        <Box color="base" padding={3} rounding="md" shadow>
           <Heading>Card Title</Heading>
           <Text>This is some content in a card.</Text>
           <SectionDivider />
@@ -40,7 +39,7 @@ export const SectionDividerInList = () => {
   return (
     <StorybookContainer>
       <Box direction="column" padding={3} width="100%">
-        <Box color="base" rounding="md" padding={0} shadow>
+        <Box color="base" padding={0} rounding="md" shadow>
           <Box padding={3}>
             <Heading>Settings</Heading>
           </Box>

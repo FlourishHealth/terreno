@@ -1,5 +1,4 @@
 import {Box, Button, Toast, useToast} from "ferns-ui";
-import React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -37,55 +36,55 @@ export const Toasts = () => {
       <Box justifyContent="between" marginTop={6} width="100%">
         <Box marginBottom={2}>
           <Button
-            text="Default Toast"
             onClick={() => {
               toast.show("Default Toast");
             }}
+            text="Default Toast"
           />
         </Box>
         <Box marginBottom={2}>
           <Button
-            text="Success Toast"
             onClick={() => {
               toast.show("Default Toast", {variant: "success"});
             }}
+            text="Success Toast"
           />
         </Box>
         <Box marginBottom={2}>
           <Button
-            text="Warning Toast"
             onClick={() => {
               toast.show("Warning Toast", {variant: "warning"});
             }}
+            text="Warning Toast"
           />
         </Box>
         <Box marginBottom={2}>
           <Button
-            text="Error Toast"
             onClick={() => {
               toast.show("Error Toast", {variant: "error"});
             }}
+            text="Error Toast"
           />
         </Box>
         <Box marginBottom={2}>
           <Button
-            text="Long Toast"
             onClick={() => {
               toast.show(
                 "Thanks for doing the thing we asked. You have successfully done the thing. Congrats! You are wonderful!"
               );
             }}
+            text="Long Toast"
           />
         </Box>
         <Box marginBottom={2}>
           <Button
-            text="Persistent"
             onClick={() => {
               const id = toast.show(
                 "Thanks for doing the thing we asked. You have successfully done the thing. Congrats! You are wonderful!",
-                {persistent: true, onDismiss: () => toast.hide(id)}
+                {onDismiss: () => toast.hide(id), persistent: true}
               );
             }}
+            text="Persistent"
           />
         </Box>
       </Box>

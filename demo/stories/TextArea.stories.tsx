@@ -1,12 +1,12 @@
 import {TextArea} from "ferns-ui";
-import React from "react";
+import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
 
 export const TextAreas = (): React.ReactElement => {
   return (
     <StorybookContainer>
-      <TextArea id="none" placeholder="Here's some placeholder text." onChange={() => {}} />
+      <TextArea id="none" onChange={() => {}} placeholder="Here's some placeholder text." />
     </StorybookContainer>
   );
 };
@@ -16,8 +16,8 @@ export const WithLabelTextArea = (): React.ReactElement => {
       <TextArea
         helperText="And some subtext"
         id="none"
-        title="Enter a bunch of text"
         onChange={() => {}}
+        title="Enter a bunch of text"
       />
     </StorybookContainer>
   );
@@ -25,7 +25,7 @@ export const WithLabelTextArea = (): React.ReactElement => {
 export const TextAreaDisabled = (): React.ReactElement => {
   return (
     <StorybookContainer>
-      <TextArea disabled id="none" placeholder="This is disabled" onChange={() => {}} />
+      <TextArea disabled id="none" onChange={() => {}} placeholder="This is disabled" />
     </StorybookContainer>
   );
 };
@@ -36,8 +36,8 @@ export const TextAreaErrored = (): React.ReactElement => {
         errorText="There's been an error"
         helperText="And some subtext"
         id="none"
-        title="Enter a bunch of text"
         onChange={() => {}}
+        title="Enter a bunch of text"
       />
     </StorybookContainer>
   );

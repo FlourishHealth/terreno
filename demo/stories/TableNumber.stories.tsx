@@ -1,5 +1,4 @@
-import {Box, TableNumberProps, TableText} from "ferns-ui";
-import React from "react";
+import {Box, type TableNumberProps, TableText} from "ferns-ui";
 
 export const TableNumberDemo = (props?: Partial<TableNumberProps>) => {
   return (

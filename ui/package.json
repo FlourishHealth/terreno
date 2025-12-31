@@ -113,13 +113,13 @@
     "compile": "tsc",
     "deps": "node checkDeps.js",
     "dev": "tsc -w",
-    "lint": "biome check src",
-    "lint:fix": "biome check --write src",
-    "lint:unsafefix": "biome check --write --unsafe src",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:unsafefix": "biome check --write --unsafe .",
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/ferns-ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
-    "types": "npx typedoc"
+    "types": "bunx typedoc"
   },
   "version": "1.16.1"
 }

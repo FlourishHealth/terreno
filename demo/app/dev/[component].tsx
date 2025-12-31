@@ -1,7 +1,7 @@
 import {ErrorBoundary} from "@components";
 import {DemoConfig} from "@config";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
-import React, {FC, useEffect} from "react";
+import {type FC, useEffect} from "react";
 import {View} from "react-native";
 
 const DevComponentPage: FC = () => {
@@ -23,14 +23,14 @@ const DevComponentPage: FC = () => {
     <ErrorBoundary>
       <View
         style={{
-          width: "100%",
+          backgroundColor: "#eee",
           display: "flex",
           flex: 1,
           flexDirection: "column",
-          overflow: "scroll",
-          backgroundColor: "#eee",
           maxHeight: "100%",
+          overflow: "scroll",
           padding: 20,
+          width: "100%",
         }}
       >
         {config!.stories[story!]?.render()}

@@ -1,7 +1,6 @@
 import {router, Stack} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {isMobileDevice} from "ferns-ui";
-import React from "react";
 import {Pressable, StyleSheet, Text} from "react-native";
 
 export default function Layout() {
@@ -10,14 +9,14 @@ export default function Layout() {
       <StatusBar style="auto" />
       <Stack
         screenOptions={{
-          headerBackVisible: isMobileDevice(),
           headerBackTitle: "Back",
+          headerBackVisible: isMobileDevice(),
           headerRight: () => (
             <Pressable
-              style={styles.header}
               onPress={async () => {
                 router.navigate("dev");
               }}
+              style={styles.header}
             >
               <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
             </Pressable>
@@ -30,8 +29,8 @@ export default function Layout() {
 
 const styles = StyleSheet.create({
   header: {
-    height: "100%",
     alignItems: "center",
+    height: "100%",
     justifyContent: "center",
     marginRight: isMobileDevice() ? 0 : 16,
   },

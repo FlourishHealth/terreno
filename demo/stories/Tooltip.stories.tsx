@@ -1,5 +1,5 @@
-import {Box, Heading, IconButton, isMobileDevice, Text, Tooltip, TooltipProps} from "ferns-ui";
-import React from "react";
+import {Box, Heading, IconButton, isMobileDevice, Text, Tooltip, type TooltipProps} from "ferns-ui";
+import type React from "react";
 
 const isMobile = isMobileDevice();
 export const TooltipDemo = (props: Partial<TooltipProps>) => {
@@ -32,10 +32,10 @@ export const ChevronTooltip = ({
             ? "chevron-up"
             : `chevron-${idealPosition}`
     }
+    onClick={() => {}}
     tooltipIdealPosition={idealPosition as any}
     tooltipIncludeArrow={includeArrow}
     tooltipText={text}
-    onClick={() => {}}
   />
 );
 

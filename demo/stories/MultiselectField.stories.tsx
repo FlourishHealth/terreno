@@ -1,11 +1,11 @@
-import {Box, isMobileDevice, MultiselectField, MultiselectFieldProps} from "ferns-ui";
-import React from "react";
+import {Box, isMobileDevice, MultiselectField, type MultiselectFieldProps} from "ferns-ui";
 
 export const MultiselectFieldDemo = (props: Partial<MultiselectFieldProps>) => {
   return (
     <Box alignItems="center" justifyContent="center">
       <Box padding={3} width="100%">
         <MultiselectField
+          onChange={() => console.info("selected")}
           options={[
             {label: "Option 1", value: "Option 1"},
             {label: "Option 2", value: "Option 2"},
@@ -13,7 +13,6 @@ export const MultiselectFieldDemo = (props: Partial<MultiselectFieldProps>) => {
           ]}
           title="Multiselect Field"
           value={["Option 1"]}
-          onChange={() => console.info("selected")}
           {...props}
         />
       </Box>
@@ -27,6 +26,7 @@ export const MultiselectVariants = () => {
     <Box width={isMobile ? undefined : "30%"}>
       <Box padding={3}>
         <MultiselectField
+          onChange={() => console.info("selected")}
           options={[
             {label: "Option 1", value: "Option 1"},
             {label: "Option 2", value: "Option 2"},
@@ -34,11 +34,11 @@ export const MultiselectVariants = () => {
           ]}
           title='Default - Variant "leftText"'
           value={["Option 1"]}
-          onChange={() => console.info("selected")}
         />
       </Box>
       <Box padding={3}>
         <MultiselectField
+          onChange={() => console.info("selected")}
           options={[
             {label: "Option 1", value: "Option 1"},
             {label: "Option 2", value: "Option 2"},
@@ -47,12 +47,12 @@ export const MultiselectVariants = () => {
           title='Variant "rightText"'
           value={["Option 1"]}
           variant="rightText"
-          onChange={() => console.info("selected")}
         />
       </Box>
       <Box padding={3}>
         <MultiselectField
           disabled
+          onChange={() => console.info("selected")}
           options={[
             {label: "Option 1", value: "Option 1"},
             {label: "Option 2", value: "Option 2"},
@@ -61,7 +61,6 @@ export const MultiselectVariants = () => {
           title="Disabled State"
           value={["Option 1", "Option 2"]}
           variant="rightText"
-          onChange={() => console.info("selected")}
         />
       </Box>
     </Box>

@@ -1,7 +1,22 @@
 import {Box, Button, Field, Heading, IconButton, SelectField, Text, ThemeContext} from "ferns-ui";
-import React, {useContext, useState} from "react";
+import {useContext, useState} from "react";
 
 const darkPrimitives = {
+  accent000: "#332400",
+  accent050: "#543C00",
+  accent100: "#956A00",
+  accent200: "#B58201",
+  accent300: "#D69C0E",
+  accent400: "#E5B132",
+  accent500: "#F2CB62",
+  accent600: "#F7D582",
+  accent700: "#F9E0A1",
+  accent800: "#FCECC2",
+  accent900: "#FFFDF7",
+
+  error000: "#BD1111",
+  error100: "#D33232",
+  error200: "#FDD7D7",
   neutral000: "#1C1C1C",
   neutral050: "#353535",
   neutral100: "#4E4E4E",
@@ -25,6 +40,13 @@ const darkPrimitives = {
   primary700: "#90D8F0",
   primary800: "#BCE9F7",
   primary900: "#EBFAFF",
+  radius2xl: 128,
+  radius3xl: 360,
+  radiusLg: 16,
+  radiusMd: 3,
+
+  radiusSm: 1,
+  radiusXl: 32,
 
   secondary000: "#041E27",
   secondary050: "#092E3A",
@@ -37,30 +59,6 @@ const darkPrimitives = {
   secondary700: "#B6CDD5",
   secondary800: "#D7E5EA",
   secondary900: "#F2F9FA",
-
-  accent000: "#332400",
-  accent050: "#543C00",
-  accent100: "#956A00",
-  accent200: "#B58201",
-  accent300: "#D69C0E",
-  accent400: "#E5B132",
-  accent500: "#F2CB62",
-  accent600: "#F7D582",
-  accent700: "#F9E0A1",
-  accent800: "#FCECC2",
-  accent900: "#FFFDF7",
-
-  error000: "#BD1111",
-  error100: "#D33232",
-  error200: "#FDD7D7",
-
-  warning000: "#B14202",
-  warning100: "#F36719",
-  warning200: "#FFE3C6",
-
-  success000: "#1A7F36",
-  success100: "#3EA45C",
-  success200: "#DCF2E2",
 
   spacing0: 0,
   spacing1: 4,
@@ -76,12 +74,13 @@ const darkPrimitives = {
   spacing11: 72,
   spacing12: 80,
 
-  radiusSm: 1,
-  radiusMd: 3,
-  radiusLg: 16,
-  radiusXl: 32,
-  radius2xl: 128,
-  radius3xl: 360,
+  success000: "#1A7F36",
+  success100: "#3EA45C",
+  success200: "#DCF2E2",
+
+  warning000: "#B14202",
+  warning100: "#F36719",
+  warning200: "#FFE3C6",
 };
 
 export const ThemeComponentStories = () => {
@@ -101,12 +100,6 @@ export const ThemeComponentStories = () => {
     >
       <Box paddingY={2}>
         <SelectField
-          options={[
-            {label: "Default", value: "default"},
-            {label: "Pink", value: "pink"},
-            {label: "Dark", value: "dark"},
-          ]}
-          value={themeName}
           onChange={(value: any) => {
             setThemeName(value);
             if (value === "pink") {
@@ -121,6 +114,12 @@ export const ThemeComponentStories = () => {
               resetTheme();
             }
           }}
+          options={[
+            {label: "Default", value: "default"},
+            {label: "Pink", value: "pink"},
+            {label: "Dark", value: "dark"},
+          ]}
+          value={themeName}
         />
       </Box>
       <Box>
@@ -128,39 +127,39 @@ export const ThemeComponentStories = () => {
         <Text>Text</Text>
       </Box>
       <Box paddingY={1}>
-        <Button text="primary" variant="primary" onClick={() => {}} />
+        <Button onClick={() => {}} text="primary" variant="primary" />
       </Box>
       <Box paddingY={1}>
-        <Button text="secondary" variant="secondary" onClick={() => {}} />
+        <Button onClick={() => {}} text="secondary" variant="secondary" />
       </Box>
       <Box paddingY={1}>
-        <Button text="muted" variant="muted" onClick={() => {}} />
+        <Button onClick={() => {}} text="muted" variant="muted" />
       </Box>
       <Box paddingY={1}>
-        <Button text="outline" variant="outline" onClick={() => {}} />
+        <Button onClick={() => {}} text="outline" variant="outline" />
       </Box>
       <Box paddingY={1}>
-        <Button text="destructive" variant="destructive" onClick={() => {}} />
+        <Button onClick={() => {}} text="destructive" variant="destructive" />
       </Box>
       <Box direction="row" justifyContent="between" paddingY={2} width="100%">
         <IconButton
           accessibilityLabel=""
           iconName="spaghetti-monster-flying"
-          variant="primary"
           onClick={() => {}}
+          variant="primary"
         />
         <IconButton
           accessibilityLabel=""
           iconName="user-astronaut"
-          variant="secondary"
           onClick={() => {}}
+          variant="secondary"
         />
-        <IconButton accessibilityLabel="" iconName="soap" variant="secondary" onClick={() => {}} />
+        <IconButton accessibilityLabel="" iconName="soap" onClick={() => {}} variant="secondary" />
         <IconButton
           accessibilityLabel=""
           iconName="people-roof"
-          variant="secondary"
           onClick={() => {}}
+          variant="secondary"
         />
       </Box>
     </Box>
@@ -184,8 +183,6 @@ export const ThemeFontStories = () => {
       width={300}
     >
       <SelectField
-        options={fonts.map((f) => ({label: f, value: f}))}
-        value={font}
         onChange={(value: string | undefined) => {
           if (!value) {
             resetTheme();
@@ -199,18 +196,20 @@ export const ThemeFontStories = () => {
             },
           });
         }}
+        options={fonts.map((f) => ({label: f, value: f}))}
+        value={font}
       />
       <Heading>This is a heading</Heading>
       <Text>This is some text in a new font</Text>
       <Text bold>And some bolded text in a new font</Text>
-      <Button text="Some Button Text" variant="primary" onClick={() => {}} />
+      <Button onClick={() => {}} text="Some Button Text" variant="primary" />
       <Field
         helperText="Here's some help text"
+        onChange={(): void => {}}
         placeholder="Placeholder text"
         title="Text Field"
         type="text"
         value=""
-        onChange={(): void => {}}
       />
     </Box>
   );

@@ -1,5 +1,4 @@
-import {Box, Heading, TableBadge, TableBadgeProps} from "ferns-ui";
-import React from "react";
+import {Box, Heading, TableBadge, type TableBadgeProps} from "ferns-ui";
 
 export const TableBadgeDemo = (props: Partial<TableBadgeProps>) => {
   return (

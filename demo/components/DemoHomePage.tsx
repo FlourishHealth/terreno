@@ -1,7 +1,7 @@
 import {DemoConfig} from "@config";
 import {useNavigation} from "expo-router";
 import {Box, Heading} from "ferns-ui";
-import React, {FC, useEffect} from "react";
+import {type FC, useEffect} from "react";
 import {Pressable, ScrollView, Text, View} from "react-native";
 
 export const DemoHomePage: FC<{
@@ -16,8 +16,8 @@ export const DemoHomePage: FC<{
   return (
     <ScrollView
       contentContainerStyle={{
-        flexDirection: "row",
         display: "flex",
+        flexDirection: "row",
         flexWrap: "wrap",
         width: "100%",
       }}
@@ -31,18 +31,18 @@ export const DemoHomePage: FC<{
           <Pressable key={c.name} onPress={() => onPress(c.name)}>
             <View
               style={{
-                flex: 1,
-                maxWidth: 300,
-                width: 300,
-                padding: 16,
-                borderRadius: 4,
                 borderColor: "#ccc",
+                borderRadius: 4,
                 borderWidth: 1,
-                margin: 8,
+                flex: 1,
                 height: 280,
+                margin: 8,
                 maxHeight: 280,
+                maxWidth: 300,
                 minHeight: 280,
                 overflow: "hidden",
+                padding: 16,
+                width: 300,
               }}
             >
               <Box flex="grow" width="100%">

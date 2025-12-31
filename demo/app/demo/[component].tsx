@@ -1,5 +1,10 @@
 import {ErrorBoundary} from "@components";
-import {DemoConfig, DemoConfigStatus, DemoConfiguration, DemoConfigurationProp} from "@config";
+import {
+  DemoConfig,
+  type DemoConfigStatus,
+  type DemoConfiguration,
+  type DemoConfigurationProp,
+} from "@config";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {
   Badge,
@@ -7,19 +12,19 @@ import {
   Field,
   Heading,
   Icon,
-  IconName,
+  type IconName,
   Table,
   TableHeader,
   TableHeaderCell,
   TableRow,
   TableText,
   Text,
-  TextColor,
+  type TextColor,
 } from "ferns-ui";
 import cloneDeep from "lodash/cloneDeep";
 import startCase from "lodash/startCase";
-import React, {FC, useEffect, useState} from "react";
-// @ts-expect-error
+import type React from "react";
+import {type FC, useEffect, useState} from "react";
 import MarkdownView from "react-native-markdown-display";
 
 const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
@@ -201,10 +206,10 @@ const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
               key={prop}
               title={config.demoOptions?.controls?.[prop]?.title ?? startCase(prop)}
               {...(config.demoOptions?.controls?.[prop] as any)}
-              value={propValues[prop]}
               onChange={(value: any) => {
                 setPropValues({...cloneDeep(propValues), [prop]: value});
               }}
+              value={propValues[prop]}
             />
           ))}
         </Box>

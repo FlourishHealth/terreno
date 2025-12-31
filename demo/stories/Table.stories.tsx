@@ -12,7 +12,8 @@ import {
   Text,
 } from "ferns-ui";
 import sortBy from "lodash/sortBy";
-import React, {useState} from "react";
+import type React from "react";
+import {useState} from "react";
 
 export const SortableExpandableTableStory = (): React.ReactElement => {
   const [rows, setRows] = useState([
@@ -30,7 +31,7 @@ export const SortableExpandableTableStory = (): React.ReactElement => {
     return (
       <Box paddingY={8}>
         <Text>Drawer contents for row {index}</Text>
-        <Button text="Console.log()" onClick={() => console.info("Button clicked")} />
+        <Button onClick={() => console.info("Button clicked")} text="Console.log()" />
       </Box>
     );
   };
@@ -49,68 +50,68 @@ export const SortableExpandableTableStory = (): React.ReactElement => {
         <TableHeader>
           <TableHeaderCell
             index={0}
-            sortable
-            title="Column 1"
             onSortChange={(direction) => {
               setSort(direction, 0);
             }}
+            sortable
+            title="Column 1"
           />
           <TableHeaderCell
             index={1}
-            sortable
-            title="Column 2"
             onSortChange={(direction) => {
               setSort(direction, 1);
             }}
+            sortable
+            title="Column 2"
           />
           <TableHeaderCell
             index={2}
-            sortable
-            title="Column 3"
             onSortChange={(direction) => {
               setSort(direction, 2);
             }}
+            sortable
+            title="Column 3"
           />
           <TableHeaderCell
             align="right"
             index={3}
-            sortable
-            title="Cost"
             onSortChange={(direction) => {
               setSort(direction, 3);
             }}
+            sortable
+            title="Cost"
           />
           <TableHeaderCell
             align="center"
             index={4}
-            sortable
-            title="Badge"
             onSortChange={(direction) => {
               setSort(direction, 4);
             }}
+            sortable
+            title="Badge"
           />
           <TableHeaderCell
             align="center"
             index={5}
-            sortable
-            title="Boolean"
             onSortChange={(direction) => {
               setSort(direction, 5);
             }}
+            sortable
+            title="Boolean"
           />
         </TableHeader>
         {rows.map((row, index) => (
-          <TableRow key={row[0]} drawerContents={renderDrawerContents(index)}>
+          <TableRow drawerContents={renderDrawerContents(index)} key={row[0]}>
             <TableText value={String(row[0])} />
             <TableText value={String(row[1])} />
             <TableText value={String(row[2])} />
             <TableText align="right" value={`$${(row[3] as number).toFixed(2)}`} />
             <TableBadge value="Some Status" />
             <TableBoolean
-              value={index % 2 === 0}
-              onSave={function (): void | Promise<void> {
+              onSave={(): void | Promise<void> => {
                 console.info("Saved!");
               }}
+              value={index % 2 === 0}
             />
           </TableRow>
         ))}

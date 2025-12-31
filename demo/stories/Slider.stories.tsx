@@ -1,11 +1,11 @@
 import {Box, Slider} from "ferns-ui";
-import React, {ReactElement, useState} from "react";
+import {type ReactElement, useState} from "react";
 
 export const SliderDemo = (): ReactElement => {
   const [value, setValue] = useState<number>(0.5);
   return (
     <Box width="100%">
-      <Slider maximumValue={1} minimumValue={0} step={0.1} value={value} onChange={setValue} />
+      <Slider maximumValue={1} minimumValue={0} onChange={setValue} step={0.1} value={value} />
     </Box>
   );
 };
@@ -16,11 +16,11 @@ export const SliderWithValueDemo = (): ReactElement => {
     <Slider
       maximumValue={100}
       minimumValue={0}
+      onChange={setValue}
       showSelection
       step={1}
       title="Volume"
       value={value}
-      onChange={setValue}
     />
   );
 };
@@ -31,23 +31,23 @@ export const SliderWithSmileysDemo = (): ReactElement => {
     <Slider
       inlineLabels
       labels={{
-        min: "\u{1F61E}",
         max: "\u{1F604}",
+        min: "\u{1F61E}",
       }}
       maximumValue={100}
       minimumValue={0}
+      onChange={setValue}
       showSelection
       step={25}
       title="Smileys"
       value={value}
       valueMapping={[
-        {value: 0, label: "\u{1F61E}"},
-        {value: 25, label: "\u{1F641}"},
-        {value: 50, label: "\u{1F610}"},
-        {value: 75, label: "\u{1F642}"},
-        {value: 100, label: "\u{1F604}"},
+        {label: "\u{1F61E}", value: 0},
+        {label: "\u{1F641}", value: 25},
+        {label: "\u{1F610}", value: 50},
+        {label: "\u{1F642}", value: 75},
+        {label: "\u{1F604}", value: 100},
       ]}
-      onChange={setValue}
     />
   );
 };
@@ -58,19 +58,19 @@ export const SliderWithIconsDemo = (): ReactElement => {
     <Slider
       maximumValue={100}
       minimumValue={0}
+      onChange={setValue}
       showSelection
       step={25}
       title="Volume"
       useIcons
       value={value}
       valueMapping={[
-        {value: 0, label: "volume-xmark", size: "md"},
-        {value: 25, label: "volume-off", size: "md"},
-        {value: 50, label: "volume-low", size: "md"},
-        {value: 75, label: "volume-high", size: "md"},
-        {value: 100, label: "volume-high", size: "lg"},
+        {label: "volume-xmark", size: "md", value: 0},
+        {label: "volume-off", size: "md", value: 25},
+        {label: "volume-low", size: "md", value: 50},
+        {label: "volume-high", size: "md", value: 75},
+        {label: "volume-high", size: "lg", value: 100},
       ]}
-      onChange={setValue}
     />
   );
 };
@@ -80,20 +80,20 @@ export const SliderWithLabelsDemo = (): ReactElement => {
   return (
     <Slider
       labels={{
-        min: "Low",
         custom: [
           {index: 25, label: "|"},
           {index: 50, label: "|"},
           {index: 75, label: "|"},
         ],
         max: "High",
+        min: "Low",
       }}
       maximumValue={100}
       minimumValue={0}
+      onChange={setValue}
       step={1}
       title="Temperature"
       value={value}
-      onChange={setValue}
     />
   );
 };
@@ -104,15 +104,15 @@ export const SliderWithInlineLabelsDemo = (): ReactElement => {
     <Slider
       inlineLabels
       labels={{
-        min: "Low",
         max: "High",
+        min: "Low",
       }}
       maximumValue={100}
       minimumValue={0}
+      onChange={setValue}
       step={1}
       title="Temperature"
       value={value}
-      onChange={setValue}
     />
   );
 };

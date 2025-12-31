@@ -1,5 +1,4 @@
-import {Box, FieldOption, Heading, SelectField} from "ferns-ui";
-import React from "react";
+import {Box, type FieldOption, Heading, SelectField} from "ferns-ui";
 
 const options: FieldOption[] = [
   {label: "First", value: "first"},
@@ -18,10 +17,10 @@ export const SelectFieldDemo = (props: {
       // disabled={props.disabled}
       errorText={props.withErrorText ? "This is an error" : undefined}
       helperText={props.withHelperText ? "This is some helper text" : undefined}
+      onChange={() => {}}
       options={options}
       title={props.withTitle ? "Select field" : undefined}
       value=""
-      onChange={() => {}}
       {...props}
     />
   );
@@ -34,13 +33,13 @@ export const SelectFieldExamples = () => {
         <Box marginBottom={4}>
           <Heading size="md">Standard - No title, errorText, or helperText</Heading>
         </Box>
-        <SelectField options={options} value="" onChange={() => {}} />
+        <SelectField onChange={() => {}} options={options} value="" />
       </Box>
       <Box marginBottom={2} padding={4}>
         <Box marginBottom={1}>
           <Heading size="md">With title</Heading>
         </Box>
-        <SelectField options={options} title="Select field" value="" onChange={() => {}} />
+        <SelectField onChange={() => {}} options={options} title="Select field" value="" />
       </Box>
       <Box marginBottom={4} padding={2}>
         <Box marginBottom={1}>
@@ -48,10 +47,10 @@ export const SelectFieldExamples = () => {
         </Box>
         <SelectField
           helperText="This is some helper text"
+          onChange={() => {}}
           options={options}
           title="Select field"
           value="first"
-          onChange={() => {}}
         />
       </Box>
       <Box marginBottom={2} padding={4}>
@@ -60,10 +59,10 @@ export const SelectFieldExamples = () => {
         </Box>
         <SelectField
           errorText="This is an error"
+          onChange={() => {}}
           options={options}
           title="Select field"
           value="second"
-          onChange={() => {}}
         />
       </Box>
       <Box marginBottom={2} padding={4}>
@@ -72,11 +71,11 @@ export const SelectFieldExamples = () => {
         </Box>
         <SelectField
           disabled
+          onChange={() => {}}
           options={options}
           placeholder="This is disabled"
           title="Select field"
           value="third"
-          onChange={() => {}}
         />
       </Box>
     </Box>

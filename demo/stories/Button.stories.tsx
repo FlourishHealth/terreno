@@ -1,10 +1,9 @@
-import {Box, Button, ButtonProps, Heading} from "ferns-ui";
-import React from "react";
+import {Box, Button, type ButtonProps, Heading} from "ferns-ui";
 
 export const ButtonDemo = (props: Partial<ButtonProps>) => {
   return (
     <Box alignItems="center" justifyContent="center">
-      <Button iconName="plus" text="Button" onClick={() => console.info("clicked")} {...props} />
+      <Button iconName="plus" onClick={() => console.info("clicked")} text="Button" {...props} />
     </Box>
   );
 };
@@ -14,37 +13,37 @@ export const ButtonVariants = (props: Partial<ButtonProps>) => {
     <>
       <Box direction="row" wrap>
         <Box padding={1}>
-          <Button text="Default/Primary" onClick={() => console.info("clicked")} {...props} />
+          <Button onClick={() => console.info("clicked")} text="Default/Primary" {...props} />
         </Box>
         <Box padding={1}>
           <Button
+            onClick={() => console.info("clicked")}
             text="Secondary"
             variant="secondary"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
+            onClick={() => console.info("clicked")}
             text="Outline"
             variant="outline"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
+            onClick={() => console.info("clicked")}
             text="Destructive"
             variant="destructive"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
-          <Button text="Muted" variant="muted" onClick={() => console.info("clicked")} {...props} />
+          <Button onClick={() => console.info("clicked")} text="Muted" variant="muted" {...props} />
         </Box>
         <Box padding={1}>
-          <Button disabled text="Disabled" onClick={() => console.info("clicked")} {...props} />
+          <Button disabled onClick={() => console.info("clicked")} text="Disabled" {...props} />
         </Box>
       </Box>
       <Box direction="column" paddingX={1} paddingY={4}>
@@ -54,44 +53,44 @@ export const ButtonVariants = (props: Partial<ButtonProps>) => {
         <Box padding={1}>
           <Button
             disabled
-            text="Default/Primary"
             onClick={() => console.info("clicked")}
+            text="Default/Primary"
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
             disabled
+            onClick={() => console.info("clicked")}
             text="Secondary"
             variant="secondary"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
             disabled
+            onClick={() => console.info("clicked")}
             text="Outline"
             variant="outline"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
             disabled
+            onClick={() => console.info("clicked")}
             text="Destructive"
             variant="destructive"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
         <Box padding={1}>
           <Button
             disabled
+            onClick={() => console.info("clicked")}
             text="Muted"
             variant="muted"
-            onClick={() => console.info("clicked")}
             {...props}
           />
         </Box>
@@ -104,14 +103,14 @@ export const ButtonIconPosition = () => {
   return (
     <Box direction="row" wrap>
       <Box padding={1}>
-        <Button iconName="check" text="Icon default" onClick={() => console.info("clicked")} />
+        <Button iconName="check" onClick={() => console.info("clicked")} text="Icon default" />
       </Box>
       <Box padding={1}>
         <Button
           iconName="check"
           iconPosition="right"
-          text="Icon Right"
           onClick={() => console.info("clicked")}
+          text="Icon Right"
         />
       </Box>
     </Box>
@@ -123,16 +122,16 @@ export const ButtonLoading = () => {
     <Box direction="row" wrap>
       <Box padding={1}>
         <Button
-          text="Async Loading Button"
           onClick={async () => {
             return new Promise((resolve) => {
               setTimeout(resolve, 2 * 1000);
             });
           }}
+          text="Async Loading Button"
         />
       </Box>
       <Box padding={1}>
-        <Button loading text="Is Loading" onClick={() => console.info("clicked")} />
+        <Button loading onClick={() => console.info("clicked")} text="Is Loading" />
       </Box>
     </Box>
   );
@@ -143,18 +142,18 @@ export const ConfirmationButton = () => {
     <Box>
       <Box paddingX={3} paddingY={3}>
         <Button
+          onClick={() => console.info("clicked")}
           text="Default Confirmation Modal"
           withConfirmation
-          onClick={() => console.info("clicked")}
         />
       </Box>
       <Box paddingX={3} paddingY={1}>
         <Button
           confirmationText="And some custom text body!"
           modalTitle="A Custom Title"
+          onClick={() => console.info("clicked")}
           text="With Custom Modal Props"
           withConfirmation
-          onClick={() => console.info("clicked")}
         />
       </Box>
     </Box>
@@ -166,17 +165,17 @@ export const FullWidthButtons = (props: Partial<ButtonProps>) => {
     <>
       <Box paddingY={1}>
         <Button
-          text="Default/Primary Full Width"
           onClick={() => console.info("clicked")}
+          text="Default/Primary Full Width"
           {...props}
           fullWidth
         />
       </Box>
       <Box paddingY={1}>
         <Button
+          onClick={() => console.info("clicked")}
           text="Full Width with tooltip"
           tooltipText="This is a tooltip"
-          onClick={() => console.info("clicked")}
           {...props}
           fullWidth
         />
@@ -188,13 +187,13 @@ export const FullWidthButtons = (props: Partial<ButtonProps>) => {
 export const MultilineButtons = () => (
   <Box direction="row" wrap>
     <Box maxWidth={400} padding={1}>
-      <Button text={"Here is some text\nAnd a second line"} onClick={() => {}} />
+      <Button onClick={() => {}} text={"Here is some text\nAnd a second line"} />
     </Box>
     <Box maxWidth={400} padding={1}>
       <Button
         iconName="plus"
-        text={"Here is some text and \nA second line with an icon"}
         onClick={() => {}}
+        text={"Here is some text and \nA second line with an icon"}
       />
     </Box>
   </Box>

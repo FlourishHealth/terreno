@@ -1,5 +1,5 @@
-import {Banner, BannerProps} from "ferns-ui";
-import React from "react";
+import {Banner, type BannerProps} from "ferns-ui";
+import type React from "react";
 
 export const BannerDemo = (props: Partial<BannerProps>): React.ReactElement => {
   return (

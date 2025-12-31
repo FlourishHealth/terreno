@@ -1,16 +1,15 @@
 import {DevHomePage} from "@components";
 import {DemoConfig} from "@config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useNavigationState} from "@react-navigation/native";
-import {router} from "expo-router";
-import React, {ReactElement, useEffect} from "react";
+import {router, useRootNavigationState} from "expo-router";
+import {type ReactElement, useEffect} from "react";
 import {StyleSheet, View} from "react-native";
 
 const ASYNC_STORAGE_KEY = "CURRENT_ROUTE";
 
 export default function Dev(): ReactElement {
   // TODO create a shared hook for saving navigation state to AsyncStorage
-  const navigationState = useNavigationState((state) => state);
+  const navigationState = useRootNavigationState();
   // Save the current navigation state to AsyncStorage
   useEffect(() => {
     const saveCurrentRoute = async () => {
@@ -73,10 +72,10 @@ export default function Dev(): ReactElement {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: "#fff",
-    width: "100%",
     height: "100%",
     maxHeight: "100%",
-    position: "absolute",
     overflow: "hidden",
+    position: "absolute",
+    width: "100%",
   },
 });
