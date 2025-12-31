@@ -10,8 +10,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-  # Maintain dependencies for npm in api/
-  - package-ecosystem: "npm"
+  # Maintain dependencies for bun in api/
+  - package-ecosystem: "bun"
     directory: "/api"
     schedule:
       interval: "monthly"
@@ -38,13 +38,23 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
-  # Maintain dependencies for npm in demo/
-  - package-ecosystem: "npm"
+  # Maintain dependencies for bun in demo/
+  - package-ecosystem: "bun"
     directory: "/demo"
     schedule:
       interval: "monthly"
     groups:
       demo:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  # Maintain dependencies for bun in ui/
+  - package-ecosystem: "bun"
+    directory: "/ui"
+    schedule:
+      interval: "monthly"
+    groups:
+      ui:
         applies-to: version-updates
         patterns:
           - "*"

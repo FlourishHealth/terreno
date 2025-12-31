@@ -34,6 +34,22 @@
   },
   "name": "@terreno/root",
   "private": true,
+  "scripts": {
+    "api:compile": "bun run --filter '@terreno/api' compile",
+    "api:lint": "bun run --filter '@terreno/api' lint",
+    "api:test": "bun run --filter '@terreno/api' test",
+    "compile": "bun run --filter '*' compile",
+    "demo:compile": "bun run --filter 'demo' compile",
+    "demo:lint": "bun run --filter 'demo' lint",
+    "demo:start": "bun run --filter 'demo' start",
+    "lint": "bun run --filter '*' lint",
+    "lint:fix": "bun run --filter '*' lint:fix",
+    "test": "bun run --filter '@terreno/api' test && bun run --filter 'ferns-ui' test:ci",
+    "ui:compile": "bun run --filter 'ferns-ui' compile",
+    "ui:dev": "bun run --filter 'ferns-ui' dev",
+    "ui:lint": "bun run --filter 'ferns-ui' lint",
+    "ui:test": "bun run --filter 'ferns-ui' test"
+  },
   "version": "1.0.0",
   "workspaces": [
     "api",
