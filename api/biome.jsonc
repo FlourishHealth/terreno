@@ -1,7 +1,14 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
   "extends": ["../biome.jsonc"],
   "files": {
-    "includes": ["package.json", "src/**/*.ts", "src/**/*.tsx"]
+    "includes": [
+      "package.json",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      // Exclude populate.ts from type-aware linting - Biome hits type explosion
+      // due to complex Mongoose Document<T> generics
+      "!!src/populate.ts"
+    ]
   }
 }

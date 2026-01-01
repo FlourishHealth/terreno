@@ -57,6 +57,7 @@ const filterKeys = (obj: Record<string, any>, keysToKeep?: string[]): Record<str
         ...remainingKeys.slice(1),
       ]);
     } else {
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: we need to use the prototype to check if the object has the property
       if (Object.prototype.hasOwnProperty.call(currentObj, currentKey)) {
         currentResult[currentKey] = currentObj[currentKey];
       }

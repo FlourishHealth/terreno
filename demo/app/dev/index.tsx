@@ -29,7 +29,7 @@ export default function Dev(): ReactElement {
       }
     };
 
-    saveCurrentRoute();
+    void saveCurrentRoute();
   }, [navigationState]);
 
   // Restore the route from AsyncStorage
@@ -48,7 +48,7 @@ export default function Dev(): ReactElement {
       }
     };
 
-    restoreRoute();
+    void restoreRoute();
   }, []);
 
   return (

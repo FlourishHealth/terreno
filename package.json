@@ -44,6 +44,7 @@
     "demo:start": "bun run --filter 'demo' start",
     "lint": "bun run --filter '*' lint",
     "lint:fix": "bun run --filter '*' lint:fix",
+    "lint:unsafefix": "bun run --filter '*' lint:unsafefix",
     "test": "bun run --filter '@terreno/api' test && bun run --filter 'ferns-ui' test:ci",
     "ui:compile": "bun run --filter 'ferns-ui' compile",
     "ui:dev": "bun run --filter 'ferns-ui' dev",

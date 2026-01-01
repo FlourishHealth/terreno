@@ -52,6 +52,7 @@ const originalConsole = {
   debug: console.debug,
   error: console.error,
   info: console.info,
+  // biome-ignore lint/suspicious/noConsole: We keep the original reference.
   log: console.log,
   warn: console.warn,
 };

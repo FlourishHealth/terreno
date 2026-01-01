@@ -85,6 +85,7 @@ const getTooltipPosition = ({
       }
       break;
     case "top":
+    case undefined:
       if (!overflowTop) {
         return {finalPosition, left: horizontalCenter - tooltipWidth / 2, top};
       }
