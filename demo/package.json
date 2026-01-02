@@ -22,7 +22,7 @@
     "expo-localization": "~17.0.8",
     "expo-router": "~6.0.19",
     "expo-status-bar": "~3.0.9",
-    "ferns-ui": "workspace:*",
+    "@terreno/ui": "workspace:*",
     "libphonenumber-js": "^1.12.31",
     "linkify-it": "^5.0.0",
     "lodash": "catalog:",
@@ -75,7 +75,7 @@
     "node": "22"
   },
   "main": "index.js",
-  "name": "demo",
+  "name": "terreno-demo",
   "prettier": {
     "arrowParens": "always",
     "bracketSpacing": false,

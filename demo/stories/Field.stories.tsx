@@ -1,5 +1,5 @@
-import {type AddressInterface, Box, Field, Heading, TapToEdit, Text} from "ferns-ui";
-import {printDateAndTime} from "ferns-ui/dist/DateUtilities";
+import {type AddressInterface, Box, Field, Heading, TapToEdit, Text} from "@terreno/ui";
+import {printDateAndTime} from "@terreno/ui/dist/DateUtilities";
 import {DateTime} from "luxon";
 import {useState} from "react";
 import {Image} from "react-native";

@@ -1,4 +1,4 @@
-import {TextField} from "ferns-ui";
+import {TextField} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const TextFieldDemo = (): ReactElement => {

@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {MarkdownOverview, MarkdownViewDemo} from "@stories";
-import {MarkdownView} from "ferns-ui";
+import {MarkdownView} from "@terreno/ui";
 import React from "react";
 
 export const MarkdownViewConfiguration: DemoConfiguration = {

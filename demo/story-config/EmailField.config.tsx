@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {EmailFieldDemo} from "@stories";
-import {EmailField} from "ferns-ui";
+import {EmailField} from "@terreno/ui";
 
 export const EmailFieldConfiguration: DemoConfiguration = {
   name: "Email field",

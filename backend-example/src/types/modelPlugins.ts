@@ -7,31 +7,31 @@ import type {Document, FilterQuery, Model} from "mongoose";
  * added by the default plugins (createdUpdatedPlugin, isDeletedPlugin, etc.)
  */
 export interface DefaultStatics<T> {
-	// Static methods from plugins
-	findOneOrNone(
-		query: FilterQuery<T>,
-		errorArgs?: Partial<APIErrorConstructor>
-	): Promise<(Document & T) | null>;
+  // Static methods from plugins
+  findOneOrNone(
+    query: FilterQuery<T>,
+    errorArgs?: Partial<APIErrorConstructor>
+  ): Promise<(Document & T) | null>;
 
-	findExactlyOne(
-		query: FilterQuery<T>,
-		errorArgs?: Partial<APIErrorConstructor>
-	): Promise<Document & T>;
+  findExactlyOne(
+    query: FilterQuery<T>,
+    errorArgs?: Partial<APIErrorConstructor>
+  ): Promise<Document & T>;
 
-	// biome-ignore lint/suspicious/noExplicitAny: TODO Need to tighten up any
-	upsert(conditions: Record<string, any>, update: Record<string, any>): Promise<T>;
+  // biome-ignore lint/suspicious/noExplicitAny: TODO Need to tighten up any
+  upsert(conditions: Record<string, any>, update: Record<string, any>): Promise<T>;
 }
 
 /**
  * Interface for document properties added by default plugins
  */
 export interface DefaultPluginFields {
-	// From createdUpdatedPlugin
-	created: Date;
-	updated: Date;
+  // From createdUpdatedPlugin
+  created: Date;
+  updated: Date;
 
-	// From isDeletedPlugin
-	deleted: boolean;
+  // From isDeletedPlugin
+  deleted: boolean;
 }
 
 /**

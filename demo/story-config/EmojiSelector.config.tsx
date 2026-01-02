@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {EmojiSelector} from "ferns-ui";
+import {EmojiSelector} from "@terreno/ui";
 
 import {EmojiSelectorDemo} from "../stories";
 

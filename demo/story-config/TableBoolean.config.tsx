@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TableBooleanDemo, TableBooleanStates} from "@stories";
-import {TableBoolean} from "ferns-ui";
+import {TableBoolean} from "@terreno/ui";
 
 export const TableBooleanConfiguration: DemoConfiguration = {
   name: "Table boolean",

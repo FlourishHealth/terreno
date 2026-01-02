@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {TableNumber} from "ferns-ui";
+import {TableNumber} from "@terreno/ui";
 
 import {TableNumberDemo} from "../stories/TableNumber.stories";
 

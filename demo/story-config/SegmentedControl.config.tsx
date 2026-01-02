@@ -7,7 +7,7 @@ import {
   SegmentedControlDemo,
   WithBadges,
 } from "@stories";
-import {SegmentedControl} from "ferns-ui";
+import {SegmentedControl} from "@terreno/ui";
 
 export const SegmentedControlConfiguration: DemoConfiguration = {
   name: "Segmented control",

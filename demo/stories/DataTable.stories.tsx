@@ -1,4 +1,4 @@
-import {Box, Button, DataTable, type DataTableColumn, Text} from "ferns-ui";
+import {Box, Button, DataTable, type DataTableColumn, Text} from "@terreno/ui";
 import type React from "react";
 import {type FC, useState} from "react";
 

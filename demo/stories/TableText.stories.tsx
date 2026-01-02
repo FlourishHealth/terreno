@@ -1,4 +1,4 @@
-import {Box, Heading, TableText, type TableTextProps} from "ferns-ui";
+import {Box, Heading, TableText, type TableTextProps} from "@terreno/ui";
 
 export const TableTextDemo = (props: Partial<TableTextProps>) => {
   return (

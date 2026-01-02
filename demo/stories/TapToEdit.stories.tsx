@@ -1,4 +1,4 @@
-import {Box, TapToEdit} from "ferns-ui";
+import {Box, TapToEdit} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const TapDemo = (): ReactElement => {

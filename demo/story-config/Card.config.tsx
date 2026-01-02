@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {CardDemo, Plain} from "@stories";
-import {Card} from "ferns-ui";
+import {Card} from "@terreno/ui";
 
 export const CardConfiguration: DemoConfiguration = {
   name: "Card",

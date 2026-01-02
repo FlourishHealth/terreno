@@ -5,7 +5,7 @@ import {
   SectionDividerInList,
   SectionDividerSpacing,
 } from "@stories";
-import {SectionDivider} from "ferns-ui";
+import {SectionDivider} from "@terreno/ui";
 
 export const SectionDividerConfiguration: DemoConfiguration = {
   name: "SectionDivider",

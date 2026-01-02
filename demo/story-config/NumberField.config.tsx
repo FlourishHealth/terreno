@@ -6,7 +6,7 @@ import {
   NumberFieldWithErrorMsgDemo,
   NumberFieldWithLabelDemo,
 } from "@stories";
-import {NumberField} from "ferns-ui";
+import {NumberField} from "@terreno/ui";
 
 export const NumberFieldConfiguration: DemoConfiguration = {
   name: "Number field",

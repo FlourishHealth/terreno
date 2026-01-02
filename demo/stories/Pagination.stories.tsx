@@ -1,4 +1,4 @@
-import {Pagination, type PaginationProps} from "ferns-ui";
+import {Pagination, type PaginationProps} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const PaginationDemo = ({totalPages = 5}: Partial<PaginationProps>): ReactElement => {

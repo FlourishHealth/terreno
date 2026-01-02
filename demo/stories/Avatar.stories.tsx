@@ -6,7 +6,7 @@ import {
   Box,
   Heading,
   Text,
-} from "ferns-ui";
+} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const AvatarDemo = (props: Partial<AvatarProps>) => {

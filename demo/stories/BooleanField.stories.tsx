@@ -1,4 +1,4 @@
-import {BooleanField, Text, useStoredState} from "ferns-ui";
+import {BooleanField, Text, useStoredState} from "@terreno/ui";
 import type React from "react";
 import {useState} from "react";
 

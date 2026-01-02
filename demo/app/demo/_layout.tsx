@@ -1,6 +1,6 @@
 import {router, Stack} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import {isMobileDevice} from "ferns-ui";
+import {isMobileDevice} from "@terreno/ui";
 import {Pressable, StyleSheet, Text} from "react-native";
 
 export default function Layout() {

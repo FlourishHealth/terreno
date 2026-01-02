@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ferns-ui-demo",
+    "name": "@terreno/ui-demo",
     "slug": "ferns",
     "scheme": "ferns",
     "version": "1.0.0",

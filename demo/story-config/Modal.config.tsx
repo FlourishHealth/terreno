@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {ModalDemo, Modals} from "@stories";
-import {Modal} from "ferns-ui";
+import {Modal} from "@terreno/ui";
 
 // TODO: might want to combine these two. They're different figma components, but the same for dev.
 // export const InnerModalContentConfiguration: DemoConfiguration = { name: "Inner modal content",

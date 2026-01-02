@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {IncludesArrow, ToolTipPositions, TooltipDemo, TooltipOverText} from "@stories";
-import {Tooltip} from "ferns-ui";
+import {Tooltip} from "@terreno/ui";
 
 export const TooltipConfiguration: DemoConfiguration = {
   name: "Tooltip",

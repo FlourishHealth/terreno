@@ -10,7 +10,7 @@ Business logic services go here. Services should:
 
 ```typescript
 import { APIError } from "@terreno/api";
-import { logger } from "../utils/logger";
+import { logger } from "@terreno/api";
 
 export const exampleService = {
   doSomething: async (param: string): Promise<void> => {

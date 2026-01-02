@@ -1,4 +1,4 @@
-import {Box, IconButton, type IconButtonProps, Text} from "ferns-ui";
+import {Box, IconButton, type IconButtonProps, Text} from "@terreno/ui";
 
 export const IconButtonDemo = (props: Partial<IconButtonProps>) => {
   return (

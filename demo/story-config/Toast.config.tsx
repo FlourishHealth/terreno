@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {ToastDemo, Toasts} from "@stories";
-import {Toast} from "ferns-ui";
+import {Toast} from "@terreno/ui";
 
 export const ToastConfiguration: DemoConfiguration = {
   name: "Toast",

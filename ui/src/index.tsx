@@ -23,7 +23,7 @@ export * from "./EmailField";
 export {default as EmojiSelector} from "./EmojiSelector";
 export * from "./ErrorBoundary";
 export * from "./ErrorPage";
-export * from "./FernsProvider";
+export * from "./TerrenoProvider";
 export * from "./Field";
 export * from "./FlatList";
 export * from "./Heading";

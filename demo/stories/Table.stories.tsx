@@ -10,7 +10,7 @@ import {
   TableRow,
   TableText,
   Text,
-} from "ferns-ui";
+} from "@terreno/ui";
 import sortBy from "lodash/sortBy";
 import type React from "react";
 import {useState} from "react";

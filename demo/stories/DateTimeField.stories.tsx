@@ -6,7 +6,7 @@ import {
   Heading,
   printDateAndTime,
   Text,
-} from "ferns-ui";
+} from "@terreno/ui";
 import {DateTime} from "luxon";
 import {type ReactElement, useState} from "react";
 

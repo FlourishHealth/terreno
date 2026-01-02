@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {DefaultDemo, DrawerStory} from "@stories";
-import {SideDrawer} from "ferns-ui";
+import {SideDrawer} from "@terreno/ui";
 import React from "react";
 
 export const SideDrawerConfiguration: DemoConfiguration = {

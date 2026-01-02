@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {SortableExpandableTableStory, StandardTable} from "@stories";
-import {Table} from "ferns-ui";
+import {Table} from "@terreno/ui";
 
 export const TableConfiguration: DemoConfiguration = {
   name: "Table",

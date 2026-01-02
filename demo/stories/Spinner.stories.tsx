@@ -1,4 +1,4 @@
-import {Box, Spinner, type SpinnerProps} from "ferns-ui";
+import {Box, Spinner, type SpinnerProps} from "@terreno/ui";
 import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";

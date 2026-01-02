@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {Headings, renderHeadingText} from "@stories";
-import {HeadingProps} from "ferns-ui";
+import {HeadingProps} from "@terreno/ui";
 
 export const HeadingConfiguration: DemoConfiguration = {
   name: "Heading",

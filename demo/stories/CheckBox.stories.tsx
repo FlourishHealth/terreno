@@ -1,4 +1,4 @@
-import {Box, CheckBox, type CheckBoxProps, Heading} from "ferns-ui";
+import {Box, CheckBox, type CheckBoxProps, Heading} from "@terreno/ui";
 
 export const CheckboxDemo = (props: Partial<CheckBoxProps>) => {
   return (

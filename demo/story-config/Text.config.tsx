@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {renderText, TextLinks, Texts, Truncate} from "@stories";
-import {Text, TextProps} from "ferns-ui";
+import {Text, TextProps} from "@terreno/ui";
 
 export const TextConfiguration: DemoConfiguration = {
   name: "Text",

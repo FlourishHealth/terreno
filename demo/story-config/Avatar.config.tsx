@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {AvatarDemo, AvatarImage, AvatarInitials, AvatarOutlines, AvatarSizes} from "@stories";
-import {Avatar} from "ferns-ui";
+import {Avatar} from "@terreno/ui";
 
 export const AvatarConfiguration: DemoConfiguration = {
   name: "Avatar",

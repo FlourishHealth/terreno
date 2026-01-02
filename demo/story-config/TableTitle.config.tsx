@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TableTitleDemo, TableTitleExample} from "@stories";
-import {TableTitle} from "ferns-ui";
+import {TableTitle} from "@terreno/ui";
 
 export const TableTitleConfiguration: DemoConfiguration = {
   name: "Table title",

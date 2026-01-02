@@ -1,4 +1,4 @@
-import {Box, Heading, type HeadingProps, type TextColor} from "ferns-ui";
+import {Box, Heading, type HeadingProps, type TextColor} from "@terreno/ui";
 import type React from "react";
 import {View} from "react-native";
 

@@ -1,4 +1,4 @@
-import {Box, Heading, SectionDivider, Text} from "ferns-ui";
+import {Box, Heading, SectionDivider, Text} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

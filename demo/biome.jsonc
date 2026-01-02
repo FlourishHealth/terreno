@@ -13,19 +13,19 @@
       "demoConfig.tsx",
       "story-config.tsx",
       "!!**/node_modules",
-      "!!node_modules/**",
+      "!!node_modules",
       "!!**/dist",
-      "!!dist/**",
+      "!!dist",
       "!!**/build",
-      "!!build/**",
+      "!!build",
       "!!**/.expo",
-      "!!.expo/**",
+      "!!.expo",
       "!!**/.next",
-      "!!.next/**",
+      "!!.next",
       "!!**/coverage",
-      "!!coverage/**",
+      "!!coverage",
       "!!**/generated",
-      "!!generated/**"
+      "!!generated"
     ]
   },
   "linter": {

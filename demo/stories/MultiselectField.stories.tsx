@@ -1,4 +1,4 @@
-import {Box, isMobileDevice, MultiselectField, type MultiselectFieldProps} from "ferns-ui";
+import {Box, isMobileDevice, MultiselectField, type MultiselectFieldProps} from "@terreno/ui";
 
 export const MultiselectFieldDemo = (props: Partial<MultiselectFieldProps>) => {
   return (

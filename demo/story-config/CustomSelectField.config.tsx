@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {CustomSelectFieldDemo} from "@stories";
-import {Box, CustomSelectField} from "ferns-ui";
+import {Box, CustomSelectField} from "@terreno/ui";
 import React from "react";
 
 export const CustomSelectFieldConfiguration: DemoConfiguration = {

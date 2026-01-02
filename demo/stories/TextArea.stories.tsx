@@ -1,4 +1,4 @@
-import {TextArea} from "ferns-ui";
+import {TextArea} from "@terreno/ui";
 import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";

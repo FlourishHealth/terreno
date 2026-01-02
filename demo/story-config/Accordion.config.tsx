@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {AccordionDemo, AccordionDevDemo, AccordionOnToggleDemo} from "@stories";
-import {Accordion} from "ferns-ui";
+import {Accordion} from "@terreno/ui";
 
 export const AccordionConfiguration: DemoConfiguration = {
   name: "Accordion",

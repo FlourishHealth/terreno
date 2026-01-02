@@ -1,4 +1,4 @@
-import {RadioField, type RadioFieldProps} from "ferns-ui";
+import {RadioField, type RadioFieldProps} from "@terreno/ui";
 import React from "react";
 import {View} from "react-native";
 

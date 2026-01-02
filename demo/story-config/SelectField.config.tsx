@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {SelectFieldDemo, SelectFieldExamples} from "@stories";
-import {SelectField} from "ferns-ui";
+import {SelectField} from "@terreno/ui";
 
 export const SelectFieldConfiguration: DemoConfiguration = {
   name: "Select field",

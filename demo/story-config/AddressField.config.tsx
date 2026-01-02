@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {AddressFieldDemo} from "@stories";
-import {Field} from "ferns-ui";
+import {Field} from "@terreno/ui";
 
 export const AddressFieldConfiguration: DemoConfiguration = {
   name: "AddressField",

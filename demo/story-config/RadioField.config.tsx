@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {RadioFieldDemo, RadioFieldsLeftText, RadioFieldsRightText} from "@stories";
-import {RadioField} from "ferns-ui";
+import {RadioField} from "@terreno/ui";
 import React from "react";
 
 export const RadioFieldConfiguration: DemoConfiguration = {

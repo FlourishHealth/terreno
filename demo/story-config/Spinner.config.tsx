@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {SpinnerDemo, SpinnerVariations} from "@stories";
-import {Spinner} from "ferns-ui";
+import {Spinner} from "@terreno/ui";
 
 export const SpinnerConfiguration: DemoConfiguration = {
   name: "Spinner",

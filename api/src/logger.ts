@@ -82,20 +82,20 @@ export const logger = {
       }
     }
   },
-  debug: (msg: string) => {
-    winstonLogger.debug(msg);
+  debug: (msg: string, ...args: unknown[]) => {
+    winstonLogger.debug(msg, ...args);
     sendToSentry(msg, "debug");
   },
-  error: (msg: string) => {
-    winstonLogger.error(msg);
+  error: (msg: string, ...args: unknown[]) => {
+    winstonLogger.error(msg, ...args);
     sendToSentry(msg, "error");
   },
-  info: (msg: string) => {
-    winstonLogger.info(msg);
+  info: (msg: string, ...args: unknown[]) => {
+    winstonLogger.info(msg, ...args);
     sendToSentry(msg, "info");
   },
-  warn: (msg: string) => {
-    winstonLogger.warn(msg);
+  warn: (msg: string, ...args: unknown[]) => {
+    winstonLogger.warn(msg, ...args);
     sendToSentry(msg, "warn");
   },
 };

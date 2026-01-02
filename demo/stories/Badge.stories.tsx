@@ -1,4 +1,4 @@
-import {Badge, type BadgeProps, Box, Text} from "ferns-ui";
+import {Badge, type BadgeProps, Box, Text} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

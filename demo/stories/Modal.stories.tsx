@@ -1,4 +1,4 @@
-import {Box, Button, Modal, type ModalProps, Text} from "ferns-ui";
+import {Box, Button, Modal, type ModalProps, Text} from "@terreno/ui";
 import {useState} from "react";
 
 export const ModalDemo = (props: Partial<ModalProps>) => {

@@ -1,4 +1,4 @@
-import {NumberField} from "ferns-ui";
+import {NumberField} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const NumberFieldDemo = (): ReactElement => {

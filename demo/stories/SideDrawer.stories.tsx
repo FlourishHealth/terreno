@@ -1,4 +1,4 @@
-import {Box, Button, FlatList, Heading, SideDrawer, Text} from "ferns-ui";
+import {Box, Button, FlatList, Heading, SideDrawer, Text} from "@terreno/ui";
 import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";

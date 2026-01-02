@@ -1,4 +1,4 @@
-import {Box, MarkdownView} from "ferns-ui";
+import {Box, MarkdownView} from "@terreno/ui";
 import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";

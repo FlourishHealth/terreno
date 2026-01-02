@@ -8,7 +8,7 @@ import {
   FullWidthButtons,
   MultilineButtons,
 } from "@stories";
-import {Button} from "ferns-ui";
+import {Button} from "@terreno/ui";
 
 export const ButtonConfiguration: DemoConfiguration = {
   name: "Button",

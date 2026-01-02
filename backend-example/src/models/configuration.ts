@@ -8,11 +8,11 @@ import {addDefaultPlugins} from "./modelPlugins";
  * Configuration definition
  */
 interface ConfigDefinition {
-	envVar?: string; // Environment variable name
-	defaultValue?: ConfigValueType; // Default value if not set
-	type?: "string" | "number" | "boolean"; // Type for conversion
-	validator?: (value: ConfigValueType) => boolean; // Optional validator function
-	description?: string; // Documentation
+  envVar?: string; // Environment variable name
+  defaultValue?: ConfigValueType; // Default value if not set
+  type?: "string" | "number" | "boolean"; // Type for conversion
+  validator?: (value: ConfigValueType) => boolean; // Optional validator function
+  description?: string; // Documentation
 }
 
 /**
@@ -47,309 +47,309 @@ let isInitialized = false;
  */
 
 export class Configuration {
-	/**
-	 * Private constructor to prevent instantiation
-	 * This class should only be used through its static methods
-	 */
-	private constructor() {
-		throw new Error(
-			"Configuration is a singleton and cannot be instantiated. Use static methods instead."
-		);
-	}
+  /**
+   * Private constructor to prevent instantiation
+   * This class should only be used through its static methods
+   */
+  private constructor() {
+    throw new Error(
+      "Configuration is a singleton and cannot be instantiated. Use static methods instead."
+    );
+  }
 
-	/**
-	 * Register a configuration key with its definition
-	 */
-	static register(key: string, definition: ConfigDefinition): void {
-		configRegistry.set(key, definition);
-	}
+  /**
+   * Register a configuration key with its definition
+   */
+  static register(key: string, definition: ConfigDefinition): void {
+    configRegistry.set(key, definition);
+  }
 
-	/**
-	 * Get a configuration value
-	 * Priority: runtime override > database cache > environment variable > default value
-	 */
-	static get<T extends ConfigValueType>(key: string, fallback?: T): T {
-		// Check runtime overrides first
-		if (runtimeOverrides.has(key)) {
-			return runtimeOverrides.get(key) as T;
-		}
+  /**
+   * Get a configuration value
+   * Priority: runtime override > database cache > environment variable > default value
+   */
+  static get<T extends ConfigValueType>(key: string, fallback?: T): T {
+    // Check runtime overrides first
+    if (runtimeOverrides.has(key)) {
+      return runtimeOverrides.get(key) as T;
+    }
 
-		// Check database cache (second priority)
-		if (dbCache.has(key)) {
-			const cachedValue = dbCache.get(key);
-			// Convert null to undefined for consistency
-			return (cachedValue === null ? undefined : cachedValue) as T;
-		}
+    // Check database cache (second priority)
+    if (dbCache.has(key)) {
+      const cachedValue = dbCache.get(key);
+      // Convert null to undefined for consistency
+      return (cachedValue === null ? undefined : cachedValue) as T;
+    }
 
-		// Get the registered definition
-		const definition = configRegistry.get(key);
+    // Get the registered definition
+    const definition = configRegistry.get(key);
 
-		if (!definition) {
-			// If not registered, check environment directly
-			const envValue = process.env[key];
-			if (envValue !== undefined) {
-				return Configuration.convertValue(envValue, "string") as T;
-			}
-			return fallback as T;
-		}
+    if (!definition) {
+      // If not registered, check environment directly
+      const envValue = process.env[key];
+      if (envValue !== undefined) {
+        return Configuration.convertValue(envValue, "string") as T;
+      }
+      return fallback as T;
+    }
 
-		// Check environment variable
-		if (definition.envVar && process.env[definition.envVar] !== undefined) {
-			const rawValue = process.env[definition.envVar];
-			const convertedValue = Configuration.convertValue(rawValue, definition.type || "string") as T;
+    // Check environment variable
+    if (definition.envVar && process.env[definition.envVar] !== undefined) {
+      const rawValue = process.env[definition.envVar];
+      const convertedValue = Configuration.convertValue(rawValue, definition.type || "string") as T;
 
-			// If conversion failed (returned undefined), use default
-			if (convertedValue === undefined) {
-				return (definition.defaultValue ?? fallback) as T;
-			}
+      // If conversion failed (returned undefined), use default
+      if (convertedValue === undefined) {
+        return (definition.defaultValue ?? fallback) as T;
+      }
 
-			// Validate if validator is provided
-			if (definition.validator && !definition.validator(convertedValue)) {
-				logger.warn(`Configuration validation failed for ${key}, using default value`);
-				return (definition.defaultValue ?? fallback) as T;
-			}
+      // Validate if validator is provided
+      if (definition.validator && !definition.validator(convertedValue)) {
+        logger.warn(`Configuration validation failed for ${key}, using default value`);
+        return (definition.defaultValue ?? fallback) as T;
+      }
 
-			return convertedValue;
-		}
+      return convertedValue;
+    }
 
-		// Return default value or fallback
-		return (definition.defaultValue ?? fallback) as T;
-	}
+    // Return default value or fallback
+    return (definition.defaultValue ?? fallback) as T;
+  }
 
-	/**
-	 * Set a runtime configuration value
-	 * @param persistToDB - If true, also saves to database (default: false)
-	 */
-	static set<T extends ConfigValueType>(key: string, value: T, persistToDB = false): void {
-		const definition = configRegistry.get(key);
+  /**
+   * Set a runtime configuration value
+   * @param persistToDB - If true, also saves to database (default: false)
+   */
+  static set<T extends ConfigValueType>(key: string, value: T, persistToDB = false): void {
+    const definition = configRegistry.get(key);
 
-		// Validate if validator is provided
-		if (definition?.validator && !definition.validator(value)) {
-			throw new Error(`Configuration validation failed for ${key}`);
-		}
+    // Validate if validator is provided
+    if (definition?.validator && !definition.validator(value)) {
+      throw new Error(`Configuration validation failed for ${key}`);
+    }
 
-		runtimeOverrides.set(key, value);
+    runtimeOverrides.set(key, value);
 
-		// Optionally persist to database
-		if (persistToDB && isInitialized) {
-			Configuration.setDB(key, value).catch((error: unknown) => {
-				logger.error(`Failed to persist configuration ${key} to database: ${error}`);
-			});
-		}
-	}
+    // Optionally persist to database
+    if (persistToDB && isInitialized) {
+      Configuration.setDB(key, value).catch((error: unknown) => {
+        logger.error(`Failed to persist configuration ${key} to database: ${error}`);
+      });
+    }
+  }
 
-	/**
-	 * Set a configuration value in the database
-	 * This will automatically update the cache via change stream
-	 */
-	static async setDB<T extends ConfigValueType>(key: string, value: T): Promise<void> {
-		if (value === undefined) {
-			throw new Error("Cannot set undefined value in database. Use null instead.");
-		}
+  /**
+   * Set a configuration value in the database
+   * This will automatically update the cache via change stream
+   */
+  static async setDB<T extends ConfigValueType>(key: string, value: T): Promise<void> {
+    if (value === undefined) {
+      throw new Error("Cannot set undefined value in database. Use null instead.");
+    }
 
-		const definition = configRegistry.get(key);
+    const definition = configRegistry.get(key);
 
-		// Validate if validator is provided
-		if (definition?.validator && !definition.validator(value)) {
-			throw new Error(`Configuration validation failed for ${key}`);
-		}
+    // Validate if validator is provided
+    if (definition?.validator && !definition.validator(value)) {
+      throw new Error(`Configuration validation failed for ${key}`);
+    }
 
-		await ConfigurationDB.setValue(key, value as ConfigValueType);
-	}
+    await ConfigurationDB.setValue(key, value as ConfigValueType);
+  }
 
-	/**
-	 * Clear a runtime override
-	 */
-	static clear(key: string): void {
-		runtimeOverrides.delete(key);
-	}
+  /**
+   * Clear a runtime override
+   */
+  static clear(key: string): void {
+    runtimeOverrides.delete(key);
+  }
 
-	/**
-	 * Clear all runtime overrides
-	 */
-	static clearAll(): void {
-		runtimeOverrides.clear();
-	}
+  /**
+   * Clear all runtime overrides
+   */
+  static clearAll(): void {
+    runtimeOverrides.clear();
+  }
 
-	/**
-	 * Get all configuration keys
-	 */
-	static getKeys(): string[] {
-		return Array.from(configRegistry.keys());
-	}
+  /**
+   * Get all configuration keys
+   */
+  static getKeys(): string[] {
+    return Array.from(configRegistry.keys());
+  }
 
-	/**
-	 * Get configuration definition
-	 */
-	static getDefinition(key: string): ConfigDefinition | undefined {
-		return configRegistry.get(key);
-	}
+  /**
+   * Get configuration definition
+   */
+  static getDefinition(key: string): ConfigDefinition | undefined {
+    return configRegistry.get(key);
+  }
 
-	/**
-	 * Convert string value to appropriate type
-	 */
-	private static convertValue(
-		value: string | undefined,
-		type: "string" | "number" | "boolean"
-	): ConfigValueType {
-		if (value === undefined) {
-			return null;
-		}
+  /**
+   * Convert string value to appropriate type
+   */
+  private static convertValue(
+    value: string | undefined,
+    type: "string" | "number" | "boolean"
+  ): ConfigValueType {
+    if (value === undefined) {
+      return null;
+    }
 
-		switch (type) {
-			case "number": {
-				const num = Number(value);
-				return Number.isNaN(num) ? null : num;
-			}
-			case "boolean":
-				return value.toLowerCase() === "true" || value === "1";
-			default:
-				return value;
-		}
-	}
+    switch (type) {
+      case "number": {
+        const num = Number(value);
+        return Number.isNaN(num) ? null : num;
+      }
+      case "boolean":
+        return value.toLowerCase() === "true" || value === "1";
+      default:
+        return value;
+    }
+  }
 
-	/**
-	 * Get all current configuration values (for debugging)
-	 */
-	static getAll(): Record<string, ConfigValueType> {
-		const result: Record<string, ConfigValueType> = {};
-		for (const key of configRegistry.keys()) {
-			result[key] = Configuration.get(key);
-		}
-		return result;
-	}
+  /**
+   * Get all current configuration values (for debugging)
+   */
+  static getAll(): Record<string, ConfigValueType> {
+    const result: Record<string, ConfigValueType> = {};
+    for (const key of configRegistry.keys()) {
+      result[key] = Configuration.get(key);
+    }
+    return result;
+  }
 
-	/**
-	 * Get the database cache (for debugging)
-	 */
-	static getDBCache(): Record<string, ConfigValueType> {
-		const result: Record<string, ConfigValueType> = {};
-		for (const [key, value] of dbCache.entries()) {
-			result[key] = value;
-		}
-		return result;
-	}
+  /**
+   * Get the database cache (for debugging)
+   */
+  static getDBCache(): Record<string, ConfigValueType> {
+    const result: Record<string, ConfigValueType> = {};
+    for (const [key, value] of dbCache.entries()) {
+      result[key] = value;
+    }
+    return result;
+  }
 
-	/**
-	 * Load all configuration from database into cache
-	 */
-	static async loadFromDB(): Promise<void> {
-		try {
-			const allConfigs = await ConfigurationDB.find({});
-			for (const config of allConfigs) {
-				dbCache.set(config.key, config.value);
-			}
-			logger.info(`Loaded ${allConfigs.length} configuration values from database`);
-		} catch (error: unknown) {
-			logger.error(`Failed to load configuration from database: ${error}`);
-			throw error;
-		}
-	}
+  /**
+   * Load all configuration from database into cache
+   */
+  static async loadFromDB(): Promise<void> {
+    try {
+      const allConfigs = await ConfigurationDB.find({});
+      for (const config of allConfigs) {
+        dbCache.set(config.key, config.value);
+      }
+      logger.info(`Loaded ${allConfigs.length} configuration values from database`);
+    } catch (error: unknown) {
+      logger.error(`Failed to load configuration from database: ${error}`);
+      throw error;
+    }
+  }
 
-	/**
-	 * Start watching the configuration change stream
-	 */
-	static async startWatching(): Promise<void> {
-		if (changeStream) {
-			logger.warn("Configuration change stream is already running");
-			return;
-		}
+  /**
+   * Start watching the configuration change stream
+   */
+  static async startWatching(): Promise<void> {
+    if (changeStream) {
+      logger.warn("Configuration change stream is already running");
+      return;
+    }
 
-		try {
-			changeStream = ConfigurationDB.watch([], {
-				fullDocument: "updateLookup",
-			});
+    try {
+      changeStream = ConfigurationDB.watch([], {
+        fullDocument: "updateLookup",
+      });
 
-			changeStream.on("change", (change) => {
-				try {
-					if (change.operationType === "insert" || change.operationType === "update") {
-						const doc = change.fullDocument as ConfigurationDocument;
-						if (doc) {
-							dbCache.set(doc.key, doc.value);
-							logger.debug(`Configuration cache updated: ${doc.key} = ${doc.value}`);
-						}
-					} else if (change.operationType === "delete") {
-						// Reload all configs on delete since we don't have the key directly
-						Configuration.loadFromDB().catch((error: unknown) => {
-							logger.error(`Failed to reload configuration after delete: ${error}`);
-						});
-					} else if (change.operationType === "replace") {
-						const doc = change.fullDocument as ConfigurationDocument;
-						if (doc) {
-							dbCache.set(doc.key, doc.value);
-							logger.debug(`Configuration cache replaced: ${doc.key} = ${doc.value}`);
-						}
-					}
-				} catch (error: unknown) {
-					logger.error(`Error processing configuration change: ${error}`);
-				}
-			});
+      changeStream.on("change", (change) => {
+        try {
+          if (change.operationType === "insert" || change.operationType === "update") {
+            const doc = change.fullDocument as ConfigurationDocument;
+            if (doc) {
+              dbCache.set(doc.key, doc.value);
+              logger.debug(`Configuration cache updated: ${doc.key} = ${doc.value}`);
+            }
+          } else if (change.operationType === "delete") {
+            // Reload all configs on delete since we don't have the key directly
+            Configuration.loadFromDB().catch((error: unknown) => {
+              logger.error(`Failed to reload configuration after delete: ${error}`);
+            });
+          } else if (change.operationType === "replace") {
+            const doc = change.fullDocument as ConfigurationDocument;
+            if (doc) {
+              dbCache.set(doc.key, doc.value);
+              logger.debug(`Configuration cache replaced: ${doc.key} = ${doc.value}`);
+            }
+          }
+        } catch (error: unknown) {
+          logger.error(`Error processing configuration change: ${error}`);
+        }
+      });
 
-			changeStream.on("error", (error: unknown) => {
-				logger.error(`Configuration change stream error: ${error}`);
-				// Attempt to restart the stream
-				Configuration.stopWatching();
-				setTimeout(() => {
-					Configuration.startWatching().catch((err: unknown) => {
-						Sentry.captureException(err);
-						logger.error(`Failed to restart configuration change stream: ${err}`);
-					});
-				}, 5000);
-			});
+      changeStream.on("error", (error: unknown) => {
+        logger.error(`Configuration change stream error: ${error}`);
+        // Attempt to restart the stream
+        Configuration.stopWatching();
+        setTimeout(() => {
+          Configuration.startWatching().catch((err: unknown) => {
+            Sentry.captureException(err);
+            logger.error(`Failed to restart configuration change stream: ${err}`);
+          });
+        }, 5000);
+      });
 
-			logger.info("Configuration change stream started");
-		} catch (error: unknown) {
-			logger.error(`Failed to start configuration change stream: ${error}`);
-			throw error;
-		}
-	}
+      logger.info("Configuration change stream started");
+    } catch (error: unknown) {
+      logger.error(`Failed to start configuration change stream: ${error}`);
+      throw error;
+    }
+  }
 
-	/**
-	 * Stop watching the configuration change stream
-	 */
-	static stopWatching(): void {
-		if (changeStream) {
-			changeStream.close().catch((error: unknown) => {
-				logger.error(`Error closing configuration change stream: ${error}`);
-			});
-			changeStream = null;
-			logger.info("Configuration change stream stopped");
-		}
-	}
+  /**
+   * Stop watching the configuration change stream
+   */
+  static stopWatching(): void {
+    if (changeStream) {
+      changeStream.close().catch((error: unknown) => {
+        logger.error(`Error closing configuration change stream: ${error}`);
+      });
+      changeStream = null;
+      logger.info("Configuration change stream stopped");
+    }
+  }
 
-	/**
-	 * Initialize the configuration system with database support
-	 */
-	static async initialize(): Promise<void> {
-		if (isInitialized) {
-			logger.warn("Configuration already initialized");
-			return;
-		}
+  /**
+   * Initialize the configuration system with database support
+   */
+  static async initialize(): Promise<void> {
+    if (isInitialized) {
+      logger.warn("Configuration already initialized");
+      return;
+    }
 
-		try {
-			// Load existing configuration from database
-			await Configuration.loadFromDB();
+    try {
+      // Load existing configuration from database
+      await Configuration.loadFromDB();
 
-			// Start watching for changes
-			await Configuration.startWatching();
+      // Start watching for changes
+      await Configuration.startWatching();
 
-			isInitialized = true;
-			logger.info("Configuration system initialized with database support");
-		} catch (error: unknown) {
-			logger.error(`Failed to initialize configuration system: ${error}`);
-			throw error;
-		}
-	}
+      isInitialized = true;
+      logger.info("Configuration system initialized with database support");
+    } catch (error: unknown) {
+      logger.error(`Failed to initialize configuration system: ${error}`);
+      throw error;
+    }
+  }
 
-	/**
-	 * Shutdown the configuration system
-	 */
-	static async shutdown(): Promise<void> {
-		Configuration.stopWatching();
-		dbCache.clear();
-		isInitialized = false;
-		logger.info("Configuration system shutdown");
-	}
+  /**
+   * Shutdown the configuration system
+   */
+  static async shutdown(): Promise<void> {
+    Configuration.stopWatching();
+    dbCache.clear();
+    isInitialized = false;
+    logger.info("Configuration system shutdown");
+  }
 }
 
 /**
@@ -357,96 +357,96 @@ export class Configuration {
  * This should be called after MongoDB connection is established
  */
 export const initConfiguration = async (): Promise<void> => {
-	if (isInitialized) {
-		logger.warn("Configuration already initialized");
-		return;
-	}
-	try {
-		await Configuration.initialize();
-	} catch (error: unknown) {
-		logger.error(`Failed to initialize configuration: ${error}`);
-		throw error;
-	}
+  if (isInitialized) {
+    logger.warn("Configuration already initialized");
+    return;
+  }
+  try {
+    await Configuration.initialize();
+  } catch (error: unknown) {
+    logger.error(`Failed to initialize configuration: ${error}`);
+    throw error;
+  }
 };
 
 /**
  * Get all configuration as a debug string
  */
 export const getConfiguration = async (): Promise<string> => {
-	const allConfig = Configuration.getAll();
-	return JSON.stringify(allConfig, null, 2);
+  const allConfig = Configuration.getAll();
+  return JSON.stringify(allConfig, null, 2);
 };
 
 const configurationSchema = new mongoose.Schema<ConfigurationDocument, ConfigurationModel>(
-	{
-		description: {
-			type: String,
-		},
-		key: {
-			index: true,
-			required: true,
-			type: String,
-			unique: true,
-		},
-		type: {
-			enum: ["string", "number", "boolean"],
-			required: true,
-			type: String,
-		},
-		value: {
-			required: true,
-			type: mongoose.Schema.Types.Mixed,
-		},
-	},
-	{
-		strict: "throw",
-		toJSON: {virtuals: true},
-		toObject: {virtuals: true},
-	}
+  {
+    description: {
+      type: String,
+    },
+    key: {
+      index: true,
+      required: true,
+      type: String,
+      unique: true,
+    },
+    type: {
+      enum: ["string", "number", "boolean"],
+      required: true,
+      type: String,
+    },
+    value: {
+      required: true,
+      type: mongoose.Schema.Types.Mixed,
+    },
+  },
+  {
+    strict: "throw",
+    toJSON: {virtuals: true},
+    toObject: {virtuals: true},
+  }
 );
 
 addDefaultPlugins(configurationSchema);
 
 // Define methods
 configurationSchema.methods = {
-	getValue(this: ConfigurationDocument): ConfigValueType {
-		return this.value;
-	},
+  getValue(this: ConfigurationDocument): ConfigValueType {
+    return this.value;
+  },
 };
 
 export const ConfigurationDB = mongoose.model<ConfigurationDocument, ConfigurationModel>(
-	"Configuration",
-	configurationSchema
+  "Configuration",
+  configurationSchema
 );
 
 // Define custom statics after model creation
 ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDocument | null> {
-	return this.findOneOrNone({key});
+  return this.findOneOrNone({key});
 };
 
 // biome-ignore lint/suspicious/noExplicitAny: Setting a static method on the model.
 (ConfigurationDB as any).setValue = async function (
-	key: string,
-	value: ConfigValueType
+  key: string,
+  value: ConfigValueType
 ): Promise<ConfigurationDocument> {
-	const existing = await this.findOne({key});
+  const existing = await this.findOne({key});
 
-	if (existing) {
-		existing.value = value;
-		return existing.save();
-	}
+  if (existing) {
+    existing.value = value;
+    return existing.save();
+  }
 
-	// Infer type from value
-	let type: "string" | "number" | "boolean" = "string";
-	if (typeof value === "number") {
-		type = "number";
-	} else if (typeof value === "boolean") {
-		type = "boolean";
-	}
+  // Infer type from value
+  let type: "string" | "number" | "boolean" = "string";
+  if (typeof value === "number") {
+    type = "number";
+  } else if (typeof value === "boolean") {
+    type = "boolean";
+  }
 
-	return this.create({
-		key,
-		type,
-		value,
-	});
+  return this.create({
+    key,
+    type,
+    value,
+  });
 };

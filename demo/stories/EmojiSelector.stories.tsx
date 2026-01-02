@@ -1,4 +1,4 @@
-import {Box, EmojiSelector, Text} from "ferns-ui";
+import {Box, EmojiSelector, Text} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const EmojiSelectorDemo = (): ReactElement => {

@@ -7,7 +7,7 @@ import {
   SliderWithSmileysDemo,
   SliderWithValueDemo,
 } from "@stories";
-import {Slider} from "ferns-ui";
+import {Slider} from "@terreno/ui";
 
 export const SliderConfiguration: DemoConfiguration = {
   name: "Slider",

@@ -1,4 +1,4 @@
-import {Box, type SurfaceColor, Text} from "ferns-ui";
+import {Box, type SurfaceColor, Text} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

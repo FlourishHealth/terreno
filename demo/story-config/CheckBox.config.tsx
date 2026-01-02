@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {CheckboxColors, CheckboxDemo, CheckboxSizes} from "@stories";
-import {CheckBox} from "ferns-ui";
+import {CheckBox} from "@terreno/ui";
 
 export const CheckBoxConfiguration: DemoConfiguration = {
   name: "CheckBox",

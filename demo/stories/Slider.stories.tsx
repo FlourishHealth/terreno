@@ -1,4 +1,4 @@
-import {Box, Slider} from "ferns-ui";
+import {Box, Slider} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const SliderDemo = (): ReactElement => {

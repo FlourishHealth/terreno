@@ -1,25 +1,33 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
-    "extends": ["../biome.jsonc"],
-    "files": {
-        "includes": [
-            "package.json",
-            "**/*.ts",
-            "**/*.tsx",
-            "!!**/node_modules",
-            "!!node_modules/**",
-            "!!**/dist",
-            "!!dist/**",
-            "!!**/build",
-            "!!build/**",
-            "!!**/.expo",
-            "!!.expo/**",
-            "!!**/.next",
-            "!!.next/**",
-            "!!**/coverage",
-            "!!coverage/**",
-            "!!**/generated",
-            "!!generated/**"
-        ]
+  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "extends": ["../biome.jsonc"],
+  "files": {
+    "includes": [
+      "package.json",
+      "**/*.ts",
+      "**/*.tsx",
+      "!!**/node_modules",
+      "!!node_modules",
+      "!!**/dist",
+      "!!dist",
+      "!!**/build",
+      "!!build",
+      "!!**/.expo",
+      "!!.expo",
+      "!!**/.next",
+      "!!.next",
+      "!!**/coverage",
+      "!!coverage",
+      "!!**/generated",
+      "!!generated"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noImplicitAnyLet": "error"
+      }
     }
+  }
 }

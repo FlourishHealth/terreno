@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {DefaultDemo} from "@stories";
-import {PasswordField} from "ferns-ui";
+import {PasswordField} from "@terreno/ui";
 import React from "react";
 
 export const PasswordFieldConfiguration: DemoConfiguration = {

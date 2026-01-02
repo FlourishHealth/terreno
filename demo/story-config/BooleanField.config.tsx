@@ -7,7 +7,7 @@ import {
   BooleanFieldWithStoredStateDemo,
   BooleanFieldWithTitleDemo,
 } from "@stories";
-import {BooleanField} from "ferns-ui";
+import {BooleanField} from "@terreno/ui";
 import React from "react";
 
 export const BooleanFieldConfiguration: DemoConfiguration = {

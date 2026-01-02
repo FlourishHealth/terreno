@@ -1,4 +1,4 @@
-import {Box, Icon, type IconProps, Text} from "ferns-ui";
+import {Box, Icon, type IconProps, Text} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

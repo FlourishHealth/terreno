@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {DataTable} from "ferns-ui";
+import {DataTable} from "@terreno/ui";
 
 import {StandardDataTable} from "../stories";
 

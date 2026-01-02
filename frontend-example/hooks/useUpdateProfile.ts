@@ -10,15 +10,15 @@ type MutationResult = {unwrap: () => Promise<Record<string, unknown>>};
 type MutationFunction = (args: Record<string, unknown>) => MutationResult;
 
 const usePatchUsersByIdMutation = (): [MutationFunction] => {
-	// Placeholder - should be replaced with actual generated hook from OpenAPI spec
-	return [() => ({unwrap: async () => ({})})];
+  // Placeholder - should be replaced with actual generated hook from OpenAPI spec
+  return [() => ({unwrap: async () => ({})})];
 };
 
 export function useUpdateProfile(update: Partial<PatchUsersByIdArgs>): MutationResult | undefined {
-	const currentUserId = useSelectCurrentUserId();
-	const [updateUser] = usePatchUsersByIdMutation();
-	if (!currentUserId) {
-		return undefined;
-	}
-	return updateUser({body: {...update}, id: currentUserId});
+  const currentUserId = useSelectCurrentUserId();
+  const [updateUser] = usePatchUsersByIdMutation();
+  if (!currentUserId) {
+    return undefined;
+  }
+  return updateUser({body: {...update}, id: currentUserId});
 }

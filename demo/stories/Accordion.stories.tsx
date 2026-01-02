@@ -1,4 +1,4 @@
-import {Accordion, Box, Heading, isMobileDevice, Text} from "ferns-ui";
+import {Accordion, Box, Heading, isMobileDevice, Text} from "@terreno/ui";
 import React from "react";
 import {View} from "react-native";
 

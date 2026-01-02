@@ -1,4 +1,4 @@
-import {Box, SelectBadge, type SelectBadgeProps, Text} from "ferns-ui";
+import {Box, SelectBadge, type SelectBadgeProps, Text} from "@terreno/ui";
 import {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";

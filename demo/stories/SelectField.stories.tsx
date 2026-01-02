@@ -1,4 +1,4 @@
-import {Box, type FieldOption, Heading, SelectField} from "ferns-ui";
+import {Box, type FieldOption, Heading, SelectField} from "@terreno/ui";
 
 const options: FieldOption[] = [
   {label: "First", value: "first"},

@@ -1,4 +1,4 @@
-import {Box, Heading, IconButton, isMobileDevice, Text, Tooltip, type TooltipProps} from "ferns-ui";
+import {Box, Heading, IconButton, isMobileDevice, Text, Tooltip, type TooltipProps} from "@terreno/ui";
 import type React from "react";
 
 const isMobile = isMobileDevice();

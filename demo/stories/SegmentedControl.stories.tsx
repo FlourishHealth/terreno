@@ -1,4 +1,4 @@
-import {Box, SegmentedControl, type SegmentedControlProps} from "ferns-ui";
+import {Box, SegmentedControl, type SegmentedControlProps} from "@terreno/ui";
 import {useState} from "react";
 
 export const SegmentedControlDemo = (props: Partial<SegmentedControlProps>) => {

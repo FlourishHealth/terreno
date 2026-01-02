@@ -6,107 +6,107 @@ import {closeWebsockets, connectToWebsockets, emitToUser, getIoInstance} from ".
 
 // Mock socket.io module
 mock.module("socket.io", () => ({
-	Server: class MockServer {
-		to = mock(() => this);
-		emit = mock(() => {});
-		on = mock(() => {});
-		use = mock(() => {});
-		adapter = mock(() => {});
-		close = mock(() => {});
-	},
+  Server: class MockServer {
+    to = mock(() => this);
+    emit = mock(() => {});
+    on = mock(() => {});
+    use = mock(() => {});
+    adapter = mock(() => {});
+    close = mock(() => {});
+  },
 }));
 
 // Mock @thream/socketio-jwt
 mock.module("@thream/socketio-jwt", () => ({
-	authorize: mock(() => {}),
+  authorize: mock(() => {}),
 }));
 
 // Mock socket type for testing
 type MockSocket = {
-	to: ReturnType<typeof mock>;
-	emit: ReturnType<typeof mock>;
-	on: ReturnType<typeof mock>;
-	use: ReturnType<typeof mock>;
-	adapter: ReturnType<typeof mock>;
-	close: ReturnType<typeof mock>;
+  to: ReturnType<typeof mock>;
+  emit: ReturnType<typeof mock>;
+  on: ReturnType<typeof mock>;
+  use: ReturnType<typeof mock>;
+  adapter: ReturnType<typeof mock>;
+  close: ReturnType<typeof mock>;
 };
 
 describe("websockets", () => {
-	let actualMockSocket: MockSocket;
+  let actualMockSocket: MockSocket;
 
-	beforeEach(async () => {
-		await connectToMongoDB();
-		// Create a minimal Express app mock
-		const mockApp = {} as express.Application;
+  beforeEach(async () => {
+    await connectToMongoDB();
+    // Create a minimal Express app mock
+    const mockApp = {} as express.Application;
 
-		// Set required environment variables for websocket setup
-		process.env.TOKEN_SECRET = "test-secret";
-		process.env.NODE_ENV = "test";
+    // Set required environment variables for websocket setup
+    process.env.TOKEN_SECRET = "test-secret";
+    process.env.NODE_ENV = "test";
 
-		await connectToWebsockets(mockApp);
+    await connectToWebsockets(mockApp);
 
-		// Get the io instance which should be our mock
-		actualMockSocket = getIoInstance() as unknown as MockSocket;
-		actualMockSocket.to = mock(() => actualMockSocket);
-		actualMockSocket.emit = mock(() => {});
-	});
+    // Get the io instance which should be our mock
+    actualMockSocket = getIoInstance() as unknown as MockSocket;
+    actualMockSocket.to = mock(() => actualMockSocket);
+    actualMockSocket.emit = mock(() => {});
+  });
 
-	afterEach(async () => {
-		// Clean up websocket connection
-		await closeWebsockets();
-	});
+  afterEach(async () => {
+    // Clean up websocket connection
+    await closeWebsockets();
+  });
 
-	it("should emit event to specific user room when io is available", () => {
-		const eventName = "testEvent";
-		const userId = "user123";
-		const data = {message: "test data"};
+  it("should emit event to specific user room when io is available", () => {
+    const eventName = "testEvent";
+    const userId = "user123";
+    const data = {message: "test data"};
 
-		emitToUser(eventName, userId, data);
+    emitToUser(eventName, userId, data);
 
-		assert.isTrue(actualMockSocket.to.mock.calls.length > 0, "Should call io.to");
-		assert.equal(actualMockSocket.to.mock.calls[0]?.[0], userId, "Should call io.to with userId");
-		assert.isTrue(actualMockSocket.emit.mock.calls.length > 0, "Should call emit");
-		assert.equal(
-			actualMockSocket.emit.mock.calls[0]?.[0],
-			eventName,
-			"Should call emit with eventName"
-		);
-		assert.deepEqual(actualMockSocket.emit.mock.calls[0]?.[1], data, "Should call emit with data");
-	});
+    assert.isTrue(actualMockSocket.to.mock.calls.length > 0, "Should call io.to");
+    assert.equal(actualMockSocket.to.mock.calls[0]?.[0], userId, "Should call io.to with userId");
+    assert.isTrue(actualMockSocket.emit.mock.calls.length > 0, "Should call emit");
+    assert.equal(
+      actualMockSocket.emit.mock.calls[0]?.[0],
+      eventName,
+      "Should call emit with eventName"
+    );
+    assert.deepEqual(actualMockSocket.emit.mock.calls[0]?.[1], data, "Should call emit with data");
+  });
 
-	it("should handle various data types", () => {
-		const testCases = [
-			{data: "simple string", eventName: "stringData", userId: "user1"},
-			{data: 42, eventName: "numberData", userId: "user2"},
-			{data: true, eventName: "booleanData", userId: "user3"},
-			{data: {key: "value", nested: {prop: 123}}, eventName: "objectData", userId: "user4"},
-			{data: [1, 2, 3, "mixed", {type: "array"}], eventName: "arrayData", userId: "user5"},
-			{data: null, eventName: "nullData", userId: "user6"},
-			{data: undefined, eventName: "undefinedData", userId: "user7"},
-		];
+  it("should handle various data types", () => {
+    const testCases = [
+      {data: "simple string", eventName: "stringData", userId: "user1"},
+      {data: 42, eventName: "numberData", userId: "user2"},
+      {data: true, eventName: "booleanData", userId: "user3"},
+      {data: {key: "value", nested: {prop: 123}}, eventName: "objectData", userId: "user4"},
+      {data: [1, 2, 3, "mixed", {type: "array"}], eventName: "arrayData", userId: "user5"},
+      {data: null, eventName: "nullData", userId: "user6"},
+      {data: undefined, eventName: "undefinedData", userId: "user7"},
+    ];
 
-		for (const {eventName, userId, data} of testCases) {
-			// Reset mocks for each test case
-			actualMockSocket.to = mock(() => actualMockSocket);
-			actualMockSocket.emit = mock(() => {});
+    for (const {eventName, userId, data} of testCases) {
+      // Reset mocks for each test case
+      actualMockSocket.to = mock(() => actualMockSocket);
+      actualMockSocket.emit = mock(() => {});
 
-			emitToUser(eventName, userId, data);
+      emitToUser(eventName, userId, data);
 
-			assert.equal(
-				actualMockSocket.to.mock.calls[0]?.[0],
-				userId,
-				`Should call io.to with userId for ${eventName}`
-			);
-			assert.equal(
-				actualMockSocket.emit.mock.calls[0]?.[0],
-				eventName,
-				`Should call emit with eventName for ${eventName}`
-			);
-			assert.deepEqual(
-				actualMockSocket.emit.mock.calls[0]?.[1],
-				data,
-				`Should call emit with correct data for ${eventName}`
-			);
-		}
-	});
+      assert.equal(
+        actualMockSocket.to.mock.calls[0]?.[0],
+        userId,
+        `Should call io.to with userId for ${eventName}`
+      );
+      assert.equal(
+        actualMockSocket.emit.mock.calls[0]?.[0],
+        eventName,
+        `Should call emit with eventName for ${eventName}`
+      );
+      assert.deepEqual(
+        actualMockSocket.emit.mock.calls[0]?.[1],
+        data,
+        `Should call emit with correct data for ${eventName}`
+      );
+    }
+  });
 });

@@ -1,5 +1,5 @@
 // import {DemoConfiguration} from "@config";
-// import {PasswordField} from "ferns-ui";
+// import {PasswordField} from "@terreno/ui";
 // import React from "react";
 
 // import {DefaultDemo} from "./DefaultDemo";

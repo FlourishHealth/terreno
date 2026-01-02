@@ -1,4 +1,4 @@
-import {SignatureField} from "ferns-ui";
+import {SignatureField} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const SignatureFieldDemo = (): ReactElement => {

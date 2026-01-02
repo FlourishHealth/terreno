@@ -20,7 +20,7 @@ import {
   TableText,
   Text,
   type TextColor,
-} from "ferns-ui";
+} from "@terreno/ui";
 import cloneDeep from "lodash/cloneDeep";
 import startCase from "lodash/startCase";
 import type React from "react";

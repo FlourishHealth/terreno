@@ -1,4 +1,4 @@
-import {Box, Heading, TableIconButton, type TableIconButtonProps} from "ferns-ui";
+import {Box, Heading, TableIconButton, type TableIconButtonProps} from "@terreno/ui";
 
 export const TableIconButtonDemo = (props: Partial<TableIconButtonProps>) => {
   return (

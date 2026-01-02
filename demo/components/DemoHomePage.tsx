@@ -1,6 +1,6 @@
 import {DemoConfig} from "@config";
 import {useNavigation} from "expo-router";
-import {Box, Heading} from "ferns-ui";
+import {Box, Heading} from "@terreno/ui";
 import {type FC, useEffect} from "react";
 import {Pressable, ScrollView, Text, View} from "react-native";
 

@@ -1,4 +1,4 @@
-import {Box, Heading, TableBoolean, type TableBooleanProps} from "ferns-ui";
+import {Box, Heading, TableBoolean, type TableBooleanProps} from "@terreno/ui";
 
 export const TableBooleanDemo = (props: Partial<TableBooleanProps>) => {
   return (
@@ -48,7 +48,7 @@ export const TableBooleanStates = () => {
 };
 
 // import {DemoConfiguration} from "@config";
-// import {TableBoolean} from "ferns-ui";
+// import {TableBoolean} from "@terreno/ui";
 
 // import React from "react";
 

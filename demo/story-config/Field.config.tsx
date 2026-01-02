@@ -17,7 +17,7 @@ import {
   TextFieldStory,
   URLFieldStory,
 } from "@stories";
-import {Field} from "ferns-ui";
+import {Field} from "@terreno/ui";
 
 export const FieldConfiguration: DemoConfiguration = {
   name: "Field",

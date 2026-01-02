@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {LinkDemo} from "@stories";
-import {Text} from "ferns-ui";
+import {Text} from "@terreno/ui";
 
 export const LinkConfiguration: DemoConfiguration = {
   name: "Link",

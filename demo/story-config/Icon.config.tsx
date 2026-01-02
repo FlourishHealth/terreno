@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories";
-import {Icon} from "ferns-ui";
+import {Icon} from "@terreno/ui";
 
 export const IconConfiguration: DemoConfiguration = {
   name: "Icon",

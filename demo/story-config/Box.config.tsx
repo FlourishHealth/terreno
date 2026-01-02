@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {BoxColors, BoxDemo, FlexBox} from "@stories";
-import {Box} from "ferns-ui";
+import {Box} from "@terreno/ui";
 
 export const BoxConfiguration: DemoConfiguration = {
   name: "Box",

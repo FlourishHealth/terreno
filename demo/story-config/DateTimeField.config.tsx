@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {DateTimeField} from "ferns-ui";
+import {DateTimeField} from "@terreno/ui";
 
 import {DateTimeFieldDemo, DateTimeFieldStory, DateTimeFieldTypes} from "../stories";
 

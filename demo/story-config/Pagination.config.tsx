@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {Pagination} from "ferns-ui";
+import {Pagination} from "@terreno/ui";
 
 import {PaginationDemo, PaginationMoreStory, PaginationStory} from "../stories";
 

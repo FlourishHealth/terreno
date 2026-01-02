@@ -8,7 +8,7 @@ import {
   NavigationIconButton,
   ToolTipIconButton,
 } from "@stories";
-import {IconButton} from "ferns-ui";
+import {IconButton} from "@terreno/ui";
 
 export const IconButtonConfiguration: DemoConfiguration = {
   name: "IconButton",

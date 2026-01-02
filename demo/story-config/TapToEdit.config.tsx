@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TapDemo, TapStory} from "@stories";
-import {TapToEdit} from "ferns-ui";
+import {TapToEdit} from "@terreno/ui";
 
 export const TapToEditConfiguration: DemoConfiguration = {
   name: "Tap to edit",

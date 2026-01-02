@@ -1,4 +1,4 @@
-import {Box, Link, Text, type TextColor, type TextProps} from "ferns-ui";
+import {Box, Link, Text, type TextColor, type TextProps} from "@terreno/ui";
 import type React from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -37,7 +37,7 @@ export const Texts = (): React.ReactElement => {
         {renderText("bold italic accent", {bold: true, color: "accent", italic: true})}
 
         {renderText("center", {align: "center"})}
-        <Link href="https://github.com/FlourishHealth/ferns-ui" text="Linked Text" />
+        <Link href="https://github.com/FlourishHealth/@terreno/ui" text="Linked Text" />
       </Box>
     </StorybookContainer>
   );

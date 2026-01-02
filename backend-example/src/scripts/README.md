@@ -11,7 +11,7 @@ bun run src/scripts/yourScript.ts
 
 ```typescript
 import { connectToMongoDB } from "../utils/database";
-import { logger } from "../utils/logger";
+import { logger } from "@terreno/api";
 
 const runScript = async (): Promise<void> => {
   await connectToMongoDB();

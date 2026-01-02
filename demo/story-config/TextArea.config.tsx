@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TextAreaDisabled, TextAreaErrored, TextAreas, WithLabelTextArea} from "@stories";
-import {TextArea} from "ferns-ui";
+import {TextArea} from "@terreno/ui";
 
 export const TextAreaConfiguration: DemoConfiguration = {
   name: "Text area",

@@ -2,7 +2,21 @@
   "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
   "extends": ["../biome.jsonc"],
   "files": {
-    "includes": ["package.json", "src/**/*.ts", "src/**/*.tsx", "utils/**/*.ts", "utils/**/*.tsx", "!!**/node_modules", "!!node_modules/**", "!!**/dist", "!!dist/**", "!!**/build", "!!build/**", "!!**/coverage", "!!coverage/**"]
+    "includes": [
+      "package.json",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "utils/**/*.ts",
+      "utils/**/*.tsx",
+      "!!**/node_modules",
+      "!!node_modules",
+      "!!**/dist",
+      "!!dist",
+      "!!**/build",
+      "!!build",
+      "!!**/coverage",
+      "!!coverage"
+    ]
   },
   "linter": {
     "rules": {

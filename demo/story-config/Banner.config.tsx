@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {BannerDemo} from "@stories";
-import {Banner, Box} from "ferns-ui";
+import {Banner, Box} from "@terreno/ui";
 import React from "react";
 
 export const BannerConfiguration: DemoConfiguration = {

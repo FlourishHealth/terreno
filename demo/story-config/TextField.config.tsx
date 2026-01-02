@@ -6,7 +6,7 @@ import {
   TextFieldWithHelperTextDemo,
   TextFieldWithLabelDemo,
 } from "@stories";
-import {TextField} from "ferns-ui";
+import {TextField} from "@terreno/ui";
 
 export const TextFieldConfiguration: DemoConfiguration = {
   name: "Text field",

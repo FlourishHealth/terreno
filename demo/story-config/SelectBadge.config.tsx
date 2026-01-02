@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {SelectBadgeDemo, SelectBadgeStories} from "@stories";
-import {SelectBadge} from "ferns-ui";
+import {SelectBadge} from "@terreno/ui";
 import React from "react";
 
 export const SelectBadgeConfiguration: DemoConfiguration = {

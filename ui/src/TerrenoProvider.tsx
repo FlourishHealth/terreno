@@ -7,7 +7,7 @@ import {OpenAPIProvider} from "./OpenAPIContext";
 import {ThemeProvider} from "./Theme";
 import {Toast} from "./Toast";
 
-export const FernsProvider: FC<{
+export const TerrenoProvider: FC<{
   children: React.ReactNode;
   openAPISpecUrl?: string;
 }> = ({children, openAPISpecUrl}) => {
@@ -29,3 +29,7 @@ export const FernsProvider: FC<{
     </ThemeProvider>
   );
 };
+
+// Backwards compatibility alias
+export const FernsProvider = TerrenoProvider;
+

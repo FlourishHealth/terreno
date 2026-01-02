@@ -1,4 +1,4 @@
-import {Link} from "ferns-ui";
+import {Link} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 

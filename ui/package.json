@@ -94,7 +94,7 @@
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
-  "name": "ferns-ui",
+  "name": "@terreno/ui",
   "peerDependencies": {
     "react": "catalog:",
     "react-router": "^6.26.2",

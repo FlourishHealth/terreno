@@ -1,5 +1,5 @@
 import {useSegments} from "expo-router";
-import {type AddressInterface, Box, Field, formatAddress, Text} from "ferns-ui";
+import {type AddressInterface, Box, Field, formatAddress, Text} from "@terreno/ui";
 import {useEffect, useState} from "react";
 
 export const AddressFieldDemo = ({googleMapsApiKey, includeCounty}: any) => {

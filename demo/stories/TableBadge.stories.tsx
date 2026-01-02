@@ -1,4 +1,4 @@
-import {Box, Heading, TableBadge, type TableBadgeProps} from "ferns-ui";
+import {Box, Heading, TableBadge, type TableBadgeProps} from "@terreno/ui";
 
 export const TableBadgeDemo = (props: Partial<TableBadgeProps>) => {
   return (

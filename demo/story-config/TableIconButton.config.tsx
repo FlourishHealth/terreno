@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TableIconButtonDemo, TableIconButtonStates} from "@stories";
-import {TableIconButton} from "ferns-ui";
+import {TableIconButton} from "@terreno/ui";
 
 export const TableIconButtonConfiguration: DemoConfiguration = {
   name: "Table icon button",

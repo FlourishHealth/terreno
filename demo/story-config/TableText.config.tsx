@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TableTextDemo, TableTextVariants} from "@stories";
-import {TableText} from "ferns-ui";
+import {TableText} from "@terreno/ui";
 
 export const TableTextConfiguration: DemoConfiguration = {
   name: "Table Text",

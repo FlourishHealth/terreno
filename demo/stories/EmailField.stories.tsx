@@ -1,4 +1,4 @@
-import {Box, EmailField, Text} from "ferns-ui";
+import {Box, EmailField, Text} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const EmailFieldDemo = (): ReactElement => {

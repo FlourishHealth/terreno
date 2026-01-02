@@ -1,4 +1,4 @@
-import {CustomSelectField, type CustomSelectFieldProps} from "ferns-ui";
+import {CustomSelectField, type CustomSelectFieldProps} from "@terreno/ui";
 import type React from "react";
 import {useState} from "react";
 

@@ -3,6 +3,7 @@ export * from "./auth";
 export * from "./errors";
 export * from "./expressServer";
 export * from "./logger";
+export * from "./middleware";
 export * from "./notifiers";
 export * from "./openApiBuilder";
 export * from "./openApiEtag";

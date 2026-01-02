@@ -1,6 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {TableBadgeDemo, TableBadgeStates} from "@stories";
-import {Table} from "ferns-ui";
+import {Table} from "@terreno/ui";
 
 export const TableBadgeConfiguration: DemoConfiguration = {
   name: "Table badge",

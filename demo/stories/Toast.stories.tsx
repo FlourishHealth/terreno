@@ -1,4 +1,4 @@
-import {Box, Button, Toast, useToast} from "ferns-ui";
+import {Box, Button, Toast, useToast} from "@terreno/ui";
 
 import {StorybookContainer} from "./StorybookContainer";
 
