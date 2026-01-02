@@ -1,0 +1,5 @@
+{
+  "snapshot": "snapshot-20250529-376d18fe-127a-4989-b683-68054d99e6d2",
+  "install": "cd backend && yarn && cd ../app && yarn",
+  "terminals": []
+}

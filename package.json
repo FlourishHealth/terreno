@@ -49,13 +49,20 @@
     "ui:compile": "bun run --filter 'ferns-ui' compile",
     "ui:dev": "bun run --filter 'ferns-ui' dev",
     "ui:lint": "bun run --filter 'ferns-ui' lint",
-    "ui:test": "bun run --filter 'ferns-ui' test"
+    "ui:test": "bun run --filter 'ferns-ui' test",
+    "ui:web": "bun run --filter 'ferns-ui' web",
+    "frontend:web": "bun run --filter 'frontend-example' web",
+    "frontend:android": "bun run --filter 'frontend-example' android",
+    "frontend:ios": "bun run --filter 'frontend-example' ios",
+    "backend:dev": "bun run --filter 'backend-example' dev"
   },
   "version": "1.0.0",
   "workspaces": [
     "api",
+    "backend-example",
     "demo",
-    "example",
+    "ferns-rtk",
+    "frontend-example",
     "ui"
   ]
 }

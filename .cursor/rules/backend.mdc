@@ -1,0 +1,69 @@
+---
+description: Applies to backend/ files
+globs: backend/**/*.ts
+alwaysApply: false
+---
+
+# Backend
+// Node.js and backend
+- Use logger.info/warn/error/debug for permanent logs
+- Services should throw user-friendly errors using APIError from ferns-api
+- Use mongoose models
+- All mongoose models have types in src/modelInterfaces.ts.
+- In API routes and permission methods, `req.user` is always a `UserDocument | undefined`. You can pass it directly to user type checking functions like `isStaff()`, `isPatient()`, `isFamilyMember()`, and `isPatientOrFamilyMember()` without type casting.
+- In ferns-api router callbacks (like `queryFilter`, `preCreate`, etc.), the user parameter is typed as ferns-api's `User` type, which doesn't structurally overlap with our Mongoose `UserDocument`. When you need to pass this user to type checking functions, cast it using `const user = u as unknown as UserDocument`. This two-step cast through `unknown` is TypeScript's recommended pattern when types don't overlap. Do NOT use `as any as UserDocument` - use `as unknown as UserDocument` instead.
+
+- Define mongoose statics and methods by directly assigning to the property on the schema. For example:
+    fooSchema.methods = {bar() {}}
+    fooSchema.statics = {baz() {}}
+- Do not use Model.findOne. Use Model.findExactlyOne if the document matching the query is expected to exist, or Model.findOneOrThrow if 
+    there should be one or zero documents matching the query.    
+- Never mock ferns-api or models in backend/
+
+## Model Type Generation
+When creating or modifying Mongoose models, you must manually update the TypeScript interfaces in `src/modelInterfaces.ts`:
+
+1. **For each new model, create three interfaces**:
+   - `YourModelDocument` - extends DefaultDoc, includes all schema fields
+   - `YourModelModel` - extends DefaultModel<YourModelDocument>, includes static methods
+   - `YourModelSchema` - mongoose.Schema type for the model
+
+2. **Follow existing patterns**: Look at similar models in modelInterfaces.ts for reference
+
+3. **Include custom methods/statics**: If your schema has custom methods or statics, add them to the appropriate interface:
+   - Instance methods go in the Document interface
+   - Static methods go in a separate interface that extends DefaultStatics, then include in Model interface
+
+4. **Use proper imports**: Ensure all referenced types are imported at the top of modelInterfaces.ts
+
+5. **Example pattern**:
+```typescript
+export type YourModelMethods = {
+  customMethod: (this: YourModelDocument, param: string) => Promise<void>;
+};
+
+export type YourModelStatics = DefaultStatics<YourModelDocument> & {
+  customStatic: (this: YourModelModel, param: string) => Promise<YourModelDocument>;
+};
+
+export type YourModelModel = DefaultModel<YourModelDocument> & YourModelStatics;
+
+export type YourModelSchema = mongoose.Schema<YourModelDocument, YourModelModel, YourModelMethods>;
+
+export type YourModelDocument = DefaultDoc & YourModelMethods & {
+  fieldName: string;
+  optionalField?: number;
+  // ... other schema fields
+};
+```    
+
+# Backend Testing and Mocks
+When writing tests in the backend, use existing manual mocks from `backend/src/__mocks__/` directory:
+
+- **axios**: Use `jest.mock("axios")` to automatically use the manual mock at `backend/src/__mocks__/axios.ts`
+  - DO NOT use `jest.spyOn` or inline mock implementations for axios
+  - The manual mock includes all necessary methods (get, post, put, delete, patch, getAdapter, etc.)
+  
+- **@sentry/node**: Use `jest.mock("@sentry/node")` to use the manual mock at `backend/src/__mocks__/@sentry/node.ts`
+
+When you need to mock a module that already has a manual mock, just call `jest.mock("module-name")` and Jest will automatically use the manual mock implementation.

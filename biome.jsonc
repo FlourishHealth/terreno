@@ -10,17 +10,6 @@
     },
     "enabled": true
   },
-  "files": {
-    "ignore": [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/.expo/**",
-      "**/.next/**",
-      "**/coverage/**",
-      "**/generated/**"
-    ]
-  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",

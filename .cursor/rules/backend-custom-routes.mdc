@@ -1,0 +1,197 @@
+---
+description: When creating a custom route in the backend that doesn't map cleanly to a CRUD REST API.
+alwaysApply: false
+---
+## Creating Custom Routes
+
+Custom routes are useful when an action doesn't map cleanly to REST semantics or if 
+we need to combine data or fetch data in a way that doesn't neatly conform to FernsRouter.
+
+When creating custom API routes, follow these patterns consistently:
+
+### 1. Route File Structure
+
+Create a new file in `backend/src/api/` with the following structure:
+
+```typescript
+import express from "express";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  FernsRouterOptions,
+  permissionMiddleware,
+} from "ferns-api";
+
+import {createOpenApiMiddleware} from "../lib";
+import {/* your models */} from "../models";
+import {/* your permissions */} from "../permissions";
+import {/* your types */} from "../types";
+
+// Define OpenAPI middleware function(s) using the builder pattern
+// This function RETURNS the OpenAPI middleware by using createOpenApiMiddleware()
+function yourRouteOpenApiMiddleware(
+  options: Partial<FernsRouterOptions<any>>
+): any {
+  return createOpenApiMiddleware(options)
+    .withTags(["yourTag"])
+    .withSummary("Brief summary of what this endpoint does")
+    .withDescription("Detailed description of the endpoint")
+    .withPathParameter("paramName", {type: "string"}, {
+      description: "Description of the parameter",
+    })
+    .withRequestBody({  // Only for POST/PUT/PATCH
+      field1: {
+        type: "string",
+        description: "Description of field1",
+        required: true,
+      },
+      field2: {
+        type: "number",
+        description: "Optional field2",
+        required: false,
+      },
+    })
+    .withResponse(200, {
+      data: {
+        type: "object",
+        description: "Response data",
+        properties: {
+          id: {type: "string"},
+          name: {type: "string"},
+        },
+      },
+    }, {
+      description: "Success description",
+    })
+    .build();  // MUST call .build() at the end
+}
+
+export function yourRoutes(
+  router: express.Router,
+  options: Partial<FernsRouterOptions<any>>
+): void {
+  router.get(
+    "/yourRoute/:paramName",  // Express route uses :paramName
+    [
+      authenticateMiddleware(),  // or authenticateMiddleware(false) for optional auth
+      permissionMiddleware(User, {  // Optional, only if permissions needed
+        ...options,
+        permissions: {
+          list: [IsStaff],  // Use appropriate permission functions
+          create: [],
+          read: [],
+          update: [],
+          delete: [],
+        },
+      }),
+      yourRouteOpenApiMiddleware(options),  // Call the function which returns openApi.path()
+    ],
+    asyncHandler(async (req, res) => {
+      const user = req.user as UserDocument;
+      
+      // Validate permissions/access
+      if (!isStaff(user)) {
+        throw new APIError({status: 403, title: "Unauthorized"});
+      }
+      
+      // Validate parameters
+      if (!req.params.paramName) {
+        throw new APIError({status: 400, title: "Missing parameter"});
+      }
+      
+      // Your route logic here
+      const result = await yourLogic();
+      
+      return res.json({data: result});
+    })
+  );
+}
+```
+
+**Builder Methods:**
+- `.withTags(tags: string[])` - Add OpenAPI tags for documentation grouping
+- `.withSummary(summary: string)` - Short description (shown in API docs list)
+- `.withDescription(description: string)` - Detailed description
+- `.withPathParameter(name, schema, options?)` - Add path parameter (e.g., `/users/:userId`)
+- `.withQueryParameter(name, schema, options?)` - Add query parameter (e.g., `?status=active`)
+- `.withRequestBody(schema, options?)` - Define request body schema (POST/PUT/PATCH)
+- `.withResponse(statusCode, schema, options?)` - Define response schema for status code
+- `.withArrayResponse(statusCode, itemSchema, options?)` - Define array response
+- `.build()` - **REQUIRED**: Builds and returns the middleware (auto-includes error responses)
+
+### 4. Required Middleware Components
+
+Every custom route MUST include these middleware in order:
+
+1. **authenticateMiddleware()**: ALWAYS include this
+   - Use `authenticateMiddleware()` for required authentication
+   - Use `authenticateMiddleware(false)` for optional authentication
+   
+2. **permissionMiddleware()**: Include when authorization checks are needed
+   - Pass the model and permissions configuration
+   - Use permission functions from `../permissions` (e.g., `IsStaff`, `IsSuperUser`)
+   
+3. **OpenAPI middleware**: ALWAYS include for API documentation
+   - **Pattern A** (RECOMMENDED): Call separate function using `createOpenApiMiddleware(options).build()`
+   - **Pattern B**: Use `createOpenApiMiddleware(options)` directly inline with `.build()`
+   - Builder automatically includes default error responses (no need to add manually)
+   
+4. **asyncHandler()**: ALWAYS wrap the route handler
+
+### 5. Export and Register Routes
+
+1. Export your routes function from `backend/src/api/index.ts`:
+```typescript
+export * from "./yourRoutes";
+```
+
+2. Register in the main router (typically in `backend/src/index.ts` or similar):
+```typescript
+import {yourRoutes} from "./api";
+
+yourRoutes(router, options);
+```
+
+### 6. Generate SDK
+
+After creating custom routes, ALWAYS run in the app/ directory:
+```bash
+yarn sdk
+```
+
+This generates the TypeScript SDK and OpenAPI specification.
+
+### 7. Using the SDK (Frontend)
+
+In the frontend, ALWAYS use the generated SDK hooks - NEVER use `axios` or `request` directly:
+
+```typescript
+// ✅ CORRECT: Use generated hooks
+import {useGetYourRouteQuery} from "@/store/openApiSdk";
+
+const {data, isLoading, error} = useGetYourRouteQuery({paramName: "value"});
+
+// ❌ WRONG: Don't use axios/request directly
+// import axios from "axios";
+// const result = await axios.get("/api/yourRoute/value");
+```
+
+### 8. Best Practices
+
+- **Path Format**: 
+  - Express route: `"/yourRoute/:paramId"` (colon syntax)
+  - OpenAPI middleware handles paths automatically (no need to specify `path` property with builder)
+- **OpenAPI Middleware**: 
+  - ALWAYS use `createOpenApiMiddleware()` builder (import from `"../lib"`)
+  - ALWAYS call `.build()` at the end to generate the middleware
+  - Builder automatically includes `...defaultOpenApiErrorResponses`
+  - Extract to separate function for complex schemas, use inline for simple routes
+- **Error Handling**: Always throw `APIError` with appropriate status codes and user-friendly messages
+- **Validation**: Validate all inputs at the start of the handler and return early
+- **Permissions**: Check user permissions early in the handler
+- **Logging**: Use `logger.info/warn/error/debug` for permanent logs (not `console.log`)
+- **Types**: Always type `req.user` as `UserDocument` or appropriate type
+- **Response Format**: Return data in `{data: ...}` format for consistency
+- **Documentation**: Use `.withSummary()` and `.withDescription()` for clear API docs
+- **Tags**: Use `.withTags([])` to group related endpoints in documentation

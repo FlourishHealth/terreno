@@ -1,0 +1,47 @@
+---
+description: Applies to frontend files only
+globs: app/**/*.ts?(x)
+alwaysApply: false
+---
+// React best practices
+- Use functional React components with React.FC type
+- Import hooks directly (useEffect, useMemo) instead of React.useEffect
+- Always provide return types for functions and arrow functions
+- Add explanatory comment above each useEffect
+- Wrap component functions in useCallback
+- Prefer const arrow functions
+- Use inline styles over StyleSheet.create
+- Use Luxon for date operations
+- Use declarative JSX
+- Place static content and interfaces at beginning of file
+- Use content variables outside render functions
+- Minimize 'use client', useEffect, and setState
+- Use Redux Toolkit for efficient Redux development
+- Utilize createAsyncThunk for handling async actions
+- Use selectors for accessing state in components
+- Use mobile-first approach for responsive design.
+- Use console.info, console.debug, console.warn, or console.error for permanent logs, console.log for debugging to be removed.
+- Never modify openApiSdk.ts manually
+
+// React Native Expo best practices
+- Use functional components with hooks
+- Utilize Expo SDK features and APIs
+- Implement proper navigation using React Navigation
+- Use Expo's asset system for images and fonts
+- Implement proper error handling and crash reporting
+- Utilize Expo's push notification system
+- Always support React-Native Web
+
+// Error Handling & Validation
+- Check error conditions at start of functions and return early
+- Limit nested if statements
+- No single-line conditionals
+- Use multiline syntax with curly braces, even for simple conditional statements (e.g., 
+    if (condition) {
+      doSomething();
+    }
+  )
+  
+  // Staff Role Restrictions
+- When creating elements restricted by staff role, always wrap them in <RestrictToStaffRole> to enforce access control.
+- During code generation or review, flag JSX that conditionally renders based on staff roles but is not wrapped in <RestrictToStaffRole>.

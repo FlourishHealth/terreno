@@ -6,9 +6,6 @@
       "package.json",
       "src/**/*.ts",
       "src/**/*.tsx",
-      // Exclude populate.ts from type-aware linting - Biome hits type explosion
-      // due to complex Mongoose Document<T> generics
-      "!src/populate.ts",
       "!!**/node_modules",
       "!!node_modules/**",
       "!!**/dist",
@@ -20,3 +17,4 @@
     ]
   }
 }
+

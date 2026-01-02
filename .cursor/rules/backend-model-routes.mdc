@@ -1,0 +1,546 @@
+---
+description: When creating an API to expose a model
+alwaysApply: false
+---
+
+# Exposing Mongoose Models with FernsRouter
+
+FernsRouter provides a powerful way to automatically create RESTful CRUD APIs for Mongoose models. It generates standard endpoints (GET, POST, PUT/PATCH, DELETE) with built-in support for permissions, population, filtering, and lifecycle hooks.
+
+## Basic Structure
+
+Create a new file in `backend/src/api/` with this pattern:
+
+```typescript
+import express from "express";
+import {FernsRouterOptions, fernsRouter} from "ferns-api";
+
+import {YourModel} from "../models";
+import {IsStaff} from "../permissions";
+import {YourModelDocument, UserDocument} from "../types";
+
+export function yourModelRoutes(
+  router: express.Router,
+  options: Partial<FernsRouterOptions<any>>
+): void {
+  const yourModelRouter = fernsRouter(YourModel, {
+    ...options,
+    permissions: {
+      list: [IsStaff],
+      create: [IsStaff],
+      read: [IsStaff],
+      update: [IsStaff],
+      delete: [IsStaff],
+    },
+    sort: "name",  // or "-created" for descending
+    // ... additional options
+  });
+
+  router.use("/yourModels", yourModelRouter);
+}
+```
+
+## Generated Endpoints
+
+FernsRouter automatically creates these endpoints:
+
+- `GET /yourModels` - List resources (with pagination, filtering, sorting)
+- `POST /yourModels` - Create a new resource
+- `GET /yourModels/:id` - Read a single resource
+- `PUT /yourModels/:id` or `PATCH /yourModels/:id` - Update a resource
+- `DELETE /yourModels/:id` - Delete a resource (soft delete if model has `deleted` field)
+
+## Permissions
+
+The `permissions` object defines who can access each CRUD operation using permission functions.
+
+### Basic Permission Configuration
+
+```typescript
+permissions: {
+  list: [IsStaff],           // Array of permission functions for listing
+  create: [IsStaff],         // Array of permission functions for creating
+  read: [IsStaff],           // Array of permission functions for reading
+  update: [IsStaff],         // Array of permission functions for updating
+  delete: [IsStaff],         // Array of permission functions for deleting
+}
+```
+
+### Built-in Permission Functions
+
+Available from `ferns-api`:
+- `Permissions.IsAuthenticated` - Any authenticated user
+
+Custom permission functions from `../permissions`:
+- `IsStaff` - User is staff
+- `IsSuperUser` - User is a super user
+- `IsSuperUserOrOwner` - User is super user or owns the resource (via `ownerId`)
+- `IsSuperUserOrUserId` - User is super user or matches resource's `userId`
+- `IsStaffOrOwner` - User is staff or owns the resource
+- `IsStaffOrUserId` - User is staff or matches resource's `userId`
+- `IsMessageOwner` - User owns the message (via `from` field)
+- `IsOwnerOfSettings` - User owns the settings document
+
+### Empty Permissions
+
+Use empty array `[]` to disable an operation:
+
+```typescript
+permissions: {
+  list: [IsStaff],
+  create: [IsStaff],
+  read: [IsStaff],
+  update: [],      // No one can update via API
+  delete: [],      // No one can delete via API
+}
+```
+
+### Custom Permission Functions
+
+Create custom permission functions in `backend/src/permissions.ts`:
+
+```typescript
+export const IsStaffOrSelf: PermissionMethod<any> = async (
+  method: "list" | "create" | "read" | "update" | "delete",
+  user,
+  obj
+): Promise<boolean> => {
+  // obj is undefined on first call (checking if user can access collection at all)
+  if (!obj) {
+    return true;
+  }
+  if (!user) {
+    return false;
+  }
+  if (isStaff(user)) {
+    return true;
+  }
+  return user?.id && obj?.userId && String(obj.userId) === String(user.id);
+};
+```
+
+**Important**: Permission functions are called twice:
+1. First with `obj = undefined` to check if the user can access the collection at all
+2. Second with the actual object to check access to that specific resource
+
+## Lifecycle Hooks
+
+Hooks allow you to run custom logic at different points in the CRUD lifecycle.
+
+### preCreate
+
+Runs before creating a document. Must return the (potentially modified) document.
+
+```typescript
+preCreate: async (document, req): Promise<YourModelDocument> => {
+  // Set the creator
+  document.createdBy = (req.user as UserDocument)._id;
+  
+  // Validate business rules
+  if (document.type === "Special") {
+    const existing = await YourModel.findOneOrNone({type: "Special"});
+    if (existing) {
+      throw new APIError({
+        status: 400,
+        title: "Special type already exists"
+      });
+    }
+  }
+  
+  return document;
+}
+```
+
+### postCreate
+
+Runs after creating a document and saving to database.
+
+```typescript
+postCreate: async (document, req): Promise<void> => {
+  // Sync with external services
+  const authUser = req.user as UserDocument;
+  await document.syncWithExternalService(authUser);
+  
+  // Create audit log
+  await AuditLogEvent.createWithRequest({
+    appliedUserId: document.userId,
+    eventName: "CreateYourModel",
+    collectionModel: "YourModel",
+    isActivityLogEvent: true,
+    docId: document._id,
+  }, req);
+}
+```
+
+### preUpdate
+
+Runs before updating a document. Must return the update data.
+
+```typescript
+preUpdate: async (updateData: YourModelDocument, req): Promise<YourModelDocument> => {
+  // Fetch existing document if needed
+  const existingDoc = await YourModel.findExactlyOne({_id: req.params.id});
+  
+  // Validate changes
+  if (updateData.type !== existingDoc.type) {
+    throw new APIError({
+      status: 400,
+      title: "Cannot change type on existing document"
+    });
+  }
+  
+  return updateData;
+}
+```
+
+### postUpdate
+
+Runs after updating a document. Has access to the updated document and previous value.
+
+```typescript
+postUpdate: async (
+  updatedDoc: YourModelDocument,
+  _: any,
+  req: express.Request,
+  prevValue: YourModelDocument
+): Promise<void> => {
+  // Sync changes
+  const authUser = req.user as UserDocument;
+  await updatedDoc.syncWithExternalService(authUser);
+  
+  // Create audit log with before/after values
+  await AuditLogEvent.createWithRequest({
+    eventName: "UpdateYourModel",
+    collectionModel: "YourModel",
+    docId: updatedDoc._id,
+    payload: {
+      prevValue: prevValue.name,
+      newValue: updatedDoc.name,
+    },
+  }, req);
+}
+```
+
+### preDelete
+
+Runs before deleting a document. Must return the document to delete.
+
+```typescript
+preDelete: async (document: YourModelDocument, req): Promise<YourModelDocument> => {
+  // Additional authorization checks
+  if (!isSuperUser(req.user)) {
+    throw new APIError({
+      status: 403,
+      title: "Must be super user to delete"
+    });
+  }
+  
+  // Clean up related data before delete
+  await RelatedModel.deleteMany({yourModelId: document._id});
+  
+  return document;
+}
+```
+
+### postDelete
+
+Runs after deleting a document.
+
+```typescript
+postDelete: async (req: express.Request): Promise<void> => {
+  // Document is soft-deleted (deleted: true), can still be found
+  const doc = await YourModel.findOneOrNone({
+    _id: req.params.id,
+    deleted: true
+  });
+  
+  if (!doc) {
+    logger.warn(`Could not find document for postDelete: ${req.params.id}`);
+    return;
+  }
+  
+  // Additional cleanup
+  await cleanupExternalResources(doc);
+}
+```
+
+### postList
+
+Runs after fetching a list of documents. Can transform or sort the results.
+
+```typescript
+postList: async (documents: YourModelDocument[]): Promise<YourModelDocument[]> => {
+  // Custom sorting (e.g., numeric sort on name field)
+  return documents.sort((a, b) => {
+    const aNum = a.name?.match(/(\d+)/);
+    const bNum = b.name?.match(/(\d+)/);
+    
+    if (aNum && bNum) {
+      return Number.parseInt(aNum[1], 10) - Number.parseInt(bNum[1], 10);
+    }
+    
+    return (a.name || "").localeCompare(b.name || "");
+  });
+}
+```
+
+## Response Handler
+
+The `responseHandler` transforms documents before sending them in the response. Useful for:
+- Adding computed fields
+- Removing sensitive data
+- Formatting nested objects
+- Supporting deprecated fields
+
+```typescript
+responseHandler: async (
+  value: YourModelDocument | YourModelDocument[],
+  method: "list" | "create" | "read" | "update" | "delete"
+): Promise<JSONValue | null> => {
+  if (method === "list") {
+    const docs = value as YourModelDocument[];
+    return Promise.all(
+      docs.map(async (doc) => {
+        const capacity = await doc.getCapacity();
+        return {
+          ...doc.toJSON(),
+          capacity,  // Add computed field
+        };
+      })
+    );
+  } else {
+    const doc = value as YourModelDocument;
+    const capacity = await doc.getCapacity();
+    return {
+      ...doc.toJSON(),
+      capacity,
+    } as JSONValue;
+  }
+}
+```
+
+### Using responseSerializer Helper
+
+For simpler transformations, use the `responseSerializer` helper from `../apiUtils`:
+
+```typescript
+responseHandler: responseSerializer((req, method, doc) => {
+  const docJSON = doc.toObject();
+  
+  // Support deprecated field
+  if (isUndefined(docJSON.oldFieldName)) {
+    docJSON.oldFieldName = docJSON.newFieldName;
+  }
+  
+  return docJSON;
+})
+```
+
+## Additional Options
+
+### populatePaths
+
+Automatically populate referenced documents:
+
+```typescript
+populatePaths: [
+  {
+    path: "careTeam.Therapist",
+    openApiComponent: "LimitedUser",
+    fields: LIMITED_USER_FIELDS  // Limit which fields are returned
+  },
+  {
+    path: "careTeam.Psychiatrist",
+    openApiComponent: "LimitedUser",
+    fields: LIMITED_USER_FIELDS
+  },
+]
+```
+
+### queryFields
+
+Allow filtering on specific fields via query parameters:
+
+```typescript
+queryFields: [
+  "_id",
+  "type",
+  "name",
+  "userId",
+  "careTeam.Therapist",
+  "$or",  // Special operator for OR queries
+]
+```
+
+Users can then filter: `GET /yourModels?type=Special&userId=123`
+
+### queryFilter
+
+Apply additional filtering logic based on the authenticated user:
+
+```typescript
+queryFilter: async (user, query) => {
+  // Staff can see all, others only their own
+  if (!isStaff(user)) {
+    return {
+      ...query,
+      userId: user._id,
+    };
+  }
+  return query;
+}
+```
+
+### sort
+
+Default sorting for list results:
+
+```typescript
+sort: "name"           // Ascending by name
+sort: "-created"       // Descending by created date
+sort: {name: "asc"}    // Object notation
+sort: {datetime: "descending"}
+```
+
+### defaultLimit
+
+Set default pagination limit:
+
+```typescript
+defaultLimit: 50  // Default is usually 25
+```
+
+## Complete Example
+
+```typescript
+import express from "express";
+import {APIError, FernsRouterOptions, fernsRouter} from "ferns-api";
+
+import {AuditLogEvent, ReferralSource} from "../models";
+import {IsStaff} from "../permissions";
+import {ReferralSourceDocument, UserDocument} from "../types";
+
+export function referralSourcesRoutes(
+  router: express.Router,
+  options: Partial<FernsRouterOptions<any>>
+): void {
+  const referralSourceRouter = fernsRouter(ReferralSource, {
+    ...options,
+    permissions: {
+      list: [IsStaff],
+      create: [IsStaff],
+      read: [IsStaff],
+      update: [IsStaff],
+      delete: [IsStaff],
+    },
+    sort: "name",
+    queryFields: ["name", "type", "active"],
+    preCreate: async (referralSource, req) => {
+      // Set creator
+      referralSource.createdBy = (req.user as UserDocument)?._id;
+      
+      // Validate uniqueness
+      const existing = await ReferralSource.findOneOrNone({
+        name: referralSource.name
+      });
+      if (existing) {
+        throw new APIError({
+          status: 400,
+          title: "Referral source with this name already exists"
+        });
+      }
+      
+      return referralSource;
+    },
+    postCreate: async (referralSource, req): Promise<void> => {
+      await AuditLogEvent.createWithRequest({
+        eventName: "CreateReferralSource",
+        collectionModel: "ReferralSource",
+        isActivityLogEvent: true,
+        docId: referralSource._id,
+      }, req);
+    },
+    preUpdate: async (updateData, req) => {
+      const existing = await ReferralSource.findExactlyOne({
+        _id: req.params.id
+      });
+      
+      // Prevent changing internal key
+      if (existing.internalKey && updateData.internalKey !== existing.internalKey) {
+        updateData.internalKey = existing.internalKey;
+      }
+      
+      return updateData;
+    },
+    postUpdate: async (referralSource, _, req, prevValue): Promise<void> => {
+      await AuditLogEvent.createWithRequest({
+        eventName: "UpdateReferralSource",
+        collectionModel: "ReferralSource",
+        docId: referralSource._id,
+        payload: {
+          prevName: prevValue.name,
+          newName: referralSource.name,
+        },
+      }, req);
+    },
+  });
+
+  router.use("/referralSources", referralSourceRouter);
+}
+```
+
+## Export and Register Routes
+
+1. Export from `backend/src/api/index.ts`:
+
+```typescript
+export * from "./yourModel";
+```
+
+2. Register in `backend/src/server.ts` (or wherever routes are registered):
+
+```typescript
+import {yourModelRoutes} from "./api";
+
+yourModelRoutes(router, options);
+```
+
+## Generate SDK
+
+After creating or modifying model routes, ALWAYS run in the `app/` directory:
+
+```bash
+yarn sdk
+```
+
+This generates the TypeScript SDK and OpenAPI specification for the frontend to consume.
+
+## Best Practices
+
+1. **Permissions**: Always define explicit permissions for each operation. Use empty arrays `[]` to disable operations.
+
+2. **Hooks**: Use hooks for:
+   - Setting `createdBy` fields in `preCreate`
+   - Creating audit logs in `postCreate` and `postUpdate`
+   - Validating business rules in `preCreate` and `preUpdate`
+   - Cleaning up related data in `preDelete`
+   - Syncing with external services in `postCreate` and `postUpdate`
+
+3. **Error Handling**: Always throw `APIError` with appropriate status codes:
+   ```typescript
+   throw new APIError({status: 400, title: "User-friendly error message"});
+   ```
+
+4. **Logging**: Use `logger.info/warn/error/debug` for permanent logs (not `console.log`)
+
+5. **Types**: Always type request user: `req.user as UserDocument`
+
+6. **Async**: All hooks should be async and return the appropriate type
+
+7. **Audit Logs**: Create audit log entries for compliance-sensitive operations (see audit-logs rule)
+
+8. **Query Filtering**: Use `queryFilter` to enforce data access boundaries based on user role
+
+9. **Population**: Use `populatePaths` to include related documents and limit exposed fields with `LIMITED_USER_FIELDS`
+
+10. **Response Handler**: Only use when you need to transform data or add computed fields. Keep logic simple and performant.

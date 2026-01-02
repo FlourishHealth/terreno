@@ -1,0 +1,3 @@
+{
+  "setup-worktree": ["cd app && yarn install", "cd backend && yarn install"]
+}

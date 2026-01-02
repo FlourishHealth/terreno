@@ -1,0 +1,12 @@
+[test]
+# Preload setup file before running tests
+preload = ["./src/tests/setup.ts"]
+
+# Test environment configuration
+coverage = true
+coverageThreshold = 70
+coverageSkipTestFiles = true
+
+# Test file patterns
+testNamePattern = ".*\\.test\\.ts$"
+

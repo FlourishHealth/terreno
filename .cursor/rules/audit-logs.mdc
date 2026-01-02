@@ -1,0 +1,43 @@
+---
+description: Audit Logging
+globs: backend/**/*.ts
+alwaysApply: false
+---
+**Always create audit log entries** for compliance-sensitive operations including:
+  - **Patient data modifications** (user profile updates, medical information changes)
+  - **Clinical documentation** (notes creation/editing, form submissions, care plan changes)
+  - **Access control changes** (role assignments, permission updates, care team modifications)
+  - **Authentication events** (login/logout, password changes, account activations)
+  - **Data exports or sharing** (reports generated, data sent to external systems)
+  - **Administrative actions** (user account creation/deletion, system configuration changes)
+
+For new audit logs, add a static method to backend/src/models/auditLogEvent. 
+Add a descriptive eventName key and value or function to userFriendlyEventDescriptions.
+
+For example:
+
+```
+// userFriendlyEventDescriptions
+  UpdateTherapyCadence: "updated Therapy Cadence for",
+
+// Static method
+async createTherapyCadenceEvent(
+    user: UserDocument,
+    authUser: UserDocument | "SystemAutomation",
+    prevCadence: string,
+    newCadence: string
+  ): Promise<void> {
+    return await AuditLogEvent.createWithChildEvents({
+        eventName: "UpdateTherapyCadence",
+        authUserId: authUser._id,
+        authUserType: authUser.type,
+        appliedUserId: user._id,
+        collectionModel: "User",
+        docId: user._id,
+        payload: {
+          prevValue: prevCadence,
+          newValue: newCadence,
+        },
+      });
+  }
+```
