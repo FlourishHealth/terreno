@@ -130,7 +130,7 @@ export const BooleanField: FC<BooleanFieldProps> = ({
                 />
               </Animated.View>
             </Animated.View>
-            {variant === "title" && <Text size="md">FUCK {value ? "Yes" : "No"}</Text>}
+            {variant === "title" && <Text size="md">{value ? "Yes" : "No"}</Text>}
           </View>
         </TouchableWithoutFeedback>
       </View>

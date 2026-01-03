@@ -76,6 +76,17 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
   );
+} else if (process.env.EXPO_PUBLIC_API_URL) {
+   // For dev web
+  baseUrl = process.env.EXPO_PUBLIC_API_URL;
+  baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
+  baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
+
+  console.info(
+    `Base URL set to apiUrl ${baseUrl} for env ${
+      Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
+    }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
+  );
 } else if (Constants.expoConfig?.hostUri) {
   // For dev simulator/device
   baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}`;

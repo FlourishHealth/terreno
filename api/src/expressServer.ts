@@ -305,7 +305,7 @@ export function setupServer(options: SetupServerOptions) {
     const port = process.env.PORT || "9000";
     try {
       app.listen(port, () => {
-        logger.info(`Listening at on port ${port}`);
+        logger.info(`Listening on port ${port}`);
       });
     } catch (error) {
       logger.error(`Error trying to start HTTP server: ${error}\n${(error as any).stack}`);

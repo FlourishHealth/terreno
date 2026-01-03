@@ -9,7 +9,7 @@ const isDevelopment = process.env.NODE_ENV === "development" || process.env.NODE
 const ignoredErrors = [
   "Account locked due to too many failed login attempts",
   "Password or username is incorrect",
-  "No token found for",
+  // "No token found for",
   "User interaction is not allowed",
   "Token refresh failed with 401",
   "Failed to refresh token",

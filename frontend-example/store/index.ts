@@ -42,7 +42,7 @@ const createSafeStorage = (): Storage => {
 };
 
 const persistConfig = {
-  blacklist: ["tracking", "terrenoApi", "profiles", "localFormInstance"],
+  blacklist: ["tracking", "terreno-rtk", "profiles"],
   key: "root",
   storage: createSafeStorage(),
   timeout: 0, // The code base checks for falsy, so 0 disables
@@ -52,7 +52,8 @@ const persistConfig = {
 const rootReducer = combineReducers({
   appState,
   auth: authSlice.authReducer,
-  terrenoApi: terrenoApi.reducer,
+  // Must match the reducerPath in @terreno/rtk's emptySplitApi ("terreno-rtk")
+  "terreno-rtk": terrenoApi.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

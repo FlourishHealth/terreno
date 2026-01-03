@@ -118,7 +118,7 @@ Releases are typically done after each pull request is merged to keep the packag
 
 ### Publishing a new version
 
-1. Go to the [GitHub releases page](https://github.com/FlourishHealth/ferns-ui/releases)
+1. Go to the [GitHub releases page](https://github.com/FlourishHealth/terreno/releases)
 2. Click "Draft a new release"
 3. Create a new tag with a version number (usually a minor version bump, e.g., `1.11.0`)
 4. Use the "Generate release notes" button to auto-populate the description
@@ -137,16 +137,16 @@ After publishing the release, the following happens automatically via `.github/w
 
 After the release is published, you'll get a PR that updates the version in `package.json`. You can approve and merge this PR yourself.
 
-### Using the new version in flourish
+### Using the new version in your app
 
-To use your newly released version of ferns-ui in the flourish app:
+To use your newly released version of @terreno/ui in your app:
 
-1. Navigate to the flourish repository
-2. Update the `ferns-ui` version in `app/package.json`:
+1. Navigate to your repository
+2. Update the `@terreno/ui` version in `app/package.json`:
    ```json
-   "ferns-ui": "1.11.0"
+   "@terreno/ui: "1.11.0"
    ```
-3. Run `yarn install` in the `app/` directory
+3. Run `bun install` in the `app/` directory
 4. Create a PR with this change (requires team member approval)
 
 

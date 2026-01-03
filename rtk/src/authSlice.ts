@@ -165,7 +165,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
       ) {
         if (!IsWeb) {
           if (!action.payload.token) {
-            console.error("No token found in app login response.");
+            console.error("No token found in app login response.", action.payload);
             return;
           }
           try {
@@ -178,7 +178,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
           }
         } else {
           if (!action.payload.token) {
-            console.error("No token found in web login response.");
+            console.error("No token found in web login response.", action.payload);
             return;
           }
           // On web, we don't have secure storage, and cookie support is not in Expo yet,
@@ -200,7 +200,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId}));
       }
     },
-    type: "ferns-rtk/executeMutation/fulfilled",
+    type: "terreno-rtk/executeMutation/fulfilled",
   });
 
   // const clearLocalStorage = async (): Promise<void> => {

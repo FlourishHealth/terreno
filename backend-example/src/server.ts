@@ -1,6 +1,8 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/node";
 import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
+import {addTodoRoutes} from "./api/todos";
+import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
@@ -11,8 +13,10 @@ const addMiddleware: AddRoutes = (_router, _options) => {
   // Add middleware here
 };
 
-const addRoutes: AddRoutes = (_router, _options): void => {
-  // Add routes here
+const addRoutes: AddRoutes = (router, options): void => {
+  // Add API routes with OpenAPI middleware
+  addTodoRoutes(router, options);
+  addUserRoutes(router, options);
 };
 
 // Return type uses ReturnType to match what setupServer actually returns

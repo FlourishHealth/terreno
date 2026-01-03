@@ -41,10 +41,38 @@ export interface OutboundCallArgs {
   callRecipient: {phoneNumber?: string; id?: string; name?: string};
 }
 
+// Profile response type
+export interface ProfileResponse {
+  _id: string;
+  id: string;
+  email: string;
+  name: string;
+}
+
+// Profile update request type
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+}
+
 export const terrenoApi = openapi
   .injectEndpoints({
-    endpoints: (_builder) => ({
-      // Add any additional endpoints here.
+    endpoints: (builder) => ({
+      // Get current user profile
+      getMe: builder.query<ProfileResponse, void>({
+        query: () => ({
+          method: "GET",
+          url: "/auth/me",
+        }),
+      }),
+      // Update current user profile
+      patchMe: builder.mutation<ProfileResponse, UpdateProfileRequest>({
+        query: (body) => ({
+          body,
+          method: "PATCH",
+          url: "/auth/me",
+        }),
+      }),
     }),
   })
   // Enhance endpoints is where we can add different tags to endpoints and more complex
@@ -63,6 +91,8 @@ export const {
   useCreateEmailUserMutation,
   useEmailSignUpMutation,
   useResetPasswordMutation,
+  useGetMeQuery,
+  usePatchMeMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
 

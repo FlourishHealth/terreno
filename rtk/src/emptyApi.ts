@@ -205,6 +205,7 @@ const staggeredBaseQuery = retry(
     await mutex.waitForUnlock();
     let token = await getAuthToken();
 
+    console.log("TOKEN", token, api.endpoint);
     if (!token && ["emailLogin", "googleLogin", "getZoomSignature"].includes(api.endpoint)) {
       // just pass thru the request without a token if it is a login request
       return getBaseQuery(args, api, extraOptions, token);
@@ -330,5 +331,5 @@ export const emptySplitApi = createApi({
     // biome-ignore lint/suspicious/noExplicitAny: Generic
     ...generateProfileEndpoints(builder as any, "users"), // using 'users' here since it is highly intertwined with Users
   }),
-  reducerPath: "ferns-rtk",
+  reducerPath: "terreno-rtk",
 });
