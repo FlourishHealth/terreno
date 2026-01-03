@@ -243,7 +243,6 @@ const staggeredBaseQuery = retry(
           log(`Token refreshed: ${token}`);
           api.dispatch({type: TOKEN_REFRESHED_SUCCESS});
         } catch (error: unknown) {
-          // if it is of type AxiosError
           if (axios.isAxiosError(error)) {
             // if it is a Network Error, don't auto log out and just let the next request go
             // through

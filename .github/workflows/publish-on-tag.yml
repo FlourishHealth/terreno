@@ -447,7 +447,7 @@ jobs:
           UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
 
       - name: Install dependencies after replacement
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Compile
         run: bun run compile
