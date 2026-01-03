@@ -7,7 +7,7 @@ export const TOKEN_REFRESHED_SUCCESS = "auth/tokenRefreshedSuccess";
 
 export const AUTH_DEBUG = Constants.expoConfig?.extra?.AUTH_DEBUG === "true";
 if (AUTH_DEBUG) {
-  console.info("AUTH_DEBUG is enabled");
+  console.debug("AUTH_DEBUG is enabled");
 }
 
 export const logAuth = (...args: string[]): void => {
@@ -20,7 +20,7 @@ export const logAuth = (...args: string[]): void => {
 // Can also be enabled by user feature flag.
 const WEBSOCKETS_DEBUG = Constants.expoConfig?.extra?.WEBSOCKETS_DEBUG === "true";
 if (WEBSOCKETS_DEBUG) {
-  console.info("WEBSOCKETS_DEBUG is enabled");
+  console.debug("WEBSOCKETS_DEBUG is enabled");
 }
 
 // Handy debug logging for websockets, enabled by user.featureFlags.debugWebsockets.enabled or passing in true.
