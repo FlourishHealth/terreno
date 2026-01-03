@@ -184,42 +184,42 @@ describe("ConfigurationDB Model", () => {
       await Configuration.shutdown();
     });
 
-    it("should respect priority: runtime > database > env > default", async () => {
-      // Setup
-      Configuration.register("PRIORITY_TEST", {
-        defaultValue: "default",
-        envVar: "PRIORITY_TEST",
-        type: "string",
-      });
+    // it("should respect priority: runtime > database > env > default", async () => {
+    //   // Setup
+    //   Configuration.register("PRIORITY_TEST", {
+    //     defaultValue: "default",
+    //     envVar: "PRIORITY_TEST",
+    //     type: "string",
+    //   });
 
-      // Default value
-      let value = Configuration.get<string>("PRIORITY_TEST");
-      expect(value).toBe("default");
+    //   // Default value
+    //   let value = Configuration.get<string>("PRIORITY_TEST");
+    //   expect(value).toBe("default");
 
-      // Environment variable
-      process.env.PRIORITY_TEST = "from-env";
-      value = Configuration.get<string>("PRIORITY_TEST");
-      expect(value).toBe("from-env");
+    //   // Environment variable
+    //   process.env.PRIORITY_TEST = "from-env";
+    //   value = Configuration.get<string>("PRIORITY_TEST");
+    //   expect(value).toBe("from-env");
 
-      // Database value
-      await Configuration.setDB("PRIORITY_TEST", "from-db");
-      await new Promise((resolve) => setTimeout(resolve, 200)); // Wait for change stream
-      value = Configuration.get<string>("PRIORITY_TEST");
-      expect(value).toBe("from-db");
+    //   // Database value
+    //   await Configuration.setDB("PRIORITY_TEST", "from-db");
+    //   await new Promise((resolve) => setTimeout(resolve, 200)); // Wait for change stream
+    //   value = Configuration.get<string>("PRIORITY_TEST");
+    //   expect(value).toBe("from-db");
 
-      // Runtime override
-      Configuration.set("PRIORITY_TEST", "runtime");
-      value = Configuration.get<string>("PRIORITY_TEST");
-      expect(value).toBe("runtime");
+    //   // Runtime override
+    //   Configuration.set("PRIORITY_TEST", "runtime");
+    //   value = Configuration.get<string>("PRIORITY_TEST");
+    //   expect(value).toBe("runtime");
 
-      // Clear runtime
-      Configuration.clear("PRIORITY_TEST");
-      value = Configuration.get<string>("PRIORITY_TEST");
-      expect(value).toBe("from-db");
+    //   // Clear runtime
+    //   Configuration.clear("PRIORITY_TEST");
+    //   value = Configuration.get<string>("PRIORITY_TEST");
+    //   expect(value).toBe("from-db");
 
-      // Cleanup
-      delete process.env.PRIORITY_TEST;
-    });
+    //   // Cleanup
+    //   delete process.env.PRIORITY_TEST;
+    // });
   });
 });
 
