@@ -36,7 +36,7 @@ const userSchema = new Schema<User>({
   username: String,
 });
 
-userSchema.plugin(passportLocalMongoose, {usernameField: "email"});
+userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(baseUserPlugin);
 const UserModel = model<User>("User", userSchema);

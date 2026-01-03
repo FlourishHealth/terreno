@@ -801,14 +801,14 @@ describe("@terreno/api", () => {
     beforeEach(async () => {
       [admin, notAdmin, adminOther] = await setupDb();
 
-      [spinach, apple, carrots, pizza] = await Promise.all([
+      const results = await Promise.all([
         FoodModel.create({
           calories: 1,
           created: new Date("2021-12-03T00:00:20.000Z"),
           eatenBy: [admin._id],
           hidden: false,
           lastEatenWith: {
-            dressing: "2021-12-03T19:00:30.000Z",
+            dressing: new Date("2021-12-03T19:00:30.000Z"),
           },
           name: "Spinach",
           ownerId: notAdmin._id,
@@ -847,7 +847,8 @@ describe("@terreno/api", () => {
           ownerId: admin._id,
           tags: ["cheap"],
         }),
-      ]);
+      ]) as [Food, Food, Food, Food];
+      [spinach, apple, carrots, pizza] = results;
       app = getBaseServer();
       setupAuth(app, UserModel as any);
       addAuthRoutes(app, UserModel as any);

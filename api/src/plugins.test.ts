@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
-import {type Document, type FilterQuery, type Model, model, Schema} from "mongoose";
+import {type Document, type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 import {modelRouter} from "./api";
@@ -12,12 +12,13 @@ import {
   DateOnly,
   findExactlyOne,
   findOneOrNone,
+  IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
 } from "./plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "./tests";
 
-interface Stuff {
+interface Stuff extends IsDeleted {
   _id: string;
   name: string;
   ownerId: string;
@@ -28,11 +29,11 @@ interface Stuff {
 
 interface StuffModelType extends Model<Stuff> {
   findOneOrNone(
-    query: FilterQuery<Stuff>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & Stuff) | null>;
   findExactlyOne(
-    query: FilterQuery<Stuff>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & Stuff>;
 }

@@ -405,9 +405,16 @@ export function modelRouter<T>(
           });
         }
       }
+      if (body === undefined) {
+        throw new APIError({
+          detail: "Body is undefined",
+          status: 400,
+          title: "Invalid request body",
+        });
+      }
       let data;
       try {
-        data = await model.create(body);
+        data = await model.create(body as any);
       } catch (error: any) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
@@ -997,7 +1004,7 @@ export function modelRouter<T>(
     return arrayOperation(req, res, "DELETE");
   }
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(baseModel.schema.paths).find((config) => config.instance === "Array")) {
+  if (Object.values(baseModel.schema.paths).find((config: any) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),
