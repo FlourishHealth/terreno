@@ -428,7 +428,7 @@ jobs:
       (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: main
 
@@ -457,7 +457,7 @@ jobs:
           fi
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore: bump package versions to ${{ needs.check-changes.outputs.version }}"
           committer: GitHub <noreply@github.com>
