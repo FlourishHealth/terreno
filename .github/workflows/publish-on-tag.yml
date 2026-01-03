@@ -175,8 +175,10 @@ jobs:
         run: echo "Published @terreno/ui@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   publish-rtk:
-    needs: check-changes
-    if: needs.check-changes.outputs.rtk_changed == 'true'
+    needs: [check-changes, publish-ui]
+    if: |
+      needs.check-changes.outputs.rtk_changed == 'true' &&
+      (needs.check-changes.outputs.ui_changed == 'false' || needs.publish-ui.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
