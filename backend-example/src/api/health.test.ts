@@ -1,6 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: tests
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 import type {Request, Response} from "express";
 import {User} from "../models/user";
 import {GET} from "./health";
@@ -51,10 +50,10 @@ describe("Health API", () => {
 
       await GET(req as Request, res as Response);
 
-      assert.exists(res);
-      assert.strictEqual(res.jsonData?.status, "ok");
-      assert.exists(res.jsonData?.timestamp);
-      assert.strictEqual(res.jsonData?.userCount, 1);
+      expect(res).toBeDefined();
+      expect(res.jsonData?.status).toBe("ok");
+      expect(res.jsonData?.timestamp).toBeDefined();
+      expect(res.jsonData?.userCount).toBe(1);
     });
 
     it("should throw error when no users exist", async () => {
@@ -63,11 +62,11 @@ describe("Health API", () => {
 
       try {
         await GET(req as Request, res as Response);
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: unknown) {
         const err = error as {status?: number; title?: string};
-        assert.exists(err.status);
-        assert.strictEqual(err.status, 503);
+        expect(err.status).toBeDefined();
+        expect(err.status).toBe(503);
         assert.include(err.title?.toLowerCase() ?? "", "no users found");
       }
     });
@@ -85,9 +84,9 @@ describe("Health API", () => {
       await GET(req as Request, res as Response);
       const after = new Date();
 
-      assert.exists(res.jsonData?.timestamp);
+      expect(res.jsonData?.timestamp).toBeDefined();
       const timestamp = new Date(res.jsonData?.timestamp);
-      assert.isTrue(timestamp >= before && timestamp <= after);
+      expect(timestamp >= before && timestamp <= after).toBe(true);
     });
 
     it("should only fetch one user", async () => {
@@ -103,8 +102,8 @@ describe("Health API", () => {
 
       await GET(req as Request, res as Response);
 
-      assert.exists(res.jsonData);
-      assert.strictEqual(res.jsonData?.userCount, 1);
+      expect(res.jsonData).toBeDefined();
+      expect(res.jsonData?.userCount).toBe(1);
     });
   });
 });

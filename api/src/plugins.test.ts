@@ -1,19 +1,12 @@
-import {beforeEach, describe, it, setSystemTime} from "bun:test";
-import chai, {assert} from "chai";
-import chaiAsPromised from "chai-as-promised";
+import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import {type Document, type FilterQuery, type Model, model, Schema} from "mongoose";
-
-import type {APIErrorConstructor} from "./errors";
-import {Permissions} from "./permissions";
-
-chai.use(chaiAsPromised);
-
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
+import type {APIErrorConstructor} from "./errors";
+import {Permissions} from "./permissions";
 import {
   createdUpdatedPlugin,
   DateOnly,
@@ -63,17 +56,17 @@ describe("createdUpdate", () => {
     setSystemTime(new Date("2022-12-17T03:24:00.000Z"));
 
     const stuff = await StuffModel.create({name: "Things", ownerId: "123"});
-    assert.isNotNull(stuff.created);
-    assert.isNotNull(stuff.updated);
-    assert.equal(stuff.created.toISOString(), "2022-12-17T03:24:00.000Z");
-    assert.equal(stuff.updated?.toISOString(), "2022-12-17T03:24:00.000Z");
+    expect(stuff.created).not.toBeNull();
+    expect(stuff.updated).not.toBeNull();
+    expect(stuff.created.toISOString()).toBe("2022-12-17T03:24:00.000Z");
+    expect(stuff.updated?.toISOString()).toBe("2022-12-17T03:24:00.000Z");
 
     stuff.name = "Thangs";
     // Advance time by 10 seconds
     setSystemTime(new Date("2022-12-17T03:24:10.000Z"));
     await stuff.save();
-    assert.equal(stuff.created.toISOString(), "2022-12-17T03:24:00.000Z");
-    assert.isTrue(stuff.updated && stuff.updated > stuff.created);
+    expect(stuff.created.toISOString()).toBe("2022-12-17T03:24:00.000Z");
+    expect(stuff.updated && stuff.updated > stuff.created).toBe(true);
     setSystemTime();
   });
 });
@@ -96,20 +89,20 @@ describe("isDeleted", () => {
 
   it('filters out deleted documents from "find"', async () => {
     let stuff = await StuffModel.find({});
-    assert.lengthOf(stuff, 1);
-    assert.equal(stuff[0].name, "StuffNThings");
+    expect(stuff).toHaveLength(1);
+    expect(stuff[0].name).toBe("StuffNThings");
     // Providing deleted in query should return deleted documents:
     stuff = await StuffModel.find({deleted: true});
-    assert.lengthOf(stuff, 1);
-    assert.equal(stuff[0].name, "Things");
+    expect(stuff).toHaveLength(1);
+    expect(stuff[0].name).toBe("Things");
   });
 
   it('filters out deleted documents from "findOne"', async () => {
     let stuff = await StuffModel.findOne({});
-    assert.equal(stuff?.name, "StuffNThings");
+    expect(stuff?.name).toBe("StuffNThings");
     // Providing deleted in query should return deleted document:
     stuff = await StuffModel.findOne({deleted: true});
-    assert.equal(stuff?.name, "Things");
+    expect(stuff?.name).toBe("Things");
   });
 });
 
@@ -134,18 +127,18 @@ describe("findOneOrNone", () => {
 
   it("returns null with no matches.", async () => {
     const result = await StuffModel.findOneOrNone({name: "OtherStuff"});
-    assert.isNull(result);
+    expect(result).toBeNull();
   });
 
   it("returns a single match", async () => {
     const result = await StuffModel.findOneOrNone({name: "Things"});
-    assert.isNotNull(result);
-    assert.equal(result?._id.toString(), things._id.toString());
+    expect(result).not.toBeNull();
+    expect(result?._id.toString()).toBe(things._id.toString());
   });
 
   it("throws error with two matches.", async () => {
     const fn = () => StuffModel.findOneOrNone({ownerId: "123"});
-    await assert.isRejected(fn(), /Stuff\.findOne query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/Stuff\.findOne query returned multiple documents/);
   });
 
   it("throws custom error with two matches.", async () => {
@@ -154,12 +147,12 @@ describe("findOneOrNone", () => {
     try {
       await fn();
       // If the promise doesn't reject, the test should fail
-      assert.fail("Expected promise to reject");
+      throw new Error("Expected promise to reject");
     } catch (error: any) {
       // Check if the error has title and status properties
-      assert.equal(error.title, "Oh no!");
-      assert.equal(error.status, 400);
-      assert.equal(error.detail, 'query: {"ownerId":"123"}');
+      expect(error.title).toBe("Oh no!");
+      expect(error.status).toBe(400);
+      expect(error.detail).toBe('query: {"ownerId":"123"}');
     }
   });
 });
@@ -185,17 +178,17 @@ describe("findExactlyOne", () => {
 
   it("throws error with no matches.", async () => {
     const fn = () => StuffModel.findExactlyOne({name: "OtherStuff"});
-    await assert.isRejected(fn(), /Stuff\.findExactlyOne query returned no documents/);
+    await expect(fn()).rejects.toThrow(/Stuff\.findExactlyOne query returned no documents/);
   });
 
   it("returns a single match", async () => {
     const result = await StuffModel.findExactlyOne({name: "Things"});
-    assert.equal(result._id.toString(), things._id.toString());
+    expect(result._id.toString()).toBe(things._id.toString());
   });
 
   it("throws error with two matches.", async () => {
     const fn = () => StuffModel.findExactlyOne({ownerId: "123"});
-    await assert.isRejected(fn(), /Stuff\.findExactlyOne query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/Stuff\.findExactlyOne query returned multiple documents/);
   });
 
   it("throws custom error with two matches.", async () => {
@@ -204,12 +197,12 @@ describe("findExactlyOne", () => {
     try {
       await fn();
       // If the promise doesn't reject, the test should fail
-      assert.fail("Expected promise to reject");
+      throw new Error("Expected promise to reject");
     } catch (error: any) {
       // Check if the error has title and status properties
-      assert.equal(error.title, "Oh no!");
-      assert.equal(error.status, 400);
-      assert.equal(error.detail, 'query: {"ownerId":"123"}');
+      expect(error.title).toBe("Oh no!");
+      expect(error.status).toBe(400);
+      expect(error.detail).toBe('query: {"ownerId":"123"}');
     }
   });
 });
@@ -222,12 +215,12 @@ describe("upsertPlugin", () => {
 
   it("creates a new document when none exists", async () => {
     const result = await (StuffModel as any).upsert({name: "NewThing"}, {ownerId: "456"});
-    assert.equal(result.name, "NewThing");
-    assert.equal(result.ownerId, "456");
+    expect(result.name).toBe("NewThing");
+    expect(result.ownerId).toBe("456");
 
     const found = await StuffModel.findOne({name: "NewThing"});
-    assert.isNotNull(found);
-    assert.equal(found?.ownerId, "456");
+    expect(found).not.toBeNull();
+    expect(found?.ownerId).toBe("456");
   });
 
   it("updates existing document when one exists", async () => {
@@ -238,12 +231,12 @@ describe("upsertPlugin", () => {
 
     const result = await (StuffModel as any).upsert({name: "ExistingThing"}, {ownerId: "789"});
 
-    assert.equal(result._id.toString(), initial._id.toString());
-    assert.equal(result.ownerId, "789");
+    expect(result._id.toString()).toBe(initial._id.toString());
+    expect(result.ownerId).toBe("789");
 
     const allDocs = await StuffModel.find({name: "ExistingThing"});
-    assert.lengthOf(allDocs, 1);
-    assert.equal(allDocs[0].ownerId, "789");
+    expect(allDocs).toHaveLength(1);
+    expect(allDocs[0].ownerId).toBe("789");
   });
 
   it("throws error when multiple documents match conditions", async () => {
@@ -253,14 +246,14 @@ describe("upsertPlugin", () => {
     ]);
 
     const fn = () => (StuffModel as any).upsert({ownerId: "123"}, {name: "Updated"});
-    await assert.isRejected(fn(), /Stuff\.upsert find query returned multiple documents/);
+    await expect(fn()).rejects.toThrow(/Stuff\.upsert find query returned multiple documents/);
   });
 
   it("combines conditions and update data for new documents", async () => {
     const result = await (StuffModel as any).upsert({name: "TestCondition"}, {ownerId: "999"});
 
-    assert.equal(result.name, "TestCondition");
-    assert.equal(result.ownerId, "999");
+    expect(result.name).toBe("TestCondition");
+    expect(result.ownerId).toBe("999");
   });
 });
 
@@ -289,22 +282,22 @@ describe("TypeScript return types", () => {
     const result = await StuffModel.findOneOrNone({name: "Things"});
 
     if (result) {
-      assert.isString(result._id.toString());
-      assert.isString(result.name);
-      assert.isString(result.ownerId);
-      assert.instanceOf(result.date, Date);
+      expect(typeof result._id.toString()).toBe("string");
+      expect(typeof result.name).toBe("string");
+      expect(typeof result.ownerId).toBe("string");
+      expect(result.date).toBeInstanceOf(Date);
     } else {
-      assert.isNull(result);
+      expect(result).toBeNull();
     }
   });
 
   it("findExactlyOne returns properly typed document", async () => {
     const result = await StuffModel.findExactlyOne({name: "Things"});
 
-    assert.isString(result._id.toString());
-    assert.isString(result.name);
-    assert.isString(result.ownerId);
-    assert.instanceOf(result.date, Date);
+    expect(typeof result._id.toString()).toBe("string");
+    expect(typeof result.name).toBe("string");
+    expect(typeof result.ownerId).toBe("string");
+    expect(result.date).toBeInstanceOf(Date);
   });
 });
 describe("DateOnly", () => {
@@ -316,10 +309,10 @@ describe("DateOnly", () => {
         ownerId: "123",
       });
     } catch (error: any) {
-      assert.match(error.message, /Cast to DateOnly failed/);
+      expect(error.message).toMatch(/Cast to DateOnly failed/);
       return;
     }
-    assert.fail("Expected error was not thrown");
+    throw new Error("Expected error was not thrown");
   });
 
   it("adjusts date to date only", async () => {
@@ -328,7 +321,7 @@ describe("DateOnly", () => {
       name: "Things",
       ownerId: "123",
     });
-    assert.strictEqual(res.date.toISOString(), "2005-10-10T00:00:00.000Z");
+    expect(res.date.toISOString()).toBe("2005-10-10T00:00:00.000Z");
   });
 
   it("filter on date only", async () => {
@@ -343,14 +336,14 @@ describe("DateOnly", () => {
         $lt: "2001-01-01T00:00:00.000Z",
       },
     });
-    assert.strictEqual(found?.date.toISOString(), "2000-10-10T00:00:00.000Z");
+    expect(found?.date.toISOString()).toBe("2000-10-10T00:00:00.000Z");
     found = await StuffModel.findOne({
       date: {
         $gte: "2000-01-01T12:12:12.000Z",
         $lt: "2001-01-01T12:12:12.000Z",
       },
     });
-    assert.strictEqual(found?.date.toISOString(), "2000-10-10T00:00:00.000Z");
+    expect(found?.date.toISOString()).toBe("2000-10-10T00:00:00.000Z");
   });
 
   describe("handle 404", () => {
@@ -382,15 +375,15 @@ describe("DateOnly", () => {
     it("returns 404 with context for hidden document", async () => {
       const doc = await StuffModel.create({deleted: true, name: "test"});
       const res = await agent.get(`/stuff/${doc._id}`).expect(404);
-      assert.equal(res.body.title, `Document ${doc._id} not found for model Stuff`);
-      assert.deepEqual(res.body.meta, {deleted: "true"});
+      expect(res.body.title).toBe(`Document ${doc._id} not found for model Stuff`);
+      expect(res.body.meta).toEqual({deleted: "true"});
     });
 
     it("returns 404 without meta for missing document", async () => {
       const nonExistentId = "507f1f77bcf86cd799439011";
       const res = await agent.get(`/stuff/${nonExistentId}`).expect(404);
-      assert.equal(res.body.title, `Document ${nonExistentId} not found for model Stuff`);
-      assert.isUndefined(res.body.meta);
+      expect(res.body.title).toBe(`Document ${nonExistentId} not found for model Stuff`);
+      expect(res.body.meta).toBeUndefined();
     });
   });
 });

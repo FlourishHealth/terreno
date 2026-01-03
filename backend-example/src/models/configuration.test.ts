@@ -1,6 +1,4 @@
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
-
-import {assert} from "chai";
 import {connectToMongoDB} from "../utils/database";
 import {Configuration, ConfigurationDB} from "./configuration";
 
@@ -23,9 +21,9 @@ describe("ConfigurationDB Model", () => {
     it("should create a new configuration", async () => {
       const config = await ConfigurationDB.setValue("TEST_KEY", "test-value");
 
-      assert.strictEqual(config.key, "TEST_KEY");
-      assert.strictEqual(config.value, "test-value");
-      assert.strictEqual(config.type, "string");
+      expect(config.key).toBe("TEST_KEY");
+      expect(config.value).toBe("test-value");
+      expect(config.type).toBe("string");
     });
 
     it("should update existing configuration", async () => {
@@ -35,22 +33,22 @@ describe("ConfigurationDB Model", () => {
       // Update
       const updated = await ConfigurationDB.setValue("TEST_KEY", "updated");
 
-      assert.strictEqual(updated.value, "updated");
+      expect(updated.value).toBe("updated");
 
       // Verify only one document exists
       const allConfigs = await ConfigurationDB.find({key: "TEST_KEY"});
-      assert.strictEqual(allConfigs.length, 1);
+      expect(allConfigs.length).toBe(1);
     });
 
     it("should infer type from value", async () => {
       const stringConfig = await ConfigurationDB.setValue("STRING_KEY", "text");
-      assert.strictEqual(stringConfig.type, "string");
+      expect(stringConfig.type).toBe("string");
 
       const numberConfig = await ConfigurationDB.setValue("NUMBER_KEY", 42);
-      assert.strictEqual(numberConfig.type, "number");
+      expect(numberConfig.type).toBe("number");
 
       const boolConfig = await ConfigurationDB.setValue("BOOL_KEY", true);
-      assert.strictEqual(boolConfig.type, "boolean");
+      expect(boolConfig.type).toBe("boolean");
     });
   });
 
@@ -60,14 +58,14 @@ describe("ConfigurationDB Model", () => {
 
       const config = await ConfigurationDB.getByKey("MY_KEY");
 
-      assert.isNotNull(config);
-      assert.strictEqual(config?.key, "MY_KEY");
-      assert.strictEqual(config?.value, "my-value");
+      expect(config).not.toBeNull();
+      expect(config?.key).toBe("MY_KEY");
+      expect(config?.value).toBe("my-value");
     });
 
     it("should return null for non-existent key", async () => {
       const config = await ConfigurationDB.getByKey("NONEXISTENT");
-      assert.isNull(config);
+      expect(config).toBeNull();
     });
   });
 
@@ -76,7 +74,7 @@ describe("ConfigurationDB Model", () => {
       const config = await ConfigurationDB.setValue("TEST_KEY", "test-value");
 
       const value = config.getValue();
-      assert.strictEqual(value, "test-value");
+      expect(value).toBe("test-value");
     });
   });
 
@@ -85,7 +83,7 @@ describe("ConfigurationDB Model", () => {
       await Configuration.setDB("DB_TEST", "from-db");
 
       const config = await ConfigurationDB.getByKey("DB_TEST");
-      assert.strictEqual(config?.value, "from-db");
+      expect(config?.value).toBe("from-db");
     });
 
     it("should validate configuration when setting via Configuration.setDB", async () => {
@@ -97,23 +95,23 @@ describe("ConfigurationDB Model", () => {
       // Valid value should work
       await Configuration.setDB("VALIDATED_CONFIG", 50);
       const config = await ConfigurationDB.getByKey("VALIDATED_CONFIG");
-      assert.strictEqual(config?.value, 50);
+      expect(config?.value).toBe(50);
 
       // Invalid value should throw
       try {
         await Configuration.setDB("VALIDATED_CONFIG", 150);
-        assert.fail("Should have thrown validation error");
+        throw new Error("Should have thrown validation error");
       } catch (error) {
-        assert.include((error as Error).message, "validation failed");
+        expect((error as Error).message).toContain("validation failed");
       }
     });
 
     it("should reject undefined values", async () => {
       try {
         await Configuration.setDB("TEST_KEY", null);
-        assert.fail("Should have thrown error for undefined value");
+        throw new Error("Should have thrown error for undefined value");
       } catch (error) {
-        assert.include((error as Error).message, "Cannot set undefined");
+        expect((error as Error).message).toContain("Cannot set undefined");
       }
     });
   });
@@ -136,7 +134,7 @@ describe("ConfigurationDB Model", () => {
 
       // Should be in cache
       const cachedValue = Configuration.get<string>("STREAM_TEST");
-      assert.strictEqual(cachedValue, "initial");
+      expect(cachedValue).toBe("initial");
 
       // Update in database
       await ConfigurationDB.setValue("STREAM_TEST", "updated");
@@ -146,7 +144,7 @@ describe("ConfigurationDB Model", () => {
 
       // Cache should be updated
       const updatedValue = Configuration.get<string>("STREAM_TEST");
-      assert.strictEqual(updatedValue, "updated");
+      expect(updatedValue).toBe("updated");
     });
 
     it("should cache configuration on initialization", async () => {
@@ -160,9 +158,9 @@ describe("ConfigurationDB Model", () => {
 
       // Check cache has all values
       const dbCache = Configuration.getDBCache();
-      assert.strictEqual(dbCache.PRELOAD_1, "value1");
-      assert.strictEqual(dbCache.PRELOAD_2, 42);
-      assert.strictEqual(dbCache.PRELOAD_3, true);
+      expect(dbCache.PRELOAD_1).toBe("value1");
+      expect(dbCache.PRELOAD_2).toBe(42);
+      expect(dbCache.PRELOAD_3).toBe(true);
     });
   });
 
@@ -185,28 +183,28 @@ describe("ConfigurationDB Model", () => {
 
       // Default value
       let value = Configuration.get<string>("PRIORITY_TEST");
-      assert.strictEqual(value, "default");
+      expect(value).toBe("default");
 
       // Environment variable
       process.env.PRIORITY_TEST = "from-env";
       value = Configuration.get<string>("PRIORITY_TEST");
-      assert.strictEqual(value, "from-env");
+      expect(value).toBe("from-env");
 
       // Database value
       await Configuration.setDB("PRIORITY_TEST", "from-db");
       await new Promise((resolve) => setTimeout(resolve, 200)); // Wait for change stream
       value = Configuration.get<string>("PRIORITY_TEST");
-      assert.strictEqual(value, "from-db");
+      expect(value).toBe("from-db");
 
       // Runtime override
       Configuration.set("PRIORITY_TEST", "runtime");
       value = Configuration.get<string>("PRIORITY_TEST");
-      assert.strictEqual(value, "runtime");
+      expect(value).toBe("runtime");
 
       // Clear runtime
       Configuration.clear("PRIORITY_TEST");
       value = Configuration.get<string>("PRIORITY_TEST");
-      assert.strictEqual(value, "from-db");
+      expect(value).toBe("from-db");
 
       // Cleanup
       delete process.env.PRIORITY_TEST;

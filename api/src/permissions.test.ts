@@ -1,5 +1,4 @@
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -74,14 +73,14 @@ describe("permissions", () => {
   describe("anonymous food", () => {
     it("list", async () => {
       const res = await server.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
     });
 
     it("get", async () => {
       const res = await server.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
       const res2 = await server.get(`/food/${res.body.data[0]._id}`).expect(200);
-      assert.equal(res.body.data[0]._id, res2.body.data._id);
+      expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });
 
     it("post", async () => {
@@ -89,7 +88,7 @@ describe("permissions", () => {
         calories: 15,
         name: "Broccoli",
       });
-      assert.equal(res.status, 405);
+      expect(res.status).toBe(405);
     });
 
     it("patch", async () => {
@@ -97,13 +96,13 @@ describe("permissions", () => {
       const res2 = await server.patch(`/food/${res.body.data[0]._id}`).send({
         name: "Broccoli",
       });
-      assert.equal(res2.status, 403);
+      expect(res2.status).toBe(403);
     });
 
     it("delete", async () => {
       const res = await server.get("/food");
       const res2 = await server.delete(`/food/${res.body.data[0]._id}`);
-      assert.equal(res2.status, 405);
+      expect(res2.status).toBe(405);
     });
   });
 
@@ -116,14 +115,14 @@ describe("permissions", () => {
 
     it("list", async () => {
       const res = await agent.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
     });
 
     it("get", async () => {
       const res = await agent.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
       const res2 = await server.get(`/food/${res.body.data[0]._id}`).expect(200);
-      assert.equal(res.body.data[0]._id, res2.body.data._id);
+      expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });
 
     it("post", async () => {
@@ -145,7 +144,7 @@ describe("permissions", () => {
           name: "Broccoli",
         })
         .expect(200);
-      assert.equal(res2.body.data.name, "Broccoli");
+      expect(res2.body.data.name).toBe("Broccoli");
     });
 
     it("patch other item", async () => {
@@ -162,7 +161,7 @@ describe("permissions", () => {
     it("delete", async () => {
       const res = await agent.get("/food");
       const res2 = await agent.delete(`/food/${res.body.data[0]._id}`);
-      assert.equal(res2.status, 405);
+      expect(res2.status).toBe(405);
     });
   });
 
@@ -175,14 +174,14 @@ describe("permissions", () => {
 
     it("list", async () => {
       const res = await agent.get("/food");
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
     });
 
     it("get", async () => {
       const res = await agent.get("/food");
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
       const res2 = await agent.get(`/food/${res.body.data[0]._id}`);
-      assert.equal(res.body.data[0]._id, res2.body.data._id);
+      expect(res.body.data[0]._id).toBe(res2.body.data._id);
     });
 
     it("post", async () => {
@@ -190,7 +189,7 @@ describe("permissions", () => {
         calories: 15,
         name: "Broccoli",
       });
-      assert.equal(res.status, 201);
+      expect(res.status).toBe(201);
     });
 
     it("patch", async () => {

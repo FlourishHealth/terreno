@@ -1,5 +1,4 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import {assert} from "chai";
 import type express from "express";
 import type {Router} from "express";
 import supertest from "supertest";
@@ -159,7 +158,7 @@ describe("openApi", () => {
     const foodQuery = res.body.paths["/food/"].get.parameters.find((p) => p.name === "calories");
 
     // Ensure that a Number query field supports gt/gte/lt/lte and just a Number
-    assert.deepEqual(foodQuery.schema, {
+    expect(foodQuery.schema).toEqual({
       oneOf: [
         {type: "number"},
         {
@@ -273,7 +272,7 @@ describe("openApi populate", () => {
         .properties;
 
     // There's no component here, so we automatically generate the limited properties.
-    assert.deepEqual(properties.ownerId, {
+    expect(properties.ownerId).toEqual({
       properties: {
         email: {
           type: "string",
@@ -286,14 +285,14 @@ describe("openApi populate", () => {
     });
 
     // We only reference the component here, rather than listing each field each time.
-    assert.deepEqual(properties.eatenBy, {
+    expect(properties.eatenBy).toEqual({
       items: {
         $ref: "#/components/schemas/LimitedUser",
       },
       type: "array",
     });
 
-    assert.deepEqual(properties.likesIds, {
+    expect(properties.likesIds).toEqual({
       items: {
         properties: {
           _id: {
@@ -313,7 +312,7 @@ describe("openApi populate", () => {
     });
 
     // Ensure the component is registered and used.
-    assert.deepEqual(res.body.components.schemas.LimitedUser, {
+    expect(res.body.components.schemas.LimitedUser).toEqual({
       properties: {
         email: {
           description: "LimitedUser's email",

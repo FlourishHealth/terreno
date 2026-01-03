@@ -1,5 +1,4 @@
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 
 import {unpopulate} from "./populate";
 import {FoodModel, setupDb} from "./tests";
@@ -36,31 +35,31 @@ describe("populate functions", () => {
     let populated = await spinach.populate("ownerId");
     populated = await populated.populate("eatenBy");
     populated = await populated.populate("likesIds.userId");
-    assert.equal(populated.ownerId.name, "Admin");
-    assert.equal(populated.eatenBy[0].id, admin.id);
-    assert.equal(populated.eatenBy[0].name, "Admin");
-    assert.equal(populated.likesIds[0].userId.id, admin.id);
-    assert.equal(populated.likesIds[0].userId.name, "Admin");
-    assert.equal(populated.likesIds[1].userId.id, notAdmin.id);
-    assert.equal(populated.likesIds[1].userId.name, "Not Admin");
+    expect(populated.ownerId.name).toBe("Admin");
+    expect(populated.eatenBy[0].id).toBe(admin.id);
+    expect(populated.eatenBy[0].name).toBe("Admin");
+    expect(populated.likesIds[0].userId.id).toBe(admin.id);
+    expect(populated.likesIds[0].userId.name).toBe("Admin");
+    expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
+    expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
     let unpopulated: any = unpopulate(populated, "ownerId");
-    assert.isUndefined(spinach.ownerId.name);
-    assert.equal(unpopulated.ownerId.toString(), admin.id);
+    expect(spinach.ownerId.name).toBeUndefined();
+    expect(unpopulated.ownerId.toString()).toBe(admin.id);
     // Ensure nothing else was touched.
-    assert.equal(populated.likesIds[0].userId.id, admin.id);
-    assert.equal(populated.likesIds[0].userId.name, "Admin");
-    assert.equal(populated.likesIds[1].userId.id, notAdmin.id);
-    assert.equal(populated.likesIds[1].userId.name, "Not Admin");
+    expect(populated.likesIds[0].userId.id).toBe(admin.id);
+    expect(populated.likesIds[0].userId.name).toBe("Admin");
+    expect(populated.likesIds[1].userId.id).toBe(notAdmin.id);
+    expect(populated.likesIds[1].userId.name).toBe("Not Admin");
 
     unpopulated = unpopulate(populated, "eatenBy");
-    assert.equal(populated.eatenBy.toString(), admin.id);
-    assert.isUndefined(populated.eatenBy[0]?.name);
+    expect(populated.eatenBy.toString()).toBe(admin.id);
+    expect(populated.eatenBy[0]?.name).toBeUndefined();
 
     unpopulated = unpopulate(populated, "likesIds.userId");
-    assert.equal(populated.likesIds[0].userId.toString(), admin.id);
-    assert.isUndefined(populated.likesIds[0].userId?.name);
-    assert.equal(populated.likesIds[1].userId.toString(), notAdmin.id);
-    assert.isUndefined(populated.likesIds[1].userId.name);
+    expect(populated.likesIds[0].userId.toString()).toBe(admin.id);
+    expect(populated.likesIds[0].userId?.name).toBeUndefined();
+    expect(populated.likesIds[1].userId.toString()).toBe(notAdmin.id);
+    expect(populated.likesIds[1].userId.name).toBeUndefined();
   });
 });

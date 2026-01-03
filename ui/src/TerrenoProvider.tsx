@@ -29,4 +29,3 @@ export const TerrenoProvider: FC<{
     </ThemeProvider>
   );
 };
-

@@ -27,14 +27,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",
-    "@types/chai": "^4.3.0",
     "@types/express": "^4.17.21",
     "@types/lodash": "^4.17.21",
     "@types/luxon": "^3.4.0",
     "@types/passport-local-mongoose": "^6.1.5",
     "@types/winston": "^2.4.4",
     "bun-types": "latest",
-    "chai": "^5.0.0",
     "mongodb": "^6.0.0",
     "typescript": "~5.8.3"
   },

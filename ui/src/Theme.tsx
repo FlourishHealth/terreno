@@ -219,7 +219,10 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
           const prevSubTheme = prev[key as keyof TerrenoThemeConfig];
 
           if (newSubTheme && typeof newSubTheme === "object") {
-            (mergedTheme as any)[key as keyof TerrenoThemeConfig] = {...prevSubTheme, ...newSubTheme};
+            (mergedTheme as any)[key as keyof TerrenoThemeConfig] = {
+              ...prevSubTheme,
+              ...newSubTheme,
+            };
           } else {
             mergedTheme[key as keyof TerrenoThemeConfig] = newSubTheme as any;
           }

@@ -3,7 +3,8 @@ import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 
 // Test database URI
-const TEST_MONGO_URI = process.env.TEST_MONGO_URI || "mongodb://localhost:27017/terreno-example-test";
+const TEST_MONGO_URI =
+  process.env.TEST_MONGO_URI || "mongodb://localhost:27017/terreno-example-test";
 
 beforeAll(async () => {
   // Connect to test database

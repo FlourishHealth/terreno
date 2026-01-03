@@ -1,9 +1,6 @@
-import {afterAll, afterEach, beforeEach, describe, it, type Mock, spyOn} from "bun:test";
+import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/node";
 import axios from "axios";
-import chai from "chai";
-
-const assert: Chai.AssertStatic = chai.assert;
 
 import {sendToZoom} from "./zoomNotifier";
 
@@ -30,7 +27,7 @@ describe("sendToZoom", () => {
 
   it("returns early when ZOOM_CHAT_WEBHOOKS is missing", async () => {
     await sendToZoom({body: "world", header: "hello"}, {channel: "default"});
-    assert.equal(mockAxiosPost.mock.calls.length, 0);
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
   });
 
   it("posts to default webhook with rich message format and authorization header", async () => {
@@ -43,18 +40,18 @@ describe("sendToZoom", () => {
     mockAxiosPost.mockResolvedValue({status: 200});
 
     await sendToZoom({body: "world", header: "hello"}, {channel: "default"});
-    assert.equal(mockAxiosPost.mock.calls.length, 1);
+    expect(mockAxiosPost.mock.calls.length).toBe(1);
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload, options] = callArgs;
-    assert.equal(url, "https://zoom.example/webhook?format=full");
-    assert.deepEqual(payload, {
+    expect(url).toBe("https://zoom.example/webhook?format=full");
+    expect(payload).toEqual({
       content: {
         body: [{text: "world", type: "message"}],
         head: {text: "hello"},
       },
     });
-    assert.deepEqual(options?.headers, {
+    expect(options?.headers).toEqual({
       Authorization: "test-token-123",
       "Content-Type": "application/json",
     });
@@ -75,16 +72,16 @@ describe("sendToZoom", () => {
 
     await sendToZoom({body: "ops msg", header: "ops msg"}, {channel: "ops"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload, options] = callArgs;
-    assert.equal(url, "https://zoom.example/ops?format=full");
-    assert.deepEqual(payload, {
+    expect(url).toBe("https://zoom.example/ops?format=full");
+    expect(payload).toEqual({
       content: {
         body: [{text: "ops msg", type: "message"}],
         head: {text: "ops msg"},
       },
     });
-    assert.equal(options?.headers?.Authorization, "ops-token");
+    expect(options?.headers?.Authorization).toBe("ops-token");
   });
 
   it("falls back to default when channel not found", async () => {
@@ -98,10 +95,10 @@ describe("sendToZoom", () => {
 
     await sendToZoom({body: "missing channel", header: "missing channel"}, {channel: "unknown"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload] = callArgs;
-    assert.equal(url, "https://zoom.example/default?format=full");
-    assert.deepEqual(payload, {
+    expect(url).toBe("https://zoom.example/default?format=full");
+    expect(payload).toEqual({
       content: {
         body: [{text: "missing channel", type: "message"}],
         head: {text: "missing channel"},
@@ -117,7 +114,7 @@ describe("sendToZoom", () => {
     });
 
     await sendToZoom({body: "no url", header: "no url"}, {channel: "default"});
-    assert.equal(mockAxiosPost.mock.calls.length, 0);
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
   });
 
   it("returns early when verification token is missing for channel", async () => {
@@ -128,7 +125,7 @@ describe("sendToZoom", () => {
     });
 
     await sendToZoom({body: "no token", header: "no token"}, {channel: "default"});
-    assert.equal(mockAxiosPost.mock.calls.length, 0);
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
   });
 
   it("prefixes header with [ENV] when env provided", async () => {
@@ -142,9 +139,9 @@ describe("sendToZoom", () => {
 
     await sendToZoom({body: "status ok", header: "status ok"}, {channel: "default", env: "stg"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [, payload] = callArgs;
-    assert.deepEqual(payload, {
+    expect(payload).toEqual({
       content: {
         body: [{text: "status ok", type: "message"}],
         head: {text: "[STG] status ok"},
@@ -166,9 +163,9 @@ describe("sendToZoom", () => {
       {channel: "default"}
     );
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [, payload] = callArgs;
-    assert.deepEqual(payload, {
+    expect(payload).toEqual({
       content: {
         body: [{text: "Body text", type: "message"}],
         head: {sub_head: {text: "Subheader text"}, text: "Main Header"},
@@ -187,12 +184,12 @@ describe("sendToZoom", () => {
 
     try {
       await sendToZoom({body: "err", header: "err"}, {channel: "default", shouldThrow: true});
-      assert.fail("Expected sendToZoom to throw APIError");
+      throw new Error("Expected sendToZoom to throw APIError");
     } catch (error) {
-      assert.equal((error as any).name, "APIError");
-      assert.match((error as any).title, /Error posting to Zoom/i);
+      expect((error as any).name).toBe("APIError");
+      expect((error as any).title).toMatch(/Error posting to Zoom/i);
     }
-    assert.equal(mockAxiosPost.mock.calls.length, 1);
+    expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
 
   it("captures error and does not throw when shouldThrow=false", async () => {
@@ -205,6 +202,6 @@ describe("sendToZoom", () => {
     mockAxiosPost.mockRejectedValue(new Error("zoom intermittent"));
 
     await sendToZoom({body: "err", header: "err"}, {channel: "default", shouldThrow: false});
-    assert.equal(mockAxiosPost.mock.calls.length, 1);
+    expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
 });

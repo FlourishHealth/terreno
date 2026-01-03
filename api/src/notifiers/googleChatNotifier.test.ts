@@ -1,9 +1,6 @@
-import {afterAll, afterEach, beforeEach, describe, it, type Mock, spyOn} from "bun:test";
+import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/node";
 import axios from "axios";
-import chai from "chai";
-
-const assert: Chai.AssertStatic = chai.assert;
 
 import {sendToGoogleChat} from "./googleChatNotifier";
 
@@ -30,7 +27,7 @@ describe("sendToGoogleChat", () => {
 
   it("returns early when GOOGLE_CHAT_WEBHOOKS is missing", async () => {
     await sendToGoogleChat("hello");
-    assert.equal(mockAxiosPost.mock.calls.length, 0);
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
   });
 
   it("posts to default webhook with plain text", async () => {
@@ -41,10 +38,10 @@ describe("sendToGoogleChat", () => {
 
     await sendToGoogleChat("hello world");
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload] = callArgs;
-    assert.equal(url, "https://chat.example/webhook");
-    assert.deepEqual(payload, {text: "hello world"});
+    expect(url).toBe("https://chat.example/webhook");
+    expect(payload).toEqual({text: "hello world"});
   });
 
   it("posts to a specific channel when provided", async () => {
@@ -56,10 +53,10 @@ describe("sendToGoogleChat", () => {
 
     await sendToGoogleChat("ops msg", {channel: "ops"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload] = callArgs;
-    assert.equal(url, "https://chat.example/ops");
-    assert.deepEqual(payload, {text: "ops msg"});
+    expect(url).toBe("https://chat.example/ops");
+    expect(payload).toEqual({text: "ops msg"});
   });
 
   it("falls back to default when channel not found", async () => {
@@ -70,10 +67,10 @@ describe("sendToGoogleChat", () => {
 
     await sendToGoogleChat("missing channel", {channel: "unknown"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [url, payload] = callArgs;
-    assert.equal(url, "https://chat.example/default");
-    assert.deepEqual(payload, {text: "missing channel"});
+    expect(url).toBe("https://chat.example/default");
+    expect(payload).toEqual({text: "missing channel"});
   });
 
   it("prefixes message with [ENV] when env provided", async () => {
@@ -84,9 +81,9 @@ describe("sendToGoogleChat", () => {
 
     await sendToGoogleChat("status ok", {env: "prod"});
     const callArgs = mockAxiosPost.mock.calls[0];
-    assert.isArray(callArgs);
+    expect(Array.isArray(callArgs)).toBe(true);
     const [, payload] = callArgs;
-    assert.deepEqual(payload, {text: "[PROD] status ok"});
+    expect(payload).toEqual({text: "[PROD] status ok"});
   });
 
   it("captures error and throws APIError when shouldThrow=true", async () => {
@@ -97,12 +94,12 @@ describe("sendToGoogleChat", () => {
 
     try {
       await sendToGoogleChat("err", {shouldThrow: true});
-      assert.fail("Expected sendToGoogleChat to throw APIError");
+      throw new Error("Expected sendToGoogleChat to throw APIError");
     } catch (error) {
-      assert.equal((error as any).name, "APIError");
-      assert.match((error as any).title, /Error posting to Google Chat/i);
+      expect((error as any).name).toBe("APIError");
+      expect((error as any).title).toMatch(/Error posting to Google Chat/i);
     }
-    assert.equal(mockAxiosPost.mock.calls.length, 1);
+    expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
 
   it("captures error and does not throw when shouldThrow=false", async () => {
@@ -112,6 +109,6 @@ describe("sendToGoogleChat", () => {
     mockAxiosPost.mockRejectedValue(new Error("chat intermittent"));
 
     await sendToGoogleChat("err", {shouldThrow: false});
-    assert.equal(mockAxiosPost.mock.calls.length, 1);
+    expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
 });
