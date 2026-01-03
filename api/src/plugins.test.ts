@@ -12,7 +12,7 @@ import {
   DateOnly,
   findExactlyOne,
   findOneOrNone,
-  IsDeleted,
+  type IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
 } from "./plugins";

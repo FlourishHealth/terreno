@@ -28,7 +28,7 @@ describe("User Service", () => {
       } catch (error: any) {
         expect(error.status).toBeDefined();
         expect(error.title).toBeDefined();
-        assert.include(error.title.toLowerCase(), "required");
+        expect(error.title.toLowerCase()).toContain("required");
         expect(error.status).toBe(400);
       }
     });
@@ -40,7 +40,7 @@ describe("User Service", () => {
       } catch (error: any) {
         expect(error.status).toBeDefined();
         expect(error.title).toBeDefined();
-        assert.include(error.title.toLowerCase(), "required");
+        expect(error.title.toLowerCase()).toContain("required");
         expect(error.status).toBe(400);
       }
     });
@@ -55,7 +55,7 @@ describe("User Service", () => {
       } catch (error: any) {
         expect(error.status).toBeDefined();
         expect(error.title).toBeDefined();
-        assert.include(error.title.toLowerCase(), "already exists");
+        expect(error.title.toLowerCase()).toContain("already exists");
         expect(error.status).toBe(400);
       }
     });
@@ -68,8 +68,10 @@ describe("User Service", () => {
       const user = await userService.getUserById(testUser._id.toString());
 
       expect(user).toBeDefined();
-      assert.strictEqual(user._id.toString(), testUser._id.toString());
-      expect(user.email).toBe(testUser.email);
+      if (user) {
+        expect(user._id.toString()).toBe(testUser._id.toString());
+        expect(user.email).toBe(testUser.email);
+      }
     });
 
     it("should throw error when user not found", async () => {

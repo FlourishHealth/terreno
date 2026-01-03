@@ -43,7 +43,7 @@ exec(command, (error, stdout, stderr) => {
 
   // Run biome formatting
   exec(
-    "biome check --unsafe --write store/openApiSdk.ts",
+    "bunx biome check --unsafe --write store/openApiSdk.ts",
     {cwd: join(__dirname, "..")},
     (formatError, formatStdout) => {
       if (formatError) {

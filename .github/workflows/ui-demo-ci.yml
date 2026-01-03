@@ -1,10 +1,7 @@
-name: UI Demo Continuous Integration
+name: UI Demo CI
 
 on:
   push:
-    paths:
-      - 'demo/**'
-  pull_request:
     paths:
       - 'demo/**'
 

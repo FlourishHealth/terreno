@@ -3,6 +3,12 @@ import mongoose from "mongoose";
 import {initConfiguration} from "../models/configuration";
 
 export const connectToMongoDB = async (): Promise<void> => {
+  // Check if already connected
+  if (mongoose.connection.readyState === 1) {
+    logger.info("Already connected to MongoDB");
+    return;
+  }
+
   const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/terreno-example";
 
   try {

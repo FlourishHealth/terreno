@@ -52,7 +52,7 @@ src/
 
 ## Testing
 
-Tests are written using Bun's built-in test runner with Chai assertions.
+Tests are written using Bun's built-in test runner with expect assertions.
 
 - Test files: `*.test.ts` (placed next to the code they test)
 - Test setup: `src/test/setup.ts` (automatically loaded)

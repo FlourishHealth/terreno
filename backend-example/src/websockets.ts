@@ -104,7 +104,11 @@ const watchModels = (): void => {
     }
 
     logWebsocketInfo("[websocket] Creating change stream watcher...");
-    changeWatcher = nativeDb.watch(pipeline, options);
+    changeWatcher = nativeDb.watch(pipeline, options as any) as any;
+
+    if (!changeWatcher) {
+      throw new Error("Failed to create change stream watcher");
+    }
 
     changeWatcher.on("change", async (change: ChangeStreamDocument) => {
       try {

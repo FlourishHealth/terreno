@@ -43,7 +43,6 @@ Test files should be named `*.test.ts` and placed next to the file they're testi
 
 ```typescript
 import { describe, it, expect, beforeEach } from "bun:test";
-import { assert } from "chai";
 import { User } from "./User";
 import { createTestUser, generateTestEmail } from "../test/helpers";
 
@@ -59,26 +58,34 @@ describe("User Model", () => {
       name: "Test User",
     });
 
-    assert.exists(user._id);
-    assert.strictEqual(user.email, email);
+    expect(user._id).toBeDefined();
+    expect(user.email).toBe(email);
   });
 });
 ```
 
-### Using Chai Assertions
+### Using Bun Test Assertions
 
-We use Chai's `assert` style (not `expect`) per project conventions:
+We use Bun's built-in `expect` assertions:
 
 ```typescript
-import { assert } from "chai";
+import { expect } from "bun:test";
 
-// Good
-assert.strictEqual(actual, expected);
-assert.exists(value);
-assert.include(haystack, needle);
+// Equality
+expect(actual).toBe(expected);           // Strict equality (===)
+expect(actual).toEqual(expected);         // Deep equality
 
-// Avoid
-expect(actual).to.equal(expected);
+// Existence
+expect(value).toBeDefined();              // Not undefined
+expect(value).toBeNull();                 // Is null
+expect(value).toBeTruthy();              // Truthy value
+
+// Strings
+expect(string).toContain(substring);      // Contains substring
+
+// Numbers
+expect(number).toBeGreaterThan(value);    // > value
+expect(number).toBeLessThan(value);       // < value
 ```
 
 ### Testing APIErrors
@@ -88,12 +95,13 @@ When testing services that throw APIError, check for properties:
 ```typescript
 try {
   await userService.createUser("", "");
-  assert.fail("Should have thrown error");
+  throw new Error("Should have thrown error");
 } catch (error: unknown) {
-  assert.exists(error.status);
-  assert.exists(error.title);
-  assert.strictEqual(error.status, 400);
-  assert.include(error.title.toLowerCase(), "required");
+  const err = error as {status?: number; title?: string};
+  expect(err.status).toBeDefined();
+  expect(err.title).toBeDefined();
+  expect(err.status).toBe(400);
+  expect(err.title?.toLowerCase() ?? "").toContain("required");
 }
 ```
 

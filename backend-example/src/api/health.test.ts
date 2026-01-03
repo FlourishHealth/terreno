@@ -67,7 +67,7 @@ describe("Health API", () => {
         const err = error as {status?: number; title?: string};
         expect(err.status).toBeDefined();
         expect(err.status).toBe(503);
-        assert.include(err.title?.toLowerCase() ?? "", "no users found");
+        expect(err.title?.toLowerCase() ?? "").toContain("no users found");
       }
     });
 

@@ -130,7 +130,9 @@ describe("User Model", () => {
       const found = await User.findExactlyOne({_id: user._id});
 
       expect(found).toBeDefined();
-      assert.strictEqual(found._id.toString(), user._id.toString());
+      if (found) {
+        expect(found._id.toString()).toBe(user._id.toString());
+      }
     });
 
     it("should throw error when user not found", async () => {
@@ -151,7 +153,9 @@ describe("User Model", () => {
       const found = await User.findOneOrNone({_id: user._id});
 
       expect(found).toBeDefined();
-      assert.strictEqual(found._id.toString(), user._id.toString());
+      if (found) {
+        expect(found._id.toString()).toBe(user._id.toString());
+      }
     });
 
     it("should return null when user not found", async () => {
