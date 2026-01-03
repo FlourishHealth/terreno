@@ -51,7 +51,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
 
-  console.info(
+  console.debug(
     `Base URL set to apiUrl ${baseUrl} for env ${
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
@@ -62,7 +62,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
 
-  console.info(
+  console.debug(
     `Base URL set to apiUrl ${baseUrl} for env ${
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
@@ -72,7 +72,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}`;
   baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/`;
   baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/tasks`;
-  console.info(
+  console.debug(
     `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
@@ -81,7 +81,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}`;
   baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/`;
   baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/tasks`;
-  console.info(
+  console.debug(
     `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
@@ -94,7 +94,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http://localhost:3000`;
   baseWebsocketsUrl = `ws://localhost:3000/`;
   baseTasksUrl = `http://localhost:3000/tasks`;
-  console.info(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
+  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
 } else {
   console.error("No base URL found", Constants.expoConfig, Constants.experienceUrl);
   throw new Error("No base URL found");
