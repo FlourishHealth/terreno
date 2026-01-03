@@ -117,6 +117,62 @@ jobs:
           VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
+      - name: Replace catalog references
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
       - name: Compile
         run: bun run compile
 
@@ -159,6 +215,98 @@ jobs:
         run: |
           VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Get latest @terreno/ui version
+        id: ui_version
+        run: |
+          UI_VERSION=$(npm view @terreno/ui version 2>/dev/null || echo "")
+          if [ -z "$UI_VERSION" ]; then
+            echo "Warning: Could not fetch @terreno/ui version from npm, using current release version"
+            UI_VERSION="${{ needs.check-changes.outputs.version }}"
+          fi
+          echo "ui_version=$UI_VERSION" >> $GITHUB_OUTPUT
+          echo "Using @terreno/ui version: $UI_VERSION"
+
+      - name: Replace catalog references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          UI_VERSION="${{ steps.ui_version.outputs.ui_version }}"
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          const uiVersion = process.env.UI_VERSION;
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.dependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.dependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.devDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.devDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.peerDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.peerDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+          UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
 
       - name: Compile
         run: bun run compile
@@ -204,6 +352,62 @@ jobs:
         run: |
           VERSION="${{ needs.check-changes.outputs.version }}"
           node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog references
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
 
       - name: Compile
         run: bun run compile

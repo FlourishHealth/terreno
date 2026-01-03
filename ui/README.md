@@ -85,18 +85,18 @@ help generate code that uses Terreno UI.
 ## Dev
 
     # Install dependencies
-    yarn install
+    bun install
 
     # Initial build (including type generation)
-    yarn build
+    bun compile
 
     # Build the UI continuously
-    yarn watch
+    bun dev
 
     # In a separate window, run one of the following to run the demo app:
-    yarn web
-    yarn ios
-    yarn android
+    bun web
+    bun ios
+    bun android
     
 
 ## Dev with other projects
@@ -105,7 +105,7 @@ If you need to test your changes in another project, you can use this handy bash
 
     # sync ui to different app
     syncui() {
-        cd <PATH>/terreno/packages/ui && yarn build && rsync -avp <PATH>/terreno/packages/ui/dist/* <PATH>/app/node_modules/@terreno/ui/dist/
+        cd <PATH>/terreno/ui && yarn build && rsync -avp <PATH>/terreno/ui/dist/* <PATH>/app/node_modules/@terreno/ui/dist/
     }
 
 Update the paths to match your project directories. This will build and pack up @terreno/ui like it is being
