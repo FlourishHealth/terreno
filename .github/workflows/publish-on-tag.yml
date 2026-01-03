@@ -113,7 +113,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Update version
-        run: npm version ${{ needs.check-changes.outputs.version }} --no-git-tag-version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
       - name: Compile
         run: bun run compile
@@ -154,7 +156,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Update version
-        run: npm version ${{ needs.check-changes.outputs.version }} --no-git-tag-version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
       - name: Compile
         run: bun run compile
@@ -195,7 +199,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Update version
-        run: npm version ${{ needs.check-changes.outputs.version }} --no-git-tag-version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
 
       - name: Compile
         run: bun run compile
@@ -231,17 +237,17 @@ jobs:
           
           # Update api version if it was published
           if [ "${{ needs.publish-api.result }}" == "success" ]; then
-            cd api && npm version $VERSION --no-git-tag-version && cd ..
+            cd api && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
           fi
           
           # Update ui version if it was published
           if [ "${{ needs.publish-ui.result }}" == "success" ]; then
-            cd ui && npm version $VERSION --no-git-tag-version && cd ..
+            cd ui && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
           fi
           
           # Update rtk version if it was published
           if [ "${{ needs.publish-rtk.result }}" == "success" ]; then
-            cd rtk && npm version $VERSION --no-git-tag-version && cd ..
+            cd rtk && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
           fi
 
       - name: Create Pull Request
