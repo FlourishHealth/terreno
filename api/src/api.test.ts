@@ -801,7 +801,7 @@ describe("@terreno/api", () => {
     beforeEach(async () => {
       [admin, notAdmin, adminOther] = await setupDb();
 
-      const results = await Promise.all([
+      const results = (await Promise.all([
         FoodModel.create({
           calories: 1,
           created: new Date("2021-12-03T00:00:20.000Z"),
@@ -847,7 +847,7 @@ describe("@terreno/api", () => {
           ownerId: admin._id,
           tags: ["cheap"],
         }),
-      ]) as [Food, Food, Food, Food];
+      ])) as [Food, Food, Food, Food];
       [spinach, apple, carrots, pizza] = results;
       app = getBaseServer();
       setupAuth(app, UserModel as any);

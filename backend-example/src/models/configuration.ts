@@ -98,8 +98,13 @@ export class Configuration {
       const rawValue = process.env[definition.envVar];
       const convertedValue = Configuration.convertValue(rawValue, definition.type || "string") as T;
 
-      // If conversion failed (returned undefined), use default
-      if (convertedValue === undefined) {
+      // If conversion failed (returned undefined or null for invalid number), use default
+      if (
+        convertedValue === undefined ||
+        (convertedValue === null &&
+          definition.type === "number" &&
+          definition.defaultValue !== undefined)
+      ) {
         return (definition.defaultValue ?? fallback) as T;
       }
 
@@ -248,11 +253,12 @@ export class Configuration {
 
   /**
    * Start watching the configuration change stream
+   * Returns false if change streams are not available (e.g., no replica set)
    */
-  static async startWatching(): Promise<void> {
+  static async startWatching(): Promise<boolean> {
     if (changeStream) {
       logger.warn("Configuration change stream is already running");
-      return;
+      return true;
     }
 
     try {
@@ -286,8 +292,17 @@ export class Configuration {
       });
 
       changeStream.on("error", (error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // Don't attempt to restart if replica sets aren't available
+        if (errorMessage.includes("replica set")) {
+          logger.warn(
+            "Configuration change streams not available (replica set required). Cache will not auto-update."
+          );
+          Configuration.stopWatching();
+          return;
+        }
         logger.error(`Configuration change stream error: ${error}`);
-        // Attempt to restart the stream
+        // Attempt to restart the stream for other errors
         Configuration.stopWatching();
         setTimeout(() => {
           Configuration.startWatching().catch((err: unknown) => {
@@ -298,9 +313,17 @@ export class Configuration {
       });
 
       logger.info("Configuration change stream started");
+      return true;
     } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("replica set")) {
+        logger.warn(
+          "Configuration change streams not available (replica set required). Cache will not auto-update."
+        );
+        return false;
+      }
       logger.error(`Failed to start configuration change stream: ${error}`);
-      throw error;
+      return false;
     }
   }
 
@@ -318,6 +341,13 @@ export class Configuration {
   }
 
   /**
+   * Check if change streams are currently available
+   */
+  static isChangeStreamAvailable(): boolean {
+    return changeStream !== null;
+  }
+
+  /**
    * Initialize the configuration system with database support
    */
   static async initialize(): Promise<void> {
@@ -330,11 +360,15 @@ export class Configuration {
       // Load existing configuration from database
       await Configuration.loadFromDB();
 
-      // Start watching for changes
-      await Configuration.startWatching();
+      // Start watching for changes (may fail if replica set not available)
+      const changeStreamAvailable = await Configuration.startWatching();
+      if (!changeStreamAvailable) {
+        logger.info("Configuration system initialized (change streams not available)");
+      } else {
+        logger.info("Configuration system initialized with database support");
+      }
 
       isInitialized = true;
-      logger.info("Configuration system initialized with database support");
     } catch (error: unknown) {
       logger.error(`Failed to initialize configuration system: ${error}`);
       throw error;

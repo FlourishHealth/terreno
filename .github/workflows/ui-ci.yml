@@ -1,10 +1,7 @@
-name: UI Continuous Integration
+name: UI CI
 
 on:
   push:
-    paths:
-      - 'ui/**'
-  pull_request:
     paths:
       - 'ui/**'
 
