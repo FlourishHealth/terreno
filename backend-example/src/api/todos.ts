@@ -22,7 +22,7 @@ export const addTodoRoutes = (
       preCreate: (body, req) => {
         return {
           ...body,
-          ownerId: req.user?.id,
+          ownerId: req.user?._id,
         } as TodoDocument;
       },
       // Filter list queries to only show user's own todos
@@ -32,4 +32,3 @@ export const addTodoRoutes = (
     })
   );
 };
-

@@ -1,6 +1,5 @@
 ---
-description: Applies to frontend files only
-globs: app/**/*.ts?(x)
+description: Applies to react and react native frontend files only
 alwaysApply: false
 ---
 // React best practices

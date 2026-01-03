@@ -13,7 +13,9 @@
       "!!**/build",
       "!!build",
       "!!**/coverage",
-      "!!coverage"
+      "!!coverage",
+      "!!**/.git",
+      "!!**/.expo"
     ]
   },
   "linter": {

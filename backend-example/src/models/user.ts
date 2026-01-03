@@ -32,12 +32,10 @@ userSchema.plugin(passportLocalMongoose, {
 
 addDefaultPlugins(userSchema);
 
-// Define methods
-userSchema.methods = {
-  getDisplayName(this: UserDocument): string {
-    return this.name;
-  },
-};
+// Define methods (use .method() to avoid overwriting passport-local-mongoose methods)
+userSchema.method("getDisplayName", function (this: UserDocument): string {
+  return this.name;
+});
 
 export const User = mongoose.model<UserDocument, UserModel>("User", userSchema);
 

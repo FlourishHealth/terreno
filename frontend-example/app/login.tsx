@@ -1,26 +1,47 @@
+import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
 import {useRouter} from "expo-router";
-import {Box, Button, Heading, Page, Text, TextField} from "@terreno/ui";
 import type React from "react";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
+import {getAuthToken} from "@terreno/rtk";
 import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
 
 const LoginScreen: React.FC = () => {
-  const _router = useRouter();
+  const router = useRouter();
+  const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const toast = useToast();
 
   const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
   const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
 
-  const handleSubmit = useCallback(async () => {
+  // Redirect if user already has a token
+  useEffect(() => {
+    const checkToken = async (): Promise<void> => {
+      const token = await getAuthToken();
+      if (token) {
+        router.replace("/(tabs)");
+      }
+    };
+    checkToken();
+  }, [router]);
+
+  const handleSubmit = useCallback(async (): Promise<void> => {
     if (!email || !password) {
+      toast.warn("Email and password are required")
+      return;
+    }
+
+    if (isSignUp && !name) {
+      toast.warn("Signup requires name")
       return;
     }
 
     try {
+      console.log(email, name, password, isSignUp)
       if (isSignUp) {
-        await emailSignUp({email, password}).unwrap();
+        await emailSignUp({email, name, password}).unwrap();
       } else {
         await emailLogin({email, password}).unwrap();
       }
@@ -28,14 +49,16 @@ const LoginScreen: React.FC = () => {
     } catch (err) {
       console.error("Authentication error:", err);
     }
-  }, [email, password, isSignUp, emailLogin, emailSignUp]);
+  }, [email, password, name, isSignUp, emailLogin, emailSignUp]);
 
-  const toggleMode = useCallback(() => {
+  const toggleMode = useCallback((): void => {
     setIsSignUp(!isSignUp);
   }, [isSignUp]);
 
   const isLoading = isLoginLoading || isSignUpLoading;
   const error = loginError || signUpError;
+
+  const isSubmitDisabled = !email || !password || (isSignUp && !name) || isLoading;
 
   return (
     <Page navigation={undefined}>
@@ -49,43 +72,63 @@ const LoginScreen: React.FC = () => {
         width="100%"
       >
         <Box marginBottom={8}>
-          <Heading>{isSignUp ? "Sign Up" : "Login"}</Heading>
+          <Heading>{isSignUp ? "Create Account" : "Welcome Back"}</Heading>
         </Box>
-        <Box style={{gap: 20, width: "100%"}}>
+        <Box gap={4} width="100%">
+          {isSignUp && (
+            <TextField
+              disabled={isLoading}
+              onChange={setName}
+              placeholder="Name"
+              title="Name"
+              value={name}
+            />
+          )}
+
           <TextField
-            autoCapitalize="none"
-            editable={!isLoading}
-            keyboardType="email-address"
-            onChangeText={setEmail}
+            autoComplete="off"
+            disabled={isLoading}
+            onChange={setEmail}
             placeholder="Email"
-            style={{width: "100%"}}
+            title="Email"
+            type="email"
             value={email}
           />
 
           <TextField
-            editable={!isLoading}
-            onChangeText={setPassword}
+            disabled={isLoading}
+            onChange={setPassword}
             placeholder="Password"
-            secureTextEntry
-            style={{width: "100%"}}
+            title="Password"
+            type="password"
             value={password}
           />
 
           {Boolean(error) && (
-            <Text color="error">{error?.data?.message || "An error occurred"}</Text>
+            <Text color="error">
+              {(error as {data?: {message?: string}})?.data?.message || "An error occurred"}
+            </Text>
           )}
 
-          <Button
-            disabled={!email || !password || isLoading}
-            onPress={handleSubmit}
-            style={{width: "100%"}}
-          >
-            {isLoading ? "Loading..." : isSignUp ? "Sign Up" : "Login"}
-          </Button>
+          <Box marginTop={4}>
+            <Button
+              disabled={isSubmitDisabled}
+              fullWidth
+              loading={isLoading}
+              onClick={handleSubmit}
+              text={isSignUp ? "Sign Up" : "Login"}
+            />
+          </Box>
 
-          <Button disabled={isLoading} onPress={toggleMode} style={{width: "100%"}} variant="text">
-            {isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
-          </Button>
+          <Box marginTop={2}>
+            <Button
+              disabled={isLoading}
+              fullWidth
+              onClick={toggleMode}
+              text={isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
+              variant="outline"
+            />
+          </Box>
         </Box>
       </Box>
     </Page>

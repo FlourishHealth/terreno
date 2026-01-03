@@ -18,14 +18,14 @@ export {
 } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
+  // Ensure that reloading keeps the tabs visible
   initialRouteName: "(tabs)",
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+export default function RootLayout(): React.ReactElement | null {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
@@ -33,9 +33,12 @@ export default function RootLayout() {
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
   }, [error]);
 
+  // Hide splash screen once fonts are loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -57,7 +60,7 @@ export default function RootLayout() {
   );
 }
 
-function RootLayoutNav() {
+function RootLayoutNav(): React.ReactElement {
   const colorScheme = useColorScheme();
   const userId = useSelectCurrentUserId();
 
@@ -67,10 +70,7 @@ function RootLayoutNav() {
         {!userId ? (
           <Stack.Screen name="login" options={{headerShown: false}} />
         ) : (
-          <>
-            <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-            <Stack.Screen name="modal" options={{presentation: "modal"}} />
-          </>
+          <Stack.Screen name="(tabs)" options={{headerShown: false}} />
         )}
       </Stack>
     </ThemeProvider>

@@ -11,13 +11,13 @@ export const useSentryUserSetup = (): void => {
 
   // Update Sentry user context and axios authorization
   useEffect(() => {
-    if (!currentUserId || !profile?.type) {
+    if (!currentUserId || !profile) {
       sentrySetUser(null);
       return;
     }
 
     const setupSentryUser = async (): Promise<void> => {
-      if (currentUserId && profile?.type) {
+      if (currentUserId && profile) {
         const token = await getAuthToken();
         axios.defaults.headers.common.Authorization = `Bearer ${token}`;
         const sentryUser: {id: string; email?: string; username?: string} = {id: profile._id};
@@ -27,7 +27,7 @@ export const useSentryUserSetup = (): void => {
           sentryUser.email = profile.email;
           sentryUser.username = profile.name;
         }
-        sentrySetUser({_id: profile._id, type: profile.type});
+        sentrySetUser({_id: profile._id});
       }
     };
     setupSentryUser().catch((error) => {

@@ -6,6 +6,7 @@ import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {Configuration} from "./models/configuration";
 import {User} from "./models/user";
+import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
 
@@ -20,7 +21,10 @@ const addRoutes: AddRoutes = (router, options): void => {
 };
 
 // Return type uses ReturnType to match what setupServer actually returns
-export function start(skipListen = false): ReturnType<typeof setupServer> {
+export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
+  // Connect to MongoDB first
+  await connectToMongoDB();
+
   logger.info(`Starting server on port ${process.env.PORT}, deployed: ${isDeployed}`);
   // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.
   const transports: any[] = [];

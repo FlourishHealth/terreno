@@ -11,48 +11,21 @@ import {addTagTypes, openapi} from "./openApiSdk";
 // endpoints, since we don't automatically generate for endpoints that don't use the router
 // currently.
 
-export interface EngagementDataArgs {
-  carePodId: string;
-  date?: string;
-}
-
-export interface PatientEngagementStatsArgs {
-  id: string;
-}
-
-export interface ExplorerUsersArgs {
-  carePodId?: string;
-  page?: number;
-  limit?: number;
-  userStatusId?: string;
-  testUsers?: boolean;
-  myPanel?: boolean;
-}
-
-export interface ExplorerAlertsArgs {
-  carePodId?: string;
-  page?: number;
-  limit?: number;
-  userStatusId?: string;
-  testUsers?: boolean;
-}
-
-export interface OutboundCallArgs {
-  callRecipient: {phoneNumber?: string; id?: string; name?: string};
-}
-
 // Profile response type
 export interface ProfileResponse {
-  _id: string;
-  id: string;
-  email: string;
-  name: string;
+  data: {
+    _id: string;
+    id: string;
+    email: string;
+    name: string;
+  };
 }
 
 // Profile update request type
 export interface UpdateProfileRequest {
   name?: string;
   email?: string;
+  password?: string;
 }
 
 export const terrenoApi = openapi
@@ -60,6 +33,7 @@ export const terrenoApi = openapi
     endpoints: (builder) => ({
       // Get current user profile
       getMe: builder.query<ProfileResponse, void>({
+        providesTags: ["profile"],
         query: () => ({
           method: "GET",
           url: "/auth/me",
@@ -67,6 +41,7 @@ export const terrenoApi = openapi
       }),
       // Update current user profile
       patchMe: builder.mutation<ProfileResponse, UpdateProfileRequest>({
+        invalidatesTags: ["profile"],
         query: (body) => ({
           body,
           method: "PATCH",
@@ -78,9 +53,9 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms"],
+    addTagTypes: ["consentForms", "profile"],
     endpoints: {
-      ...generateTags(openapi, addTagTypes),
+      ...generateTags(openapi, [...addTagTypes]),
       // Add any additional endpoints here.
     },
   });

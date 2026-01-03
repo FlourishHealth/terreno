@@ -1,20 +1,18 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {Link, Tabs} from "expo-router";
+import {Tabs} from "expo-router";
 import type React from "react";
-import {Pressable} from "react-native";
 import {useClientOnlyValue} from "@/components/useClientOnlyValue";
 import {useColorScheme} from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
+const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
   color: string;
-}) {
-  return <FontAwesome size={28} style={{marginBottom: -3}} {...props} />;
-}
+}> = ({name, color}) => {
+  return <FontAwesome color={color} name={name} size={24} style={{marginBottom: -3}} />;
+};
 
-export default function TabLayout() {
+const TabLayout: React.FC = () => {
   const colorScheme = useColorScheme();
 
   return (
@@ -29,31 +27,19 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          headerRight: () => (
-            <Link asChild href="/modal">
-              <Pressable>
-                {({pressed}) => (
-                  <FontAwesome
-                    color={Colors[colorScheme ?? "light"].text}
-                    name="info-circle"
-                    size={25}
-                    style={{marginRight: 15, opacity: pressed ? 0.5 : 1}}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-          tabBarIcon: ({color}) => <TabBarIcon color={color} name="code" />,
-          title: "Tab One",
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="list" />,
+          title: "Todos",
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="profile"
         options={{
-          tabBarIcon: ({color}) => <TabBarIcon color={color} name="code" />,
-          title: "Tab Two",
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
+          title: "Profile",
         }}
       />
     </Tabs>
   );
-}
+};
+
+export default TabLayout;

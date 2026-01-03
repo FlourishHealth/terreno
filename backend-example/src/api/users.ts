@@ -24,8 +24,9 @@ export const addUserRoutes = (
         const serialize = (doc: UserDocument): Record<string, unknown> => {
           const obj = doc.toObject ? doc.toObject() : doc;
           // Remove password-related fields
-          const {hash, salt, ...rest} = obj as Record<string, unknown>;
-          return rest;
+          // biome-ignore lint/suspicious/noExplicitAny: Dynamic object manipulation
+          const {hash, salt, ...rest} = obj as any;
+          return rest as Record<string, unknown>;
         };
 
         if (Array.isArray(value)) {
@@ -37,4 +38,3 @@ export const addUserRoutes = (
     })
   );
 };
-

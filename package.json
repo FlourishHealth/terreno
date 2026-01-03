@@ -1,4 +1,7 @@
 {
+  "patchedDependencies": {
+    "jsc-safe-url@0.2.4": "patches/jsc-safe-url@0.2.4.patch"
+  },
   "catalog": {
     "@biomejs/biome": "^2.3.6",
     "@expo/config-plugins": "~54.0.4",
@@ -58,6 +61,7 @@
   "name": "@terreno/root",
   "private": true,
   "scripts": {
+    "dev": "bun run --filter '@terreno/ui' dev & bun run --filter '@terreno/api' dev & bun run --filter '@terreno/rtk' dev",
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
     "api:test": "bun run --filter '@terreno/api' test",

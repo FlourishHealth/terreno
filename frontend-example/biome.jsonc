@@ -19,7 +19,8 @@
       "!!**/coverage",
       "!!coverage",
       "!!**/generated",
-      "!!generated"
+      "!!generated",
+      "!!**/.git"
     ]
   },
   "linter": {

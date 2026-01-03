@@ -1,24 +1,27 @@
-import {useSelectCurrentUserId} from "@terreno/rtk";
+import {usePatchMeMutation} from "@/store";
 
-// NOTE: These types are expected to be generated from the OpenAPI spec
-// Using Record instead of any for better type safety
-type PatchUsersByIdArgs = Record<string, unknown>;
+export interface UpdateProfileArgs {
+  name?: string;
+  email?: string;
+  password?: string;
+}
 
-// NOTE: This mutation is expected to be generated from the OpenAPI spec
-// Placeholder mutation hook - returns tuple with mutation function and result
-type MutationResult = {unwrap: () => Promise<Record<string, unknown>>};
-type MutationFunction = (args: Record<string, unknown>) => MutationResult;
+export interface UpdateProfileResult {
+  updateProfile: (updates: UpdateProfileArgs) => Promise<void>;
+  isLoading: boolean;
+  error: unknown;
+}
 
-const usePatchUsersByIdMutation = (): [MutationFunction] => {
-  // Placeholder - should be replaced with actual generated hook from OpenAPI spec
-  return [() => ({unwrap: async () => ({})})];
-};
+export function useUpdateProfile(): UpdateProfileResult {
+  const [patchMe, {isLoading, error}] = usePatchMeMutation();
 
-export function useUpdateProfile(update: Partial<PatchUsersByIdArgs>): MutationResult | undefined {
-  const currentUserId = useSelectCurrentUserId();
-  const [updateUser] = usePatchUsersByIdMutation();
-  if (!currentUserId) {
-    return undefined;
-  }
-  return updateUser({body: {...update}, id: currentUserId});
+  const updateProfile = async (updates: UpdateProfileArgs): Promise<void> => {
+    await patchMe(updates).unwrap();
+  };
+
+  return {
+    error,
+    isLoading,
+    updateProfile,
+  };
 }

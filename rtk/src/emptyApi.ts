@@ -205,11 +205,12 @@ const staggeredBaseQuery = retry(
     await mutex.waitForUnlock();
     let token = await getAuthToken();
 
-    console.log("TOKEN", token, api.endpoint);
-    if (!token && ["emailLogin", "googleLogin", "getZoomSignature"].includes(api.endpoint)) {
-      // just pass thru the request without a token if it is a login request
+    if (["emailLogin", "emailSignUp", "googleLogin", "getZoomSignature"].includes(api.endpoint)) {
+      // just pass thru the request without token validation for login/signup requests
+      // (even if there's a stale token in storage)
       return getBaseQuery(args, api, extraOptions, token);
-    } else if (!token) {
+    }
+    if (!token) {
       console.debug(`No token found and the endpoint is ${api.endpoint}`);
       // assume the token was removed because the user logged out and dispatch logout
       api.dispatch({type: LOGOUT_ACTION_TYPE});
