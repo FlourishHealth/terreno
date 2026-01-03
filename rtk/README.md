@@ -1,6 +1,6 @@
 # @terreno/rtk
 
-Redux Toolkit Query utilities for ferns-api backends with React Native / Expo support.
+Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo support.
 
 ## Features
 

@@ -12,9 +12,9 @@ import type {
   FontAwesome6SolidNames,
 } from "./CommonIconTypes";
 
-type PercentageString = `${number}%`;
+export type PercentageString = `${number}%`;
 
-type NumberOrPercentage = number | PercentageString | string;
+export type NumberOrPercentage = number | PercentageString | string;
 
 export interface InfoModalIconProps {
   /**
@@ -320,7 +320,7 @@ export interface FontTheme {
 export type Font = keyof FontTheme;
 
 // The computed theme object that is passed to the ThemeProvider.
-export interface FernsTheme {
+export interface TerrenoTheme {
   text: TextTheme;
   surface: SurfaceTheme;
   border: BorderTheme;
@@ -332,7 +332,7 @@ export interface FernsTheme {
 }
 
 // A config for generating the theme object from primitives.
-export interface FernsThemeConfig {
+export interface TerrenoThemeConfig {
   text: TextThemeConfig;
   surface: SurfaceThemeConfig;
   border: BorderThemeConfig;
@@ -438,7 +438,7 @@ export interface LayerProps {
   children: ReactChildren;
 }
 
-interface AccessibilityProps {
+export interface AccessibilityProps {
   accessibilityLabel: string;
   accessibilityHint: string;
 }
@@ -796,14 +796,14 @@ export interface CheckBoxProps {
   size?: "sm" | "md" | "lg";
 }
 
-interface LayoutRectangle {
+export interface LayoutRectangle {
   x: number;
   y: number;
   width: number;
   height: number;
 }
 
-interface LayoutChangeEvent {
+export interface LayoutChangeEvent {
   nativeEvent: {
     layout: LayoutRectangle;
   };
@@ -824,7 +824,7 @@ export interface SplitPageProps {
   selectLimit?: number;
   // Provide in mobile if you have a bottomTabBar so that split page can adjust accordingly
   bottomNavBarHeight?: number;
-  // boolean to initiate and handle state from the app that has imported ferns-ui
+  // boolean to initiate and handle state from the app that has imported @terreno/ui
   showItemList?: boolean;
   loading?: boolean;
   color?: SurfaceColor;
@@ -1412,7 +1412,7 @@ export interface SelectBadgeProps {
   onChange: (value: string) => void;
 }
 
-interface BannerButtonProps {
+export interface BannerButtonProps {
   /**
    * Text to display on optional banner button, will display button if provided
    */
@@ -1542,12 +1542,12 @@ export interface ButtonProps {
 
 export interface CustomSelectFieldProps {
   /**
-   * The current value of the select field.
+   * The current value of the custom select field.
    */
   value: string | undefined;
 
   /**
-   * The function to call when the selected value changes.
+   * The function to call when the custom select field value changes.
    */
   onChange: (value: string | undefined) => void;
 
@@ -1579,7 +1579,7 @@ export interface CustomSelectFieldProps {
   helperText?: string;
 
   /**
-   * The title of the select field.
+   * The title of the custom select field.
    */
   title?: string;
 }
@@ -2590,7 +2590,7 @@ export interface SelectFieldPropsWithoutRequire extends SelectFieldPropsBase {
   requireValue?: false;
 
   /**
-   * The current value of the select field.
+   * The current value of the select field (optional when requireValue is false).
    */
   value?: string;
 }
@@ -2602,12 +2602,12 @@ export interface SelectFieldPropsWithRequire extends SelectFieldPropsBase {
   requireValue: true;
 
   /**
-   * The current value of the select field.
+   * The current value of the select field (required when requireValue is true).
    */
   value: string;
 
   /**
-   * The function to call when the selected value changes.
+   * The function to call when the required select field value changes.
    */
   onChange: (value: string) => void;
 }

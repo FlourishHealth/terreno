@@ -5,7 +5,7 @@ A monorepo containing shared packages for building full-stack applications.
 ## Packages
 
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
-- **ui/** - React Native UI component library (published as `ferns-ui`)
+- **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example/** - Example application demonstrating API usage
 
@@ -34,7 +34,7 @@ bun run api:compile
 bun run api:lint
 bun run api:test
 
-# UI package (ferns-ui)
+# UI package (@terreno/ui)
 bun run ui:compile
 bun run ui:dev         # Watch mode
 bun run ui:lint
@@ -49,7 +49,7 @@ bun run demo:start     # Start dev server
 You can also use Bun's filter syntax directly:
 
 ```bash
-bun run --filter 'ferns-ui' compile
+bun run --filter '@terreno/ui' compile
 bun run --filter '@terreno/api' test
 ```
 

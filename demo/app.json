@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "@terreno/ui-demo",
-    "slug": "ferns",
-    "scheme": "ferns",
+    "slug": "terreno",
+    "scheme": "terreno",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/icon.png",

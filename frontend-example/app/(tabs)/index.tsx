@@ -1,4 +1,4 @@
-import {Box, Button, Card, CheckBox, Heading, Page, Spinner, Text, TextField} from "@terreno/ui";
+import {Box, Button, Card, CheckBox, Heading, IconButton, Page, Spinner, Text, TextField} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
 import {Pressable, RefreshControl, ScrollView} from "react-native";
@@ -52,11 +52,10 @@ const TodoItem: React.FC<{
             </Text>
           </Box>
         </Pressable>
-        <Button
+        <IconButton
           disabled={isUpdating}
           iconName="trash"
           onClick={handleDelete}
-          text=""
           variant="destructive"
         />
       </Box>

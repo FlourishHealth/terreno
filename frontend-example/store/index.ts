@@ -9,13 +9,13 @@ import {persistReducer, persistStore} from "redux-persist";
 
 import appState from "./appState";
 import {rtkQueryErrorMiddleware} from "./errors";
-import {fernsApi} from "./sdk";
+import {terrenoApi} from "./sdk";
 
 export * from "./appState";
 export {useSentryAndToast} from "./errors";
 export * from "./utils";
 
-const authSlice = generateAuthSlice(fernsApi);
+const authSlice = generateAuthSlice(terrenoApi);
 
 export const {logout} = authSlice;
 
@@ -42,7 +42,7 @@ const createSafeStorage = (): Storage => {
 };
 
 const persistConfig = {
-  blacklist: ["tracking", "flourishApi", "profiles", "localFormInstance"],
+  blacklist: ["tracking", "terreno-rtk", "profiles"],
   key: "root",
   storage: createSafeStorage(),
   timeout: 0, // The code base checks for falsy, so 0 disables
@@ -52,7 +52,8 @@ const persistConfig = {
 const rootReducer = combineReducers({
   appState,
   auth: authSlice.authReducer,
-  fernsApi: fernsApi.reducer,
+  // Must match the reducerPath in @terreno/rtk's emptySplitApi ("terreno-rtk")
+  "terreno-rtk": terrenoApi.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -61,7 +62,7 @@ const sentryReduxEnhancer = createSentryReduxEnhancer();
 
 const store = configureStore({
   devTools: process.env.NODE_ENV !== "production" && {
-    name: `Ferns-${
+    name: `Terreno-${
       typeof window !== "undefined"
         ? // biome-ignore lint/suspicious/noAssignInExpressions: Window name
           window.name || ((window.name = `Window-${DateTime.now().toFormat("HH:mm:ss")}`))
@@ -84,7 +85,7 @@ const store = configureStore({
       ...authSlice.middleware,
       // RTK Query middleware must be cast as it doesn't match exact Redux middleware type
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware has non-standard typing
-      fernsApi.middleware as any,
+      terrenoApi.middleware as any,
       rtkQueryErrorMiddleware,
       // Return value needs casting as concat creates a union type that Redux doesn't accept
       // biome-ignore lint/suspicious/noExplicitAny: Middleware array type inference is complex

@@ -1,6 +1,6 @@
 module.exports = {
   extends: [
-    "plugin:ferns/recommended"
+    "plugin:terreno/recommended"
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {

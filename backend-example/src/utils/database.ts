@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import {initConfiguration} from "../models/configuration";
 
 export const connectToMongoDB = async (): Promise<void> => {
-  const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/ferns-example";
+  const mongoURI = process.env.MONGO_URI || "mongodb://localhost:27017/terreno-example";
 
   try {
     await mongoose.connect(mongoURI);

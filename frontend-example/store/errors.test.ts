@@ -27,8 +27,8 @@ mock.module("@utils", () => ({
   captureMessage: mock(() => {}),
 }));
 
-// Mock ferns-ui
-mock.module("ferns-ui", () => ({
+// Mock terreno-ui
+mock.module("@terreno/ui", () => ({
   useToast: () => ({
     error: mock(() => {}),
   }),

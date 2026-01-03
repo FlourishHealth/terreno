@@ -494,7 +494,7 @@ describe("Configuration", () => {
   describe("pre-registered configurations", () => {
     it("should have APP_NAME registered", () => {
       const appName = Configuration.get<string>("APP_NAME");
-      expect(appName).toBe("Ferns Example");
+      expect(appName).toBe("Terreno Example");
     });
 
     it("should have DEFAULT_PAGE_SIZE registered", () => {

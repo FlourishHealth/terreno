@@ -115,7 +115,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/ferns-ui/dist\"",
+    "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
     "types": "bunx typedoc"

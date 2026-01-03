@@ -10,7 +10,7 @@ export const DemoHomePage: FC<{
   const navigation = useNavigation();
   // Set the title
   useEffect(() => {
-    navigation.setOptions({title: "Ferns UI Demo"});
+    navigation.setOptions({title: "Terreno UI Demo"});
   }, [navigation]);
 
   return (

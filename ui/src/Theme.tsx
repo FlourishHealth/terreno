@@ -1,6 +1,6 @@
 import React, {createContext, useMemo, useState} from "react";
 
-import type {FernsTheme, FernsThemeConfig, ThemePrimitives} from "./Common";
+import type {TerrenoTheme, TerrenoThemeConfig, ThemePrimitives} from "./Common";
 
 const defaultPrimitives = {
   accent000: "#FFFDF7",
@@ -84,7 +84,7 @@ const defaultPrimitives = {
   warning200: "#B14202",
 };
 
-const defaultTheme: FernsThemeConfig = {
+const defaultTheme: TerrenoThemeConfig = {
   border: {
     activeAccent: "accent500",
     activeNeutral: "neutral700",
@@ -166,8 +166,8 @@ type DeepPartial<T> = {
 export const ThemeContext = createContext({
   resetTheme: () => {},
   setPrimitives: (_primitives: DeepPartial<typeof defaultPrimitives>) => {},
-  setTheme: (_theme: DeepPartial<FernsThemeConfig>) => {},
-  theme: {} as FernsTheme,
+  setTheme: (_theme: DeepPartial<TerrenoThemeConfig>) => {},
+  theme: {} as TerrenoTheme,
 });
 
 interface ThemeProviderProps {
@@ -175,7 +175,7 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider = ({children}: ThemeProviderProps) => {
-  const [providerTheme, setProviderTheme] = useState<DeepPartial<FernsThemeConfig>>(defaultTheme);
+  const [providerTheme, setProviderTheme] = useState<DeepPartial<TerrenoThemeConfig>>(defaultTheme);
   const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(defaultPrimitives);
 
   const computedTheme = useMemo(() => {
@@ -183,9 +183,9 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
     // Do this for each sub-object in the theme. E.g. theme.text, theme.surface, etc.
     const theme = Object.keys(providerTheme).reduce((acc, key) => {
       if (key === "primitives") return acc;
-      const value = providerTheme[key as keyof FernsThemeConfig] ?? {};
+      const value = providerTheme[key as keyof TerrenoThemeConfig] ?? {};
       // for each key, map the value to the primitive value.
-      acc[key as keyof FernsTheme] = Object.keys(value).reduce((accKey, valueKey) => {
+      acc[key as keyof TerrenoTheme] = Object.keys(value).reduce((accKey, valueKey) => {
         const primitiveKey = value[valueKey as keyof typeof value] as keyof ThemePrimitives;
         if (key === "font") {
           accKey[valueKey] = primitiveKey;
@@ -198,7 +198,7 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
         return accKey;
       }, {} as any);
       return acc;
-    }, {} as FernsTheme);
+    }, {} as TerrenoTheme);
     return {
       ...theme,
       primitives: providerPrimitives,
@@ -209,19 +209,19 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
     setProviderPrimitives((prev) => ({...prev, ...newPrimitives}));
   };
 
-  const setTheme = (newTheme: DeepPartial<FernsThemeConfig>) => {
+  const setTheme = (newTheme: DeepPartial<TerrenoThemeConfig>) => {
     setProviderTheme((prev) => {
       const mergedTheme = {...prev};
 
       for (const key in newTheme) {
         if (Object.hasOwn(newTheme, key)) {
-          const newSubTheme = newTheme[key as keyof FernsThemeConfig];
-          const prevSubTheme = prev[key as keyof FernsThemeConfig];
+          const newSubTheme = newTheme[key as keyof TerrenoThemeConfig];
+          const prevSubTheme = prev[key as keyof TerrenoThemeConfig];
 
           if (newSubTheme && typeof newSubTheme === "object") {
-            (mergedTheme as any)[key as keyof FernsThemeConfig] = {...prevSubTheme, ...newSubTheme};
+            (mergedTheme as any)[key as keyof TerrenoThemeConfig] = {...prevSubTheme, ...newSubTheme};
           } else {
-            mergedTheme[key as keyof FernsThemeConfig] = newSubTheme as any;
+            mergedTheme[key as keyof TerrenoThemeConfig] = newSubTheme as any;
           }
         }
       }

@@ -87,7 +87,7 @@ const BannerButton = ({
 };
 
 function getKey(id: string): string {
-  return `@FernsUI:${id}`;
+  return `@TerrenoUI:${id}`;
 }
 
 export const hideBanner = (id: string): Promise<void> => {

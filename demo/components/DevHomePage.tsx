@@ -12,7 +12,7 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
   const navigation = useNavigation();
   // Set the title
   useEffect(() => {
-    navigation.setOptions({title: "Ferns UI Dev"});
+    navigation.setOptions({title: "Terreno UI Dev"});
   }, [navigation]);
 
   return (

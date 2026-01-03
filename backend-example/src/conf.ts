@@ -2,7 +2,7 @@ import {Configuration} from "./models/configuration";
 
 // Application constants
 Configuration.register("APP_NAME", {
-  defaultValue: "Ferns Example",
+  defaultValue: "Terreno Example",
   description: "Application name",
   type: "string",
 });

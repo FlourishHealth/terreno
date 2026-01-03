@@ -30,5 +30,3 @@ export const TerrenoProvider: FC<{
   );
 };
 
-// Backwards compatibility alias
-export const FernsProvider = TerrenoProvider;

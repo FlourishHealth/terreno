@@ -100,7 +100,7 @@ try {
 ## Test Database
 
 The test database is separate from development:
-- Default: `mongodb://localhost:27017/ferns-example-test`
+- Default: `mongodb://localhost:27017/terreno-example-test`
 - Override with `TEST_MONGO_URI` environment variable
 - Automatically cleaned between tests
 - Dropped after all tests complete
