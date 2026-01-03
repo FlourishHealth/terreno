@@ -1,4 +1,5 @@
 [test]
 preload = ["./src/bunSetup.ts"]
 root = "./src"
+coverageExclude = ["dist/**"]
 
