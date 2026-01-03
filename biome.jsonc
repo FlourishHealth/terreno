@@ -16,7 +16,6 @@
       "api/package.json",
       "api/src/**/*.ts",
       "api/src/**/*.tsx",
-      "!!api/src/populate.ts",
       "backend-example/package.json",
       "backend-example/src/**/*.ts",
       "backend-example/src/**/*.tsx",

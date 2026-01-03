@@ -12,16 +12,12 @@ updates:
       interval: "weekly"
   # Maintain dependencies for bun in api/
   - package-ecosystem: "bun"
-    directory: "/api"
+    directories:
+      - "/api"
+      - "/backend-example"
     schedule:
       interval: "monthly"
     ignore:
-      # ESM only in 3.x
-      - dependency-name: "@thream/socketio-jwt"
-        versions: ["3.x"]
-      # Puppeteer wasn't building for Node 18, should be able to remove this when we go Node 20
-      - dependency-name: "puppeteer"
-        versions: ["23.x"]
       # Until we move to Express 5, we need to stick with the types for Express 4
       - dependency-name: "@types/express"
         versions: ["5.x"]
@@ -34,19 +30,141 @@ updates:
           - "*"
   # Maintain dependencies for bun in demo/
   - package-ecosystem: "bun"
-    directory: "/demo"
+    directories: 
+      - "/demo"
+      - "/ui"
+      - "/frontend-example"
+      - "/rtk"
     schedule:
       interval: "monthly"
+    ignore:
+      # These packages are controlled by the catalog in root package.json
+      - dependency-name: "@biomejs/biome"
+      - dependency-name: "@expo/config-plugins"
+      - dependency-name: "@expo/vector-icons"
+      - dependency-name: "@happy-dom/global-registrator"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: "@react-native-community/slider"
+      - dependency-name: "@react-native-picker/picker"
+      - dependency-name: "@react-navigation/native"
+      - dependency-name: "@reduxjs/toolkit"
+      - dependency-name: "@rtk-query/codegen-openapi"
+      - dependency-name: "@sentry/react"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "@types/lodash"
+      - dependency-name: "@types/luxon"
+      - dependency-name: "@types/react"
+      - dependency-name: "expo"
+      - dependency-name: "expo-constants"
+      - dependency-name: "expo-font"
+      - dependency-name: "expo-linking"
+      - dependency-name: "expo-notifications"
+      - dependency-name: "expo-router"
+      - dependency-name: "expo-secure-store"
+      - dependency-name: "expo-splash-screen"
+      - dependency-name: "expo-status-bar"
+      - dependency-name: "expo-updates"
+      - dependency-name: "expo-web-browser"
+      - dependency-name: "linkify-it"
+      - dependency-name: "lodash"
+      - dependency-name: "luxon"
+      - dependency-name: "prettier"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-actions-sheet"
+      - dependency-name: "react-native-calendars"
+      - dependency-name: "react-native-drawer-layout"
+      - dependency-name: "react-native-gesture-handler"
+      - dependency-name: "react-native-markdown-display"
+      - dependency-name: "react-native-modalize"
+      - dependency-name: "react-native-portalize"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-signature-canvas"
+      - dependency-name: "react-native-svg"
+      - dependency-name: "react-native-swiper-flatlist"
+      - dependency-name: "react-native-toast-notifications"
+      - dependency-name: "react-native-web"
+      - dependency-name: "react-native-webview"
+      - dependency-name: "react-native-worklets"
+      - dependency-name: "react-redux"
+      - dependency-name: "react-router"
+      - dependency-name: "react-router-dom"
+      - dependency-name: "react-test-renderer"
+      - dependency-name: "redux-persist"
+      - dependency-name: "typescript"
     groups:
-      demo:
+      frontend:
         applies-to: version-updates
         patterns:
           - "*"
-  # Maintain dependencies for bun in ui/
-  - package-ecosystem: "bun"
+
+
     directory: "/ui"
     schedule:
       interval: "monthly"
+    ignore:
+      # These packages are controlled by the catalog in root package.json
+      - dependency-name: "@biomejs/biome"
+      - dependency-name: "@expo/config-plugins"
+      - dependency-name: "@expo/vector-icons"
+      - dependency-name: "@happy-dom/global-registrator"
+      - dependency-name: "@react-native-async-storage/async-storage"
+      - dependency-name: "@react-native-community/datetimepicker"
+      - dependency-name: "@react-native-community/slider"
+      - dependency-name: "@react-native-picker/picker"
+      - dependency-name: "@react-navigation/native"
+      - dependency-name: "@reduxjs/toolkit"
+      - dependency-name: "@rtk-query/codegen-openapi"
+      - dependency-name: "@sentry/react"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "@types/lodash"
+      - dependency-name: "@types/luxon"
+      - dependency-name: "@types/react"
+      - dependency-name: "expo"
+      - dependency-name: "expo-constants"
+      - dependency-name: "expo-font"
+      - dependency-name: "expo-linking"
+      - dependency-name: "expo-notifications"
+      - dependency-name: "expo-router"
+      - dependency-name: "expo-secure-store"
+      - dependency-name: "expo-splash-screen"
+      - dependency-name: "expo-status-bar"
+      - dependency-name: "expo-updates"
+      - dependency-name: "expo-web-browser"
+      - dependency-name: "linkify-it"
+      - dependency-name: "lodash"
+      - dependency-name: "luxon"
+      - dependency-name: "prettier"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-actions-sheet"
+      - dependency-name: "react-native-calendars"
+      - dependency-name: "react-native-drawer-layout"
+      - dependency-name: "react-native-gesture-handler"
+      - dependency-name: "react-native-markdown-display"
+      - dependency-name: "react-native-modalize"
+      - dependency-name: "react-native-portalize"
+      - dependency-name: "react-native-reanimated"
+      - dependency-name: "react-native-safe-area-context"
+      - dependency-name: "react-native-screens"
+      - dependency-name: "react-native-signature-canvas"
+      - dependency-name: "react-native-svg"
+      - dependency-name: "react-native-swiper-flatlist"
+      - dependency-name: "react-native-toast-notifications"
+      - dependency-name: "react-native-web"
+      - dependency-name: "react-native-webview"
+      - dependency-name: "react-native-worklets"
+      - dependency-name: "react-redux"
+      - dependency-name: "react-router"
+      - dependency-name: "react-router-dom"
+      - dependency-name: "react-test-renderer"
+      - dependency-name: "redux-persist"
+      - dependency-name: "typescript"
     groups:
       ui:
         applies-to: version-updates
@@ -62,23 +180,4 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
-  # Maintain dependencies for bun in frontend-example/
-  - package-ecosystem: "bun"
-    directory: "/frontend-example"
-    schedule:
-      interval: "monthly"
-    groups:
-      frontend-example:
-        applies-to: version-updates
-        patterns:
-          - "*"
-  # Maintain dependencies for bun in rtk/
-  - package-ecosystem: "bun"
-    directory: "/rtk"
-    schedule:
-      interval: "monthly"
-    groups:
-      rtk:
-        applies-to: version-updates
-        patterns:
-          - "*"
+
