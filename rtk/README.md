@@ -15,12 +15,8 @@ Redux Toolkit Query utilities for @terreno/api backends with React Native / Expo
 
 This package is part of the terreno workspace. Add it as a dependency:
 
-```json
-{
-  "dependencies": {
-    "@terreno/rtk": "workspace:*"
-  }
-}
+```bash
+    bun install @terreno/rtk
 ```
 
 ## Usage
