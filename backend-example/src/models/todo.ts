@@ -25,5 +25,3 @@ const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
 addDefaultPlugins(todoSchema);
 
 export const Todo = mongoose.model<TodoDocument, TodoModel>("Todo", todoSchema);
-
-

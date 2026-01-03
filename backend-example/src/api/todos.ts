@@ -1,9 +1,9 @@
-import {type modelRouterOptions, modelRouter, OwnerQueryFilter, Permissions} from "@terreno/api";
+import {modelRouter, type modelRouterOptions, OwnerQueryFilter, Permissions} from "@terreno/api";
 import {Todo} from "../models";
-import type {TodoDocument} from "../types";
+import type {TodoDocument, UserDocument} from "../types";
 
-// biome-ignore lint/suspicious/noExplicitAny: Express Router type mismatch between packages
 export const addTodoRoutes = (
+  // biome-ignore lint/suspicious/noExplicitAny: Express Router type mismatch between packages
   router: any,
   options?: Partial<modelRouterOptions<TodoDocument>>
 ): void => {
@@ -22,12 +22,12 @@ export const addTodoRoutes = (
       preCreate: (body, req) => {
         return {
           ...body,
-          ownerId: req.user?._id,
+          ownerId: (req.user as UserDocument)?._id,
         } as TodoDocument;
       },
+      queryFields: ["completed", "ownerId"],
       // Filter list queries to only show user's own todos
       queryFilter: OwnerQueryFilter,
-      queryFields: ["completed", "ownerId"],
       sort: "-created",
     })
   );

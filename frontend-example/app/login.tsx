@@ -1,12 +1,11 @@
 import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
-import {useCallback, useEffect, useState} from "react";
-import {getAuthToken} from "@terreno/rtk";
+import {useCallback, useState} from "react";
 import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
 
 const LoginScreen: React.FC = () => {
-  const router = useRouter();
+  const _router = useRouter();
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -16,30 +15,18 @@ const LoginScreen: React.FC = () => {
   const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
   const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
 
-  // Redirect if user already has a token
-  useEffect(() => {
-    const checkToken = async (): Promise<void> => {
-      const token = await getAuthToken();
-      if (token) {
-        router.replace("/(tabs)");
-      }
-    };
-    checkToken();
-  }, [router]);
-
   const handleSubmit = useCallback(async (): Promise<void> => {
     if (!email || !password) {
-      toast.warn("Email and password are required")
+      toast.warn("Email and password are required");
       return;
     }
 
     if (isSignUp && !name) {
-      toast.warn("Signup requires name")
+      toast.warn("Signup requires name");
       return;
     }
 
     try {
-      console.log(email, name, password, isSignUp)
       if (isSignUp) {
         await emailSignUp({email, name, password}).unwrap();
       } else {

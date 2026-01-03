@@ -5,7 +5,6 @@ import {
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
-import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {
   Badge,
   Box,
@@ -21,6 +20,7 @@ import {
   Text,
   type TextColor,
 } from "@terreno/ui";
+import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import cloneDeep from "lodash/cloneDeep";
 import startCase from "lodash/startCase";
 import type React from "react";

@@ -187,5 +187,4 @@ export function setupLogging(options?: LoggingOptions) {
       winstonLogger.add(transport);
     }
   }
-
 }

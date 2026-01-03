@@ -1,6 +1,6 @@
 import * as SentryBrowser from "@sentry/react";
-import {useEffect} from "react";
 import {Platform} from "react-native";
+
 // import {
 //   createRoutesFromChildren,
 //   matchRoutes,
@@ -10,7 +10,6 @@ import {Platform} from "react-native";
 // import * as SentryNative from "@sentry/react-native";
 
 const IsWeb = Platform.OS === "web";
-
 
 // Add type declaration for React Native's ErrorUtils
 declare const global: {
@@ -23,7 +22,7 @@ declare const global: {
 const SENTRY_DSN = "";
 const SENTRY_TRACE_SAMPLE_RATE = 0.1;
 const SENTRY_ERROR_SAMPLE_RATE = 1.0;
-const IGNORE_ERRORS = [
+const _IGNORE_ERRORS = [
   /^.*Network request failed.*$/,
   /^.*Network Error*$/,
   /^.*Cannot complete operation because sound is not loaded.*$/,
@@ -36,10 +35,8 @@ const IGNORE_ERRORS = [
 ];
 
 // biome-ignore lint/suspicious/noExplicitAny: Sentry types
-export const reactNavigationIntegration: any | undefined = IsWeb
-  ? undefined
-  : undefined;
-  // : (SentryNative?.reactNavigationIntegration?.() ?? undefined);
+export const reactNavigationIntegration: any | undefined = IsWeb ? undefined : undefined;
+// : (SentryNative?.reactNavigationIntegration?.() ?? undefined);
 
 export const setupUnhandledRejectionHandler = (): void => {
   if (IsWeb && typeof window !== "undefined") {

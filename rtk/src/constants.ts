@@ -77,7 +77,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
   );
 } else if (process.env.EXPO_PUBLIC_API_URL) {
-   // For dev web
+  // For dev web
   baseUrl = process.env.EXPO_PUBLIC_API_URL;
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;

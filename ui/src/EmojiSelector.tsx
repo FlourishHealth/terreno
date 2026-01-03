@@ -273,7 +273,7 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
   const handleEmojiSelect = useCallback(
     (selectedEmoji: Emoji) => {
       if (showHistory) {
-        addToHistoryAsync(selectedEmoji);
+        void addToHistoryAsync(selectedEmoji);
       }
       onEmojiSelected(charFromEmojiObject(selectedEmoji));
     },
@@ -387,7 +387,7 @@ const EmojiSelector = (props: EmojiSelectorProps) => {
   useEffect(() => {
     setCategory(initialCategory);
     if (showHistory) {
-      loadHistoryAsync();
+      void loadHistoryAsync();
     }
   }, [initialCategory, loadHistoryAsync, showHistory]);
 

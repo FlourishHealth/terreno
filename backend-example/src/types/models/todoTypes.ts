@@ -3,6 +3,7 @@ import type mongoose from "mongoose";
 import type {BaseDocument} from "../../modelInterfaces";
 
 // Todo Model Types
+// biome-ignore lint/complexity/noBannedTypes: No methods.
 export type TodoMethods = {};
 
 export type TodoStatics = FindExactlyOnePlugin<TodoDocument> & FindOneOrNonePlugin<TodoDocument>;
@@ -15,5 +16,3 @@ export type TodoDocument = BaseDocument &
     completed: boolean;
     ownerId: mongoose.Types.ObjectId;
   };
-
-

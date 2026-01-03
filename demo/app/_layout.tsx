@@ -1,5 +1,5 @@
-import {Slot} from "expo-router";
 import {FernsProvider} from "@terreno/ui";
+import {Slot} from "expo-router";
 
 const RootLayout = () => {
   // TODO: Store dev/demo in AsyncStorage to persist.
