@@ -23,12 +23,16 @@ if (WEBSOCKETS_DEBUG) {
   console.info("WEBSOCKETS_DEBUG is enabled");
 }
 
-// Handy debug logging for websockets, enabled by user feature flag
+// Handy debug logging for websockets, enabled by user.featureFlags.debugWebsockets.enabled or passing in true.
 export const logSocket = (
-  user?: {featureFlags?: {debugWebsockets?: {enabled?: boolean}}},
+  user?: {featureFlags?: {debugWebsockets?: {enabled?: boolean}}} | boolean,
   ...args: string[]
 ): void => {
-  if (user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG) {
+  if (
+    typeof user === "boolean"
+      ? user
+      : user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG
+  ) {
     console.debug(`[websocket]`, ...args);
   }
 };
