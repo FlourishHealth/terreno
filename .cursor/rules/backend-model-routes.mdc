@@ -3,9 +3,9 @@ description: When creating an API to expose a model
 alwaysApply: false
 ---
 
-# Exposing Mongoose Models with FernsRouter
+# Exposing Mongoose Models with ModelRouter
 
-FernsRouter provides a powerful way to automatically create RESTful CRUD APIs for Mongoose models. It generates standard endpoints (GET, POST, PUT/PATCH, DELETE) with built-in support for permissions, population, filtering, and lifecycle hooks.
+ModelRouter provides a powerful way to automatically create RESTful CRUD APIs for Mongoose models. It generates standard endpoints (GET, POST, PUT/PATCH, DELETE) with built-in support for permissions, population, filtering, and lifecycle hooks.
 
 ## Basic Structure
 
@@ -13,7 +13,7 @@ Create a new file in `backend/src/api/` with this pattern:
 
 ```typescript
 import express from "express";
-import {FernsRouterOptions, fernsRouter} from "ferns-api";
+import {ModelRouterOptions, modelRouter} from "@terreno/api";
 
 import {YourModel} from "../models";
 import {IsStaff} from "../permissions";
@@ -21,9 +21,9 @@ import {YourModelDocument, UserDocument} from "../types";
 
 export function yourModelRoutes(
   router: express.Router,
-  options: Partial<FernsRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): void {
-  const yourModelRouter = fernsRouter(YourModel, {
+  const yourModelRouter = modelRouter(YourModel, {
     ...options,
     permissions: {
       list: [IsStaff],
@@ -42,7 +42,7 @@ export function yourModelRoutes(
 
 ## Generated Endpoints
 
-FernsRouter automatically creates these endpoints:
+ModelRouter automatically creates these endpoints:
 
 - `GET /yourModels` - List resources (with pagination, filtering, sorting)
 - `POST /yourModels` - Create a new resource
@@ -68,7 +68,7 @@ permissions: {
 
 ### Built-in Permission Functions
 
-Available from `ferns-api`:
+Available from `@terreno/api`:
 - `Permissions.IsAuthenticated` - Any authenticated user
 
 Custom permission functions from `../permissions`:
@@ -414,7 +414,7 @@ defaultLimit: 50  // Default is usually 25
 
 ```typescript
 import express from "express";
-import {APIError, FernsRouterOptions, fernsRouter} from "ferns-api";
+import {APIError, ModelRouterOptions, modelRouter} from "@terreno/api";
 
 import {AuditLogEvent, ReferralSource} from "../models";
 import {IsStaff} from "../permissions";
@@ -422,9 +422,9 @@ import {ReferralSourceDocument, UserDocument} from "../types";
 
 export function referralSourcesRoutes(
   router: express.Router,
-  options: Partial<FernsRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): void {
-  const referralSourceRouter = fernsRouter(ReferralSource, {
+  const referralSourceRouter = modelRouter(ReferralSource, {
     ...options,
     permissions: {
       list: [IsStaff],
