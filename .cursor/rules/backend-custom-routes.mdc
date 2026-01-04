@@ -5,7 +5,7 @@ alwaysApply: false
 ## Creating Custom Routes
 
 Custom routes are useful when an action doesn't map cleanly to REST semantics or if 
-we need to combine data or fetch data in a way that doesn't neatly conform to FernsRouter.
+we need to combine data or fetch data in a way that doesn't neatly conform to ModelRouter.
 
 When creating custom API routes, follow these patterns consistently:
 
@@ -19,9 +19,9 @@ import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
-  FernsRouterOptions,
+  ModelRouterOptions,
   permissionMiddleware,
-} from "ferns-api";
+} from "@terreno/api";
 
 import {createOpenApiMiddleware} from "../lib";
 import {/* your models */} from "../models";
@@ -31,7 +31,7 @@ import {/* your types */} from "../types";
 // Define OpenAPI middleware function(s) using the builder pattern
 // This function RETURNS the OpenAPI middleware by using createOpenApiMiddleware()
 function yourRouteOpenApiMiddleware(
-  options: Partial<FernsRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): any {
   return createOpenApiMiddleware(options)
     .withTags(["yourTag"])
@@ -69,7 +69,7 @@ function yourRouteOpenApiMiddleware(
 
 export function yourRoutes(
   router: express.Router,
-  options: Partial<FernsRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): void {
   router.get(
     "/yourRoute/:paramName",  // Express route uses :paramName
