@@ -35,12 +35,8 @@ alwaysApply: false
 - Check error conditions at start of functions and return early
 - Limit nested if statements
 - No single-line conditionals
-- Use multiline syntax with curly braces, even for simple conditional statements (e.g., 
+- Use multiline syntax with curly braces, even for simple conditional statements (e.g.,
     if (condition) {
       doSomething();
     }
   )
-  
-  // Staff Role Restrictions
-- When creating elements restricted by staff role, always wrap them in <RestrictToStaffRole> to enforce access control.
-- During code generation or review, flag JSX that conditionally renders based on staff roles but is not wrapped in <RestrictToStaffRole>.
