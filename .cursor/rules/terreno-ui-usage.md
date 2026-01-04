@@ -2,18 +2,18 @@
 description: Applies to react and react native frontend files only
 globs: **/*.ts **/*.tsx
 ---
-# Ferns UI Usage Guidelines for AI
+# @terreno/ui Usage Guidelines
 
-When generating code that uses the Ferns UI library, follow these guidelines to ensure consistency and correctness:
+When generating code that uses @terreno/ui, follow these guidelines to ensure consistency and correctness:
 
 ## Import Pattern
 
 ```typescript
 // Preferred: Named imports for commonly used components
-import {Button, Box, Text, useTheme} from 'ferns-ui';
+import {Button, Box, Text, useTheme} from '@terreno/ui';
 
 // For types
-import type {ButtonProps} from 'ferns-ui';
+import type {ButtonProps} from '@terreno/ui';
 ```
 
 ## Component Usage
@@ -168,13 +168,13 @@ const MyComponent = () => {
 1. **Type Safety**: Always type component props
 2. **Accessibility**: Include `accessibilityLabel` on interactive elements
 3. **Responsive**: Use `useMediaQuery()` for responsive layouts
-4. **Forms**: Use Formik with Ferns form components
+4. **Forms**: Use Formik with @terreno/ui form components
 5. **Testing**: Use `@testing-library/react-native` for component tests
 
 ## Common Pitfalls
 
 - ❌ Don't use inline styles when theme values are available
-- ❌ Don't use raw `View` or `Text` when `Box` and Ferns `Text` are available
+- ❌ Don't use raw `View` or `Text` when `Box` and @terreno/ui `Text` are available
 - ❌ Don't forget to handle loading and error states
 - ❌ Don't use `style` prop when equivalent props exist (e.g., `padding`, `margin`)
 
@@ -182,7 +182,7 @@ const MyComponent = () => {
 
 ```typescript
 import React, {FC, useState} from 'react';
-import {Button, Box, Text, TextField, useTheme} from 'ferns-ui';
+import {Button, Box, Text, TextField, useTheme} from '@terreno/ui';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<void>;

@@ -1,0 +1,91 @@
+# @terreno/ui
+
+React Native UI component library.
+
+## Commands
+
+```bash
+bun run compile          # Compile TypeScript
+bun run dev              # Watch mode
+bun run test             # Run tests (watch mode)
+bun run test:ci          # Run tests (CI mode)
+bun run lint             # Lint code
+bun run lint:fix         # Fix lint issues
+```
+
+## Usage
+
+```typescript
+import {Button, Box, Text, TextField, Modal, useTheme} from '@terreno/ui';
+import type {ButtonProps} from '@terreno/ui';
+```
+
+### Layout with Box
+```typescript
+<Box direction="row" padding={4} gap={2} alignItems="center">
+  <Text>Content</Text>
+  <Button text="Action" />
+</Box>
+```
+
+### Buttons
+```typescript
+<Button
+  text="Submit"
+  variant="primary"  // 'primary' | 'secondary' | 'outline' | 'ghost'
+  onClick={handleSubmit}
+  loading={isLoading}
+  iconName="check"
+/>
+```
+
+### Forms
+```typescript
+<TextField
+  label="Email"
+  value={email}
+  onChangeText={setEmail}
+  error={emailError}
+  helperText="Enter a valid email"
+/>
+```
+
+### Modals
+```typescript
+<Modal
+  title="Confirm Action"
+  visible={isVisible}
+  primaryButtonText="Confirm"
+  secondaryButtonText="Cancel"
+  onDismiss={() => setIsVisible(false)}
+  onPrimaryAction={handleConfirm}
+>
+  <Text>Are you sure?</Text>
+</Modal>
+```
+
+## React Best Practices
+
+- Use functional components with `React.FC` type
+- Import hooks directly: `import {useEffect, useMemo} from 'react'`
+- Always provide return types for functions
+- Add explanatory comment above each `useEffect`
+- Wrap callbacks in `useCallback`
+- Prefer const arrow functions
+- Use inline styles over `StyleSheet.create`
+- Use Luxon for date operations
+- Place static content and interfaces at beginning of file
+- Minimize `use client`, `useEffect`, and `setState`
+
+## Common Pitfalls
+
+- Don't use inline styles when theme values are available
+- Don't use raw `View`/`Text` when `Box`/@terreno/ui `Text` are available
+- Don't forget loading and error states
+- Don't use `style` prop when equivalent props exist (`padding`, `margin`)
+- Never modify `openApiSdk.ts` manually
+
+## Logging
+
+- Use `console.info`, `console.debug`, `console.warn`, `console.error` for permanent logs
+- Use `console.log` only for debugging (to be removed)

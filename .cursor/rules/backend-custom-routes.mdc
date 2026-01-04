@@ -4,8 +4,8 @@ alwaysApply: false
 ---
 ## Creating Custom Routes
 
-Custom routes are useful when an action doesn't map cleanly to REST semantics or if 
-we need to combine data or fetch data in a way that doesn't neatly conform to FernsRouter.
+Custom routes are useful when an action doesn't map cleanly to REST semantics or if
+we need to combine data or fetch data in a way that doesn't neatly conform to modelRouter.
 
 When creating custom API routes, follow these patterns consistently:
 
@@ -14,43 +14,26 @@ When creating custom API routes, follow these patterns consistently:
 Create a new file in `backend/src/api/` with the following structure:
 
 ```typescript
-import express from "express";
+import type {Request, Response} from "express";
 import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
-  FernsRouterOptions,
-  permissionMiddleware,
-} from "ferns-api";
+  modelRouterOptions,
+  createOpenApiBuilder,
+} from "@terreno/api";
 
-import {createOpenApiMiddleware} from "../lib";
 import {/* your models */} from "../models";
-import {/* your permissions */} from "../permissions";
 import {/* your types */} from "../types";
 
-// Define OpenAPI middleware function(s) using the builder pattern
-// This function RETURNS the OpenAPI middleware by using createOpenApiMiddleware()
-function yourRouteOpenApiMiddleware(
-  options: Partial<FernsRouterOptions<any>>
-): any {
-  return createOpenApiMiddleware(options)
+// Define OpenAPI middleware function using the builder pattern
+const yourRouteOpenApiMiddleware = (options: Partial<modelRouterOptions<any>>) => {
+  return createOpenApiBuilder(options)
     .withTags(["yourTag"])
     .withSummary("Brief summary of what this endpoint does")
     .withDescription("Detailed description of the endpoint")
     .withPathParameter("paramName", {type: "string"}, {
       description: "Description of the parameter",
-    })
-    .withRequestBody({  // Only for POST/PUT/PATCH
-      field1: {
-        type: "string",
-        description: "Description of field1",
-        required: true,
-      },
-      field2: {
-        type: "number",
-        description: "Optional field2",
-        required: false,
-      },
     })
     .withResponse(200, {
       data: {
@@ -61,137 +44,94 @@ function yourRouteOpenApiMiddleware(
           name: {type: "string"},
         },
       },
-    }, {
-      description: "Success description",
     })
-    .build();  // MUST call .build() at the end
-}
+    .build();
+};
 
-export function yourRoutes(
-  router: express.Router,
-  options: Partial<FernsRouterOptions<any>>
-): void {
+export const addYourRoutes = (
+  router: any,
+  options: Partial<modelRouterOptions<any>>
+): void => {
   router.get(
-    "/yourRoute/:paramName",  // Express route uses :paramName
+    "/yourRoute/:paramName",
     [
-      authenticateMiddleware(),  // or authenticateMiddleware(false) for optional auth
-      permissionMiddleware(User, {  // Optional, only if permissions needed
-        ...options,
-        permissions: {
-          list: [IsStaff],  // Use appropriate permission functions
-          create: [],
-          read: [],
-          update: [],
-          delete: [],
-        },
-      }),
-      yourRouteOpenApiMiddleware(options),  // Call the function which returns openApi.path()
+      authenticateMiddleware(),
+      yourRouteOpenApiMiddleware(options),
     ],
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const user = req.user as UserDocument;
-      
-      // Validate permissions/access
-      if (!isStaff(user)) {
-        throw new APIError({status: 403, title: "Unauthorized"});
-      }
-      
-      // Validate parameters
+
       if (!req.params.paramName) {
         throw new APIError({status: 400, title: "Missing parameter"});
       }
-      
-      // Your route logic here
+
       const result = await yourLogic();
-      
+
       return res.json({data: result});
     })
   );
-}
+};
 ```
 
-**Builder Methods:**
+### Builder Methods
+
 - `.withTags(tags: string[])` - Add OpenAPI tags for documentation grouping
-- `.withSummary(summary: string)` - Short description (shown in API docs list)
+- `.withSummary(summary: string)` - Short description
 - `.withDescription(description: string)` - Detailed description
-- `.withPathParameter(name, schema, options?)` - Add path parameter (e.g., `/users/:userId`)
-- `.withQueryParameter(name, schema, options?)` - Add query parameter (e.g., `?status=active`)
+- `.withPathParameter(name, schema, options?)` - Add path parameter
+- `.withQueryParameter(name, schema, options?)` - Add query parameter
 - `.withRequestBody(schema, options?)` - Define request body schema (POST/PUT/PATCH)
-- `.withResponse(statusCode, schema, options?)` - Define response schema for status code
+- `.withResponse(statusCode, schema, options?)` - Define response schema
 - `.withArrayResponse(statusCode, itemSchema, options?)` - Define array response
-- `.build()` - **REQUIRED**: Builds and returns the middleware (auto-includes error responses)
+- `.build()` - **REQUIRED**: Builds and returns the middleware
 
-### 4. Required Middleware Components
+### Required Middleware Components
 
-Every custom route MUST include these middleware in order:
+Every custom route MUST include:
 
-1. **authenticateMiddleware()**: ALWAYS include this
-   - Use `authenticateMiddleware()` for required authentication
-   - Use `authenticateMiddleware(false)` for optional authentication
-   
-2. **permissionMiddleware()**: Include when authorization checks are needed
-   - Pass the model and permissions configuration
-   - Use permission functions from `../permissions` (e.g., `IsStaff`, `IsSuperUser`)
-   
-3. **OpenAPI middleware**: ALWAYS include for API documentation
-   - **Pattern A** (RECOMMENDED): Call separate function using `createOpenApiMiddleware(options).build()`
-   - **Pattern B**: Use `createOpenApiMiddleware(options)` directly inline with `.build()`
-   - Builder automatically includes default error responses (no need to add manually)
-   
-4. **asyncHandler()**: ALWAYS wrap the route handler
+1. **authenticateMiddleware()**: For authentication
+   - `authenticateMiddleware()` for required auth
+   - `authenticateMiddleware(false)` for optional auth
 
-### 5. Export and Register Routes
+2. **OpenAPI middleware**: For API documentation
+   - Use `createOpenApiBuilder(options)...build()`
 
-1. Export your routes function from `backend/src/api/index.ts`:
+3. **asyncHandler()**: Wrap the route handler
+
+### Export and Register Routes
+
+1. Export from `backend/src/api/index.ts`:
 ```typescript
 export * from "./yourRoutes";
 ```
 
-2. Register in the main router (typically in `backend/src/index.ts` or similar):
+2. Register in server:
 ```typescript
-import {yourRoutes} from "./api";
-
-yourRoutes(router, options);
+import {addYourRoutes} from "./api";
+addYourRoutes(router, options);
 ```
 
-### 6. Generate SDK
+### Generate SDK
 
-After creating custom routes, ALWAYS run in the app/ directory:
+After creating custom routes, regenerate the SDK:
 ```bash
-yarn sdk
+bun run sdk
 ```
 
-This generates the TypeScript SDK and OpenAPI specification.
+### Using the SDK (Frontend)
 
-### 7. Using the SDK (Frontend)
-
-In the frontend, ALWAYS use the generated SDK hooks - NEVER use `axios` or `request` directly:
+Always use the generated SDK hooks - never use `axios` directly:
 
 ```typescript
-// ✅ CORRECT: Use generated hooks
 import {useGetYourRouteQuery} from "@/store/openApiSdk";
 
 const {data, isLoading, error} = useGetYourRouteQuery({paramName: "value"});
-
-// ❌ WRONG: Don't use axios/request directly
-// import axios from "axios";
-// const result = await axios.get("/api/yourRoute/value");
 ```
 
-### 8. Best Practices
+### Best Practices
 
-- **Path Format**: 
-  - Express route: `"/yourRoute/:paramId"` (colon syntax)
-  - OpenAPI middleware handles paths automatically (no need to specify `path` property with builder)
-- **OpenAPI Middleware**: 
-  - ALWAYS use `createOpenApiMiddleware()` builder (import from `"../lib"`)
-  - ALWAYS call `.build()` at the end to generate the middleware
-  - Builder automatically includes `...defaultOpenApiErrorResponses`
-  - Extract to separate function for complex schemas, use inline for simple routes
-- **Error Handling**: Always throw `APIError` with appropriate status codes and user-friendly messages
-- **Validation**: Validate all inputs at the start of the handler and return early
-- **Permissions**: Check user permissions early in the handler
-- **Logging**: Use `logger.info/warn/error/debug` for permanent logs (not `console.log`)
-- **Types**: Always type `req.user` as `UserDocument` or appropriate type
-- **Response Format**: Return data in `{data: ...}` format for consistency
-- **Documentation**: Use `.withSummary()` and `.withDescription()` for clear API docs
-- **Tags**: Use `.withTags([])` to group related endpoints in documentation
+- **Error Handling**: Throw `APIError` with status and title
+- **Validation**: Validate inputs at start of handler
+- **Logging**: Use `logger.info/warn/error/debug`
+- **Types**: Type `req.user` as `UserDocument`
+- **Response Format**: Return `{data: ...}` for consistency
