@@ -9,7 +9,7 @@ import onFinished from "on-finished";
 import passport from "passport";
 import qs from "qs";
 
-import type {modelRouterOptions} from "./api";
+import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
@@ -41,7 +41,7 @@ export function setupEnvironment(): void {
   }
 }
 
-export type AddRoutes = (router: Router, options?: Partial<modelRouterOptions<any>>) => void;
+export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<any>>) => void;
 
 const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   const options = (res.locals.loggingOptions ?? {}) as LoggingOptions;

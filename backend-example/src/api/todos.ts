@@ -1,11 +1,11 @@
-import {modelRouter, type modelRouterOptions, OwnerQueryFilter, Permissions} from "@terreno/api";
+import {type ModelRouterOptions, modelRouter, OwnerQueryFilter, Permissions} from "@terreno/api";
 import {Todo} from "../models";
 import type {TodoDocument, UserDocument} from "../types";
 
 export const addTodoRoutes = (
   // biome-ignore lint/suspicious/noExplicitAny: Express Router type mismatch between packages
   router: any,
-  options?: Partial<modelRouterOptions<TodoDocument>>
+  options?: Partial<ModelRouterOptions<TodoDocument>>
 ): void => {
   router.use(
     "/todos",

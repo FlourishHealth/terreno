@@ -31,7 +31,7 @@
  */
 import merge from "lodash/merge";
 
-import type {modelRouterOptions} from "./api";
+import type {ModelRouterOptions} from "./api";
 import {logger} from "./logger";
 import {defaultOpenApiErrorResponses} from "./openApi";
 
@@ -250,7 +250,7 @@ interface OpenApiConfig {
  */
 export class OpenApiMiddlewareBuilder {
   /** Router options containing OpenAPI configuration */
-  private options: Partial<modelRouterOptions<any>>;
+  private options: Partial<ModelRouterOptions<any>>;
 
   /** Accumulated OpenAPI configuration from builder methods */
   private config: OpenApiConfig;
@@ -260,7 +260,7 @@ export class OpenApiMiddlewareBuilder {
    *
    * @param options - Router options containing the OpenAPI path configuration
    */
-  constructor(options: Partial<modelRouterOptions<any>>) {
+  constructor(options: Partial<ModelRouterOptions<any>>) {
     this.options = options;
     this.config = {
       responses: {},
@@ -630,7 +630,7 @@ export class OpenApiMiddlewareBuilder {
  * ```
  */
 export function createOpenApiBuilder(
-  options: Partial<modelRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): OpenApiMiddlewareBuilder {
   return new OpenApiMiddlewareBuilder(options);
 }
