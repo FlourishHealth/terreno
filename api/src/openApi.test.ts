@@ -4,13 +4,13 @@ import type {Router} from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {modelRouter, type modelRouterOptions} from "./api";
+import {type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
-function getMessageSummaryOpenApiMiddleware(options: Partial<modelRouterOptions<any>>): any {
+function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
   return options.openApi.path({
     parameters: [
       {
@@ -42,7 +42,7 @@ function getMessageSummaryOpenApiMiddleware(options: Partial<modelRouterOptions<
   });
 }
 
-function addRoutes(router: Router, options?: Partial<modelRouterOptions<any>>): void {
+function addRoutes(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
   router.use(
     "/food",
     modelRouter(FoodModel as any, {
@@ -176,7 +176,7 @@ describe("openApi", () => {
   });
 });
 
-function addRoutesPopulate(router: Router, options?: Partial<modelRouterOptions<any>>): void {
+function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
   options?.openApi.component("schemas", "LimitedUser", {
     properties: {
       email: {

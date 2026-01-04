@@ -1,7 +1,7 @@
 import type express from "express";
 import type {Document} from "mongoose";
 
-import type {modelRouterOptions} from "./api";
+import type {ModelRouterOptions} from "./api";
 import type {User} from "./auth";
 import {APIError} from "./errors";
 import {logger} from "./logger";
@@ -88,7 +88,7 @@ export function AdminOwnerTransformer<T>(options: {
 }
 
 export function transform<T>(
-  options: modelRouterOptions<T>,
+  options: ModelRouterOptions<T>,
   data: Partial<T> | Partial<T>[],
   method: "create" | "update",
   user?: User
@@ -112,7 +112,7 @@ export function transform<T>(
 
 export function serialize<T>(
   req: express.Request,
-  options: modelRouterOptions<T>,
+  options: ModelRouterOptions<T>,
   data: (Document<any, any, any> & T) | (Document<any, any, any> & T)[]
 ) {
   const serializeFn = (serializeData: Document<any, any, any> & T, serializeUser?: User) => {
@@ -153,7 +153,7 @@ export async function defaultResponseHandler<T>(
   doc: (Document<any, any, any> & T) | (Document<any, any, any> & T)[] | null,
   method: "list" | "create" | "read" | "update",
   request: express.Request,
-  options: modelRouterOptions<T>
+  options: ModelRouterOptions<T>
 ) {
   if (!doc) {
     return null;
