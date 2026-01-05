@@ -26,4 +26,4 @@ globs: **/*.ts **/*.tsx
 - Use the Receive an Object, Return an Object (RORO) pattern
 
 // Testing
-- Use chai assert rather than expect
+- Use bun test with expect for testing
