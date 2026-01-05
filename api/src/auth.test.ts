@@ -1,5 +1,4 @@
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
-import {assert} from "chai";
 import type express from "express";
 import type jwt from "jsonwebtoken";
 import supertest from "supertest";
@@ -96,9 +95,9 @@ describe("auth tests", () => {
       .send({email: "new@example.com", password: "123"})
       .expect(200);
     let {userId, token, refreshToken} = res.body.data;
-    assert.isDefined(userId);
-    assert.isDefined(token);
-    assert.isDefined(refreshToken);
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
 
     res = await agent
       .post("/auth/login")
@@ -108,9 +107,9 @@ describe("auth tests", () => {
 
     userId = res.body.data.userId;
     token = res.body.data.token;
-    assert.isDefined(userId);
-    assert.isDefined(token);
-    assert.isDefined(refreshToken);
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
 
     const food = await FoodModel.create({
       calories: 1,
@@ -120,38 +119,38 @@ describe("auth tests", () => {
     });
 
     const meRes = await agent.get("/auth/me").expect(200);
-    assert.isDefined(meRes.body.data._id);
-    assert.isDefined(meRes.body.data.id);
-    assert.isUndefined(meRes.body.data.hash);
-    assert.equal(meRes.body.data.email, "new@example.com");
-    assert.isDefined(meRes.body.data.updated);
-    assert.isDefined(meRes.body.data.created);
-    assert.isFalse(meRes.body.data.admin);
+    expect(meRes.body.data._id).toBeDefined();
+    expect(meRes.body.data.id).toBeDefined();
+    expect(meRes.body.data.hash).toBeUndefined();
+    expect(meRes.body.data.email).toBe("new@example.com");
+    expect(meRes.body.data.updated).toBeDefined();
+    expect(meRes.body.data.created).toBeDefined();
+    expect(meRes.body.data.admin).toBe(false);
 
     const mePatchRes = await agent
       .patch("/auth/me")
       .send({email: "new2@example.com"})
       .set("authorization", `Bearer ${token}`)
       .expect(200);
-    assert.isDefined(mePatchRes.body.data._id);
-    assert.isDefined(mePatchRes.body.data.id);
-    assert.isUndefined(mePatchRes.body.data.hash);
-    assert.equal(mePatchRes.body.data.email, "new2@example.com");
-    assert.isDefined(mePatchRes.body.data.updated);
-    assert.isDefined(mePatchRes.body.data.created);
-    assert.isFalse(mePatchRes.body.data.admin);
+    expect(mePatchRes.body.data._id).toBeDefined();
+    expect(mePatchRes.body.data.id).toBeDefined();
+    expect(mePatchRes.body.data.hash).toBeUndefined();
+    expect(mePatchRes.body.data.email).toBe("new2@example.com");
+    expect(mePatchRes.body.data.updated).toBeDefined();
+    expect(mePatchRes.body.data.created).toBeDefined();
+    expect(mePatchRes.body.data.admin).toBe(false);
 
     // Use token to see 2 foods + the one we just created
     const getRes = await agent.get("/food").expect(200);
 
-    assert.lengthOf(getRes.body.data, 3);
-    assert.isDefined(getRes.body.data.find((f: any) => f.name === "Peas"));
+    expect(getRes.body.data).toHaveLength(3);
+    expect(getRes.body.data.find((f: any) => f.name === "Peas")).toBeDefined();
 
     const updateRes = await agent
       .patch(`/food/${food._id}`)
       .send({name: "PeasAndCarrots"})
       .expect(200);
-    assert.equal(updateRes.body.data.name, "PeasAndCarrots");
+    expect(updateRes.body.data.name).toBe("PeasAndCarrots");
   });
 
   it("signup with extra data", async () => {
@@ -160,12 +159,12 @@ describe("auth tests", () => {
       .send({age: 25, email: "new@example.com", password: "123"})
       .expect(200);
     const {userId, token, refreshToken} = res.body.data;
-    assert.isDefined(userId);
-    assert.isDefined(token);
-    assert.isDefined(refreshToken);
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
 
     const user = await UserModel.findOne({email: "new@example.com"});
-    assert.equal(user?.age, 25);
+    expect(user?.age).toBe(25);
   });
 
   it("login failure", async () => {
@@ -173,7 +172,7 @@ describe("auth tests", () => {
       .post("/auth/login")
       .send({email: "admin@example.com", password: "wrong"})
       .expect(401);
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Password or username is incorrect",
     });
     res = await agent
@@ -181,7 +180,7 @@ describe("auth tests", () => {
       .send({email: "nope@example.com", password: "wrong"})
       .expect(401);
     // we don't really want to expose if a given email address has an account in our system or not
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Password or username is incorrect",
     });
   });
@@ -191,7 +190,7 @@ describe("auth tests", () => {
       .post("/auth/login")
       .send({email: "ADMIN@example.com", password: "securePassword"})
       .expect(200);
-    assert.isDefined(res.body.data.token);
+    expect(res.body.data.token).toBeDefined();
   });
 
   it("case insensitive email with emails with symbols", async () => {
@@ -199,7 +198,7 @@ describe("auth tests", () => {
       .post("/auth/login")
       .send({email: "ADMIN+other@example.com", password: "otherPassword"})
       .expect(200);
-    assert.isDefined(res.body.data.token);
+    expect(res.body.data.token).toBeDefined();
   });
 
   it("completes token login e2e", async () => {
@@ -208,45 +207,45 @@ describe("auth tests", () => {
       .send({email: "admin@example.com", password: "securePassword"})
       .expect(200);
     const {userId, token} = res.body.data;
-    assert.isDefined(userId);
-    assert.isDefined(token);
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
 
     await agent.set("authorization", `Bearer ${res.body.data.token}`);
 
     const meRes = await agent.get("/auth/me").expect(200);
-    assert.isDefined(meRes.body.data._id);
-    assert.isDefined(meRes.body.data.id);
-    assert.isUndefined(meRes.body.data.hash);
-    assert.equal(meRes.body.data.email, "admin@example.com");
-    assert.isDefined(meRes.body.data.updated);
-    assert.isDefined(meRes.body.data.created);
-    assert.isTrue(meRes.body.data.admin);
+    expect(meRes.body.data._id).toBeDefined();
+    expect(meRes.body.data.id).toBeDefined();
+    expect(meRes.body.data.hash).toBeUndefined();
+    expect(meRes.body.data.email).toBe("admin@example.com");
+    expect(meRes.body.data.updated).toBeDefined();
+    expect(meRes.body.data.created).toBeDefined();
+    expect(meRes.body.data.admin).toBe(true);
 
     const mePatchRes = await agent
       .patch("/auth/me")
       .send({email: "admin2@example.com"})
       .expect(200);
-    assert.isDefined(mePatchRes.body.data._id);
-    assert.isDefined(mePatchRes.body.data.id);
-    assert.isUndefined(mePatchRes.body.data.hash);
-    assert.equal(mePatchRes.body.data.email, "admin2@example.com");
-    assert.isDefined(mePatchRes.body.data.updated);
-    assert.isDefined(mePatchRes.body.data.created);
-    assert.isTrue(mePatchRes.body.data.admin);
+    expect(mePatchRes.body.data._id).toBeDefined();
+    expect(mePatchRes.body.data.id).toBeDefined();
+    expect(mePatchRes.body.data.hash).toBeUndefined();
+    expect(mePatchRes.body.data.email).toBe("admin2@example.com");
+    expect(mePatchRes.body.data.updated).toBeDefined();
+    expect(mePatchRes.body.data.created).toBeDefined();
+    expect(mePatchRes.body.data.admin).toBe(true);
 
     // Use token to see admin foods
     const getRes = await agent.get("/food").expect(200);
 
-    assert.lengthOf(getRes.body.data, 3);
+    expect(getRes.body.data).toHaveLength(3);
     const food = getRes.body.data.find((f: any) => f.name === "Apple");
-    assert.isDefined(food);
+    expect(food).toBeDefined();
 
     const updateRes = await agent
       .patch(`/food/${food.id}`)
       .set("authorization", `Bearer ${token}`)
       .send({name: "Apple Pie"})
       .expect(200);
-    assert.equal(updateRes.body.data.name, "Apple Pie");
+    expect(updateRes.body.data.name).toBe("Apple Pie");
   });
 
   it("login successfully and tokens expire", async () => {
@@ -255,8 +254,8 @@ describe("auth tests", () => {
       .send({email: "admin@example.com", password: "securePassword"})
       .expect(200);
     const {userId, token} = res.body.data;
-    assert.isDefined(userId);
-    assert.isDefined(token);
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
 
     await agent.set("authorization", `Bearer ${res.body.data.token}`);
 
@@ -274,31 +273,31 @@ describe("auth tests", () => {
       .send({email: "admin@example.com", password: "wrong"})
       .expect(401);
 
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Password or username is incorrect",
     });
     let user = await UserModel.findById(admin._id);
-    assert.equal((user as any)?.attempts, 1);
+    expect((user as any)?.attempts).toBe(1);
     res = await agent
       .post("/auth/login")
       .send({email: "admin@example.com", password: "wrong"})
       .expect(401);
 
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Password or username is incorrect",
     });
     user = await UserModel.findById(admin._id);
-    assert.equal((user as any)?.attempts, 2);
+    expect((user as any)?.attempts).toBe(2);
     res = await agent
       .post("/auth/login")
       .send({email: "admin@example.com", password: "wrong"})
       .expect(401);
 
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Account locked due to too many failed login attempts",
     });
     user = await UserModel.findById(admin._id);
-    assert.equal((user as any)?.attempts, 3);
+    expect((user as any)?.attempts).toBe(3);
 
     // Logging in with correct password fails because account is locked
     res = await agent
@@ -306,12 +305,12 @@ describe("auth tests", () => {
       .send({email: "admin@example.com", password: "securePassword"})
       .expect(401);
 
-    assert.deepEqual(res.body, {
+    expect(res.body).toEqual({
       message: "Account locked due to too many failed login attempts",
     });
     user = await UserModel.findById(admin._id);
     // Not incremented
-    assert.equal((user as any)?.attempts, 3);
+    expect((user as any)?.attempts).toBe(3);
   });
 
   it("refresh token allows refresh of auth token", async () => {
@@ -320,8 +319,8 @@ describe("auth tests", () => {
       .post("/auth/login")
       .send({email: "ADMIN@example.com", password: "securePassword"})
       .expect(200);
-    assert.isDefined(initialLoginRes.body.data.token);
-    assert.isDefined(initialLoginRes.body.data.refreshToken);
+    expect(initialLoginRes.body.data.token).toBeDefined();
+    expect(initialLoginRes.body.data.refreshToken).toBeDefined();
     const initialToken = initialLoginRes.body.data.token;
     await agent.set("authorization", `Bearer ${initialToken}`);
 
@@ -330,8 +329,8 @@ describe("auth tests", () => {
       .post("/auth/refresh_token")
       .send({refreshToken: initialLoginRes.body.data.refreshToken})
       .expect(200);
-    assert.isDefined(refreshRes.body.data.token);
-    assert.isDefined(refreshRes.body.data.refreshToken);
+    expect(refreshRes.body.data.token).toBeDefined();
+    expect(refreshRes.body.data.refreshToken).toBeDefined();
     const newToken = refreshRes.body.data.token;
     // note that new token will most likely be the same as the old token because
     // an HMAC signature will always be the same for a header + payload combination that is equal.
@@ -339,7 +338,7 @@ describe("auth tests", () => {
     // make sure new token works
     await agent.set("authorization", `Bearer ${newToken}`);
     const meRes = await agent.get("/auth/me").expect(200);
-    assert.isDefined(meRes.body.data._id);
+    expect(meRes.body.data._id).toBeDefined();
   });
 
   it("disabled user fails", async () => {
@@ -348,18 +347,18 @@ describe("auth tests", () => {
       .post("/auth/login")
       .send({email: "ADMIN@example.com", password: "securePassword"})
       .expect(200);
-    assert.isDefined(initialLoginRes.body.data.token);
-    assert.isDefined(initialLoginRes.body.data.refreshToken);
+    expect(initialLoginRes.body.data.token).toBeDefined();
+    expect(initialLoginRes.body.data.refreshToken).toBeDefined();
     const initialToken = initialLoginRes.body.data.token;
     await agent.set("authorization", `Bearer ${initialToken}`);
     const meRes = await agent.get("/auth/me").expect(200);
-    assert.isDefined(meRes.body.data._id);
+    expect(meRes.body.data._id).toBeDefined();
 
     admin.disabled = true;
     await admin.save();
 
     const failRes = await agent.get("/auth/me").expect(401);
-    assert.deepEqual(failRes.body, {status: 401, title: "User is disabled"});
+    expect(failRes.body).toEqual({status: 401, title: "User is disabled"});
   });
 
   it("signup user with email that is already registered", async () => {
@@ -374,7 +373,7 @@ describe("auth tests", () => {
       .expect(500);
 
     await timeout(1000);
-    assert.equal(res2.body.title, "A user with the given username is already registered");
+    expect(res2.body.title).toBe("A user with the given username is already registered");
   });
 });
 
@@ -465,8 +464,8 @@ describe("custom auth options", () => {
       .send({email: "admin@example.com", password: "securePassword"})
       .expect(200);
 
-    assert.isDefined(res.body.data.userId);
-    assert.isDefined(res.body.data.token);
+    expect(res.body.data.userId).toBeDefined();
+    expect(res.body.data.token).toBeDefined();
 
     await adminAgent.set("authorization", `Bearer ${res.body.data.token}`);
 
@@ -477,8 +476,8 @@ describe("custom auth options", () => {
       .send({email: "notadmin@example.com", password: "password"})
       .expect(200);
 
-    assert.isDefined(res2.body.data.userId);
-    assert.isDefined(res2.body.data.token);
+    expect(res2.body.data.userId).toBeDefined();
+    expect(res2.body.data.token).toBeDefined();
 
     await notAdminAgent.set("authorization", `Bearer ${res2.body.data.token}`);
 

@@ -1,6 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: tests
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 import {User} from "../models/user";
 import {createTestUser, generateTestEmail} from "../test/helpers";
 import {userService} from "./userService";
@@ -17,32 +16,32 @@ describe("User Service", () => {
 
       const user = await userService.createUser(email, name);
 
-      assert.exists(user._id);
-      assert.strictEqual(user.email, email);
-      assert.strictEqual(user.name, name);
+      expect(user._id).toBeDefined();
+      expect(user.email).toBe(email);
+      expect(user.name).toBe(name);
     });
 
     it("should throw error when email is missing", async () => {
       try {
         await userService.createUser("", "John Doe");
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: any) {
-        assert.exists(error.status);
-        assert.exists(error.title);
-        assert.include(error.title.toLowerCase(), "required");
-        assert.strictEqual(error.status, 400);
+        expect(error.status).toBeDefined();
+        expect(error.title).toBeDefined();
+        expect(error.title.toLowerCase()).toContain("required");
+        expect(error.status).toBe(400);
       }
     });
 
     it("should throw error when name is missing", async () => {
       try {
         await userService.createUser(generateTestEmail(), "");
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: any) {
-        assert.exists(error.status);
-        assert.exists(error.title);
-        assert.include(error.title.toLowerCase(), "required");
-        assert.strictEqual(error.status, 400);
+        expect(error.status).toBeDefined();
+        expect(error.title).toBeDefined();
+        expect(error.title.toLowerCase()).toContain("required");
+        expect(error.status).toBe(400);
       }
     });
 
@@ -52,12 +51,12 @@ describe("User Service", () => {
 
       try {
         await userService.createUser(email, "New User");
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: any) {
-        assert.exists(error.status);
-        assert.exists(error.title);
-        assert.include(error.title.toLowerCase(), "already exists");
-        assert.strictEqual(error.status, 400);
+        expect(error.status).toBeDefined();
+        expect(error.title).toBeDefined();
+        expect(error.title.toLowerCase()).toContain("already exists");
+        expect(error.status).toBe(400);
       }
     });
   });
@@ -68,9 +67,11 @@ describe("User Service", () => {
 
       const user = await userService.getUserById(testUser._id.toString());
 
-      assert.exists(user);
-      assert.strictEqual(user._id.toString(), testUser._id.toString());
-      assert.strictEqual(user.email, testUser.email);
+      expect(user).toBeDefined();
+      if (user) {
+        expect(user._id.toString()).toBe(testUser._id.toString());
+        expect(user.email).toBe(testUser.email);
+      }
     });
 
     it("should throw error when user not found", async () => {
@@ -78,9 +79,9 @@ describe("User Service", () => {
 
       try {
         await userService.getUserById(fakeId);
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: unknown) {
-        assert.exists(error);
+        expect(error).toBeDefined();
       }
     });
   });

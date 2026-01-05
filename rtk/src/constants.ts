@@ -7,7 +7,7 @@ export const TOKEN_REFRESHED_SUCCESS = "auth/tokenRefreshedSuccess";
 
 export const AUTH_DEBUG = Constants.expoConfig?.extra?.AUTH_DEBUG === "true";
 if (AUTH_DEBUG) {
-  console.info("AUTH_DEBUG is enabled");
+  console.debug("AUTH_DEBUG is enabled");
 }
 
 export const logAuth = (...args: string[]): void => {
@@ -16,42 +16,26 @@ export const logAuth = (...args: string[]): void => {
   }
 };
 
-// Handy debug logging for form presence, but not enabled by default.
-const FORM_PRESENCE_DEBUG = Constants.expoConfig?.extra?.FORM_PRESENCE_DEBUG === "true";
-if (FORM_PRESENCE_DEBUG) {
-  console.info("FORM_PRESENCE_DEBUG is enabled");
-}
-export const logFormPresence = (...args: string[]): void => {
-  if (FORM_PRESENCE_DEBUG) {
-    console.debug(...args);
-  }
-};
-
-// Handy debug logging for form presence or other socket events, but not enabled by default.
+// Handy debug logging socket events, but not enabled by default.
 // Can also be enabled by user feature flag.
 const WEBSOCKETS_DEBUG = Constants.expoConfig?.extra?.WEBSOCKETS_DEBUG === "true";
 if (WEBSOCKETS_DEBUG) {
-  console.info("WEBSOCKETS_DEBUG is enabled");
+  console.debug("WEBSOCKETS_DEBUG is enabled");
 }
 
-// Handy debug logging for websockets, enabled by user feature flag
+// Handy debug logging for websockets, enabled by user.featureFlags.debugWebsockets.enabled or passing in true.
 export const logSocket = (
-  user?: {featureFlags?: {debugWebsockets?: {enabled?: boolean}}},
+  user?: {featureFlags?: {debugWebsockets?: {enabled?: boolean}}} | boolean,
   ...args: string[]
 ): void => {
-  if (user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG) {
+  if (
+    typeof user === "boolean"
+      ? user
+      : user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG
+  ) {
     console.debug(`[websocket]`, ...args);
   }
 };
-
-// Emit a focus event every 5 seconds while the question is focused.
-export const FORM_PRESENCE_INTERVAL_MS = 5000;
-// If we haven't received a focus event for the past 15 seconds, consider the question blurred.
-// The user may have navigated away from the question.
-export const FORM_PRESENCE_BLUR_TIMEOUT_MS = 15000;
-// Ensure the blur from the previous question has been sent before emitting the focus for this
-// question
-export const FORM_PRESENCE_DELAY_MS = 200;
 
 // When we use "expo publish", we want to point the API at the prod API. In the future,
 // we'll want to point at the staging API, and probably have a development release channel.
@@ -71,7 +55,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
 
-  console.info(
+  console.debug(
     `Base URL set to apiUrl ${baseUrl} for env ${
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
@@ -82,7 +66,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
 
-  console.info(
+  console.debug(
     `Base URL set to apiUrl ${baseUrl} for env ${
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
@@ -92,7 +76,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}`;
   baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/`;
   baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/tasks`;
-  console.info(
+  console.debug(
     `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
@@ -101,7 +85,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}`;
   baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/`;
   baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/tasks`;
-  console.info(
+  console.debug(
     `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
@@ -114,7 +98,7 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
   baseUrl = `http://localhost:3000`;
   baseWebsocketsUrl = `ws://localhost:3000/`;
   baseTasksUrl = `http://localhost:3000/tasks`;
-  console.info(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
+  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
 } else {
   console.error("No base URL found", Constants.expoConfig, Constants.experienceUrl);
   throw new Error("No base URL found");

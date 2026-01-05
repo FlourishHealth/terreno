@@ -3,7 +3,7 @@ import merge from "lodash/merge";
 import type {Model} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
-import type {modelRouterOptions} from "./api";
+import type {ModelRouterOptions} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
 
@@ -112,7 +112,7 @@ function createAPIErrorComponent(openApi: any) {
   });
 }
 
-export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<modelRouterOptions<T>>) {
+export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
@@ -154,7 +154,7 @@ export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<modelR
   );
 }
 
-export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<modelRouterOptions<T>>) {
+export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -319,7 +319,7 @@ export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<model
 
 export function createOpenApiMiddleware<T>(
   model: Model<T>,
-  options: Partial<modelRouterOptions<T>>
+  options: Partial<ModelRouterOptions<T>>
 ) {
   if (!options.openApi?.path) {
     return noop;
@@ -371,7 +371,7 @@ export function createOpenApiMiddleware<T>(
 
 export function patchOpenApiMiddleware<T>(
   model: Model<T>,
-  options: Partial<modelRouterOptions<T>>
+  options: Partial<ModelRouterOptions<T>>
 ) {
   if (!options.openApi?.path) {
     return noop;
@@ -423,7 +423,7 @@ export function patchOpenApiMiddleware<T>(
 
 export function deleteOpenApiMiddleware<T>(
   model: Model<T>,
-  options: Partial<modelRouterOptions<T>>
+  options: Partial<ModelRouterOptions<T>>
 ) {
   if (!options.openApi?.path) {
     return noop;
@@ -452,7 +452,7 @@ export function deleteOpenApiMiddleware<T>(
 // This is a generic OpenAPI wrapper for a read that returns any object described by `properties`.
 // Useful for endpoints that don't directly map to a model.
 export function readOpenApiMiddleware<T>(
-  options: Partial<modelRouterOptions<T>>,
+  options: Partial<ModelRouterOptions<T>>,
   properties: any,
   required: string[],
   queryParameters: any

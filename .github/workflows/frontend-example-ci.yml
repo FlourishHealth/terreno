@@ -1,0 +1,42 @@
+name: Frontend Example CI
+
+on:
+  push:
+    paths:
+      - "frontend-example/**"
+      - ".github/workflows/frontend-example-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Frontend Example Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install root dependencies (workspace)
+        run: bun install --frozen-lockfile
+
+      # Build dependencies first since frontend-example depends on them
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Lint
+        run: bun run lint
+        working-directory: frontend-example
+
+      - name: Test
+        run: bun run test
+        working-directory: frontend-example
+        env:
+          CI: true
+

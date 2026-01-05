@@ -1,5 +1,4 @@
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import type {ObjectId} from "mongoose";
 import supertest from "supertest";
@@ -81,26 +80,26 @@ describe("query and transform", () => {
   it("filters list for non-admin", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    assert.lengthOf(foodRes.body.data, 2);
+    expect(foodRes.body.data).toHaveLength(2);
   });
 
   it("does not filter list for admin", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    assert.lengthOf(foodRes.body.data, 3);
+    expect(foodRes.body.data).toHaveLength(3);
   });
 
   it("admin read transform", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    assert.lengthOf(foodRes.body.data, 3);
+    expect(foodRes.body.data).toHaveLength(3);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
-    assert.isDefined(spinach.created);
-    assert.isDefined(spinach.id);
-    assert.isDefined(spinach.ownerId);
-    assert.equal(spinach.name, "Spinach");
-    assert.equal(spinach.calories, 1);
-    assert.isUndefined(spinach.hidden);
+    expect(spinach.created).toBeDefined();
+    expect(spinach.id).toBeDefined();
+    expect(spinach.ownerId).toBeDefined();
+    expect(spinach.name).toBe("Spinach");
+    expect(spinach.calories).toBe(1);
+    expect(spinach.hidden).toBeUndefined();
   });
 
   it("admin write transform", async () => {
@@ -108,20 +107,20 @@ describe("query and transform", () => {
     const foodRes = await agent.get("/food").expect(200);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     const spinachRes = await agent.patch(`/food/${spinach.id}`).send({name: "Lettuce"}).expect(200);
-    assert.equal(spinachRes.body.data.name, "Lettuce");
+    expect(spinachRes.body.data.name).toBe("Lettuce");
   });
 
   it("owner read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    assert.lengthOf(foodRes.body.data, 2);
+    expect(foodRes.body.data).toHaveLength(2);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
-    assert.isDefined(spinach.id);
-    assert.equal(spinach.name, "Spinach");
-    assert.equal(spinach.calories, 1);
-    assert.isDefined(spinach.created);
-    assert.isDefined(spinach.ownerId);
-    assert.isUndefined(spinach.hidden);
+    expect(spinach.id).toBeDefined();
+    expect(spinach.name).toBe("Spinach");
+    expect(spinach.calories).toBe(1);
+    expect(spinach.created).toBeDefined();
+    expect(spinach.ownerId).toBeDefined();
+    expect(spinach.hidden).toBeUndefined();
   });
 
   it("owner write transform", async () => {
@@ -139,32 +138,32 @@ describe("query and transform", () => {
       .patch(`/food/${spinach.id}`)
       .send({ownerId: notAdmin.id})
       .expect(403);
-    assert.isTrue(
-      spinachRes.body.title.includes("User of type owner cannot write fields: ownerId")
+    expect(spinachRes.body.title.includes("User of type owner cannot write fields: ownerId")).toBe(
+      true
     );
   });
 
   it("auth read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    assert.lengthOf(foodRes.body.data, 2);
+    expect(foodRes.body.data).toHaveLength(2);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
-    assert.isDefined(spinach.id);
-    assert.equal(spinach.name, "Spinach");
-    assert.equal(spinach.calories, 1);
-    assert.isDefined(spinach.created);
+    expect(spinach.id).toBeDefined();
+    expect(spinach.name).toBe("Spinach");
+    expect(spinach.calories).toBe(1);
+    expect(spinach.created).toBeDefined();
     // Owner, so this is defined.
-    assert.isDefined(spinach.ownerId);
-    assert.isUndefined(spinach.hidden);
+    expect(spinach.ownerId).toBeDefined();
+    expect(spinach.hidden).toBeUndefined();
 
     const carrots = foodRes.body.data.find((food: Food) => food.name === "Carrots");
-    assert.isDefined(carrots.id);
-    assert.equal(carrots.name, "Carrots");
-    assert.equal(carrots.calories, 100);
-    assert.isDefined(carrots.created);
+    expect(carrots.id).toBeDefined();
+    expect(carrots.name).toBe("Carrots");
+    expect(carrots.calories).toBe(100);
+    expect(carrots.created).toBeDefined();
     // Not owner, so undefined.
-    assert.isUndefined(carrots.ownerId);
-    assert.isUndefined(spinach.hidden);
+    expect(carrots.ownerId).toBeUndefined();
+    expect(spinach.hidden).toBeUndefined();
   });
 
   it("auth write transform", async () => {
@@ -172,7 +171,7 @@ describe("query and transform", () => {
     const foodRes = await agent.get("/food");
     const carrots = foodRes.body.data.find((food: Food) => food.name === "Carrots");
     const carrotRes = await agent.patch(`/food/${carrots.id}`).send({calories: 2000}).expect(200);
-    assert.equal(carrotRes.body.data.calories, 2000);
+    expect(carrotRes.body.data.calories).toBe(2000);
   });
 
   it("auth write transform fail", async () => {
@@ -183,14 +182,16 @@ describe("query and transform", () => {
       .patch(`/food/${carrots.id}`)
       .send({created: "2020-01-01T00:00:00Z"})
       .expect(403);
-    assert.isTrue(writeRes.body.title.includes("User of type auth cannot write fields: created"));
+    expect(writeRes.body.title.includes("User of type auth cannot write fields: created")).toBe(
+      true
+    );
   });
 
   it("anon read transform", async () => {
     const res = await server.get("/food");
-    assert.lengthOf(res.body.data, 2);
-    assert.isDefined(res.body.data.find((f: Food) => f.name === "Spinach"));
-    assert.isDefined(res.body.data.find((f: Food) => f.name === "Carrots"));
+    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data.find((f: Food) => f.name === "Spinach")).toBeDefined();
+    expect(res.body.data.find((f: Food) => f.name === "Carrots")).toBeDefined();
   });
 
   it("anon write transform fails", async () => {

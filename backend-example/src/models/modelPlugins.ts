@@ -55,7 +55,9 @@ export function excludeArchivedPlugin<T>(schema: Schema<T>): void {
       this.setQuery(newConditions);
     }
 
-    next();
+    if (typeof next === "function") {
+      next();
+    }
   });
 }
 

@@ -4,7 +4,7 @@ import type express from "express";
 import type {NextFunction} from "express";
 import mongoose, {type Model} from "mongoose";
 
-import {addPopulateToQuery, getModel, type modelRouterOptions, type RESTMethod} from "./api";
+import {addPopulateToQuery, getModel, type ModelRouterOptions, type RESTMethod} from "./api";
 import type {User} from "./auth";
 import {APIError} from "./errors";
 import {logger} from "./logger";
@@ -102,7 +102,7 @@ export async function checkPermissions<T>(
 // req.obj.
 export function permissionMiddleware<T>(
   baseModel: Model<T>,
-  options: Pick<modelRouterOptions<T>, "permissions" | "populatePaths" | "discriminatorKey">
+  options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths" | "discriminatorKey">
 ) {
   return async (req: express.Request, _res: express.Response, next: NextFunction) => {
     if (req.method === "OPTIONS") {

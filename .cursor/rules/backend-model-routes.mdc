@@ -3,22 +3,22 @@ description: When creating an API to expose a model
 alwaysApply: false
 ---
 
-# Exposing Mongoose Models with modelRouter
+# Exposing Mongoose Models with ModelRouter
 
-modelRouter provides a powerful way to automatically create RESTful CRUD APIs for Mongoose models. It generates standard endpoints (GET, POST, PUT/PATCH, DELETE) with built-in support for permissions, population, filtering, and lifecycle hooks.
+ModelRouter provides a powerful way to automatically create RESTful CRUD APIs for Mongoose models. It generates standard endpoints (GET, POST, PUT/PATCH, DELETE) with built-in support for permissions, population, filtering, and lifecycle hooks.
 
 ## Basic Structure
 
 Create a new file in `backend/src/api/` with this pattern:
 
 ```typescript
-import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
+import {modelRouter, ModelRouterOptions, Permissions} from "@terreno/api";
 import {YourModel} from "../models";
 import {YourModelDocument, UserDocument} from "../types";
 
 export const addYourModelRoutes = (
   router: any,
-  options?: Partial<modelRouterOptions<YourModelDocument>>
+  options?: Partial<ModelRouterOptions<YourModelDocument>>
 ): void => {
   router.use(
     "/yourModels",
@@ -39,7 +39,7 @@ export const addYourModelRoutes = (
 
 ## Generated Endpoints
 
-modelRouter automatically creates these endpoints:
+ModelRouter automatically creates these endpoints:
 
 - `GET /yourModels` - List resources (with pagination, filtering, sorting)
 - `POST /yourModels` - Create a new resource
@@ -162,13 +162,13 @@ populatePaths: [
 ## Complete Example
 
 ```typescript
-import {modelRouter, modelRouterOptions, OwnerQueryFilter, Permissions} from "@terreno/api";
+import {modelRouter, ModelRouterOptions, OwnerQueryFilter, Permissions} from "@terreno/api";
 import {Todo} from "../models";
 import {TodoDocument, UserDocument} from "../types";
 
 export const addTodoRoutes = (
   router: any,
-  options?: Partial<modelRouterOptions<TodoDocument>>
+  options?: Partial<ModelRouterOptions<TodoDocument>>
 ): void => {
   router.use(
     "/todos",

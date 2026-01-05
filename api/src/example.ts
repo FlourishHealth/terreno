@@ -2,7 +2,7 @@ import express from "express";
 import mongoose, {model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
-import {modelRouter, type modelRouterOptions} from "./api";
+import {type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
 import {logger} from "./logger";
@@ -36,7 +36,7 @@ const userSchema = new Schema<User>({
   username: String,
 });
 
-userSchema.plugin(passportLocalMongoose, {usernameField: "email"});
+userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(baseUserPlugin);
 const UserModel = model<User>("User", userSchema);
@@ -68,7 +68,7 @@ function getBaseServer() {
   setupAuth(app, UserModel as any);
   addAuthRoutes(app, UserModel as any);
 
-  function addRoutes(router: express.Router, options?: Partial<modelRouterOptions<any>>): void {
+  function addRoutes(router: express.Router, options?: Partial<ModelRouterOptions<any>>): void {
     router.use(
       "/food",
       modelRouter(FoodModel, {

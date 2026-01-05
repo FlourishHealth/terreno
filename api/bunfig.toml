@@ -1,4 +1,6 @@
 [test]
 preload = ["./src/tests/bunSetup.ts"]
 root = "./src"
+coverageExclude = ["dist/**"]
+# Note: No coverageThreshold set - tests will not fail on low coverage
 

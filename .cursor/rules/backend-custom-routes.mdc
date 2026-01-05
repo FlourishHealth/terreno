@@ -5,7 +5,7 @@ alwaysApply: false
 ## Creating Custom Routes
 
 Custom routes are useful when an action doesn't map cleanly to REST semantics or if
-we need to combine data or fetch data in a way that doesn't neatly conform to modelRouter.
+we need to combine data or fetch data in a way that doesn't neatly conform to ModelRouter.
 
 When creating custom API routes, follow these patterns consistently:
 
@@ -19,7 +19,7 @@ import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
-  modelRouterOptions,
+  ModelRouterOptions,
   createOpenApiBuilder,
 } from "@terreno/api";
 
@@ -27,7 +27,7 @@ import {/* your models */} from "../models";
 import {/* your types */} from "../types";
 
 // Define OpenAPI middleware function using the builder pattern
-const yourRouteOpenApiMiddleware = (options: Partial<modelRouterOptions<any>>) => {
+const yourRouteOpenApiMiddleware = (options: Partial<ModelRouterOptions<any>>) => {
   return createOpenApiBuilder(options)
     .withTags(["yourTag"])
     .withSummary("Brief summary of what this endpoint does")
@@ -50,7 +50,7 @@ const yourRouteOpenApiMiddleware = (options: Partial<modelRouterOptions<any>>) =
 
 export const addYourRoutes = (
   router: any,
-  options: Partial<modelRouterOptions<any>>
+  options: Partial<ModelRouterOptions<any>>
 ): void => {
   router.get(
     "/yourRoute/:paramName",

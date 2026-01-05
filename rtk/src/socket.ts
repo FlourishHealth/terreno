@@ -274,7 +274,7 @@ export const useSocketConnection = ({
       }
     };
 
-    let intervalId: number | null = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     // Check every second if we've reconnected
     const startCheckingConnection = (): void => {

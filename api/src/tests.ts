@@ -60,7 +60,7 @@ const userSchema = new Schema<User>({
   username: String,
 });
 
-userSchema.plugin(passportLocalMongoose, {
+userSchema.plugin(passportLocalMongoose as any, {
   attemptsField: "attempts",
   interval: process.env.NODE_ENV === "test" ? 1 : 100,
   limitAttempts: true,

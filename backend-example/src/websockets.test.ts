@@ -1,5 +1,4 @@
-import {afterEach, beforeEach, describe, it, mock} from "bun:test";
-import {assert} from "chai";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import type express from "express";
 import {connectToMongoDB} from "./utils/database";
 import {closeWebsockets, connectToWebsockets, emitToUser, getIoInstance} from "./websockets";
@@ -63,15 +62,11 @@ describe("websockets", () => {
 
     emitToUser(eventName, userId, data);
 
-    assert.isTrue(actualMockSocket.to.mock.calls.length > 0, "Should call io.to");
-    assert.equal(actualMockSocket.to.mock.calls[0]?.[0], userId, "Should call io.to with userId");
-    assert.isTrue(actualMockSocket.emit.mock.calls.length > 0, "Should call emit");
-    assert.equal(
-      actualMockSocket.emit.mock.calls[0]?.[0],
-      eventName,
-      "Should call emit with eventName"
-    );
-    assert.deepEqual(actualMockSocket.emit.mock.calls[0]?.[1], data, "Should call emit with data");
+    expect(actualMockSocket.to.mock.calls.length).toBeGreaterThan(0);
+    expect(actualMockSocket.to.mock.calls[0]?.[0]).toBe(userId);
+    expect(actualMockSocket.emit.mock.calls.length).toBeGreaterThan(0);
+    expect(actualMockSocket.emit.mock.calls[0]?.[0]).toBe(eventName);
+    expect(actualMockSocket.emit.mock.calls[0]?.[1]).toEqual(data);
   });
 
   it("should handle various data types", () => {
@@ -92,21 +87,9 @@ describe("websockets", () => {
 
       emitToUser(eventName, userId, data);
 
-      assert.equal(
-        actualMockSocket.to.mock.calls[0]?.[0],
-        userId,
-        `Should call io.to with userId for ${eventName}`
-      );
-      assert.equal(
-        actualMockSocket.emit.mock.calls[0]?.[0],
-        eventName,
-        `Should call emit with eventName for ${eventName}`
-      );
-      assert.deepEqual(
-        actualMockSocket.emit.mock.calls[0]?.[1],
-        data,
-        `Should call emit with correct data for ${eventName}`
-      );
+      expect(actualMockSocket.to.mock.calls[0]?.[0]).toBe(userId);
+      expect(actualMockSocket.emit.mock.calls[0]?.[0]).toBe(eventName);
+      expect(actualMockSocket.emit.mock.calls[0]?.[1]).toEqual(data);
     }
   });
 });

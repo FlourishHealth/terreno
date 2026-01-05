@@ -70,7 +70,7 @@ export type RESTMethod = "list" | "create" | "read" | "update" | "delete";
  * This is the main configuration.
  * @param T - the base document type. This should not include Mongoose models, just the types of the object.
  */
-export interface modelRouterOptions<T> {
+export interface ModelRouterOptions<T> {
   /**
    * A group of method-level (create/read/update/delete/list) permissions.
    * Determine if the user can perform the operation at all, and for read/update/delete methods,
@@ -239,7 +239,7 @@ export interface modelRouterOptions<T> {
     value: (Document<any, any, any> & T) | (Document<any, any, any> & T)[],
     method: "list" | "create" | "read" | "update" | "delete",
     request: express.Request,
-    options: modelRouterOptions<T>
+    options: ModelRouterOptions<T>
   ) => Promise<JSONValue>;
   /**
    * The discriminatorKey that you passed when creating the Mongoose models. Defaults to __t. See:
@@ -277,7 +277,7 @@ export interface modelRouterOptions<T> {
 
 // A function to decide which model to use. If no discriminators are provided,
 // just returns the base model. If
-export function getModel(baseModel: Model<any>, body?: any, options?: modelRouterOptions<any>) {
+export function getModel(baseModel: Model<any>, body?: any, options?: ModelRouterOptions<any>) {
   const discriminatorKey = options?.discriminatorKey ?? "__t";
   const modelName = body?.[discriminatorKey];
   if (!modelName) {
@@ -344,7 +344,7 @@ function checkQueryParamAllowed(
  */
 export function modelRouter<T>(
   baseModel: Model<T>,
-  options: modelRouterOptions<T>
+  options: ModelRouterOptions<T>
 ): express.Router {
   const router = express.Router();
 
@@ -405,9 +405,16 @@ export function modelRouter<T>(
           });
         }
       }
+      if (body === undefined) {
+        throw new APIError({
+          detail: "Body is undefined",
+          status: 400,
+          title: "Invalid request body",
+        });
+      }
       let data;
       try {
-        data = await model.create(body);
+        data = await model.create(body as any);
       } catch (error: any) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
@@ -997,7 +1004,7 @@ export function modelRouter<T>(
     return arrayOperation(req, res, "DELETE");
   }
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(baseModel.schema.paths).find((config) => config.instance === "Array")) {
+  if (Object.values(baseModel.schema.paths).find((config: any) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),
@@ -1026,4 +1033,4 @@ export const asyncHandler = (fn: any) => (req: Request, res: Response, next: Nex
 
 // For backwards compatibility with the old names.
 export const gooseRestRouter = modelRouter;
-export type GooseRESTOptions<T> = modelRouterOptions<T>;
+export type GooseRESTOptions<T> = ModelRouterOptions<T>;

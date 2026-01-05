@@ -1,0 +1,571 @@
+name: Publish packages on tag
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'  # Matches semver: 1.0.0, 2.3.4-beta.1, etc.
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api_changed: ${{ steps.check.outputs.api_changed }}
+      ui_changed: ${{ steps.check.outputs.ui_changed }}
+      rtk_changed: ${{ steps.check.outputs.rtk_changed }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for comparing tags
+
+      - name: Get version from tag
+        id: version
+        run: |
+          # Extract version from tag (e.g., 1.0.0)
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          # Get the previous tag (excluding the current one)
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^$CURRENT_TAG$" | head -n 1)
+          
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found, will publish all packages"
+            echo "prev_tag=" >> $GITHUB_OUTPUT
+          else
+            echo "Previous tag: $PREV_TAG"
+            echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for changes in each package
+        id: check
+        run: |
+          PREV_TAG="${{ steps.prev_tag.outputs.prev_tag }}"
+          
+          if [ -z "$PREV_TAG" ]; then
+            # No previous tag - publish all packages
+            echo "api_changed=true" >> $GITHUB_OUTPUT
+            echo "ui_changed=true" >> $GITHUB_OUTPUT
+            echo "rtk_changed=true" >> $GITHUB_OUTPUT
+          else
+            # Check each package for changes since previous tag
+            echo "Comparing $PREV_TAG to HEAD..."
+            
+            # Check api/ directory
+            if git diff --quiet "$PREV_TAG" HEAD -- api/; then
+              echo "api_changed=false" >> $GITHUB_OUTPUT
+              echo "api: No changes"
+            else
+              echo "api_changed=true" >> $GITHUB_OUTPUT
+              echo "api: Has changes"
+            fi
+            
+            # Check ui/ directory
+            if git diff --quiet "$PREV_TAG" HEAD -- ui/; then
+              echo "ui_changed=false" >> $GITHUB_OUTPUT
+              echo "ui: No changes"
+            else
+              echo "ui_changed=true" >> $GITHUB_OUTPUT
+              echo "ui: Has changes"
+            fi
+            
+            # Check rtk/ directory
+            if git diff --quiet "$PREV_TAG" HEAD -- rtk/; then
+              echo "rtk_changed=false" >> $GITHUB_OUTPUT
+              echo "rtk: No changes"
+            else
+              echo "rtk_changed=true" >> $GITHUB_OUTPUT
+              echo "rtk: Has changes"
+            fi
+          fi
+
+  publish-api:
+    needs: check-changes
+    if: needs.check-changes.outputs.api_changed == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: 6.0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog references
+        run: |
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  publish-ui:
+    needs: check-changes
+    if: needs.check-changes.outputs.ui_changed == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Get latest @terreno/ui version
+        id: ui_version
+        run: |
+          UI_VERSION=$(npm view @terreno/ui version 2>/dev/null || echo "")
+          if [ -z "$UI_VERSION" ]; then
+            echo "Warning: Could not fetch @terreno/ui version from npm, using current release version"
+            UI_VERSION="${{ needs.check-changes.outputs.version }}"
+          fi
+          echo "ui_version=$UI_VERSION" >> $GITHUB_OUTPUT
+          echo "Using @terreno/ui version: $UI_VERSION"
+
+      - name: Replace catalog references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          UI_VERSION="${{ steps.ui_version.outputs.ui_version }}"
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          const uiVersion = process.env.UI_VERSION;
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.dependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.dependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.devDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.devDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.peerDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.peerDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+          UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Run tests
+        run: bun run test:ci
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/ui@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  publish-rtk:
+    needs: [check-changes, publish-ui]
+    if: |
+      always() &&
+      needs.check-changes.outputs.rtk_changed == 'true' &&
+      (needs.check-changes.outputs.ui_changed != 'true' || needs.publish-ui.result == 'success')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rtk
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Get latest @terreno/ui version
+        id: ui_version
+        run: |
+          UI_VERSION=$(npm view @terreno/ui version 2>/dev/null || echo "")
+          if [ -z "$UI_VERSION" ]; then
+            echo "Warning: Could not fetch @terreno/ui version from npm, using current release version"
+            UI_VERSION="${{ needs.check-changes.outputs.version }}"
+          fi
+          echo "ui_version=$UI_VERSION" >> $GITHUB_OUTPUT
+          echo "Using @terreno/ui version: $UI_VERSION"
+
+      - name: Replace catalog references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          UI_VERSION="${{ steps.ui_version.outputs.ui_version }}"
+          node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read root catalog
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          
+          // Read current package.json
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          const uiVersion = process.env.UI_VERSION;
+          
+          // Replace catalog: in dependencies
+          if (pkg.dependencies) {
+            for (const [key, value] of Object.entries(pkg.dependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.dependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.dependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.dependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in devDependencies
+          if (pkg.devDependencies) {
+            for (const [key, value] of Object.entries(pkg.devDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.devDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.devDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.devDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Replace catalog: in peerDependencies
+          if (pkg.peerDependencies) {
+            for (const [key, value] of Object.entries(pkg.peerDependencies)) {
+              if (value === 'catalog:') {
+                if (catalog[key]) {
+                  pkg.peerDependencies[key] = catalog[key];
+                } else {
+                  throw new Error(\`Catalog entry not found for \${key}\`);
+                }
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                // Use latest published version of @terreno/ui
+                pkg.peerDependencies[key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // Replace workspace:* with current release version for other @terreno packages
+                pkg.peerDependencies[key] = version;
+              }
+            }
+          }
+          
+          // Write updated package.json
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+          UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
+
+      - name: Install dependencies after replacement
+        run: bun install
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_PUBLISH_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
+  create-version-pr:
+    needs: [check-changes, publish-api, publish-ui, publish-rtk]
+    # Run if any package was published (always() ensures this runs even if some publish jobs were skipped)
+    if: |
+      always() && 
+      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "GitHub CD bot"
+          git config --global user.email "github-cd-bot@nang.io"
+
+      - name: Update package versions
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          
+          # Update api version if it was published
+          if [ "${{ needs.publish-api.result }}" == "success" ]; then
+            cd api && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
+          fi
+          
+          # Update ui version if it was published
+          if [ "${{ needs.publish-ui.result }}" == "success" ]; then
+            cd ui && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
+          fi
+          
+          # Update rtk version if it was published
+          if [ "${{ needs.publish-rtk.result }}" == "success" ]; then
+            cd rtk && node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');" && cd ..
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: bump package versions to ${{ needs.check-changes.outputs.version }}"
+          committer: GitHub <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: version-bump-${{ needs.check-changes.outputs.version }}
+          title: "[Release] Bump package versions to ${{ needs.check-changes.outputs.version }}"
+          body: |
+            Automated version bump for tag ${{ needs.check-changes.outputs.version }}
+            
+            ## Published packages:
+            ${{ needs.publish-api.result == 'success' && '- ✅ @terreno/api' || '- ⏭️ @terreno/api (no changes)' }}
+            ${{ needs.publish-ui.result == 'success' && '- ✅ @terreno/ui' || '- ⏭️ @terreno/ui (no changes)' }}
+            ${{ needs.publish-rtk.result == 'success' && '- ✅ @terreno/rtk' || '- ⏭️ @terreno/rtk (no changes)' }}
+          assignees: joshgachnang
+          reviewers: joshgachnang
+
+  notify:
+    needs: [check-changes, publish-api, publish-ui, publish-rtk]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build notification message
+        id: message
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          MESSAGE="Release $VERSION:\n"
+          
+          if [ "${{ needs.publish-api.result }}" == "success" ]; then
+            MESSAGE="$MESSAGE✅ @terreno/api@$VERSION published\n"
+          elif [ "${{ needs.publish-api.result }}" == "skipped" ]; then
+            MESSAGE="$MESSAGE⏭️ @terreno/api skipped (no changes)\n"
+          elif [ "${{ needs.publish-api.result }}" == "failure" ]; then
+            MESSAGE="$MESSAGE❌ @terreno/api failed\n"
+          fi
+          
+          if [ "${{ needs.publish-ui.result }}" == "success" ]; then
+            MESSAGE="$MESSAGE✅ @terreno/ui@$VERSION published\n"
+          elif [ "${{ needs.publish-ui.result }}" == "skipped" ]; then
+            MESSAGE="$MESSAGE⏭️ @terreno/ui skipped (no changes)\n"
+          elif [ "${{ needs.publish-ui.result }}" == "failure" ]; then
+            MESSAGE="$MESSAGE❌ @terreno/ui failed\n"
+          fi
+          
+          if [ "${{ needs.publish-rtk.result }}" == "success" ]; then
+            MESSAGE="$MESSAGE✅ @terreno/rtk@$VERSION published\n"
+          elif [ "${{ needs.publish-rtk.result }}" == "skipped" ]; then
+            MESSAGE="$MESSAGE⏭️ @terreno/rtk skipped (no changes)\n"
+          elif [ "${{ needs.publish-rtk.result }}" == "failure" ]; then
+            MESSAGE="$MESSAGE❌ @terreno/rtk failed\n"
+          fi
+          
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
+      - name: Zoom Chat Notification
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          TAG_NAME="${{ github.ref_name }}"
+          REPO="${{ github.repository }}"
+          TAG_URL="https://github.com/${REPO}/releases/tag/${TAG_NAME}"
+          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHORT="${COMMIT_SHA:0:7}"
+          
+          MESSAGE="${{ steps.message.outputs.message }}"
+          MESSAGE="${MESSAGE}Tag: ${TAG_NAME}\n"
+          MESSAGE="${MESSAGE}Commit: ${COMMIT_SHORT}\n"
+          MESSAGE="${MESSAGE}View: ${TAG_URL}"
+          
+          curl -X POST "${{ secrets.ZOOM_WEBHOOK_URL }}" \
+            -H "Authorization: ${{ secrets.ZOOM_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: text/plain" \
+            --data-raw "$MESSAGE"

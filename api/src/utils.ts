@@ -1,5 +1,4 @@
-import {ObjectId} from "mongodb";
-import mongoose from "mongoose";
+import mongoose, {Types} from "mongoose";
 
 import {logger} from "./logger";
 
@@ -7,7 +6,7 @@ import {logger} from "./logger";
 // which falsely will say any 12 character string is valid.
 export function isValidObjectId(id: string): boolean {
   try {
-    return new ObjectId(id).toString() === id;
+    return new Types.ObjectId(id).toString() === id;
   } catch (error) {
     logger.error(`Error validating object id ${id}: ${error}`);
     return false;

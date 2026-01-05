@@ -1,11 +1,11 @@
-import {modelRouter, type modelRouterOptions, Permissions} from "@terreno/api";
+import {type ModelRouterOptions, modelRouter, Permissions} from "@terreno/api";
 import {User} from "../models";
 import type {UserDocument} from "../types";
 
 export const addUserRoutes = (
   // biome-ignore lint/suspicious/noExplicitAny: Generic
   router: any,
-  options?: Partial<modelRouterOptions<UserDocument>>
+  options?: Partial<ModelRouterOptions<UserDocument>>
 ): void => {
   router.use(
     "/users",

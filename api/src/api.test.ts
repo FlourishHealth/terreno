@@ -1,6 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import * as Sentry from "@sentry/node";
-import chai from "chai";
 import type express from "express";
 import sortBy from "lodash/sortBy";
 import type mongoose from "mongoose";
@@ -25,8 +24,6 @@ import {
   setupDb,
   UserModel,
 } from "./tests";
-
-const assert: Chai.AssertStatic = chai.assert;
 
 describe("@terreno/api", () => {
   let server: TestAgent;
@@ -83,9 +80,9 @@ describe("@terreno/api", () => {
       if (!broccoli) {
         throw new Error("Broccoli was not created");
       }
-      assert.equal(broccoli.name, "Broccoli");
+      expect(broccoli.name).toBe("Broccoli");
       // Overwritten by the pre create hook
-      assert.equal(broccoli.calories, 14);
+      expect(broccoli.calories).toBe(14);
 
       res = await server
         .patch(`/food/${broccoli._id}`)
@@ -93,12 +90,12 @@ describe("@terreno/api", () => {
           name: "Broccoli2",
         })
         .expect(200);
-      assert.equal(res.body.data.name, "Broccoli2");
+      expect(res.body.data.name).toBe("Broccoli2");
       // Updated by the pre update hook
-      assert.equal(res.body.data.calories, 15);
+      expect(res.body.data.calories).toBe(15);
 
       await agent.delete(`/food/${broccoli._id}`).expect(204);
-      assert.isTrue(deleteCalled);
+      expect(deleteCalled).toBe(true);
     });
 
     it("pre hooks return null", async () => {
@@ -142,7 +139,7 @@ describe("@terreno/api", () => {
         })
         .expect(403);
       const broccoli = await FoodModel.findById(res.body._id);
-      assert.isNull(broccoli);
+      expect(broccoli).toBeNull();
 
       await server
         .patch(`/food/${spinach._id}`)
@@ -195,9 +192,9 @@ describe("@terreno/api", () => {
       if (!broccoli) {
         throw new Error("Broccoli was not created");
       }
-      assert.equal(broccoli.name, "Broccoli");
+      expect(broccoli.name).toBe("Broccoli");
       // Overwritten by the pre create hook
-      assert.equal(broccoli.calories, 14);
+      expect(broccoli.calories).toBe(14);
 
       res = await server
         .patch(`/food/${broccoli._id}`)
@@ -209,12 +206,12 @@ describe("@terreno/api", () => {
       if (!broccoli) {
         throw new Error("Broccoli was not update");
       }
-      assert.equal(broccoli.name, "Broccoli2");
+      expect(broccoli.name).toBe("Broccoli2");
       // Updated by the post update hook
-      assert.equal(broccoli.calories, 15);
+      expect(broccoli.calories).toBe(15);
 
       await agent.delete(`/food/${broccoli._id}`).expect(204);
-      assert.isTrue(deleteCalled);
+      expect(deleteCalled).toBe(true);
     });
 
     it("preCreate hook preserves disableExternalErrorTracking on APIError", async () => {
@@ -248,8 +245,8 @@ describe("@terreno/api", () => {
         })
         .expect(400);
 
-      assert.equal(res.body.title, "Custom preCreate error");
-      assert.equal(res.body.disableExternalErrorTracking, true);
+      expect(res.body.title).toBe("Custom preCreate error");
+      expect(res.body.disableExternalErrorTracking).toBe(true);
     });
 
     it("preCreate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -281,8 +278,8 @@ describe("@terreno/api", () => {
         })
         .expect(400);
 
-      assert.include(res.body.title, "preCreate hook error");
-      assert.equal(res.body.disableExternalErrorTracking, true);
+      expect(res.body.title).toContain("preCreate hook error");
+      expect(res.body.disableExternalErrorTracking).toBe(true);
     });
 
     it("preUpdate hook preserves disableExternalErrorTracking on APIError", async () => {
@@ -329,8 +326,8 @@ describe("@terreno/api", () => {
         })
         .expect(400);
 
-      assert.equal(res.body.title, "Custom preUpdate error");
-      assert.equal(res.body.disableExternalErrorTracking, true);
+      expect(res.body.title).toBe("Custom preUpdate error");
+      expect(res.body.disableExternalErrorTracking).toBe(true);
     });
 
     it("preUpdate hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -375,8 +372,8 @@ describe("@terreno/api", () => {
         })
         .expect(400);
 
-      assert.include(res.body.title, "preUpdate hook error");
-      assert.equal(res.body.disableExternalErrorTracking, true);
+      expect(res.body.title).toContain("preUpdate hook error");
+      expect(res.body.disableExternalErrorTracking).toBe(true);
     });
 
     it("preDelete hook preserves disableExternalErrorTracking on non-APIError", async () => {
@@ -416,8 +413,8 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${spinach._id}`).expect(403);
 
-      assert.include(res.body.title, "preDelete hook error");
-      assert.equal(res.body.disableExternalErrorTracking, true);
+      expect(res.body.title).toContain("preDelete hook error");
+      expect(res.body.disableExternalErrorTracking).toBe(true);
     });
   });
 
@@ -491,8 +488,7 @@ describe("@terreno/api", () => {
         .post(`/food/${apple._id}/categories`)
         .send({name: "Good Seller", show: false})
         .expect(400);
-      assert.equal(
-        res.body.title,
+      expect(res.body.title).toBe(
         "Malformed body, array operations should have a single, top level key, got: name,show"
       );
 
@@ -500,14 +496,14 @@ describe("@terreno/api", () => {
         .post(`/food/${apple._id}/categories`)
         .send({categories: {name: "Good Seller", show: false}})
         .expect(200);
-      assert.lengthOf(res.body.data.categories, 3);
-      assert.equal(res.body.data.categories[2].name, "Good Seller");
+      expect(res.body.data.categories).toHaveLength(3);
+      expect(res.body.data.categories[2].name).toBe("Good Seller");
 
       res = await agent
         .post(`/food/${spinach._id}/categories`)
         .send({categories: {name: "Good Seller", show: false}})
         .expect(200);
-      assert.lengthOf(res.body.data.categories, 1);
+      expect(res.body.data.categories).toHaveLength(1);
     });
 
     it("update array sub-schema item", async () => {
@@ -515,32 +511,32 @@ describe("@terreno/api", () => {
         .patch(`/food/${apple._id}/categories/xyz`)
         .send({categories: {name: "Good Seller", show: false}})
         .expect(404);
-      assert.equal(res.body.title, "Could not find categories/xyz");
+      expect(res.body.title).toBe("Could not find categories/xyz");
       res = await agent
         .patch(`/food/${apple._id}/categories/${apple.categories[1]._id}`)
         .send({categories: {name: "Good Seller", show: false}})
         .expect(200);
-      assert.lengthOf(res.body.data.categories, 2);
-      assert.equal(res.body.data.categories[1].name, "Good Seller");
+      expect(res.body.data.categories).toHaveLength(2);
+      expect(res.body.data.categories[1].name).toBe("Good Seller");
     });
 
     it("delete array sub-schema item", async () => {
       let res = await agent.delete(`/food/${apple._id}/categories/xyz`).expect(404);
-      assert.equal(res.body.title, "Could not find categories/xyz");
+      expect(res.body.title).toBe("Could not find categories/xyz");
       res = await agent
         .delete(`/food/${apple._id}/categories/${apple.categories[0]._id}`)
         .expect(200);
-      assert.lengthOf(res.body.data.categories, 1);
-      assert.equal(res.body.data.categories[0].name, "Popular");
+      expect(res.body.data.categories).toHaveLength(1);
+      expect(res.body.data.categories[0].name).toBe("Popular");
     });
 
     it("add array item", async () => {
       let res = await agent.post(`/food/${apple._id}/tags`).send({tags: "popular"}).expect(200);
-      assert.lengthOf(res.body.data.tags, 3);
-      assert.deepEqual(res.body.data.tags, ["healthy", "cheap", "popular"]);
+      expect(res.body.data.tags).toHaveLength(3);
+      expect(res.body.data.tags).toEqual(["healthy", "cheap", "popular"]);
 
       res = await agent.post(`/food/${spinach._id}/tags`).send({tags: "popular"}).expect(200);
-      assert.deepEqual(res.body.data.tags, ["popular"]);
+      expect(res.body.data.tags).toEqual(["popular"]);
     });
 
     it("update array item", async () => {
@@ -548,19 +544,19 @@ describe("@terreno/api", () => {
         .patch(`/food/${apple._id}/tags/xyz`)
         .send({tags: "unhealthy"})
         .expect(404);
-      assert.equal(res.body.title, "Could not find tags/xyz");
+      expect(res.body.title).toBe("Could not find tags/xyz");
       res = await agent
         .patch(`/food/${apple._id}/tags/healthy`)
         .send({tags: "unhealthy"})
         .expect(200);
-      assert.deepEqual(res.body.data.tags, ["unhealthy", "cheap"]);
+      expect(res.body.data.tags).toEqual(["unhealthy", "cheap"]);
     });
 
     it("delete array item", async () => {
       let res = await agent.delete(`/food/${apple._id}/tags/xyz`).expect(404);
-      assert.equal(res.body.title, "Could not find tags/xyz");
+      expect(res.body.title).toBe("Could not find tags/xyz");
       res = await agent.delete(`/food/${apple._id}/tags/healthy`).expect(200);
-      assert.deepEqual(res.body.data.tags, ["cheap"]);
+      expect(res.body.data.tags).toEqual(["cheap"]);
     });
 
     it("updates timestamps on array subdocuments", async () => {
@@ -610,12 +606,12 @@ describe("@terreno/api", () => {
         throw new Error("Failed to find categories in response");
       }
 
-      assert.notEqual(updatedCategory.updated, updatedCategory.created);
-      assert.equal(unchangedCategory.updated, unchangedCategory.created);
-      assert.equal(updatedCategory.name, "Updated Category");
+      expect(updatedCategory.updated).not.toBe(updatedCategory.created);
+      expect(unchangedCategory.updated).toBe(unchangedCategory.created);
+      expect(updatedCategory.name).toBe("Updated Category");
       // Unchanged.
-      assert.isTrue(updatedCategory.show);
-      assert.isTrue(unchangedCategory.show);
+      expect(updatedCategory.show).toBe(true);
+      expect(unchangedCategory.show).toBe(true);
     });
 
     it("array operations call postUpdate with different copy of document", async () => {
@@ -653,24 +649,16 @@ describe("@terreno/api", () => {
         .send({categories: {name: "New Category", show: true}})
         .expect(200);
 
-      assert.isTrue(postUpdateCalled, "postUpdate should be called for array POST");
-      assert.isDefined(postUpdateDoc, "postUpdate should receive updated document");
-      assert.isDefined(postUpdatePrevDoc, "postUpdate should receive previous document");
+      expect(postUpdateCalled).toBe(true);
+      expect(postUpdateDoc).toBeDefined();
+      expect(postUpdatePrevDoc).toBeDefined();
 
       // Verify they are different object references
-      assert.notStrictEqual(
-        postUpdateDoc,
-        postUpdatePrevDoc,
-        "Document and prevValue should be different object references"
-      );
+      expect(postUpdateDoc).not.toBe(postUpdatePrevDoc);
 
       // Verify the content is different (new category added)
-      assert.lengthOf(postUpdateDoc.categories, 3, "Updated document should have 3 categories");
-      assert.lengthOf(
-        postUpdatePrevDoc.categories,
-        2,
-        "Previous document should have 2 categories"
-      );
+      expect(postUpdateDoc.categories).toHaveLength(3);
+      expect(postUpdatePrevDoc.categories).toHaveLength(2);
 
       // Reset for next test
       postUpdateCalled = false;
@@ -687,16 +675,12 @@ describe("@terreno/api", () => {
         .send({categories: {name: "Updated Category", show: false}})
         .expect(200);
 
-      assert.isTrue(postUpdateCalled, "postUpdate should be called for array PATCH");
-      assert.isDefined(postUpdateDoc, "postUpdate should receive updated document");
-      assert.isDefined(postUpdatePrevDoc, "postUpdate should receive previous document");
+      expect(postUpdateCalled).toBe(true);
+      expect(postUpdateDoc).toBeDefined();
+      expect(postUpdatePrevDoc).toBeDefined();
 
       // Verify they are different object references
-      assert.notStrictEqual(
-        postUpdateDoc,
-        postUpdatePrevDoc,
-        "Document and prevValue should be different object references"
-      );
+      expect(postUpdateDoc).not.toBe(postUpdatePrevDoc);
 
       // Verify the content is different (category updated)
       const updatedCategory = postUpdateDoc.categories.find(
@@ -706,16 +690,8 @@ describe("@terreno/api", () => {
         (c: any) => c._id.toString() === categoryId.toString()
       );
 
-      assert.equal(
-        updatedCategory.name,
-        "Updated Category",
-        "Updated document should have new category name"
-      );
-      assert.equal(
-        prevCategory.name,
-        "Fruit",
-        "Previous document should have original category name"
-      );
+      expect(updatedCategory.name).toBe("Updated Category");
+      expect(prevCategory.name).toBe("Fruit");
 
       // Reset for next test
       postUpdateCalled = false;
@@ -725,16 +701,12 @@ describe("@terreno/api", () => {
       // Test DELETE operation (remove from array)
       await agent.delete(`/food/${apple._id}/categories/${categoryId}`).expect(200);
 
-      assert.isTrue(postUpdateCalled, "postUpdate should be called for array DELETE");
-      assert.isDefined(postUpdateDoc, "postUpdate should receive updated document");
-      assert.isDefined(postUpdatePrevDoc, "postUpdate should receive previous document");
+      expect(postUpdateCalled).toBe(true);
+      expect(postUpdateDoc).toBeDefined();
+      expect(postUpdatePrevDoc).toBeDefined();
 
       // Verify they are different object references
-      assert.notStrictEqual(
-        postUpdateDoc,
-        postUpdatePrevDoc,
-        "Document and prevValue should be different object references"
-      );
+      expect(postUpdateDoc).not.toBe(postUpdatePrevDoc);
 
       // Verify the content is different (category removed)
       const remainingCategories = postUpdateDoc.categories.filter(
@@ -744,12 +716,8 @@ describe("@terreno/api", () => {
         (c: any) => c._id.toString() === categoryId.toString()
       );
 
-      assert.lengthOf(
-        remainingCategories,
-        0,
-        "Updated document should not have the deleted category"
-      );
-      assert.lengthOf(prevCategories, 1, "Previous document should still have the category");
+      expect(remainingCategories).toHaveLength(0);
+      expect(prevCategories).toHaveLength(1);
     });
 
     it("array operations with string arrays call postUpdate with different copy", async () => {
@@ -784,26 +752,18 @@ describe("@terreno/api", () => {
       // Test POST operation with string array (add tag)
       await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(200);
 
-      assert.isTrue(postUpdateCalled, "postUpdate should be called for string array POST");
-      assert.isDefined(postUpdateDoc, "postUpdate should receive updated document");
-      assert.isDefined(postUpdatePrevDoc, "postUpdate should receive previous document");
+      expect(postUpdateCalled).toBe(true);
+      expect(postUpdateDoc).toBeDefined();
+      expect(postUpdatePrevDoc).toBeDefined();
 
       // Verify they are different object references
-      assert.notStrictEqual(
-        postUpdateDoc,
-        postUpdatePrevDoc,
-        "Document and prevValue should be different object references"
-      );
+      expect(postUpdateDoc).not.toBe(postUpdatePrevDoc);
 
       // Verify the content is different (new tag added)
-      assert.lengthOf(postUpdateDoc.tags, 3, "Updated document should have 3 tags");
-      assert.lengthOf(postUpdatePrevDoc.tags, 2, "Previous document should have 2 tags");
-      assert.include(postUpdateDoc.tags, "organic", "Updated document should include new tag");
-      assert.notInclude(
-        postUpdatePrevDoc.tags,
-        "organic",
-        "Previous document should not include new tag"
-      );
+      expect(postUpdateDoc.tags).toHaveLength(3);
+      expect(postUpdatePrevDoc.tags).toHaveLength(2);
+      expect(postUpdateDoc.tags).toContain("organic");
+      expect(postUpdatePrevDoc.tags).not.toContain("organic");
 
       // Reset for next test
       postUpdateCalled = false;
@@ -816,34 +776,14 @@ describe("@terreno/api", () => {
         .send({tags: "super-healthy"})
         .expect(200);
 
-      assert.isTrue(postUpdateCalled, "postUpdate should be called for string array PATCH");
-      assert.notStrictEqual(
-        postUpdateDoc,
-        postUpdatePrevDoc,
-        "Document and prevValue should be different object references"
-      );
+      expect(postUpdateCalled).toBe(true);
+      expect(postUpdateDoc).not.toBe(postUpdatePrevDoc);
 
       // Verify the content is different (tag updated)
-      assert.include(
-        postUpdateDoc.tags,
-        "super-healthy",
-        "Updated document should have updated tag"
-      );
-      assert.include(
-        postUpdatePrevDoc.tags,
-        "healthy",
-        "Previous document should have original tag"
-      );
-      assert.notInclude(
-        postUpdateDoc.tags,
-        "healthy",
-        "Updated document should not have original tag"
-      );
-      assert.notInclude(
-        postUpdatePrevDoc.tags,
-        "super-healthy",
-        "Previous document should not have updated tag"
-      );
+      expect(postUpdateDoc.tags).toContain("super-healthy");
+      expect(postUpdatePrevDoc.tags).toContain("healthy");
+      expect(postUpdateDoc.tags).not.toContain("healthy");
+      expect(postUpdatePrevDoc.tags).not.toContain("super-healthy");
     });
   });
 
@@ -861,14 +801,14 @@ describe("@terreno/api", () => {
     beforeEach(async () => {
       [admin, notAdmin, adminOther] = await setupDb();
 
-      [spinach, apple, carrots, pizza] = await Promise.all([
+      const results = (await Promise.all([
         FoodModel.create({
           calories: 1,
           created: new Date("2021-12-03T00:00:20.000Z"),
           eatenBy: [admin._id],
           hidden: false,
           lastEatenWith: {
-            dressing: "2021-12-03T19:00:30.000Z",
+            dressing: new Date("2021-12-03T19:00:30.000Z"),
           },
           name: "Spinach",
           ownerId: notAdmin._id,
@@ -907,7 +847,8 @@ describe("@terreno/api", () => {
           ownerId: admin._id,
           tags: ["cheap"],
         }),
-      ]);
+      ])) as [Food, Food, Food, Food];
+      [spinach, apple, carrots, pizza] = results;
       app = getBaseServer();
       setupAuth(app, UserModel as any);
       addAuthRoutes(app, UserModel as any);
@@ -937,39 +878,39 @@ describe("@terreno/api", () => {
 
     it("read default", async () => {
       const res = await agent.get(`/food/${spinach._id}`).expect(200);
-      assert.equal(res.body.data._id, spinach._id.toString());
+      expect(res.body.data._id).toBe(spinach._id.toString());
       // Ensure populate works
-      assert.equal(res.body.data.ownerId._id, notAdmin.id);
+      expect(res.body.data.ownerId._id).toBe(notAdmin.id);
       // Ensure maps are properly transformed
-      assert.deepEqual(res.body.data.lastEatenWith, {
+      expect(res.body.data.lastEatenWith).toEqual({
         dressing: "2021-12-03T19:00:30.000Z",
       });
     });
 
     it("list default", async () => {
       const res = await agent.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
-      assert.equal(res.body.data[0].id, (spinach as any).id);
-      assert.equal(res.body.data[0].ownerId._id, notAdmin.id);
-      assert.equal(res.body.data[1].id, (pizza as any).id);
-      assert.equal(res.body.data[1].ownerId._id, admin.id);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data[0].id).toBe((spinach as any).id);
+      expect(res.body.data[0].ownerId._id).toBe(notAdmin.id);
+      expect(res.body.data[1].id).toBe((pizza as any).id);
+      expect(res.body.data[1].ownerId._id).toBe(admin.id);
       // Check that mongoose Map is handled correctly.
-      assert.deepEqual(res.body.data[0].lastEatenWith, {
+      expect(res.body.data[0].lastEatenWith).toEqual({
         dressing: "2021-12-03T19:00:30.000Z",
       });
-      assert.deepEqual(res.body.data[1].lastEatenWith, undefined);
+      expect(res.body.data[1].lastEatenWith).toEqual(undefined);
 
-      assert.isTrue(res.body.more);
-      assert.equal(res.body.total, 3);
+      expect(res.body.more).toBe(true);
+      expect(res.body.total).toBe(3);
     });
 
     it("list limit", async () => {
       const res = await agent.get("/food?limit=1").expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, (spinach as any).id);
-      assert.equal(res.body.data[0].ownerId._id, notAdmin.id);
-      assert.isTrue(res.body.more);
-      assert.equal(res.body.total, 3);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe((spinach as any).id);
+      expect(res.body.data[0].ownerId._id).toBe(notAdmin.id);
+      expect(res.body.more).toBe(true);
+      expect(res.body.total).toBe(3);
     });
 
     it("list limit over", async () => {
@@ -982,12 +923,12 @@ describe("@terreno/api", () => {
         ownerId: admin._id,
       });
       const res = await agent.get("/food?limit=4").expect(200);
-      assert.lengthOf(res.body.data, 3);
-      assert.isTrue(res.body.more);
-      assert.equal(res.body.total, 4);
-      assert.equal(res.body.data[0].id, (spinach as any).id);
-      assert.equal(res.body.data[1].id, (pizza as any).id);
-      assert.equal(res.body.data[2].id, (carrots as any).id);
+      expect(res.body.data).toHaveLength(3);
+      expect(res.body.more).toBe(true);
+      expect(res.body.total).toBe(4);
+      expect(res.body.data[0].id).toBe((spinach as any).id);
+      expect(res.body.data[1].id).toBe((pizza as any).id);
+      expect(res.body.data[2].id).toBe((carrots as any).id);
 
       expect(Sentry.captureMessage).toHaveBeenCalledWith(
         'More than 3 results returned for foods without pagination, data may be silently truncated. req.query: {"limit":"4"}'
@@ -997,51 +938,51 @@ describe("@terreno/api", () => {
     it("list page", async () => {
       // Should skip to carrots since apples are hidden
       const res = await agent.get("/food?limit=1&page=2").expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.isTrue(res.body.more);
-      assert.equal(res.body.total, 3);
-      assert.equal(res.body.data[0].id, (pizza as any).id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.more).toBe(true);
+      expect(res.body.total).toBe(3);
+      expect(res.body.data[0].id).toBe((pizza as any).id);
     });
 
     it("list page 0 ", async () => {
       const res = await agent.get("/food?limit=1&page=0").expect(400);
-      assert.equal(res.body.title, "Invalid page: 0");
+      expect(res.body.title).toBe("Invalid page: 0");
     });
 
     it("list page with garbage ", async () => {
       const res = await agent.get("/food?limit=1&page=abc").expect(400);
-      assert.equal(res.body.title, "Invalid page: abc");
+      expect(res.body.title).toBe("Invalid page: abc");
     });
 
     it("list page over", async () => {
       // Should skip to carrots since apples are hidden
       const res = await agent.get("/food?limit=1&page=5").expect(200);
-      assert.lengthOf(res.body.data, 0);
-      assert.isFalse(res.body.more);
-      assert.equal(res.body.total, 3);
+      expect(res.body.data).toHaveLength(0);
+      expect(res.body.more).toBe(false);
+      expect(res.body.total).toBe(3);
     });
 
     it("list query params", async () => {
       // Should skip to carrots since apples are hidden
       const res = await agent.get("/food?hidden=true").expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.isFalse(res.body.more);
-      assert.equal(res.body.total, 1);
-      assert.equal(res.body.data[0].id, (apple as any).id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.more).toBe(false);
+      expect(res.body.total).toBe(1);
+      expect(res.body.data[0].id).toBe((apple as any).id);
     });
 
     it("list query params not in list", async () => {
       // Should skip to carrots since apples are hidden
       const res = await agent.get(`/food?ownerId=${admin._id}`).expect(400);
-      assert.equal(res.body.title, "ownerId is not allowed as a query param.");
+      expect(res.body.title).toBe("ownerId is not allowed as a query param.");
     });
 
     it("list query by nested param", async () => {
       // Should skip to carrots since apples are hidden
       const res = await agent.get("/food?source.name=USDA").expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.total, 1);
-      assert.equal(res.body.data[0].id, (carrots as any).id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.total).toBe(1);
+      expect(res.body.data[0].id).toBe((carrots as any).id);
     });
 
     it("query by date", async () => {
@@ -1063,10 +1004,14 @@ describe("@terreno/api", () => {
         )
         .set("authorization", `Bearer ${token}`)
         .expect(200);
-      assert.sameDeepMembers(
-        ["2021-12-03T00:00:20.000Z", "2021-12-03T00:00:10.000Z", "2021-12-03T00:00:00.000Z"],
-        res.body.data.map((d: any) => d.created)
+      expect(res.body.data.map((d: any) => d.created)).toEqual(
+        expect.arrayContaining([
+          "2021-12-03T00:00:20.000Z",
+          "2021-12-03T00:00:10.000Z",
+          "2021-12-03T00:00:00.000Z",
+        ])
       );
+      expect(res.body.data.map((d: any) => d.created)).toHaveLength(3);
 
       // Inclusive one side
       res = await server
@@ -1080,10 +1025,10 @@ describe("@terreno/api", () => {
         )
         .set("authorization", `Bearer ${token}`)
         .expect(200);
-      assert.sameDeepMembers(
-        ["2021-12-03T00:00:10.000Z", "2021-12-03T00:00:00.000Z"],
-        res.body.data.map((d: any) => d.created)
+      expect(res.body.data.map((d: any) => d.created)).toEqual(
+        expect.arrayContaining(["2021-12-03T00:00:10.000Z", "2021-12-03T00:00:00.000Z"])
       );
+      expect(res.body.data.map((d: any) => d.created)).toHaveLength(2);
 
       // Inclusive both sides
       res = await server
@@ -1097,10 +1042,9 @@ describe("@terreno/api", () => {
         )
         .set("authorization", `Bearer ${token}`)
         .expect(200);
-      assert.sameDeepMembers(
-        ["2021-12-03T00:00:10.000Z"],
-        res.body.data.map((d: any) => d.created)
-      );
+      const createdDates = res.body.data.map((d: any) => d.created);
+      expect(createdDates).toEqual(expect.arrayContaining(["2021-12-03T00:00:10.000Z"]));
+      expect(createdDates).toHaveLength(1);
     });
 
     it("query with a space", async () => {
@@ -1111,9 +1055,9 @@ describe("@terreno/api", () => {
         ownerId: admin?._id,
       });
       const res = await agent.get(`/food?${qs.stringify({name: "Green Beans"})}`).expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, greenBeans?.id);
-      assert.equal(res.body.data[0].name, "Green Beans");
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(greenBeans?.id);
+      expect(res.body.data[0].name).toBe("Green Beans");
     });
 
     it("query with a regex", async () => {
@@ -1126,20 +1070,20 @@ describe("@terreno/api", () => {
 
       // Case sensitive does match correct casing
       let res = await agent.get(`/food?${qs.stringify({name: {$regex: "Green"}})}`).expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, greenBeans?.id);
-      assert.equal(res.body.data[0].name, "Green Beans");
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(greenBeans?.id);
+      expect(res.body.data[0].name).toBe("Green Beans");
 
       // Fails with different casing and sensitive
       res = await agent.get(`/food?${qs.stringify({name: {$regex: "green"}})}`).expect(200);
-      assert.lengthOf(res.body.data, 0);
+      expect(res.body.data).toHaveLength(0);
 
       // Case insensitive does match different casing
       res = await agent
         .get(`/food?${qs.stringify({name: {$options: "i", $regex: "green"}})}`)
         .expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, greenBeans?.id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(greenBeans?.id);
     });
 
     it("query with an $in operator", async () => {
@@ -1153,10 +1097,9 @@ describe("@terreno/api", () => {
           })}`
         )
         .expect(200);
-      assert.sameDeepMembers(
-        res.body.data.map((d: any) => d.name),
-        ["Spinach"]
-      );
+      const names1 = res.body.data.map((d: any) => d.name);
+      expect(names1).toEqual(expect.arrayContaining(["Spinach"]));
+      expect(names1).toHaveLength(1);
 
       // Query without hidden food.
       res = await server
@@ -1168,10 +1111,9 @@ describe("@terreno/api", () => {
           })}`
         )
         .expect(200);
-      assert.sameDeepMembers(
-        res.body.data.map((d: any) => d.name),
-        ["Spinach", "Carrots"]
-      );
+      const names2 = res.body.data.map((d: any) => d.name);
+      expect(names2).toEqual(expect.arrayContaining(["Spinach", "Carrots"]));
+      expect(names2).toHaveLength(2);
     });
 
     it("query with an $in for _ids in nested object", async () => {
@@ -1185,21 +1127,20 @@ describe("@terreno/api", () => {
           })}`
         )
         .expect(200);
-      assert.isFalse(res.body.more);
-      assert.equal(res.body.total, 2);
-      assert.lengthOf(res.body.data, 2);
-      assert.sameDeepMembers(
-        res.body.data.map((d: any) => d.name),
-        ["Carrots", "Pizza"]
-      );
+      expect(res.body.more).toBe(false);
+      expect(res.body.total).toBe(2);
+      expect(res.body.data).toHaveLength(2);
+      const names3 = res.body.data.map((d: any) => d.name);
+      expect(names3).toEqual(expect.arrayContaining(["Carrots", "Pizza"]));
+      expect(names3).toHaveLength(2);
     });
 
     it("query $and operator on same field", async () => {
       const res = await agent
         .get(`/food?${qs.stringify({$and: [{tags: "healthy"}, {tags: "cheap"}]})}`)
         .expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, carrots?._id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(carrots?._id.toString());
     });
 
     it("query $and operator on same field, nested objects", async () => {
@@ -1210,20 +1151,21 @@ describe("@terreno/api", () => {
           })}`
         )
         .expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, carrots?._id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(carrots?._id.toString());
     });
 
     it("query $or operator on same field", async () => {
       const res = await agent
         .get(`/food?${qs.stringify({$or: [{name: "Carrots"}, {name: "Pizza"}]})}`)
         .expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
       // Only carrots matches both
-      assert.sameDeepMembers(
-        res.body.data.map((d) => d.id),
-        [carrots?._id.toString(), pizza?._id.toString()]
+      const ids1 = res.body.data.map((d) => d.id);
+      expect(ids1).toEqual(
+        expect.arrayContaining([carrots?._id.toString(), pizza?._id.toString()])
       );
+      expect(ids1).toHaveLength(2);
     });
 
     it("query $and operator on same field, nested objects", async () => {
@@ -1235,51 +1177,52 @@ describe("@terreno/api", () => {
           })}`
         )
         .expect(200);
-      assert.lengthOf(res.body.data, 2);
-      assert.sameDeepMembers(
-        res.body.data.map((d) => d.id),
-        [carrots?._id.toString(), spinach?._id.toString()]
+      expect(res.body.data).toHaveLength(2);
+      const ids2 = res.body.data.map((d) => d.id);
+      expect(ids2).toEqual(
+        expect.arrayContaining([carrots?._id.toString(), spinach?._id.toString()])
       );
+      expect(ids2).toHaveLength(2);
     });
 
     it("query $and and $or are rejected if field is not in queryFields", async () => {
       let res = await agent
         .get(`/food?${qs.stringify({$and: [{ownerId: "healthy"}, {tags: "cheap"}]})}`)
         .expect(400);
-      assert.equal(res.body.title, "ownerId is not allowed as a query param.");
+      expect(res.body.title).toBe("ownerId is not allowed as a query param.");
       // Check in the other order
       res = await agent
         .get(`/food?${qs.stringify({$and: [{tags: "cheap"}, {ownerId: "healthy"}]})}`)
         .expect(400);
-      assert.equal(res.body.title, "ownerId is not allowed as a query param.");
+      expect(res.body.title).toBe("ownerId is not allowed as a query param.");
 
       res = await agent
         .get(`/food?${qs.stringify({$or: [{tags: "cheap"}, {ownerId: "healthy"}]})}`)
         .expect(400);
-      assert.equal(res.body.title, "ownerId is not allowed as a query param.");
+      expect(res.body.title).toBe("ownerId is not allowed as a query param.");
     });
 
     it("query with a number", async () => {
       const res = await agent.get("/food?calories=100").expect(200);
-      assert.lengthOf(res.body.data, 1);
-      assert.equal(res.body.data[0].id, carrots?._id);
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].id).toBe(carrots?._id.toString());
     });
 
     it("update", async () => {
       let res = await agent.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(200);
-      assert.equal(res.body.data.name, "Kale");
-      assert.equal(res.body.data.calories, 1);
-      assert.equal(res.body.data.hidden, false);
+      expect(res.body.data.name).toBe("Kale");
+      expect(res.body.data.calories).toBe(1);
+      expect(res.body.data.hidden).toBe(false);
 
       // Update a Map field.
       res = await agent
         .patch(`/food/${spinach._id}`)
         .send({lastEatenWith: {dressing: "2023-12-03T00:00:20.000Z"}})
         .expect(200);
-      assert.equal(res.body.data.name, "Kale");
-      assert.equal(res.body.data.calories, 1);
-      assert.equal(res.body.data.hidden, false);
-      assert.deepEqual(res.body.data.lastEatenWith, {
+      expect(res.body.data.name).toBe("Kale");
+      expect(res.body.data.calories).toBe(1);
+      expect(res.body.data.hidden).toBe(false);
+      expect(res.body.data.lastEatenWith).toEqual({
         dressing: "2023-12-03T00:00:20.000Z",
       });
 
@@ -1293,7 +1236,7 @@ describe("@terreno/api", () => {
           },
         })
         .expect(200);
-      assert.deepEqual(res.body.data.lastEatenWith, {
+      expect(res.body.data.lastEatenWith).toEqual({
         cucumber: "2023-12-04T12:00:20.000Z",
         dressing: "2023-12-03T00:00:20.000Z",
       });
@@ -1306,15 +1249,15 @@ describe("@terreno/api", () => {
         .send({"source.href": "https://food.com"})
         .expect(200);
       // Assert the field was updated with dot notation.
-      assert.equal(res.body.data.source.href, "https://food.com");
+      expect(res.body.data.source.href).toBe("https://food.com");
       // Assert these fields haven't changed.
-      assert.equal(res.body.data.source.name, "Brand");
-      assert.equal(res.body.data.source.dateAdded, "2023-12-13T12:30:00.000Z");
+      expect(res.body.data.source.name).toBe("Brand");
+      expect(res.body.data.source.dateAdded).toBe("2023-12-13T12:30:00.000Z");
 
       const dbSpinach = await FoodModel.findById(spinach._id);
-      assert.equal(dbSpinach?.source.href, "https://food.com");
-      assert.equal(dbSpinach?.source.name, "Brand");
-      assert.equal(dbSpinach?.source.dateAdded, "2023-12-13T12:30:00.000Z");
+      expect(dbSpinach?.source.href).toBe("https://food.com");
+      expect(dbSpinach?.source.name).toBe("Brand");
+      expect(dbSpinach?.source.dateAdded).toBe("2023-12-13T12:30:00.000Z");
     });
   });
 
@@ -1374,21 +1317,21 @@ describe("@terreno/api", () => {
 
     it("lists with populate", async () => {
       const res = await agent.get("/food").expect(200);
-      assert.lengthOf(res.body.data, 2);
+      expect(res.body.data).toHaveLength(2);
       const [carrots, spin] = res.body.data;
-      assert.equal(carrots.ownerId._id, notAdmin._id);
-      assert.equal(carrots.ownerId.email, notAdmin.email);
-      assert.isUndefined(carrots.ownerId.name);
-      assert.equal(spin.ownerId._id, admin._id);
-      assert.equal(spin.ownerId.email, admin.email);
-      assert.isUndefined(spin.ownerId.name);
+      expect(carrots.ownerId._id).toBe(notAdmin._id.toString());
+      expect(carrots.ownerId.email).toBe(notAdmin.email);
+      expect(carrots.ownerId.name).toBeUndefined();
+      expect(spin.ownerId._id).toBe(admin._id.toString());
+      expect(spin.ownerId.email).toBe(admin.email);
+      expect(spin.ownerId.name).toBeUndefined();
     });
 
     it("reads with populate", async () => {
       const res = await agent.get(`/food/${spinach._id}`).expect(200);
-      assert.equal(res.body.data.ownerId._id, admin._id);
-      assert.equal(res.body.data.ownerId.email, admin.email);
-      assert.isUndefined(res.body.data.ownerId.name);
+      expect(res.body.data.ownerId._id).toBe(admin._id.toString());
+      expect(res.body.data.ownerId.email).toBe(admin.email);
+      expect(res.body.data.ownerId.name).toBeUndefined();
     });
 
     it("creates with populate", async () => {
@@ -1400,9 +1343,9 @@ describe("@terreno/api", () => {
           ownerId: admin._id,
         })
         .expect(201);
-      assert.equal(res.body.data.ownerId._id, admin._id);
-      assert.equal(res.body.data.ownerId.email, admin.email);
-      assert.isUndefined(res.body.data.ownerId.name);
+      expect(res.body.data.ownerId._id).toBe(admin._id.toString());
+      expect(res.body.data.ownerId.email).toBe(admin.email);
+      expect(res.body.data.ownerId.name).toBeUndefined();
     });
 
     it("updates with populate", async () => {
@@ -1412,9 +1355,9 @@ describe("@terreno/api", () => {
           name: "NotSpinach",
         })
         .expect(200);
-      assert.equal(res.body.data.ownerId._id, admin._id);
-      assert.equal(res.body.data.ownerId.email, admin.email);
-      assert.isUndefined(res.body.data.ownerId.name);
+      expect(res.body.data.ownerId._id).toBe(admin._id.toString());
+      expect(res.body.data.ownerId.email).toBe(admin.email);
+      expect(res.body.data.ownerId.name).toBeUndefined();
     });
   });
 
@@ -1480,20 +1423,20 @@ describe("@terreno/api", () => {
 
     it("reads with serialize", async () => {
       const res = await agent.get(`/food/${spinach._id}`).expect(200);
-      assert.isUndefined(res.body.data.ownerId);
-      assert.equal(res.body.data.id, spinach._id.toString());
-      assert.equal(res.body.data.foo, "bar");
+      expect(res.body.data.ownerId).toBeUndefined();
+      expect(res.body.data.id).toBe(spinach._id.toString());
+      expect(res.body.data.foo).toBe("bar");
     });
 
     it("list with serialize", async () => {
       const res = await agent.get("/food").expect(200);
-      assert.isUndefined(res.body.data[0].ownerId);
-      assert.isUndefined(res.body.data[1].ownerId);
+      expect(res.body.data[0].ownerId).toBeUndefined();
+      expect(res.body.data[1].ownerId).toBeUndefined();
 
-      assert.isDefined(res.body.data[0].id);
-      assert.equal(res.body.data[0].foo, "bar");
-      assert.isDefined(res.body.data[1].id);
-      assert.equal(res.body.data[1].foo, "bar");
+      expect(res.body.data[0].id).toBeDefined();
+      expect(res.body.data[0].foo).toBe("bar");
+      expect(res.body.data[1].id).toBeDefined();
+      expect(res.body.data[1].foo).toBe("bar");
     });
   });
 
@@ -1524,10 +1467,10 @@ describe("@terreno/api", () => {
 
     it("check that security fields are filtered", async () => {
       const res = await agent.get("/users").expect(200);
-      assert.isDefined(res.body.data[0].email);
-      assert.isUndefined(res.body.data[0].token);
-      assert.isUndefined(res.body.data[0].hash);
-      assert.isUndefined(res.body.data[0].salt);
+      expect(res.body.data[0].email).toBeDefined();
+      expect(res.body.data[0].token).toBeUndefined();
+      expect(res.body.data[0].hash).toBeUndefined();
+      expect(res.body.data[0].salt).toBeUndefined();
     });
   });
 
@@ -1577,42 +1520,42 @@ describe("@terreno/api", () => {
 
     it("gets all users", async () => {
       const res = await agent.get("/users").expect(200);
-      assert.lengthOf(res.body.data, 5);
+      expect(res.body.data).toHaveLength(5);
 
       const data = sortBy(res.body.data, ["email"]);
 
-      assert.equal(data[0].email, "admin+other@example.com");
-      assert.isUndefined(data[0].department);
-      assert.isUndefined(data[0].supertitle);
-      assert.isUndefined(data[0].__t);
+      expect(data[0].email).toBe("admin+other@example.com");
+      expect(data[0].department).toBeUndefined();
+      expect(data[0].supertitle).toBeUndefined();
+      expect(data[0].__t).toBeUndefined();
 
-      assert.equal(data[1].email, "admin@example.com");
-      assert.isUndefined(data[1].department);
-      assert.isUndefined(data[1].supertitle);
-      assert.isUndefined(data[1].__t);
+      expect(data[1].email).toBe("admin@example.com");
+      expect(data[1].department).toBeUndefined();
+      expect(data[1].supertitle).toBeUndefined();
+      expect(data[1].__t).toBeUndefined();
 
-      assert.equal(data[2].email, "notAdmin@example.com");
-      assert.isUndefined(data[2].department);
-      assert.isUndefined(data[2].supertitle);
-      assert.isUndefined(data[2].__t);
+      expect(data[2].email).toBe("notAdmin@example.com");
+      expect(data[2].department).toBeUndefined();
+      expect(data[2].supertitle).toBeUndefined();
+      expect(data[2].__t).toBeUndefined();
 
-      assert.equal(data[3].email, "staff@example.com");
-      assert.equal(data[3].department, "Accounting");
-      assert.isUndefined(data[3].supertitle);
-      assert.equal(data[3].__t, "Staff");
+      expect(data[3].email).toBe("staff@example.com");
+      expect(data[3].department).toBe("Accounting");
+      expect(data[3].supertitle).toBeUndefined();
+      expect(data[3].__t).toBe("Staff");
 
-      assert.equal(data[4].email, "superuser@example.com");
-      assert.isUndefined(data[4].department);
-      assert.equal(data[4].superTitle, "Super Man");
-      assert.equal(data[4].__t, "SuperUser");
+      expect(data[4].email).toBe("superuser@example.com");
+      expect(data[4].department).toBeUndefined();
+      expect(data[4].superTitle).toBe("Super Man");
+      expect(data[4].__t).toBe("SuperUser");
     });
 
     it("gets a discriminated user", async () => {
       const res = await agent.get(`/users/${superUser._id}`).expect(200);
 
-      assert.equal(res.body.data.email, "superuser@example.com");
-      assert.isUndefined(res.body.data.department);
-      assert.equal(res.body.data.superTitle, "Super Man");
+      expect(res.body.data.email).toBe("superuser@example.com");
+      expect(res.body.data.department).toBeUndefined();
+      expect(res.body.data.superTitle).toBe("Super Man");
     });
 
     it("updates a discriminated user", async () => {
@@ -1624,12 +1567,12 @@ describe("@terreno/api", () => {
         .send({__t: "SuperUser", superTitle: "Batman"})
         .expect(200);
 
-      assert.equal(res.body.data.email, "superuser@example.com");
-      assert.isUndefined(res.body.data.department);
-      assert.equal(res.body.data.superTitle, "Batman");
+      expect(res.body.data.email).toBe("superuser@example.com");
+      expect(res.body.data.department).toBeUndefined();
+      expect(res.body.data.superTitle).toBe("Batman");
 
       const user = await SuperUserModel.findById(superUser._id);
-      assert.equal(user?.superTitle, "Batman");
+      expect(user?.superTitle).toBe("Batman");
     });
 
     it("updates a base user", async () => {
@@ -1638,11 +1581,11 @@ describe("@terreno/api", () => {
         .send({email: "newemail@example.com", superTitle: "The Boss"})
         .expect(200);
 
-      assert.equal(res.body.data.email, "newemail@example.com");
-      assert.isUndefined(res.body.data.superTitle);
+      expect(res.body.data.email).toBe("newemail@example.com");
+      expect(res.body.data.superTitle).toBeUndefined();
 
       const user = await SuperUserModel.findById(notAdmin._id);
-      assert.isUndefined(user?.superTitle);
+      expect(user?.superTitle).toBeUndefined();
     });
 
     it("cannot update discriminator key", async () => {
@@ -1663,10 +1606,10 @@ describe("@terreno/api", () => {
         .send({__t: "SuperUser", department: "Journalism"})
         .expect(200);
 
-      assert.isUndefined(res.body.data.department);
+      expect(res.body.data.department).toBeUndefined();
 
       const user = await SuperUserModel.findById(superUser._id);
-      assert.isUndefined((user as any)?.department);
+      expect((user as any)?.department).toBeUndefined();
     });
 
     it("creates a discriminated user", async () => {
@@ -1680,14 +1623,14 @@ describe("@terreno/api", () => {
         })
         .expect(201);
 
-      assert.equal(res.body.data.email, "brucewayne@example.com");
+      expect(res.body.data.email).toBe("brucewayne@example.com");
       // Because we pass __t, this should create a SuperUser which has no department, so this is
       // dropped.
-      assert.isUndefined(res.body.data.department);
-      assert.equal(res.body.data.superTitle, "Batman");
+      expect(res.body.data.department).toBeUndefined();
+      expect(res.body.data.superTitle).toBe("Batman");
 
       const user = await SuperUserModel.findById(res.body.data._id);
-      assert.equal(user?.superTitle, "Batman");
+      expect(user?.superTitle).toBe("Batman");
     });
 
     it("deletes a discriminated user", async () => {
@@ -1702,7 +1645,7 @@ describe("@terreno/api", () => {
         .expect(204);
 
       const user = await SuperUserModel.findById(superUser._id);
-      assert.isNull(user);
+      expect(user).toBeNull();
     });
 
     it("deletes a base user", async () => {
@@ -1712,7 +1655,7 @@ describe("@terreno/api", () => {
       await agent.delete(`/users/${notAdmin._id}`).expect(204);
 
       const user = await SuperUserModel.findById(notAdmin._id);
-      assert.isNull(user);
+      expect(user).toBeNull();
     });
   });
 });

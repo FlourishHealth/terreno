@@ -10,3 +10,4 @@ Fix the notifications warning in frontend-example
 Fix the @terreno/ui require cycles 
 Replace deprecated react-testing-library with the newer library
 Fix the warnings running bun types in ui
+Add back in coverage for api/

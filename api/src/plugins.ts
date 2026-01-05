@@ -1,7 +1,6 @@
 import {DateTime} from "luxon";
 import mongoose, {
   type Document,
-  type FilterQuery,
   Error as MongooseError,
   type Query,
   type Schema,
@@ -72,9 +71,8 @@ export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
   schema.add({updated: {index: true, type: Date}});
   schema.add({created: {index: true, type: Date}});
 
-  schema.pre("save", function (next) {
+  schema.pre("save", function () {
     if (this.disableCreatedUpdatedPlugin === true) {
-      next();
       return;
     }
     // If we aren't specifying created, use now.
@@ -83,12 +81,10 @@ export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
     }
     // All writes change the updated time.
     this.updated = new Date();
-    next();
   });
 
-  schema.pre(/save|updateOne|insertMany/, function (next) {
+  schema.pre(/save|updateOne|insertMany/, function () {
     void this.updateOne({}, {$set: {updated: new Date()}});
-    next();
   });
 }
 
@@ -105,7 +101,7 @@ export function firebaseJWTPlugin(schema: Schema) {
  */
 export function findOneOrNone<T>(schema: Schema<T>) {
   schema.statics.findOneOrNone = async function (
-    query: FilterQuery<T>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & T) | null> {
     const results = await this.find(query);
@@ -134,7 +130,7 @@ export function findOneOrNone<T>(schema: Schema<T>) {
  */
 export function findExactlyOne<T>(schema: Schema<T>) {
   schema.statics.findExactlyOne = async function (
-    query: FilterQuery<T>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T> {
     const results = await this.find(query);
@@ -200,14 +196,14 @@ export interface HasUpsert<T> {
 
 export interface FindOneOrNonePlugin<T> {
   findOneOrNone(
-    query: FilterQuery<T>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & T) | null>;
 }
 
 export interface FindExactlyOnePlugin<T> {
   findExactlyOne(
-    query: FilterQuery<T>,
+    query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<Document & T>;
 }

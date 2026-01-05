@@ -1,6 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: tests
-import {beforeEach, describe, it} from "bun:test";
-import {assert} from "chai";
+import {beforeEach, describe, expect, it} from "bun:test";
 import {createTestUser, generateTestEmail} from "../test/helpers";
 import {User} from "./user";
 
@@ -19,11 +18,11 @@ describe("User Model", () => {
         name,
       });
 
-      assert.exists(user._id);
-      assert.strictEqual(user.email, email);
-      assert.strictEqual(user.name, name);
-      assert.exists(user.created);
-      assert.exists(user.updated);
+      expect(user._id).toBeDefined();
+      expect(user.email).toBe(email);
+      expect(user.name).toBe(name);
+      expect(user.created).toBeDefined();
+      expect(user.updated).toBeDefined();
     });
 
     it("should require email", async () => {
@@ -31,9 +30,9 @@ describe("User Model", () => {
         await User.create({
           name: "John Doe",
         } as any);
-        assert.fail("Should have thrown validation error");
+        throw new Error("Should have thrown validation error");
       } catch (error: any) {
-        assert.include(error.message, "email");
+        expect(error.message).toContain("email");
       }
     });
 
@@ -42,9 +41,9 @@ describe("User Model", () => {
         await User.create({
           email: generateTestEmail(),
         } as any);
-        assert.fail("Should have thrown validation error");
+        throw new Error("Should have thrown validation error");
       } catch (error: any) {
-        assert.include(error.message, "name");
+        expect(error.message).toContain("name");
       }
     });
 
@@ -61,9 +60,9 @@ describe("User Model", () => {
           email,
           name: "User Two",
         });
-        assert.fail("Should have thrown duplicate key error");
+        throw new Error("Should have thrown duplicate key error");
       } catch (error: any) {
-        assert.include(error.message, "duplicate");
+        expect(error.message).toContain("duplicate");
       }
     });
 
@@ -74,7 +73,7 @@ describe("User Model", () => {
         name: "Test User",
       });
 
-      assert.strictEqual(user.email, email.toLowerCase());
+      expect(user.email).toBe(email.toLowerCase());
     });
 
     it("should trim email and name", async () => {
@@ -83,8 +82,8 @@ describe("User Model", () => {
         name: "  John Doe  ",
       });
 
-      assert.strictEqual(user.email, "test@example.com");
-      assert.strictEqual(user.name, "John Doe");
+      expect(user.email).toBe("test@example.com");
+      expect(user.name).toBe("John Doe");
     });
   });
 
@@ -93,7 +92,7 @@ describe("User Model", () => {
       const user = await createTestUser({name: "Jane Smith"});
       const displayName = user.getDisplayName();
 
-      assert.strictEqual(displayName, "Jane Smith");
+      expect(displayName).toBe("Jane Smith");
     });
   });
 
@@ -104,14 +103,14 @@ describe("User Model", () => {
 
       const user = await User.findByEmail(email);
 
-      assert.exists(user);
-      assert.strictEqual(user?.email, email);
+      expect(user).toBeDefined();
+      expect(user?.email).toBe(email);
     });
 
     it("should return null when user not found by email", async () => {
       const user = await User.findByEmail("nonexistent@example.com");
 
-      assert.isNull(user);
+      expect(user).toBeNull();
     });
 
     it("should find user by email case-insensitively", async () => {
@@ -120,8 +119,8 @@ describe("User Model", () => {
 
       const user = await User.findByEmail("TEST@EXAMPLE.COM");
 
-      assert.exists(user);
-      assert.strictEqual(user?.email, email);
+      expect(user).toBeDefined();
+      expect(user?.email).toBe(email);
     });
   });
 
@@ -130,8 +129,10 @@ describe("User Model", () => {
       const user = await createTestUser();
       const found = await User.findExactlyOne({_id: user._id});
 
-      assert.exists(found);
-      assert.strictEqual(found._id.toString(), user._id.toString());
+      expect(found).toBeDefined();
+      if (found) {
+        expect(found._id.toString()).toBe(user._id.toString());
+      }
     });
 
     it("should throw error when user not found", async () => {
@@ -139,9 +140,9 @@ describe("User Model", () => {
 
       try {
         await User.findExactlyOne({_id: fakeId});
-        assert.fail("Should have thrown error");
+        throw new Error("Should have thrown error");
       } catch (error: unknown) {
-        assert.exists(error);
+        expect(error).toBeDefined();
       }
     });
   });
@@ -151,14 +152,16 @@ describe("User Model", () => {
       const user = await createTestUser();
       const found = await User.findOneOrNone({_id: user._id});
 
-      assert.exists(found);
-      assert.strictEqual(found._id.toString(), user._id.toString());
+      expect(found).toBeDefined();
+      if (found) {
+        expect(found._id.toString()).toBe(user._id.toString());
+      }
     });
 
     it("should return null when user not found", async () => {
       const found = await User.findOneOrNone({email: "nonexistent@example.com"});
 
-      assert.isNull(found);
+      expect(found).toBeNull();
     });
   });
 });

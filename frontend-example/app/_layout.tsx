@@ -66,11 +66,7 @@ function RootLayoutNav(): React.ReactElement {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
+      <Stack>
         {!userId ? (
           <Stack.Screen name="login" options={{headerShown: false}} />
         ) : (
