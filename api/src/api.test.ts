@@ -10,14 +10,7 @@ import {addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {logRequests} from "./expressServer";
 import {Permissions} from "./permissions";
-import {
-  authAsUser,
-  type Food,
-  FoodModel,
-  getBaseServer,
-  setupDb,
-  UserModel,
-} from "./tests";
+import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 
 describe("@terreno/api", () => {
   let server: TestAgent;
@@ -1529,10 +1522,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(403);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toBe("Create not allowed");
       expect(res.body.detail).toBe("A body must be returned from preCreate");
     });
@@ -1554,10 +1544,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({name: "Kale"})
-        .expect(403);
+      const res = await server.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(403);
       expect(res.body.title).toBe("Update not allowed");
       expect(res.body.detail).toBe("A body must be returned from preUpdate");
     });
@@ -1604,10 +1591,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
       expect(res.body.title).toContain("postCreate hook error");
     });
 
@@ -1630,10 +1614,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({name: "Kale"})
-        .expect(400);
+      const res = await server.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(400);
       expect(res.body.title).toContain("postUpdate hook error");
     });
 
@@ -1709,10 +1690,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(500);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(500);
       expect(res.body.title).toContain("responseHandler error");
     });
 
@@ -1738,10 +1716,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({name: "Kale"})
-        .expect(500);
+      const res = await server.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(500);
       expect(res.body.title).toContain("responseHandler error");
     });
 
@@ -1904,7 +1879,6 @@ describe("@terreno/api", () => {
       expect(res.body.title).toContain("calories is not allowed as a query param");
     });
 
-
     it("queryFilter returning null returns empty array", async () => {
       app.use(
         "/food",
@@ -1943,10 +1917,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({name: "Kale"})
-        .expect(403);
+      const res = await server.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(403);
       expect(res.body.title).toBe("Update not allowed");
     });
 
@@ -1989,10 +1960,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(403);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toBe("Create not allowed");
     });
 
@@ -2015,10 +1983,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
       expect(res.body.title).toContain("preCreate hook error");
     });
 
@@ -2041,13 +2006,9 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({name: "Kale"})
-        .expect(400);
+      const res = await server.patch(`/food/${spinach._id}`).send({name: "Kale"}).expect(400);
       expect(res.body.title).toContain("preUpdate hook error");
     });
-
 
     it("invalid array operation type returns 400", async () => {
       // This tests the else branch for invalid array operations
@@ -2101,10 +2062,7 @@ describe("@terreno/api", () => {
       server = supertest(app);
       agent = await authAsUser(app, "admin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(403);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
       expect(res.body.title).toBe("Update not allowed");
       expect(res.body.detail).toBe("A body must be returned from preUpdate");
     });
@@ -2127,10 +2085,7 @@ describe("@terreno/api", () => {
       server = supertest(app);
       agent = await authAsUser(app, "admin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(403);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
       expect(res.body.title).toBe("Update not allowed");
     });
 
@@ -2154,10 +2109,7 @@ describe("@terreno/api", () => {
       server = supertest(app);
       agent = await authAsUser(app, "admin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(400);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(400);
       expect(res.body.title).toContain("preUpdate hook error");
     });
 
@@ -2181,10 +2133,7 @@ describe("@terreno/api", () => {
       server = supertest(app);
       agent = await authAsUser(app, "admin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(400);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(400);
       expect(res.body.title).toContain("PATCH Post Update error");
     });
 
@@ -2205,10 +2154,7 @@ describe("@terreno/api", () => {
       server = supertest(app);
       agent = await authAsUser(app, "notAdmin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(405);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(405);
       expect(res.body.title).toContain("Access to PATCH");
     });
 
@@ -2230,10 +2176,7 @@ describe("@terreno/api", () => {
       agent = await authAsUser(app, "admin");
 
       const fakeId = "000000000000000000000000";
-      const res = await agent
-        .post(`/food/${fakeId}/tags`)
-        .send({tags: "organic"})
-        .expect(404);
+      const res = await agent.post(`/food/${fakeId}/tags`).send({tags: "organic"}).expect(404);
       expect(res.body.title).toContain("Could not find document to PATCH");
     });
 
@@ -2256,12 +2199,8 @@ describe("@terreno/api", () => {
       // Login as notAdmin and try to update admin's food (apple)
       agent = await authAsUser(app, "notAdmin");
 
-      const res = await agent
-        .post(`/food/${apple._id}/tags`)
-        .send({tags: "organic"})
-        .expect(403);
+      const res = await agent.post(`/food/${apple._id}/tags`).send({tags: "organic"}).expect(403);
       expect(res.body.title).toContain("Patch not allowed");
     });
   });
-
 });

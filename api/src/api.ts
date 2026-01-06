@@ -265,7 +265,6 @@ export interface ModelRouterOptions<T> {
   openApiExtraModelProperties?: any;
 }
 
-
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
 function checkQueryParamAllowed(
   queryParam: string,
