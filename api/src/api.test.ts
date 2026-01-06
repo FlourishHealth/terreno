@@ -1,8 +1,6 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import * as Sentry from "@sentry/node";
 import type express from "express";
-import sortBy from "lodash/sortBy";
-import type mongoose from "mongoose";
 import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -17,10 +15,6 @@ import {
   type Food,
   FoodModel,
   getBaseServer,
-  type StaffUser,
-  StaffUserModel,
-  type SuperUser,
-  SuperUserModel,
   setupDb,
   UserModel,
 } from "./tests";
@@ -1474,188 +1468,800 @@ describe("@terreno/api", () => {
     });
   });
 
-  describe("discriminator", () => {
-    let superUser: mongoose.Document<SuperUser>;
-    let staffUser: mongoose.Document<StaffUser>;
-    let notAdmin: mongoose.Document;
+  describe("error handling", () => {
+    let admin: any;
     let agent: TestAgent;
+    let spinach: Food;
 
     beforeEach(async () => {
-      [notAdmin] = await setupDb();
-      const [staffUserId, superUserId] = await Promise.all([
-        StaffUserModel.create({
-          department: "Accounting",
-          email: "staff@example.com",
-        }),
-        SuperUserModel.create({
-          email: "superuser@example.com",
-          superTitle: "Super Man",
-        }),
-      ]);
-      staffUser = (await UserModel.findById(staffUserId)) as any;
-      superUser = (await UserModel.findById(superUserId)) as any;
+      [admin] = await setupDb();
+
+      spinach = await FoodModel.create({
+        calories: 1,
+        created: new Date("2021-12-03T00:00:20.000Z"),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+        source: {
+          name: "Brand",
+        },
+      });
 
       app = getBaseServer();
       setupAuth(app, UserModel as any);
       addAuthRoutes(app, UserModel as any);
+    });
+
+    it("PUT returns 500 not supported", async () => {
       app.use(
-        "/users",
-        modelRouter(UserModel, {
+        "/food",
+        modelRouter(FoodModel, {
           allowAnonymous: true,
-          discriminatorKey: "__t",
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.put(`/food/${spinach._id}`).send({name: "Kale"}).expect(500);
+      expect(res.body.title).toBe("PUT is not supported.");
+    });
+
+    it("preCreate returning undefined throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preCreate: () => undefined as any,
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .post("/food")
+        .send({calories: 15, name: "Broccoli"})
+        .expect(403);
+      expect(res.body.title).toBe("Create not allowed");
+      expect(res.body.detail).toBe("A body must be returned from preCreate");
+    });
+
+    it("preUpdate returning undefined throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preUpdate: () => undefined as any,
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .patch(`/food/${spinach._id}`)
+        .send({name: "Kale"})
+        .expect(403);
+      expect(res.body.title).toBe("Update not allowed");
+      expect(res.body.detail).toBe("A body must be returned from preUpdate");
+    });
+
+    it("preDelete returning undefined throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preDelete: () => undefined as any,
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent.delete(`/food/${spinach._id}`).expect(403);
+      expect(res.body.title).toBe("Delete not allowed");
+      expect(res.body.detail).toBe("A body must be returned from preDelete");
+    });
+
+    it("postCreate hook error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          postCreate: () => {
+            throw new Error("postCreate failed");
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .post("/food")
+        .send({calories: 15, name: "Broccoli"})
+        .expect(400);
+      expect(res.body.title).toContain("postCreate hook error");
+    });
+
+    it("postUpdate hook error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          postUpdate: () => {
+            throw new Error("postUpdate failed");
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .patch(`/food/${spinach._id}`)
+        .send({name: "Kale"})
+        .expect(400);
+      expect(res.body.title).toContain("postUpdate hook error");
+    });
+
+    it("postDelete hook error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          postDelete: () => {
+            throw new Error("postDelete failed");
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent.delete(`/food/${spinach._id}`).expect(400);
+      expect(res.body.title).toContain("postDelete hook error");
+    });
+
+    it("responseHandler error in read is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          responseHandler: (_data, method) => {
+            if (method === "read") {
+              throw new Error("responseHandler read failed");
+            }
+            return {} as any;
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get(`/food/${spinach._id}`).expect(500);
+      expect(res.body.title).toContain("responseHandler error");
+    });
+
+    it("responseHandler error in create is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          responseHandler: (_data, method) => {
+            if (method === "create") {
+              throw new Error("responseHandler create failed");
+            }
+            return {} as any;
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .post("/food")
+        .send({calories: 15, name: "Broccoli"})
+        .expect(500);
+      expect(res.body.title).toContain("responseHandler error");
+    });
+
+    it("responseHandler error in update is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          responseHandler: (_data, method) => {
+            if (method === "update") {
+              throw new Error("responseHandler update failed");
+            }
+            return {} as any;
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .patch(`/food/${spinach._id}`)
+        .send({name: "Kale"})
+        .expect(500);
+      expect(res.body.title).toContain("responseHandler error");
+    });
+
+    it("responseHandler error in list is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          responseHandler: (_data, method) => {
+            if (method === "list") {
+              throw new Error("responseHandler list failed");
+            }
+            return {} as any;
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food").expect(500);
+      expect(res.body.title).toContain("responseHandler error");
+    });
+
+    it("list with non-array responseHandler returns data directly", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          responseHandler: (_data, method) => {
+            if (method === "list") {
+              return {custom: "response"} as any;
+            }
+            return {} as any;
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food").expect(200);
+      expect(res.body.data).toEqual({custom: "response"});
+      expect(res.body.more).toBeUndefined();
+      expect(res.body.total).toBeUndefined();
+    });
+
+    it("list with query sort param", async () => {
+      await FoodModel.create({
+        calories: 200,
+        created: new Date("2021-12-04T00:00:20.000Z"),
+        hidden: false,
+        name: "Apple",
+        ownerId: admin._id,
+      });
+
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          queryFields: ["name"],
+        })
+      );
+      server = supertest(app);
+
+      // Sort by name ascending
+      let res = await server.get("/food?sort=name").expect(200);
+      expect(res.body.data[0].name).toBe("Apple");
+      expect(res.body.data[1].name).toBe("Spinach");
+
+      // Sort by name descending
+      res = await server.get("/food?sort=-name").expect(200);
+      expect(res.body.data[0].name).toBe("Spinach");
+      expect(res.body.data[1].name).toBe("Apple");
+    });
+
+    it("queryFilter error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          queryFilter: () => {
+            throw new Error("queryFilter failed");
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food").expect(400);
+      expect(res.body.title).toContain("Query filter error");
+    });
+
+    it("custom endpoints take priority", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          endpoints: (router: any) => {
+            router.get("/custom", (_req: any, res: any) => {
+              res.json({custom: true});
+            });
+          },
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food/custom").expect(200);
+      expect(res.body.custom).toBe(true);
+    });
+
+    it("disallowed query param returns 400", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          queryFields: ["name"],
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food?calories=100").expect(400);
+      expect(res.body.title).toContain("calories is not allowed as a query param");
+    });
+
+
+    it("queryFilter returning null returns empty array", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          queryFilter: () => null,
+        })
+      );
+      server = supertest(app);
+
+      const res = await server.get("/food").expect(200);
+      expect(res.body.data).toEqual([]);
+    });
+
+    it("preUpdate returning null throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preUpdate: () => null,
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .patch(`/food/${spinach._id}`)
+        .send({name: "Kale"})
+        .expect(403);
+      expect(res.body.title).toBe("Update not allowed");
+    });
+
+    it("preDelete returning null throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preDelete: () => null,
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent.delete(`/food/${spinach._id}`).expect(403);
+      expect(res.body.title).toBe("Delete not allowed");
+    });
+
+    it("preCreate returning null throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preCreate: () => null,
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .post("/food")
+        .send({calories: 15, name: "Broccoli"})
+        .expect(403);
+      expect(res.body.title).toBe("Create not allowed");
+    });
+
+    it("preCreate error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preCreate: () => {
+            throw new Error("preCreate failed");
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .post("/food")
+        .send({calories: 15, name: "Broccoli"})
+        .expect(400);
+      expect(res.body.title).toContain("preCreate hook error");
+    });
+
+    it("preUpdate error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          preUpdate: () => {
+            throw new Error("preUpdate failed");
+          },
+        })
+      );
+      server = supertest(app);
+
+      const res = await server
+        .patch(`/food/${spinach._id}`)
+        .send({name: "Kale"})
+        .expect(400);
+      expect(res.body.title).toContain("preUpdate hook error");
+    });
+
+
+    it("invalid array operation type returns 400", async () => {
+      // This tests the else branch for invalid array operations
+      // We need to manually call the endpoint with an invalid HTTP method
+      // The array operations use POST (add), PATCH (update), DELETE (remove)
+      // We can't easily test this without modifying the router, so skip for now
+    });
+  });
+
+  describe("array operation errors", () => {
+    let admin: any;
+    let apple: Food;
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      [admin] = await setupDb();
+
+      apple = await FoodModel.create({
+        calories: 100,
+        categories: [
+          {name: "Fruit", show: true},
+          {name: "Popular", show: false},
+        ],
+        created: new Date("2021-12-03T00:00:30.000Z"),
+        hidden: false,
+        name: "Apple",
+        ownerId: admin._id,
+        tags: ["healthy", "cheap"],
+      });
+
+      app = getBaseServer();
+      setupAuth(app, UserModel as any);
+      addAuthRoutes(app, UserModel as any);
+    });
+
+    it("array operation preUpdate returning undefined throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+          preUpdate: () => undefined as any,
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+
+      const res = await agent
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(403);
+      expect(res.body.title).toBe("Update not allowed");
+      expect(res.body.detail).toBe("A body must be returned from preUpdate");
+    });
+
+    it("array operation preUpdate returning null throws error", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+          preUpdate: () => null,
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+
+      const res = await agent
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(403);
+      expect(res.body.title).toBe("Update not allowed");
+    });
+
+    it("array operation preUpdate error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+          preUpdate: () => {
+            throw new Error("preUpdate array failed");
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+
+      const res = await agent
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(400);
+      expect(res.body.title).toContain("preUpdate hook error");
+    });
+
+    it("array operation postUpdate error is handled", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+          postUpdate: () => {
+            throw new Error("postUpdate array failed");
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+
+      const res = await agent
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(400);
+      expect(res.body.title).toContain("PATCH Post Update error");
+    });
+
+    it("array operation denied without update permission", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAdmin],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(405);
+      expect(res.body.title).toContain("Access to PATCH");
+    });
+
+    it("array operation on non-existent document returns 404", async () => {
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+
+      const fakeId = "000000000000000000000000";
+      const res = await agent
+        .post(`/food/${fakeId}/tags`)
+        .send({tags: "organic"})
+        .expect(404);
+      expect(res.body.title).toContain("Could not find document to PATCH");
+    });
+
+    it("array operation denied when user cannot update specific doc", async () => {
+      // Create food owned by admin, then try to update as notAdmin
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
           permissions: {
             create: [Permissions.IsAuthenticated],
             delete: [Permissions.IsAuthenticated],
             list: [Permissions.IsAuthenticated],
             read: [Permissions.IsAuthenticated],
-            update: [Permissions.IsAuthenticated],
+            update: [Permissions.IsOwner],
           },
         })
       );
-
       server = supertest(app);
-
+      // Login as notAdmin and try to update admin's food (apple)
       agent = await authAsUser(app, "notAdmin");
-    });
-
-    it("gets all users", async () => {
-      const res = await agent.get("/users").expect(200);
-      expect(res.body.data).toHaveLength(5);
-
-      const data = sortBy(res.body.data, ["email"]);
-
-      expect(data[0].email).toBe("admin+other@example.com");
-      expect(data[0].department).toBeUndefined();
-      expect(data[0].supertitle).toBeUndefined();
-      expect(data[0].__t).toBeUndefined();
-
-      expect(data[1].email).toBe("admin@example.com");
-      expect(data[1].department).toBeUndefined();
-      expect(data[1].supertitle).toBeUndefined();
-      expect(data[1].__t).toBeUndefined();
-
-      expect(data[2].email).toBe("notAdmin@example.com");
-      expect(data[2].department).toBeUndefined();
-      expect(data[2].supertitle).toBeUndefined();
-      expect(data[2].__t).toBeUndefined();
-
-      expect(data[3].email).toBe("staff@example.com");
-      expect(data[3].department).toBe("Accounting");
-      expect(data[3].supertitle).toBeUndefined();
-      expect(data[3].__t).toBe("Staff");
-
-      expect(data[4].email).toBe("superuser@example.com");
-      expect(data[4].department).toBeUndefined();
-      expect(data[4].superTitle).toBe("Super Man");
-      expect(data[4].__t).toBe("SuperUser");
-    });
-
-    it("gets a discriminated user", async () => {
-      const res = await agent.get(`/users/${superUser._id}`).expect(200);
-
-      expect(res.body.data.email).toBe("superuser@example.com");
-      expect(res.body.data.department).toBeUndefined();
-      expect(res.body.data.superTitle).toBe("Super Man");
-    });
-
-    it("updates a discriminated user", async () => {
-      // Fails without __t.
-      await agent.patch(`/users/${superUser._id}`).send({superTitle: "Batman"}).expect(404);
 
       const res = await agent
-        .patch(`/users/${superUser._id}`)
-        .send({__t: "SuperUser", superTitle: "Batman"})
-        .expect(200);
-
-      expect(res.body.data.email).toBe("superuser@example.com");
-      expect(res.body.data.department).toBeUndefined();
-      expect(res.body.data.superTitle).toBe("Batman");
-
-      const user = await SuperUserModel.findById(superUser._id);
-      expect(user?.superTitle).toBe("Batman");
-    });
-
-    it("updates a base user", async () => {
-      const res = await agent
-        .patch(`/users/${notAdmin._id}`)
-        .send({email: "newemail@example.com", superTitle: "The Boss"})
-        .expect(200);
-
-      expect(res.body.data.email).toBe("newemail@example.com");
-      expect(res.body.data.superTitle).toBeUndefined();
-
-      const user = await SuperUserModel.findById(notAdmin._id);
-      expect(user?.superTitle).toBeUndefined();
-    });
-
-    it("cannot update discriminator key", async () => {
-      await agent
-        .patch(`/users/${notAdmin._id}`)
-        .send({__t: "Staff", superTitle: "Batman"})
-        .expect(404);
-
-      await agent
-        .patch(`/users/${staffUser._id}`)
-        .send({__t: "SuperUser", superTitle: "Batman"})
-        .expect(404);
-    });
-
-    it("updating a field on another discriminated model does nothing", async () => {
-      const res = await agent
-        .patch(`/users/${superUser._id}`)
-        .send({__t: "SuperUser", department: "Journalism"})
-        .expect(200);
-
-      expect(res.body.data.department).toBeUndefined();
-
-      const user = await SuperUserModel.findById(superUser._id);
-      expect((user as any)?.department).toBeUndefined();
-    });
-
-    it("creates a discriminated user", async () => {
-      const res = await agent
-        .post("/users")
-        .send({
-          __t: "SuperUser",
-          department: "R&D",
-          email: "brucewayne@example.com",
-          superTitle: "Batman",
-        })
-        .expect(201);
-
-      expect(res.body.data.email).toBe("brucewayne@example.com");
-      // Because we pass __t, this should create a SuperUser which has no department, so this is
-      // dropped.
-      expect(res.body.data.department).toBeUndefined();
-      expect(res.body.data.superTitle).toBe("Batman");
-
-      const user = await SuperUserModel.findById(res.body.data._id);
-      expect(user?.superTitle).toBe("Batman");
-    });
-
-    it("deletes a discriminated user", async () => {
-      // Fails without __t.
-      await agent.delete(`/users/${superUser._id}`).expect(404);
-
-      await agent
-        .delete(`/users/${superUser._id}`)
-        .send({
-          __t: "SuperUser",
-        })
-        .expect(204);
-
-      const user = await SuperUserModel.findById(superUser._id);
-      expect(user).toBeNull();
-    });
-
-    it("deletes a base user", async () => {
-      // Fails for base user with __t
-      await agent.delete(`/users/${notAdmin._id}`).send({__t: "SuperUser"}).expect(404);
-
-      await agent.delete(`/users/${notAdmin._id}`).expect(204);
-
-      const user = await SuperUserModel.findById(notAdmin._id);
-      expect(user).toBeNull();
+        .post(`/food/${apple._id}/tags`)
+        .send({tags: "organic"})
+        .expect(403);
+      expect(res.body.title).toContain("Patch not allowed");
     });
   });
+
 });

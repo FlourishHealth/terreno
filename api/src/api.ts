@@ -242,16 +242,6 @@ export interface ModelRouterOptions<T> {
     options: ModelRouterOptions<T>
   ) => Promise<JSONValue>;
   /**
-   * The discriminatorKey that you passed when creating the Mongoose models. Defaults to __t. See:
-   * https://mongoosejs.com/docs/discriminators.html If this key is provided,
-   * you must provide the same key as part of the top level of the body when making performing
-   * update or delete operations on this model.
-   *    \{discriminatorKey: "__t"\}
-   *
-   *     PATCH \{__t: "SuperUser", name: "Foo"\} // __t is required or there will be a 404 error.
-   */
-  discriminatorKey?: string;
-  /**
    * The OpenAPI generator for this server. This is used to generate the OpenAPI documentation.
    */
   openApi?: any;
@@ -275,22 +265,6 @@ export interface ModelRouterOptions<T> {
   openApiExtraModelProperties?: any;
 }
 
-// A function to decide which model to use. If no discriminators are provided,
-// just returns the base model. If
-export function getModel(baseModel: Model<any>, body?: any, options?: ModelRouterOptions<any>) {
-  const discriminatorKey = options?.discriminatorKey ?? "__t";
-  const modelName = body?.[discriminatorKey];
-  if (!modelName) {
-    return baseModel;
-  }
-  const model = baseModel.discriminators?.[modelName];
-  if (!model) {
-    throw new Error(
-      `Could not find discriminator model for key ${modelName}, baseModel: ${baseModel}`
-    );
-  }
-  return model;
-}
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
 function checkQueryParamAllowed(
@@ -363,7 +337,7 @@ export function modelRouter<T>(
       permissionMiddleware(baseModel, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body?.__t, options);
+      const model = baseModel;
 
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
       try {
@@ -662,7 +636,7 @@ export function modelRouter<T>(
       permissionMiddleware(baseModel, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body, options);
+      const model = baseModel;
 
       let doc: mongoose.Document & T = (req as any).obj;
 
@@ -770,7 +744,7 @@ export function modelRouter<T>(
       permissionMiddleware(baseModel, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body, options);
+      const model = baseModel;
 
       const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
 
@@ -849,7 +823,7 @@ export function modelRouter<T>(
     operation: "POST" | "PATCH" | "DELETE"
   ) {
     // TODO Combine array operations and .patch(), as they are very similar.
-    const model = getModel(baseModel, req.body, options);
+    const model = baseModel;
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
       throw new APIError({

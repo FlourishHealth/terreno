@@ -4,7 +4,7 @@ import type express from "express";
 import type {NextFunction} from "express";
 import mongoose, {type Model} from "mongoose";
 
-import {addPopulateToQuery, getModel, type ModelRouterOptions, type RESTMethod} from "./api";
+import {addPopulateToQuery, type ModelRouterOptions, type RESTMethod} from "./api";
 import type {User} from "./auth";
 import {APIError} from "./errors";
 import {logger} from "./logger";
@@ -131,7 +131,7 @@ export function permissionMiddleware<T>(
         });
       }
 
-      const model = getModel(baseModel, req.body, options);
+      const model = baseModel;
 
       // All methods check for permissions.
       if (!(await checkPermissions(method, options.permissions[method], req.user))) {
