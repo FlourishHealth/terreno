@@ -81,6 +81,7 @@
     "lint:fix": "biome check --write ./src",
     "lint:unsafefix": "biome check --fix --unsafe ./src",
     "test": "bun test --preload ./src/tests/bunSetup.ts",
+    "test:ci": "bun test --preload ./src/tests/bunSetup.ts",
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",

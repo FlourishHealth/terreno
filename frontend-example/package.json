@@ -63,6 +63,7 @@
     "sdk": "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
     "start": "bun expo start --port 8082",
     "test": "bun test",
+    "test:ci": "bun test",
     "test:coverage": "bun test --coverage",
     "test:watch": "bun test --watch",
     "web": "bun expo start --web --port 8082"

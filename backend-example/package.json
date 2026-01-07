@@ -48,6 +48,7 @@
     "lint:unsafefix": "biome check --write --unsafe .",
     "start": "bun run src/index.ts",
     "test": "bun test",
+    "test:ci": "bun test",
     "test:coverage": "bun test --coverage",
     "test:watch": "bun test --watch"
   },

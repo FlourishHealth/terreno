@@ -4,7 +4,7 @@ import type express from "express";
 import type {NextFunction} from "express";
 import mongoose, {type Model} from "mongoose";
 
-import {addPopulateToQuery, getModel, type ModelRouterOptions, type RESTMethod} from "./api";
+import {addPopulateToQuery, type ModelRouterOptions, type RESTMethod} from "./api";
 import type {User} from "./auth";
 import {APIError} from "./errors";
 import {logger} from "./logger";
@@ -101,8 +101,8 @@ export async function checkPermissions<T>(
 // finds the relevant object, checks the permissions, and attaches the object to the request as
 // req.obj.
 export function permissionMiddleware<T>(
-  baseModel: Model<T>,
-  options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths" | "discriminatorKey">
+  model: Model<T>,
+  options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths">
 ) {
   return async (req: express.Request, _res: express.Response, next: NextFunction) => {
     if (req.method === "OPTIONS") {
@@ -131,8 +131,6 @@ export function permissionMiddleware<T>(
         });
       }
 
-      const model = getModel(baseModel, req.body, options);
-
       // All methods check for permissions.
       if (!(await checkPermissions(method, options.permissions[method], req.user))) {
         throw new APIError({
@@ -159,15 +157,7 @@ export function permissionMiddleware<T>(
           title: `GET failed on ${req.params.id}`,
         });
       }
-      if (!data || (["update", "delete"].includes(method) && data?.__t && !req.body?.__t)) {
-        // For discriminated models, return 404 without checking hidden state
-        if (["update", "delete"].includes(method) && data?.__t && !req.body?.__t) {
-          throw new APIError({
-            status: 404,
-            title: `Document ${req.params.id} not found for model ${model.modelName}`,
-          });
-        }
-
+      if (!data) {
         // Check if document exists but is hidden. Completely skip plugins.
         const hiddenDoc = await model.collection.findOne({
           _id: new mongoose.Types.ObjectId(req.params.id),

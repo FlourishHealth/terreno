@@ -100,6 +100,7 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "start": "RCT_METRO_PORT=8085 NODE_OPTIONS=--openssl-legacy-provider expo start --port 8085",
+    "test:ci": "echo 'No tests'",
     "web": "NODE_OPTIONS=--openssl-legacy-provider expo start --web --port 8085"
   },
   "version": "1.0.0"
