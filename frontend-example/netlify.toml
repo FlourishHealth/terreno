@@ -1,8 +1,14 @@
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
+# Netlify configuration for the frontend-example site
+# This requires a separate Netlify site with Base directory set to "frontend-example"
 
-# Always build the frontend, even when no changes would be detected so staging works.
 [build]
+  # Install from repo root to resolve workspace dependencies, then build
+  command = "cd .. && bun install && bun run ui:compile && bun run rtk:compile && cd frontend-example && bun export"
+  publish = "dist"
+  # Always build, even when no changes detected
   ignore = "exit 1"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
