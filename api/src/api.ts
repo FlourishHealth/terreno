@@ -310,15 +310,12 @@ function checkQueryParamAllowed(
 // }
 
 /**
- * Create a set of CRUD routes given a Mongoose model $baseModel and configuration options.
+ * Create a set of CRUD routes given a Mongoose model and configuration options.
  *
- * @param baseModel A Mongoose Model
+ * @param model A Mongoose Model
  * @param options Options for configuring the REST API, such as permissions, transformers, and hooks.
  */
-export function modelRouter<T>(
-  baseModel: Model<T>,
-  options: ModelRouterOptions<T>
-): express.Router {
+export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
 
   // Do before the other router options so endpoints take priority.
@@ -332,12 +329,10 @@ export function modelRouter<T>(
     "/",
     [
       authenticateMiddleware(options.allowAnonymous),
-      createOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      createOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = baseModel;
-
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
       try {
         body = transform<T>(options, req.body, "create", req.user);
@@ -442,13 +437,10 @@ export function modelRouter<T>(
     "/",
     [
       authenticateMiddleware(options.allowAnonymous),
-      permissionMiddleware(baseModel, options),
-      listOpenApiMiddleware(baseModel, options),
+      permissionMiddleware(model, options),
+      listOpenApiMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      // For pure read queries, Mongoose will return the correct data with just the base model.
-      const model = baseModel;
-
       let query: any = {};
       for (const queryParam of Object.keys(options.defaultQueryParams ?? [])) {
         query[queryParam] = options.defaultQueryParams?.[queryParam];
@@ -597,8 +589,8 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      getOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      getOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
       const data: mongoose.Document & T = (req as any).obj;
@@ -631,12 +623,10 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      patchOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      patchOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = baseModel;
-
       let doc: mongoose.Document & T = (req as any).obj;
 
       let body;
@@ -739,12 +729,10 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      deleteOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      deleteOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = baseModel;
-
       const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
 
       if (options.preDelete) {
@@ -822,7 +810,6 @@ export function modelRouter<T>(
     operation: "POST" | "PATCH" | "DELETE"
   ) {
     // TODO Combine array operations and .patch(), as they are very similar.
-    const model = baseModel;
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
       throw new APIError({
@@ -977,7 +964,7 @@ export function modelRouter<T>(
     return arrayOperation(req, res, "DELETE");
   }
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(baseModel.schema.paths).find((config: any) => config.instance === "Array")) {
+  if (Object.values(model.schema.paths).find((config: any) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),

@@ -40,7 +40,8 @@
     "dev": "tsc -w",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "lint:unsafefix": "biome check --write --unsafe ."
+    "lint:unsafefix": "biome check --write --unsafe .",
+    "test:ci": "echo 'No tests'"
   },
   "types": "dist/index.d.ts",
   "version": "1.0.0"

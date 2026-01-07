@@ -101,8 +101,8 @@ export async function checkPermissions<T>(
 // finds the relevant object, checks the permissions, and attaches the object to the request as
 // req.obj.
 export function permissionMiddleware<T>(
-  baseModel: Model<T>,
-  options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths" | "discriminatorKey">
+  model: Model<T>,
+  options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths">
 ) {
   return async (req: express.Request, _res: express.Response, next: NextFunction) => {
     if (req.method === "OPTIONS") {
@@ -130,8 +130,6 @@ export function permissionMiddleware<T>(
           title: `Method ${req.method} not allowed`,
         });
       }
-
-      const model = baseModel;
 
       // All methods check for permissions.
       if (!(await checkPermissions(method, options.permissions[method], req.user))) {
