@@ -128,3 +128,5 @@ The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
 
+<!-- Test access verification -->
+
