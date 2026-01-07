@@ -3,7 +3,7 @@
 
 [build]
   # Install from repo root to resolve workspace dependencies, then build
-  command = "cd .. && bun install && cd demo && bun export"
+  command = "cd .. && bun install && bun run ui:compile && bun run rtk:compile && cd demo && bun export"
   publish = "dist"
   # Always build, even when no changes detected
   ignore = "exit 1"
