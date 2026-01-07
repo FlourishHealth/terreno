@@ -394,7 +394,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
 
       if (options.populatePaths) {
         try {
-          let populateQuery = model.findById(data._id);
+          let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
           data = await populateQuery.exec();
         } catch (error: any) {
@@ -694,7 +694,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
       }
 
       if (options.populatePaths) {
-        let populateQuery = model.findById(doc._id);
+        let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
         doc = await populateQuery.exec();
       }
@@ -821,9 +821,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
     const doc = await model.findById(req.params.id);
     // Make a copy for passing pre-saved values to hooks.
     const prevDoc = cloneDeep(doc);
-    // We fail here because we might fetch the document without the __t but we'd be missing all the
-    // hooks.
-    if (!doc || (doc.__t && !req.body.__t)) {
+    if (!doc) {
       throw new APIError({
         status: 404,
         title: `Could not find document to PATCH: ${req.params.id}`,
@@ -939,7 +937,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
 
     if (options.postUpdate) {
       try {
-        await options.postUpdate(doc, body, req, prevDoc);
+        await options.postUpdate(doc as any, body, req, prevDoc as any);
       } catch (error: any) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
@@ -949,7 +947,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
         });
       }
     }
-    return res.json({data: serialize<T>(req, options, doc)});
+    return res.json({data: serialize<T>(req, options, doc as any)});
   }
 
   async function arrayPost(req: Request, res: Response) {

@@ -157,15 +157,7 @@ export function permissionMiddleware<T>(
           title: `GET failed on ${req.params.id}`,
         });
       }
-      if (!data || (["update", "delete"].includes(method) && data?.__t && !req.body?.__t)) {
-        // For discriminated models, return 404 without checking hidden state
-        if (["update", "delete"].includes(method) && data?.__t && !req.body?.__t) {
-          throw new APIError({
-            status: 404,
-            title: `Document ${req.params.id} not found for model ${model.modelName}`,
-          });
-        }
-
+      if (!data) {
         // Check if document exists but is hidden. Completely skip plugins.
         const hiddenDoc = await model.collection.findOne({
           _id: new mongoose.Types.ObjectId(req.params.id),
