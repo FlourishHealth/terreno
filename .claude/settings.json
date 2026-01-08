@@ -8,7 +8,7 @@
       "Bash(bun:*)",
       "Bash(gh pr create:*)",
       "Bash(ls:*)",
-      "Bash(cd:*)",
+      "Bash(cd:*)"
     ]
   }
 }
