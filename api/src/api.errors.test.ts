@@ -137,7 +137,7 @@ describe("errors module", () => {
       };
       const next = () => {};
 
-      apiUnauthorizedMiddleware(err, {}, res, next);
+      apiUnauthorizedMiddleware(err, {} as any, res as any, next);
       expect((res as any).statusCode).toBe(401);
       expect((res as any).body.title).toBe("Unauthorized");
     });
@@ -149,7 +149,7 @@ describe("errors module", () => {
         nextCalled = true;
       };
 
-      apiUnauthorizedMiddleware(err, {}, {}, next);
+      apiUnauthorizedMiddleware(err, {} as any, {} as any, next);
       expect(nextCalled).toBe(true);
     });
   });

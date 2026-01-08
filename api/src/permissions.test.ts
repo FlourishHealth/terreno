@@ -221,7 +221,7 @@ describe("permissions", () => {
 describe("permissions module", () => {
   describe("OwnerQueryFilter", () => {
     it("returns ownerId filter when user is provided", () => {
-      const user = {id: "user-123"};
+      const user = {id: "user-123"} as any;
       const filter = OwnerQueryFilter(user);
       expect(filter).toEqual({ownerId: "user-123"});
     });
@@ -234,18 +234,18 @@ describe("permissions module", () => {
 
   describe("Permissions.IsAuthenticatedOrReadOnly", () => {
     it("returns true for authenticated non-anonymous users", () => {
-      const user = {id: "user-123", isAnonymous: false};
+      const user = {id: "user-123", isAnonymous: false} as any;
       expect(Permissions.IsAuthenticatedOrReadOnly("create", user)).toBe(true);
     });
 
     it("returns true for read methods when user is anonymous", () => {
-      const user = {id: "user-123", isAnonymous: true};
+      const user = {id: "user-123", isAnonymous: true} as any;
       expect(Permissions.IsAuthenticatedOrReadOnly("list", user)).toBe(true);
       expect(Permissions.IsAuthenticatedOrReadOnly("read", user)).toBe(true);
     });
 
     it("returns false for write methods when user is anonymous", () => {
-      const user = {id: "user-123", isAnonymous: true};
+      const user = {id: "user-123", isAnonymous: true} as any;
       expect(Permissions.IsAuthenticatedOrReadOnly("create", user)).toBe(false);
       expect(Permissions.IsAuthenticatedOrReadOnly("update", user)).toBe(false);
       expect(Permissions.IsAuthenticatedOrReadOnly("delete", user)).toBe(false);
@@ -254,30 +254,30 @@ describe("permissions module", () => {
 
   describe("Permissions.IsOwnerOrReadOnly", () => {
     it("returns true when no object is provided", () => {
-      expect(Permissions.IsOwnerOrReadOnly("update", {id: "user-123"}, undefined)).toBe(true);
+      expect(Permissions.IsOwnerOrReadOnly("update", {id: "user-123"} as any, undefined)).toBe(true);
     });
 
     it("returns true for admin users", () => {
-      const user = {admin: true, id: "admin-123"};
+      const user = {admin: true, id: "admin-123"} as any;
       const obj = {ownerId: "other-user"};
       expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(true);
     });
 
     it("returns true when user is owner", () => {
-      const user = {id: "user-123"};
+      const user = {id: "user-123"} as any;
       const obj = {ownerId: "user-123"};
       expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(true);
     });
 
     it("returns true for read methods when not owner", () => {
-      const user = {id: "user-123"};
+      const user = {id: "user-123"} as any;
       const obj = {ownerId: "other-user"};
       expect(Permissions.IsOwnerOrReadOnly("list", user, obj)).toBe(true);
       expect(Permissions.IsOwnerOrReadOnly("read", user, obj)).toBe(true);
     });
 
     it("returns false for write methods when not owner", () => {
-      const user = {id: "user-123"};
+      const user = {id: "user-123"} as any;
       const obj = {ownerId: "other-user"};
       expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(false);
       expect(Permissions.IsOwnerOrReadOnly("delete", user, obj)).toBe(false);
