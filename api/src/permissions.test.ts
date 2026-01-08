@@ -5,7 +5,7 @@ import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
-import {Permissions} from "./permissions";
+import {OwnerQueryFilter, Permissions} from "./permissions";
 import {
   authAsUser,
   type Food,
@@ -214,6 +214,73 @@ describe("permissions", () => {
           about: "Whoops forgot required",
         })
         .expect(400);
+    });
+  });
+});
+
+describe("permissions module", () => {
+  describe("OwnerQueryFilter", () => {
+    it("returns ownerId filter when user is provided", () => {
+      const user = {id: "user-123"};
+      const filter = OwnerQueryFilter(user);
+      expect(filter).toEqual({ownerId: "user-123"});
+    });
+
+    it("returns null when user is undefined", () => {
+      const filter = OwnerQueryFilter(undefined);
+      expect(filter).toBeNull();
+    });
+  });
+
+  describe("Permissions.IsAuthenticatedOrReadOnly", () => {
+    it("returns true for authenticated non-anonymous users", () => {
+      const user = {id: "user-123", isAnonymous: false};
+      expect(Permissions.IsAuthenticatedOrReadOnly("create", user)).toBe(true);
+    });
+
+    it("returns true for read methods when user is anonymous", () => {
+      const user = {id: "user-123", isAnonymous: true};
+      expect(Permissions.IsAuthenticatedOrReadOnly("list", user)).toBe(true);
+      expect(Permissions.IsAuthenticatedOrReadOnly("read", user)).toBe(true);
+    });
+
+    it("returns false for write methods when user is anonymous", () => {
+      const user = {id: "user-123", isAnonymous: true};
+      expect(Permissions.IsAuthenticatedOrReadOnly("create", user)).toBe(false);
+      expect(Permissions.IsAuthenticatedOrReadOnly("update", user)).toBe(false);
+      expect(Permissions.IsAuthenticatedOrReadOnly("delete", user)).toBe(false);
+    });
+  });
+
+  describe("Permissions.IsOwnerOrReadOnly", () => {
+    it("returns true when no object is provided", () => {
+      expect(Permissions.IsOwnerOrReadOnly("update", {id: "user-123"}, undefined)).toBe(true);
+    });
+
+    it("returns true for admin users", () => {
+      const user = {admin: true, id: "admin-123"};
+      const obj = {ownerId: "other-user"};
+      expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(true);
+    });
+
+    it("returns true when user is owner", () => {
+      const user = {id: "user-123"};
+      const obj = {ownerId: "user-123"};
+      expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(true);
+    });
+
+    it("returns true for read methods when not owner", () => {
+      const user = {id: "user-123"};
+      const obj = {ownerId: "other-user"};
+      expect(Permissions.IsOwnerOrReadOnly("list", user, obj)).toBe(true);
+      expect(Permissions.IsOwnerOrReadOnly("read", user, obj)).toBe(true);
+    });
+
+    it("returns false for write methods when not owner", () => {
+      const user = {id: "user-123"};
+      const obj = {ownerId: "other-user"};
+      expect(Permissions.IsOwnerOrReadOnly("update", user, obj)).toBe(false);
+      expect(Permissions.IsOwnerOrReadOnly("delete", user, obj)).toBe(false);
     });
   });
 });

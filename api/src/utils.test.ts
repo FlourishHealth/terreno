@@ -1,7 +1,7 @@
 import {describe, expect, it, spyOn} from "bun:test";
 import mongoose from "mongoose";
 
-import {checkModelsStrict, isValidObjectId} from "./utils";
+import {checkModelsStrict, isValidObjectId, timeout} from "./utils";
 
 describe("utils", () => {
   describe("isValidObjectId", () => {
@@ -189,6 +189,31 @@ describe("utils", () => {
       } finally {
         spy.mockRestore();
       }
+    });
+  });
+
+  describe("timeout", () => {
+    it("resolves after specified time", async () => {
+      const start = Date.now();
+      await timeout(50);
+      const elapsed = Date.now() - start;
+      expect(elapsed).toBeGreaterThanOrEqual(40);
+    });
+  });
+
+  describe("isValidObjectId additional cases", () => {
+    it("returns true for valid ObjectId strings", () => {
+      expect(isValidObjectId("507f1f77bcf86cd799439011")).toBe(true);
+    });
+
+    it("returns false for invalid ObjectId strings", () => {
+      expect(isValidObjectId("invalid-id")).toBe(false);
+      expect(isValidObjectId("12345")).toBe(false);
+      expect(isValidObjectId("")).toBe(false);
+    });
+
+    it("returns false for 12-character strings that are not valid ObjectIds", () => {
+      expect(isValidObjectId("123456789012")).toBe(false);
     });
   });
 });
