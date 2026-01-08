@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PATH=\"$HOME/.bun/bin:$PATH\" bun lint:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(bun:*)",
+      "Bash(gh pr create:*)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+    ]
+  }
+}
