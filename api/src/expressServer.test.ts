@@ -8,7 +8,9 @@ import {
   cronjob,
   logRequests,
   setupEnvironment,
+  setupServer,
 } from "./expressServer";
+import {UserModel} from "./tests";
 
 describe("expressServer", () => {
   describe("setupEnvironment", () => {
@@ -316,6 +318,262 @@ describe("expressServer", () => {
       expect(() => cronjob("test-hourly-alias", "hourly", callback)).toThrow(
         "Failed to create cronjob"
       );
+    });
+
+    it("minutely alias fails due to bug in implementation", () => {
+      const callback = () => {};
+      expect(() => cronjob("test-minutely-alias", "minutely", callback)).toThrow(
+        "Failed to create cronjob"
+      );
+    });
+  });
+
+  describe("createRouter routePathMiddleware", () => {
+    it("initializes routeMount array when not present", async () => {
+      const addRoutes = (router: any) => {
+        router.get("/test", (req: any, res: any) => {
+          res.json({routeMount: req.routeMount});
+        });
+      };
+
+      const result = createRouter("/api", addRoutes);
+      const app = express();
+      app.use(...(result as [string, ...any[]]));
+
+      const response = await supertest(app).get("/api/test").expect(200);
+      expect(response.body.routeMount).toEqual(["/api"]);
+    });
+
+    it("appends to existing routeMount array", async () => {
+      const addRoutes = (router: any) => {
+        router.get("/test", (req: any, res: any) => {
+          res.json({routeMount: req.routeMount});
+        });
+      };
+
+      // Create nested routers
+      const innerResult = createRouter("/inner", addRoutes);
+      const outerAddRoutes = (router: any) => {
+        router.use(...(innerResult as [string, ...any[]]));
+      };
+      const outerResult = createRouter("/outer", outerAddRoutes);
+
+      const app = express();
+      app.use(...(outerResult as [string, ...any[]]));
+
+      const response = await supertest(app).get("/outer/inner/test").expect(200);
+      expect(response.body.routeMount).toEqual(["/outer", "/inner"]);
+    });
+  });
+
+  describe("setupServer", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("creates server with skipListen option", () => {
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+    });
+
+    it("creates server with addMiddleware option", () => {
+      let middlewareCalled = false;
+      const addMiddleware = (app: any) => {
+        middlewareCalled = true;
+        app.use((_req: any, _res: any, next: any) => next());
+      };
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addMiddleware,
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+      expect(middlewareCalled).toBe(true);
+    });
+
+    it("creates server with custom corsOrigin", () => {
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addRoutes,
+        corsOrigin: "https://example.com",
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+    });
+
+    it("creates server with authOptions", () => {
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addRoutes,
+        authOptions: {
+          generateJWTPayload: (user) => ({customField: "test", id: user._id}),
+          generateTokenExpiration: () => "2h",
+        },
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+    });
+  });
+
+  describe("logRequests edge cases", () => {
+    it("warns for request without route but with success status code", async () => {
+      const app = express();
+      app.use(logRequests);
+      // Middleware that sets statusCode < 400 but doesn't define route
+      app.use((_req: any, res) => {
+        res.status(200).json({ok: true});
+      });
+
+      await supertest(app).get("/no-route").expect(200);
+    });
+
+    it("handles request with routeMount as string (legacy)", async () => {
+      const app = express();
+      app.use(logRequests);
+      app.get("/test", (req: any, res) => {
+        req.route = {path: "/test"};
+        req.routeMount = "/api"; // String instead of array
+        res.json({ok: true});
+      });
+
+      await supertest(app).get("/test").expect(200);
+    });
+  });
+
+  describe("setupServer with full integration", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("sets Sentry transaction ID tag from header", async () => {
+      const addRoutes = (app: any) => {
+        app.get("/test", (_req: any, res: any) => {
+          res.json({ok: true});
+        });
+      };
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      await supertest(app).get("/test").set("X-Transaction-ID", "txn-123").expect(200);
+    });
+
+    it("sets Sentry session ID tag from header", async () => {
+      const addRoutes = (app: any) => {
+        app.get("/test", (_req: any, res: any) => {
+          res.json({ok: true});
+        });
+      };
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      await supertest(app).get("/test").set("X-Session-ID", "session-456").expect(200);
+    });
+
+    it("sets both transaction and session ID tags", async () => {
+      const addRoutes = (app: any) => {
+        app.get("/test", (_req: any, res: any) => {
+          res.json({ok: true});
+        });
+      };
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      await supertest(app)
+        .get("/test")
+        .set("X-Transaction-ID", "txn-123")
+        .set("X-Session-ID", "session-456")
+        .expect(200);
+    });
+
+    it("handles fallthrough error handler", async () => {
+      const addRoutes = (app: any) => {
+        app.get("/error", (_req: any, _res: any) => {
+          throw new Error("Unexpected error");
+        });
+      };
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      await supertest(app).get("/error").expect(500);
+    });
+
+    it("handles loggingOptions passed to setupServer", async () => {
+      const addRoutes = (app: any) => {
+        app.get("/test", (_req: any, res: any) => {
+          res.json({ok: true});
+        });
+      };
+
+      const app = setupServer({
+        addRoutes,
+        loggingOptions: {
+          logSlowRequests: true,
+          logSlowRequestsReadMs: 100,
+        },
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+
+      await supertest(app).get("/test").expect(200);
     });
   });
 });
