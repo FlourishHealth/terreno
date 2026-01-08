@@ -254,7 +254,9 @@ describe("permissions module", () => {
 
   describe("Permissions.IsOwnerOrReadOnly", () => {
     it("returns true when no object is provided", () => {
-      expect(Permissions.IsOwnerOrReadOnly("update", {id: "user-123"} as any, undefined)).toBe(true);
+      expect(Permissions.IsOwnerOrReadOnly("update", {id: "user-123"} as any, undefined)).toBe(
+        true
+      );
     });
 
     it("returns true for admin users", () => {
