@@ -5,7 +5,8 @@ import {APIError} from "../errors";
 import {logger} from "../logger";
 // Convenience method to send data to a Slack webhook.
 // If `url` is provided, it will be used directly instead of looking up from environment.
-// Otherwise, the webhook URL is looked up from SLACK_WEBHOOKS environment variable by channel name.
+// DEPRECATED: Looking up webhook URLs from the SLACK_WEBHOOKS environment variable by channel name
+// is deprecated and will be removed in a future version. Please pass the `url` parameter directly.
 export async function sendToSlack(
   text: string,
   {
@@ -18,6 +19,9 @@ export async function sendToSlack(
   let slackWebhookUrl = url;
 
   if (!slackWebhookUrl) {
+    logger.debug(
+      "DEPRECATED: Looking up webhook URLs from SLACK_WEBHOOKS environment variable is deprecated and will be removed in a future version. Please pass the url parameter directly."
+    );
     // since Slack now requires a webhook for each channel, we need to store them in the environment
     // as an object, so we can look them up by channel name.
     const slackWebhooksString = process.env.SLACK_WEBHOOKS;
