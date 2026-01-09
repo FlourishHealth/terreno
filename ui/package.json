@@ -119,5 +119,5 @@
     "test:ci": "TZ=America/New_York bun test",
     "types": "bunx typedoc"
   },
-  "version": "0.0.12"
+  "version": "0.0.13"
 }
