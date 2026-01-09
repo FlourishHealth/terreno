@@ -58,3 +58,4 @@ temp/
 *.tmp
 *.temp
 
+.claude/settings.local.json
