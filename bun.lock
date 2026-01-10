@@ -7,7 +7,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.62.0",
+      "version": "0.0.12",
       "dependencies": {
         "@sentry/node": "^10.25.0",
         "@sentry/profiling-node": "^10.25.0",
@@ -59,47 +59,6 @@
       },
       "peerDependencies": {
         "mongoose": "^8.0.0",
-      },
-    },
-    "backend-example": {
-      "name": "@terreno/backend-example",
-      "version": "1.0.0",
-      "dependencies": {
-        "@google-cloud/logging": "^11.2.1",
-        "@google-cloud/logging-winston": "^6.0.1",
-        "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0",
-        "@google-cloud/trace-agent": "^8.0.0",
-        "@opentelemetry/instrumentation-express": "^0.57.1",
-        "@opentelemetry/instrumentation-http": "^0.208.0",
-        "@opentelemetry/instrumentation-mongoose": "^0.55.1",
-        "@opentelemetry/resources": "^2.2.0",
-        "@opentelemetry/sdk-node": "^0.208.0",
-        "@opentelemetry/semantic-conventions": "^1.38.0",
-        "@sentry/node": "^10.32.1",
-        "@socket.io/mongo-adapter": "^0.4.0",
-        "@socket.io/redis-adapter": "^8.3.0",
-        "@terreno/api": "workspace:*",
-        "@thream/socketio-jwt": "^3.1.4",
-        "dotenv": "^17.2.3",
-        "ioredis": "^5.8.2",
-        "lodash": "^4.17.21",
-        "luxon": "^3.4.0",
-        "mongoose": "^8.0.0",
-        "passport-local-mongoose": "^9.0.1",
-        "path-to-regexp": "^0.1.12",
-        "qs": "^6.14.1",
-        "socket.io": "^4.8.1",
-      },
-      "devDependencies": {
-        "@biomejs/biome": "^2.0.0",
-        "@types/express": "^4.17.21",
-        "@types/lodash": "^4.17.21",
-        "@types/luxon": "^3.4.0",
-        "@types/passport-local-mongoose": "^6.1.5",
-        "@types/winston": "^2.4.4",
-        "bun-types": "latest",
-        "mongodb": "^6.0.0",
-        "typescript": "~5.8.3",
       },
     },
     "demo": {
@@ -178,8 +137,49 @@
         "typescript": "catalog:",
       },
     },
-    "frontend-example": {
-      "name": "@terreno/frontend-example",
+    "example-backend": {
+      "name": "@terreno/example-backend",
+      "version": "1.0.0",
+      "dependencies": {
+        "@google-cloud/logging": "^11.2.1",
+        "@google-cloud/logging-winston": "^6.0.1",
+        "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0",
+        "@google-cloud/trace-agent": "^8.0.0",
+        "@opentelemetry/instrumentation-express": "^0.57.1",
+        "@opentelemetry/instrumentation-http": "^0.208.0",
+        "@opentelemetry/instrumentation-mongoose": "^0.55.1",
+        "@opentelemetry/resources": "^2.2.0",
+        "@opentelemetry/sdk-node": "^0.208.0",
+        "@opentelemetry/semantic-conventions": "^1.38.0",
+        "@sentry/node": "^10.32.1",
+        "@socket.io/mongo-adapter": "^0.4.0",
+        "@socket.io/redis-adapter": "^8.3.0",
+        "@terreno/api": "workspace:*",
+        "@thream/socketio-jwt": "^3.1.4",
+        "dotenv": "^17.2.3",
+        "ioredis": "^5.8.2",
+        "lodash": "^4.17.21",
+        "luxon": "^3.4.0",
+        "mongoose": "^8.0.0",
+        "passport-local-mongoose": "^9.0.1",
+        "path-to-regexp": "^0.1.12",
+        "qs": "^6.14.1",
+        "socket.io": "^4.8.1",
+      },
+      "devDependencies": {
+        "@biomejs/biome": "^2.0.0",
+        "@types/express": "^4.17.21",
+        "@types/lodash": "^4.17.21",
+        "@types/luxon": "^3.4.0",
+        "@types/passport-local-mongoose": "^6.1.5",
+        "@types/winston": "^2.4.4",
+        "bun-types": "latest",
+        "mongodb": "^6.0.0",
+        "typescript": "~5.8.3",
+      },
+    },
+    "example-frontend": {
+      "name": "@terreno/example-frontend",
       "version": "1.0.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
@@ -235,7 +235,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "1.0.0",
+      "version": "0.0.12",
       "dependencies": {
         "@react-native-async-storage/async-storage": "catalog:",
         "@reduxjs/toolkit": "^2.11.1",
@@ -267,7 +267,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "1.16.1",
+      "version": "0.0.12",
       "dependencies": {
         "@expo-google-fonts/nunito": "^0.4.2",
         "@expo-google-fonts/titillium-web": "^0.4.1",
@@ -1358,9 +1358,9 @@
 
     "@terreno/api": ["@terreno/api@workspace:api"],
 
-    "@terreno/backend-example": ["@terreno/backend-example@workspace:backend-example"],
+    "@terreno/example-backend": ["@terreno/example-backend@workspace:example-backend"],
 
-    "@terreno/frontend-example": ["@terreno/frontend-example@workspace:frontend-example"],
+    "@terreno/example-frontend": ["@terreno/example-frontend@workspace:example-frontend"],
 
     "@terreno/rtk": ["@terreno/rtk@workspace:rtk"],
 
@@ -4044,11 +4044,11 @@
 
     "@socket.io/redis-adapter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
 
-    "@terreno/backend-example/mongoose": ["mongoose@8.21.0", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-dW2U01gN8EVQT5KAO5AkzjbqWc8A/CsEq15jOzq/M9ISpy8jw3iq7W9ZP135h9zykFOMt3AMxq4+anvt2YNJgw=="],
+    "@terreno/example-backend/mongoose": ["mongoose@8.21.0", "", { "dependencies": { "bson": "^6.10.4", "kareem": "2.6.3", "mongodb": "~6.20.0", "mpath": "0.9.0", "mquery": "5.0.0", "ms": "2.1.3", "sift": "17.1.3" } }, "sha512-dW2U01gN8EVQT5KAO5AkzjbqWc8A/CsEq15jOzq/M9ISpy8jw3iq7W9ZP135h9zykFOMt3AMxq4+anvt2YNJgw=="],
 
-    "@terreno/backend-example/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
+    "@terreno/example-backend/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
-    "@terreno/frontend-example/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
+    "@terreno/example-frontend/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@terreno/rtk/@types/node": ["@types/node@25.0.3", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-W609buLVRVmeW693xKfzHeIV6nJGGz98uCPfeXI1ELMLXVeKYZ9m15fAMSaUPBHYLGFsVRcMmSCksQOrZV9BYA=="],
 

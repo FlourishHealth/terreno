@@ -51,7 +51,7 @@
     "typescript": "catalog:"
   },
   "main": "expo-router/entry",
-  "name": "@terreno/frontend-example",
+  "name": "@terreno/example-frontend",
   "private": true,
   "scripts": {
     "android": "bun expo start --android --port 8082",

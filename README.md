@@ -16,8 +16,8 @@ A monorepo containing shared packages for building full-stack applications.
 
 ### Example/Demo Apps (not published)
 
-- **backend-example/** - Example backend application using `@terreno/api`
-- **frontend-example/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
+- **example-backend/** - Example backend application using `@terreno/api`
+- **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
 - **demo/** - Demo app for showcasing and testing UI components
 
 ## Development

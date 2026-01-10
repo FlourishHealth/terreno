@@ -1,14 +1,14 @@
-name: Frontend Example CI
+name: Example Frontend CI
 
 on:
   push:
     paths:
-      - "frontend-example/**"
-      - ".github/workflows/frontend-example-ci.yml"
+      - "example-frontend/**"
+      - ".github/workflows/example-frontend-ci.yml"
 
 jobs:
   lint-and-test:
-    name: Frontend Example Lint and Test
+    name: Example Frontend Lint and Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,7 +21,7 @@ jobs:
       - name: Install root dependencies (workspace)
         run: bun install --frozen-lockfile
 
-      # Build dependencies first since frontend-example depends on them
+      # Build dependencies first since example-frontend depends on them
       - name: Build UI dependency
         run: bun run compile
         working-directory: ui
@@ -32,11 +32,11 @@ jobs:
 
       - name: Lint
         run: bun run lint
-        working-directory: frontend-example
+        working-directory: example-frontend
 
       - name: Test
         run: bun run test
-        working-directory: frontend-example
+        working-directory: example-frontend
         env:
           CI: true
 

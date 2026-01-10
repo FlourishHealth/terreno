@@ -1,4 +1,4 @@
-# @terreno/frontend-example
+# @terreno/example-frontend
 
 Example Expo app demonstrating full-stack usage with @terreno/api backend.
 
