@@ -1,24 +1,24 @@
-name: Frontend Example Netlify Deploy
+name: Example Frontend Netlify Deploy
 
 on:
   push:
     branches:
       - master
     paths:
-      - "frontend-example/**"
+      - "example-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-netlify.yml"
   pull_request:
     paths:
-      - "frontend-example/**"
+      - "example-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-netlify.yml"
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy Frontend Example
+    name: Build and Deploy Example Frontend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -39,18 +39,14 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
-      - name: Debug - List directories
-        run: ls -la
-
-      - name: Export frontend-example for web
-        run: |
-          cd frontend-example
-          bun run export
+      - name: Export example-frontend for web
+        run: bun run export
+        working-directory: example-frontend
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
-          publish-dir: "./frontend-example/dist"
+          publish-dir: "./example-frontend/dist"
           production-branch: master
           production-deploy: ${{ github.ref == 'refs/heads/master' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
