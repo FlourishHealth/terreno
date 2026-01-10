@@ -107,7 +107,9 @@ jobs:
       - name: Cache Bun dependencies
         uses: actions/cache@v5
         with:
-          path: ~/.bun/install/cache
+          path: |
+            ~/.bun/install/cache
+            node_modules
           key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
@@ -220,7 +222,9 @@ jobs:
       - name: Cache Bun dependencies
         uses: actions/cache@v5
         with:
-          path: ~/.bun/install/cache
+          path: |
+            ~/.bun/install/cache
+            node_modules
           key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
@@ -367,7 +371,9 @@ jobs:
       - name: Cache Bun dependencies
         uses: actions/cache@v5
         with:
-          path: ~/.bun/install/cache
+          path: |
+            ~/.bun/install/cache
+            node_modules
           key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
