@@ -61,7 +61,7 @@
     "react-native-webview": "catalog:",
     "react-native-worklets": "catalog:",
     "react-signature-canvas": "^1.1.0-alpha.2",
-    "react-time-picker": "^7.0.0"
+    "react-time-picker": "^8.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
