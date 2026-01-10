@@ -19,6 +19,7 @@ jobs:
           bun-version: latest
 
       - name: Cache Bun dependencies
+        id: cache
         uses: actions/cache@v5
         with:
           path: |
@@ -29,8 +30,39 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
+      - name: Debug cache status
+        run: |
+          echo "=== Cache Debug Info ==="
+          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"
+          echo "Cache key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock') }}"
+          echo ""
+          echo "=== Bun cache directory ==="
+          if [ -d ~/.bun/install/cache ]; then
+            echo "Bun cache exists"
+            du -sh ~/.bun/install/cache || echo "Could not get size"
+          else
+            echo "Bun cache does NOT exist"
+          fi
+          echo ""
+          echo "=== node_modules directory ==="
+          if [ -d node_modules ]; then
+            echo "node_modules exists"
+            du -sh node_modules || echo "Could not get size"
+          else
+            echo "node_modules does NOT exist"
+          fi
+
       - name: Install root dependencies (workspace)
-        run: bun install --frozen-lockfile
+        run: |
+          echo "Starting bun install at $(date)"
+          time bun install --frozen-lockfile
+          echo "Finished bun install at $(date)"
+
+      - name: Debug post-install
+        run: |
+          echo "=== Post-install Debug ==="
+          echo "node_modules size:"
+          du -sh node_modules || echo "Could not get size"
 
       # Build dependencies first since example-frontend depends on them
       - name: Build UI dependency
