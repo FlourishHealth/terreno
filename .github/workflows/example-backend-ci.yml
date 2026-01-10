@@ -33,44 +33,14 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Debug cache status
-        run: |
-          echo "=== Cache Debug Info ==="
-          echo "Cache hit: ${{ steps.cache.outputs.cache-hit }}"
-          echo "Cache key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock') }}"
-          echo ""
-          echo "=== Bun cache directory ==="
-          if [ -d ~/.bun/install/cache ]; then
-            echo "Bun cache exists"
-            du -sh ~/.bun/install/cache || echo "Could not get size"
-          else
-            echo "Bun cache does NOT exist"
-          fi
-          echo ""
-          echo "=== node_modules directory ==="
-          if [ -d node_modules ]; then
-            echo "node_modules exists"
-            du -sh node_modules || echo "Could not get size"
-          else
-            echo "node_modules does NOT exist"
-          fi
-
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
 
       - name: Install dependencies
-        run: |
-          echo "Starting bun install at $(date)"
-          time bun install --frozen-lockfile
-          echo "Finished bun install at $(date)"
-
-      - name: Debug post-install
-        run: |
-          echo "=== Post-install Debug ==="
-          echo "node_modules size:"
-          du -sh node_modules || echo "Could not get size"
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
 
       # Build API first since example-backend depends on it
       - name: Build API dependency
