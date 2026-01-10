@@ -39,9 +39,13 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Debug - List directories
+        run: ls -la
+
       - name: Export frontend-example for web
-        run: bun run export
-        working-directory: frontend-example
+        run: |
+          cd frontend-example
+          bun run export
 
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v3.0
