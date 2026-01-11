@@ -39,7 +39,7 @@
     "expo-splash-screen": "catalog:",
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
-    "libphonenumber-js": "^1.12.31",
+    "libphonenumber-js": "^1.12.34",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-app-polyfill": "^3.0.0",
@@ -70,7 +70,7 @@
     "react-native-webview": "catalog:",
     "react-native-worklets": "catalog:",
     "react-signature-canvas": "^1.1.0-alpha.2",
-    "react-time-picker": "^7.0.0"
+    "react-time-picker": "^8.0.2"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
