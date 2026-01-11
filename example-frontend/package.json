@@ -21,7 +21,7 @@
   "private": true,
   "scripts": {
     "android": "bun expo start --android --port 8082",
-    "export": "expo export -p web",
+    "export": "bun expo export -p web",
     "ios": "bun expo start --ios --port 8082",
     "lint": "bun biome check .",
     "lint:fix": "bun biome check --write .",
