@@ -8,8 +8,6 @@ import {
   ScrollView,
   View,
 } from "react-native";
-
-import {getRounding, getSpacing, useTheme} from ".";
 import type {
   AlignContent,
   AlignItems,
@@ -19,7 +17,9 @@ import type {
   JustifyContent,
   SurfaceTheme,
 } from "./Common";
+import {getRounding, getSpacing} from "./Common";
 import {mediaQueryLargerThan} from "./MediaQuery";
+import {useTheme} from "./Theme";
 import {Unifier} from "./Unifier";
 
 const ALIGN_CONTENT = {
