@@ -41,8 +41,18 @@ jobs:
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
 
+      - name: Check if node_modules exists
+        id: check-modules
+        working-directory: .
+        run: |
+          if [ -d "node_modules" ] && [ "$(ls -A node_modules 2>/dev/null)" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.check-modules.outputs.exists != 'true'
         working-directory: .
         run: bun install --frozen-lockfile
 
