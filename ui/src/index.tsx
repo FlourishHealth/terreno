@@ -11,7 +11,6 @@ export * from "./Button";
 export * from "./Card";
 export * from "./CheckBox";
 export * from "./Common";
-export * from "./ConfirmationDialog";
 export * from "./Constants";
 export * from "./CustomSelectField";
 export * from "./DataTable";

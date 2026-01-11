@@ -1,16 +1,18 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
-import {type FC, useMemo, useState} from "react";
+import {type FC, lazy, Suspense, useMemo, useState} from "react";
 import {ActivityIndicator, Pressable, Text, View} from "react-native";
 
 import {Box} from "./Box";
 import type {ButtonProps} from "./Common";
-import {ConfirmationDialog} from "./ConfirmationDialog";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
+
+// Lazy load Modal to break the circular dependency: Modal -> Button -> Modal
+const LazyModal = lazy(() => import("./Modal").then((module) => ({default: module.Modal})));
 
 const ButtonComponent: FC<ButtonProps> = ({
   confirmationText = "Are you sure you want to continue?",
@@ -136,17 +138,22 @@ const ButtonComponent: FC<ButtonProps> = ({
         )}
       </View>
       {withConfirmation && (
-        <ConfirmationDialog
-          onCancel={() => setShowConfirmation(false)}
-          onConfirm={async () => {
-            await onClick();
-            setShowConfirmation(false);
-          }}
-          subtitle={modalSubTitle}
-          text={confirmationText}
-          title={modalTitle}
-          visible={showConfirmation}
-        />
+        <Suspense fallback={null}>
+          <LazyModal
+            onDismiss={() => setShowConfirmation(false)}
+            primaryButtonOnClick={async () => {
+              await onClick();
+              setShowConfirmation(false);
+            }}
+            primaryButtonText="Confirm"
+            secondaryButtonOnClick={() => setShowConfirmation(false)}
+            secondaryButtonText="Cancel"
+            subtitle={modalSubTitle}
+            text={confirmationText}
+            title={modalTitle}
+            visible={showConfirmation}
+          />
+        </Suspense>
       )}
     </Pressable>
   );
