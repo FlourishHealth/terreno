@@ -44,6 +44,7 @@ jobs:
         working-directory: example-frontend
 
       - name: Deploy to Netlify
+        id: netlify
         uses: nwtgck/actions-netlify@v3.0
         with:
           publish-dir: "./example-frontend/dist"
@@ -58,3 +59,6 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
         timeout-minutes: 5
+
+      - name: Output deploy URL
+        run: echo "Example Frontend deployed to ${{ steps.netlify.outputs.deploy-url }}"
