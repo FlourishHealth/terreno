@@ -39,6 +39,7 @@ jobs:
           mongodb-version: ${{ matrix.mongodb-version }}
 
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       # Build API first since example-backend depends on it

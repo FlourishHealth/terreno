@@ -31,6 +31,7 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install root dependencies (workspace)
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       # Build dependencies first since example-frontend depends on them

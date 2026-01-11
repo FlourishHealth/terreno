@@ -28,7 +28,20 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
       - name: Install root dependencies (workspace)
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build UI dependency

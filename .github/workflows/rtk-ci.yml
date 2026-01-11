@@ -32,6 +32,7 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       # Build UI first since RTK depends on it

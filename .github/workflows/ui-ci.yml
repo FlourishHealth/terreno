@@ -38,6 +38,7 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install UI dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
         working-directory: ui
 
@@ -91,6 +92,7 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Install root dependencies (workspace)
+        if: steps.cache2.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build UI (required for demo)
