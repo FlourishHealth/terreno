@@ -34,6 +34,7 @@ import React, {
   useContext,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -475,8 +476,65 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
     offsetBottom,
     placement = "bottom",
     swipeEnabled = true,
-    ...restProps
+    renderToast,
+    renderType,
+    duration,
+    type,
+    style,
+    textStyle,
+    animationDuration,
+    animationType,
+    successIcon,
+    dangerIcon,
+    warningIcon,
+    successColor,
+    dangerColor,
+    warningColor,
+    normalColor,
+    onPress,
+    data,
   } = props;
+
+  const toastDefaults = useMemo(
+    () => ({
+      animationDuration,
+      animationType,
+      dangerColor,
+      dangerIcon,
+      data,
+      duration,
+      normalColor,
+      onPress,
+      renderToast,
+      renderType,
+      style,
+      successColor,
+      successIcon,
+      textStyle,
+      type,
+      warningColor,
+      warningIcon,
+    }),
+    [
+      renderToast,
+      renderType,
+      duration,
+      type,
+      style,
+      textStyle,
+      animationDuration,
+      animationType,
+      successIcon,
+      dangerIcon,
+      warningIcon,
+      successColor,
+      dangerColor,
+      warningColor,
+      normalColor,
+      onPress,
+      data,
+    ]
+  );
 
   const [toasts, setToasts] = useState<Array<ToastProps>>([]);
 
@@ -502,7 +560,7 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
             open: true,
             placement,
             swipeEnabled,
-            ...restProps,
+            ...toastDefaults,
             ...toastOptions,
           },
           ...prev.filter((t) => t.open),
@@ -511,7 +569,7 @@ const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props
 
       return id;
     },
-    [hide, placement, swipeEnabled, restProps]
+    [hide, placement, swipeEnabled, toastDefaults]
   );
 
   const update = useCallback(
