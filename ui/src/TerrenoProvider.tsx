@@ -1,11 +1,11 @@
 import type React from "react";
 import type {FC} from "react";
 import {Host} from "react-native-portalize";
-import {ToastProvider} from "react-native-toast-notifications";
 
 import {OpenAPIProvider} from "./OpenAPIContext";
 import {ThemeProvider} from "./Theme";
 import {Toast} from "./Toast";
+import {ToastProvider} from "./ToastNotifications";
 
 export const TerrenoProvider: FC<{
   children: React.ReactNode;

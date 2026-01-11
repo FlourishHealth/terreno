@@ -57,7 +57,6 @@
     "react-native-signature-canvas": "catalog:",
     "react-native-svg": "catalog:",
     "react-native-swiper-flatlist": "catalog:",
-    "react-native-toast-notifications": "catalog:",
     "react-native-webview": "catalog:",
     "react-native-worklets": "catalog:",
     "react-signature-canvas": "^1.1.0-alpha.2",
