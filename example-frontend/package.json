@@ -5,6 +5,7 @@
     "@terreno/rtk": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
+    "expo-router": "catalog:",
     "react": "catalog:"
   },
   "devDependencies": {
