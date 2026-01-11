@@ -37,17 +37,8 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Check if node_modules exists
-        id: check-modules
-        run: |
-          if [ -d "node_modules" ] && [ "$(ls -A node_modules 2>/dev/null)" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Install UI dependencies
-        if: steps.check-modules.outputs.exists != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
         working-directory: ui
 
@@ -100,17 +91,8 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Check if node_modules exists
-        id: check-modules2
-        run: |
-          if [ -d "node_modules" ] && [ "$(ls -A node_modules 2>/dev/null)" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Install root dependencies (workspace)
-        if: steps.check-modules2.outputs.exists != 'true'
+        if: steps.cache2.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build UI (required for demo)

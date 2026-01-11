@@ -31,17 +31,8 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Check if node_modules exists
-        id: check-modules
-        run: |
-          if [ -d "node_modules" ] && [ "$(ls -A node_modules 2>/dev/null)" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Install dependencies
-        if: steps.check-modules.outputs.exists != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       # Build UI first since RTK depends on it
