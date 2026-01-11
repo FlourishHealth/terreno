@@ -198,7 +198,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -226,7 +226,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -343,7 +343,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -370,7 +370,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -397,7 +397,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -455,7 +455,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -482,7 +482,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -510,7 +510,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -538,7 +538,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider animationDuration={500}>
+        <ToastProvider animationDuration={500} swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
@@ -585,7 +585,7 @@ describe("ToastNotifications", () => {
       };
 
       render(
-        <ToastProvider>
+        <ToastProvider swipeEnabled={false}>
           <TestComponent />
         </ToastProvider>
       );
