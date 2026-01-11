@@ -1,0 +1,34 @@
+diff --git a/src/toast-container.tsx b/src/toast-container.tsx
+index 5d2a8b4e9a767c8bb5e1c8c8be6c9e94d2a5ead7..b22b2a735a28bf45d0c110af37ab3a49a9fd16ae 100644
+--- a/src/toast-container.tsx
++++ b/src/toast-container.tsx
+@@ -121,8 +121,7 @@ class ToastContainer extends Component<Props, State> {
+     return (
+       <KeyboardAvoidingView
+         behavior={Platform.OS === "ios" ? "position" : undefined}
+-        style={[styles.container, style]}
+-        pointerEvents="box-none"
++        style={[styles.container, style, { pointerEvents: "box-none" }]}
+       >
+         <SafeAreaView>
+           {toasts
+@@ -147,8 +146,7 @@ class ToastContainer extends Component<Props, State> {
+     return (
+       <KeyboardAvoidingView
+         behavior={Platform.OS === "ios" ? "position" : undefined}
+-        style={[styles.container, style]}
+-        pointerEvents="box-none"
++        style={[styles.container, style, { pointerEvents: "box-none" }]}
+       >
+         <SafeAreaView>
+           {toasts
+@@ -180,8 +178,7 @@ class ToastContainer extends Component<Props, State> {
+     return (
+       <KeyboardAvoidingView
+         behavior={Platform.OS === "ios" ? "position" : undefined}
+-        style={[styles.container, style]}
+-        pointerEvents="box-none"
++        style={[styles.container, style, { pointerEvents: "box-none" }]}
+       >
+         {toasts
+           .filter((t) => t.placement === "center")

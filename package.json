@@ -97,5 +97,8 @@
     "example-frontend",
     "rtk",
     "ui"
-  ]
+  ],
+  "patchedDependencies": {
+    "react-native-toast-notifications@3.4.0": "patches/react-native-toast-notifications@3.4.0.patch"
+  }
 }

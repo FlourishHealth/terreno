@@ -7,7 +7,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.0.12",
+      "version": "0.0.13",
       "dependencies": {
         "@sentry/node": "^10.25.0",
         "@sentry/profiling-node": "^10.25.0",
@@ -235,7 +235,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.0.12",
+      "version": "0.0.13",
       "dependencies": {
         "@react-native-async-storage/async-storage": "catalog:",
         "@reduxjs/toolkit": "^2.11.1",
@@ -267,7 +267,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.0.12",
+      "version": "0.0.13",
       "dependencies": {
         "@expo-google-fonts/nunito": "^0.4.2",
         "@expo-google-fonts/titillium-web": "^0.4.1",
@@ -345,6 +345,9 @@
         "react-router-dom": "catalog:",
       },
     },
+  },
+  "patchedDependencies": {
+    "react-native-toast-notifications@3.4.0": "patches/react-native-toast-notifications@3.4.0.patch",
   },
   "catalog": {
     "@biomejs/biome": "^2.3.6",
