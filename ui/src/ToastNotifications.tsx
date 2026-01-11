@@ -26,11 +26,14 @@
  */
 
 import React, {
-  Component,
   createContext,
   type FC,
+  forwardRef,
+  type ReactElement,
+  useCallback,
   useContext,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
@@ -60,22 +63,15 @@ import {
 function useDimensions() {
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
-  const onChange = ({window}: {window: ScaledSize}) => {
+  const onChange = useCallback(({window}: {window: ScaledSize}) => {
     setDimensions(window);
-  };
+  }, []);
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener("change", onChange);
 
     return () => {
-      // @ts-expect-error - React Native >= 0.65
-      if (typeof subscription?.remove === "function") {
-        // @ts-expect-error
-        subscription.remove();
-      } else {
-        // React Native < 0.65
-        Dimensions.removeEventListener("change", onChange);
-      }
+      subscription.remove();
     };
   }, [onChange]);
 
@@ -95,7 +91,7 @@ export interface ToastOptions {
   /**
    * Customize toast icon
    */
-  icon?: JSX.Element;
+  icon?: ReactElement;
 
   /**
    * Toast types, You can implement your custom types with JSX using renderType method on ToastContainer.
@@ -135,17 +131,17 @@ export interface ToastOptions {
   /**
    * Customize success type icon
    */
-  successIcon?: JSX.Element;
+  successIcon?: ReactElement;
 
   /**
    * Customize danger type icon
    */
-  dangerIcon?: JSX.Element;
+  dangerIcon?: ReactElement;
 
   /**
    * Customize warning type icon
    */
-  warningIcon?: JSX.Element;
+  warningIcon?: ReactElement;
 
   /**
    * Customize success type color. changes toast background color
@@ -188,10 +184,10 @@ export interface ToastOptions {
 export interface ToastProps extends ToastOptions {
   id: string;
   onDestroy(): void;
-  message: string | JSX.Element;
+  message: string | ReactElement;
   open: boolean;
-  renderToast?(toast: ToastProps): JSX.Element;
-  renderType?: {[type: string]: (toast: ToastProps) => JSX.Element};
+  renderToast?(toast: ToastProps): ReactElement;
+  renderType?: {[type: string]: (toast: ToastProps) => ReactElement};
   onHide(): void;
 }
 
@@ -225,18 +221,18 @@ const ToastItem: FC<ToastProps> = (props) => {
 
   const containerRef = useRef<View>(null);
   const [animation] = useState(new Animated.Value(0));
-  const panResponderRef = useRef<PanResponderInstance>();
-  const panResponderAnimRef = useRef<Animated.ValueXY>();
-  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const panResponderRef = useRef<PanResponderInstance | undefined>(undefined);
+  const panResponderAnimRef = useRef<Animated.ValueXY | undefined>(undefined);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dims = useDimensions();
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     Animated.timing(animation, {
       duration: animationDuration,
       toValue: 0,
       useNativeDriver: Platform.OS !== "web",
     }).start(() => onDestroy());
-  };
+  }, [animation, animationDuration, onDestroy]);
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -362,30 +358,39 @@ const ToastItem: FC<ToastProps> = (props) => {
       backgroundColor = normalColor || "#333";
   }
 
-  const animationStyle: Animated.WithAnimatedObject<ViewStyle> = {
-    opacity: animation,
-    transform: [
-      {
-        translateY: animation.interpolate({
-          inputRange: [0, 1],
-          outputRange: placement === "bottom" ? [20, 0] : [-20, 0], // 0 : 150, 0.5 : 75, 1 : 0
-        }),
-      },
-    ],
-  };
+  // Build transform array with proper typing for React Native Animated
+  type TransformItem =
+    | {translateY?: Animated.AnimatedInterpolation<number>}
+    | {translateX?: Animated.Value}
+    | {scale?: Animated.AnimatedInterpolation<number>};
+
+  const baseTransform: TransformItem[] = [
+    {
+      translateY: animation.interpolate({
+        inputRange: [0, 1],
+        outputRange: placement === "bottom" ? [20, 0] : [-20, 0],
+      }),
+    },
+  ];
 
   if (swipeEnabled) {
-    animationStyle.transform?.push(getPanResponderAnim().getTranslateTransform()[0]);
+    const panTransform = getPanResponderAnim().getTranslateTransform()[0];
+    baseTransform.push(panTransform as TransformItem);
   }
 
   if (animationType === "zoom-in") {
-    animationStyle.transform?.push({
+    baseTransform.push({
       scale: animation.interpolate({
         inputRange: [0, 1],
         outputRange: [0.7, 1],
       }),
     });
   }
+
+  const animationStyle = {
+    opacity: animation,
+    transform: baseTransform as Animated.WithAnimatedObject<ViewStyle>["transform"],
+  };
 
   return (
     <Animated.View
@@ -447,101 +452,101 @@ const toastStyles = StyleSheet.create({
 const {height, width} = Dimensions.get("window");
 
 export interface ToastContainerProps extends ToastOptions {
-  renderToast?(toast: ToastProps): JSX.Element;
-  renderType?: {[type: string]: (toast: ToastProps) => JSX.Element};
+  renderToast?(toast: ToastProps): ReactElement;
+  renderType?: {[type: string]: (toast: ToastProps) => ReactElement};
   offset?: number;
   offsetTop?: number;
   offsetBottom?: number;
   swipeEnabled?: boolean;
 }
 
-interface ToastContainerState {
-  toasts: Array<ToastProps>;
+export interface ToastContainerRef {
+  show: (message: string | ReactElement, toastOptions?: ToastOptions) => string;
+  update: (id: string, message: string | ReactElement, toastOptions?: ToastOptions) => void;
+  hide: (id: string) => void;
+  hideAll: () => void;
+  isOpen: (id: string) => boolean;
 }
 
-class ToastContainer extends Component<ToastContainerProps, ToastContainerState> {
-  constructor(props: ToastContainerProps) {
-    super(props);
-    this.state = {
-      toasts: [],
-    };
-  }
+const ToastContainer = forwardRef<ToastContainerRef, ToastContainerProps>((props, ref) => {
+  const {
+    offset = 10,
+    offsetTop,
+    offsetBottom,
+    placement = "bottom",
+    swipeEnabled = true,
+    ...restProps
+  } = props;
 
-  static defaultProps: ToastContainerProps = {
-    offset: 10,
-    placement: "bottom",
-    swipeEnabled: true,
-  };
+  const [toasts, setToasts] = useState<Array<ToastProps>>([]);
 
-  /**
-   * Shows a new toast. Returns id
-   */
-  show = (message: string | JSX.Element, toastOptions?: ToastOptions) => {
-    const id = toastOptions?.id || Math.random().toString();
-    const onDestroy = () => {
-      toastOptions?.onClose?.();
-      this.setState({toasts: this.state.toasts.filter((t) => t.id !== id)});
-    };
+  const hide = useCallback((id: string) => {
+    setToasts((prev) => prev.map((t) => (t.id === id ? {...t, open: false} : t)));
+  }, []);
 
-    requestAnimationFrame(() => {
-      this.setState({
-        toasts: [
+  const show = useCallback(
+    (message: string | ReactElement, toastOptions?: ToastOptions) => {
+      const id = toastOptions?.id || Math.random().toString();
+      const onDestroy = () => {
+        toastOptions?.onClose?.();
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      };
+
+      requestAnimationFrame(() => {
+        setToasts((prev) => [
           {
             id,
             message,
             onDestroy,
-            onHide: () => this.hide(id),
+            onHide: () => hide(id),
             open: true,
-            ...this.props,
+            placement,
+            swipeEnabled,
+            ...restProps,
             ...toastOptions,
           },
-          ...this.state.toasts.filter((t) => t.open),
-        ],
+          ...prev.filter((t) => t.open),
+        ]);
       });
-    });
 
-    return id;
-  };
+      return id;
+    },
+    [hide, placement, swipeEnabled, restProps]
+  );
 
-  /**
-   * Updates a toast, To use this create you must pass an id to show method first, then pass it here to update the toast.
-   */
-  update = (id: string, message: string | JSX.Element, toastOptions?: ToastOptions) => {
-    this.setState({
-      toasts: this.state.toasts.map((toast) =>
-        toast.id === id ? {...toast, message, ...toastOptions} : toast
-      ),
-    });
-  };
+  const update = useCallback(
+    (id: string, message: string | ReactElement, toastOptions?: ToastOptions) => {
+      setToasts((prev) =>
+        prev.map((toast) => (toast.id === id ? {...toast, message, ...toastOptions} : toast))
+      );
+    },
+    []
+  );
 
-  /**
-   * Removes a toast from stack
-   */
-  hide = (id: string) => {
-    this.setState({
-      toasts: this.state.toasts.map((t) => (t.id === id ? {...t, open: false} : t)),
-    });
-  };
+  const hideAll = useCallback(() => {
+    setToasts((prev) => prev.map((t) => ({...t, open: false})));
+  }, []);
 
-  /**
-   * Removes all toasts in stack
-   */
-  hideAll = () => {
-    this.setState({
-      toasts: this.state.toasts.map((t) => ({...t, open: false})),
-    });
-  };
+  const isOpen = useCallback(
+    (id: string) => {
+      return toasts.some((t) => t.id === id && t.open);
+    },
+    [toasts]
+  );
 
-  /**
-   * Check if a toast is currently open
-   */
-  isOpen = (id: string) => {
-    return this.state.toasts.some((t) => t.id === id && t.open);
-  };
+  useImperativeHandle(
+    ref,
+    () => ({
+      hide,
+      hideAll,
+      isOpen,
+      show,
+      update,
+    }),
+    [show, update, hide, hideAll, isOpen]
+  );
 
-  renderBottomToasts() {
-    const {toasts} = this.state;
-    const {offset, offsetBottom} = this.props;
+  const renderBottomToasts = useCallback(() => {
     const style: ViewStyle = {
       bottom: offsetBottom || offset,
       flexDirection: "column",
@@ -563,11 +568,9 @@ class ToastContainer extends Component<ToastContainerProps, ToastContainerState>
         </SafeAreaView>
       </KeyboardAvoidingView>
     );
-  }
+  }, [toasts, offset, offsetBottom]);
 
-  renderTopToasts() {
-    const {toasts} = this.state;
-    const {offset, offsetTop} = this.props;
+  const renderTopToasts = useCallback(() => {
     const style: ViewStyle = {
       flexDirection: "column-reverse",
       justifyContent: "flex-start",
@@ -589,11 +592,9 @@ class ToastContainer extends Component<ToastContainerProps, ToastContainerState>
         </SafeAreaView>
       </KeyboardAvoidingView>
     );
-  }
+  }, [toasts, offset, offsetTop]);
 
-  renderCenterToasts() {
-    const {toasts} = this.state;
-    const {offset, offsetTop} = this.props;
+  const renderCenterToasts = useCallback(() => {
     const style: ViewStyle = {
       flexDirection: "column-reverse",
       height: height,
@@ -620,18 +621,18 @@ class ToastContainer extends Component<ToastContainerProps, ToastContainerState>
           ))}
       </KeyboardAvoidingView>
     );
-  }
+  }, [toasts, offset, offsetTop]);
 
-  render() {
-    return (
-      <>
-        {this.renderTopToasts()}
-        {this.renderBottomToasts()}
-        {this.renderCenterToasts()}
-      </>
-    );
-  }
-}
+  return (
+    <>
+      {renderTopToasts()}
+      {renderBottomToasts()}
+      {renderCenterToasts()}
+    </>
+  );
+});
+
+ToastContainer.displayName = "ToastContainer";
 
 const containerStyles = StyleSheet.create({
   container: {
@@ -653,9 +654,9 @@ const containerStyles = StyleSheet.create({
 // Toast Context and Hook
 // ============================================================================
 
-export type ToastType = Pick<ToastContainer, "show" | "update" | "hide" | "hideAll" | "isOpen">;
+export type ToastType = ToastContainerRef;
 
-const ToastContext = createContext({} as ToastType);
+const ToastContext = createContext<ToastType>({} as ToastType);
 
 export let GlobalToast: ToastType;
 
@@ -664,16 +665,18 @@ type ToastProviderProps = ToastContainerProps & {
 };
 
 export const ToastProvider: FC<ToastProviderProps> = ({children, ...props}) => {
-  const toastRef = useRef(null);
-  const [refState, setRefState] = useState({});
+  const toastRef = useRef<ToastContainerRef>(null);
+  const [refState, setRefState] = useState<ToastType>({} as ToastType);
 
   useEffect(() => {
-    setRefState(toastRef.current as any);
-    GlobalToast = toastRef.current as any;
+    if (toastRef.current) {
+      setRefState(toastRef.current);
+      GlobalToast = toastRef.current;
+    }
   }, []);
 
   return (
-    <ToastContext.Provider value={refState as any}>
+    <ToastContext.Provider value={refState}>
       {children}
       <ToastContainer ref={toastRef} {...props} />
     </ToastContext.Provider>
