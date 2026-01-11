@@ -5,36 +5,12 @@ import {ActivityIndicator, Pressable, Text, View} from "react-native";
 
 import {Box} from "./Box";
 import type {ButtonProps} from "./Common";
+import {ConfirmationDialog} from "./ConfirmationDialog";
 import {isMobileDevice} from "./MediaQuery";
-import {Modal} from "./Modal";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
-
-const ConfirmationModal: FC<{
-  visible: boolean;
-  title: string;
-  subtitle?: string;
-  text: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}> = ({visible, title, subtitle, text, onConfirm, onCancel}) => {
-  return (
-    <Modal
-      onDismiss={onCancel}
-      primaryButtonOnClick={onConfirm}
-      primaryButtonText="Confirm"
-      secondaryButtonOnClick={onCancel}
-      secondaryButtonText="Cancel"
-      subtitle={subtitle}
-      title={title}
-      visible={visible}
-    >
-      <Text>{text}</Text>
-    </Modal>
-  );
-};
 
 const ButtonComponent: FC<ButtonProps> = ({
   confirmationText = "Are you sure you want to continue?",
@@ -160,7 +136,7 @@ const ButtonComponent: FC<ButtonProps> = ({
         )}
       </View>
       {withConfirmation && (
-        <ConfirmationModal
+        <ConfirmationDialog
           onCancel={() => setShowConfirmation(false)}
           onConfirm={async () => {
             await onClick();
