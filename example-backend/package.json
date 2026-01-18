@@ -36,7 +36,7 @@
     "mongodb": "^6.0.0",
     "typescript": "~5.8.3"
   },
-  "name": "@terreno/backend-example",
+  "name": "@terreno/example-backend",
   "private": true,
   "scripts": {
     "build": "bun build src/index.ts --outdir ./dist --target node",

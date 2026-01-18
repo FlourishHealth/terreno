@@ -6,7 +6,7 @@ Agent docs for configuration
 Agent docs for terrenorouter and custom routes
 Update websockets
 Fix the @terreno/ui warnings
-Fix the notifications warning in frontend-example
+Fix the notifications warning in example-frontend
 Fix the @terreno/ui require cycles 
 Replace deprecated react-testing-library with the newer library
 Fix the warnings running bun types in ui

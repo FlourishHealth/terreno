@@ -1,0 +1,793 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Slider snapshots should match snapshot with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": false,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 0,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 50,
+          },
+          "type": "Slider",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot with title and showSelection 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Volume Control",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "75",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-medium",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": false,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 1,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 75,
+          },
+          "type": "Slider",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot with labels 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": false,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 0,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 50,
+          },
+          "type": "Slider",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Low",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#092E3A",
+                      "fontFamily": "text-regular",
+                      "fontSize": 10,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "High",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#092E3A",
+                      "fontFamily": "text-regular",
+                      "fontSize": 10,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "justifyContent": "space-between",
+              "marginTop": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot with inline labels 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "0%",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#092E3A",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexShrink": 1,
+                  "minWidth": 30,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "disabled": false,
+                    "maximumTrackTintColor": "#CDCDCD",
+                    "maximumValue": 100,
+                    "minimumTrackTintColor": "#0E9DCD",
+                    "minimumValue": 0,
+                    "onValueChange": [class Function],
+                    "step": 0,
+                    "thumbStyle": {
+                      "backgroundColor": "white",
+                      "borderRadius": 24,
+                      "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+                      "elevation": 5,
+                      "height": 48,
+                      "width": 48,
+                    },
+                    "thumbTintColor": "#0E9DCD",
+                    "trackStyle": {
+                      "height": 10,
+                    },
+                    "value": 50,
+                  },
+                  "type": "Slider",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "100%",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#092E3A",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignItems": "flex-end",
+                  "display": "flex",
+                  "flexShrink": 1,
+                  "minWidth": 30,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "gap": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot with helper text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Brightness",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": false,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 0,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 50,
+          },
+          "type": "Slider",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Drag to adjust",
+          ],
+          "props": {
+            "style": {
+              "color": "#1C1C1C",
+              "fontSize": 12,
+              "lineHeight": 16,
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "marginTop": 2,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot with error text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Required Field",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": false,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 0,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 0,
+          },
+          "type": "Slider",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Please select a value",
+              ],
+              "props": {
+                "style": {
+                  "color": "#BD1111",
+                  "fontSize": 12,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "marginLeft": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginVertical": 2,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Slider snapshots should match snapshot when disabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Disabled Slider",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "50",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#686868",
+                      "fontFamily": "text-medium",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "disabled": true,
+            "maximumTrackTintColor": "#CDCDCD",
+            "maximumValue": 100,
+            "minimumTrackTintColor": "#0E9DCD",
+            "minimumValue": 0,
+            "onValueChange": [class Function],
+            "step": 1,
+            "thumbStyle": {
+              "backgroundColor": "white",
+              "borderRadius": 24,
+              "boxShadow": "0px 2px 4px rgba(0, 0, 0, 0.25)",
+              "elevation": 5,
+              "height": 48,
+              "width": 48,
+            },
+            "thumbTintColor": "#0E9DCD",
+            "trackStyle": {
+              "height": 10,
+            },
+            "value": 50,
+          },
+          "type": "Slider",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "gap": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
