@@ -242,16 +242,6 @@ export interface ModelRouterOptions<T> {
     options: ModelRouterOptions<T>
   ) => Promise<JSONValue>;
   /**
-   * The discriminatorKey that you passed when creating the Mongoose models. Defaults to __t. See:
-   * https://mongoosejs.com/docs/discriminators.html If this key is provided,
-   * you must provide the same key as part of the top level of the body when making performing
-   * update or delete operations on this model.
-   *    \{discriminatorKey: "__t"\}
-   *
-   *     PATCH \{__t: "SuperUser", name: "Foo"\} // __t is required or there will be a 404 error.
-   */
-  discriminatorKey?: string;
-  /**
    * The OpenAPI generator for this server. This is used to generate the OpenAPI documentation.
    */
   openApi?: any;
@@ -273,23 +263,6 @@ export interface ModelRouterOptions<T> {
    * that you want to be documented and typed in the SDK.
    */
   openApiExtraModelProperties?: any;
-}
-
-// A function to decide which model to use. If no discriminators are provided,
-// just returns the base model. If
-export function getModel(baseModel: Model<any>, body?: any, options?: ModelRouterOptions<any>) {
-  const discriminatorKey = options?.discriminatorKey ?? "__t";
-  const modelName = body?.[discriminatorKey];
-  if (!modelName) {
-    return baseModel;
-  }
-  const model = baseModel.discriminators?.[modelName];
-  if (!model) {
-    throw new Error(
-      `Could not find discriminator model for key ${modelName}, baseModel: ${baseModel}`
-    );
-  }
-  return model;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -337,15 +310,12 @@ function checkQueryParamAllowed(
 // }
 
 /**
- * Create a set of CRUD routes given a Mongoose model $baseModel and configuration options.
+ * Create a set of CRUD routes given a Mongoose model and configuration options.
  *
- * @param baseModel A Mongoose Model
+ * @param model A Mongoose Model
  * @param options Options for configuring the REST API, such as permissions, transformers, and hooks.
  */
-export function modelRouter<T>(
-  baseModel: Model<T>,
-  options: ModelRouterOptions<T>
-): express.Router {
+export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
 
   // Do before the other router options so endpoints take priority.
@@ -359,12 +329,10 @@ export function modelRouter<T>(
     "/",
     [
       authenticateMiddleware(options.allowAnonymous),
-      createOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      createOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body?.__t, options);
-
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
       try {
         body = transform<T>(options, req.body, "create", req.user);
@@ -426,7 +394,7 @@ export function modelRouter<T>(
 
       if (options.populatePaths) {
         try {
-          let populateQuery = model.findById(data._id);
+          let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
           data = await populateQuery.exec();
         } catch (error: any) {
@@ -469,13 +437,10 @@ export function modelRouter<T>(
     "/",
     [
       authenticateMiddleware(options.allowAnonymous),
-      permissionMiddleware(baseModel, options),
-      listOpenApiMiddleware(baseModel, options),
+      permissionMiddleware(model, options),
+      listOpenApiMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      // For pure read queries, Mongoose will return the correct data with just the base model.
-      const model = baseModel;
-
       let query: any = {};
       for (const queryParam of Object.keys(options.defaultQueryParams ?? [])) {
         query[queryParam] = options.defaultQueryParams?.[queryParam];
@@ -624,8 +589,8 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      getOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      getOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
       const data: mongoose.Document & T = (req as any).obj;
@@ -658,12 +623,10 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      patchOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      patchOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body, options);
-
       let doc: mongoose.Document & T = (req as any).obj;
 
       let body;
@@ -731,7 +694,7 @@ export function modelRouter<T>(
       }
 
       if (options.populatePaths) {
-        let populateQuery = model.findById(doc._id);
+        let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
         doc = await populateQuery.exec();
       }
@@ -766,12 +729,10 @@ export function modelRouter<T>(
     "/:id",
     [
       authenticateMiddleware(options.allowAnonymous),
-      deleteOpenApiMiddleware(baseModel, options),
-      permissionMiddleware(baseModel, options),
+      deleteOpenApiMiddleware(model, options),
+      permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const model = getModel(baseModel, req.body, options);
-
       const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
 
       if (options.preDelete) {
@@ -849,7 +810,6 @@ export function modelRouter<T>(
     operation: "POST" | "PATCH" | "DELETE"
   ) {
     // TODO Combine array operations and .patch(), as they are very similar.
-    const model = getModel(baseModel, req.body, options);
 
     if (!(await checkPermissions("update", options.permissions.update, req.user))) {
       throw new APIError({
@@ -861,9 +821,7 @@ export function modelRouter<T>(
     const doc = await model.findById(req.params.id);
     // Make a copy for passing pre-saved values to hooks.
     const prevDoc = cloneDeep(doc);
-    // We fail here because we might fetch the document without the __t but we'd be missing all the
-    // hooks.
-    if (!doc || (doc.__t && !req.body.__t)) {
+    if (!doc) {
       throw new APIError({
         status: 404,
         title: `Could not find document to PATCH: ${req.params.id}`,
@@ -979,7 +937,7 @@ export function modelRouter<T>(
 
     if (options.postUpdate) {
       try {
-        await options.postUpdate(doc, body, req, prevDoc);
+        await options.postUpdate(doc as any, body, req, prevDoc as any);
       } catch (error: any) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
@@ -989,7 +947,7 @@ export function modelRouter<T>(
         });
       }
     }
-    return res.json({data: serialize<T>(req, options, doc)});
+    return res.json({data: serialize<T>(req, options, doc as any)});
   }
 
   async function arrayPost(req: Request, res: Response) {
@@ -1004,7 +962,7 @@ export function modelRouter<T>(
     return arrayOperation(req, res, "DELETE");
   }
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(baseModel.schema.paths).find((config: any) => config.instance === "Array")) {
+  if (Object.values(model.schema.paths).find((config: any) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),

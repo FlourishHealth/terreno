@@ -1,24 +1,18 @@
-name: API CI
+name: Example Frontend CI
 
 on:
   push:
     paths:
-      - "api/**"
-      - ".github/workflows/api-ci.yml"
-
-defaults:
-  run:
-    working-directory: api
+      - "example-frontend/**"
+      - ".github/workflows/example-frontend-ci.yml"
 
 jobs:
-  test:
-    name: Run all tests
+  lint-and-test:
+    name: Example Frontend Lint and Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        mongodb-version: ["6.0"]
     steps:
       - uses: actions/checkout@v6
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -36,20 +30,25 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
-      - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.12.1
-        with:
-          mongodb-version: ${{ matrix.mongodb-version }}
-
-      - name: Install dependencies
-        working-directory: .
+      - name: Install root dependencies (workspace)
         run: bun install --frozen-lockfile
+
+      # Build dependencies first since example-frontend depends on them
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
 
       - name: Lint
         run: bun run lint
-      - name: Build
-        run: bun run compile
+        working-directory: example-frontend
+
       - name: Test
         run: bun run test
+        working-directory: example-frontend
         env:
           CI: true
+

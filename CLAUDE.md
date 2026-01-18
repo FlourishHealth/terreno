@@ -8,8 +8,8 @@ A monorepo containing shared packages for building full-stack applications with 
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **demo/** - Demo app for showcasing and testing UI components
-- **frontend-example/** - Example Expo app demonstrating full stack usage
-- **backend-example/** - Example Express backend using @terreno/api
+- **example-frontend/** - Example Expo app demonstrating full stack usage
+- **example-backend/** - Example Express backend using @terreno/api
 
 ## Development
 

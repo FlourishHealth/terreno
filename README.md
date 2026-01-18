@@ -1,5 +1,9 @@
 # Terreno
 
+[![@terreno/api](https://img.shields.io/npm/v/@terreno/api?label=%40terreno%2Fapi)](https://www.npmjs.com/package/@terreno/api)
+[![@terreno/ui](https://img.shields.io/npm/v/@terreno/ui?label=%40terreno%2Fui)](https://www.npmjs.com/package/@terreno/ui)
+[![@terreno/rtk](https://img.shields.io/npm/v/@terreno/rtk?label=%40terreno%2Frtk)](https://www.npmjs.com/package/@terreno/rtk)
+
 A monorepo containing shared packages for building full-stack applications.
 
 ## Packages
@@ -12,8 +16,8 @@ A monorepo containing shared packages for building full-stack applications.
 
 ### Example/Demo Apps (not published)
 
-- **backend-example/** - Example backend application using `@terreno/api`
-- **frontend-example/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
+- **example-backend/** - Example backend application using `@terreno/api`
+- **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
 - **demo/** - Demo app for showcasing and testing UI components
 
 ## Development
