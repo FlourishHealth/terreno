@@ -1,5 +1,6 @@
 import {DemoConfiguration} from "@config";
 import {
+  SliderBoxShadowDemo,
   SliderDemo,
   SliderWithIconsDemo,
   SliderWithInlineLabelsDemo,
@@ -47,6 +48,10 @@ export const SliderConfiguration: DemoConfiguration = {
   stories: {
     "Basic Slider": {
       render: SliderDemo,
+    },
+    "Slider with Box Shadow": {
+      description: "Demonstrates the box shadow styling on the slider thumb",
+      render: SliderBoxShadowDemo,
     },
     "Slider with Emojis": {
       render: SliderWithSmileysDemo,
