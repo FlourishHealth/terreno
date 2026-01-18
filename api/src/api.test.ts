@@ -871,7 +871,7 @@ describe("@terreno/api", () => {
   describe("transformer errors", () => {
     let admin: any;
     let spinach: Food;
-    let agent: TestAgent;
+    let _agent: TestAgent;
 
     beforeEach(async () => {
       [admin] = await setupDb();
@@ -912,10 +912,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .post("/food")
-        .send({calories: 15, name: "Broccoli"})
-        .expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -939,10 +936,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server
-        .patch(`/food/${spinach._id}`)
-        .send({calories: 100})
-        .expect(403);
+      const res = await server.patch(`/food/${spinach._id}`).send({calories: 100}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1120,8 +1114,8 @@ describe("@terreno/api", () => {
       await setupDb();
       const query = FoodModel.find({});
       const result = addPopulateToQuery(query, [
-        {path: "ownerId", fields: ["email"]},
-        {path: "eatenBy", fields: ["name"]},
+        {fields: ["email"], path: "ownerId"},
+        {fields: ["name"], path: "eatenBy"},
       ]);
       // The result should be a query with populate applied
       expect(result).toBeDefined();
@@ -1170,7 +1164,6 @@ describe("@terreno/api", () => {
     });
   });
 
-
   describe("populate in create", () => {
     let admin: any;
 
@@ -1203,7 +1196,7 @@ describe("@terreno/api", () => {
             read: [Permissions.IsAny],
             update: [Permissions.IsAny],
           },
-          populatePaths: [{path: "ownerId", fields: ["email"]}],
+          populatePaths: [{fields: ["email"], path: "ownerId"}],
         })
       );
       server = supertest(app);
@@ -1267,7 +1260,6 @@ describe("@terreno/api", () => {
     });
   });
 
-
   describe("body undefined after transform without preCreate", () => {
     beforeEach(async () => {
       await setupDb();
@@ -1304,11 +1296,11 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let admin: any;
+    let _admin: any;
     let agent: TestAgent;
 
     beforeEach(async () => {
-      [admin] = await setupDb();
+      [_admin] = await setupDb();
 
       app = getBaseServer();
       setupAuth(app, UserModel as any);
@@ -1316,9 +1308,7 @@ describe("@terreno/api", () => {
     });
 
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
-      // Create a test schema with the isDeletedPlugin
       const mongoose = await import("mongoose");
-      const {isDeletedPlugin} = await import("./plugins");
 
       // Create a temporary model with the deleted field
       const softDeleteSchema = new mongoose.Schema({
