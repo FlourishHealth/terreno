@@ -5,6 +5,7 @@ import type TestAgent from "supertest/lib/agent";
 
 import {addPopulateToQuery, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
+import {APIError} from "./errors";
 import {Permissions} from "./permissions";
 import {
   authAsUser,
@@ -868,6 +869,14 @@ describe("@terreno/api", () => {
     });
 
     it("array operation transform error is handled", async () => {
+      const apple = await FoodModel.create({
+        calories: 95,
+        created: new Date(),
+        hidden: false,
+        name: "Apple",
+        tags: [],
+      });
+
       app.use(
         "/food",
         modelRouter(FoodModel, {
