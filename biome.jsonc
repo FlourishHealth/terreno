@@ -46,7 +46,8 @@
       "!!**/.expo",
       "!!**/.next",
       "!!**/generated",
-      "!!**/.git"
+      "!!**/.git",
+      "!!api/src/populate.ts"
     ]
   },
   "formatter": {
