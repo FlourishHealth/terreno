@@ -82,13 +82,16 @@
     "ui:dev": "bun run --filter '@terreno/ui' dev",
     "ui:lint": "bun run --filter '@terreno/ui' lint",
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
-    "ui:web": "bun run --filter '@terreno/ui' web"
+    "ui:web": "bun run --filter '@terreno/ui' web",
+    "mcp:build": "bun run --filter '@terreno/mcp-server' build",
+    "mcp:start": "bun run --filter '@terreno/mcp-server' start"
   },
   "version": "1.0.0",
   "workspaces": [
     "api",
     "backend-example",
     "demo",
+    "mcp-server",
     "rtk",
     "frontend-example",
     "ui"
