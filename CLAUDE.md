@@ -33,6 +33,61 @@ bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example
 ```
 
+## How the Packages Work Together
+
+The three core packages form a complete full-stack framework:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         BACKEND                                 │
+│  @terreno/api                                                   │
+│  - Mongoose models with modelRouter → CRUD endpoints            │
+│  - Built-in auth (JWT + Passport)                               │
+│  - Automatic OpenAPI spec generation                            │
+│                              ↓                                  │
+│                     /openapi.json                               │
+└─────────────────────────────────────────────────────────────────┘
+                               ↓
+                    RTK Query SDK Codegen
+                               ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND                                │
+│  @terreno/rtk                                                   │
+│  - Generated hooks from OpenAPI spec                            │
+│  - Auth slice with JWT token management                         │
+│  - Automatic token refresh                                      │
+│                              +                                  │
+│  @terreno/ui                                                    │
+│  - React Native components (Box, Button, TextField, etc.)       │
+│  - TerrenoProvider for theming                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Integration Flow
+
+1. **Backend (api)**: Define Mongoose models, use `modelRouter` to create CRUD endpoints with permissions
+2. **OpenAPI Generation**: `setupServer` automatically generates `/openapi.json`
+3. **SDK Codegen**: Frontend runs `bun run sdk` to generate RTK Query hooks from OpenAPI spec
+4. **Frontend (rtk + ui)**: Use generated hooks with UI components for type-safe API calls
+
+## Example Apps (Keep These Updated!)
+
+The `frontend-example/` and `backend-example/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+
+1. **Add examples** demonstrating new features
+2. **Update SDK** after backend changes: `cd frontend-example && bun run sdk`
+3. **Verify integration** by running both examples together
+
+### Running the Full Stack
+
+```bash
+# Terminal 1: Start backend
+bun run backend:dev
+
+# Terminal 2: Start frontend
+bun run frontend:web
+```
+
 ## Code Style
 
 ### TypeScript/JavaScript
@@ -66,6 +121,70 @@ bun run backend:dev      # Start backend example
 - Focus on readability over performance
 - Write complete, functional code without TODOs when possible
 - Comments should describe purpose, not effect
+
+## Package Reference
+
+### @terreno/api
+
+REST API framework providing:
+
+- **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
+- **Permissions**: `IsAuthenticated`, `IsOwner`, `IsAdmin`, `IsAuthenticatedOrReadOnly`
+- **Query Filters**: `OwnerQueryFilter` for filtering list queries by owner
+- **setupServer**: Express server setup with auth, OpenAPI, and middleware
+- **APIError**: Standardized error handling
+- **logger**: Winston-based logging
+
+Key imports:
+```typescript
+import {
+  modelRouter,
+  setupServer,
+  Permissions,
+  OwnerQueryFilter,
+  APIError,
+  logger,
+  asyncHandler,
+  authenticateMiddleware,
+} from "@terreno/api";
+```
+
+### @terreno/ui
+
+React Native component library with 88+ components:
+
+- **Layout**: Box, Page, SplitPage, Card
+- **Forms**: TextField, SelectField, DateTimeField, CheckBox
+- **Display**: Text, Heading, Badge, DataTable
+- **Actions**: Button, IconButton, Link
+- **Feedback**: Spinner, Modal, Toast
+- **Theming**: TerrenoProvider, useTheme
+
+Key imports:
+```typescript
+import {
+  Box,
+  Button,
+  Card,
+  Page,
+  Text,
+  TextField,
+  TerrenoProvider,
+} from "@terreno/ui";
+```
+
+### @terreno/rtk
+
+Redux Toolkit Query integration:
+
+- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
+- **emptyApi**: Base RTK Query API for code generation
+- **Platform utilities**: Secure token storage (expo-secure-store for native, AsyncStorage for web)
+
+Key imports:
+```typescript
+import {generateAuthSlice} from "@terreno/rtk";
+```
 
 ## Dependency Management
 
