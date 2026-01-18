@@ -8,13 +8,13 @@
     "terreno-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/docs dist/",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "tsc",
+    "compile": "tsc && cp -r src/docs dist/",
     "test": "bun test",
     "test:ci": "bun test"
   },
