@@ -1,12 +1,5 @@
 # Netlify configuration for the example-frontend site
-# This requires a separate Netlify site with Base directory set to "example-frontend"
-
-[build]
-  # Install from repo root to resolve workspace dependencies, then build
-  command = "cd .. && bun install && bun run ui:compile && bun run rtk:compile && cd example-frontend && bun export"
-  publish = "dist"
-  # Always build, even when no changes detected
-  ignore = "exit 1"
+# Build is handled by GitHub Actions workflow
 
 [[redirects]]
   from = "/*"
