@@ -3,6 +3,10 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "@terreno/api": ["src/types/terreno-api.d.ts"]
+    },
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,

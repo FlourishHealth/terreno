@@ -1,4 +1,4 @@
-FROM node:22-alpine
+FROM oven/bun:1.1.38-alpine
 
 WORKDIR /app
 
@@ -14,4 +14,4 @@ USER nodejs
 
 ENV NODE_ENV=production
 
-CMD ["node", "dist/index.js"]
+CMD ["bun", "dist/index.js"]

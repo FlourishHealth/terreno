@@ -53,7 +53,7 @@ Add to your Claude Desktop configuration (`~/Library/Application Support/Claude/
 {
   "mcpServers": {
     "terreno": {
-      "command": "node",
+      "command": "bun",
       "args": ["/path/to/terreno/mcp-server/dist/index.js"]
     }
   }
@@ -68,7 +68,7 @@ Add to your project's `.claude/settings.json`:
 {
   "mcpServers": {
     "terreno": {
-      "command": "node",
+      "command": "bun",
       "args": ["./mcp-server/dist/index.js"]
     }
   }

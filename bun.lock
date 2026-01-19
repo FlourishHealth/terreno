@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "@terreno/root",
+      "devDependencies": {
+        "@biomejs/biome": "catalog:",
+      },
     },
     "api": {
       "name": "@terreno/api",
@@ -225,6 +228,7 @@
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",
+        "@terreno/api": "workspace:*",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",

@@ -89,7 +89,13 @@
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
     "ui:web": "bun run --filter '@terreno/ui' web",
     "mcp:build": "bun run --filter '@terreno/mcp-server' build",
-    "mcp:start": "bun run --filter '@terreno/mcp-server' start"
+    "mcp:start": "bun run --filter '@terreno/mcp-server' start",
+    "mcp:dev": "bun run --filter '@terreno/mcp-server' dev",
+    "mcp:lint": "bun run --filter '@terreno/mcp-server' lint",
+    "lint:root": "biome check package.json"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:"
   },
   "version": "1.0.0",
   "workspaces": [

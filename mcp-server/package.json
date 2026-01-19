@@ -9,8 +9,8 @@
   },
   "scripts": {
     "build": "tsc && cp -r src/docs dist/",
-    "dev": "tsc --watch",
-    "start": "node dist/index.js",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun dist/index.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
@@ -19,7 +19,8 @@
     "test:ci": "bun test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@terreno/api": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
