@@ -2,11 +2,7 @@
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-COPY package.json bun.lock ./
-COPY api/package.json api/tsconfig.json ./api/
-COPY api/src ./api/src
-COPY mcp-server/package.json mcp-server/tsconfig.json ./mcp-server/
-COPY mcp-server/src ./mcp-server/src
+COPY . .
 
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run --filter "@terreno/api" compile
