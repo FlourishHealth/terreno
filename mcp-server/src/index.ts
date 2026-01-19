@@ -97,6 +97,15 @@ const resolvePort = (): number => {
   return parsedPort;
 };
 
+const resolveHost = (): string => {
+  const envHost = process.env.MCP_HOST ?? process.env.HOST;
+  if (envHost) {
+    return envHost;
+  }
+
+  return "0.0.0.0";
+};
+
 type McpRequest = Parameters<StreamableHTTPServerTransport["handleRequest"]>[0] & {
   body?: unknown;
 };
@@ -151,19 +160,20 @@ const handleUnsupportedMethod = async (_req: McpRequest, res: McpResponse): Prom
 
 const main = async (): Promise<void> => {
   const port = resolvePort();
-  const app = createMcpExpressApp();
+  const host = resolveHost();
+  const app = createMcpExpressApp({host});
 
   app.post("/mcp", handleMcpRequest);
   app.get("/mcp", handleUnsupportedMethod);
   app.delete("/mcp", handleUnsupportedMethod);
 
-  app.listen(port, (error?: Error): void => {
+  app.listen(port, host, (error?: Error): void => {
     if (error) {
       logger.error("Failed to start server:", error);
       process.exit(1);
       return;
     }
-    logger.info(`Terreno MCP server listening on port ${port}`);
+    logger.info(`Terreno MCP server listening on ${host}:${port}`);
   });
 };
 
