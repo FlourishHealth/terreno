@@ -1,4 +1,4 @@
-import {readFileSync} from "node:fs";
+import {existsSync, readFileSync} from "node:fs";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 
@@ -10,8 +10,16 @@ const getDocsRoot = (): string => {
     return process.env.TERRENO_MCP_DOCS_DIR;
   }
 
+  const bundledDocsRoot = join(__dirname, "docs");
+  if (existsSync(bundledDocsRoot)) {
+    return bundledDocsRoot;
+  }
+
   if (process.execPath) {
-    return join(dirname(process.execPath), "docs");
+    const execDocsRoot = join(dirname(process.execPath), "docs");
+    if (existsSync(execDocsRoot)) {
+      return execDocsRoot;
+    }
   }
 
   return join(__dirname, "docs");
