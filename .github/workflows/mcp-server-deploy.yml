@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - main
+      - mcp
     paths:
       - "mcp-server/**"
       - ".github/workflows/mcp-server-deploy.yml"
@@ -72,8 +73,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build TypeScript
+      - name: Build all packages
         run: bun run compile
+        working-directory: .
 
       - name: Install production dependencies only
         run: |
