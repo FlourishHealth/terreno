@@ -22,8 +22,7 @@ on:
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
-  GCP_MCP_SERVICE_NAME: terreno-mcp-server
-  GCP_DOCKER_REPOSITORY: ${{ secrets.GCP_DOCKER_REPOSITORY }}
+  GCP_MCP_SERVICE_NAME: terreno-mcp
 
 jobs:
   test:
@@ -43,8 +42,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build
+      - name: Build all packages
         run: bun run compile
+        working-directory: .
 
       - name: Test
         run: bun run test:ci
