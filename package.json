@@ -77,6 +77,10 @@
     "lint": "bun run --filter '*' lint",
     "lint:fix": "bun run --filter '*' lint:fix",
     "lint:unsafefix": "bun run --filter '*' lint:unsafefix",
+    "mcp:build": "bun run --filter '@terreno/mcp-server' build",
+    "mcp:dev": "bun run --filter '@terreno/mcp-server' dev",
+    "mcp:lint": "bun run --filter '@terreno/mcp-server' lint",
+    "mcp:start": "bun run --filter '@terreno/mcp-server' start",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
@@ -89,12 +93,16 @@
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
     "ui:web": "bun run --filter '@terreno/ui' web"
   },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:"
+  },
   "version": "1.0.0",
   "workspaces": [
     "api",
     "demo",
     "example-backend",
     "example-frontend",
+    "mcp-server",
     "rtk",
     "ui"
   ]
