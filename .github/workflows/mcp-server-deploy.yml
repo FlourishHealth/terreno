@@ -77,10 +77,11 @@ jobs:
         run: bun run compile
         working-directory: .
 
-      - name: Install production dependencies only
+      - name: Build MCP server executable
         run: |
-          rm -rf node_modules
-          bun install --production --frozen-lockfile
+          mkdir -p dist/docs
+          cp -r src/docs/* dist/docs/
+          bun build --compile src/index.ts --outfile dist/terreno-mcp
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -97,19 +98,18 @@ jobs:
         run: |
           gcloud auth configure-docker gcr.io --quiet
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image locally
+        run: |
+          docker build \
+            --file mcp-server/Dockerfile \
+            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:${{ github.sha }} \
+            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:latest \
+            ..
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: ./mcp-server
-          push: true
-          tags: |
-            gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:${{ github.sha }}
-            gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Push Docker image
+        run: |
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:${{ github.sha }}
+          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:latest
 
       - name: Deploy to Cloud Run
         id: deploy
