@@ -99,12 +99,13 @@ jobs:
           gcloud auth configure-docker gcr.io --quiet
 
       - name: Build Docker image locally
+        working-directory: .
         run: |
           docker build \
             --file mcp-server/Dockerfile \
             --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:${{ github.sha }} \
             --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_MCP_SERVICE_NAME }}:latest \
-            ..
+            .
 
       - name: Push Docker image
         run: |
