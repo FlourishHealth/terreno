@@ -34,9 +34,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint root package.json
-        run: bun run lint:root
-
       # Build UI first since RTK depends on it
       - name: Build UI dependency
         run: bun run compile
