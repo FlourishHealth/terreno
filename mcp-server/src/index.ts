@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {createMcpExpressApp} from "@modelcontextprotocol/sdk/server/express.js";
+import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
@@ -121,12 +121,12 @@ const handleMcpRequest = async (req: McpRequest, res: McpResponse): Promise<void
     logger.error("Error handling MCP request:", error);
     if (!res.headersSent) {
       res.status(500).json({
-        jsonrpc: "2.0",
         error: {
           code: -32603,
           message: "Internal server error",
         },
         id: null,
+        jsonrpc: "2.0",
       });
     }
     return;
@@ -138,17 +138,14 @@ const handleMcpRequest = async (req: McpRequest, res: McpResponse): Promise<void
   });
 };
 
-const handleUnsupportedMethod = async (
-  _req: McpRequest,
-  res: McpResponse
-): Promise<void> => {
+const handleUnsupportedMethod = async (_req: McpRequest, res: McpResponse): Promise<void> => {
   res.status(405).json({
-    jsonrpc: "2.0",
     error: {
       code: -32000,
       message: "Method not allowed.",
     },
     id: null,
+    jsonrpc: "2.0",
   });
 };
 
