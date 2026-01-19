@@ -52,6 +52,7 @@ jobs:
     name: Build Docker Image
     runs-on: ubuntu-latest
     needs: test
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v6
 
@@ -60,10 +61,15 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
+      - name: Install workspace dependencies
         run: bun install --frozen-lockfile
+        working-directory: .
 
-      - name: Build TypeScript
+      - name: Build API
+        run: bun run compile
+        working-directory: api
+
+      - name: Build MCP server
         run: bun run compile
 
       - name: Install production dependencies only
