@@ -159,6 +159,10 @@ const handleUnsupportedMethod = async (_req: McpRequest, res: McpResponse): Prom
 };
 
 const main = async (): Promise<void> => {
+  const {setupLogging} = (await import("@terreno/api")) as {
+    setupLogging?: (options?: {disableConsoleColors?: boolean}) => void;
+  };
+  setupLogging?.({disableConsoleColors: process.env.NODE_ENV === "production"});
   const port = resolvePort();
   const host = resolveHost();
   const app = createMcpExpressApp({host});
@@ -166,6 +170,16 @@ const main = async (): Promise<void> => {
   app.post("/mcp", handleMcpRequest);
   app.get("/mcp", handleUnsupportedMethod);
   app.delete("/mcp", handleUnsupportedMethod);
+
+  app.post("/", handleMcpRequest);
+  app.get("/", (_req, res) => {
+    res.status(200).json({
+      status: "ok",
+      service: "terreno-mcp",
+      mcpEndpoint: "/mcp",
+    });
+  });
+  app.delete("/", handleUnsupportedMethod);
 
   app.listen(port, host, (error?: Error): void => {
     if (error) {
