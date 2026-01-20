@@ -1,0 +1,42 @@
+{
+  "name": "@terreno/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "terreno-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc && cp -r src/docs dist/",
+    "dev": "bun --watch src/index.ts",
+    "start": "bun dist/index.js",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "lint:unsafefix": "biome check --fix --unsafe src/",
+    "compile": "tsc && cp -r src/docs dist/",
+    "test": "bun test",
+    "test:ci": "bun test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@terreno/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "^1.2.4",
+    "@types/node": "^22.10.0",
+    "typescript": "catalog:"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mcp",
+    "terreno",
+    "model-context-protocol",
+    "ai",
+    "code-generation"
+  ],
+  "license": "MIT"
+}

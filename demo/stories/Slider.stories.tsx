@@ -1,5 +1,32 @@
-import {Box, Slider} from "@terreno/ui";
+import {Box, Heading, Slider, Text} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
+
+export const SliderBoxShadowDemo = (): ReactElement => {
+  const [value, setValue] = useState<number>(50);
+  return (
+    <Box gap={4}>
+      <Heading size="sm">Slider with Box Shadow</Heading>
+      <Text color="secondaryDark" size="sm">
+        The slider thumb has a box shadow applied using the boxShadow CSS property: "0px 2px 4px
+        rgba(0, 0, 0, 0.25)"
+      </Text>
+      <Box color="secondaryLight" padding={4} rounding="lg">
+        <Slider
+          maximumValue={100}
+          minimumValue={0}
+          onChange={setValue}
+          showSelection
+          step={1}
+          title="Drag to see the shadow"
+          value={value}
+        />
+      </Box>
+      <Text color="secondaryDark" size="sm">
+        The shadow creates depth and visual feedback when interacting with the slider thumb.
+      </Text>
+    </Box>
+  );
+};
 
 export const SliderDemo = (): ReactElement => {
   const [value, setValue] = useState<number>(0.5);

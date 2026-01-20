@@ -1,20 +1,25 @@
 {
-  "root": false,
   "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
   "extends": ["../biome.jsonc"],
   "files": {
     "includes": [
       "package.json",
-      "src/**/*.ts",
-      "src/**/*.tsx",
+      "**/*.ts",
+      "**/*.tsx",
       "!!**/node_modules",
       "!!node_modules",
       "!!**/dist",
       "!!dist",
       "!!**/build",
       "!!build",
+      "!!**/.expo",
+      "!!.expo",
+      "!!**/.next",
+      "!!.next",
       "!!**/coverage",
       "!!coverage",
+      "!!**/generated",
+      "!!generated",
       "!!**/.git"
     ]
   },
@@ -25,5 +30,6 @@
         "noImplicitAnyLet": "error"
       }
     }
-  }
+  },
+  "root": true
 }

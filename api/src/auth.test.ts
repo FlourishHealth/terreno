@@ -548,3 +548,75 @@ describe("generateTokens", () => {
     expect(refreshToken).toBeDefined();
   });
 });
+
+describe("generateTokens edge cases", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("returns null tokens when user is missing", async () => {
+    const result = await generateTokens(null);
+    expect(result.token).toBeNull();
+    expect(result.refreshToken).toBeNull();
+  });
+
+  it("returns null tokens when user has no _id", async () => {
+    const result = await generateTokens({email: "test@test.com"});
+    expect(result.token).toBeNull();
+    expect(result.refreshToken).toBeNull();
+  });
+
+  it("includes custom payload from generateJWTPayload option", async () => {
+    const jwtLib = await import("jsonwebtoken");
+
+    const user = {_id: "user-123"};
+    const result = await generateTokens(user, {
+      generateJWTPayload: (u) => ({customField: "customValue", userId: u._id}),
+    });
+
+    expect(result.token).toBeDefined();
+    const decoded = jwtLib.decode(result.token as string) as any;
+    expect(decoded.customField).toBe("customValue");
+    expect(decoded.id).toBe("user-123");
+  });
+
+  it("uses custom token expiration from generateTokenExpiration option", async () => {
+    const jwtLib = await import("jsonwebtoken");
+
+    const user = {_id: "user-123"};
+    const result = await generateTokens(user, {
+      generateTokenExpiration: () => "1h",
+    });
+
+    expect(result.token).toBeDefined();
+    const decoded = jwtLib.decode(result.token as string) as any;
+    // Check that exp is roughly 1 hour from now (within 5 seconds tolerance)
+    const expectedExp = Math.floor(Date.now() / 1000) + 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 5);
+    expect(decoded.exp).toBeLessThan(expectedExp + 5);
+  });
+
+  it("uses custom refresh token expiration from generateRefreshTokenExpiration option", async () => {
+    const jwtLib = await import("jsonwebtoken");
+
+    const user = {_id: "user-123"};
+    const result = await generateTokens(user, {
+      generateRefreshTokenExpiration: () => "7d",
+    });
+
+    expect(result.refreshToken).toBeDefined();
+    const decoded = jwtLib.decode(result.refreshToken as string) as any;
+    // Check that exp is roughly 7 days from now
+    const expectedExp = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
+    expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+});

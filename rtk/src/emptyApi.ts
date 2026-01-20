@@ -155,7 +155,7 @@ export const refreshAuthToken = async (): Promise<void> => {
   }
 };
 
-const getBaseQuery = (
+export const getBaseQuery = (
   args: string | FetchArgs,
   api: BaseQueryApi,
   extraOptions: unknown,
@@ -199,7 +199,7 @@ const getBaseQuery = (
   })(args, api, extraOptions as any);
 };
 
-const staggeredBaseQuery = retry(
+export const staggeredBaseQuery = retry(
   async (args: string | FetchArgs, api, extraOptions) => {
     // wait until the mutex is available without locking it
     await mutex.waitForUnlock();

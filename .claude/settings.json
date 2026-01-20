@@ -1,0 +1,25 @@
+{
+  "alwaysThinkingEnabled": false,
+  "permissiveMode": true,
+  "allowedCommands": [
+    "git",
+    "npm",
+    "pytest",
+    "bun",
+    "gh",
+    "wc",
+    "grep"
+  ],
+  "permissions": {
+    "allowedTools": [
+      "Read",
+      "Write",
+      "Bash(git *)",
+      "Bash(npm *)",
+      "Bash(bun *)",
+      "Bash(gh *)",
+      "Bash(wc *)",
+      "Bash(grep *)"
+    ]
+  }
+}

@@ -14,7 +14,7 @@ updates:
   - package-ecosystem: "bun"
     directories:
       - "/api"
-      - "/backend-example"
+      - "/example-backend"
     schedule:
       interval: "monthly"
     ignore:
@@ -33,7 +33,7 @@ updates:
     directories: 
       - "/demo"
       - "/ui"
-      - "/frontend-example"
+      - "/example-frontend"
       - "/rtk"
     schedule:
       interval: "monthly"

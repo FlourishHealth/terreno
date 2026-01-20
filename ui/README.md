@@ -56,7 +56,7 @@ differentiating based on screen size and format.
 Check out the demo app for easily seeing how the UIs work in iOS/Android/Web 
 in apps/demo.
 
-You can see the [web demo here](https://terreno-ui.netlify.app)
+You can see the [web demo here](https://terreno-demo.netlify.app)
 
 # Installation
 
