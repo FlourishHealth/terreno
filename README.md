@@ -132,3 +132,57 @@ The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
 
+## MCP Server
+
+Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
+
+### Adding the MCP Server to Claude Code
+
+Add the following to your Claude Code MCP settings file (`~/.claude/claude_desktop_config.json` or `.claude/settings.json` in your project):
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+### Adding the MCP Server to Claude Desktop
+
+Add the following to your Claude Desktop configuration file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+### Adding the MCP Server to Cursor
+
+Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your project or global settings):
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+After adding the configuration, restart your AI assistant to connect to the MCP server.
+
