@@ -8,6 +8,8 @@
  * easily enabled in development/staging and disabled in production for
  * performance if needed.
  *
+ * @module openApiValidator
+ *
  * @packageDocumentation
  *
  * @example
