@@ -7,6 +7,7 @@ export * from "./middleware";
 export * from "./notifiers";
 export * from "./openApiBuilder";
 export * from "./openApiEtag";
+export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";

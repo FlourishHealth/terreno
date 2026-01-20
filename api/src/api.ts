@@ -18,6 +18,11 @@ import {
   listOpenApiMiddleware,
   patchOpenApiMiddleware,
 } from "./openApi";
+import {
+  getOpenApiValidatorConfig,
+  type ModelRouterValidationOptions,
+  validateModelRequestBody,
+} from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
 import {
@@ -263,6 +268,19 @@ export interface ModelRouterOptions<T> {
    * that you want to be documented and typed in the SDK.
    */
   openApiExtraModelProperties?: any;
+  /**
+   * Enable runtime validation of request bodies against the OpenAPI schema.
+   * When enabled, requests that don't match the documented schema will return 400 errors.
+   *
+   * Can be set to:
+   * - `true`: Enable validation for create and update operations
+   * - `false`: Disable validation (default)
+   * - Object with `validateCreate` and `validateUpdate` booleans for fine-grained control
+   *
+   * Note: Global validation can be enabled via `configureOpenApiValidator()`.
+   * This option overrides the global setting for this specific router.
+   */
+  validation?: boolean | ModelRouterValidationOptions;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -309,6 +327,36 @@ function checkQueryParamAllowed(
 //   return result;
 // }
 
+// Helper to determine if validation should be enabled for a specific operation
+function shouldValidate(options: ModelRouterOptions<any>, operation: "create" | "update"): boolean {
+  // Check route-specific validation option first
+  if (options.validation !== undefined) {
+    if (typeof options.validation === "boolean") {
+      return options.validation;
+    }
+    if (operation === "create") {
+      return options.validation.validateCreate ?? true;
+    }
+    return options.validation.validateUpdate ?? true;
+  }
+
+  // Fall back to global config
+  return getOpenApiValidatorConfig().validateRequests ?? false;
+}
+
+// Get validation middleware if validation is enabled
+function getValidationMiddleware<T>(
+  model: Model<T>,
+  options: ModelRouterOptions<T>,
+  operation: "create" | "update"
+): ((req: Request, res: Response, next: NextFunction) => void) | null {
+  if (!shouldValidate(options, operation)) {
+    return null;
+  }
+
+  return validateModelRequestBody(model, {enabled: true});
+}
+
 /**
  * Create a set of CRUD routes given a Mongoose model and configuration options.
  *
@@ -325,12 +373,17 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
 
   const responseHandler = options.responseHandler ?? defaultResponseHandler;
 
+  // Get validation middleware for create and update operations
+  const createValidation = getValidationMiddleware(model, options, "create");
+  const updateValidation = getValidationMiddleware(model, options, "update");
+
   router.post(
     "/",
     [
       authenticateMiddleware(options.allowAnonymous),
       createOpenApiMiddleware(model, options),
       permissionMiddleware(model, options),
+      ...(createValidation ? [createValidation] : []),
     ],
     asyncHandler(async (req: Request, res: Response) => {
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
@@ -625,6 +678,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
       authenticateMiddleware(options.allowAnonymous),
       patchOpenApiMiddleware(model, options),
       permissionMiddleware(model, options),
+      ...(updateValidation ? [updateValidation] : []),
     ],
     asyncHandler(async (req: Request, res: Response) => {
       let doc: mongoose.Document & T = (req as any).obj;
@@ -984,9 +1038,116 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
   return router;
 }
 
-// Since express doesn't handle async routes well, wrap them with this function.
-export const asyncHandler = (fn: any) => (req: Request, res: Response, next: NextFunction) => {
-  return Promise.resolve(fn(req, res, next)).catch(next);
+/**
+ * Options for the asyncHandler function.
+ */
+export interface AsyncHandlerOptions {
+  /**
+   * Schema for validating request body.
+   * When provided and validation is enabled, the request body will be validated
+   * against this schema before the handler runs.
+   */
+  bodySchema?: Record<string, import("./openApiBuilder").OpenApiSchemaProperty>;
+
+  /**
+   * Schema for validating query parameters.
+   * When provided and validation is enabled, query params will be validated
+   * against this schema before the handler runs.
+   */
+  querySchema?: Record<string, import("./openApiBuilder").OpenApiSchemaProperty>;
+
+  /**
+   * Override global validation setting for this handler.
+   * - `true`: Enable validation regardless of global setting
+   * - `false`: Disable validation regardless of global setting
+   * - `undefined`: Use global setting
+   */
+  validate?: boolean;
+}
+
+/**
+ * Wraps async route handlers to properly catch and forward errors.
+ *
+ * Since Express doesn't handle async routes well, wrap them with this function.
+ * Optionally supports integrated request validation.
+ *
+ * @param fn - The async route handler function
+ * @param options - Optional configuration for validation
+ * @returns Express middleware function
+ *
+ * @example
+ * ```typescript
+ * // Basic usage without validation
+ * router.post("/users", asyncHandler(async (req, res) => {
+ *   // handler code
+ * }));
+ *
+ * // With integrated validation
+ * router.post("/users", asyncHandler(async (req, res) => {
+ *   // handler code - body is already validated
+ * }, {
+ *   bodySchema: {
+ *     name: {type: "string", required: true},
+ *     email: {type: "string", format: "email", required: true},
+ *   },
+ *   validate: true,
+ * }));
+ * ```
+ */
+export const asyncHandler = (fn: any, options?: AsyncHandlerOptions) => {
+  // If no validation options, return simple handler
+  if (!options?.bodySchema && !options?.querySchema) {
+    return (req: Request, res: Response, next: NextFunction) => {
+      return Promise.resolve(fn(req, res, next)).catch(next);
+    };
+  }
+
+  // Import validation functions dynamically to avoid circular deps at module load
+  const {
+    validateRequestBody,
+    validateQueryParams,
+    getOpenApiValidatorConfig,
+  } = require("./openApiValidator");
+
+  // Build validation middleware
+  const validators: ((req: Request, res: Response, next: NextFunction) => void)[] = [];
+
+  // Determine if validation should be enabled
+  const shouldValidate = options.validate ?? getOpenApiValidatorConfig().validateRequests ?? false;
+
+  if (shouldValidate) {
+    if (options.bodySchema) {
+      validators.push(validateRequestBody(options.bodySchema, {enabled: true}));
+    }
+    if (options.querySchema) {
+      validators.push(validateQueryParams(options.querySchema, {enabled: true}));
+    }
+  }
+
+  return (req: Request, res: Response, next: NextFunction) => {
+    // Run validators sequentially, then the handler
+    const runValidators = (index: number): void => {
+      if (index >= validators.length) {
+        // All validators passed, run the actual handler
+        Promise.resolve(fn(req, res, next)).catch(next);
+        return;
+      }
+
+      try {
+        validators[index](req, res, (err?: any) => {
+          if (err) {
+            next(err);
+            return;
+          }
+          runValidators(index + 1);
+        });
+      } catch (err) {
+        next(err);
+      }
+    };
+
+    runValidators(0);
+  };
 };
 
 // For backwards compatibility with the old names.
