@@ -2,6 +2,8 @@ name: MCP Server CI
 
 on:
   push:
+    branches:
+      - main
     paths:
       - "mcp-server/**"
       - ".github/workflows/mcp-server-ci.yml"
