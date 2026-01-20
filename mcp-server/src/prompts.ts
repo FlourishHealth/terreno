@@ -1,12 +1,32 @@
-import {readFileSync} from "node:fs";
+import {existsSync, readFileSync} from "node:fs";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const getDocsRoot = (): string => {
+  if (process.env.TERRENO_MCP_DOCS_DIR) {
+    return process.env.TERRENO_MCP_DOCS_DIR;
+  }
+
+  const bundledDocsRoot = join(__dirname, "docs");
+  if (existsSync(bundledDocsRoot)) {
+    return bundledDocsRoot;
+  }
+
+  if (process.execPath) {
+    const execDocsRoot = join(dirname(process.execPath), "docs");
+    if (existsSync(execDocsRoot)) {
+      return execDocsRoot;
+    }
+  }
+
+  return join(__dirname, "docs");
+};
+
 const loadMarkdown = (filename: string): string => {
-  const filePath = join(__dirname, "docs", "prompts", filename);
+  const filePath = join(getDocsRoot(), "prompts", filename);
   return readFileSync(filePath, "utf-8");
 };
 
