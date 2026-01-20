@@ -25,6 +25,18 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
       - name: Install UI dependencies
         run: bun install --frozen-lockfile
         working-directory: ui
@@ -65,6 +77,18 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache2
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
 
       - name: Install root dependencies (workspace)
         run: bun install --frozen-lockfile

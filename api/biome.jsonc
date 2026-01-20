@@ -1,5 +1,5 @@
 {
-  "root": false,
+  "root": true,
   "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
   "extends": ["../biome.jsonc"],
   "files": {
@@ -7,7 +7,6 @@
       "package.json",
       "src/**/*.ts",
       "src/**/*.tsx",
-      "!src/populate.ts",
       "!!src/populate.ts",
       "!!**/node_modules",
       "!!node_modules",

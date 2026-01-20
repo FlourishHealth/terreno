@@ -1,4 +1,4 @@
-# backend-example
+# example-backend
 
 Example Express backend using @terreno/api.
 
