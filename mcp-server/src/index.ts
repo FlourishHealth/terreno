@@ -174,9 +174,9 @@ const main = async (): Promise<void> => {
   app.post("/", handleMcpRequest);
   app.get("/", (_req, res) => {
     res.status(200).json({
-      status: "ok",
-      service: "terreno-mcp",
       mcpEndpoint: "/mcp",
+      service: "terreno-mcp",
+      status: "ok",
     });
   });
   app.delete("/", handleUnsupportedMethod);
