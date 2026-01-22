@@ -12,6 +12,13 @@ import qs from "qs";
 import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import {
+  addGitHubAuthRoutes,
+  type GitHubAuthOptions,
+  type GitHubUserModel,
+  isGitHubAuthEnabled,
+  setupGitHubAuth,
+} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -147,6 +154,8 @@ export interface AuthOptions {
   generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
 }
 
+export type {GitHubAuthOptions};
+
 interface InitializeRoutesOptions {
   corsOrigin?:
     | string
@@ -168,6 +177,8 @@ interface InitializeRoutesOptions {
   logRequests?: boolean;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  // GitHub OAuth configuration. When configured, enables /auth/github routes.
+  githubAuthOptions?: GitHubAuthOptions;
 }
 
 function initializeRoutes(
@@ -194,6 +205,12 @@ function initializeRoutes(
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
   addAuthRoutes(app, UserModel as any, options?.authOptions);
+
+  // Setup GitHub OAuth if configured
+  if (isGitHubAuthEnabled(options.githubAuthOptions)) {
+    setupGitHubAuth(app, UserModel as unknown as GitHubUserModel, options.githubAuthOptions);
+    addGitHubAuthRoutes(app, options.githubAuthOptions, options.authOptions);
+  }
 
   setupAuth(app as any, UserModel as any);
 
@@ -264,6 +281,11 @@ export interface SetupServerOptions {
   addRoutes: AddRoutes;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  /**
+   * GitHub OAuth configuration. When provided with clientId and clientSecret,
+   * enables GitHub OAuth routes at /auth/github and /auth/github/callback.
+   */
+  githubAuthOptions?: GitHubAuthOptions;
   skipListen?: boolean;
   corsOrigin?:
     | string
@@ -295,6 +317,7 @@ export function setupServer(options: SetupServerOptions) {
       addMiddleware: options.addMiddleware,
       authOptions: options.authOptions,
       corsOrigin: options.corsOrigin,
+      githubAuthOptions: options.githubAuthOptions,
     });
   } catch (error: any) {
     logger.error(`Error initializing routes: ${error.stack}`);

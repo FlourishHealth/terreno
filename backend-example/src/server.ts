@@ -47,6 +47,16 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
     const app = setupServer({
       addMiddleware,
       addRoutes,
+      // GitHub OAuth configuration - set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET env vars to enable
+      // Optionally set GITHUB_CALLBACK_URL, GITHUB_SUCCESS_REDIRECT, GITHUB_FAILURE_REDIRECT
+      githubAuthOptions: {
+        // Configuration is read from environment variables by default:
+        // - GITHUB_CLIENT_ID
+        // - GITHUB_CLIENT_SECRET
+        // - GITHUB_CALLBACK_URL (optional, defaults to /auth/github/callback)
+        // - GITHUB_SUCCESS_REDIRECT (optional, for redirecting with tokens after auth)
+        // - GITHUB_FAILURE_REDIRECT (optional, defaults to /auth/login)
+      },
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
