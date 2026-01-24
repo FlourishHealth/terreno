@@ -96,10 +96,13 @@
     "ui:dev": "bun run --filter '@terreno/ui' dev",
     "ui:lint": "bun run --filter '@terreno/ui' lint",
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
+    "rules": "bunx rulesync generate",
+    "rules:check": "bunx rulesync generate && git diff --exit-code",
     "ui:web": "bun run --filter '@terreno/ui' web"
   },
   "devDependencies": {
-    "@biomejs/biome": "catalog:"
+    "@biomejs/biome": "catalog:",
+    "rulesync": "^0.29.0"
   },
   "version": "1.0.0",
   "workspaces": [
