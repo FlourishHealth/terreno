@@ -1,0 +1,332 @@
+import type express from "express";
+import passport from "passport";
+import {Strategy as GitHubStrategy, type Profile} from "passport-github2";
+import {generateTokens, type UserModel} from "./auth";
+import {APIError} from "./errors";
+import type {AuthOptions} from "./expressServer";
+import {logger} from "./logger";
+
+export interface GitHubAuthOptions {
+  /** GitHub OAuth Client ID */
+  clientId: string;
+  /** GitHub OAuth Client Secret */
+  clientSecret: string;
+  /** Callback URL for GitHub OAuth (e.g., https://yourapp.com/auth/github/callback) */
+  callbackURL: string;
+  /** OAuth scopes to request from GitHub. Defaults to ["user:email"] */
+  scope?: string[];
+  /**
+   * Whether to allow linking GitHub to existing accounts.
+   * If true, authenticated users can link their GitHub account.
+   * Defaults to true.
+   */
+  allowAccountLinking?: boolean;
+  /**
+   * Custom function to handle user creation or lookup from GitHub profile.
+   * If not provided, a default implementation will be used.
+   */
+  findOrCreateUser?: (
+    profile: Profile,
+    accessToken: string,
+    refreshToken: string,
+    existingUser?: any
+  ) => Promise<any>;
+}
+
+/** Fields added to user documents for GitHub authentication */
+export interface GitHubUserFields {
+  /** GitHub user ID */
+  githubId?: string;
+  /** GitHub username */
+  githubUsername?: string;
+  /** GitHub profile URL */
+  githubProfileUrl?: string;
+  /** GitHub avatar URL */
+  githubAvatarUrl?: string;
+}
+
+/**
+ * Plugin to add GitHub authentication fields to a user schema.
+ * Apply this plugin to your User schema if you want to enable GitHub auth.
+ *
+ * @example
+ * ```typescript
+ * import {githubUserPlugin} from "@terreno/api";
+ *
+ * userSchema.plugin(githubUserPlugin);
+ * ```
+ */
+export function githubUserPlugin(schema: any) {
+  schema.add({
+    githubAvatarUrl: {type: String},
+    githubId: {index: true, sparse: true, type: String, unique: true},
+    githubProfileUrl: {type: String},
+    githubUsername: {type: String},
+  });
+}
+
+/**
+ * Sets up GitHub OAuth authentication strategy.
+ * Call this after setupAuth() in your server initialization.
+ */
+export function setupGitHubAuth(
+  _app: express.Application,
+  userModel: UserModel,
+  githubOptions: GitHubAuthOptions
+) {
+  const scope = githubOptions.scope ?? ["user:email"];
+
+  passport.use(
+    "github",
+    new GitHubStrategy(
+      {
+        callbackURL: githubOptions.callbackURL,
+        clientID: githubOptions.clientId,
+        clientSecret: githubOptions.clientSecret,
+        passReqToCallback: true,
+        scope,
+      },
+      async (
+        req: express.Request,
+        accessToken: string,
+        refreshToken: string,
+        profile: Profile,
+        done: (error: any, user?: any) => void
+      ) => {
+        try {
+          const existingUser = req.user;
+
+          // If custom handler provided, use it
+          if (githubOptions.findOrCreateUser) {
+            const user = await githubOptions.findOrCreateUser(
+              profile,
+              accessToken,
+              refreshToken,
+              existingUser
+            );
+            return done(null, user);
+          }
+
+          // Default implementation
+          const githubId = profile.id;
+
+          // Check if user with this GitHub ID already exists
+          const existingGitHubUser = await userModel.findOne({githubId} as any);
+
+          // Case 1: User is authenticated and wants to link GitHub account
+          if (existingUser) {
+            if (!githubOptions.allowAccountLinking) {
+              return done(new APIError({status: 400, title: "Account linking is disabled"}));
+            }
+
+            if (
+              existingGitHubUser &&
+              existingGitHubUser._id.toString() !== existingUser._id.toString()
+            ) {
+              return done(
+                new APIError({
+                  status: 400,
+                  title: "This GitHub account is already linked to another user",
+                })
+              );
+            }
+
+            // Link GitHub to existing user
+            const user = await userModel.findById(existingUser._id);
+            if (user) {
+              (user as any).githubId = githubId;
+              (user as any).githubUsername = profile.username;
+              (user as any).githubProfileUrl = profile.profileUrl;
+              (user as any).githubAvatarUrl = profile.photos?.[0]?.value;
+              await user.save();
+              return done(null, user);
+            }
+            return done(new APIError({status: 404, title: "User not found"}));
+          }
+
+          // Case 2: User with this GitHub ID exists - log them in
+          if (existingGitHubUser) {
+            return done(null, existingGitHubUser);
+          }
+
+          // Case 3: Create new user with GitHub credentials
+          const email = profile.emails?.[0]?.value;
+
+          // Check if user with this email already exists
+          if (email) {
+            const existingEmailUser = await userModel.findOne({email} as any);
+            if (existingEmailUser) {
+              // If account linking is allowed, link GitHub to existing email account
+              if (githubOptions.allowAccountLinking !== false) {
+                (existingEmailUser as any).githubId = githubId;
+                (existingEmailUser as any).githubUsername = profile.username;
+                (existingEmailUser as any).githubProfileUrl = profile.profileUrl;
+                (existingEmailUser as any).githubAvatarUrl = profile.photos?.[0]?.value;
+                await existingEmailUser.save();
+                return done(null, existingEmailUser);
+              }
+              return done(
+                new APIError({
+                  status: 400,
+                  title:
+                    "An account with this email already exists. Please log in and link your GitHub account.",
+                })
+              );
+            }
+          }
+
+          // Create new user
+          const newUser = new userModel({
+            admin: false,
+            email,
+            githubAvatarUrl: profile.photos?.[0]?.value,
+            githubId,
+            githubProfileUrl: profile.profileUrl,
+            githubUsername: profile.username,
+          } as any);
+
+          await newUser.save();
+          return done(null, newUser);
+        } catch (error) {
+          logger.error(`GitHub auth error: ${error}`);
+          return done(error);
+        }
+      }
+    ) as passport.Strategy
+  );
+}
+
+/**
+ * Adds GitHub OAuth routes to the Express application.
+ *
+ * Routes added:
+ * - GET /auth/github - Initiates GitHub OAuth flow
+ * - GET /auth/github/callback - Handles GitHub OAuth callback
+ * - POST /auth/github/link - Links GitHub account to authenticated user (requires JWT auth)
+ * - DELETE /auth/github/unlink - Unlinks GitHub account from authenticated user (requires JWT auth)
+ */
+export function addGitHubAuthRoutes(
+  app: express.Application,
+  userModel: UserModel,
+  githubOptions: GitHubAuthOptions,
+  authOptions?: AuthOptions
+): void {
+  const router = require("express").Router();
+
+  // Initiate GitHub OAuth flow
+  router.get(
+    "/github",
+    (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      // Store the return URL in session or query for redirect after auth
+      const returnTo = req.query.returnTo as string | undefined;
+      if (returnTo) {
+        (req as any).session = (req as any).session || {};
+        (req as any).session.returnTo = returnTo;
+      }
+      next();
+    },
+    passport.authenticate("github", {session: false})
+  );
+
+  // GitHub OAuth callback
+  router.get(
+    "/github/callback",
+    passport.authenticate("github", {
+      failureRedirect: "/auth/github/failure",
+      session: false,
+    }),
+    async (req: express.Request, res: express.Response) => {
+      try {
+        const tokens = await generateTokens(req.user, authOptions);
+        const returnTo = (req as any).session?.returnTo;
+
+        // If there's a return URL, redirect with tokens as query params
+        if (returnTo) {
+          const url = new URL(returnTo);
+          url.searchParams.set("token", tokens.token || "");
+          if (tokens.refreshToken) {
+            url.searchParams.set("refreshToken", tokens.refreshToken);
+          }
+          url.searchParams.set("userId", (req.user as any)?._id?.toString() || "");
+          return res.redirect(url.toString());
+        }
+
+        // Otherwise return JSON response
+        return res.json({
+          data: {
+            refreshToken: tokens.refreshToken,
+            token: tokens.token,
+            userId: (req.user as any)?._id,
+          },
+        });
+      } catch (error) {
+        logger.error(`GitHub callback error: ${error}`);
+        return res.status(500).json({message: "Authentication failed"});
+      }
+    }
+  );
+
+  // GitHub auth failure handler
+  router.get("/github/failure", (_req: express.Request, res: express.Response) => {
+    return res.status(401).json({message: "GitHub authentication failed"});
+  });
+
+  // Link GitHub to existing authenticated user
+  if (githubOptions.allowAccountLinking !== false) {
+    router.get(
+      "/github/link",
+      (req: express.Request, res: express.Response, next: express.NextFunction): void => {
+        // Require JWT authentication for linking
+        passport.authenticate("jwt", {session: false}, (err: any, user: any) => {
+          if (err || !user) {
+            res.status(401).json({message: "Authentication required to link GitHub account"});
+            return;
+          }
+          req.user = user;
+          next();
+        })(req, res, next);
+      },
+      passport.authenticate("github", {session: false})
+    );
+
+    // Unlink GitHub from user account
+    router.delete(
+      "/github/unlink",
+      passport.authenticate("jwt", {session: false}),
+      async (req: express.Request, res: express.Response) => {
+        if (!req.user) {
+          return res.status(401).json({message: "Authentication required"});
+        }
+
+        try {
+          const user = await userModel.findById((req.user as any)._id);
+          if (!user) {
+            return res.status(404).json({message: "User not found"});
+          }
+
+          // Check if user has other authentication methods before unlinking
+          const hasPassword = !!(user as any).hash || !!(user as any).salt;
+          if (!hasPassword) {
+            return res.status(400).json({
+              message:
+                "Cannot unlink GitHub account without another authentication method. Set a password first.",
+            });
+          }
+
+          (user as any).githubId = undefined;
+          (user as any).githubUsername = undefined;
+          (user as any).githubProfileUrl = undefined;
+          (user as any).githubAvatarUrl = undefined;
+          await user.save();
+
+          return res.json({data: {message: "GitHub account unlinked successfully"}});
+        } catch (error) {
+          logger.error(`GitHub unlink error: ${error}`);
+          return res.status(500).json({message: "Failed to unlink GitHub account"});
+        }
+      }
+    );
+  }
+
+  app.use("/auth", router);
+}

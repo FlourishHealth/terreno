@@ -2,6 +2,7 @@ export * from "./api";
 export * from "./auth";
 export * from "./errors";
 export * from "./expressServer";
+export * from "./githubAuth";
 export * from "./logger";
 export * from "./middleware";
 export * from "./notifiers";
