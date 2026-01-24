@@ -6,6 +6,7 @@ import {APIError} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
 
+/** Options for configuring GitHub OAuth authentication */
 export interface GitHubAuthOptions {
   /** GitHub OAuth Client ID */
   clientId: string;
