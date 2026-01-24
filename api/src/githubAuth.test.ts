@@ -45,7 +45,9 @@ const GitHubTestUserModel =
 // Connect to database before tests
 const connectDb = async () => {
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000").catch(logger.catch);
+    await mongoose
+      .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
+      .catch(logger.catch);
   }
   process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
   process.env.TOKEN_SECRET = "secret";
