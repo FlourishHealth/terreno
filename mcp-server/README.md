@@ -169,6 +169,19 @@ Configure these secrets in your GitHub repository:
      --role="roles/artifactregistry.writer"
    ```
 
+## How Tools Work
+
+**Important**: MCP tools return generated code as text content. They do not create files directly. When using these tools with an AI assistant (like Claude in Cursor), the assistant should:
+
+1. Call the appropriate tool to generate code
+2. Take the returned code text and write it to the appropriate file in your project
+3. Follow up with any necessary steps (registering routes, regenerating SDK, etc.)
+
+This design allows the AI assistant to:
+- Review and adapt the generated code to your project structure
+- Make any necessary modifications before writing
+- Handle file paths based on your project's conventions
+
 ## Example Tool Usage
 
 ### Generate a Model
@@ -188,6 +201,8 @@ Configure these secrets in your GitHub repository:
   }
 }
 ```
+
+The tool returns TypeScript code that should be written to `backend/src/models/product.ts` (or your project's model directory).
 
 ### Generate a Route
 
@@ -211,6 +226,8 @@ Configure these secrets in your GitHub repository:
 }
 ```
 
+The tool returns route configuration code that should be written to `backend/src/api/product.ts`, then exported from `backend/src/api/index.ts` and registered in your server setup.
+
 ### Generate a Screen
 
 ```json
@@ -224,6 +241,8 @@ Configure these secrets in your GitHub repository:
   }
 }
 ```
+
+The tool returns React Native screen code that should be written to `frontend/src/screens/ProductListScreen.tsx` (or your project's screen directory).
 
 ## Example Prompt Usage
 
