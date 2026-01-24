@@ -1,21 +1,13 @@
 {
-  "alwaysThinkingEnabled": false,
-  "permissiveMode": true,
-  "allowedCommands": [
-    "git",
-    "npm",
-    "pytest",
-    "bun",
-    "gh",
-    "wc",
-    "grep"
-  ],
+  "defaultMode": "acceptEdits",
   "permissions": {
-    "allowedTools": [
+    "allow": [
       "Read",
-      "Write",
+      "Write", 
+      "Edit",
       "Bash(git *)",
       "Bash(npm *)",
+      "Bash(pytest *)",
       "Bash(bun *)",
       "Bash(gh *)",
       "Bash(wc *)",
