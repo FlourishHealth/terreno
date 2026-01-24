@@ -9,6 +9,7 @@
       "Bash(npm *)",
       "Bash(pytest *)",
       "Bash(bun *)",
+      "Bash(PATH=* bun *)",
       "Bash(gh *)",
       "Bash(wc *)",
       "Bash(grep *)"
