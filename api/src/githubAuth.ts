@@ -300,12 +300,14 @@ export function addGitHubAuthRoutes(
         }
 
         try {
-          const user = await userModel.findById((req.user as any)._id);
+          // Explicitly select hash and salt fields which may be hidden by default
+          const user = await userModel.findById((req.user as any)._id).select("+hash +salt");
           if (!user) {
             return res.status(404).json({message: "User not found"});
           }
 
           // Check if user has other authentication methods before unlinking
+          // passport-local-mongoose stores password in hash and salt fields
           const hasPassword = !!(user as any).hash || !!(user as any).salt;
           if (!hasPassword) {
             return res.status(400).json({
