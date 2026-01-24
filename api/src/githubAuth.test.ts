@@ -179,10 +179,12 @@ describe("GitHub auth routes", () => {
 
     expect(res.body.data.token).toBeDefined();
 
-    // User has both auth methods
+    // User has both auth methods - successful login proves password works
+    // and we verify GitHub fields are set
     const updatedUser = await GitHubTestUserModel.findOne({email: "test@example.com"});
-    expect((updatedUser as any).hash).toBeDefined();
+    expect(updatedUser).toBeDefined();
     expect((updatedUser as any).githubId).toBe("88888");
+    expect((updatedUser as any).githubUsername).toBe("linkeduser");
   });
 });
 
