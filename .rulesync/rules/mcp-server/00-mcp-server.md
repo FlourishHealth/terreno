@@ -1,6 +1,6 @@
 ---
 localRoot: true
-targets: ["*"]
+targets: ["claudecode"]
 description: "MCP server package guidelines"
 globs: ["**/*"]
 ---

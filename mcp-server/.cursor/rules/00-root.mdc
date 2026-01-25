@@ -1,3 +1,8 @@
+---
+description: Terreno monorepo root guidelines
+globs: **/*
+---
+
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.

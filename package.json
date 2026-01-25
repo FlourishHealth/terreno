@@ -102,7 +102,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "rulesync": "^0.29.0"
+    "rulesync": "^5.9.0"
   },
   "version": "1.0.0",
   "workspaces": [

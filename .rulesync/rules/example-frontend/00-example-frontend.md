@@ -1,6 +1,6 @@
 ---
 localRoot: true
-targets: ["*"]
+targets: ["claudecode"]
 description: "example-frontend package guidelines"
 globs: ["**/*"]
 ---

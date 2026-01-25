@@ -1,6 +1,6 @@
 ---
 localRoot: true
-targets: ["*"]
+targets: ["claudecode"]
 description: "terreno-demo package guidelines"
 globs: ["**/*"]
 ---

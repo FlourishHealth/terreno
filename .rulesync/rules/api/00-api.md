@@ -1,6 +1,6 @@
 ---
 localRoot: true
-targets: ["*"]
+targets: ["claudecode"]
 description: "@terreno/api package guidelines"
 globs: ["**/*"]
 ---
