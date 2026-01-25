@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
+  "targets": ["cursor", "windsurf", "claudecode", "copilot"],
+  "features": ["rules"],
+  "baseDirs": [".", "api", "ui", "rtk", "demo", "example-frontend", "example-backend", "mcp-server"],
+  "delete": true,
+  "verbose": false
+}
