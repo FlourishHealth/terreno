@@ -52,8 +52,7 @@ describe("Field", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
-  // Note: BooleanField uses Animated API which is not fully mocked in tests
-  it.skip("renders boolean field", () => {
+  it("renders boolean field", () => {
     const handleChange = mock((value: boolean) => {});
     const {toJSON} = renderWithTheme(
       <Field label="Active" onChange={handleChange} type="boolean" value={false} />

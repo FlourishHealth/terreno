@@ -3,8 +3,8 @@ import {describe, expect, it} from "bun:test";
 import {RNPickerSelect} from "./PickerSelect";
 
 describe("PickerSelect", () => {
-  // PickerSelect uses @react-native-picker/picker which doesn't work in the bun test environment
-  // TypeError: undefined is not an object (evaluating 'item.key')
+  // PickerSelect uses @react-native-picker/picker which has internal issues
+  // with the test renderer (TypeError: undefined is not an object evaluating 'item.key')
   it.skip("renders correctly (skipped - Picker component not supported in test environment)", () => {
     expect(RNPickerSelect).toBeDefined();
   });
