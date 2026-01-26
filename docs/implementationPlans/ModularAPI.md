@@ -734,101 +734,32 @@ const expressApp = app.build();  // Get Express app without listening
 
 ## Implementation Tasks
 
-### Phase 1: Core Infrastructure
+### Phase 1: Core Implementation
 
-1. **Create `TerrenoAppOptions.ts`**
-   - Define all option interfaces with JSDoc comments
-   - Create default values factory function
-   - Add option validation function
+Implement TerrenoApp with full test coverage. Each feature should be tested as it's built.
 
-2. **Create `TerrenoAppHooks.ts`**
-   - Define hook interfaces
-   - Create hook runner utility that handles async hooks
-   - Add error handling for hook failures
+**New Files:**
+- `TerrenoAppOptions.ts` - Option interfaces, defaults, and validation
+- `TerrenoAppHooks.ts` - Hook type definitions and async runner
+- `TerrenoApp.ts` - Main class with fluent API
 
-3. **Create `TerrenoAppMiddleware.ts`**
-   - Extract middleware configuration from `expressServer.ts`
-   - Create middleware factory functions for each built-in middleware
-   - Support enable/disable pattern
+**Features to implement (with tests):**
+- `create()`, `build()`, `start()` lifecycle
+- `addModelRouter()` with shorthand support
+- `addRoute()` and `addMiddleware()`
+- All toggleable middleware (cors, json, helmet, etc.)
+- Health endpoint with custom check function
+- All initialization and request lifecycle hooks
+- WebSocket support with authentication
+- Graceful shutdown with signal handling
 
-### Phase 2: TerrenoApp Class
+**Update example-backend** to demonstrate the new API.
 
-4. **Create `TerrenoApp.ts`**
-   - Implement static `create()` factory
-   - Implement `addModelRouter()` with path tracking
-   - Implement `addRoute()` with callback and router support
-   - Implement `addMiddleware()` with position options
-   - Implement `build()` method that orchestrates setup
-   - Implement `start()` method that calls build + listen
+### Phase 2: Deprecation
 
-5. **Implement initialization sequence in `build()`**
-   - Express app creation + `onAppCreated` hook
-   - Core middleware + `onCoreMiddlewareReady` hook
-   - Auth setup + `onAuthReady` hook
-   - Health route registration
-   - OpenAPI middleware
-   - Model routers (in order added)
-   - Custom routes (in order added)
-   - `onRoutesReady` hook
-   - Error handlers
-   - `onReady` hook
-
-6. **Implement health endpoint**
-   - Create health route handler
-   - Support custom health check function
-   - Return appropriate status codes (200 healthy, 503 unhealthy)
-
-### Phase 3: Request Lifecycle Hooks
-
-7. **Add request lifecycle middleware**
-   - Create middleware for `onRequest` hook
-   - Create middleware for `onAuthenticated` hook (after auth)
-   - Create response interceptor for `onResponse` hook
-   - Integrate `onError` hook into error handlers
-
-### Phase 3.5: WebSocket & Shutdown
-
-8. **Implement WebSocket support**
-   - Add optional `ws` dependency
-   - Create WebSocket server attached to HTTP server
-   - Implement authentication for WebSocket connections
-   - Wire up onConnection, onMessage, onClose, onError callbacks
-   - Add `onWebSocketReady` hook
-   - Expose `getWebSocketServer()` accessor
-
-9. **Implement graceful shutdown**
-   - Add SIGTERM/SIGINT handlers (when `handleSignals: true`)
-   - Track active connections for graceful drain
-   - Implement shutdown timeout with force-close fallback
-   - Close WebSocket connections gracefully
-   - Call `onShutdown` hook
-   - Expose `shutdown()` method for programmatic shutdown
-
-### Phase 4: Integration
-
-10. **Deprecate `expressServer.ts`**
-    - Add `@deprecated` JSDoc to `setupServer` and related exports
-    - Leave implementation untouched (no refactoring)
-    - Will be removed in a future major version
-
-11. **Update exports in `index.ts`**
-    - Export TerrenoApp class as primary API
-    - Export all option types
-    - Keep setupServer export with deprecation warning
-
-### Phase 5: Testing & Documentation
-
-12. **Write tests**
-    - Unit tests for option validation
-    - Integration tests for middleware toggling
-    - Integration tests for hooks execution order
-    - Integration tests for health endpoint
-    - Integration tests for WebSocket connections
-    - Integration tests for graceful shutdown
-
-13. **Update example-backend**
-    - Create parallel implementation using TerrenoApp
-    - Demonstrate all major features including WebSocket
+- Add `@deprecated` JSDoc to `setupServer` and related exports in `expressServer.ts`
+- Update `index.ts` to export TerrenoApp as primary API
+- Keep setupServer export with deprecation warning
 
 ---
 
