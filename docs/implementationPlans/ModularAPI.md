@@ -755,80 +755,12 @@ Implement TerrenoApp with full test coverage. Each feature should be tested as i
 
 **Update example-backend** to demonstrate the new API.
 
-### Phase 2: Deprecation
+### Phase 2: Deprecation & Documentation
 
 - Add `@deprecated` JSDoc to `setupServer` and related exports in `expressServer.ts`
 - Update `index.ts` to export TerrenoApp as primary API
 - Keep setupServer export with deprecation warning
-
----
-
-## Migration Guide (for users)
-
-### From setupServer to TerrenoApp
-
-**Before:**
-```typescript
-import { setupServer } from '@terreno/api';
-
-// Environment variables required:
-// TOKEN_ISSUER, TOKEN_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET
-
-const app = await setupServer({
-  userModel: User,
-  corsOrigin: 'https://myapp.com',
-  loggingOptions: {
-    logSlowRequests: true,
-    logSlowRequestsReadMs: 200,
-  },
-  addRoutes: (app) => {
-    app.use('/posts', postRouter);
-  },
-  addMiddleware: (app) => {
-    app.use(customMiddleware);
-  },
-});
-```
-
-**After:**
-```typescript
-import { TerrenoApp } from '@terreno/api';
-
-const app = TerrenoApp.create({
-  auth: {
-    userModel: User,
-    token: {
-      issuer: process.env.TOKEN_ISSUER!,
-      secret: process.env.TOKEN_SECRET!,
-    },
-    refreshToken: {
-      secret: process.env.REFRESH_TOKEN_SECRET!,
-    },
-    session: {
-      secret: process.env.SESSION_SECRET!,
-    },
-  },
-  middleware: {
-    cors: {
-      origin: 'https://myapp.com',
-    },
-  },
-  logging: {
-    slowRequests: {
-      enabled: true,
-      readThresholdMs: 200,
-    },
-  },
-  hooks: {
-    onCoreMiddlewareReady: (app) => {
-      app.use(customMiddleware);
-    },
-  },
-})
-  .addRoute('/posts', postRouter);
-
-await app.start();
-```
+- Write migration guide for users
 
 ---
 
@@ -842,24 +774,3 @@ This is a **breaking change** release. Users must migrate from `setupServer` to 
 2. **Environment variables no longer used** - All configuration via options (no fallback to env vars)
 3. **`modelRouter` unchanged** - Same signature and options, works with TerrenoApp
 4. **New primary API** - `TerrenoApp.create()` replaces `setupServer()`
-
-### Migration Required
-
-All users must update their server initialization code. See the Migration Guide section above for before/after examples.
-
----
-
-## Success Criteria
-
-- [ ] All existing `setupServer` functionality available via `TerrenoApp`
-- [ ] Every built-in middleware can be toggled on/off
-- [ ] All configuration via options, no required environment variables
-- [ ] Health endpoint with custom check support
-- [ ] Hooks at every meaningful lifecycle point
-- [ ] Fluent API for adding routes and model routers
-- [ ] ModelRouter shorthand for permissions-only configuration
-- [ ] WebSocket support with authentication
-- [ ] Graceful shutdown with signal handling
-- [ ] Full TypeScript types with JSDoc documentation
-- [ ] Integration tests passing
-- [ ] Example app updated to demonstrate new API
