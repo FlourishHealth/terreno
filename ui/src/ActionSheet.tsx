@@ -5,7 +5,6 @@ import {
   Dimensions,
   type EmitterSubscription,
   FlatList,
-  findNodeHandle,
   Keyboard,
   type KeyboardEvent,
   type LayoutChangeEvent,
@@ -18,7 +17,6 @@ import {
   StatusBar,
   StyleSheet,
   TextInput,
-  UIManager,
   View,
 } from "react-native";
 
@@ -331,13 +329,17 @@ export class ActionSheet extends Component<Props, State, any> {
   measure = async (): Promise<number> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        UIManager.measureInWindow(
-          this.safeAreaViewRef.current._nativeTag,
-          (_x, _y, _width, height) => {
-            safeAreaPaddingTop = height;
-            resolve(height === 0 ? 20 : height);
-          }
-        );
+        if (this.safeAreaViewRef.current?.measureInWindow) {
+          this.safeAreaViewRef.current.measureInWindow(
+            (_x: number, _y: number, _width: number, height: number) => {
+              safeAreaPaddingTop = height;
+              resolve(height === 0 ? 20 : height);
+            }
+          );
+        } else {
+          // Fallback for new architecture or when measureInWindow is not available
+          resolve(safeAreaPaddingTop || 20);
+        }
       }, 100);
     });
   };
@@ -585,32 +587,34 @@ export class ActionSheet extends Component<Props, State, any> {
       const keyboardHeight = event.endCoordinates.height;
       const {height: windowHeight} = Dimensions.get("window");
 
-      const currentlyFocusedField = TextInput.State.currentlyFocusedField
-        ? findNodeHandle(TextInput.State.currentlyFocusedField())
-        : TextInput.State.currentlyFocusedField();
+      const currentlyFocusedInput = TextInput.State.currentlyFocusedInput
+        ? TextInput.State.currentlyFocusedInput()
+        : null;
 
-      if (!currentlyFocusedField) {
+      if (!currentlyFocusedInput) {
         return;
       }
 
-      UIManager.measure(
-        currentlyFocusedField,
-        (_originX, _originY, _width, height, _pageX, pageY) => {
-          const fieldHeight = height;
-          const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
-          if (gap >= 0) {
-            return;
-          }
-          const toValue =
-            this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
+      // Use the ref's measure method directly for new architecture compatibility
+      if (currentlyFocusedInput.measure) {
+        currentlyFocusedInput.measure(
+          (_originX: number, _originY: number, _width: number, height: number, _pageX: number, pageY: number) => {
+            const fieldHeight = height;
+            const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
+            if (gap >= 0) {
+              return;
+            }
+            const toValue =
+              this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
 
-          Animated.timing(this.transformValue, {
-            duration: 250,
-            toValue,
-            useNativeDriver: true,
-          }).start();
-        }
-      );
+            Animated.timing(this.transformValue, {
+              duration: 250,
+              toValue,
+              useNativeDriver: true,
+            }).start();
+          }
+        );
+      }
     } else {
       Animated.timing(this.transformValue, {
         duration: 250,
