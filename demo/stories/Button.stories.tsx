@@ -198,3 +198,34 @@ export const MultilineButtons = () => (
     </Box>
   </Box>
 );
+
+export const ButtonWidthInLayouts = () => (
+  <Box gap={4}>
+    <Box gap={2}>
+      <Heading>Buttons in Column Layout (default width)</Heading>
+      <Box color="secondary" direction="column" gap={2} padding={2}>
+        <Button onClick={() => {}} text="Button 1" />
+        <Button onClick={() => {}} text="Longer Button 2" />
+        <Button onClick={() => {}} text="Button 3" variant="secondary" />
+      </Box>
+    </Box>
+
+    <Box gap={2}>
+      <Heading>Buttons in Column Layout (fullWidth)</Heading>
+      <Box color="secondary" direction="column" gap={2} padding={2}>
+        <Button fullWidth onClick={() => {}} text="Button 1" />
+        <Button fullWidth onClick={() => {}} text="Longer Button 2" />
+        <Button fullWidth onClick={() => {}} text="Button 3" variant="secondary" />
+      </Box>
+    </Box>
+
+    <Box gap={2}>
+      <Heading>Buttons in Row Layout</Heading>
+      <Box color="secondary" direction="row" gap={2} padding={2}>
+        <Button onClick={() => {}} text="Button 1" />
+        <Button onClick={() => {}} text="Longer Button 2" />
+        <Button onClick={() => {}} text="Button 3" variant="secondary" />
+      </Box>
+    </Box>
+  </Box>
+);
