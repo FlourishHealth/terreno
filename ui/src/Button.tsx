@@ -137,7 +137,7 @@ const ButtonComponent: FC<ButtonProps> = ({
           </Box>
         )}
       </View>
-      {withConfirmation && (
+      {withConfirmation && showConfirmation && (
         <Suspense fallback={null}>
           <LazyModal
             onDismiss={() => setShowConfirmation(false)}
