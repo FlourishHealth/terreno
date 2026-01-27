@@ -1,0 +1,1422 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SegmentedControl renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl highlights selected item 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl renders with medium size (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl renders with large size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 40,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 44,
+          "maxHeight": 44,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl renders with badges 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "5",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#FFFFFF",
+                              "fontFamily": "text",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "backgroundColor": "#2B6072",
+                            "borderRadius": 360,
+                            "flexDirection": "row",
+                            "height": "auto",
+                            "justifyContent": "center",
+                            "paddingHorizontal": 8,
+                            "paddingVertical": 4,
+                            "width": "auto",
+                          },
+                          false,
+                          false,
+                        ],
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "3",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#FFFFFF",
+                              "fontFamily": "text",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "backgroundColor": "#F36719",
+                            "borderRadius": 360,
+                            "flexDirection": "row",
+                            "height": "auto",
+                            "justifyContent": "center",
+                            "paddingHorizontal": 8,
+                            "paddingVertical": 4,
+                            "width": "auto",
+                          },
+                          false,
+                          false,
+                        ],
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "1",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#FFFFFF",
+                              "fontFamily": "text",
+                              "fontSize": 10,
+                              "fontWeight": "700",
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "alignItems": "center",
+                            "backgroundColor": "#BD1111",
+                            "borderRadius": 360,
+                            "flexDirection": "row",
+                            "height": "auto",
+                            "justifyContent": "center",
+                            "paddingHorizontal": 8,
+                            "paddingVertical": 4,
+                            "width": "auto",
+                          },
+                          false,
+                          false,
+                        ],
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl renders with maxItems and scroll buttons 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "disabled": true,
+        "onPress": [Function],
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SegmentedControl handles scroll navigation 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "disabled": true,
+        "onPress": [Function],
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 1",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 2",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Tab 3",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "aria-role": "button",
+                "onPress": [Function],
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": undefined,
+                  "borderRadius": 360,
+                  "display": "flex",
+                  "flexBasis": 0,
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "gap": 8,
+                  "height": "100%",
+                  "justifyContent": "center",
+                  "overflow": "hidden",
+                  "paddingHorizontal": 2,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "gap": 4,
+              "height": 32,
+              "paddingHorizontal": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#CDCDCD",
+          "borderRadius": 360,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "height": 36,
+          "maxHeight": 36,
+          "overflow": "hidden",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 8,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

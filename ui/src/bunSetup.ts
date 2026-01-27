@@ -41,20 +41,113 @@ mock.module("react-native", () => {
     React.createElement("SafeAreaView", props, children);
   const Modal = ({children, ...props}: any) => React.createElement("Modal", props, children);
   const Switch = (props: any) => React.createElement("Switch", props);
+  const AnimatedValue = class Value {
+    _value: number;
+    constructor(value: number = 0) {
+      this._value = value;
+    }
+    setValue = mock((value: number) => {
+      this._value = value;
+    });
+    setOffset = mock(() => {});
+    flattenOffset = mock(() => {});
+    extractOffset = mock(() => {});
+    addListener = mock(() => "listener-id");
+    removeListener = mock(() => {});
+    removeAllListeners = mock(() => {});
+    stopAnimation = mock((callback?: (value: number) => void) => callback?.(this._value));
+    resetAnimation = mock((callback?: (value: number) => void) => callback?.(this._value));
+    interpolate = mock(() => new AnimatedValue(0));
+    animate = mock(() => {});
+    stopTracking = mock(() => {});
+    track = mock(() => {});
+  };
+  const AnimatedValueXY = class ValueXY {
+    x: any;
+    y: any;
+    constructor(value?: {x?: number; y?: number}) {
+      this.x = new AnimatedValue(value?.x || 0);
+      this.y = new AnimatedValue(value?.y || 0);
+    }
+    setValue = mock(() => {});
+    setOffset = mock(() => {});
+    flattenOffset = mock(() => {});
+    extractOffset = mock(() => {});
+    stopAnimation = mock(() => {});
+    resetAnimation = mock(() => {});
+    addListener = mock(() => "listener-id");
+    removeListener = mock(() => {});
+    removeAllListeners = mock(() => {});
+    getLayout = mock(() => ({left: this.x, top: this.y}));
+    getTranslateTransform = mock(() => [{translateX: this.x}, {translateY: this.y}]);
+  };
+  const createAnimationMock = () => ({
+    reset: mock(() => {}),
+    start: mock((callback?: (result: {finished: boolean}) => void) => callback?.({finished: true})),
+    stop: mock(() => {}),
+  });
   const Animated = {
+    // Operators
+    add: mock(() => new AnimatedValue(0)),
     createAnimatedComponent: (comp: any) => comp,
-    event: mock(() => () => {}),
+    decay: mock(() => createAnimationMock()),
+    delay: mock(() => createAnimationMock()),
+    diffClamp: mock(() => new AnimatedValue(0)),
+    divide: mock(() => new AnimatedValue(0)),
+    // Event handling
+    event: mock(() => mock(() => {})),
     FlatList,
     Image,
+    loop: mock((animation: any) => ({
+      reset: mock(() => {}),
+      start: mock((callback?: (result: {finished: boolean}) => void) => {
+        animation?.start?.();
+        callback?.({finished: true});
+      }),
+      stop: mock(() => {}),
+    })),
+    modulo: mock(() => new AnimatedValue(0)),
+    multiply: mock(() => new AnimatedValue(0)),
+    // Composition functions
+    parallel: mock((animations: any[]) => ({
+      reset: mock(() => {}),
+      start: mock((callback?: (result: {finished: boolean}) => void) => {
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
+        callback?.({finished: true});
+      }),
+      stop: mock(() => {}),
+    })),
     ScrollView,
-    spring: mock(() => ({start: mock(() => {})})),
+    sequence: mock((animations: any[]) => ({
+      reset: mock(() => {}),
+      start: mock((callback?: (result: {finished: boolean}) => void) => {
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
+        callback?.({finished: true});
+      }),
+      stop: mock(() => {}),
+    })),
+    spring: mock(() => createAnimationMock()),
+    stagger: mock((_delay: number, animations: any[]) => ({
+      reset: mock(() => {}),
+      start: mock((callback?: (result: {finished: boolean}) => void) => {
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
+        callback?.({finished: true});
+      }),
+      stop: mock(() => {}),
+    })),
+    subtract: mock(() => new AnimatedValue(0)),
     Text,
-    timing: mock(() => ({start: mock(() => {})})),
-    Value: class Value {
-      constructor(public _value: number = 0) {}
-      setValue = mock(() => {});
-      interpolate = mock(() => this);
-    },
+    // Animation functions
+    timing: mock(() => createAnimationMock()),
+    Value: AnimatedValue,
+    ValueXY: AnimatedValueXY,
+    // Animated components
     View,
   };
   const StyleSheet = {

@@ -1,0 +1,133 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SignatureField renders disabled state without value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": {
+          "backgroundColor": "#D9D9D9",
+          "height": 90,
+          "marginVertical": 8,
+          "width": 300,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 10,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SignatureField renders disabled state with value (shows image) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Signature",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "accessibilityIgnoresInvertColors": false,
+            "resizeMode": "contain",
+            "source": {
+              "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+            },
+            "style": {
+              "borderColor": "black",
+              "borderWidth": 1,
+              "height": 80,
+              "width": 300,
+            },
+          },
+          "type": "Image",
+        },
+      ],
+      "props": {
+        "style": {
+          "marginVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 10,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
