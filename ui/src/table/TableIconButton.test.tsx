@@ -1,5 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {describe, expect, it} from "bun:test";
 import {renderWithTheme} from "../test-utils";
 import {TableIconButton} from "./TableIconButton";
 

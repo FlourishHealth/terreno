@@ -1,4 +1,3 @@
-import type {Mock} from "bun:test";
 import {describe, expect, it, mock} from "bun:test";
 
 import {Field} from "./Field";
@@ -53,7 +52,7 @@ describe("Field", () => {
   });
 
   it("renders boolean field", () => {
-    const handleChange = mock((value: boolean) => {});
+    const handleChange = mock((_value: boolean) => {});
     const {toJSON} = renderWithTheme(
       <Field label="Active" onChange={handleChange} type="boolean" value={false} />
     );

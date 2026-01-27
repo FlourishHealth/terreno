@@ -1,5 +1,4 @@
 import {describe, expect, it} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
 import {Text} from "../Text";
 import {renderWithTheme} from "../test-utils";
 import {Table} from "./Table";

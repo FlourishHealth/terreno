@@ -45,7 +45,7 @@ describe("CheckBox", () => {
   });
 
   it("does not show check icon when not selected", () => {
-    const {queryByTestId, toJSON} = renderWithTheme(<CheckBox selected={false} />);
+    const {toJSON} = renderWithTheme(<CheckBox selected={false} />);
     const snapshot = toJSON();
     // When not selected, the inner View should be empty (no icon)
     expect(snapshot).toMatchSnapshot();

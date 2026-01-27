@@ -20,7 +20,7 @@ describe("NumberField", () => {
   });
 
   it("calls onChange with valid integer", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="" />
     );
@@ -36,7 +36,7 @@ describe("NumberField", () => {
   });
 
   it("does not call onChange with non-integer for number type", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="" />
     );
@@ -51,7 +51,7 @@ describe("NumberField", () => {
   });
 
   it("calls onChange with valid decimal", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Decimal" onChange={handleChange} type="decimal" value="" />
     );
@@ -67,7 +67,7 @@ describe("NumberField", () => {
   });
 
   it("handles leading dot for decimal type", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Decimal" onChange={handleChange} type="decimal" value="" />
     );
@@ -117,7 +117,7 @@ describe("NumberField", () => {
   });
 
   it("syncs value when prop changes", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue, unmount} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="10" />
     );

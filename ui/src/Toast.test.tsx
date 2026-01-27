@@ -1,5 +1,4 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
 
 import {Toast} from "./Toast";
 import {renderWithTheme} from "./test-utils";

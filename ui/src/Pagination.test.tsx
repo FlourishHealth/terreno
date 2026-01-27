@@ -30,7 +30,7 @@ describe("Pagination", () => {
   });
 
   it("calls setPage when page number is clicked", () => {
-    const handleSetPage = mock((page: number) => {});
+    const handleSetPage = mock((_page: number) => {});
     const {getByText} = renderWithTheme(
       <Pagination page={1} setPage={handleSetPage} totalPages={5} />
     );
@@ -40,7 +40,7 @@ describe("Pagination", () => {
   });
 
   it("calls setPage with next page when next button is clicked", () => {
-    const handleSetPage = mock((page: number) => {});
+    const handleSetPage = mock((_page: number) => {});
     const {getByHintText} = renderWithTheme(
       <Pagination page={2} setPage={handleSetPage} totalPages={5} />
     );
@@ -50,7 +50,7 @@ describe("Pagination", () => {
   });
 
   it("calls setPage with previous page when prev button is clicked", () => {
-    const handleSetPage = mock((page: number) => {});
+    const handleSetPage = mock((_page: number) => {});
     const {getByHintText} = renderWithTheme(
       <Pagination page={3} setPage={handleSetPage} totalPages={5} />
     );

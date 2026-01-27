@@ -31,7 +31,7 @@ describe("PhoneNumberField", () => {
   });
 
   it("formats phone number as user types", () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {toJSON} = renderWithTheme(
       <PhoneNumberField label="Phone" onChange={handleChange} value="5551234567" />
     );

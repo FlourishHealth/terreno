@@ -27,7 +27,7 @@ describe("SegmentedControl", () => {
   });
 
   it("calls onChange when item is pressed", () => {
-    const handleChange = mock((index: number) => {});
+    const handleChange = mock((_index: number) => {});
     const {getByText} = renderWithTheme(
       <SegmentedControl items={defaultItems} onChange={handleChange} selectedIndex={0} />
     );
@@ -72,7 +72,7 @@ describe("SegmentedControl", () => {
 
   it("handles scroll navigation", () => {
     const manyItems = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Tab 6"];
-    const {getByText, queryByText, toJSON} = renderWithTheme(
+    const {getByText, toJSON} = renderWithTheme(
       <SegmentedControl items={manyItems} maxItems={3} selectedIndex={0} />
     );
     // Initially shows first 3 items

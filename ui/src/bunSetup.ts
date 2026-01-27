@@ -112,7 +112,9 @@ mock.module("react-native", () => {
     parallel: mock((animations: any[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => anim?.start?.());
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
         callback?.({finished: true});
       }),
       stop: mock(() => {}),
@@ -121,7 +123,9 @@ mock.module("react-native", () => {
     sequence: mock((animations: any[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => anim?.start?.());
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
         callback?.({finished: true});
       }),
       stop: mock(() => {}),
@@ -130,7 +134,9 @@ mock.module("react-native", () => {
     stagger: mock((_delay: number, animations: any[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => anim?.start?.());
+        animations?.forEach((anim: any) => {
+          anim?.start?.();
+        });
         callback?.({finished: true});
       }),
       stop: mock(() => {}),

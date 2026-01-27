@@ -1,4 +1,4 @@
-import {afterAll, beforeAll, describe, expect, it, mock, spyOn} from "bun:test";
+import {afterAll, beforeAll, describe, expect, it, mock} from "bun:test";
 
 import {ErrorBoundary} from "./ErrorBoundary";
 import {Text} from "./Text";

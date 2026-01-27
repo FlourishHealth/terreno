@@ -1,5 +1,4 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
 import {Text} from "../Text";
 import {renderWithTheme} from "../test-utils";
 import {Table} from "./Table";
@@ -97,7 +96,7 @@ describe("TableHeaderCell", () => {
   });
 
   it("renders sortable header with sort indicator when sorted", () => {
-    const handleSort = mock((direction: string | undefined) => {});
+    const handleSort = mock((_direction: string | undefined) => {});
     const {toJSON} = renderWithTheme(
       <Table columns={[100]} sort={{column: 0, direction: "desc"}}>
         <TableHeader>

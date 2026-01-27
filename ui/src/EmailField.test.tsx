@@ -25,7 +25,7 @@ describe("EmailField", () => {
   });
 
   it("calls onChange with valid email", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <EmailField label="Email" onChange={handleChange} value="" />
     );
@@ -41,7 +41,7 @@ describe("EmailField", () => {
   });
 
   it("does not call onChange with invalid email", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <EmailField label="Email" onChange={handleChange} value="" />
     );
@@ -57,7 +57,7 @@ describe("EmailField", () => {
 
   it("validates email format and shows error for invalid input", () => {
     // EmailField should show error for invalid email after typing
-    const {getByDisplayValue, rerender, queryByText, unmount} = renderWithTheme(
+    const {unmount} = renderWithTheme(
       <EmailField label="Email" onChange={() => {}} value="invalid-email" />
     );
 
@@ -75,7 +75,7 @@ describe("EmailField", () => {
   });
 
   it("accepts valid email addresses", async () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByDisplayValue} = renderWithTheme(
       <EmailField label="Email" onChange={handleChange} value="" />
     );

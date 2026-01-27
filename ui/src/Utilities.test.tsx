@@ -3,7 +3,6 @@ import {describe, expect, it} from "bun:test";
 import {
   concat,
   findAddressComponent,
-  formattedCountyCode,
   fromClassName,
   fromInlineStyle,
   iconNumberToSize,

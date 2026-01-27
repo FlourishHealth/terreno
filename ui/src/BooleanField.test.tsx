@@ -38,7 +38,7 @@ describe("BooleanField", () => {
   });
 
   it("calls onChange when pressed", () => {
-    const handleChange = mock((value: boolean) => {});
+    const handleChange = mock((_value: boolean) => {});
     const {UNSAFE_getByType} = renderWithTheme(
       <BooleanField onChange={handleChange} value={false} />
     );
@@ -49,7 +49,7 @@ describe("BooleanField", () => {
   });
 
   it("does not call onChange when disabled", () => {
-    const handleChange = mock((value: boolean) => {});
+    const handleChange = mock((_value: boolean) => {});
     const {UNSAFE_getByType} = renderWithTheme(
       <BooleanField disabled onChange={handleChange} value={false} />
     );

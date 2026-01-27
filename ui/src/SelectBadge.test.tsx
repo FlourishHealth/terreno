@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it} from "bun:test";
 
 import {SelectBadge} from "./SelectBadge";
 import {renderWithTheme} from "./test-utils";

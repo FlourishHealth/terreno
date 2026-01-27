@@ -48,7 +48,7 @@ describe("TimezonePicker", () => {
   });
 
   it("calls onChange when timezone is selected", () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {toJSON} = renderWithTheme(
       <TimezonePicker onChange={handleChange} timezone="America/New_York" />
     );

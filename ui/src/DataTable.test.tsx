@@ -58,7 +58,7 @@ describe("DataTable", () => {
   });
 
   it("renders with pagination", () => {
-    const setPage = mock((page: number) => {});
+    const setPage = mock((_page: number) => {});
     const {toJSON} = renderWithTheme(
       <DataTable
         columns={sampleColumns}

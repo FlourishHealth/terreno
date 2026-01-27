@@ -42,7 +42,7 @@ describe("RadioField", () => {
   });
 
   it("calls onChange when option is selected", () => {
-    const handleChange = mock((value: string) => {});
+    const handleChange = mock((_value: string) => {});
     const {getByText} = renderWithTheme(
       <RadioField onChange={handleChange} options={defaultOptions} title="Title" value="" />
     );

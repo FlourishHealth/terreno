@@ -6,7 +6,7 @@ import {renderWithTheme} from "./test-utils";
 
 describe("Spinner", () => {
   it("does not render immediately due to delay", () => {
-    const {queryByTestId, toJSON} = renderWithTheme(<Spinner />);
+    const {toJSON} = renderWithTheme(<Spinner />);
     // Spinner has a 300ms delay before showing
     expect(toJSON()).toBeNull();
   });

@@ -47,7 +47,7 @@ describe("MultiselectField", () => {
   });
 
   it("calls onChange when option is toggled", () => {
-    const handleChange = mock((values: string[]) => {});
+    const handleChange = mock((_values: string[]) => {});
     const {getByLabelText} = renderWithTheme(
       <MultiselectField onChange={handleChange} options={defaultOptions} title="Title" value={[]} />
     );
@@ -57,7 +57,7 @@ describe("MultiselectField", () => {
   });
 
   it("removes option when deselected", () => {
-    const handleChange = mock((values: string[]) => {});
+    const handleChange = mock((_values: string[]) => {});
     const {getByLabelText} = renderWithTheme(
       <MultiselectField
         onChange={handleChange}

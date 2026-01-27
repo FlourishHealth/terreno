@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it} from "bun:test";
 
 import {CustomSelectField} from "./CustomSelectField";
 import {renderWithTheme} from "./test-utils";
