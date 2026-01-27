@@ -1,4 +1,4 @@
-import {HeightField} from "@terreno/ui";
+import {HeightField, Text} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -8,6 +8,7 @@ export const HeightFieldDemo = (): ReactElement => {
   return (
     <StorybookContainer>
       <HeightField onChange={setValue} title="Height" value={value} />
+      <Text>Value: {value || "(empty)"}</Text>
     </StorybookContainer>
   );
 };
@@ -18,6 +19,7 @@ export const HeightFieldWithValueDemo = (): ReactElement => {
   return (
     <StorybookContainer>
       <HeightField onChange={setValue} title="Height" value={value} />
+      <Text>Value: {value || "(empty)"}</Text>
     </StorybookContainer>
   );
 };
@@ -32,6 +34,7 @@ export const HeightFieldWithHelperTextDemo = (): ReactElement => {
         title="Height"
         value={value}
       />
+      <Text>Value: {value || "(empty)"}</Text>
     </StorybookContainer>
   );
 };
@@ -46,6 +49,23 @@ export const HeightFieldWithErrorDemo = (): ReactElement => {
         title="Height"
         value={value}
       />
+      <Text>Value: {value || "(empty)"}</Text>
+    </StorybookContainer>
+  );
+};
+
+export const HeightFieldRequiredDemo = (): ReactElement => {
+  const [value, setValue] = useState<string | undefined>("");
+  const showError = !value || value === "0";
+  return (
+    <StorybookContainer>
+      <HeightField
+        errorText={showError ? "Height is required" : undefined}
+        onChange={setValue}
+        title="Height *"
+        value={value}
+      />
+      <Text>Value: {value || "(empty)"}</Text>
     </StorybookContainer>
   );
 };
@@ -61,6 +81,7 @@ export const HeightFieldDisabledDemo = (): ReactElement => {
         title="Height"
         value={value}
       />
+      <Text>Value: {value || "(empty)"}</Text>
     </StorybookContainer>
   );
 };

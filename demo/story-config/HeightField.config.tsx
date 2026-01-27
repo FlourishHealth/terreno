@@ -2,6 +2,7 @@ import {DemoConfiguration} from "@config";
 import {
   HeightFieldDemo,
   HeightFieldDisabledDemo,
+  HeightFieldRequiredDemo,
   HeightFieldWithErrorDemo,
   HeightFieldWithHelperTextDemo,
   HeightFieldWithValueDemo,
@@ -59,6 +60,9 @@ export const HeightFieldConfiguration: DemoConfiguration = {
     },
     "Disabled Height Field": {
       render: HeightFieldDisabledDemo,
+    },
+    "Required Height Field": {
+      render: HeightFieldRequiredDemo,
     },
   },
 };

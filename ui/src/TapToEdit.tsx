@@ -26,6 +26,19 @@ const TapToEditTitle: FC<{
   );
 };
 
+export function formatHeight(totalInches: string | undefined): string {
+  if (!totalInches) {
+    return "";
+  }
+  const total = parseInt(totalInches, 10);
+  if (Number.isNaN(total) || total === 0) {
+    return "";
+  }
+  const feet = Math.floor(total / 12);
+  const inches = total % 12;
+  return `${feet}ft ${inches}in`;
+}
+
 export function formatAddress(address: AddressInterface, asString = false): string {
   let city = "";
   if (address?.city) {
@@ -214,6 +227,8 @@ export const TapToEdit: FC<TapToEditProps> = ({
         }
       } else if (fieldProps?.type === "address") {
         displayValue = formatAddress(value);
+      } else if (fieldProps?.type === "height") {
+        displayValue = formatHeight(value);
       }
     }
 

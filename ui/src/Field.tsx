@@ -9,6 +9,7 @@ import type {
   DateTimeFieldProps,
   EmailFieldProps,
   FieldProps,
+  HeightFieldProps,
   MultiselectFieldProps,
   NumberFieldProps,
   PhoneNumberFieldProps,
@@ -27,6 +28,7 @@ import {PhoneNumberField} from "./PhoneNumberField";
 import {SelectField} from "./SelectField";
 import {Signature} from "./Signature";
 import {TextArea} from "./TextArea";
+import {HeightField} from "./HeightField";
 import {TextField} from "./TextField";
 
 // TODO: put onblur back in any fields that need it
@@ -74,6 +76,8 @@ export const Field: FC<FieldProps> = ({type, ...rest}) => {
     return <EmailField {...(rest as EmailFieldProps)} />;
   } else if (type === "phoneNumber") {
     return <PhoneNumberField {...(rest as PhoneNumberFieldProps)} />;
+  } else if (type === "height") {
+    return <HeightField {...(rest as HeightFieldProps)} />;
   } else {
     let tfType: TextFieldType = "text";
     let autoComplete: "on" | "current-password" | "username" = "on";

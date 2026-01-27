@@ -50,6 +50,7 @@ export const TapStory = (): ReactElement => {
   const [datetime, setDatetime] = useState("2024-01-15T14:30:00");
   const [time, setTime] = useState("14:30:00");
   const [emptyDate, setEmptyDate] = useState("");
+  const [height, setHeight] = useState("70"); // 5ft 10in
 
   return (
     <Box direction="column" display="flex" height="100%" scroll width="100%">
@@ -262,6 +263,17 @@ export const TapStory = (): ReactElement => {
           title="Date (empty - test clear button)"
           type="date"
           value={emptyDate}
+        />
+      </Box>
+      <Box>
+        <TapToEdit
+          onSave={(value): void => {
+            setHeight(value);
+          }}
+          setValue={setHeight}
+          title="Height"
+          type="height"
+          value={height}
         />
       </Box>
     </Box>

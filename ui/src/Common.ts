@@ -1660,7 +1660,8 @@ export type FieldProps =
   | (RadioFieldProps & {type: "radio"})
   | (SignatureFieldProps & {type: "signature"})
   | (SearchFieldProps & {type: "search"})
-  | (AddressFieldProps & {type: "address"});
+  | (AddressFieldProps & {type: "address"})
+  | (HeightFieldProps & {type: "height"});
 // | (CurrencyFieldProps & {type: "currency"});
 // | (PercentFieldProps & {type: "percent"});
 // | URLFieldProps
@@ -2278,6 +2279,10 @@ export type TapToEditProps =
   | (BaseTapToEditProps &
       Omit<AddressFieldProps, "onChange" | "value"> & {
         type: "address";
+      })
+  | (BaseTapToEditProps &
+      Omit<HeightFieldProps, "onChange" | "value"> & {
+        type: "height";
       });
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
