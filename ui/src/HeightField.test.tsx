@@ -1,6 +1,10 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
+
 import {HeightField} from "./HeightField";
+import * as MediaQuery from "./MediaQuery";
 import {renderWithTheme} from "./test-utils";
+import * as Utilities from "./Utilities";
 
 describe("HeightField", () => {
   let mockOnChange: ReturnType<typeof mock>;
@@ -127,6 +131,16 @@ describe("HeightField", () => {
       const pressable = getByLabelText("Height selector");
       expect(pressable).toBeTruthy();
     });
+
+    it("should show placeholder text for invalid non-numeric value", () => {
+      const {getByText} = renderWithTheme(<HeightField onChange={mockOnChange} value="abc" />);
+      expect(getByText("Select height")).toBeTruthy();
+    });
+
+    it("should show placeholder text for value that formats to empty string", () => {
+      const {getByText} = renderWithTheme(<HeightField onChange={mockOnChange} value="xyz123abc" />);
+      expect(getByText("Select height")).toBeTruthy();
+    });
   });
 
   describe("snapshots", () => {
@@ -169,6 +183,185 @@ describe("HeightField", () => {
           title="Height"
           value=""
         />
+      );
+      expect(component.toJSON()).toMatchSnapshot();
+    });
+  });
+
+  describe("desktop mode (two TextInput fields)", () => {
+    let isNativeSpy: ReturnType<typeof spyOn>;
+    let isMobileDeviceSpy: ReturnType<typeof spyOn>;
+
+    beforeEach(() => {
+      isNativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
+      isMobileDeviceSpy = spyOn(MediaQuery, "isMobileDevice").mockReturnValue(false);
+    });
+
+    afterEach(() => {
+      isNativeSpy.mockRestore();
+      isMobileDeviceSpy.mockRestore();
+    });
+
+    it("should render two TextInput fields for feet and inches", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      expect(getByLabelText("ft input")).toBeTruthy();
+      expect(getByLabelText("in input")).toBeTruthy();
+    });
+
+    it("should display feet and inches separately for 70 inches (5ft 10in)", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="70" />);
+      const feetInput = getByLabelText("ft input");
+      const inchesInput = getByLabelText("in input");
+      expect(feetInput.props.value).toBe("5");
+      expect(inchesInput.props.value).toBe("10");
+    });
+
+    it("should display feet and inches separately for 72 inches (6ft 0in)", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="72" />);
+      const feetInput = getByLabelText("ft input");
+      const inchesInput = getByLabelText("in input");
+      expect(feetInput.props.value).toBe("6");
+      expect(inchesInput.props.value).toBe("0");
+    });
+
+    it("should call onChange when feet value changes", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="60" />);
+      const feetInput = getByLabelText("ft input");
+
+      await act(async () => {
+        fireEvent.changeText(feetInput, "6");
+      });
+
+      await act(async () => {
+        fireEvent(feetInput, "blur");
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith("72");
+    });
+
+    it("should call onChange when inches value changes", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="60" />);
+      const inchesInput = getByLabelText("in input");
+
+      await act(async () => {
+        fireEvent.changeText(inchesInput, "6");
+      });
+
+      await act(async () => {
+        fireEvent(inchesInput, "blur");
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith("66");
+    });
+
+    it("should filter non-numeric input in feet field", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getByLabelText("ft input");
+
+      await act(async () => {
+        fireEvent.changeText(feetInput, "5abc");
+      });
+
+      expect(feetInput.props.value).toBe("5");
+    });
+
+    it("should filter non-numeric input in inches field", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const inchesInput = getByLabelText("in input");
+
+      await act(async () => {
+        fireEvent.changeText(inchesInput, "10xyz");
+      });
+
+      expect(inchesInput.props.value).toBe("10");
+    });
+
+    it("should enforce max value of 8 for feet", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getByLabelText("ft input");
+
+      await act(async () => {
+        fireEvent.changeText(feetInput, "9");
+      });
+
+      expect(feetInput.props.value).toBe("");
+    });
+
+    it("should allow max value of 8 for feet", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getByLabelText("ft input");
+
+      await act(async () => {
+        fireEvent.changeText(feetInput, "8");
+      });
+
+      expect(feetInput.props.value).toBe("8");
+    });
+
+    it("should enforce max value of 11 for inches", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const inchesInput = getByLabelText("in input");
+
+      await act(async () => {
+        fireEvent.changeText(inchesInput, "12");
+      });
+
+      expect(inchesInput.props.value).toBe("");
+    });
+
+    it("should render with disabled state", () => {
+      const {getByLabelText} = renderWithTheme(
+        <HeightField disabled onChange={mockOnChange} value="70" />
+      );
+      const feetInput = getByLabelText("ft input");
+      const inchesInput = getByLabelText("in input");
+      expect(feetInput.props.readOnly).toBe(true);
+      expect(inchesInput.props.readOnly).toBe(true);
+    });
+
+    it("should handle empty value", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getByLabelText("ft input");
+      const inchesInput = getByLabelText("in input");
+      expect(feetInput.props.value).toBe("");
+      expect(inchesInput.props.value).toBe("");
+    });
+
+    it("should call onChange with empty string when both fields are cleared", async () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="70" />);
+      const feetInput = getByLabelText("ft input");
+      const inchesInput = getByLabelText("in input");
+
+      await act(async () => {
+        fireEvent.changeText(feetInput, "");
+      });
+
+      await act(async () => {
+        fireEvent.changeText(inchesInput, "");
+      });
+
+      await act(async () => {
+        fireEvent(inchesInput, "blur");
+      });
+
+      expect(mockOnChange).toHaveBeenCalledWith("");
+    });
+
+    it("should match snapshot in desktop mode", () => {
+      const component = renderWithTheme(<HeightField onChange={mockOnChange} value="70" />);
+      expect(component.toJSON()).toMatchSnapshot();
+    });
+
+    it("should match snapshot in desktop mode with error", () => {
+      const component = renderWithTheme(
+        <HeightField errorText="Height is required" onChange={mockOnChange} value="" />
+      );
+      expect(component.toJSON()).toMatchSnapshot();
+    });
+
+    it("should match snapshot in desktop mode when disabled", () => {
+      const component = renderWithTheme(
+        <HeightField disabled onChange={mockOnChange} value="70" />
       );
       expect(component.toJSON()).toMatchSnapshot();
     });

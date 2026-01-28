@@ -686,14 +686,13 @@ export interface PercentFieldProps extends BaseFieldProps, HelperTextProps, Erro
 
 export interface CurrencyFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
 
-export interface HeightFieldProps extends HelperTextProps, ErrorTextProps {
-  id?: string;
-  testID?: string;
-  title?: string;
-  disabled?: boolean;
-  value?: string;
-  onChange: OnChangeCallback;
-}
+export interface HeightFieldProps
+  extends Omit<
+      BaseFieldProps,
+      "placeholder" | "iconName" | "onIconClick" | "onBlur" | "onEnter" | "onFocus" | "onSubmitEditing" | "blurOnSubmit"
+    >,
+    HelperTextProps,
+    ErrorTextProps {}
 
 export interface AddressFieldProps
   extends Omit<BaseFieldProps, "value" | "onChange" | "onBlur">,

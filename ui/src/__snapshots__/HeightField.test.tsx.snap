@@ -3453,3 +3453,648 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
   "type": "View",
 }
 `;
+
+exports[`HeightField desktop mode (two TextInput fields) should match snapshot in desktop mode 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter ft",
+                    "aria-label": "ft input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": undefined,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "5",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderColor": "#9A9A9A",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "ft",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter in",
+                    "aria-label": "in input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": undefined,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "10",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderColor": "#9A9A9A",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "in",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 16,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`HeightField desktop mode (two TextInput fields) should match snapshot in desktop mode with error 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Height is required",
+              ],
+              "props": {
+                "style": {
+                  "color": "#BD1111",
+                  "fontSize": 12,
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "marginLeft": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginVertical": 2,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter ft",
+                    "aria-label": "ft input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": undefined,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#BD1111",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderColor": "#D33232",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "ft",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter in",
+                    "aria-label": "in input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": undefined,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#BD1111",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderColor": "#D33232",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "in",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 16,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`HeightField desktop mode (two TextInput fields) should match snapshot in desktop mode when disabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter ft",
+                    "aria-label": "ft input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": true,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "5",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#D9D9D9",
+                  "borderColor": "#4E4E4E",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "ft",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "accessibilityHint": "Enter in",
+                    "aria-label": "in input",
+                    "inputMode": "numeric",
+                    "onBlur": [Function],
+                    "onChangeText": [Function],
+                    "placeholder": "0",
+                    "placeholderTextColor": "#686868",
+                    "readOnly": true,
+                    "ref": undefined,
+                    "selectTextOnFocus": true,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text",
+                      "fontSize": 16,
+                      "textAlign": "center",
+                      "width": "100%",
+                    },
+                    "value": "10",
+                  },
+                  "type": "TextInput",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#D9D9D9",
+                  "borderColor": "#4E4E4E",
+                  "borderRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 40,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": 50,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "in",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "gap": 16,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

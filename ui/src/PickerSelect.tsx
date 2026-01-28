@@ -383,6 +383,7 @@ export function RNPickerSelect({
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
+            borderColor: theme.border.activeNeutral,
           },
         ]}
       >
@@ -492,6 +493,7 @@ export function RNPickerSelect({
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
+            borderColor: theme.border.activeNeutral,
           },
         ]}
       >
@@ -521,6 +523,7 @@ export function RNPickerSelect({
           },
           disabled && {
             backgroundColor: theme.surface.neutralLight,
+            borderColor: theme.border.activeNeutral,
           },
         ]}
       >

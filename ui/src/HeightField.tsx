@@ -86,7 +86,7 @@ const HeightSegment: FC<HeightSegmentProps> = ({
         style={{
           alignItems: "center",
           backgroundColor: disabled ? theme.surface.neutralLight : theme.surface.base,
-          borderColor: error ? theme.border.error : theme.border.dark,
+          borderColor: disabled ? theme.border.activeNeutral : error ? theme.border.error : theme.border.dark,
           borderRadius: 4,
           borderWidth: 1,
           flexDirection: "row",
@@ -224,9 +224,14 @@ export const HeightField: FC<HeightFieldProps> = ({
               paddingVertical: 8,
             }}
           >
-            <Text color={value ? "primary" : "secondaryLight"}>
-              {value ? formatHeightDisplay(value) : "Select height"}
-            </Text>
+            {(() => {
+              const formattedHeight = formatHeightDisplay(value);
+              return (
+                <Text color={formattedHeight ? "primary" : "secondaryLight"}>
+                  {formattedHeight || "Select height"}
+                </Text>
+              );
+            })()}
           </View>
         </Pressable>
         {Boolean(helperText) && <FieldHelperText text={helperText!} />}
@@ -248,7 +253,7 @@ export const HeightField: FC<HeightFieldProps> = ({
           disabled={disabled}
           error={Boolean(errorText)}
           label="ft"
-          maxValue={7}
+          maxValue={8}
           onBlur={handleBlur}
           onChange={handleFeetChange}
           placeholder="0"

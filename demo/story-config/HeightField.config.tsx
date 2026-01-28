@@ -39,7 +39,7 @@ export const HeightFieldConfiguration: DemoConfiguration = {
     ],
     doNot: [
       "Do not use this component for other measurements like weight or distance.",
-      "Do not allow values outside the valid range (0-7 feet, 0-11 inches).",
+      "Do not allow values outside the valid range (0-8 feet, 0-11 inches).",
     ],
   },
   props: {},
