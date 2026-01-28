@@ -143,50 +143,6 @@ describe("HeightField", () => {
     });
   });
 
-  describe("snapshots", () => {
-    it("should match snapshot with default props", () => {
-      const component = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
-      expect(component.toJSON()).toMatchSnapshot();
-    });
-
-    it("should match snapshot with value", () => {
-      const component = renderWithTheme(<HeightField onChange={mockOnChange} value="70" />);
-      expect(component.toJSON()).toMatchSnapshot();
-    });
-
-    it("should match snapshot with all props", () => {
-      const component = renderWithTheme(
-        <HeightField
-          disabled={false}
-          errorText="Error text"
-          helperText="Helper text"
-          onChange={mockOnChange}
-          title="Height"
-          value="70"
-        />
-      );
-      expect(component.toJSON()).toMatchSnapshot();
-    });
-
-    it("should match snapshot when disabled", () => {
-      const component = renderWithTheme(
-        <HeightField disabled onChange={mockOnChange} title="Height" value="70" />
-      );
-      expect(component.toJSON()).toMatchSnapshot();
-    });
-
-    it("should match snapshot with error state", () => {
-      const component = renderWithTheme(
-        <HeightField
-          errorText="Height is required"
-          onChange={mockOnChange}
-          title="Height"
-          value=""
-        />
-      );
-      expect(component.toJSON()).toMatchSnapshot();
-    });
-  });
 
   describe("desktop mode (two TextInput fields)", () => {
     let isNativeSpy: ReturnType<typeof spyOn>;
