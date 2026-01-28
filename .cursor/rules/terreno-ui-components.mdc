@@ -1,0 +1,140 @@
+---
+description: Guidelines for creating new UI components in @terreno/ui package
+globs: ui/src/**/*.tsx
+alwaysApply: false
+---
+
+# Creating New UI Components in @terreno/ui
+
+When creating a new UI component in the @terreno/ui package, you must complete the following steps to ensure the component is properly integrated into the design system.
+
+## Required Files for Each New Component
+
+For a component named `ComponentName`, create the following files:
+
+### 1. Component Implementation
+- **File**: `ui/src/ComponentName.tsx`
+- Contains the main component implementation
+- Export the component and any related types
+
+### 2. Props Interface
+- **File**: `ui/src/Common.ts`
+- Add the props interface (e.g., `ComponentNameProps`) to Common.ts
+- Extend appropriate base interfaces (e.g., `HelperTextProps`, `ErrorTextProps`)
+
+### 3. Export from Package
+- **File**: `ui/src/index.tsx`
+- Add `export * from "./ComponentName";` in alphabetical order
+
+### 4. Demo Stories
+- **File**: `demo/stories/ComponentName.stories.tsx`
+- Create demo components showing different states and variations
+- Use `StorybookContainer` wrapper for consistent styling
+- Export each demo as a named function (e.g., `ComponentNameDemo`, `ComponentNameDisabledDemo`)
+
+Example:
+```tsx
+import {ComponentName} from "@terreno/ui";
+import {type ReactElement, useState} from "react";
+import {StorybookContainer} from "./StorybookContainer";
+
+export const ComponentNameDemo = (): ReactElement => {
+  const [value, setValue] = useState<string | undefined>("");
+  return (
+    <StorybookContainer>
+      <ComponentName onChange={setValue} title="Component Name" value={value} />
+    </StorybookContainer>
+  );
+};
+```
+
+### 5. Demo Configuration
+- **File**: `demo/story-config/ComponentName.config.tsx`
+- Create a `DemoConfiguration` object with metadata, usage guidelines, and stories
+- Include: name, component, related components, description, a11yNotes, category, status, usage do/doNot, interfaceName, demo, and stories
+
+Example:
+```tsx
+import {DemoConfiguration} from "@config";
+import {ComponentNameDemo, ComponentNameDisabledDemo} from "@stories";
+import {ComponentName} from "@terreno/ui";
+
+export const ComponentNameConfiguration: DemoConfiguration = {
+  name: "Component name",
+  component: ComponentName,
+  related: ["Related Component"],
+  description: "Description of the component and its purpose.",
+  a11yNotes: ["Accessibility considerations"],
+  category: "Component",
+  status: {
+    documentation: "ready",
+    figma: "planned",
+    ios: "ready",
+    android: "ready",
+    web: "ready",
+  },
+  additionalDocumentation: [],
+  interfaceName: "ComponentNameProps",
+  usage: {
+    do: ["Usage guidelines"],
+    doNot: ["Anti-patterns to avoid"],
+  },
+  props: {},
+  demo: ComponentNameDemo,
+  demoOptions: {},
+  stories: {
+    "Basic Component": {
+      render: ComponentNameDemo,
+    },
+    "Disabled Component": {
+      render: ComponentNameDisabledDemo,
+    },
+  },
+};
+```
+
+### 6. Register Stories and Config
+- **File**: `demo/stories/index.ts`
+  - Add `export * from "./ComponentName.stories";` in alphabetical order
+- **File**: `demo/story-config/index.ts`
+  - Add `export * from "./ComponentName.config";` in alphabetical order
+- **File**: `demo/demoConfig.tsx`
+  - Import `ComponentNameConfiguration` from `@story-config`
+  - Add `ComponentNameConfiguration` to the `Config` array in alphabetical order
+
+### 7. Unit Tests
+- **File**: `ui/src/ComponentName.test.tsx`
+- Test basic rendering, user interactions, edge cases, and snapshots
+- Use `bun:test` for test framework
+- Use `renderWithTheme` from `./test-utils` for rendering
+
+Example:
+```tsx
+import {describe, expect, it, mock} from "bun:test";
+import {ComponentName} from "./ComponentName";
+import {renderWithTheme} from "./test-utils";
+
+describe("ComponentName", () => {
+  it("should render with default props", () => {
+    const mockOnChange = mock(() => {});
+    const {root} = renderWithTheme(<ComponentName onChange={mockOnChange} value="" />);
+    expect(root).toBeTruthy();
+  });
+});
+```
+
+## Real-World Examples
+
+- [HeightField Component](mdc:../ui/src/HeightField.tsx)
+- [HeightField Stories](mdc:../demo/stories/HeightField.stories.tsx)
+- [HeightField Config](mdc:../demo/story-config/HeightField.config.tsx)
+- [HeightField Tests](mdc:../ui/src/HeightField.test.tsx)
+- [TextField Tests](mdc:../ui/src/TextField.test.tsx) - comprehensive test example
+
+## Common Pitfalls
+
+- Forgetting to add the component to `demo/demoConfig.tsx` Config array
+- Not adding exports to both `demo/stories/index.ts` and `demo/story-config/index.ts`
+- Missing the props interface in `ui/src/Common.ts`
+- Not running lint (`bun lint`) before committing
+- Not running tests (`bun test`) to verify the component works correctly
