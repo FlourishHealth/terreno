@@ -1,13 +1,18 @@
 {
+  "overrides": {
+    "qs": "^6.14.1",
+    "tar": "^7.5.3",
+    "semver": "^7.5.2"
+  },
   "catalog": {
     "@biomejs/biome": "^2.3.6",
     "@expo/config-plugins": "~54.0.4",
     "@expo/vector-icons": "^15.0.3",
     "@happy-dom/global-registrator": "^17.4.4",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@react-native-community/datetimepicker": "8.4.4",
+    "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-community/slider": "5.0.1",
-    "@react-native-picker/picker": "2.11.1",
+    "@react-native-picker/picker": "2.11.4",
     "@react-navigation/native": "^7.1.8",
     "@reduxjs/toolkit": "^2.11.1",
     "@rtk-query/codegen-openapi": "^2.2.0",
@@ -64,19 +69,23 @@
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
     "api:test": "bun run --filter '@terreno/api' test",
-    "backend:dev": "bun run --filter '@terreno/backend-example' dev",
-    "backend:lint": "bun run --filter '@terreno/backend-example' lint",
+    "backend:dev": "bun run --filter '@terreno/example-backend' dev",
+    "backend:lint": "bun run --filter '@terreno/example-backend' lint",
     "compile": "bun run --filter '*' compile",
-    "demo:compile": "bun run --filter 'demo' compile",
-    "demo:lint": "bun run --filter 'demo' lint",
-    "demo:start": "bun run --filter 'demo' start",
-    "frontend:android": "bun run --filter '@terreno/frontend-example' android",
-    "frontend:ios": "bun run --filter '@terreno/frontend-example' ios",
-    "frontend:lint": "bun run --filter '@terreno/frontend-example' lint",
-    "frontend:web": "bun run --filter '@terreno/frontend-example' web",
+    "demo:compile": "bun run --filter 'terreno-demo' compile",
+    "demo:lint": "bun run --filter 'terreno-demo' lint",
+    "demo:start": "bun run --filter 'terreno-demo' start",
+    "frontend:android": "bun run --filter '@terreno/example-frontend' android",
+    "frontend:ios": "bun run --filter '@terreno/example-frontend' ios",
+    "frontend:lint": "bun run --filter '@terreno/example-frontend' lint",
+    "frontend:web": "bun run --filter '@terreno/example-frontend' web",
     "lint": "bun run --filter '*' lint",
     "lint:fix": "bun run --filter '*' lint:fix",
     "lint:unsafefix": "bun run --filter '*' lint:unsafefix",
+    "mcp:build": "bun run --filter '@terreno/mcp-server' build",
+    "mcp:dev": "bun run --filter '@terreno/mcp-server' dev",
+    "mcp:lint": "bun run --filter '@terreno/mcp-server' lint",
+    "mcp:start": "bun run --filter '@terreno/mcp-server' start",
     "rtk:compile": "bun run --filter '@terreno/rtk' compile",
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
@@ -89,13 +98,17 @@
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
     "ui:web": "bun run --filter '@terreno/ui' web"
   },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:"
+  },
   "version": "1.0.0",
   "workspaces": [
     "api",
-    "backend-example",
     "demo",
+    "example-backend",
+    "example-frontend",
+    "mcp-server",
     "rtk",
-    "frontend-example",
     "ui"
   ]
 }

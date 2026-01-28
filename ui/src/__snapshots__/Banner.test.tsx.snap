@@ -1,0 +1,546 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Banner renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Test message",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with info status (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Info message",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with alert status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Alert message",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#BD1111",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with warning status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Warning message",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#F36719",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with icon when hasIcon is true 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "paddingLeft": 10,
+              "paddingRight": 12,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "With icon",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Banner with button",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Action",
+                          ],
+                          "props": {
+                            "style": {
+                              "fontSize": 12,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "flexDirection": "row-reverse",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "accessibilityHint": "Press to perform action Action",
+                "aria-label": "Action",
+                "aria-role": "button",
+                "onPress": [Function: debounced],
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "flexDirection": "column",
+                  "justifyContent": "center",
+                  "paddingHorizontal": 12,
+                  "paddingVertical": 4,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 10,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Banner renders with button and icon 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Banner with button and icon",
+          ],
+          "props": {
+            "style": {
+              "color": "#FFFFFF",
+              "flexShrink": 1,
+              "flexWrap": "wrap",
+              "fontWeight": "bold",
+              "textAlign": "center",
+            },
+          },
+          "type": "Text",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": {
+                              "alignSelf": "center",
+                              "marginLeft": 8,
+                              "marginRight": 0,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Go",
+                          ],
+                          "props": {
+                            "style": {
+                              "fontSize": 12,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "flexDirection": "row-reverse",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "accessibilityHint": "Press to perform action Go",
+                "aria-label": "Go",
+                "aria-role": "button",
+                "onPress": [Function: debounced],
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 360,
+                  "flexDirection": "column",
+                  "justifyContent": "center",
+                  "paddingHorizontal": 12,
+                  "paddingVertical": 4,
+                },
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 10,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flex": 1,
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#2B6072",
+      "borderRadius": 4,
+      "flexDirection": "row",
+      "height": "auto",
+      "margin": "auto",
+      "minHeight": 32,
+      "padding": 4,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

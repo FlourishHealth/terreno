@@ -1,0 +1,1391 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TableRow renders correctly with children 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Col 1",
+                                  ],
+                                  "props": {
+                                    "aria-label": "Table title: Col 1",
+                                    "aria-role": "header",
+                                    "ellipsizeMode": "tail",
+                                    "numberOfLines": 3,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flexWrap": "wrap",
+                                      "fontFamily": "text",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "lineHeight": 16,
+                                      "overflow": "hidden",
+                                      "textAlign": "left",
+                                      "textTransform": "uppercase",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "accessibilityHint": "changes sort alphabetical order",
+                                  "accessibilityLabel": "sort",
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "flexShrink": 1,
+                                  "justifyContent": "flex-start",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                              "width": 100,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Col 2",
+                                  ],
+                                  "props": {
+                                    "aria-label": "Table title: Col 2",
+                                    "aria-role": "header",
+                                    "ellipsizeMode": "tail",
+                                    "numberOfLines": 3,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flexWrap": "wrap",
+                                      "fontFamily": "text",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "lineHeight": 16,
+                                      "overflow": "hidden",
+                                      "textAlign": "left",
+                                      "textTransform": "uppercase",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "accessibilityHint": "changes sort alphabetical order",
+                                  "accessibilityLabel": "sort",
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "flexShrink": 1,
+                                  "justifyContent": "flex-start",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                              "width": 100,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flexDirection": "row",
+                          "paddingBottom": 4,
+                          "paddingTop": 4,
+                          "width": "100%",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottom": "2px solid #e0e0e0",
+                      "dangerouslySetInlineStyle": {
+                        "__style": {
+                          "borderBottom": "2px solid #e0e0e0",
+                        },
+                      },
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "flex": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Cell 1",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Cell 2",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderBottom": "1px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "1px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "stickyHeaderIndices": [
+              0,
+            ],
+            "style": {
+              "flex": 1,
+              "maxHeight": undefined,
+              "maxWidth": "100%",
+              "width": 216,
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "horizontal": true,
+        "style": {
+          "maxWidth": "100%",
+          "width": 216,
+        },
+      },
+      "type": "ScrollView",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "display": "flex",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "maxWidth": "100%",
+      "style": {
+        "position": "relative",
+      },
+      "width": 216,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableRow renders header row with thicker border 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Header",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "borderBottom": "2px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "2px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Data",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderBottom": "1px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "1px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "stickyHeaderIndices": [
+              0,
+            ],
+            "style": {
+              "flex": 1,
+              "maxHeight": undefined,
+              "maxWidth": "100%",
+              "width": 108,
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "horizontal": true,
+        "style": {
+          "maxWidth": "100%",
+          "width": 108,
+        },
+      },
+      "type": "ScrollView",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "display": "flex",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "maxWidth": "100%",
+      "style": {
+        "position": "relative",
+      },
+      "width": 108,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableRow renders with drawer contents 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": null,
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "width": 32,
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Name",
+                                  ],
+                                  "props": {
+                                    "aria-label": "Table title: Name",
+                                    "aria-role": "header",
+                                    "ellipsizeMode": "tail",
+                                    "numberOfLines": 3,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flexWrap": "wrap",
+                                      "fontFamily": "text",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "lineHeight": 16,
+                                      "overflow": "hidden",
+                                      "textAlign": "left",
+                                      "textTransform": "uppercase",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "accessibilityHint": "changes sort alphabetical order",
+                                  "accessibilityLabel": "sort",
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "flexShrink": 1,
+                                  "justifyContent": "flex-start",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                              "width": 100,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flexDirection": "row",
+                          "paddingBottom": 4,
+                          "paddingTop": 4,
+                          "width": "100%",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottom": "2px solid #e0e0e0",
+                      "dangerouslySetInlineStyle": {
+                        "__style": {
+                          "borderBottom": "2px solid #e0e0e0",
+                        },
+                      },
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "flex": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Click to expand",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderBottom": "1px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "1px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "stickyHeaderIndices": [
+              0,
+            ],
+            "style": {
+              "flex": 1,
+              "maxHeight": undefined,
+              "maxWidth": "100%",
+              "width": 164,
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "horizontal": true,
+        "style": {
+          "maxWidth": "100%",
+          "width": 164,
+        },
+      },
+      "type": "ScrollView",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "display": "flex",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "maxWidth": "100%",
+      "style": {
+        "position": "relative",
+      },
+      "width": 164,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableRow renders with custom color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Column",
+                                  ],
+                                  "props": {
+                                    "aria-label": "Table title: Column",
+                                    "aria-role": "header",
+                                    "ellipsizeMode": "tail",
+                                    "numberOfLines": 3,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flexWrap": "wrap",
+                                      "fontFamily": "text",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "lineHeight": 16,
+                                      "overflow": "hidden",
+                                      "textAlign": "left",
+                                      "textTransform": "uppercase",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "accessibilityHint": "changes sort alphabetical order",
+                                  "accessibilityLabel": "sort",
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "flexShrink": 1,
+                                  "justifyContent": "flex-start",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                              "width": 100,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flexDirection": "row",
+                          "paddingBottom": 4,
+                          "paddingTop": 4,
+                          "width": "100%",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottom": "2px solid #e0e0e0",
+                      "dangerouslySetInlineStyle": {
+                        "__style": {
+                          "borderBottom": "2px solid #e0e0e0",
+                        },
+                      },
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "flex": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Light row",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderBottom": "1px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "1px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "stickyHeaderIndices": [
+              0,
+            ],
+            "style": {
+              "flex": 1,
+              "maxHeight": undefined,
+              "maxWidth": "100%",
+              "width": 108,
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "horizontal": true,
+        "style": {
+          "maxWidth": "100%",
+          "width": 108,
+        },
+      },
+      "type": "ScrollView",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "display": "flex",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "maxWidth": "100%",
+      "style": {
+        "position": "relative",
+      },
+      "width": 108,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableRow renders drawer with expand button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": null,
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "width": 32,
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Name",
+                                  ],
+                                  "props": {
+                                    "aria-label": "Table title: Name",
+                                    "aria-role": "header",
+                                    "ellipsizeMode": "tail",
+                                    "numberOfLines": 3,
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                      "flexWrap": "wrap",
+                                      "fontFamily": "text",
+                                      "fontSize": 10,
+                                      "fontWeight": "700",
+                                      "lineHeight": 16,
+                                      "overflow": "hidden",
+                                      "textAlign": "left",
+                                      "textTransform": "uppercase",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "accessibilityHint": "changes sort alphabetical order",
+                                  "accessibilityLabel": "sort",
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "flexShrink": 1,
+                                  "justifyContent": "flex-start",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "justifyContent": "center",
+                              "marginRight": 8,
+                              "paddingBottom": 16,
+                              "paddingLeft": 12,
+                              "paddingRight": 12,
+                              "paddingTop": 16,
+                              "width": 100,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flexDirection": "row",
+                          "paddingBottom": 4,
+                          "paddingTop": 4,
+                          "width": "100%",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottom": "2px solid #e0e0e0",
+                      "dangerouslySetInlineStyle": {
+                        "__style": {
+                          "borderBottom": "2px solid #e0e0e0",
+                        },
+                      },
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#FFFFFF",
+                  "flex": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Click to expand",
+                          ],
+                          "props": {
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text",
+                              "fontSize": 14,
+                              "textAlign": undefined,
+                            },
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "justifyContent": "center",
+                          "marginRight": 8,
+                          "paddingBottom": 16,
+                          "paddingLeft": 12,
+                          "paddingRight": 12,
+                          "paddingTop": 16,
+                          "width": 100,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "paddingBottom": 4,
+                      "paddingTop": 4,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderBottom": "1px solid #e0e0e0",
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "borderBottom": "1px solid #e0e0e0",
+                    },
+                  },
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "stickyHeaderIndices": [
+              0,
+            ],
+            "style": {
+              "flex": 1,
+              "maxHeight": undefined,
+              "maxWidth": "100%",
+              "width": 164,
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "horizontal": true,
+        "style": {
+          "maxWidth": "100%",
+          "width": 164,
+        },
+      },
+      "type": "ScrollView",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "display": "flex",
+      "flexGrow": 1,
+      "flexShrink": 1,
+      "maxWidth": "100%",
+      "style": {
+        "position": "relative",
+      },
+      "width": 164,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

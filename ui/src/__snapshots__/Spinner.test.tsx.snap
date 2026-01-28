@@ -1,0 +1,73 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Spinner renders after delay 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#B3B3B3",
+    "size": "large",
+  },
+  "type": "ActivityIndicator",
+}
+`;
+
+exports[`Spinner renders with small size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#B3B3B3",
+    "size": "small",
+  },
+  "type": "ActivityIndicator",
+}
+`;
+
+exports[`Spinner renders with large size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#B3B3B3",
+    "size": "large",
+  },
+  "type": "ActivityIndicator",
+}
+`;
+
+exports[`Spinner renders with dark color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#FFFFFF",
+    "size": "large",
+  },
+  "type": "ActivityIndicator",
+}
+`;
+
+exports[`Spinner renders with accent color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#956A00",
+    "size": "large",
+  },
+  "type": "ActivityIndicator",
+}
+`;
+
+exports[`Spinner renders with secondary color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "color": "#1C4E5F",
+    "size": "large",
+  },
+  "type": "ActivityIndicator",
+}
+`;

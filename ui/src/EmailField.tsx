@@ -13,6 +13,7 @@ export const EmailField: FC<EmailFieldProps> = ({
   ...rest
 }) => {
   const [localValue, setLocalValue] = useState<string>(value || "");
+  const [localError, setLocalError] = useState<string | undefined>();
 
   // Sync local state with incoming prop values
   useEffect(() => {
@@ -34,26 +35,31 @@ export const EmailField: FC<EmailFieldProps> = ({
     (e: string) => {
       setLocalValue(e);
       const err = validateEmail(e);
+      // remove error if valid email
+      if (!err && Boolean(localError)) {
+        setLocalError(undefined);
+      }
       if (!err && onChange) {
         onChange(e);
       }
     },
-    [onChange, validateEmail]
+    [onChange, validateEmail, localError]
   );
 
   const localOnBlur = useCallback(
     (e: string) => {
-      setLocalValue(e);
       const err = validateEmail(e);
-      if (!err && onBlur) {
-        onBlur(e);
+      setLocalError(err);
+
+      if (!err) {
+        onBlur?.(e);
       }
     },
     [onBlur, validateEmail]
   );
   return (
     <TextField
-      errorText={errorText || validateEmail(localValue)}
+      errorText={errorText ?? localError}
       iconName={iconName}
       onBlur={localOnBlur}
       onChange={localOnChange}
