@@ -83,6 +83,7 @@ export * from "./table/TableTitle";
 export * from "./table/tableContext";
 export * from "./UnifiedAddressAutoComplete";
 export * from "./Unifier";
+export * from "./UserInactivity";
 export * from "./Utilities";
 export * from "./useStoredState";
 export * from "./WebAddressAutocomplete";
