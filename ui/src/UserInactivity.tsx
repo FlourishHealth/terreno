@@ -25,7 +25,7 @@
  */
 
 import {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {Keyboard, PanResponder, View} from "react-native";
+import {Keyboard, PanResponder, View, type ViewStyle} from "react-native";
 
 import type {UserInactivityProps} from "./Common";
 
