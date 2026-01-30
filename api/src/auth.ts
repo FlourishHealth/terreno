@@ -296,7 +296,19 @@ export function addAuthRoutes(
         return next(err);
       }
       if (!user) {
-        logger.warn(`Invalid login: ${info}`);
+        const email = req.body?.email;
+        const isAccountLocked =
+          info?.message === "Account locked due to too many failed login attempts";
+        if (isAccountLocked && email) {
+          const lockedUser = await userModel.findOne({email});
+          if ((lockedUser as any)?.type === "Staff") {
+            logger.warn(`Staff account locked due to too many failed login attempts: ${email}`);
+          } else {
+            logger.warn(`Invalid login: ${info}`);
+          }
+        } else {
+          logger.warn(`Invalid login: ${info}`);
+        }
         return res.status(401).json({message: info?.message});
       }
       logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
