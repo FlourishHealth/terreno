@@ -58,6 +58,7 @@ export * from "./SideDrawer";
 export * from "./Signature";
 export * from "./SignatureField";
 export * from "./Slider";
+export * from "./SocialLoginButton";
 export * from "./Spinner";
 export * from "./SplitPage";
 export * from "./TapToEdit";

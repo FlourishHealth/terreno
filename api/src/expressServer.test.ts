@@ -387,13 +387,13 @@ describe("expressServer", () => {
     it("creates server with skipListen option", () => {
       const addRoutes = () => {};
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      expect(app).toBeDefined();
+      expect(result.app).toBeDefined();
     });
 
     it("creates server with addMiddleware option", () => {
@@ -404,34 +404,34 @@ describe("expressServer", () => {
       };
       const addRoutes = () => {};
 
-      const app = setupServer({
+      const result = setupServer({
         addMiddleware,
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      expect(app).toBeDefined();
+      expect(result.app).toBeDefined();
       expect(middlewareCalled).toBe(true);
     });
 
     it("creates server with custom corsOrigin", () => {
       const addRoutes = () => {};
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         corsOrigin: "https://example.com",
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      expect(app).toBeDefined();
+      expect(result.app).toBeDefined();
     });
 
     it("creates server with authOptions", () => {
       const addRoutes = () => {};
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         authOptions: {
           generateJWTPayload: (user) => ({customField: "test", id: user._id}),
@@ -441,7 +441,7 @@ describe("expressServer", () => {
         userModel: UserModel as any,
       });
 
-      expect(app).toBeDefined();
+      expect(result.app).toBeDefined();
     });
   });
 
@@ -495,13 +495,13 @@ describe("expressServer", () => {
         });
       };
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      await supertest(app).get("/test").set("X-Transaction-ID", "txn-123").expect(200);
+      await supertest(result.app).get("/test").set("X-Transaction-ID", "txn-123").expect(200);
     });
 
     it("sets Sentry session ID tag from header", async () => {
@@ -511,13 +511,13 @@ describe("expressServer", () => {
         });
       };
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      await supertest(app).get("/test").set("X-Session-ID", "session-456").expect(200);
+      await supertest(result.app).get("/test").set("X-Session-ID", "session-456").expect(200);
     });
 
     it("sets both transaction and session ID tags", async () => {
@@ -527,13 +527,13 @@ describe("expressServer", () => {
         });
       };
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      await supertest(app)
+      await supertest(result.app)
         .get("/test")
         .set("X-Transaction-ID", "txn-123")
         .set("X-Session-ID", "session-456")
@@ -547,13 +547,13 @@ describe("expressServer", () => {
         });
       };
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         skipListen: true,
         userModel: UserModel as any,
       });
 
-      await supertest(app).get("/error").expect(500);
+      await supertest(result.app).get("/error").expect(500);
     });
 
     it("handles loggingOptions passed to setupServer", async () => {
@@ -563,7 +563,7 @@ describe("expressServer", () => {
         });
       };
 
-      const app = setupServer({
+      const result = setupServer({
         addRoutes,
         loggingOptions: {
           logSlowRequests: true,
@@ -573,7 +573,7 @@ describe("expressServer", () => {
         userModel: UserModel as any,
       });
 
-      await supertest(app).get("/test").expect(200);
+      await supertest(result.app).get("/test").expect(200);
     });
   });
 });

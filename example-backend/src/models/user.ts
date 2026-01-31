@@ -9,6 +9,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       default: false,
       type: Boolean,
     },
+    betterAuthId: {
+      index: true,
+      sparse: true,
+      type: String,
+    },
     email: {
       lowercase: true,
       required: true,
@@ -19,6 +24,10 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
     name: {
       required: true,
       trim: true,
+      type: String,
+    },
+    oauthProvider: {
+      enum: ["google", "github", "apple", null],
       type: String,
     },
   },
