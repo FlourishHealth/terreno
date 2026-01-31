@@ -60,6 +60,7 @@ export * from "./SignatureField";
 export * from "./Slider";
 export * from "./Spinner";
 export * from "./SplitPage";
+export * from "./signUp";
 export * from "./TapToEdit";
 export * from "./TerrenoProvider";
 export * from "./Text";
