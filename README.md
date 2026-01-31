@@ -186,3 +186,32 @@ Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your projec
 
 After adding the configuration, restart your AI assistant to connect to the MCP server.
 
+## AI Rules Management
+
+This project uses [rulesync](https://github.com/dyoshikawa/rulesync) to maintain consistent AI assistant rules across multiple tools (Cursor, Windsurf, Claude Code, GitHub Copilot).
+
+### How It Works
+
+1. **Single source of truth**: Rules are defined in `.rulesync/rules/` as markdown files with YAML frontmatter
+2. **Generated files**: Running `bun run rules` generates tool-specific files:
+   - `.cursorrules` - Cursor AI rules
+   - `.windsurfrules` - Windsurf AI rules
+   - `CLAUDE.md` - Claude Code instructions
+   - `.github/copilot-instructions.md` - GitHub Copilot instructions
+3. **Per-package rules**: Each package has its own rules in addition to root-level rules
+
+### Commands
+
+```bash
+bun run rules        # Generate all rule files from source
+bun run rules:check  # Verify generated files are up to date (used in CI)
+```
+
+### Updating Rules
+
+1. Edit the source files in `.rulesync/rules/`
+2. Run `bun run rules` to regenerate all tool-specific files
+3. Commit both the source and generated files
+
+The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules stay in sync with source files.
+
