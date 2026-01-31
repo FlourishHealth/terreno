@@ -11,6 +11,15 @@ import qs from "qs";
 
 import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import type {AuthProvider, BetterAuthConfig} from "./betterAuth";
+import {
+  type BetterAuthInstance,
+  createBetterAuth,
+  createBetterAuthSessionMiddleware,
+  getMongoClientFromMongoose,
+  mountBetterAuthRoutes,
+  setupBetterAuthUserSync,
+} from "./betterAuthSetup";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
@@ -20,24 +29,33 @@ const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
 const IS_JEST = process.env.JEST_WORKER_ID !== undefined;
 
-export function setupEnvironment(): void {
-  if (!process.env.TOKEN_ISSUER) {
-    throw new Error("TOKEN_ISSUER must be set in env.");
-  }
-  if (!process.env.TOKEN_SECRET) {
-    throw new Error("TOKEN_SECRET must be set.");
-  }
-  if (!process.env.REFRESH_TOKEN_SECRET) {
-    throw new Error("REFRESH_TOKEN_SECRET must be set.");
-  }
-  if (!process.env.SESSION_SECRET) {
-    throw new Error("SESSION_SECRET must be set.");
-  }
-  if (!process.env.TOKEN_EXPIRES_IN && !IS_JEST) {
-    logger.warn("TOKEN_EXPIRES_IN is not set so using default.");
-  }
-  if (!process.env.REFRESH_TOKEN_EXPIRES_IN && !IS_JEST) {
-    logger.warn("REFRESH_TOKEN_EXPIRES_IN not set so using default.");
+export function setupEnvironment(authProvider: AuthProvider = "jwt"): void {
+  if (authProvider === "jwt") {
+    if (!process.env.TOKEN_ISSUER) {
+      throw new Error("TOKEN_ISSUER must be set in env.");
+    }
+    if (!process.env.TOKEN_SECRET) {
+      throw new Error("TOKEN_SECRET must be set.");
+    }
+    if (!process.env.REFRESH_TOKEN_SECRET) {
+      throw new Error("REFRESH_TOKEN_SECRET must be set.");
+    }
+    if (!process.env.SESSION_SECRET) {
+      throw new Error("SESSION_SECRET must be set.");
+    }
+    if (!process.env.TOKEN_EXPIRES_IN && !IS_JEST) {
+      logger.warn("TOKEN_EXPIRES_IN is not set so using default.");
+    }
+    if (!process.env.REFRESH_TOKEN_EXPIRES_IN && !IS_JEST) {
+      logger.warn("REFRESH_TOKEN_EXPIRES_IN not set so using default.");
+    }
+  } else if (authProvider === "better-auth") {
+    if (!process.env.BETTER_AUTH_SECRET) {
+      throw new Error("BETTER_AUTH_SECRET must be set for Better Auth.");
+    }
+    if (!process.env.BETTER_AUTH_URL) {
+      throw new Error("BETTER_AUTH_URL must be set for Better Auth.");
+    }
   }
 }
 
@@ -168,14 +186,20 @@ interface InitializeRoutesOptions {
   logRequests?: boolean;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  // Auth provider selection: "jwt" (default) or "better-auth"
+  authProvider?: AuthProvider;
+  // Better Auth configuration (required when authProvider is "better-auth")
+  betterAuthConfig?: BetterAuthConfig;
 }
 
 function initializeRoutes(
   UserModel: UserMongooseModel,
   addRoutes: AddRoutes,
   options: InitializeRoutesOptions = {}
-) {
+): {app: express.Application; betterAuth?: BetterAuthInstance} {
   const app = express();
+  const authProvider = options.authProvider ?? "jwt";
+  let betterAuthInstance: BetterAuthInstance | undefined;
 
   // TODO: Log a warning when we hit the array limit.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));
@@ -192,10 +216,32 @@ function initializeRoutes(
 
   app.use(express.json());
 
-  // Add login/signup/refresh_token before the JWT/auth middlewares
-  addAuthRoutes(app, UserModel as any, options?.authOptions);
+  if (authProvider === "better-auth" && options.betterAuthConfig?.enabled) {
+    // Setup Better Auth
+    const mongoClient = getMongoClientFromMongoose();
+    betterAuthInstance = createBetterAuth({
+      config: options.betterAuthConfig,
+      mongoClient,
+      userModel: UserModel,
+    });
 
-  setupAuth(app as any, UserModel as any);
+    // Mount Better Auth routes
+    const basePath = options.betterAuthConfig.basePath ?? "/api/auth";
+    mountBetterAuthRoutes(app, betterAuthInstance, basePath);
+
+    // Add Better Auth session middleware
+    app.use(createBetterAuthSessionMiddleware(betterAuthInstance, UserModel));
+
+    // Setup user sync
+    setupBetterAuthUserSync(betterAuthInstance, UserModel);
+
+    logger.info("Better Auth initialized");
+  } else {
+    // Use traditional JWT auth
+    // Add login/signup/refresh_token before the JWT/auth middlewares
+    addAuthRoutes(app, UserModel as any, options?.authOptions);
+    setupAuth(app as any, UserModel as any);
+  }
 
   if (options.logRequests !== false) {
     app.use(logRequests);
@@ -240,7 +286,10 @@ function initializeRoutes(
     app.use("/swagger", oapi.swaggerui());
   }
 
-  addMeRoutes(app, UserModel as any, options?.authOptions);
+  // Add /me routes for JWT auth (Better Auth has its own session endpoints)
+  if (authProvider === "jwt") {
+    addMeRoutes(app, UserModel as any, options?.authOptions);
+  }
   addRoutes(app, {openApi: oapi});
 
   Sentry.setupExpressErrorHandler(app);
@@ -256,7 +305,7 @@ function initializeRoutes(
     res.end(`${res.sentry}\n`);
   });
 
-  return app;
+  return {app, betterAuth: betterAuthInstance};
 }
 
 export interface SetupServerOptions {
@@ -280,26 +329,45 @@ export interface SetupServerOptions {
   addMiddleware?: AddRoutes;
   ignoreTraces?: string[];
   sentryOptions?: Sentry.NodeOptions;
+  /**
+   * Auth provider selection: "jwt" (default) or "better-auth".
+   * @default "jwt"
+   */
+  authProvider?: AuthProvider;
+  /**
+   * Better Auth configuration. Required when authProvider is "better-auth".
+   */
+  betterAuthConfig?: BetterAuthConfig;
 }
 
-// Sets up the routes and returns a function to launch the API.
-export function setupServer(options: SetupServerOptions) {
+export interface SetupServerResult {
+  app: express.Application;
+  betterAuth?: BetterAuthInstance;
+}
+
+// Sets up the routes and returns the app (and optionally Better Auth instance).
+export function setupServer(options: SetupServerOptions): SetupServerResult {
   const UserModel = options.userModel;
   const addRoutes = options.addRoutes;
+  const authProvider = options.authProvider ?? "jwt";
 
   setupLogging(options.loggingOptions);
 
-  let app: express.Application;
+  let result: {app: express.Application; betterAuth?: BetterAuthInstance};
   try {
-    app = initializeRoutes(UserModel, addRoutes, {
+    result = initializeRoutes(UserModel, addRoutes, {
       addMiddleware: options.addMiddleware,
       authOptions: options.authOptions,
+      authProvider,
+      betterAuthConfig: options.betterAuthConfig,
       corsOrigin: options.corsOrigin,
     });
   } catch (error: any) {
     logger.error(`Error initializing routes: ${error.stack}`);
     throw error;
   }
+
+  const {app, betterAuth} = result;
 
   if (!options.skipListen) {
     const port = process.env.PORT || "9000";
@@ -312,7 +380,7 @@ export function setupServer(options: SetupServerOptions) {
       process.exit(1);
     }
   }
-  return app;
+  return {app, betterAuth};
 }
 
 // Convenience method to execute cronjobs with an always-running server.

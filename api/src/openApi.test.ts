@@ -77,11 +77,12 @@ describe("openApi", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
+    const result = setupServer({
       addRoutes,
       skipListen: true,
       userModel: UserModel as any,
     });
+    app = result.app;
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
   });
@@ -233,11 +234,12 @@ describe("openApi without swagger", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "false";
 
-    app = setupServer({
+    const result = setupServer({
       addRoutes,
       skipListen: true,
       userModel: UserModel as any,
     });
+    app = result.app;
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
   });
@@ -255,11 +257,12 @@ describe("openApi populate", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    app = setupServer({
+    const result = setupServer({
       addRoutes: addRoutesPopulate,
       skipListen: true,
       userModel: UserModel as any,
     });
+    app = result.app;
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
   });

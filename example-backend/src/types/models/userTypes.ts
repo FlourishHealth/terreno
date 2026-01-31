@@ -20,6 +20,8 @@ export type UserDocument = DefaultDoc &
   UserMethods &
   mongoose.PassportLocalDocument & {
     admin: boolean;
+    betterAuthId?: string;
     email: string;
     name: string;
+    oauthProvider?: "google" | "github" | "apple" | null;
   };
