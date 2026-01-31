@@ -1,6 +1,8 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 
 export const tools: Tool[] = [
+  ...bootstrapTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -764,6 +766,11 @@ export const handleToolCall = (
   name: string,
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
+  // Handle bootstrap tools
+  if (name === "bootstrap_app") {
+    return handleBootstrapToolCall(name, args);
+  }
+
   let result: string;
 
   switch (name) {
