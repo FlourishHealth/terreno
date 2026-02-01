@@ -17,6 +17,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   GCP_SERVICE_NAME: terreno-example-backend
+  GCP_ARTIFACT_REPO: terreno
 
 jobs:
   deploy-backend:
@@ -90,21 +91,21 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Configure Docker for gcr.io
-        run: gcloud auth configure-docker gcr.io --quiet
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Build Docker image
         run: |
           docker build \
             --file example-backend/Dockerfile \
-            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }} \
-            --tag gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:latest \
+            --tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }} \
+            --tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:latest \
             .
 
       - name: Push Docker image
         run: |
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }}
-          docker push gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:latest
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }}
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:latest
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -112,7 +113,7 @@ jobs:
         with:
           service: ${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}
           region: ${{ env.GCP_REGION }}
-          image: gcr.io/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}${{ steps.env.outputs.service_suffix }}:${{ github.sha }}
           flags: |
             --cpu=1
             --memory=512Mi
