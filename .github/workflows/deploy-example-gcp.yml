@@ -17,7 +17,7 @@ env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   GCP_REGION: us-central1
   GCP_SERVICE_NAME: terreno-example-backend
-  GCP_ARTIFACT_REPO: terreno-example-backend
+  GCP_ARTIFACT_REPO: terreno-backend-example
 
 jobs:
   deploy-backend:
