@@ -4,21 +4,14 @@ on:
   push:
     branches:
       - master
+      - example-deploy
     paths:
       - "example-backend/**"
       - "example-frontend/**"
       - "api/**"
       - "ui/**"
       - "rtk/**"
-      - ".github/workflows/example-deploy.yml"
-  pull_request:
-    paths:
-      - "example-backend/**"
-      - "example-frontend/**"
-      - "api/**"
-      - "ui/**"
-      - "rtk/**"
-      - ".github/workflows/example-deploy.yml"
+      - ".github/workflows/deploy-example-gcp.yml"
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -42,15 +35,9 @@ jobs:
       - name: Determine environment
         id: env
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "environment=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "service_suffix=-pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "is_production=false" >> $GITHUB_OUTPUT
-          else
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "service_suffix=" >> $GITHUB_OUTPUT
-            echo "is_production=true" >> $GITHUB_OUTPUT
-          fi
+          echo "environment=production" >> $GITHUB_OUTPUT
+          echo "service_suffix=" >> $GITHUB_OUTPUT
+          echo "is_production=true" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Deployment
         id: create-deployment
@@ -136,7 +123,7 @@ jobs:
             --allow-unauthenticated
           env_vars: |
             NODE_ENV=production
-            ${{ github.event_name == 'push' && format('MONGODB_URI={0}', secrets.MONGO_URI) || '' }}
+            MONGODB_URI=${{ secrets.MONGO_URI }}
 
       - name: Set deployment status to success
         if: success()
@@ -183,13 +170,8 @@ jobs:
       - name: Determine environment
         id: env
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "environment=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-            echo "is_production=false" >> $GITHUB_OUTPUT
-          else
-            echo "environment=production" >> $GITHUB_OUTPUT
-            echo "is_production=true" >> $GITHUB_OUTPUT
-          fi
+          echo "environment=production" >> $GITHUB_OUTPUT
+          echo "is_production=true" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Deployment
         id: create-deployment
@@ -250,10 +232,9 @@ jobs:
           production-branch: master
           production-deploy: ${{ github.ref == 'refs/heads/master' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions - ${{ github.event.head_commit.message || github.event.pull_request.title }}"
+          deploy-message: "Deploy from GitHub Actions - ${{ github.event.head_commit.message }}"
           enable-pull-request-comment: false
           enable-commit-comment: false
-          alias: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
