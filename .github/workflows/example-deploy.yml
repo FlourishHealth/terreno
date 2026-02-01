@@ -22,7 +22,7 @@ on:
 
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: us-east1
+  GCP_REGION: us-central1
   GCP_SERVICE_NAME: terreno-example-backend
 
 jobs:
@@ -136,7 +136,7 @@ jobs:
             --allow-unauthenticated
           env_vars: |
             NODE_ENV=production
-            MONGODB_URI=${{ secrets.EXAMPLE_MONGODB_URI }}
+            ${{ github.event_name == 'push' && format('MONGODB_URI={0}', secrets.MONGO_URI) || '' }}
 
       - name: Set deployment status to success
         if: success()
