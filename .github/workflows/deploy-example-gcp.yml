@@ -14,9 +14,9 @@ on:
       - ".github/workflows/deploy-example-gcp.yml"
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_PROJECT_ID: flourish-terreno
   GCP_REGION: us-central1
-  GCP_SERVICE_NAME: terreno-example-backend
+  GCP_SERVICE_NAME: terreno-backend-example
   GCP_ARTIFACT_REPO: terreno-backend-example
 
 jobs:
