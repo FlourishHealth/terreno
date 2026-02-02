@@ -7,7 +7,8 @@ import {addDefaultPlugins} from "./modelPlugins";
 const passportLocalMongoose =
   typeof _passportLocalMongoose === "function"
     ? _passportLocalMongoose
-    : (_passportLocalMongoose as any).default;
+    : // biome-ignore lint/suspicious/noExplicitAny: Passport Local Mongoose is a function, not an object.
+      (_passportLocalMongoose as any).default;
 
 const userSchema = new mongoose.Schema<UserDocument, UserModel>(
   {
