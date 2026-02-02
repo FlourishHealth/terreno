@@ -77,8 +77,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build all packages
+      - name: Build API package
         run: bun run compile
+        working-directory: api
+
+      - name: Build executable
+        run: bun build src/index.ts --compile --outfile server
+        working-directory: example-backend
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -93,9 +98,10 @@ jobs:
           gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
 
       - name: Build and push Docker image
+        working-directory: example-backend
         run: |
           IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REPO }}/${{ env.GCP_SERVICE_NAME }}:latest"
-          docker build -t "$IMAGE" -f ./example-backend/Dockerfile .
+          docker build -t "$IMAGE" .
           docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
