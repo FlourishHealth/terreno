@@ -1,4 +1,5 @@
 # Build stage
+# TODO: Do this build in Github Actions
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
