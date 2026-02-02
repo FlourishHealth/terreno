@@ -82,14 +82,14 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}:latest"
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest"
           docker build -t "$IMAGE" -f ./example-backend/Dockerfile .
           docker push "$IMAGE"
 
       - name: Deploy to Cloud Run
         id: deploy
         run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}:latest"
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest"
 
           gcloud run deploy '${{ env.GCP_SERVICE_NAME }}' \
             --platform managed \
