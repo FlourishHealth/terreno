@@ -1,0 +1,67 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Signature renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "backgroundColor": "#FFFFFF",
+            },
+            "testID": "signature-canvas",
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "borderColor": "#9A9A9A",
+          "borderWidth": 1,
+          "maxWidth": 300,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Clear",
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "color": "#0A7092",
+              "textDecorationLine": "underline",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
