@@ -64,7 +64,9 @@ export class HeightActionSheet extends React.Component<
                 }}
               >
                 {range(minFeet, maxFeet + 1).map((n) => {
-                  return <Picker.Item key={String(n)} label={`${String(n)} ft`} value={String(n)} />;
+                  return (
+                    <Picker.Item key={String(n)} label={`${String(n)} ft`} value={String(n)} />
+                  );
                 })}
               </Picker>
             </Box>
@@ -86,7 +88,9 @@ export class HeightActionSheet extends React.Component<
                 }}
               >
                 {range(0, 12).map((n) => {
-                  return <Picker.Item key={String(n)} label={`${String(n)} in`} value={String(n)} />;
+                  return (
+                    <Picker.Item key={String(n)} label={`${String(n)} in`} value={String(n)} />
+                  );
                 })}
               </Picker>
             </Box>
