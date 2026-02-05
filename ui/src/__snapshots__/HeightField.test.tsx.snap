@@ -56,7 +56,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
       "props": {
         "accessibilityHint": "Tap to select height",
         "accessibilityLabel": "Height selector",
-        "aria-role": "button",
+        "accessibilityRole": "button",
         "disabled": undefined,
         "onPress": [Function],
       },
@@ -197,7 +197,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                                     {
                                                       "$$typeof": Symbol(react.test.json),
                                                       "children": [
-                                                        "Close",
+                                                        "Done",
                                                       ],
                                                       "props": {
                                                         "style": {
@@ -229,7 +229,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Close",
+                                            "aria-label": "Done",
                                             "aria-role": "button",
                                             "disabled": undefined,
                                             "onPress": [Function: debounced],
@@ -287,7 +287,43 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4ft",
+                                                "label": "0 ft",
+                                                "value": "0",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "1 ft",
+                                                "value": "1",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "2 ft",
+                                                "value": "2",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "3 ft",
+                                                "value": "3",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "4 ft",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -296,7 +332,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5ft",
+                                                "label": "5 ft",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -305,7 +341,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6ft",
+                                                "label": "6 ft",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -314,7 +350,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7ft",
+                                                "label": "7 ft",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -322,13 +358,15 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "5",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -354,7 +392,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "0in",
+                                                "label": "0 in",
                                                 "value": "0",
                                               },
                                               "type": "Picker.Item",
@@ -363,7 +401,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "1in",
+                                                "label": "1 in",
                                                 "value": "1",
                                               },
                                               "type": "Picker.Item",
@@ -372,7 +410,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "2in",
+                                                "label": "2 in",
                                                 "value": "2",
                                               },
                                               "type": "Picker.Item",
@@ -381,7 +419,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "3in",
+                                                "label": "3 in",
                                                 "value": "3",
                                               },
                                               "type": "Picker.Item",
@@ -390,7 +428,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4in",
+                                                "label": "4 in",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -399,7 +437,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5in",
+                                                "label": "5 in",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -408,7 +446,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6in",
+                                                "label": "6 in",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -417,7 +455,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7in",
+                                                "label": "7 in",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -426,7 +464,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "8in",
+                                                "label": "8 in",
                                                 "value": "8",
                                               },
                                               "type": "Picker.Item",
@@ -435,7 +473,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "9in",
+                                                "label": "9 in",
                                                 "value": "9",
                                               },
                                               "type": "Picker.Item",
@@ -444,7 +482,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "10in",
+                                                "label": "10 in",
                                                 "value": "10",
                                               },
                                               "type": "Picker.Item",
@@ -453,7 +491,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "11in",
+                                                "label": "11 in",
                                                 "value": "11",
                                               },
                                               "type": "Picker.Item",
@@ -461,13 +499,15 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "0",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -519,8 +559,19 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                 {
                                   "translateY": Value {
                                     "_value": 0,
+                                    "addListener": [class Function],
+                                    "animate": [class Function],
+                                    "extractOffset": [class Function],
+                                    "flattenOffset": [class Function],
                                     "interpolate": [class Function],
+                                    "removeAllListeners": [class Function],
+                                    "removeListener": [class Function],
+                                    "resetAnimation": [class Function],
+                                    "setOffset": [class Function],
                                     "setValue": [class Function],
+                                    "stopAnimation": [class Function],
+                                    "stopTracking": [class Function],
+                                    "track": [class Function],
                                   },
                                 },
                               ],
@@ -548,15 +599,37 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                             "maxHeight": 812,
                             "opacity": Value {
                               "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
                               "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
                               "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
                             },
                             "transform": [
                               {
                                 "translateY": Value {
                                   "_value": 0,
+                                  "addListener": [class Function],
+                                  "animate": [class Function],
+                                  "extractOffset": [class Function],
+                                  "flattenOffset": [class Function],
                                   "interpolate": [class Function],
+                                  "removeAllListeners": [class Function],
+                                  "removeListener": [class Function],
+                                  "resetAnimation": [class Function],
+                                  "setOffset": [class Function],
                                   "setValue": [class Function],
+                                  "stopAnimation": [class Function],
+                                  "stopTracking": [class Function],
+                                  "track": [class Function],
                                 },
                               },
                             ],
@@ -621,8 +694,19 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
               {
                 "opacity": Value {
                   "_value": 0,
+                  "addListener": [class Function],
+                  "animate": [class Function],
+                  "extractOffset": [class Function],
+                  "flattenOffset": [class Function],
                   "interpolate": [class Function],
+                  "removeAllListeners": [class Function],
+                  "removeListener": [class Function],
+                  "resetAnimation": [class Function],
+                  "setOffset": [class Function],
                   "setValue": [class Function],
+                  "stopAnimation": [class Function],
+                  "stopTracking": [class Function],
+                  "track": [class Function],
                 },
                 "width": 375,
               },
@@ -717,7 +801,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
       "props": {
         "accessibilityHint": "Tap to select height",
         "accessibilityLabel": "Height selector",
-        "aria-role": "button",
+        "accessibilityRole": "button",
         "disabled": undefined,
         "onPress": [Function],
       },
@@ -858,7 +942,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                                     {
                                                       "$$typeof": Symbol(react.test.json),
                                                       "children": [
-                                                        "Close",
+                                                        "Done",
                                                       ],
                                                       "props": {
                                                         "style": {
@@ -890,7 +974,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Close",
+                                            "aria-label": "Done",
                                             "aria-role": "button",
                                             "disabled": undefined,
                                             "onPress": [Function: debounced],
@@ -948,7 +1032,43 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4ft",
+                                                "label": "0 ft",
+                                                "value": "0",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "1 ft",
+                                                "value": "1",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "2 ft",
+                                                "value": "2",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "3 ft",
+                                                "value": "3",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "4 ft",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -957,7 +1077,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5ft",
+                                                "label": "5 ft",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -966,7 +1086,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6ft",
+                                                "label": "6 ft",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -975,7 +1095,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7ft",
+                                                "label": "7 ft",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -983,13 +1103,15 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "5",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -1015,7 +1137,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "0in",
+                                                "label": "0 in",
                                                 "value": "0",
                                               },
                                               "type": "Picker.Item",
@@ -1024,7 +1146,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "1in",
+                                                "label": "1 in",
                                                 "value": "1",
                                               },
                                               "type": "Picker.Item",
@@ -1033,7 +1155,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "2in",
+                                                "label": "2 in",
                                                 "value": "2",
                                               },
                                               "type": "Picker.Item",
@@ -1042,7 +1164,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "3in",
+                                                "label": "3 in",
                                                 "value": "3",
                                               },
                                               "type": "Picker.Item",
@@ -1051,7 +1173,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4in",
+                                                "label": "4 in",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -1060,7 +1182,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5in",
+                                                "label": "5 in",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -1069,7 +1191,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6in",
+                                                "label": "6 in",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -1078,7 +1200,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7in",
+                                                "label": "7 in",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -1087,7 +1209,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "8in",
+                                                "label": "8 in",
                                                 "value": "8",
                                               },
                                               "type": "Picker.Item",
@@ -1096,7 +1218,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "9in",
+                                                "label": "9 in",
                                                 "value": "9",
                                               },
                                               "type": "Picker.Item",
@@ -1105,7 +1227,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "10in",
+                                                "label": "10 in",
                                                 "value": "10",
                                               },
                                               "type": "Picker.Item",
@@ -1114,7 +1236,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "11in",
+                                                "label": "11 in",
                                                 "value": "11",
                                               },
                                               "type": "Picker.Item",
@@ -1122,13 +1244,15 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "10",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -1180,8 +1304,19 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                 {
                                   "translateY": Value {
                                     "_value": 0,
+                                    "addListener": [class Function],
+                                    "animate": [class Function],
+                                    "extractOffset": [class Function],
+                                    "flattenOffset": [class Function],
                                     "interpolate": [class Function],
+                                    "removeAllListeners": [class Function],
+                                    "removeListener": [class Function],
+                                    "resetAnimation": [class Function],
+                                    "setOffset": [class Function],
                                     "setValue": [class Function],
+                                    "stopAnimation": [class Function],
+                                    "stopTracking": [class Function],
+                                    "track": [class Function],
                                   },
                                 },
                               ],
@@ -1209,15 +1344,37 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                             "maxHeight": 812,
                             "opacity": Value {
                               "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
                               "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
                               "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
                             },
                             "transform": [
                               {
                                 "translateY": Value {
                                   "_value": 0,
+                                  "addListener": [class Function],
+                                  "animate": [class Function],
+                                  "extractOffset": [class Function],
+                                  "flattenOffset": [class Function],
                                   "interpolate": [class Function],
+                                  "removeAllListeners": [class Function],
+                                  "removeListener": [class Function],
+                                  "resetAnimation": [class Function],
+                                  "setOffset": [class Function],
                                   "setValue": [class Function],
+                                  "stopAnimation": [class Function],
+                                  "stopTracking": [class Function],
+                                  "track": [class Function],
                                 },
                               },
                             ],
@@ -1282,8 +1439,19 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
               {
                 "opacity": Value {
                   "_value": 0,
+                  "addListener": [class Function],
+                  "animate": [class Function],
+                  "extractOffset": [class Function],
+                  "flattenOffset": [class Function],
                   "interpolate": [class Function],
+                  "removeAllListeners": [class Function],
+                  "removeListener": [class Function],
+                  "resetAnimation": [class Function],
+                  "setOffset": [class Function],
                   "setValue": [class Function],
+                  "stopAnimation": [class Function],
+                  "stopTracking": [class Function],
+                  "track": [class Function],
                 },
                 "width": 375,
               },
@@ -1432,7 +1600,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
       "props": {
         "accessibilityHint": "Tap to select height",
         "accessibilityLabel": "Height selector",
-        "aria-role": "button",
+        "accessibilityRole": "button",
         "disabled": false,
         "onPress": [Function],
       },
@@ -1599,7 +1767,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                                     {
                                                       "$$typeof": Symbol(react.test.json),
                                                       "children": [
-                                                        "Close",
+                                                        "Done",
                                                       ],
                                                       "props": {
                                                         "style": {
@@ -1631,7 +1799,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Close",
+                                            "aria-label": "Done",
                                             "aria-role": "button",
                                             "disabled": undefined,
                                             "onPress": [Function: debounced],
@@ -1689,7 +1857,43 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4ft",
+                                                "label": "0 ft",
+                                                "value": "0",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "1 ft",
+                                                "value": "1",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "2 ft",
+                                                "value": "2",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "3 ft",
+                                                "value": "3",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "4 ft",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -1698,7 +1902,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5ft",
+                                                "label": "5 ft",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -1707,7 +1911,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6ft",
+                                                "label": "6 ft",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -1716,7 +1920,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7ft",
+                                                "label": "7 ft",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -1724,13 +1928,15 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "5",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -1756,7 +1962,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "0in",
+                                                "label": "0 in",
                                                 "value": "0",
                                               },
                                               "type": "Picker.Item",
@@ -1765,7 +1971,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "1in",
+                                                "label": "1 in",
                                                 "value": "1",
                                               },
                                               "type": "Picker.Item",
@@ -1774,7 +1980,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "2in",
+                                                "label": "2 in",
                                                 "value": "2",
                                               },
                                               "type": "Picker.Item",
@@ -1783,7 +1989,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "3in",
+                                                "label": "3 in",
                                                 "value": "3",
                                               },
                                               "type": "Picker.Item",
@@ -1792,7 +1998,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4in",
+                                                "label": "4 in",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -1801,7 +2007,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5in",
+                                                "label": "5 in",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -1810,7 +2016,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6in",
+                                                "label": "6 in",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -1819,7 +2025,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7in",
+                                                "label": "7 in",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -1828,7 +2034,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "8in",
+                                                "label": "8 in",
                                                 "value": "8",
                                               },
                                               "type": "Picker.Item",
@@ -1837,7 +2043,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "9in",
+                                                "label": "9 in",
                                                 "value": "9",
                                               },
                                               "type": "Picker.Item",
@@ -1846,7 +2052,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "10in",
+                                                "label": "10 in",
                                                 "value": "10",
                                               },
                                               "type": "Picker.Item",
@@ -1855,7 +2061,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "11in",
+                                                "label": "11 in",
                                                 "value": "11",
                                               },
                                               "type": "Picker.Item",
@@ -1863,13 +2069,15 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "10",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -1921,8 +2129,19 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                 {
                                   "translateY": Value {
                                     "_value": 0,
+                                    "addListener": [class Function],
+                                    "animate": [class Function],
+                                    "extractOffset": [class Function],
+                                    "flattenOffset": [class Function],
                                     "interpolate": [class Function],
+                                    "removeAllListeners": [class Function],
+                                    "removeListener": [class Function],
+                                    "resetAnimation": [class Function],
+                                    "setOffset": [class Function],
                                     "setValue": [class Function],
+                                    "stopAnimation": [class Function],
+                                    "stopTracking": [class Function],
+                                    "track": [class Function],
                                   },
                                 },
                               ],
@@ -1950,15 +2169,37 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                             "maxHeight": 812,
                             "opacity": Value {
                               "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
                               "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
                               "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
                             },
                             "transform": [
                               {
                                 "translateY": Value {
                                   "_value": 0,
+                                  "addListener": [class Function],
+                                  "animate": [class Function],
+                                  "extractOffset": [class Function],
+                                  "flattenOffset": [class Function],
                                   "interpolate": [class Function],
+                                  "removeAllListeners": [class Function],
+                                  "removeListener": [class Function],
+                                  "resetAnimation": [class Function],
+                                  "setOffset": [class Function],
                                   "setValue": [class Function],
+                                  "stopAnimation": [class Function],
+                                  "stopTracking": [class Function],
+                                  "track": [class Function],
                                 },
                               },
                             ],
@@ -2023,8 +2264,19 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
               {
                 "opacity": Value {
                   "_value": 0,
+                  "addListener": [class Function],
+                  "animate": [class Function],
+                  "extractOffset": [class Function],
+                  "flattenOffset": [class Function],
                   "interpolate": [class Function],
+                  "removeAllListeners": [class Function],
+                  "removeListener": [class Function],
+                  "resetAnimation": [class Function],
+                  "setOffset": [class Function],
                   "setValue": [class Function],
+                  "stopAnimation": [class Function],
+                  "stopTracking": [class Function],
+                  "track": [class Function],
                 },
                 "width": 375,
               },
@@ -2134,7 +2386,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
       "props": {
         "accessibilityHint": "Tap to select height",
         "accessibilityLabel": "Height selector",
-        "aria-role": "button",
+        "accessibilityRole": "button",
         "disabled": true,
         "onPress": [Function],
       },
@@ -2275,7 +2527,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                                     {
                                                       "$$typeof": Symbol(react.test.json),
                                                       "children": [
-                                                        "Close",
+                                                        "Done",
                                                       ],
                                                       "props": {
                                                         "style": {
@@ -2307,7 +2559,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Close",
+                                            "aria-label": "Done",
                                             "aria-role": "button",
                                             "disabled": undefined,
                                             "onPress": [Function: debounced],
@@ -2365,7 +2617,43 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4ft",
+                                                "label": "0 ft",
+                                                "value": "0",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "1 ft",
+                                                "value": "1",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "2 ft",
+                                                "value": "2",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "3 ft",
+                                                "value": "3",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "4 ft",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -2374,7 +2662,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5ft",
+                                                "label": "5 ft",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -2383,7 +2671,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6ft",
+                                                "label": "6 ft",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -2392,7 +2680,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7ft",
+                                                "label": "7 ft",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -2400,13 +2688,15 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "5",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -2432,7 +2722,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "0in",
+                                                "label": "0 in",
                                                 "value": "0",
                                               },
                                               "type": "Picker.Item",
@@ -2441,7 +2731,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "1in",
+                                                "label": "1 in",
                                                 "value": "1",
                                               },
                                               "type": "Picker.Item",
@@ -2450,7 +2740,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "2in",
+                                                "label": "2 in",
                                                 "value": "2",
                                               },
                                               "type": "Picker.Item",
@@ -2459,7 +2749,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "3in",
+                                                "label": "3 in",
                                                 "value": "3",
                                               },
                                               "type": "Picker.Item",
@@ -2468,7 +2758,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4in",
+                                                "label": "4 in",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -2477,7 +2767,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5in",
+                                                "label": "5 in",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -2486,7 +2776,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6in",
+                                                "label": "6 in",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -2495,7 +2785,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7in",
+                                                "label": "7 in",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -2504,7 +2794,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "8in",
+                                                "label": "8 in",
                                                 "value": "8",
                                               },
                                               "type": "Picker.Item",
@@ -2513,7 +2803,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "9in",
+                                                "label": "9 in",
                                                 "value": "9",
                                               },
                                               "type": "Picker.Item",
@@ -2522,7 +2812,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "10in",
+                                                "label": "10 in",
                                                 "value": "10",
                                               },
                                               "type": "Picker.Item",
@@ -2531,7 +2821,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "11in",
+                                                "label": "11 in",
                                                 "value": "11",
                                               },
                                               "type": "Picker.Item",
@@ -2539,13 +2829,15 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "10",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -2597,8 +2889,19 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                 {
                                   "translateY": Value {
                                     "_value": 0,
+                                    "addListener": [class Function],
+                                    "animate": [class Function],
+                                    "extractOffset": [class Function],
+                                    "flattenOffset": [class Function],
                                     "interpolate": [class Function],
+                                    "removeAllListeners": [class Function],
+                                    "removeListener": [class Function],
+                                    "resetAnimation": [class Function],
+                                    "setOffset": [class Function],
                                     "setValue": [class Function],
+                                    "stopAnimation": [class Function],
+                                    "stopTracking": [class Function],
+                                    "track": [class Function],
                                   },
                                 },
                               ],
@@ -2626,15 +2929,37 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                             "maxHeight": 812,
                             "opacity": Value {
                               "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
                               "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
                               "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
                             },
                             "transform": [
                               {
                                 "translateY": Value {
                                   "_value": 0,
+                                  "addListener": [class Function],
+                                  "animate": [class Function],
+                                  "extractOffset": [class Function],
+                                  "flattenOffset": [class Function],
                                   "interpolate": [class Function],
+                                  "removeAllListeners": [class Function],
+                                  "removeListener": [class Function],
+                                  "resetAnimation": [class Function],
+                                  "setOffset": [class Function],
                                   "setValue": [class Function],
+                                  "stopAnimation": [class Function],
+                                  "stopTracking": [class Function],
+                                  "track": [class Function],
                                 },
                               },
                             ],
@@ -2699,8 +3024,19 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
               {
                 "opacity": Value {
                   "_value": 0,
+                  "addListener": [class Function],
+                  "animate": [class Function],
+                  "extractOffset": [class Function],
+                  "flattenOffset": [class Function],
                   "interpolate": [class Function],
+                  "removeAllListeners": [class Function],
+                  "removeListener": [class Function],
+                  "resetAnimation": [class Function],
+                  "setOffset": [class Function],
                   "setValue": [class Function],
+                  "stopAnimation": [class Function],
+                  "stopTracking": [class Function],
+                  "track": [class Function],
                 },
                 "width": 375,
               },
@@ -2849,7 +3185,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
       "props": {
         "accessibilityHint": "Tap to select height",
         "accessibilityLabel": "Height selector",
-        "aria-role": "button",
+        "accessibilityRole": "button",
         "disabled": undefined,
         "onPress": [Function],
       },
@@ -2990,7 +3326,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                                     {
                                                       "$$typeof": Symbol(react.test.json),
                                                       "children": [
-                                                        "Close",
+                                                        "Done",
                                                       ],
                                                       "props": {
                                                         "style": {
@@ -3022,7 +3358,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                           ],
                                           "props": {
                                             "accessibilityHint": "Press to perform action",
-                                            "aria-label": "Close",
+                                            "aria-label": "Done",
                                             "aria-role": "button",
                                             "disabled": undefined,
                                             "onPress": [Function: debounced],
@@ -3080,7 +3416,43 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4ft",
+                                                "label": "0 ft",
+                                                "value": "0",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "1 ft",
+                                                "value": "1",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "2 ft",
+                                                "value": "2",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "3 ft",
+                                                "value": "3",
+                                              },
+                                              "type": "Picker.Item",
+                                            },
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": null,
+                                              "props": {
+                                                "label": "4 ft",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -3089,7 +3461,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5ft",
+                                                "label": "5 ft",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -3098,7 +3470,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6ft",
+                                                "label": "6 ft",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -3107,7 +3479,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7ft",
+                                                "label": "7 ft",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -3115,13 +3487,15 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "5",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -3147,7 +3521,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "0in",
+                                                "label": "0 in",
                                                 "value": "0",
                                               },
                                               "type": "Picker.Item",
@@ -3156,7 +3530,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "1in",
+                                                "label": "1 in",
                                                 "value": "1",
                                               },
                                               "type": "Picker.Item",
@@ -3165,7 +3539,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "2in",
+                                                "label": "2 in",
                                                 "value": "2",
                                               },
                                               "type": "Picker.Item",
@@ -3174,7 +3548,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "3in",
+                                                "label": "3 in",
                                                 "value": "3",
                                               },
                                               "type": "Picker.Item",
@@ -3183,7 +3557,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "4in",
+                                                "label": "4 in",
                                                 "value": "4",
                                               },
                                               "type": "Picker.Item",
@@ -3192,7 +3566,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "5in",
+                                                "label": "5 in",
                                                 "value": "5",
                                               },
                                               "type": "Picker.Item",
@@ -3201,7 +3575,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "6in",
+                                                "label": "6 in",
                                                 "value": "6",
                                               },
                                               "type": "Picker.Item",
@@ -3210,7 +3584,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "7in",
+                                                "label": "7 in",
                                                 "value": "7",
                                               },
                                               "type": "Picker.Item",
@@ -3219,7 +3593,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "8in",
+                                                "label": "8 in",
                                                 "value": "8",
                                               },
                                               "type": "Picker.Item",
@@ -3228,7 +3602,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "9in",
+                                                "label": "9 in",
                                                 "value": "9",
                                               },
                                               "type": "Picker.Item",
@@ -3237,7 +3611,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "10in",
+                                                "label": "10 in",
                                                 "value": "10",
                                               },
                                               "type": "Picker.Item",
@@ -3246,7 +3620,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                               "$$typeof": Symbol(react.test.json),
                                               "children": null,
                                               "props": {
-                                                "label": "11in",
+                                                "label": "11 in",
                                                 "value": "11",
                                               },
                                               "type": "Picker.Item",
@@ -3254,13 +3628,15 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                           ],
                                           "props": {
                                             "itemStyle": {
-                                              "height": 104,
+                                              "color": "#1a1a1a",
+                                              "fontSize": 20,
+                                              "height": 180,
                                             },
                                             "onValueChange": [Function],
                                             "selectedValue": "0",
                                             "style": {
                                               "backgroundColor": "#FFFFFF",
-                                              "height": 104,
+                                              "height": 180,
                                             },
                                           },
                                           "type": "Picker",
@@ -3312,8 +3688,19 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                 {
                                   "translateY": Value {
                                     "_value": 0,
+                                    "addListener": [class Function],
+                                    "animate": [class Function],
+                                    "extractOffset": [class Function],
+                                    "flattenOffset": [class Function],
                                     "interpolate": [class Function],
+                                    "removeAllListeners": [class Function],
+                                    "removeListener": [class Function],
+                                    "resetAnimation": [class Function],
+                                    "setOffset": [class Function],
                                     "setValue": [class Function],
+                                    "stopAnimation": [class Function],
+                                    "stopTracking": [class Function],
+                                    "track": [class Function],
                                   },
                                 },
                               ],
@@ -3341,15 +3728,37 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                             "maxHeight": 812,
                             "opacity": Value {
                               "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
                               "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
                               "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
                             },
                             "transform": [
                               {
                                 "translateY": Value {
                                   "_value": 0,
+                                  "addListener": [class Function],
+                                  "animate": [class Function],
+                                  "extractOffset": [class Function],
+                                  "flattenOffset": [class Function],
                                   "interpolate": [class Function],
+                                  "removeAllListeners": [class Function],
+                                  "removeListener": [class Function],
+                                  "resetAnimation": [class Function],
+                                  "setOffset": [class Function],
                                   "setValue": [class Function],
+                                  "stopAnimation": [class Function],
+                                  "stopTracking": [class Function],
+                                  "track": [class Function],
                                 },
                               },
                             ],
@@ -3414,8 +3823,19 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
               {
                 "opacity": Value {
                   "_value": 0,
+                  "addListener": [class Function],
+                  "animate": [class Function],
+                  "extractOffset": [class Function],
+                  "flattenOffset": [class Function],
                   "interpolate": [class Function],
+                  "removeAllListeners": [class Function],
+                  "removeListener": [class Function],
+                  "resetAnimation": [class Function],
+                  "setOffset": [class Function],
                   "setValue": [class Function],
+                  "stopAnimation": [class Function],
+                  "stopTracking": [class Function],
+                  "track": [class Function],
                 },
                 "width": 375,
               },

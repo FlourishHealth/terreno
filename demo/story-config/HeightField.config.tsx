@@ -7,14 +7,13 @@ import {
   HeightFieldWithValueDemo,
 } from "@stories";
 import {HeightField} from "@terreno/ui";
-import React from "react";
 
 export const HeightFieldConfiguration: DemoConfiguration = {
   name: "Height field",
   component: HeightField,
   related: ["Number field", "Text field"],
   description:
-    "Use the Height field to allow users to input their height. The field stores the value as total inches and displays it as feet and inches. On mobile, tapping the field opens a spinner modal for selection.",
+    "Use the Height field to allow users to input their height. The field stores the value as total inches and displays it as feet and inches. On mobile, tapping the field opens an action sheet for selection. Supports optional min/max props to constrain the allowed height range.",
   a11yNotes: [
     "Users should be able to use tab to navigate between the feet and inches inputs.",
     "The field should announce the current value to screen readers.",
@@ -38,7 +37,7 @@ export const HeightFieldConfiguration: DemoConfiguration = {
     ],
     doNot: [
       "Do not use this component for other measurements like weight or distance.",
-      "Do not allow values outside the valid range (0-7 feet, 0-11 inches).",
+      "Do not allow values outside the valid range. Use min/max props to constrain if needed.",
     ],
   },
   props: {},

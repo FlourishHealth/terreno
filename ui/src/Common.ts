@@ -686,13 +686,11 @@ export interface PercentFieldProps extends BaseFieldProps, HelperTextProps, Erro
 
 export interface CurrencyFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
 
-export interface HeightFieldProps extends HelperTextProps, ErrorTextProps {
-  id?: string;
-  testID?: string;
-  title?: string;
-  disabled?: boolean;
-  value?: string;
-  onChange: OnChangeCallback;
+export interface HeightFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
 }
 
 export interface AddressFieldProps
@@ -1669,6 +1667,10 @@ export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
   actionSheetRef: React.RefObject<any>;
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
 }
 
 export interface HyperlinkProps {

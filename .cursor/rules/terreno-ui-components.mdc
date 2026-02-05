@@ -125,11 +125,11 @@ describe("ComponentName", () => {
 
 ## Real-World Examples
 
-- [HeightField Component](mdc:../ui/src/HeightField.tsx)
-- [HeightField Stories](mdc:../demo/stories/HeightField.stories.tsx)
-- [HeightField Config](mdc:../demo/story-config/HeightField.config.tsx)
-- [HeightField Tests](mdc:../ui/src/HeightField.test.tsx)
-- [TextField Tests](mdc:../ui/src/TextField.test.tsx) - comprehensive test example
+- [HeightField Component](mdc:../../ui/src/HeightField.tsx)
+- [HeightField Stories](mdc:../../demo/stories/HeightField.stories.tsx)
+- [HeightField Config](mdc:../../demo/story-config/HeightField.config.tsx)
+- [HeightField Tests](mdc:../../ui/src/HeightField.test.tsx)
+- [TextField Tests](mdc:../../ui/src/TextField.test.tsx) - comprehensive test example
 
 ## Common Pitfalls
 
