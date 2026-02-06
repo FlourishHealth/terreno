@@ -1,7 +1,22 @@
-import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
+import {
+  Box,
+  Button,
+  Heading,
+  Page,
+  SocialLoginButton,
+  Text,
+  TextField,
+  useToast,
+} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useState} from "react";
+import {
+  isBetterAuthEnabled,
+  signInWithEmail,
+  signInWithSocial,
+  signUpWithEmail,
+} from "@/lib/betterAuth";
 import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
 
 const LoginScreen: React.FC = () => {
@@ -10,7 +25,10 @@ const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const toast = useToast();
+
+  const useBetterAuth = isBetterAuthEnabled();
 
   const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
   const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
@@ -27,22 +45,48 @@ const LoginScreen: React.FC = () => {
     }
 
     try {
-      if (isSignUp) {
-        await emailSignUp({email, name, password}).unwrap();
+      if (useBetterAuth) {
+        // Use Better Auth for email/password auth
+        if (isSignUp) {
+          await signUpWithEmail(email, password, name);
+        } else {
+          await signInWithEmail(email, password);
+        }
       } else {
-        await emailLogin({email, password}).unwrap();
+        // Use traditional JWT auth
+        if (isSignUp) {
+          await emailSignUp({email, name, password}).unwrap();
+        } else {
+          await emailLogin({email, password}).unwrap();
+        }
       }
       // Navigation will happen automatically when userId is set in the store
     } catch (err) {
       console.error("Authentication error:", err);
     }
-  }, [email, password, name, isSignUp, emailLogin, emailSignUp]);
+  }, [email, password, name, isSignUp, emailLogin, emailSignUp, useBetterAuth, toast]);
+
+  const handleSocialLogin = useCallback(
+    async (provider: "google" | "github" | "apple"): Promise<void> => {
+      setSocialLoading(provider);
+      try {
+        await signInWithSocial(provider);
+        // Navigation will happen automatically when session is synced
+      } catch (err) {
+        console.error(`Social login error (${provider}):`, err);
+        toast.error(`Failed to sign in with ${provider}`);
+      } finally {
+        setSocialLoading(null);
+      }
+    },
+    [toast]
+  );
 
   const toggleMode = useCallback((): void => {
     setIsSignUp(!isSignUp);
   }, [isSignUp]);
 
-  const isLoading = isLoginLoading || isSignUpLoading;
+  const isLoading = isLoginLoading || isSignUpLoading || Boolean(socialLoading);
   const error = loginError || signUpError;
 
   const isSubmitDisabled = !email || !password || (isSignUp && !name) || isLoading;
@@ -116,6 +160,37 @@ const LoginScreen: React.FC = () => {
               variant="outline"
             />
           </Box>
+
+          {useBetterAuth && !isSignUp && (
+            <>
+              <Box alignItems="center" marginTop={6}>
+                <Text color="secondary">Or continue with</Text>
+              </Box>
+
+              <Box gap={3} marginTop={4}>
+                <SocialLoginButton
+                  disabled={isLoading}
+                  loading={socialLoading === "google"}
+                  onPress={() => handleSocialLogin("google")}
+                  provider="google"
+                />
+
+                <SocialLoginButton
+                  disabled={isLoading}
+                  loading={socialLoading === "github"}
+                  onPress={() => handleSocialLogin("github")}
+                  provider="github"
+                />
+
+                <SocialLoginButton
+                  disabled={isLoading}
+                  loading={socialLoading === "apple"}
+                  onPress={() => handleSocialLogin("apple")}
+                  provider="apple"
+                />
+              </Box>
+            </>
+          )}
         </Box>
       </Box>
     </Page>
