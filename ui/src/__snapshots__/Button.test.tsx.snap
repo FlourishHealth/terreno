@@ -1,0 +1,934 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Button renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Click me",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Click me",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders primary variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Primary",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Primary",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders secondary variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Secondary",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Secondary",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#2B6072",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders muted variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Muted",
+              ],
+              "props": {
+                "style": {
+                  "color": "#353535",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Muted",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#B6CDD5",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders outline variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Outline",
+              ],
+              "props": {
+                "style": {
+                  "color": "#092E3A",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Outline",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#092E3A",
+      "borderRadius": 360,
+      "borderWidth": 2,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders destructive variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Delete",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Delete",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#BD1111",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders disabled state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Disabled",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Disabled",
+    "aria-role": "button",
+    "disabled": true,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#9A9A9A",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button applies disabled styles when disabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Disabled",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Disabled",
+    "aria-role": "button",
+    "disabled": true,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#9A9A9A",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders loading state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Loading",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "color": "#FFFFFF",
+                "size": "small",
+              },
+              "type": "ActivityIndicator",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "marginLeft": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Loading",
+    "aria-role": "button",
+    "disabled": true,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders fullWidth button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Full Width",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Full Width",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "stretch",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders with icon on left 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignSelf": "center",
+                  "marginLeft": 0,
+                  "marginRight": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "With Icon",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "With Icon",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders with icon on right 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignSelf": "center",
+                  "marginLeft": 8,
+                  "marginRight": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Next",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row-reverse",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Next",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`Button renders with confirmation modal props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Delete",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Opens a confirmation dialog",
+    "aria-label": "Delete",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": undefined,
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;
