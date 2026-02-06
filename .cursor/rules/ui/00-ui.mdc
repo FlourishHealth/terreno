@@ -1,7 +1,6 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "@terreno/ui - React Native component library"
-globs: ["**/*"]
+description: @terreno/ui - React Native component library
+globs: **/*
 ---
 
 # @terreno/ui

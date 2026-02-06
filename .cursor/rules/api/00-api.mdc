@@ -1,7 +1,6 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "@terreno/api - Express/Mongoose REST API framework"
-globs: ["**/*"]
+description: @terreno/api - Express/Mongoose REST API framework
+globs: **/*
 ---
 
 # @terreno/api

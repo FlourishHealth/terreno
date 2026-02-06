@@ -1,7 +1,6 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "example-backend - Express backend demonstrating @terreno/api usage"
-globs: ["**/*"]
+description: example-backend - Express backend demonstrating @terreno/api usage
+globs: **/*
 ---
 
 # example-backend

@@ -1,9 +1,3 @@
----
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "terreno-demo - Interactive showcase for @terreno/ui components"
-globs: ["**/*"]
----
-
 # terreno-demo
 
 Interactive demo app for developing, testing, and showcasing @terreno/ui components. Built with Expo Router. This is a **frontend-only** app — no backend, no API integration.

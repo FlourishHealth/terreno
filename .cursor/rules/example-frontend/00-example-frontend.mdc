@@ -1,7 +1,6 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "example-frontend - Expo app demonstrating full-stack Terreno usage"
-globs: ["**/*"]
+description: example-frontend - Expo app demonstrating full-stack Terreno usage
+globs: **/*
 ---
 
 # example-frontend

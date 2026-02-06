@@ -1,9 +1,7 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "example-backend - Express backend demonstrating @terreno/api usage"
-globs: ["**/*"]
+paths:
+  - '**/*'
 ---
-
 # example-backend
 
 Example Express backend demonstrating @terreno/api usage with Mongoose models, permissions, and OpenAPI generation. This is a **backend-only** app — no React, no UI components, no frontend code.

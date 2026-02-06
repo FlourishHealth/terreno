@@ -1,9 +1,7 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
-description: "@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends"
-globs: ["**/*"]
+description: '@terreno/rtk - Redux Toolkit Query utilities for Terreno frontends'
+applyTo: '**/*'
 ---
-
 # @terreno/rtk
 
 Redux Toolkit Query utilities for frontends connecting to @terreno/api backends. Provides JWT authentication, token management, SDK code generation support, and Socket.io integration. This is a **frontend state management** package — no Express, no Mongoose, no backend code.
