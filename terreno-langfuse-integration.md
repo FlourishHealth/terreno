@@ -1,6 +1,8 @@
 # @terreno/langfuse
 
-A TerrenoApp plugin that integrates [Langfuse](https://langfuse.com) into Terreno backends and frontends. Provides prompt management with Redis caching, OpenTelemetry tracing, Vercel AI SDK helpers, React hooks, and an admin UI — all wired up via `.install()`.
+A TerrenoApp plugin that integrates [Langfuse](https://langfuse.com) into Terreno backends and frontends. Provides prompt management with MongoDB caching, OpenTelemetry tracing, Vercel AI SDK helpers, React hooks, and an admin UI — all wired up via `.install()`.
+
+> **Prerequisite:** This package relies on the new TerrenoApp plugin system (see [PR #149](https://github.com/FlourishHealth/terreno/pull/149)). TerrenoApp must support `.install()` before this package can be used.
 
 ## Why
 
@@ -12,14 +14,14 @@ LLM apps need prompt versioning, observability, and iteration tools. Langfuse pr
 Backend (.install)                    Frontend (<Provider>)
 ─────────────────                     ────────────────────
 • Langfuse client init                • usePrompt(name) → cached prompt
-• Redis prompt cache (required)       • usePrompts() → list all
+• MongoDB prompt cache (via Mongoose) • usePrompts() → list all
 • OpenTelemetry tracing setup         • useTrace() → telemetry helpers
 • Admin API routes (/api/prompts,     • useEvaluation() → submit scores
   /api/traces, /api/playground)       • Admin UI pages (prompts, traces,
 • Vercel AI SDK helpers                 playground, dashboard)
 ```
 
-The backend proxies Langfuse's API behind authenticated admin routes. The frontend talks to those routes, never directly to Langfuse. Redis sits in front of all prompt fetches with configurable TTL.
+The backend proxies Langfuse's API behind authenticated admin routes. The frontend talks to those routes, never directly to Langfuse. MongoDB sits in front of all prompt fetches with configurable TTL, reusing the existing Mongoose connection from `@terreno/api`.
 
 ## Data Models
 
@@ -28,7 +30,6 @@ interface LangfuseAppOptions {
   secretKey: string;
   publicKey: string;
   baseUrl?: string;              // default: Langfuse Cloud EU
-  redis: RedisOptions | Redis;   // required — no optional in-memory fallback
   adminPath?: string;            // default: '/admin/langfuse'
   enableAdminUI?: boolean;       // default: true
   enableTracing?: boolean;       // default: true
@@ -59,7 +60,7 @@ langfuse/src/
 ├── backend/
 │   ├── LangfuseApp.ts       # TerrenoApp plugin class (.install entry point)
 │   ├── client.ts             # Langfuse SDK wrapper (singleton)
-│   ├── cache.ts              # Redis get/set with TTL, key prefixing, invalidation
+│   ├── cache.ts              # Mongoose model for cached entries with TTL index
 │   ├── prompts.ts            # getPrompt, compilePrompt (cache-first → Langfuse fallback)
 │   ├── tracing.ts            # NodeSDK + LangfuseSpanProcessor setup/shutdown
 │   ├── vercel-ai.ts          # preparePromptForAI(), createTelemetryConfig()
@@ -79,33 +80,11 @@ langfuse/src/
 
 ## Implementation Phases
 
-### Phase 1: Package scaffold + Langfuse client
-Create `package.json`, `tsconfig.json`. Initialize Langfuse client singleton with support for Cloud EU/US and self-hosted URLs. Peer deps on `@terreno/api`, `@terreno/ui`, `react`, and optional `ai` (Vercel AI SDK).
+### Phase 1: Core package
+Package scaffold (`package.json`, `tsconfig.json`, `index.ts` re-exports), Langfuse client singleton with Cloud EU/US and self-hosted URL support, MongoDB cache layer (Mongoose model with TTL index on `expiresAt` for automatic expiry — no Redis needed, reuses the existing Mongoose connection), prompt management (`getPrompt` cache-first with Langfuse fallback, `compilePrompt` with `{{variable}}` interpolation, write-through `createPrompt`/`updatePromptLabels` with cache invalidation), OpenTelemetry tracing (`@opentelemetry/sdk-node` + `LangfuseSpanProcessor`), Vercel AI SDK helpers (`preparePromptForAI` returning `{ prompt, telemetry, config }`), the `LangfuseApp` plugin class (`.install()` wires up client + cache + tracing + admin routes + `res.locals.langfuse`, `.shutdown()` for cleanup), React hooks (`usePrompt`, `usePrompts`, `useTrace`, `useEvaluation` — all talking to admin API routes, never Langfuse directly), and `LangfuseProvider`. Peer deps on `@terreno/api`, `@terreno/ui`, `react`, and optional `ai` (Vercel AI SDK).
 
-### Phase 2: Redis cache layer
-`cache.ts` — connect to Redis (accept existing client or options), cache prompts and traces with key prefixes (`langfuse:prompt:`, `langfuse:trace:`), TTL via `SETEX`, bulk invalidation via `KEYS` + `DEL`.
-
-### Phase 3: Prompt management
-`prompts.ts` — `getPrompt(name, opts)` checks Redis first, falls back to Langfuse SDK, caches result. `compilePrompt()` fetches + runs Langfuse's `{{variable}}` interpolation. Separate text and chat prompt helpers. `createPrompt()` and `updatePromptLabels()` write-through with cache invalidation.
-
-### Phase 4: Tracing
-`tracing.ts` — initialize `@opentelemetry/sdk-node` with `LangfuseSpanProcessor` from `@langfuse/otel`. `vercel-ai.ts` — helper that fetches a prompt and returns `{ prompt, telemetry, config }` ready to spread into `generateText()`.
-
-### Phase 5: LangfuseApp plugin
-The main class. `LangfuseApp.install(app, options)` wires up phases 1–4: init client, init Redis, start tracing, inject `res.locals.langfuse`, mount admin routes. Exposes `shutdown()` for graceful cleanup.
-
-### Phase 6: React hooks
-All hooks talk to the admin API routes, not Langfuse directly.
-- `usePrompt(name)` — fetch + compile with `{{variables}}`
-- `usePrompts()` — list all prompts
-- `useTrace()` — start/end traces, get telemetry config for Vercel AI SDK
-- `useEvaluation()` — submit scores to traces
-
-### Phase 7: Admin UI
+### Phase 2: Admin UI
 Built with `@terreno/ui` components. Pages: prompt list, prompt detail/editor, playground (compile + test with LLM), trace explorer, dashboard with counts. Components are also exported individually for embedding in custom admin pages.
-
-### Phase 8: Public exports
-Single `index.ts` re-exporting everything. Backend consumers get the plugin + utilities. Frontend consumers get the provider + hooks + components.
 
 ## Usage
 
@@ -115,7 +94,6 @@ TerrenoApp.create({ ... })
   .install(LangfuseApp, {
     secretKey: process.env.LANGFUSE_SECRET_KEY!,
     publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
-    redis: { host: 'localhost', port: 6379 },
   })
   .start();
 
@@ -138,7 +116,7 @@ const { prompt, compile, isLoading } = usePrompt('chat-assistant');
 
 ## Key Decisions
 
-- **Redis is required**, not optional. No in-memory fallback — keeps the caching layer simple and production-ready.
+- **MongoDB is used for caching** via a Mongoose model with a TTL index. No Redis dependency — reuses the existing Mongoose connection from `@terreno/api`, keeping infrastructure simple.
 - **Frontend never talks to Langfuse directly.** All access goes through the backend admin routes, keeping keys server-side.
 - **Evaluation is opt-in** via `evaluation.enabled`. Scoring functions are configured at install time.
 - **Vercel AI SDK is an optional peer dep.** The `preparePromptForAI` helper is the primary integration point.
@@ -150,12 +128,12 @@ const { prompt, compile, isLoading } = usePrompt('chat-assistant');
 | `langfuse` | Langfuse Node.js SDK (client, prompts, scoring) |
 | `@langfuse/otel` | Langfuse OpenTelemetry span processor |
 | `@opentelemetry/sdk-node` | OpenTelemetry Node SDK |
-| `ioredis` | Redis client |
+| `mongoose` | MongoDB ODM (peer dep from @terreno/api) |
 
 ## Files to Modify Outside This Package
 
 - **Root `package.json`**: Add `langfuse` to workspaces, add deps to catalog
-- **`api/src/TerrenoApp.ts`**: Needs `.install()` method (may already exist from PR #149)
+- **`api/src/TerrenoApp.ts`**: Requires the `.install()` plugin system from [PR #149](https://github.com/FlourishHealth/terreno/pull/149)
 - **`example-backend/`** and **`example-frontend/`**: Add usage examples
 
 ## References
