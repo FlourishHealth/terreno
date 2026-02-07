@@ -116,11 +116,23 @@ jobs:
           sudo chmod 0755 "$CHROME_BIN"
           "$CHROME_BIN" --version
 
+      - name: Debug - Check page content
+        run: |
+          echo "=== Backend health ==="
+          curl -s http://localhost:4000/openapi.json | head -c 200
+          echo ""
+          echo "=== Frontend HTML ==="
+          curl -s http://localhost:8082 | head -c 2000
+          echo ""
+          echo "=== Frontend status ==="
+          curl -s -o /dev/null -w "HTTP %{http_code}, size %{size_download}" http://localhost:8082
+          echo ""
+
       - name: Run Maestro E2E tests
         run: xvfb-run maestro test .maestro/flows/
 
       - name: Upload Maestro artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: maestro-screenshots
