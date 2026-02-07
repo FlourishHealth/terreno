@@ -6,12 +6,14 @@ on:
       - master
     paths:
       - "mcp-server/**"
+      - "ui/**"
       - ".github/workflows/mcp-server-deploy.yml"
   pull_request_target:
     branches:
       - master
     paths:
       - "mcp-server/**"
+      - "ui/**"
       - ".github/workflows/mcp-server-deploy.yml"
   workflow_dispatch:
     inputs:
