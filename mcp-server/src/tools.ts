@@ -1,6 +1,8 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
+import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 
 export const tools: Tool[] = [
+  ...bootstrapTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -741,25 +743,72 @@ Suggestions:
 ${suggestions.map((s) => `- ${s}`).join("\n")}`;
 };
 
+const wrapWithFileInstructions = (
+  code: string,
+  filePath: string,
+  additionalSteps?: string[]
+): string => {
+  const stepsText = additionalSteps?.length
+    ? `\n\nAfter writing the file:\n${additionalSteps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`
+    : "";
+
+  return `**IMPORTANT: Write this code to a file**
+
+File path: \`${filePath}\`
+${stepsText}
+
+---
+
+${code}`;
+};
+
 export const handleToolCall = (
   name: string,
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
+  // Handle bootstrap tools
+  if (name === "bootstrap_app") {
+    return handleBootstrapToolCall(name, args);
+  }
+
   let result: string;
 
   switch (name) {
-    case "generate_model":
-      result = generateModel(args as Parameters<typeof generateModel>[0]);
+    case "generate_model": {
+      const modelArgs = args as Parameters<typeof generateModel>[0];
+      const code = generateModel(modelArgs);
+      const modelName = modelArgs.name.toLowerCase();
+      result = wrapWithFileInstructions(code, `backend/src/models/${modelName}.ts`, [
+        `Export from \`backend/src/models/index.ts\`: \`export * from "./${modelName}";\``,
+      ]);
       break;
-    case "generate_route":
-      result = generateRoute(args as Parameters<typeof generateRoute>[0]);
+    }
+    case "generate_route": {
+      const routeArgs = args as Parameters<typeof generateRoute>[0];
+      const code = generateRoute(routeArgs);
+      const modelName = routeArgs.modelName.toLowerCase();
+      result = wrapWithFileInstructions(code, `backend/src/api/${modelName}.ts`, [
+        `Export from \`backend/src/api/index.ts\`: \`export * from "./${modelName}";\``,
+        `Register in server setup: \`add${routeArgs.modelName}Routes(router, options);\``,
+        `Regenerate frontend SDK: \`bun run sdk\` in the frontend directory`,
+      ]);
       break;
-    case "generate_screen":
-      result = generateScreen(args as Parameters<typeof generateScreen>[0]);
+    }
+    case "generate_screen": {
+      const screenArgs = args as Parameters<typeof generateScreen>[0];
+      const code = generateScreen(screenArgs);
+      result = wrapWithFileInstructions(code, `frontend/src/screens/${screenArgs.name}Screen.tsx`, [
+        "Add the screen to your navigation configuration",
+      ]);
       break;
-    case "generate_form_fields":
-      result = generateFormFields(args as Parameters<typeof generateFormFields>[0]);
+    }
+    case "generate_form_fields": {
+      const code = generateFormFields(args as Parameters<typeof generateFormFields>[0]);
+      result = wrapWithFileInstructions(code, "your form component file", [
+        "Integrate this code into your form screen component",
+      ]);
       break;
+    }
     case "validate_model_schema":
       result = validateModelSchema(args as Parameters<typeof validateModelSchema>[0]);
       break;

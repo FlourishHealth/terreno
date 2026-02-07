@@ -1,0 +1,456 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Tooltip renders without tooltip when text is empty 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "No tooltip",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with tooltip text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Hover for info",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with top position (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with bottom position 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with left position 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with right position 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with arrow 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Tooltip renders with arrow and specific position 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Content",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "hitSlop": {
+          "bottom": 10,
+          "left": 15,
+          "right": 15,
+          "top": 10,
+        },
+        "onPointerEnter": [Function],
+        "onPointerLeave": [Function],
+        "onPress": [Function],
+        "onTouchStart": [Function],
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

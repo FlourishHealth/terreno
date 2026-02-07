@@ -1,0 +1,1269 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`HeightActionSheet renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": undefined,
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "left": 999999,
+              "position": "absolute",
+              "top": 999999,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "backgroundColor": "black",
+                      "height": "100%",
+                      "opacity": 0.3,
+                      "position": "absolute",
+                      "width": "100%",
+                      "zIndex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "aria-role": "button",
+                        "onLongPress": [Function],
+                        "onPress": [Function],
+                        "style": {
+                          "height": 933.8,
+                          "width": "100%",
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "height": 933.8,
+                      "width": "100%",
+                      "zIndex": 10,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": [
+                              {
+                                "alignSelf": "center",
+                                "backgroundColor": "#f0f0f0",
+                                "borderRadius": 100,
+                                "height": 6,
+                                "marginVertical": 5,
+                                "width": 45,
+                              },
+                              {
+                                "backgroundColor": "#f0f0f0",
+                              },
+                            ],
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": [
+                                                {
+                                                  "$$typeof": Symbol(react.test.json),
+                                                  "children": [
+                                                    "Close",
+                                                  ],
+                                                  "props": {
+                                                    "style": {
+                                                      "color": "#FFFFFF",
+                                                      "fontSize": 16,
+                                                      "fontWeight": "700",
+                                                    },
+                                                  },
+                                                  "type": "Text",
+                                                },
+                                              ],
+                                              "props": {
+                                                "style": {
+                                                  "flexDirection": "row",
+                                                },
+                                                "testID": undefined,
+                                              },
+                                              "type": "View",
+                                            },
+                                          ],
+                                          "props": {
+                                            "style": {
+                                              "flexDirection": "row",
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "View",
+                                        },
+                                      ],
+                                      "props": {
+                                        "accessibilityHint": "Press to perform action",
+                                        "aria-label": "Close",
+                                        "aria-role": "button",
+                                        "disabled": undefined,
+                                        "onPress": [Function: debounced],
+                                        "style": {
+                                          "alignItems": "center",
+                                          "alignSelf": undefined,
+                                          "backgroundColor": "#0E9DCD",
+                                          "borderColor": undefined,
+                                          "borderRadius": 360,
+                                          "borderWidth": undefined,
+                                          "flexDirection": "column",
+                                          "justifyContent": "center",
+                                          "paddingHorizontal": 20,
+                                          "paddingVertical": 8,
+                                          "width": "auto",
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "Pressable",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "33%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "alignItems": "flex-end",
+                                  "flex": undefined,
+                                  "width": "100%",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "4ft",
+                                            "value": "4",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "5ft",
+                                            "value": "5",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "6ft",
+                                            "value": "6",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "7ft",
+                                            "value": "7",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                      ],
+                                      "props": {
+                                        "itemStyle": {
+                                          "height": 104,
+                                        },
+                                        "onValueChange": [Function],
+                                        "selectedValue": "6",
+                                        "style": {
+                                          "backgroundColor": "#FFFFFF",
+                                          "height": 104,
+                                        },
+                                      },
+                                      "type": "Picker",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "50%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "0in",
+                                            "value": "0",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "1in",
+                                            "value": "1",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "2in",
+                                            "value": "2",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "3in",
+                                            "value": "3",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "4in",
+                                            "value": "4",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "5in",
+                                            "value": "5",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "6in",
+                                            "value": "6",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "7in",
+                                            "value": "7",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "8in",
+                                            "value": "8",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "9in",
+                                            "value": "9",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "10in",
+                                            "value": "10",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "11in",
+                                            "value": "11",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                      ],
+                                      "props": {
+                                        "itemStyle": {
+                                          "height": 104,
+                                        },
+                                        "onValueChange": [Function],
+                                        "selectedValue": "0",
+                                        "style": {
+                                          "backgroundColor": "#FFFFFF",
+                                          "height": 104,
+                                        },
+                                      },
+                                      "type": "Picker",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "50%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "width": "100%",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "marginBottom": 48,
+                              "paddingLeft": 16,
+                              "paddingRight": 16,
+                              "width": "100%",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginTop": 0,
+                          "maxHeight": 812,
+                          "transform": [
+                            {
+                              "translateY": Value {
+                                "_value": 0,
+                                "addListener": [class Function],
+                                "animate": [class Function],
+                                "extractOffset": [class Function],
+                                "flattenOffset": [class Function],
+                                "interpolate": [class Function],
+                                "removeAllListeners": [class Function],
+                                "removeListener": [class Function],
+                                "resetAnimation": [class Function],
+                                "setOffset": [class Function],
+                                "setValue": [class Function],
+                                "stopAnimation": [class Function],
+                                "stopTracking": [class Function],
+                                "track": [class Function],
+                              },
+                            },
+                          ],
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onLayout": [Function: AsyncFunction],
+                    "style": [
+                      {
+                        "alignSelf": "center",
+                        "backgroundColor": "white",
+                        "width": "100%",
+                      },
+                      {
+                        "borderRadius": 10,
+                      },
+                      undefined,
+                      {
+                        "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
+                        "elevation": 5,
+                        "maxHeight": 812,
+                        "opacity": Value {
+                          "_value": 0,
+                          "addListener": [class Function],
+                          "animate": [class Function],
+                          "extractOffset": [class Function],
+                          "flattenOffset": [class Function],
+                          "interpolate": [class Function],
+                          "removeAllListeners": [class Function],
+                          "removeListener": [class Function],
+                          "resetAnimation": [class Function],
+                          "setOffset": [class Function],
+                          "setValue": [class Function],
+                          "stopAnimation": [class Function],
+                          "stopTracking": [class Function],
+                          "track": [class Function],
+                        },
+                        "transform": [
+                          {
+                            "translateY": Value {
+                              "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
+                              "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
+                              "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
+                            },
+                          },
+                        ],
+                        "zIndex": 11,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "bounces": false,
+            "contentContainerStyle": {
+              "width": 375,
+            },
+            "keyboardShouldPersistTaps": undefined,
+            "onMomentumScrollBegin": [Function: AsyncFunction],
+            "onMomentumScrollEnd": [Function: AsyncFunction],
+            "onScroll": [Function],
+            "onScrollBeginDrag": [Function: AsyncFunction],
+            "onTouchEnd": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEnabled": false,
+            "scrollEventThrottle": 5,
+            "scrollsToTop": false,
+            "showsVerticalScrollIndicator": false,
+            "style": [
+              {
+                "backgroundColor": "transparent",
+                "height": "100%",
+                "width": "100%",
+              },
+              {
+                "width": 375,
+              },
+            ],
+          },
+          "type": "FlatList",
+        },
+      ],
+      "props": {
+        "onLayout": [Function: AsyncFunction],
+        "style": [
+          {
+            "alignItems": "center",
+            "height": "100%",
+            "justifyContent": "center",
+            "width": "100%",
+          },
+          {
+            "opacity": Value {
+              "_value": 0,
+              "addListener": [class Function],
+              "animate": [class Function],
+              "extractOffset": [class Function],
+              "flattenOffset": [class Function],
+              "interpolate": [class Function],
+              "removeAllListeners": [class Function],
+              "removeListener": [class Function],
+              "resetAnimation": [class Function],
+              "setOffset": [class Function],
+              "setValue": [class Function],
+              "stopAnimation": [class Function],
+              "stopTracking": [class Function],
+              "track": [class Function],
+            },
+            "width": 375,
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "onShow": undefined,
+    "statusBarTranslucent": true,
+    "supportedOrientations": [
+      "portrait",
+      "portrait-upside-down",
+      "landscape",
+      "landscape-left",
+      "landscape-right",
+    ],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`HeightActionSheet renders with different height value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": undefined,
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "left": 999999,
+              "position": "absolute",
+              "top": 999999,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "backgroundColor": "black",
+                      "height": "100%",
+                      "opacity": 0.3,
+                      "position": "absolute",
+                      "width": "100%",
+                      "zIndex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "aria-role": "button",
+                        "onLongPress": [Function],
+                        "onPress": [Function],
+                        "style": {
+                          "height": 933.8,
+                          "width": "100%",
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "height": 933.8,
+                      "width": "100%",
+                      "zIndex": 10,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": [
+                              {
+                                "alignSelf": "center",
+                                "backgroundColor": "#f0f0f0",
+                                "borderRadius": 100,
+                                "height": 6,
+                                "marginVertical": 5,
+                                "width": 45,
+                              },
+                              {
+                                "backgroundColor": "#f0f0f0",
+                              },
+                            ],
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": [
+                                                {
+                                                  "$$typeof": Symbol(react.test.json),
+                                                  "children": [
+                                                    "Close",
+                                                  ],
+                                                  "props": {
+                                                    "style": {
+                                                      "color": "#FFFFFF",
+                                                      "fontSize": 16,
+                                                      "fontWeight": "700",
+                                                    },
+                                                  },
+                                                  "type": "Text",
+                                                },
+                                              ],
+                                              "props": {
+                                                "style": {
+                                                  "flexDirection": "row",
+                                                },
+                                                "testID": undefined,
+                                              },
+                                              "type": "View",
+                                            },
+                                          ],
+                                          "props": {
+                                            "style": {
+                                              "flexDirection": "row",
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "View",
+                                        },
+                                      ],
+                                      "props": {
+                                        "accessibilityHint": "Press to perform action",
+                                        "aria-label": "Close",
+                                        "aria-role": "button",
+                                        "disabled": undefined,
+                                        "onPress": [Function: debounced],
+                                        "style": {
+                                          "alignItems": "center",
+                                          "alignSelf": undefined,
+                                          "backgroundColor": "#0E9DCD",
+                                          "borderColor": undefined,
+                                          "borderRadius": 360,
+                                          "borderWidth": undefined,
+                                          "flexDirection": "column",
+                                          "justifyContent": "center",
+                                          "paddingHorizontal": 20,
+                                          "paddingVertical": 8,
+                                          "width": "auto",
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "Pressable",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "33%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "alignItems": "flex-end",
+                                  "flex": undefined,
+                                  "width": "100%",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "4ft",
+                                            "value": "4",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "5ft",
+                                            "value": "5",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "6ft",
+                                            "value": "6",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "7ft",
+                                            "value": "7",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                      ],
+                                      "props": {
+                                        "itemStyle": {
+                                          "height": 104,
+                                        },
+                                        "onValueChange": [Function],
+                                        "selectedValue": "5",
+                                        "style": {
+                                          "backgroundColor": "#FFFFFF",
+                                          "height": 104,
+                                        },
+                                      },
+                                      "type": "Picker",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "50%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "0in",
+                                            "value": "0",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "1in",
+                                            "value": "1",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "2in",
+                                            "value": "2",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "3in",
+                                            "value": "3",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "4in",
+                                            "value": "4",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "5in",
+                                            "value": "5",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "6in",
+                                            "value": "6",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "7in",
+                                            "value": "7",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "8in",
+                                            "value": "8",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "9in",
+                                            "value": "9",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "10in",
+                                            "value": "10",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": null,
+                                          "props": {
+                                            "label": "11in",
+                                            "value": "11",
+                                          },
+                                          "type": "Picker.Item",
+                                        },
+                                      ],
+                                      "props": {
+                                        "itemStyle": {
+                                          "height": 104,
+                                        },
+                                        "onValueChange": [Function],
+                                        "selectedValue": "5",
+                                        "style": {
+                                          "backgroundColor": "#FFFFFF",
+                                          "height": 104,
+                                        },
+                                      },
+                                      "type": "Picker",
+                                    },
+                                  ],
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "width": "50%",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
+                                "style": {
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "width": "100%",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "marginBottom": 48,
+                              "paddingLeft": 16,
+                              "paddingRight": 16,
+                              "width": "100%",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginTop": 0,
+                          "maxHeight": 812,
+                          "transform": [
+                            {
+                              "translateY": Value {
+                                "_value": 0,
+                                "addListener": [class Function],
+                                "animate": [class Function],
+                                "extractOffset": [class Function],
+                                "flattenOffset": [class Function],
+                                "interpolate": [class Function],
+                                "removeAllListeners": [class Function],
+                                "removeListener": [class Function],
+                                "resetAnimation": [class Function],
+                                "setOffset": [class Function],
+                                "setValue": [class Function],
+                                "stopAnimation": [class Function],
+                                "stopTracking": [class Function],
+                                "track": [class Function],
+                              },
+                            },
+                          ],
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onLayout": [Function: AsyncFunction],
+                    "style": [
+                      {
+                        "alignSelf": "center",
+                        "backgroundColor": "white",
+                        "width": "100%",
+                      },
+                      {
+                        "borderRadius": 10,
+                      },
+                      undefined,
+                      {
+                        "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
+                        "elevation": 5,
+                        "maxHeight": 812,
+                        "opacity": Value {
+                          "_value": 0,
+                          "addListener": [class Function],
+                          "animate": [class Function],
+                          "extractOffset": [class Function],
+                          "flattenOffset": [class Function],
+                          "interpolate": [class Function],
+                          "removeAllListeners": [class Function],
+                          "removeListener": [class Function],
+                          "resetAnimation": [class Function],
+                          "setOffset": [class Function],
+                          "setValue": [class Function],
+                          "stopAnimation": [class Function],
+                          "stopTracking": [class Function],
+                          "track": [class Function],
+                        },
+                        "transform": [
+                          {
+                            "translateY": Value {
+                              "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
+                              "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
+                              "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
+                            },
+                          },
+                        ],
+                        "zIndex": 11,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "bounces": false,
+            "contentContainerStyle": {
+              "width": 375,
+            },
+            "keyboardShouldPersistTaps": undefined,
+            "onMomentumScrollBegin": [Function: AsyncFunction],
+            "onMomentumScrollEnd": [Function: AsyncFunction],
+            "onScroll": [Function],
+            "onScrollBeginDrag": [Function: AsyncFunction],
+            "onTouchEnd": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEnabled": false,
+            "scrollEventThrottle": 5,
+            "scrollsToTop": false,
+            "showsVerticalScrollIndicator": false,
+            "style": [
+              {
+                "backgroundColor": "transparent",
+                "height": "100%",
+                "width": "100%",
+              },
+              {
+                "width": 375,
+              },
+            ],
+          },
+          "type": "FlatList",
+        },
+      ],
+      "props": {
+        "onLayout": [Function: AsyncFunction],
+        "style": [
+          {
+            "alignItems": "center",
+            "height": "100%",
+            "justifyContent": "center",
+            "width": "100%",
+          },
+          {
+            "opacity": Value {
+              "_value": 0,
+              "addListener": [class Function],
+              "animate": [class Function],
+              "extractOffset": [class Function],
+              "flattenOffset": [class Function],
+              "interpolate": [class Function],
+              "removeAllListeners": [class Function],
+              "removeListener": [class Function],
+              "resetAnimation": [class Function],
+              "setOffset": [class Function],
+              "setValue": [class Function],
+              "stopAnimation": [class Function],
+              "stopTracking": [class Function],
+              "track": [class Function],
+            },
+            "width": 375,
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "onShow": undefined,
+    "statusBarTranslucent": true,
+    "supportedOrientations": [
+      "portrait",
+      "portrait-upside-down",
+      "landscape",
+      "landscape-left",
+      "landscape-right",
+    ],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;

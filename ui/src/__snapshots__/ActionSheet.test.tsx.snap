@@ -1,0 +1,889 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`ActionSheet renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": undefined,
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "left": 999999,
+              "position": "absolute",
+              "top": 999999,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "backgroundColor": "black",
+                      "height": "100%",
+                      "opacity": 0.3,
+                      "position": "absolute",
+                      "width": "100%",
+                      "zIndex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "aria-role": "button",
+                        "onLongPress": [Function],
+                        "onPress": [Function],
+                        "style": {
+                          "height": 933.8,
+                          "width": "100%",
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "height": 933.8,
+                      "width": "100%",
+                      "zIndex": 10,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Test content",
+                          ],
+                          "props": {
+                            "style": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginTop": 0,
+                          "maxHeight": 812,
+                          "transform": [
+                            {
+                              "translateY": Value {
+                                "_value": 0,
+                                "addListener": [class Function],
+                                "animate": [class Function],
+                                "extractOffset": [class Function],
+                                "flattenOffset": [class Function],
+                                "interpolate": [class Function],
+                                "removeAllListeners": [class Function],
+                                "removeListener": [class Function],
+                                "resetAnimation": [class Function],
+                                "setOffset": [class Function],
+                                "setValue": [class Function],
+                                "stopAnimation": [class Function],
+                                "stopTracking": [class Function],
+                                "track": [class Function],
+                              },
+                            },
+                          ],
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onLayout": [Function: AsyncFunction],
+                    "style": [
+                      {
+                        "alignSelf": "center",
+                        "backgroundColor": "white",
+                        "width": "100%",
+                      },
+                      {
+                        "borderRadius": 10,
+                      },
+                      undefined,
+                      {
+                        "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
+                        "elevation": 5,
+                        "maxHeight": 812,
+                        "opacity": Value {
+                          "_value": 0,
+                          "addListener": [class Function],
+                          "animate": [class Function],
+                          "extractOffset": [class Function],
+                          "flattenOffset": [class Function],
+                          "interpolate": [class Function],
+                          "removeAllListeners": [class Function],
+                          "removeListener": [class Function],
+                          "resetAnimation": [class Function],
+                          "setOffset": [class Function],
+                          "setValue": [class Function],
+                          "stopAnimation": [class Function],
+                          "stopTracking": [class Function],
+                          "track": [class Function],
+                        },
+                        "transform": [
+                          {
+                            "translateY": Value {
+                              "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
+                              "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
+                              "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
+                            },
+                          },
+                        ],
+                        "zIndex": 11,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "bounces": false,
+            "contentContainerStyle": {
+              "width": 375,
+            },
+            "keyboardShouldPersistTaps": undefined,
+            "onMomentumScrollBegin": [Function: AsyncFunction],
+            "onMomentumScrollEnd": [Function: AsyncFunction],
+            "onScroll": [Function],
+            "onScrollBeginDrag": [Function: AsyncFunction],
+            "onTouchEnd": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEnabled": false,
+            "scrollEventThrottle": 5,
+            "scrollsToTop": false,
+            "showsVerticalScrollIndicator": false,
+            "style": [
+              {
+                "backgroundColor": "transparent",
+                "height": "100%",
+                "width": "100%",
+              },
+              {
+                "width": 375,
+              },
+            ],
+          },
+          "type": "FlatList",
+        },
+      ],
+      "props": {
+        "onLayout": [Function: AsyncFunction],
+        "style": [
+          {
+            "alignItems": "center",
+            "height": "100%",
+            "justifyContent": "center",
+            "width": "100%",
+          },
+          {
+            "opacity": Value {
+              "_value": 0,
+              "addListener": [class Function],
+              "animate": [class Function],
+              "extractOffset": [class Function],
+              "flattenOffset": [class Function],
+              "interpolate": [class Function],
+              "removeAllListeners": [class Function],
+              "removeListener": [class Function],
+              "resetAnimation": [class Function],
+              "setOffset": [class Function],
+              "setValue": [class Function],
+              "stopAnimation": [class Function],
+              "stopTracking": [class Function],
+              "track": [class Function],
+            },
+            "width": 375,
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "onShow": undefined,
+    "statusBarTranslucent": true,
+    "supportedOrientations": [
+      "portrait",
+      "portrait-upside-down",
+      "landscape",
+      "landscape-left",
+      "landscape-right",
+    ],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`ActionSheet renders with custom overlay color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": undefined,
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "left": 999999,
+              "position": "absolute",
+              "top": 999999,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "backgroundColor": "rgba(0,0,0,0.5)",
+                      "height": "100%",
+                      "opacity": 0.3,
+                      "position": "absolute",
+                      "width": "100%",
+                      "zIndex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "aria-role": "button",
+                        "onLongPress": [Function],
+                        "onPress": [Function],
+                        "style": {
+                          "height": 933.8,
+                          "width": "100%",
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "height": 933.8,
+                      "width": "100%",
+                      "zIndex": 10,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "style": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginTop": 0,
+                          "maxHeight": 812,
+                          "transform": [
+                            {
+                              "translateY": Value {
+                                "_value": 0,
+                                "addListener": [class Function],
+                                "animate": [class Function],
+                                "extractOffset": [class Function],
+                                "flattenOffset": [class Function],
+                                "interpolate": [class Function],
+                                "removeAllListeners": [class Function],
+                                "removeListener": [class Function],
+                                "resetAnimation": [class Function],
+                                "setOffset": [class Function],
+                                "setValue": [class Function],
+                                "stopAnimation": [class Function],
+                                "stopTracking": [class Function],
+                                "track": [class Function],
+                              },
+                            },
+                          ],
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onLayout": [Function: AsyncFunction],
+                    "style": [
+                      {
+                        "alignSelf": "center",
+                        "backgroundColor": "white",
+                        "width": "100%",
+                      },
+                      {
+                        "borderRadius": 10,
+                      },
+                      undefined,
+                      {
+                        "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
+                        "elevation": 5,
+                        "maxHeight": 812,
+                        "opacity": Value {
+                          "_value": 0,
+                          "addListener": [class Function],
+                          "animate": [class Function],
+                          "extractOffset": [class Function],
+                          "flattenOffset": [class Function],
+                          "interpolate": [class Function],
+                          "removeAllListeners": [class Function],
+                          "removeListener": [class Function],
+                          "resetAnimation": [class Function],
+                          "setOffset": [class Function],
+                          "setValue": [class Function],
+                          "stopAnimation": [class Function],
+                          "stopTracking": [class Function],
+                          "track": [class Function],
+                        },
+                        "transform": [
+                          {
+                            "translateY": Value {
+                              "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
+                              "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
+                              "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
+                            },
+                          },
+                        ],
+                        "zIndex": 11,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "bounces": false,
+            "contentContainerStyle": {
+              "width": 375,
+            },
+            "keyboardShouldPersistTaps": undefined,
+            "onMomentumScrollBegin": [Function: AsyncFunction],
+            "onMomentumScrollEnd": [Function: AsyncFunction],
+            "onScroll": [Function],
+            "onScrollBeginDrag": [Function: AsyncFunction],
+            "onTouchEnd": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEnabled": false,
+            "scrollEventThrottle": 5,
+            "scrollsToTop": false,
+            "showsVerticalScrollIndicator": false,
+            "style": [
+              {
+                "backgroundColor": "transparent",
+                "height": "100%",
+                "width": "100%",
+              },
+              {
+                "width": 375,
+              },
+            ],
+          },
+          "type": "FlatList",
+        },
+      ],
+      "props": {
+        "onLayout": [Function: AsyncFunction],
+        "style": [
+          {
+            "alignItems": "center",
+            "height": "100%",
+            "justifyContent": "center",
+            "width": "100%",
+          },
+          {
+            "opacity": Value {
+              "_value": 0,
+              "addListener": [class Function],
+              "animate": [class Function],
+              "extractOffset": [class Function],
+              "flattenOffset": [class Function],
+              "interpolate": [class Function],
+              "removeAllListeners": [class Function],
+              "removeListener": [class Function],
+              "resetAnimation": [class Function],
+              "setOffset": [class Function],
+              "setValue": [class Function],
+              "stopAnimation": [class Function],
+              "stopTracking": [class Function],
+              "track": [class Function],
+            },
+            "width": 375,
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "onShow": undefined,
+    "statusBarTranslucent": true,
+    "supportedOrientations": [
+      "portrait",
+      "portrait-upside-down",
+      "landscape",
+      "landscape-left",
+      "landscape-right",
+    ],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`ActionSheet renders with gesture enabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": undefined,
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "ref": {
+              "current": null,
+            },
+            "style": {
+              "left": 999999,
+              "position": "absolute",
+              "top": 999999,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "backgroundColor": "black",
+                      "height": "100%",
+                      "opacity": 0.3,
+                      "position": "absolute",
+                      "width": "100%",
+                      "zIndex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "aria-role": "button",
+                        "onLongPress": [Function],
+                        "onPress": [Function],
+                        "style": {
+                          "height": 933.8,
+                          "width": "100%",
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "onTouchEnd": [Function],
+                    "onTouchMove": [Function],
+                    "onTouchStart": [Function],
+                    "style": {
+                      "height": 933.8,
+                      "width": "100%",
+                      "zIndex": 10,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": [
+                              {
+                                "alignSelf": "center",
+                                "backgroundColor": "#f0f0f0",
+                                "borderRadius": 100,
+                                "height": 6,
+                                "marginVertical": 5,
+                                "width": 45,
+                              },
+                              {
+                                "backgroundColor": "#f0f0f0",
+                              },
+                            ],
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Gesture content",
+                          ],
+                          "props": {
+                            "style": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginTop": 0,
+                          "maxHeight": 812,
+                          "transform": [
+                            {
+                              "translateY": Value {
+                                "_value": 0,
+                                "addListener": [class Function],
+                                "animate": [class Function],
+                                "extractOffset": [class Function],
+                                "flattenOffset": [class Function],
+                                "interpolate": [class Function],
+                                "removeAllListeners": [class Function],
+                                "removeListener": [class Function],
+                                "resetAnimation": [class Function],
+                                "setOffset": [class Function],
+                                "setValue": [class Function],
+                                "stopAnimation": [class Function],
+                                "stopTracking": [class Function],
+                                "track": [class Function],
+                              },
+                            },
+                          ],
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onLayout": [Function: AsyncFunction],
+                    "style": [
+                      {
+                        "alignSelf": "center",
+                        "backgroundColor": "white",
+                        "width": "100%",
+                      },
+                      {
+                        "borderRadius": 10,
+                      },
+                      undefined,
+                      {
+                        "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
+                        "elevation": 5,
+                        "maxHeight": 812,
+                        "opacity": Value {
+                          "_value": 0,
+                          "addListener": [class Function],
+                          "animate": [class Function],
+                          "extractOffset": [class Function],
+                          "flattenOffset": [class Function],
+                          "interpolate": [class Function],
+                          "removeAllListeners": [class Function],
+                          "removeListener": [class Function],
+                          "resetAnimation": [class Function],
+                          "setOffset": [class Function],
+                          "setValue": [class Function],
+                          "stopAnimation": [class Function],
+                          "stopTracking": [class Function],
+                          "track": [class Function],
+                        },
+                        "transform": [
+                          {
+                            "translateY": Value {
+                              "_value": 0,
+                              "addListener": [class Function],
+                              "animate": [class Function],
+                              "extractOffset": [class Function],
+                              "flattenOffset": [class Function],
+                              "interpolate": [class Function],
+                              "removeAllListeners": [class Function],
+                              "removeListener": [class Function],
+                              "resetAnimation": [class Function],
+                              "setOffset": [class Function],
+                              "setValue": [class Function],
+                              "stopAnimation": [class Function],
+                              "stopTracking": [class Function],
+                              "track": [class Function],
+                            },
+                          },
+                        ],
+                        "zIndex": 11,
+                      },
+                    ],
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "bounces": false,
+            "contentContainerStyle": {
+              "width": 375,
+            },
+            "keyboardShouldPersistTaps": undefined,
+            "onMomentumScrollBegin": [Function: AsyncFunction],
+            "onMomentumScrollEnd": [Function: AsyncFunction],
+            "onScroll": [Function],
+            "onScrollBeginDrag": [Function: AsyncFunction],
+            "onTouchEnd": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEnabled": false,
+            "scrollEventThrottle": 5,
+            "scrollsToTop": false,
+            "showsVerticalScrollIndicator": false,
+            "style": [
+              {
+                "backgroundColor": "transparent",
+                "height": "100%",
+                "width": "100%",
+              },
+              {
+                "width": 375,
+              },
+            ],
+          },
+          "type": "FlatList",
+        },
+      ],
+      "props": {
+        "onLayout": [Function: AsyncFunction],
+        "style": [
+          {
+            "alignItems": "center",
+            "height": "100%",
+            "justifyContent": "center",
+            "width": "100%",
+          },
+          {
+            "opacity": Value {
+              "_value": 0,
+              "addListener": [class Function],
+              "animate": [class Function],
+              "extractOffset": [class Function],
+              "flattenOffset": [class Function],
+              "interpolate": [class Function],
+              "removeAllListeners": [class Function],
+              "removeListener": [class Function],
+              "resetAnimation": [class Function],
+              "setOffset": [class Function],
+              "setValue": [class Function],
+              "stopAnimation": [class Function],
+              "stopTracking": [class Function],
+              "track": [class Function],
+            },
+            "width": 375,
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "onShow": undefined,
+    "statusBarTranslucent": true,
+    "supportedOrientations": [
+      "portrait",
+      "portrait-upside-down",
+      "landscape",
+      "landscape-left",
+      "landscape-right",
+    ],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;

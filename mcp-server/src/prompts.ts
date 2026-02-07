@@ -1,12 +1,33 @@
-import {readFileSync} from "node:fs";
+import {existsSync, readFileSync} from "node:fs";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
+import {bootstrapPrompts, handleBootstrapPromptRequest} from "./bootstrap.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const getDocsRoot = (): string => {
+  if (process.env.TERRENO_MCP_DOCS_DIR) {
+    return process.env.TERRENO_MCP_DOCS_DIR;
+  }
+
+  const bundledDocsRoot = join(__dirname, "docs");
+  if (existsSync(bundledDocsRoot)) {
+    return bundledDocsRoot;
+  }
+
+  if (process.execPath) {
+    const execDocsRoot = join(dirname(process.execPath), "docs");
+    if (existsSync(execDocsRoot)) {
+      return execDocsRoot;
+    }
+  }
+
+  return join(__dirname, "docs");
+};
+
 const loadMarkdown = (filename: string): string => {
-  const filePath = join(__dirname, "docs", "prompts", filename);
+  const filePath = join(getDocsRoot(), "prompts", filename);
   return readFileSync(filePath, "utf-8");
 };
 
@@ -21,6 +42,7 @@ interface Prompt {
 }
 
 export const prompts: Prompt[] = [
+  ...bootstrapPrompts,
   {
     arguments: [
       {
@@ -555,6 +577,11 @@ export const handlePromptRequest = (
   name: string,
   args: Record<string, string>
 ): {messages: Array<{role: "user"; content: {type: "text"; text: string}}>} => {
+  // Handle bootstrap prompts
+  if (name === "bootstrap_terreno_app") {
+    return handleBootstrapPromptRequest(name, args);
+  }
+
   let content: string;
 
   switch (name) {

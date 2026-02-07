@@ -1,0 +1,190 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`CheckBox renders correctly when not selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "transparent",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders correctly when selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#0A7092",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with small size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#0A7092",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 10,
+      "justifyContent": "center",
+      "width": 10,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with medium size (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#0A7092",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with large size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#0A7092",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 24,
+      "justifyContent": "center",
+      "width": 24,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with accent background color when selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#956A00",
+      "borderColor": "#956A00",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with black background color when selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#1C1C1C",
+      "borderColor": "#1C1C1C",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox renders with default background color when selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#0A7092",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`CheckBox does not show check icon when not selected 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "transparent",
+      "borderColor": "#0A7092",
+      "borderRadius": 3,
+      "borderWidth": 1,
+      "height": 16,
+      "justifyContent": "center",
+      "width": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

@@ -1,0 +1,2377 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SelectBadge renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#8FC1D2",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with info status (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#8FC1D2",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with success status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#1A7F36",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#7FD898",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#1A7F36",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with warning status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#F36719",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#FCC58F",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#F36719",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with error status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#BD1111",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#F39E9E",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#BD1111",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with neutral status 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#353535",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#AAAAAA",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#353535",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with secondary style 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1A7F36",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#DCF2E2",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#7FD898",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#DCF2E2",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#7FD898",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders with custom colors 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#0000FF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FF0000",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#00FF00",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#FF0000",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#00FF00",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 1,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": false,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": true,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SelectBadge renders disabled state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "text",
+                      "fontSize": 10,
+                      "fontWeight": "700",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomLeftRadius": 4,
+                  "borderColor": "#8FC1D2",
+                  "borderTopLeftRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 8,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "backgroundColor": "#2B6072",
+                  "borderBottomRightRadius": 4,
+                  "borderColor": "#FFFFFF",
+                  "borderLeftWidth": 1,
+                  "borderTopRightRadius": 4,
+                  "borderWidth": 0,
+                  "flexDirection": "row",
+                  "height": 20,
+                  "justifyContent": "center",
+                  "paddingHorizontal": 4,
+                  "paddingVertical": 1,
+                  "width": "auto",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "height": 20,
+              "width": "auto",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Opens the options picker",
+        "accessibilityLabel": "Open select badge options",
+        "aria-role": "button",
+        "disabled": true,
+        "onPress": [Function],
+      },
+      "type": "TouchableOpacity",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Closes the picker modal",
+                "accessibilityLabel": "Dismiss picker modal",
+                "activeOpacity": 1,
+                "onPress": [Function],
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "TouchableOpacity",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Save",
+                              ],
+                              "props": {
+                                "style": {
+                                  "color": "#007aff",
+                                  "fontSize": 17,
+                                  "fontWeight": "600",
+                                  "paddingTop": 1,
+                                },
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Saves the selected value",
+                        "accessibilityLabel": "Save selected value",
+                        "aria-role": "button",
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "style": {
+                          "alignSelf": "flex-end",
+                          "paddingRight": 12,
+                        },
+                      },
+                      "type": "TouchableOpacity",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "height": 45,
+                      "justifyContent": "center",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option A",
+                        "value": "a",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option B",
+                        "value": "b",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "label": "Option C",
+                        "value": "c",
+                      },
+                      "type": "Picker.Item",
+                    },
+                  ],
+                  "props": {
+                    "enabled": false,
+                    "onValueChange": [Function],
+                    "selectedValue": "a",
+                  },
+                  "type": "Picker",
+                },
+              ],
+              "props": {
+                "style": {
+                  "backgroundColor": "#D9D9D9",
+                  "borderTopColor": "#CDCDCD",
+                  "borderTopWidth": 1,
+                  "height": 215,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "justifyContent": "flex-end",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "animationType": "slide",
+        "onRequestClose": [Function],
+        "supportedOrientations": [
+          "portrait",
+          "landscape",
+        ],
+        "transparent": true,
+        "visible": false,
+      },
+      "type": "Modal",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "opacity": 0.5,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
