@@ -1,4 +1,4 @@
-appId: http://localhost:8082
+url: http://localhost:8082
 ---
 # Login and create a todo
 # Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
