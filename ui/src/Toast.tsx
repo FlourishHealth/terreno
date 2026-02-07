@@ -1,12 +1,12 @@
 import type React from "react";
 import {Platform, Pressable, View} from "react-native";
-import {useToast as useRNToast} from "react-native-toast-notifications";
 
 import type {IconName, SurfaceColor, TextColor, ToastProps} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
+import {useToastNotifications} from "./ToastNotifications";
 import {isAPIError, printAPIError} from "./Utilities";
 
 const TOAST_DURATION_MS = 3 * 1000;
@@ -30,7 +30,7 @@ export function useToast(): {
   show: (title: string, options?: UseToastOptions) => string;
   catch: (error: any, message?: string, options?: UseToastVariantOptions) => void;
 } {
-  const toast = useRNToast();
+  const toast = useToastNotifications();
   const show = (title: string, options?: UseToastOptions): string => {
     const toastData = {
       variant: "info",
@@ -79,7 +79,6 @@ export function useToast(): {
 
 // TODO: Support secondary version of Toast.
 // TODO: Support dismissible version of Toast. Currently only persistent are dismissible.
-// This may require a different library from react-native-toast-notifications.
 export const Toast = ({
   title,
   variant = "info",

@@ -1,0 +1,193 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Heading renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Test Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading renders with sm size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Small Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-semibold",
+      "fontSize": 14,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading renders with md size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Medium Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading renders with lg size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Large Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 20,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading renders with xl size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Extra Large Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 28,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading renders with 2xl size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "2XL Heading",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 32,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading applies center alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Centered",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+      "textAlign": "center",
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading applies right alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Right Aligned",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+      "textAlign": "right",
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading applies secondary color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Secondary",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": undefined,
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Heading applies accent color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Accent",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "style": {
+      "color": "#956A00",
+      "fontFamily": "heading-bold",
+      "fontSize": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;

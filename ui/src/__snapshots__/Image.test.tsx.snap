@@ -1,0 +1,282 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Image renders correctly with naturalWidth 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders correctly with fullWidth 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 210.9375,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 375,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with cover fit mode 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": "cover",
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with contain fit mode 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": "contain",
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with none fit mode 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with maxWidth and maxHeight 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": 300,
+          "maxWidth": 400,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with background color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Image renders with custom style 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "resizeMode": undefined,
+        "source": {
+          "cache": "force-cache",
+          "uri": "https://example.com/image.jpg",
+        },
+        "style": {
+          "borderRadius": 10,
+          "height": 200,
+          "maxHeight": undefined,
+          "maxWidth": undefined,
+          "width": 200,
+        },
+      },
+      "type": "Image",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

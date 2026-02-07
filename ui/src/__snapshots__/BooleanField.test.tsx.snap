@@ -1,0 +1,553 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`BooleanField renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#FFFFFF",
+                              "borderColor": "#2B6072",
+                              "borderRadius": 10,
+                              "borderWidth": 1,
+                              "height": 20,
+                              "justifyContent": "center",
+                              "width": 20,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 1,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "left": Value {
+                            "_value": -10,
+                            "addListener": [class Function],
+                            "animate": [class Function],
+                            "extractOffset": [class Function],
+                            "flattenOffset": [class Function],
+                            "interpolate": [class Function],
+                            "removeAllListeners": [class Function],
+                            "removeListener": [class Function],
+                            "resetAnimation": [class Function],
+                            "setOffset": [class Function],
+                            "setValue": [class Function],
+                            "stopAnimation": [class Function],
+                            "stopTracking": [class Function],
+                            "track": [class Function],
+                          },
+                          "width": 36,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "backgroundColor": Value {
+                        "_value": 0,
+                        "addListener": [class Function],
+                        "animate": [class Function],
+                        "extractOffset": [class Function],
+                        "flattenOffset": [class Function],
+                        "interpolate": [class Function],
+                        "removeAllListeners": [class Function],
+                        "removeListener": [class Function],
+                        "resetAnimation": [class Function],
+                        "setOffset": [class Function],
+                        "setValue": [class Function],
+                        "stopAnimation": [class Function],
+                        "stopTracking": [class Function],
+                        "track": [class Function],
+                      },
+                      "borderColor": "#2B6072",
+                      "borderRadius": 20,
+                      "borderWidth": 1,
+                      "height": 20,
+                      "marginHorizontal": 10,
+                      "marginRight": undefined,
+                      "width": 36,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-role": "button",
+            "onPress": [Function],
+          },
+          "type": "TouchableWithoutFeedback",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "flexDirection": "column",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`BooleanField renders with title 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Enable notifications",
+          ],
+          "props": {
+            "style": {
+              "color": "#1C1C1C",
+              "fontSize": 14,
+              "fontWeight": 600,
+              "lineHeight": 22.4,
+            },
+          },
+          "type": "Text",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#FFFFFF",
+                              "borderColor": "#2B6072",
+                              "borderRadius": 10,
+                              "borderWidth": 1,
+                              "height": 20,
+                              "justifyContent": "center",
+                              "width": 20,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 1,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "left": Value {
+                            "_value": -10,
+                            "addListener": [class Function],
+                            "animate": [class Function],
+                            "extractOffset": [class Function],
+                            "flattenOffset": [class Function],
+                            "interpolate": [class Function],
+                            "removeAllListeners": [class Function],
+                            "removeListener": [class Function],
+                            "resetAnimation": [class Function],
+                            "setOffset": [class Function],
+                            "setValue": [class Function],
+                            "stopAnimation": [class Function],
+                            "stopTracking": [class Function],
+                            "track": [class Function],
+                          },
+                          "width": 36,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "backgroundColor": Value {
+                        "_value": 0,
+                        "addListener": [class Function],
+                        "animate": [class Function],
+                        "extractOffset": [class Function],
+                        "flattenOffset": [class Function],
+                        "interpolate": [class Function],
+                        "removeAllListeners": [class Function],
+                        "removeListener": [class Function],
+                        "resetAnimation": [class Function],
+                        "setOffset": [class Function],
+                        "setValue": [class Function],
+                        "stopAnimation": [class Function],
+                        "stopTracking": [class Function],
+                        "track": [class Function],
+                      },
+                      "borderColor": "#2B6072",
+                      "borderRadius": 20,
+                      "borderWidth": 1,
+                      "height": 20,
+                      "marginHorizontal": 10,
+                      "marginRight": undefined,
+                      "width": 36,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-role": "button",
+            "onPress": [Function],
+          },
+          "type": "TouchableWithoutFeedback",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "flexDirection": "column",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`BooleanField renders with value true 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#FFFFFF",
+                              "borderColor": "#2B6072",
+                              "borderRadius": 10,
+                              "borderWidth": 1,
+                              "height": 20,
+                              "justifyContent": "center",
+                              "width": 20,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 1,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "left": Value {
+                            "_value": 10,
+                            "addListener": [class Function],
+                            "animate": [class Function],
+                            "extractOffset": [class Function],
+                            "flattenOffset": [class Function],
+                            "interpolate": [class Function],
+                            "removeAllListeners": [class Function],
+                            "removeListener": [class Function],
+                            "resetAnimation": [class Function],
+                            "setOffset": [class Function],
+                            "setValue": [class Function],
+                            "stopAnimation": [class Function],
+                            "stopTracking": [class Function],
+                            "track": [class Function],
+                          },
+                          "width": 36,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "backgroundColor": Value {
+                        "_value": 0,
+                        "addListener": [class Function],
+                        "animate": [class Function],
+                        "extractOffset": [class Function],
+                        "flattenOffset": [class Function],
+                        "interpolate": [class Function],
+                        "removeAllListeners": [class Function],
+                        "removeListener": [class Function],
+                        "resetAnimation": [class Function],
+                        "setOffset": [class Function],
+                        "setValue": [class Function],
+                        "stopAnimation": [class Function],
+                        "stopTracking": [class Function],
+                        "track": [class Function],
+                      },
+                      "borderColor": "#2B6072",
+                      "borderRadius": 20,
+                      "borderWidth": 1,
+                      "height": 20,
+                      "marginHorizontal": 10,
+                      "marginRight": undefined,
+                      "width": 36,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-role": "button",
+            "onPress": [Function],
+          },
+          "type": "TouchableWithoutFeedback",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "flexDirection": "column",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`BooleanField renders disabled state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#FFFFFF",
+                              "borderColor": "#9A9A9A",
+                              "borderRadius": 10,
+                              "borderWidth": 1,
+                              "height": 20,
+                              "justifyContent": "center",
+                              "width": 20,
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 1,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "left": Value {
+                            "_value": -10,
+                            "addListener": [class Function],
+                            "animate": [class Function],
+                            "extractOffset": [class Function],
+                            "flattenOffset": [class Function],
+                            "interpolate": [class Function],
+                            "removeAllListeners": [class Function],
+                            "removeListener": [class Function],
+                            "resetAnimation": [class Function],
+                            "setOffset": [class Function],
+                            "setValue": [class Function],
+                            "stopAnimation": [class Function],
+                            "stopTracking": [class Function],
+                            "track": [class Function],
+                          },
+                          "width": 36,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "backgroundColor": "#9A9A9A",
+                      "borderColor": "#9A9A9A",
+                      "borderRadius": 20,
+                      "borderWidth": 1,
+                      "height": 20,
+                      "marginHorizontal": 10,
+                      "marginRight": undefined,
+                      "width": 36,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "justifyContent": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-role": "button",
+            "onPress": [Function],
+          },
+          "type": "TouchableWithoutFeedback",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "flex-start",
+      "flexDirection": "column",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

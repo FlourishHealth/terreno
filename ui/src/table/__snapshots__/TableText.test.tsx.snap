@@ -1,0 +1,73 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TableText renders correctly with value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Test Value",
+  ],
+  "props": {
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "text",
+      "fontSize": 14,
+      "textAlign": undefined,
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableText renders with center alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Centered",
+  ],
+  "props": {
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "text",
+      "fontSize": 14,
+      "textAlign": "center",
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableText renders with right alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Right aligned",
+  ],
+  "props": {
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "text",
+      "fontSize": 14,
+      "textAlign": "right",
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableText renders with isEditing prop (shows warning) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Editing",
+  ],
+  "props": {
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "text",
+      "fontSize": 14,
+      "textAlign": undefined,
+    },
+  },
+  "type": "Text",
+}
+`;
