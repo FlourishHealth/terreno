@@ -109,12 +109,11 @@ jobs:
 
       - name: Setup Chrome for CI
         run: |
-          sudo apt-get update && sudo apt-get install -y google-chrome-stable || true
-          if [ -f /usr/bin/google-chrome ]; then
-            sudo mv /usr/bin/google-chrome /usr/bin/google-chrome.original
-            printf '#!/bin/sh\nexec /usr/bin/google-chrome.original "${@}" --no-sandbox\n' | sudo tee /usr/bin/google-chrome > /dev/null
-            sudo chmod 0755 /usr/bin/google-chrome
-          fi
+          CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
+          sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
+          printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
+          sudo chmod 0755 "$CHROME_BIN"
+          "$CHROME_BIN" --version
 
       - name: Run Maestro E2E tests
         run: maestro test .maestro/flows/
