@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 // Add our custom DateOnly type to mongoose as early as possible
 import {DateOnly} from "@terreno/api";
 import mongoose from "mongoose";

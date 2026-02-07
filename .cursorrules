@@ -111,6 +111,9 @@ bun run frontend:web
 - Backend: Use `logger.info/warn/error/debug` for permanent logs
 - Use `console.log` only for debugging (to be removed)
 
+### Environment Variables
+- Bun automatically loads `.env` files — do not use `dotenv`. See [Bun .env docs](https://bun.sh/docs/runtime/env)
+
 ### Development Practices
 - Don't apologize for errors: fix them
 - Prioritize modularity, DRY, performance, and security
