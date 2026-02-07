@@ -194,8 +194,6 @@ export const FullWidthButtons = (props: Partial<ButtonProps>) => {
         <Heading>Row Layout - fullWidth</Heading>
         <Box color="secondaryLight" direction="row" gap={2} padding={2}>
           <Button fullWidth onClick={() => {}} text="Button 1" {...props} />
-          <Button fullWidth onClick={() => {}} text="Longer Button 2" {...props} />
-          <Button fullWidth onClick={() => {}} text="Button 3" variant="secondary" {...props} />
         </Box>
       </Box>
     </Box>
