@@ -1,0 +1,686 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SplitPage renders correctly with renderContent 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "extraData": undefined,
+                    "nestedScrollEnabled": true,
+                  },
+                  "type": "FlatList",
+                },
+              ],
+              "props": {
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 0,
+                  "height": "100%",
+                  "maxWidth": "100%",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "backgroundColor": "#D9D9D9",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "row",
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`SplitPage renders correctly with children 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "extraData": undefined,
+                    "nestedScrollEnabled": true,
+                  },
+                  "type": "FlatList",
+                },
+              ],
+              "props": {
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 0,
+                  "height": "100%",
+                  "maxWidth": "100%",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "backgroundColor": "#D9D9D9",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "row",
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`SplitPage renders with loading state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "extraData": undefined,
+                    "nestedScrollEnabled": true,
+                  },
+                  "type": "FlatList",
+                },
+              ],
+              "props": {
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 0,
+                  "height": "100%",
+                  "maxWidth": "100%",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "backgroundColor": "#D9D9D9",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "row",
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`SplitPage renders with custom color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "extraData": undefined,
+                    "nestedScrollEnabled": true,
+                  },
+                  "type": "FlatList",
+                },
+              ],
+              "props": {
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 0,
+                  "height": "100%",
+                  "maxWidth": "100%",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "backgroundColor": "#0E9DCD",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "row",
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`SplitPage renders with tabs when more than 2 children 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "item-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "",
+                        "aria-label": "Select",
+                        "aria-role": "button",
+                        "onLayout": undefined,
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "onPress": [Function: AsyncFunction],
+                        "style": {
+                          "accessibilityHint": "",
+                          "accessibilityLabel": "Select",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "extraData": undefined,
+                    "nestedScrollEnabled": true,
+                  },
+                  "type": "FlatList",
+                },
+              ],
+              "props": {
+                "style": {
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 0,
+                  "height": "100%",
+                  "maxWidth": "100%",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "backgroundColor": "#D9D9D9",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "row",
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;

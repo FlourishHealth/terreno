@@ -598,6 +598,9 @@ jobs:
           MESSAGE="${MESSAGE}Commit: ${COMMIT_SHORT}\n"
           MESSAGE="${MESSAGE}View: ${TAG_URL}"
           
+          # Convert \n escape sequences to actual newlines
+          MESSAGE=$(printf "%b" "$MESSAGE")
+          
           curl -X POST "${{ secrets.ZOOM_WEBHOOK_URL }}" \
             -H "Authorization: ${{ secrets.ZOOM_WEBHOOK_TOKEN }}" \
             -H "Content-Type: text/plain" \
