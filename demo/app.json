@@ -17,10 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.terreno.demo",
-      "entitlements": {
-        "aps-environment": ""
-      }
+      "bundleIdentifier": "com.terreno.demo"
     },
     "android": {
       "adaptiveIcon": {
@@ -35,7 +32,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-localization"
+      "expo-localization",
+      "./plugins/withRemovePushEntitlement"
     ],
     "extra": {
       "router": {},
