@@ -59,3 +59,6 @@ temp/
 *.temp
 
 .claude/settings.local.json
+
+# Rulesync generated files are tracked in git
+# (we want to track them so they're available when cloning)

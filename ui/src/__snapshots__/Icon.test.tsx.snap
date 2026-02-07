@@ -1,0 +1,47 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Icon renders correctly with default props 1`] = `null`;
+
+exports[`Icon renders with testID 1`] = `null`;
+
+exports[`Icon renders with different sizes 1`] = `null`;
+
+exports[`Icon renders with different sizes 2`] = `null`;
+
+exports[`Icon renders with different sizes 3`] = `null`;
+
+exports[`Icon renders with different sizes 4`] = `null`;
+
+exports[`Icon renders with different sizes 5`] = `null`;
+
+exports[`Icon renders with different sizes 6`] = `null`;
+
+exports[`Icon renders with different colors 1`] = `null`;
+
+exports[`Icon renders with different colors 2`] = `null`;
+
+exports[`Icon renders with different colors 3`] = `null`;
+
+exports[`Icon renders with different colors 4`] = `null`;
+
+exports[`Icon renders with different colors 5`] = `null`;
+
+exports[`Icon renders with solid type (default) 1`] = `null`;
+
+exports[`Icon renders with regular type 1`] = `null`;
+
+exports[`Icon renders with light type 1`] = `null`;
+
+exports[`Icon renders with brand type 1`] = `null`;
+
+exports[`Icon renders different icon names 1`] = `null`;
+
+exports[`Icon renders different icon names 2`] = `null`;
+
+exports[`Icon renders different icon names 3`] = `null`;
+
+exports[`Icon renders different icon names 4`] = `null`;
+
+exports[`Icon renders different icon names 5`] = `null`;
+
+exports[`Icon renders different icon names 6`] = `null`;
