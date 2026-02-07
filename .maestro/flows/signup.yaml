@@ -35,6 +35,6 @@ url: http://localhost:8082
     id: "login-submit-button"
 
 # Assert navigation to Todos screen
-- assertVisible:
-    text: "My Todos"
+- extendedWaitUntil:
+    visible: "My Todos"
     timeout: 10000
