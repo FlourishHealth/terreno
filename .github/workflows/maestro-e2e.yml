@@ -107,8 +107,9 @@ jobs:
       - name: Add Maestro to PATH
         run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      - name: Setup Chrome for CI
+      - name: Setup Chrome and display for CI
         run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
           CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
           sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
           printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
@@ -116,7 +117,7 @@ jobs:
           "$CHROME_BIN" --version
 
       - name: Run Maestro E2E tests
-        run: maestro test --headless .maestro/flows/
+        run: xvfb-run maestro test .maestro/flows/
 
       - name: Upload Maestro artifacts
         if: failure()
