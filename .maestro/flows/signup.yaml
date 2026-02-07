@@ -1,0 +1,40 @@
+appId: http://localhost:8082
+---
+# Sign up a new user
+# Prerequisites: backend running on port 4000, frontend running on port 8082
+
+- launchApp
+
+# Wait for the login screen to load
+- assertVisible: "Welcome Back"
+
+# Toggle to signup mode
+- tapOn:
+    id: "login-toggle-button"
+
+# Assert signup mode
+- assertVisible: "Create Account"
+
+# Fill in name
+- tapOn:
+    id: "login-name-input"
+- inputText: "New User"
+
+# Fill in email (use timestamp to avoid collisions)
+- tapOn:
+    id: "login-email-input"
+- inputText: "newuser-${Date.now()}@example.com"
+
+# Fill in password
+- tapOn:
+    id: "login-password-input"
+- inputText: "testpassword123"
+
+# Submit signup
+- tapOn:
+    id: "login-submit-button"
+
+# Assert navigation to Todos screen
+- assertVisible:
+    text: "My Todos"
+    timeout: 10000

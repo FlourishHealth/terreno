@@ -1,0 +1,28 @@
+appId: http://localhost:8082
+---
+# Login with existing test user
+# Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
+
+- launchApp
+
+# Wait for the login screen to load
+- assertVisible: "Welcome Back"
+
+# Fill in email
+- tapOn:
+    id: "login-email-input"
+- inputText: "test@example.com"
+
+# Fill in password
+- tapOn:
+    id: "login-password-input"
+- inputText: "testpassword123"
+
+# Submit login
+- tapOn:
+    id: "login-submit-button"
+
+# Assert navigation to Todos screen
+- assertVisible:
+    text: "My Todos"
+    timeout: 10000
