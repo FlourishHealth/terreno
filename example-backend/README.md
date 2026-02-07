@@ -16,6 +16,16 @@ cp .env.example .env
 
 3. Make sure MongoDB is running locally or update `MONGO_URI` in `.env`
 
+### Environment Variables
+
+Bun automatically loads `.env` files before your code runs — no `dotenv` package needed. Just place a `.env` file in the project root and access variables via `process.env`. Bun loads these files in order of priority:
+
+1. `.env.local` (highest priority)
+2. `.env.development` / `.env.production` (based on `NODE_ENV`)
+3. `.env` (lowest priority)
+
+See [Bun .env docs](https://bun.sh/docs/runtime/env) for details.
+
 ## Development
 
 Start the development server with hot reload:
