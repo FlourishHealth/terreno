@@ -81,6 +81,15 @@ jobs:
           cp -r src/docs/* dist/docs/
           bun build --compile src/index.ts --outfile dist/terreno-mcp
 
+      - name: Check required secrets
+        run: |
+          if [ -z "$GCP_SA_KEY" ]; then
+            echo "::error::GCP_SA_KEY secret is not set. Configure it in repo settings."
+            exit 1
+          fi
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+
       - name: Authenticate to Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
