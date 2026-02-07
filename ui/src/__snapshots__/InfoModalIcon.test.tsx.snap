@@ -173,7 +173,7 @@ exports[`InfoModalIcon renders correctly with required props 1`] = `
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
-                            "alignSelf": undefined,
+                            "alignSelf": "flex-start",
                             "backgroundColor": "#0E9DCD",
                             "borderColor": undefined,
                             "borderRadius": 360,
@@ -501,7 +501,7 @@ exports[`InfoModalIcon renders with subtitle 1`] = `
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
-                            "alignSelf": undefined,
+                            "alignSelf": "flex-start",
                             "backgroundColor": "#0E9DCD",
                             "borderColor": undefined,
                             "borderRadius": 360,
@@ -827,7 +827,7 @@ exports[`InfoModalIcon renders with children content 1`] = `
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
-                            "alignSelf": undefined,
+                            "alignSelf": "flex-start",
                             "backgroundColor": "#0E9DCD",
                             "borderColor": undefined,
                             "borderRadius": 360,
@@ -1114,7 +1114,7 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
-                            "alignSelf": undefined,
+                            "alignSelf": "flex-start",
                             "backgroundColor": "#0E9DCD",
                             "borderColor": undefined,
                             "borderRadius": 360,

@@ -79,6 +79,85 @@ exports[`PhoneNumberField renders correctly with default props 1`] = `
 }
 `;
 
+exports[`PhoneNumberField formats phone number as user types 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "accessibilityHint": "Enter text here",
+            "accessibilityState": {
+              "disabled": undefined,
+            },
+            "aria-label": "Text input field",
+            "autoCapitalize": "none",
+            "autoCorrect": false,
+            "blurOnSubmit": true,
+            "enterKeyHint": undefined,
+            "keyboardType": "number-pad",
+            "multiline": undefined,
+            "numberOfLines": 1,
+            "onBlur": [Function],
+            "onChangeText": [Function],
+            "onContentSizeChange": [Function],
+            "onFocus": [Function],
+            "onSubmitEditing": [Function],
+            "placeholder": undefined,
+            "placeholderTextColor": "#686868",
+            "readOnly": undefined,
+            "ref": [Function],
+            "secureTextEntry": false,
+            "style": {
+              "color": "#1C1C1C",
+              "flex": 1,
+              "fontFamily": "text",
+              "fontSize": 16,
+              "gap": 10,
+              "height": 20,
+              "paddingVertical": 0,
+              "width": "100%",
+            },
+            "testID": undefined,
+            "textContentType": undefined,
+            "underlineColorAndroid": "transparent",
+            "value": "5551234567",
+          },
+          "type": "TextInput",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "row",
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
 exports[`PhoneNumberField renders with icon 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
@@ -293,85 +372,6 @@ exports[`PhoneNumberField accepts custom country code 1`] = `
             "textContentType": undefined,
             "underlineColorAndroid": "transparent",
             "value": "7911123456",
-          },
-          "type": "TextInput",
-        },
-      ],
-      "props": {
-        "style": {
-          "alignItems": "center",
-          "backgroundColor": "#FFFFFF",
-          "borderColor": "#9A9A9A",
-          "borderRadius": 4,
-          "borderWidth": 1,
-          "flexDirection": "row",
-          "overflow": "hidden",
-          "paddingHorizontal": 12,
-          "paddingVertical": 8,
-        },
-        "testID": undefined,
-      },
-      "type": "View",
-    },
-  ],
-  "props": {
-    "style": {
-      "flexDirection": "column",
-      "width": "100%",
-    },
-    "testID": undefined,
-  },
-  "type": "View",
-}
-`;
-
-exports[`PhoneNumberField formats phone number as user types 1`] = `
-{
-  "$$typeof": Symbol(react.test.json),
-  "children": [
-    {
-      "$$typeof": Symbol(react.test.json),
-      "children": [
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": null,
-          "props": {
-            "accessibilityHint": "Enter text here",
-            "accessibilityState": {
-              "disabled": undefined,
-            },
-            "aria-label": "Text input field",
-            "autoCapitalize": "none",
-            "autoCorrect": false,
-            "blurOnSubmit": true,
-            "enterKeyHint": undefined,
-            "keyboardType": "number-pad",
-            "multiline": undefined,
-            "numberOfLines": 1,
-            "onBlur": [Function],
-            "onChangeText": [Function],
-            "onContentSizeChange": [Function],
-            "onFocus": [Function],
-            "onSubmitEditing": [Function],
-            "placeholder": undefined,
-            "placeholderTextColor": "#686868",
-            "readOnly": undefined,
-            "ref": [Function],
-            "secureTextEntry": false,
-            "style": {
-              "color": "#1C1C1C",
-              "flex": 1,
-              "fontFamily": "text",
-              "fontSize": 16,
-              "gap": 10,
-              "height": 20,
-              "paddingVertical": 0,
-              "width": "100%",
-            },
-            "testID": undefined,
-            "textContentType": undefined,
-            "underlineColorAndroid": "transparent",
-            "value": "5551234567",
           },
           "type": "TextInput",
         },
