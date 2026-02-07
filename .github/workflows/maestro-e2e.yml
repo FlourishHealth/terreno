@@ -116,7 +116,7 @@ jobs:
           "$CHROME_BIN" --version
 
       - name: Run Maestro E2E tests
-        run: maestro test .maestro/flows/
+        run: maestro test --headless .maestro/flows/
 
       - name: Upload Maestro artifacts
         if: failure()
