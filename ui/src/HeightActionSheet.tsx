@@ -38,9 +38,7 @@ export class HeightActionSheet extends React.Component<
         <Box marginBottom={8} paddingX={4} width="100%">
           <Box alignItems="center" direction="row" justifyContent="between" width="100%">
             <Box flex="grow">
-              {this.props.title ? (
-                <Heading size="md">{this.props.title}</Heading>
-              ) : null}
+              {this.props.title ? <Heading size="md">{this.props.title}</Heading> : null}
             </Box>
             <Box width="33%">
               <Button
