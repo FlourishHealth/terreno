@@ -5,8 +5,10 @@ url: http://localhost:8082
 
 - launchApp
 
-# Wait for the login screen to load
-- assertVisible: "Welcome Back"
+# Wait for the login screen to load (Expo web bundle takes time in CI)
+- extendedWaitUntil:
+    visible: "Welcome Back"
+    timeout: 30000
 
 # Login first
 - tapOn:
