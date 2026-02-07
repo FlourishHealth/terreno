@@ -23,6 +23,7 @@
     "@types/react": "~19.1.10",
     "expo": "~54.0.29",
     "expo-constants": "~18.0.12",
+    "expo-dev-client": "~6.0.20",
     "expo-font": "~14.0.10",
     "expo-linking": "~8.0.10",
     "expo-notifications": "^0.32.15",
