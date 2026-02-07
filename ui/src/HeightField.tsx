@@ -313,6 +313,7 @@ export const HeightField: FC<HeightFieldProps> = ({
           max={maxInches}
           min={minInches}
           onChange={handleActionSheetChange}
+          title={title}
           value={value || "60"}
         />
       </View>

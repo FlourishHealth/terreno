@@ -123,6 +123,21 @@ exports[`HeightActionSheet renders correctly 1`] = `
                               "children": [
                                 {
                                   "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "display": "flex",
+                                      "flexGrow": 1,
+                                      "flexShrink": 1,
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
@@ -205,8 +220,10 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "alignItems": "flex-end",
-                                  "flex": undefined,
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "justifyContent": "space-between",
                                   "width": "100%",
                                 },
                                 "testID": undefined,
@@ -797,6 +814,21 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                               "children": [
                                 {
                                   "$$typeof": Symbol(react.test.json),
+                                  "children": null,
+                                  "props": {
+                                    "onPointerEnter": [Function: AsyncFunction],
+                                    "onPointerLeave": [Function: AsyncFunction],
+                                    "style": {
+                                      "display": "flex",
+                                      "flexGrow": 1,
+                                      "flexShrink": 1,
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
@@ -879,8 +911,10 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                 "onPointerEnter": [Function: AsyncFunction],
                                 "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
-                                  "alignItems": "flex-end",
-                                  "flex": undefined,
+                                  "alignItems": "center",
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "justifyContent": "space-between",
                                   "width": "100%",
                                 },
                                 "testID": undefined,

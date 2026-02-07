@@ -1671,6 +1671,8 @@ export interface HeightActionSheetProps {
   min?: number;
   /** Maximum height in total inches */
   max?: number;
+  /** Title shown at the top of the action sheet */
+  title?: string;
 }
 
 export interface HyperlinkProps {

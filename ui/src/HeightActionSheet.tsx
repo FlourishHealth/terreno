@@ -6,6 +6,7 @@ import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {HeightActionSheetProps} from "./Common";
+import {Heading} from "./Heading";
 
 const PICKER_HEIGHT = 180;
 
@@ -35,7 +36,12 @@ export class HeightActionSheet extends React.Component<
     return (
       <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
-          <Box alignItems="end" display="flex" width="100%">
+          <Box alignItems="center" direction="row" justifyContent="between" width="100%">
+            <Box flex="grow">
+              {this.props.title ? (
+                <Heading size="md">{this.props.title}</Heading>
+              ) : null}
+            </Box>
             <Box width="33%">
               <Button
                 onClick={() => {
