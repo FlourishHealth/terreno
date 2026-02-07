@@ -121,20 +121,11 @@ jobs:
           echo "=== Backend health ==="
           curl -s http://localhost:4000/openapi.json | head -c 200
           echo ""
-          echo "=== Frontend status ==="
-          curl -s -o /dev/null -w "HTTP %{http_code}, size %{size_download}" http://localhost:8082
+          echo "=== Rendered DOM body ==="
+          google-chrome --no-sandbox --disable-dev-shm-usage --headless --dump-dom --virtual-time-budget=30000 http://localhost:8082 2>/dev/null | sed -n '/<body/,/<\/body>/p' | head -c 3000 || true
           echo ""
-          echo "=== Take screenshot and dump DOM ==="
-          node -e "
-            const {execSync} = require('child_process');
-            // Use Chrome to get rendered page source
-            try {
-              execSync('google-chrome --no-sandbox --disable-dev-shm-usage --headless --dump-dom http://localhost:8082 2>/dev/null | head -c 5000', {stdio: 'inherit'});
-            } catch(e) { console.log('Chrome dump-dom failed:', e.message); }
-          " || true
-          echo ""
-          echo "=== Check for JS errors ==="
-          timeout 15 google-chrome --no-sandbox --disable-dev-shm-usage --headless --disable-gpu --enable-logging --v=1 http://localhost:8082 2>&1 | grep -i "error\|warn\|fail" | head -20 || true
+          echo "=== Chrome console errors ==="
+          timeout 30 google-chrome --no-sandbox --disable-dev-shm-usage --headless --disable-gpu --enable-logging --v=1 --virtual-time-budget=30000 http://localhost:8082 2>&1 | grep -iE "CONSOLE|error|exception" | head -20 || true
 
       - name: Run Maestro E2E tests
         run: xvfb-run maestro test .maestro/flows/
