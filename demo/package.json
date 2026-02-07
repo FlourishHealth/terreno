@@ -51,7 +51,7 @@
     "react-native-webview": "catalog:",
     "react-native-worklets": "catalog:",
     "stream-browserify": "^3.0.0",
-    "swiper": "^11.2.8"
+    "swiper": "^12.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.27.1",
@@ -60,14 +60,14 @@
     "@expo/config-plugins": "catalog:",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/webpack-config": "^19.0.1",
-    "@shopify/flash-list": "2.0.2",
+    "@shopify/flash-list": "2.2.2",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "~54.0.9",
     "postcss": "8.5.6",
     "prettier": "catalog:",
-    "typedoc": "^0.28.5",
+    "typedoc": "^0.28.16",
     "typescript": "catalog:"
   },
   "engine": {
