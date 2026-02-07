@@ -184,6 +184,21 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
                                       "children": [
                                         {
                                           "$$typeof": Symbol(react.test.json),
@@ -266,8 +281,10 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                     "onPointerEnter": [Function: AsyncFunction],
                                     "onPointerLeave": [Function: AsyncFunction],
                                     "style": {
-                                      "alignItems": "flex-end",
-                                      "flex": undefined,
+                                      "alignItems": "center",
+                                      "display": "flex",
+                                      "flexDirection": "row",
+                                      "justifyContent": "space-between",
                                       "width": "100%",
                                     },
                                     "testID": undefined,
@@ -929,6 +946,21 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                   "children": [
                                     {
                                       "$$typeof": Symbol(react.test.json),
+                                      "children": null,
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
                                       "children": [
                                         {
                                           "$$typeof": Symbol(react.test.json),
@@ -1011,8 +1043,10 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                     "onPointerEnter": [Function: AsyncFunction],
                                     "onPointerLeave": [Function: AsyncFunction],
                                     "style": {
-                                      "alignItems": "flex-end",
-                                      "flex": undefined,
+                                      "alignItems": "center",
+                                      "display": "flex",
+                                      "flexDirection": "row",
+                                      "justifyContent": "space-between",
                                       "width": "100%",
                                     },
                                     "testID": undefined,
@@ -1758,6 +1792,38 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                         {
                                           "$$typeof": Symbol(react.test.json),
                                           "children": [
+                                            "Height",
+                                          ],
+                                          "props": {
+                                            "numberOfLines": 0,
+                                            "style": {
+                                              "color": "#1C1C1C",
+                                              "fontFamily": "heading-bold",
+                                              "fontSize": 16,
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
                                             {
                                               "$$typeof": Symbol(react.test.json),
                                               "children": [
@@ -1836,8 +1902,10 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                     "onPointerEnter": [Function: AsyncFunction],
                                     "onPointerLeave": [Function: AsyncFunction],
                                     "style": {
-                                      "alignItems": "flex-end",
-                                      "flex": undefined,
+                                      "alignItems": "center",
+                                      "display": "flex",
+                                      "flexDirection": "row",
+                                      "justifyContent": "space-between",
                                       "width": "100%",
                                     },
                                     "testID": undefined,
@@ -2518,6 +2586,38 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                         {
                                           "$$typeof": Symbol(react.test.json),
                                           "children": [
+                                            "Height",
+                                          ],
+                                          "props": {
+                                            "numberOfLines": 0,
+                                            "style": {
+                                              "color": "#1C1C1C",
+                                              "fontFamily": "heading-bold",
+                                              "fontSize": 16,
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
                                             {
                                               "$$typeof": Symbol(react.test.json),
                                               "children": [
@@ -2596,8 +2696,10 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                     "onPointerEnter": [Function: AsyncFunction],
                                     "onPointerLeave": [Function: AsyncFunction],
                                     "style": {
-                                      "alignItems": "flex-end",
-                                      "flex": undefined,
+                                      "alignItems": "center",
+                                      "display": "flex",
+                                      "flexDirection": "row",
+                                      "justifyContent": "space-between",
                                       "width": "100%",
                                     },
                                     "testID": undefined,
@@ -3317,6 +3419,38 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                         {
                                           "$$typeof": Symbol(react.test.json),
                                           "children": [
+                                            "Height",
+                                          ],
+                                          "props": {
+                                            "numberOfLines": 0,
+                                            "style": {
+                                              "color": "#1C1C1C",
+                                              "fontFamily": "heading-bold",
+                                              "fontSize": 16,
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
                                             {
                                               "$$typeof": Symbol(react.test.json),
                                               "children": [
@@ -3395,8 +3529,10 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                     "onPointerEnter": [Function: AsyncFunction],
                                     "onPointerLeave": [Function: AsyncFunction],
                                     "style": {
-                                      "alignItems": "flex-end",
-                                      "flex": undefined,
+                                      "alignItems": "center",
+                                      "display": "flex",
+                                      "flexDirection": "row",
+                                      "justifyContent": "space-between",
                                       "width": "100%",
                                     },
                                     "testID": undefined,

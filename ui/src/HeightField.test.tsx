@@ -20,10 +20,12 @@ describe("HeightField", () => {
     });
 
     it("should render with title", () => {
-      const {getByText} = renderWithTheme(
+      const {getAllByText} = renderWithTheme(
         <HeightField onChange={mockOnChange} title="Height" value="" />
       );
-      expect(getByText("Height")).toBeTruthy();
+      // Title appears in both the field title and the HeightActionSheet
+      const heightElements = getAllByText("Height");
+      expect(heightElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it("should render helper text", () => {
