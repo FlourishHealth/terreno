@@ -58,6 +58,12 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Export frontend for web
+        run: bun run export
+        working-directory: example-frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:4000
+
       - name: Seed test data
         run: bun run seed
         working-directory: example-backend
@@ -79,11 +85,8 @@ jobs:
           TOKEN_EXPIRES_IN: 15m
           REFRESH_TOKEN_EXPIRES_IN: 30d
 
-      - name: Start frontend
-        run: bun run web &
-        working-directory: example-frontend
-        env:
-          EXPO_PUBLIC_API_URL: http://localhost:4000
+      - name: Serve frontend static build
+        run: bunx serve -s example-frontend/dist -l 8082 &
 
       - name: Wait for backend
         run: |
@@ -107,25 +110,13 @@ jobs:
       - name: Add Maestro to PATH
         run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      - name: Setup Chrome and display for CI
+      - name: Setup Chrome for CI
         run: |
-          sudo apt-get update && sudo apt-get install -y xvfb
           CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
           sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
           printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
           sudo chmod 0755 "$CHROME_BIN"
           "$CHROME_BIN" --version
-
-      - name: Debug - Check page content
-        run: |
-          echo "=== Backend health ==="
-          curl -s http://localhost:4000/openapi.json | head -c 200
-          echo ""
-          echo "=== Rendered DOM body ==="
-          google-chrome --no-sandbox --disable-dev-shm-usage --headless --dump-dom --virtual-time-budget=30000 http://localhost:8082 2>/dev/null | sed -n '/<body/,/<\/body>/p' | head -c 3000 || true
-          echo ""
-          echo "=== Chrome console errors ==="
-          timeout 30 google-chrome --no-sandbox --disable-dev-shm-usage --headless --disable-gpu --enable-logging --v=1 --virtual-time-budget=30000 http://localhost:8082 2>&1 | grep -iE "CONSOLE|error|exception" | head -20 || true
 
       - name: Run Maestro E2E tests
         run: xvfb-run maestro test .maestro/flows/
