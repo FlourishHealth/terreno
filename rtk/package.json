@@ -13,6 +13,7 @@
     "qs": "^6.14.1",
     "react-native": "catalog:",
     "react-redux": "catalog:",
+    "redux-persist": "catalog:",
     "socket.io-client": "^4.8.1"
   },
   "description": "Redux Toolkit Query utilities for @terreno/api backends",
@@ -44,5 +45,5 @@
     "test:ci": "echo 'No tests'"
   },
   "types": "dist/index.d.ts",
-  "version": "1.0.0"
+  "version": "0.0.17"
 }

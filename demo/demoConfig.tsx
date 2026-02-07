@@ -50,6 +50,7 @@ import {
   ThemeConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  UserInactivityConfiguration,
 } from "@story-config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
@@ -222,6 +223,7 @@ const Config: DemoConfigurationBase[] = [
   ThemeConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  UserInactivityConfiguration,
 ];
 
 // Ensure consistent alphabetical sorting

@@ -275,7 +275,7 @@ export const Modal: FC<ModalProps> = ({
     );
   } else {
     return (
-      <RNModal animationType="slide" onRequestClose={handleDismiss} transparent visible={visible}>
+      <RNModal animationType="none" onRequestClose={handleDismiss} transparent visible={visible}>
         <Pressable
           onPress={persistOnBackgroundClick ? undefined : handleDismiss}
           style={{

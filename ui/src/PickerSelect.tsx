@@ -123,7 +123,6 @@ export function RNPickerSelect({
 
   InputAccessoryView,
 }: RNPickerSelectProps) {
-  const [selectedItem, setSelectedItem] = useState<any>();
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [animationType, setAnimationType] = useState(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
@@ -156,6 +155,10 @@ export function RNPickerSelect({
     },
     [options]
   );
+
+  const [selectedItem, setSelectedItem] = useState<any>(() => {
+    return getSelectedItem(itemKey, value).selectedItem;
+  });
 
   // Set selected item
   useEffect(() => {
@@ -458,7 +461,8 @@ export function RNPickerSelect({
             onValueChange={onValueChangeEvent}
             selectedValue={selectedItem?.value}
             style={[
-              Platform.OS !== "web" ? {backgroundColor: "transparent"} : {}, // to hide native icon
+              // to hide native icon
+              Platform.OS !== "web" ? {backgroundColor: "transparent"} : {},
               {
                 color: "transparent",
                 height: "100%",
@@ -492,13 +496,11 @@ export function RNPickerSelect({
         ]}
       >
         <Picker
+          dropdownIconColor={theme.text.primary}
           enabled={!disabled}
           onValueChange={onValueChangeEvent}
           selectedValue={selectedItem?.value}
-          style={[
-            Platform.OS !== "web" ? {backgroundColor: "transparent"} : {}, // to hide native icon
-            {color: theme.text.primary, width: "100%"},
-          ]}
+          style={[{color: theme.text.primary, width: "100%"}]}
           testID="android_picker"
         >
           {renderPickerItems()}

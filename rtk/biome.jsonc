@@ -1,6 +1,5 @@
 {
-  "root": false,
-  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["../biome.jsonc"],
   "files": {
     "includes": [
@@ -26,5 +25,6 @@
         "noImplicitAnyLet": "error"
       }
     }
-  }
+  },
+  "root": true
 }

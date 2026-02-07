@@ -1,0 +1,195 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Card renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Card content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 4,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flex": undefined,
+      "flexDirection": "column",
+      "padding": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Card applies custom padding 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 4,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flex": undefined,
+      "flexDirection": "column",
+      "padding": 48,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Card applies custom color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": undefined,
+      "borderRadius": 4,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flex": undefined,
+      "flexDirection": "column",
+      "padding": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Card passes additional Box props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "backgroundColor": "#FFFFFF",
+      "borderRadius": 4,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flex": undefined,
+      "flexDirection": "column",
+      "gap": 8,
+      "marginTop": 16,
+      "padding": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

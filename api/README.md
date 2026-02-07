@@ -102,10 +102,9 @@ You can create your own permissions functions. Check permissions.ts for some exa
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.
 
-```
-// Include dotenv here at the start if you're including configuration from dot files.
-import "dotenv/config";
+> **Note:** Bun automatically loads `.env` files before your code runs, so there's no need for `dotenv`. Just place a `.env` file in your project root and `process.env` will have your variables available immediately. See [Bun .env docs](https://bun.sh/docs/runtime/env).
 
+```
 import * as Sentry from "@sentry/node";
 import {nodeProfilingIntegration} from "@sentry/profiling-node";
 

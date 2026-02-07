@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.10/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -16,9 +16,9 @@
       "api/package.json",
       "api/src/**/*.ts",
       "api/src/**/*.tsx",
-      "backend-example/package.json",
-      "backend-example/src/**/*.ts",
-      "backend-example/src/**/*.tsx",
+      "example-backend/package.json",
+      "example-backend/src/**/*.ts",
+      "example-backend/src/**/*.tsx",
       "demo/package.json",
       "demo/app/**/*.ts",
       "demo/app/**/*.tsx",
@@ -28,9 +28,9 @@
       "demo/stories/**/*.tsx",
       "demo/demoConfig.tsx",
       "demo/story-config.tsx",
-      "frontend-example/package.json",
-      "frontend-example/**/*.ts",
-      "frontend-example/**/*.tsx",
+      "example-frontend/package.json",
+      "example-frontend/**/*.ts",
+      "example-frontend/**/*.tsx",
       "rtk/package.json",
       "rtk/src/**/*.ts",
       "rtk/src/**/*.tsx",
@@ -46,7 +46,8 @@
       "!!**/.expo",
       "!!**/.next",
       "!!**/generated",
-      "!!**/.git"
+      "!!**/.git",
+      "!!api/src/populate.ts"
     ]
   },
   "formatter": {

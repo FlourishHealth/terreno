@@ -1,7 +1,7 @@
 import {Box} from "./Box";
 import type {BoxProps} from "./Common";
 
-export const Card = ({children, color = "base", padding = 4, width, ...rest}: BoxProps) => {
+export const Card = ({children, color = "base", padding = 4, ...rest}: BoxProps) => {
   return (
     <Box
       color={color}
@@ -10,7 +10,6 @@ export const Card = ({children, color = "base", padding = 4, width, ...rest}: Bo
       padding={padding}
       rounding="md"
       shadow
-      width={width}
       {...rest}
     >
       {children}

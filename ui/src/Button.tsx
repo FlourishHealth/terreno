@@ -1,40 +1,18 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
-import {type FC, useMemo, useState} from "react";
+import {type FC, lazy, Suspense, useMemo, useState} from "react";
 import {ActivityIndicator, Pressable, Text, View} from "react-native";
 
 import {Box} from "./Box";
 import type {ButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
-import {Modal} from "./Modal";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
-const ConfirmationModal: FC<{
-  visible: boolean;
-  title: string;
-  subtitle?: string;
-  text: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}> = ({visible, title, subtitle, text, onConfirm, onCancel}) => {
-  return (
-    <Modal
-      onDismiss={onCancel}
-      primaryButtonOnClick={onConfirm}
-      primaryButtonText="Confirm"
-      secondaryButtonOnClick={onCancel}
-      secondaryButtonText="Cancel"
-      subtitle={subtitle}
-      title={title}
-      visible={visible}
-    >
-      <Text>{text}</Text>
-    </Modal>
-  );
-};
+// Lazy load Modal to break the circular dependency: Modal -> Button -> Modal
+const LazyModal = lazy(() => import("./Modal").then((module) => ({default: module.Modal})));
 
 const ButtonComponent: FC<ButtonProps> = ({
   confirmationText = "Are you sure you want to continue?",
@@ -159,18 +137,23 @@ const ButtonComponent: FC<ButtonProps> = ({
           </Box>
         )}
       </View>
-      {withConfirmation && (
-        <ConfirmationModal
-          onCancel={() => setShowConfirmation(false)}
-          onConfirm={async () => {
-            await onClick();
-            setShowConfirmation(false);
-          }}
-          subtitle={modalSubTitle}
-          text={confirmationText}
-          title={modalTitle}
-          visible={showConfirmation}
-        />
+      {withConfirmation && showConfirmation && (
+        <Suspense fallback={null}>
+          <LazyModal
+            onDismiss={() => setShowConfirmation(false)}
+            primaryButtonOnClick={async () => {
+              await onClick();
+              setShowConfirmation(false);
+            }}
+            primaryButtonText="Confirm"
+            secondaryButtonOnClick={() => setShowConfirmation(false)}
+            secondaryButtonText="Cancel"
+            subtitle={modalSubTitle}
+            text={confirmationText}
+            title={modalTitle}
+            visible={showConfirmation}
+          />
+        </Suspense>
       )}
     </Pressable>
   );

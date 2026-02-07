@@ -104,6 +104,17 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org/
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
@@ -207,6 +218,17 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org/
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -346,6 +368,17 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org/
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -470,7 +503,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: main
+          ref: master
 
       - name: Setup Git
         run: |
@@ -564,6 +597,9 @@ jobs:
           MESSAGE="${MESSAGE}Tag: ${TAG_NAME}\n"
           MESSAGE="${MESSAGE}Commit: ${COMMIT_SHORT}\n"
           MESSAGE="${MESSAGE}View: ${TAG_URL}"
+          
+          # Convert \n escape sequences to actual newlines
+          MESSAGE=$(printf "%b" "$MESSAGE")
           
           curl -X POST "${{ secrets.ZOOM_WEBHOOK_URL }}" \
             -H "Authorization: ${{ secrets.ZOOM_WEBHOOK_TOKEN }}" \

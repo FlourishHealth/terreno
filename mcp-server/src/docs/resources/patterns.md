@@ -1,0 +1,338 @@
+# Terreno Patterns & Best Practices
+
+## Backend Patterns
+
+### Model Definition
+
+```typescript
+import mongoose from "mongoose";
+import { addDefaultPlugins } from "@terreno/api";
+
+interface TodoDocument extends mongoose.Document {
+  title: string;
+  completed: boolean;
+  ownerId: mongoose.Types.ObjectId;
+  created: Date;
+  updated: Date;
+}
+
+interface TodoModel extends mongoose.Model<TodoDocument> {
+  findByOwner(ownerId: string): Promise<TodoDocument[]>;
+}
+
+const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
+  {
+    title: { type: String, required: true, trim: true },
+    completed: { type: Boolean, default: false },
+    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  },
+  {
+    strict: "throw",
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+addDefaultPlugins(todoSchema);
+
+todoSchema.statics.findByOwner = async function (ownerId: string) {
+  return this.find({ ownerId });
+};
+
+export const Todo = mongoose.model<TodoDocument, TodoModel>("Todo", todoSchema);
+```
+
+### Route Setup
+
+```typescript
+import { Router } from "express";
+import { modelRouter, Permissions, OwnerQueryFilter } from "@terreno/api";
+import { Todo, TodoDocument } from "../models/todo";
+import { UserDocument } from "../models/user";
+
+export const addTodoRoutes = (router: Router) => {
+  router.use(
+    "/todos",
+    modelRouter(Todo, {
+      permissions: {
+        create: [Permissions.IsAuthenticated],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+        delete: [Permissions.IsOwner],
+      },
+      queryFields: ["completed"],
+      queryFilter: OwnerQueryFilter,
+      sort: "-created",
+      preCreate: (body, req) => ({
+        ...body,
+        ownerId: (req.user as UserDocument)?._id,
+      }),
+      postCreate: async (todo, req) => {
+        // Send notification, update stats, etc.
+        logger.info("Todo created", { todoId: todo._id });
+      },
+    })
+  );
+};
+```
+
+### Custom Endpoints
+
+```typescript
+import { createOpenApiBuilder, APIError, authenticateMiddleware } from "@terreno/api";
+
+const toggleCompleteBuilder = createOpenApiBuilder()
+  .withTags(["Todos"])
+  .withSummary("Toggle todo completion status")
+  .withResponse(200, TodoSchema);
+
+router.post(
+  "/todos/:id/toggle",
+  authenticateMiddleware,
+  toggleCompleteBuilder.build(),
+  async (req, res, next) => {
+    try {
+      const todo = await Todo.findOneOrThrow({ _id: req.params.id });
+
+      if (!todo.ownerId.equals((req.user as UserDocument)._id)) {
+        throw new APIError({
+          status: 403,
+          title: "Forbidden",
+          detail: "You do not own this todo",
+        });
+      }
+
+      todo.completed = !todo.completed;
+      await todo.save();
+
+      res.json(todo);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+```
+
+## Frontend Patterns
+
+### Screen with Data Fetching
+
+```typescript
+import React, { useCallback, useState } from "react";
+import { Box, Page, Text, Button, TextField, ScrollView } from "@terreno/ui";
+import { useGetTodosQuery, useCreateTodoMutation } from "@/store/openApiSdk";
+
+const TodoScreen: React.FC = () => {
+  const [newTitle, setNewTitle] = useState("");
+  const { data: todos, isLoading, error, refetch } = useGetTodosQuery({});
+  const [createTodo, { isLoading: isCreating }] = useCreateTodoMutation();
+
+  const handleCreate = useCallback(async () => {
+    if (!newTitle.trim()) {
+      return;
+    }
+
+    try {
+      await createTodo({ title: newTitle }).unwrap();
+      setNewTitle("");
+    } catch (err) {
+      console.error("Failed to create todo:", err);
+    }
+  }, [newTitle, createTodo]);
+
+  if (isLoading) {
+    return (
+      <Page navigation={undefined}>
+        <Box flex={1} alignItems="center" justifyContent="center">
+          <Text>Loading...</Text>
+        </Box>
+      </Page>
+    );
+  }
+
+  if (error) {
+    return (
+      <Page navigation={undefined}>
+        <Box flex={1} alignItems="center" justifyContent="center" gap={2}>
+          <Text color="error500">Failed to load todos</Text>
+          <Button text="Retry" onClick={refetch} />
+        </Box>
+      </Page>
+    );
+  }
+
+  return (
+    <Page navigation={undefined} title="Todos">
+      <ScrollView>
+        <Box padding={4} gap={3}>
+          <Box direction="row" gap={2}>
+            <Box flex={1}>
+              <TextField
+                placeholder="New todo..."
+                value={newTitle}
+                onChangeText={setNewTitle}
+              />
+            </Box>
+            <Button
+              text="Add"
+              onClick={handleCreate}
+              loading={isCreating}
+              disabled={!newTitle.trim()}
+            />
+          </Box>
+
+          {todos?.map((todo) => (
+            <TodoItem key={todo.id} todo={todo} />
+          ))}
+        </Box>
+      </ScrollView>
+    </Page>
+  );
+};
+
+export default TodoScreen;
+```
+
+### Form with Validation
+
+```typescript
+import React, { useCallback, useState } from "react";
+import { Box, Button, TextField, EmailField, Text } from "@terreno/ui";
+import { useCreateUserMutation } from "@/store/openApiSdk";
+
+interface FormErrors {
+  name?: string;
+  email?: string;
+}
+
+const CreateUserForm: React.FC = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [createUser, { isLoading }] = useCreateUserMutation();
+
+  const validate = useCallback((): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
+    }
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Invalid email format";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [name, email]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!validate()) {
+      return;
+    }
+
+    try {
+      await createUser({ name, email }).unwrap();
+      // Success - navigate or show message
+    } catch (err: any) {
+      if (err.data?.fields) {
+        setErrors(err.data.fields);
+      }
+    }
+  }, [name, email, validate, createUser]);
+
+  return (
+    <Box padding={4} gap={3}>
+      <TextField
+        label="Name"
+        value={name}
+        onChangeText={setName}
+        error={errors.name}
+      />
+      <EmailField
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        error={errors.email}
+      />
+      <Button
+        text="Create User"
+        onClick={handleSubmit}
+        loading={isLoading}
+        fullWidth
+      />
+    </Box>
+  );
+};
+```
+
+## Error Handling
+
+### Backend
+
+```typescript
+import { APIError } from "@terreno/api";
+
+// Validation error with field-specific messages
+throw new APIError({
+  status: 400,
+  title: "Validation Error",
+  detail: "Please fix the following errors",
+  code: "VALIDATION_ERROR",
+  fields: {
+    email: "Email already exists",
+    password: "Password must be at least 8 characters",
+  },
+});
+
+// Not found
+throw new APIError({
+  status: 404,
+  title: "Not Found",
+  detail: "The requested resource was not found",
+});
+
+// Permission denied
+throw new APIError({
+  status: 403,
+  title: "Forbidden",
+  detail: "You do not have permission to perform this action",
+});
+```
+
+### Frontend
+
+```typescript
+try {
+  await someApiCall().unwrap();
+} catch (err: any) {
+  // Handle field-specific errors
+  if (err.data?.fields) {
+    setErrors(err.data.fields);
+    return;
+  }
+
+  // Handle general errors
+  const message = err.data?.detail || err.message || "An error occurred";
+  toast.error(message);
+}
+```
+
+## Code Style Checklist
+
+- [ ] Use ES module syntax
+- [ ] Use const arrow functions
+- [ ] Use Luxon for dates
+- [ ] Use interfaces over types
+- [ ] No enums (use maps)
+- [ ] Named exports preferred
+- [ ] RORO pattern for complex functions
+- [ ] Early returns for error conditions
+- [ ] No nested if statements (prefer early return)
+- [ ] Multiline syntax with braces for conditionals
+- [ ] `console.log` only for debugging
+- [ ] Wrap callbacks with useCallback
+- [ ] Provide explicit return types
