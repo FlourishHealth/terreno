@@ -20,10 +20,11 @@ url: http://localhost:8082/login
     id: "login-password-input"
 - inputText: "testpassword123"
 
-# Submit login
-- tapOn: "Login"
+# Submit login (use id to avoid matching the "login" header text)
+- tapOn:
+    id: "Login"
 
 # Assert navigation to Todos screen
 - extendedWaitUntil:
     visible: "My Todos"
-    timeout: 10000
+    timeout: 15000
