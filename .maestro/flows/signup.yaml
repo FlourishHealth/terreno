@@ -16,22 +16,19 @@ url: http://localhost:8082/login
 # Assert signup mode
 - assertVisible: "Create Account"
 
-# Fill in name - tap the input field (second "Name" element, after the label)
+# Fill in name - tap the input below the "Name" label
 - tapOn:
-    text: "Name"
-    index: 1
+    below: "Name"
 - inputText: "New User"
 
-# Fill in email - tap the input field (second "Email" element, after the label)
+# Fill in email - tap the input below the "Email" label
 - tapOn:
-    text: "Email"
-    index: 1
+    below: "Email"
 - inputText: "newuser-${Date.now()}@example.com"
 
-# Fill in password - tap the input field (second "Password" element, after the label)
+# Fill in password - tap the input below the "Password" label
 - tapOn:
-    text: "Password"
-    index: 1
+    below: "Password"
 - inputText: "testpassword123"
 
 # Submit signup
