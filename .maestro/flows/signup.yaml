@@ -11,30 +11,31 @@ url: http://localhost:8082/login
     timeout: 30000
 
 # Toggle to signup mode
-- tapOn:
-    id: "login-toggle-button"
+- tapOn: "Need an account? Sign Up"
 
 # Assert signup mode
 - assertVisible: "Create Account"
 
-# Fill in name
+# Fill in name - tap the input field (second "Name" element, after the label)
 - tapOn:
-    id: "login-name-input"
+    text: "Name"
+    index: 1
 - inputText: "New User"
 
-# Fill in email (use timestamp to avoid collisions)
+# Fill in email - tap the input field (second "Email" element, after the label)
 - tapOn:
-    id: "login-email-input"
+    text: "Email"
+    index: 1
 - inputText: "newuser-${Date.now()}@example.com"
 
-# Fill in password
+# Fill in password - tap the input field (second "Password" element, after the label)
 - tapOn:
-    id: "login-password-input"
+    text: "Password"
+    index: 1
 - inputText: "testpassword123"
 
 # Submit signup
-- tapOn:
-    id: "login-submit-button"
+- tapOn: "Sign Up"
 
 # Assert navigation to Todos screen
 - extendedWaitUntil:
