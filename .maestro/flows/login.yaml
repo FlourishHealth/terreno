@@ -10,14 +10,14 @@ url: http://localhost:8082/login
     visible: "Welcome Back"
     timeout: 30000
 
-# Fill in email - tap the input below the "Email" label
+# Fill in email
 - tapOn:
-    below: "Email"
+    id: "login-email-input"
 - inputText: "test@example.com"
 
-# Fill in password - tap the input below the "Password" label
+# Fill in password
 - tapOn:
-    below: "Password"
+    id: "login-password-input"
 - inputText: "testpassword123"
 
 # Submit login

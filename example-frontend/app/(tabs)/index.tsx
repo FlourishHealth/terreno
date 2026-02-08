@@ -157,6 +157,7 @@ const TodosScreen: React.FC = () => {
             <Box gap={3}>
               <TextField
                 disabled={isCreating}
+                id="todo-new-input"
                 onChange={setNewTodoTitle}
                 onEnter={handleCreateTodo}
                 placeholder="What needs to be done?"

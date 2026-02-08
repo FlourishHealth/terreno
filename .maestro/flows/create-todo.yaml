@@ -12,11 +12,11 @@ url: http://localhost:8082/login
 
 # Login first
 - tapOn:
-    below: "Email"
+    id: "login-email-input"
 - inputText: "test@example.com"
 
 - tapOn:
-    below: "Password"
+    id: "login-password-input"
 - inputText: "testpassword123"
 
 - tapOn: "Login"
@@ -28,7 +28,7 @@ url: http://localhost:8082/login
 
 # Create a new todo
 - tapOn:
-    text: "What needs to be done?"
+    id: "todo-new-input"
 - inputText: "Buy groceries"
 
 - tapOn: "Add Todo"
