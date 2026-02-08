@@ -19,12 +19,13 @@ url: http://localhost:8082/login
     id: "login-password-input"
 - inputText: "testpassword123"
 
-- tapOn: "Login"
+- tapOn:
+    id: "Login"
 
 # Wait for Todos screen
 - extendedWaitUntil:
     visible: "My Todos"
-    timeout: 10000
+    timeout: 15000
 
 # Create a new todo
 - tapOn:

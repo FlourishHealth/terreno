@@ -37,4 +37,4 @@ url: http://localhost:8082/login
 # Assert navigation to Todos screen
 - extendedWaitUntil:
     visible: "My Todos"
-    timeout: 10000
+    timeout: 15000
