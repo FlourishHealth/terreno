@@ -10,30 +10,30 @@ url: http://localhost:8082/login
     visible: "Welcome Back"
     timeout: 30000
 
-# Login first
+# Login first - tap input fields (index 1 to skip labels)
 - tapOn:
-    id: "login-email-input"
+    text: "Email"
+    index: 1
 - inputText: "test@example.com"
 
 - tapOn:
-    id: "login-password-input"
+    text: "Password"
+    index: 1
 - inputText: "testpassword123"
 
-- tapOn:
-    id: "login-submit-button"
+- tapOn: "Login"
 
 # Wait for Todos screen
 - extendedWaitUntil:
     visible: "My Todos"
     timeout: 10000
 
-# Create a new todo
+# Create a new todo - tap the input field (index 1 to skip "New Todo" label)
 - tapOn:
-    id: "todo-new-input"
+    text: "What needs to be done?"
 - inputText: "Buy groceries"
 
-- tapOn:
-    id: "todo-add-button"
+- tapOn: "Add Todo"
 
 # Assert the todo appears in the list
 - extendedWaitUntil:

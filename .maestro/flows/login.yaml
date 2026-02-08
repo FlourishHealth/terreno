@@ -10,19 +10,20 @@ url: http://localhost:8082/login
     visible: "Welcome Back"
     timeout: 30000
 
-# Fill in email
+# Fill in email - tap the input field (second "Email" element, after the label)
 - tapOn:
-    id: "login-email-input"
+    text: "Email"
+    index: 1
 - inputText: "test@example.com"
 
-# Fill in password
+# Fill in password - tap the input field (second "Password" element, after the label)
 - tapOn:
-    id: "login-password-input"
+    text: "Password"
+    index: 1
 - inputText: "testpassword123"
 
 # Submit login
-- tapOn:
-    id: "login-submit-button"
+- tapOn: "Login"
 
 # Assert navigation to Todos screen
 - extendedWaitUntil:
