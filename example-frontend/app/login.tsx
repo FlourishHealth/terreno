@@ -65,6 +65,7 @@ const LoginScreen: React.FC = () => {
           {isSignUp && (
             <TextField
               disabled={isLoading}
+              id="login-name-input"
               onChange={setName}
               placeholder="Name"
               testID="login-name-input"
@@ -76,6 +77,7 @@ const LoginScreen: React.FC = () => {
           <TextField
             autoComplete="off"
             disabled={isLoading}
+            id="login-email-input"
             onChange={setEmail}
             placeholder="Email"
             testID="login-email-input"
@@ -86,6 +88,7 @@ const LoginScreen: React.FC = () => {
 
           <TextField
             disabled={isLoading}
+            id="login-password-input"
             onChange={setPassword}
             placeholder="Password"
             testID="login-password-input"
