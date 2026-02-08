@@ -32,8 +32,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-localization",
-      "./plugins/withRemovePushEntitlement"
+      "expo-localization"
     ],
     "extra": {
       "router": {},
