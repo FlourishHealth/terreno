@@ -60,6 +60,7 @@ jobs:
         run: bun run test:ci
         env:
           CI: true
+          AGENT: "1"
 
   build-and-deploy:
     name: Build and Deploy to GCP

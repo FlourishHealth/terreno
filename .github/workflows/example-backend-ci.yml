@@ -59,4 +59,5 @@ jobs:
         working-directory: example-backend
         env:
           CI: true
+          AGENT: "1"
 

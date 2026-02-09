@@ -189,6 +189,8 @@ jobs:
 
       - name: Run tests
         run: bun run test
+        env:
+          AGENT: "1"
 
       - name: Publish to npm
         run: npm publish --access public
@@ -335,6 +337,8 @@ jobs:
 
       - name: Run tests
         run: bun run test:ci
+        env:
+          AGENT: "1"
 
       - name: Publish to npm
         run: npm publish --access public

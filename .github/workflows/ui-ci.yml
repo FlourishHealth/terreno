@@ -58,6 +58,7 @@ jobs:
         working-directory: ui
         env:
           CI: true
+          AGENT: "1"
 
   demo-typecheck:
     name: Demo TypeScript Check (UI dependency)

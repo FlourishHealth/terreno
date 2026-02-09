@@ -49,6 +49,7 @@ jobs:
         run: bun run test:ci
         env:
           CI: true
+          AGENT: "1"
 
   docker:
     name: Build Docker Image
