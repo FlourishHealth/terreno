@@ -1,0 +1,732 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`OAuthButtons snapshots should match snapshot with multiple providers 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "or continue with",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#686868",
+                      "fontFamily": "text-regular",
+                      "fontSize": 10,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 16,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignSelf": "center",
+                          "marginLeft": 0,
+                          "marginRight": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Continue with Google",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#092E3A",
+                          "fontSize": 16,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Press to perform action",
+            "aria-label": "Continue with Google",
+            "aria-role": "button",
+            "disabled": undefined,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#092E3A",
+              "borderRadius": 360,
+              "borderWidth": 2,
+              "flexDirection": "column",
+              "justifyContent": "center",
+              "paddingHorizontal": 20,
+              "paddingVertical": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignSelf": "center",
+                          "marginLeft": 0,
+                          "marginRight": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Continue with Apple",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#092E3A",
+                          "fontSize": 16,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Press to perform action",
+            "aria-label": "Continue with Apple",
+            "aria-role": "button",
+            "disabled": undefined,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#092E3A",
+              "borderRadius": 360,
+              "borderWidth": 2,
+              "flexDirection": "column",
+              "justifyContent": "center",
+              "paddingHorizontal": 20,
+              "paddingVertical": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "gap": 12,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "marginTop": 32,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`OAuthButtons snapshots should match snapshot with custom divider text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "or sign in with",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#686868",
+                      "fontFamily": "text-regular",
+                      "fontSize": 10,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 16,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignSelf": "center",
+                          "marginLeft": 0,
+                          "marginRight": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Continue with Google",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#092E3A",
+                          "fontSize": 16,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Press to perform action",
+            "aria-label": "Continue with Google",
+            "aria-role": "button",
+            "disabled": undefined,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#092E3A",
+              "borderRadius": 360,
+              "borderWidth": 2,
+              "flexDirection": "column",
+              "justifyContent": "center",
+              "paddingHorizontal": 20,
+              "paddingVertical": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignSelf": "center",
+                          "marginLeft": 0,
+                          "marginRight": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Continue with Apple",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#092E3A",
+                          "fontSize": 16,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Press to perform action",
+            "aria-label": "Continue with Apple",
+            "aria-role": "button",
+            "disabled": undefined,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#092E3A",
+              "borderRadius": 360,
+              "borderWidth": 2,
+              "flexDirection": "column",
+              "justifyContent": "center",
+              "paddingHorizontal": 20,
+              "paddingVertical": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "gap": 12,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "marginTop": 32,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`OAuthButtons snapshots should match snapshot with single provider 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "or continue with",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#686868",
+                      "fontFamily": "text-regular",
+                      "fontSize": 10,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "paddingLeft": 16,
+              "paddingRight": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "backgroundColor": "#CDCDCD",
+              "flex": 1,
+              "height": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 16,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignSelf": "center",
+                          "marginLeft": 0,
+                          "marginRight": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Continue with Google",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#092E3A",
+                          "fontSize": 16,
+                          "fontWeight": "700",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Press to perform action",
+            "aria-label": "Continue with Google",
+            "aria-role": "button",
+            "disabled": undefined,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#092E3A",
+              "borderRadius": 360,
+              "borderWidth": 2,
+              "flexDirection": "column",
+              "justifyContent": "center",
+              "paddingHorizontal": 20,
+              "paddingVertical": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "gap": 12,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "marginTop": 32,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`OAuthButtons snapshots should match snapshot with no enabled providers 1`] = `null`;
