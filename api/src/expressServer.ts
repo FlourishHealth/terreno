@@ -294,7 +294,7 @@ export interface SetupServerOptions {
       ) => void);
   addMiddleware?: AddRoutes;
   ignoreTraces?: string[];
-  sentryOptions?: Sentry.NodeOptions;
+  sentryOptions?: Sentry.BunOptions;
 }
 
 // Sets up the routes and returns a function to launch the API.
