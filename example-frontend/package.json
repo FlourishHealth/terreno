@@ -9,6 +9,7 @@
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
     "expo-constants": "catalog:",
+    "expo-dev-client": "catalog:",
     "expo-font": "catalog:",
     "expo-notifications": "catalog:",
     "expo-router": "catalog:",

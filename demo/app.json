@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Terreno Demo",
-    "slug": "terreno",
+    "slug": "terreno-demo",
     "scheme": "terreno",
     "version": "1.0.0",
     "orientation": "default",
@@ -16,13 +16,15 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.terreno.demo"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.terreno.demo"
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -31,6 +33,13 @@
     "plugins": [
       "expo-router",
       "expo-localization"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "89c320ce-465b-4d71-9fd6-74fea9c5d898"
+      }
+    },
+    "owner": "flourishhealth"
   }
 }
