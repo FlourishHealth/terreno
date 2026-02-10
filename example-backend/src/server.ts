@@ -1,5 +1,5 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
