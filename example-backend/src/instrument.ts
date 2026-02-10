@@ -79,7 +79,7 @@ if (isTracingEnabled) {
 }
 
 // Initialize Sentry after trace agent
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 
 // import {nodeProfilingIntegration} from "@sentry/profiling-node";
 

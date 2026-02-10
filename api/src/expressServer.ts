@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import cron from "cron";
