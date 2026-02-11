@@ -174,7 +174,7 @@ exports[`NumberPickerActionSheet renders correctly 1`] = `
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
-                                          "alignSelf": undefined,
+                                          "alignSelf": "flex-start",
                                           "backgroundColor": "#0E9DCD",
                                           "borderColor": undefined,
                                           "borderRadius": 360,
@@ -1503,7 +1503,7 @@ exports[`NumberPickerActionSheet renders with different range 1`] = `
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
-                                          "alignSelf": undefined,
+                                          "alignSelf": "flex-start",
                                           "backgroundColor": "#0E9DCD",
                                           "borderColor": undefined,
                                           "borderRadius": 360,
