@@ -162,25 +162,41 @@ export const ConfirmationButton = () => {
 
 export const FullWidthButtons = (props: Partial<ButtonProps>) => {
   return (
-    <>
-      <Box paddingY={1}>
-        <Button
-          onClick={() => console.info("clicked")}
-          text="Default/Primary Full Width"
-          {...props}
-          fullWidth
-        />
+    <Box gap={4}>
+      <Box gap={2}>
+        <Heading>Column Layout - default width</Heading>
+        <Box color="secondaryLight" direction="column" gap={2} padding={2}>
+          <Button onClick={() => {}} text="Button 1" {...props} />
+          <Button onClick={() => {}} text="Longer Button 2" {...props} />
+          <Button onClick={() => {}} text="Button 3" variant="secondary" {...props} />
+        </Box>
       </Box>
-      <Box paddingY={1}>
-        <Button
-          onClick={() => console.info("clicked")}
-          text="Full Width with tooltip"
-          tooltipText="This is a tooltip"
-          {...props}
-          fullWidth
-        />
+
+      <Box gap={2}>
+        <Heading>Column Layout - fullWidth</Heading>
+        <Box color="secondaryLight" direction="column" gap={2} padding={2}>
+          <Button fullWidth onClick={() => {}} text="Button 1" {...props} />
+          <Button fullWidth onClick={() => {}} text="Longer Button 2" {...props} />
+          <Button fullWidth onClick={() => {}} text="Button 3" variant="secondary" {...props} />
+        </Box>
       </Box>
-    </>
+
+      <Box gap={2}>
+        <Heading>Row Layout - default width</Heading>
+        <Box color="secondaryLight" direction="row" gap={2} padding={2}>
+          <Button onClick={() => {}} text="Button 1" {...props} />
+          <Button onClick={() => {}} text="Longer Button 2" {...props} />
+          <Button onClick={() => {}} text="Button 3" variant="secondary" {...props} />
+        </Box>
+      </Box>
+
+      <Box gap={2}>
+        <Heading>Row Layout - fullWidth</Heading>
+        <Box color="secondaryLight" direction="row" gap={2} padding={2}>
+          <Button fullWidth onClick={() => {}} text="Button 1" {...props} />
+        </Box>
+      </Box>
+    </Box>
   );
 };
 

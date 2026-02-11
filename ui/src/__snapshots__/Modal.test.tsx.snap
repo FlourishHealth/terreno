@@ -535,7 +535,7 @@ exports[`Modal renders with both buttons 1`] = `
                             "onPress": [Function: debounced],
                             "style": {
                               "alignItems": "center",
-                              "alignSelf": undefined,
+                              "alignSelf": "flex-start",
                               "backgroundColor": "#B6CDD5",
                               "borderColor": undefined,
                               "borderRadius": 360,
@@ -609,7 +609,7 @@ exports[`Modal renders with both buttons 1`] = `
                         "onPress": [Function: debounced],
                         "style": {
                           "alignItems": "center",
-                          "alignSelf": undefined,
+                          "alignSelf": "flex-start",
                           "backgroundColor": "#0E9DCD",
                           "borderColor": undefined,
                           "borderRadius": 360,
@@ -856,7 +856,7 @@ exports[`Modal renders with disabled primary button 1`] = `
                         "onPress": [Function: debounced],
                         "style": {
                           "alignItems": "center",
-                          "alignSelf": undefined,
+                          "alignSelf": "flex-start",
                           "backgroundColor": "#9A9A9A",
                           "borderColor": undefined,
                           "borderRadius": 360,
