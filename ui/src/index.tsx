@@ -88,6 +88,9 @@ export * from "./Utilities";
 export * from "./useStoredState";
 export * from "./WebAddressAutocomplete";
 
+// Re-export React Native style types for use in consumer projects
+export type {StyleProp, ViewStyle} from "react-native";
+
 // export * from "./Layout";
 // export * from "./Drawer";
 // export * from "./Chart";
