@@ -74,6 +74,17 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$GCP_PROJECT_ID" ]; then missing+=("GCP_PROJECT_ID"); fi
+          if [ -z "$GCP_ARTIFACT_REGISTRY" ]; then missing+=("GCP_ARTIFACT_REGISTRY"); fi
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then missing+=("GCP_SA_KEY"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - uses: actions/checkout@v6
 
       - name: Setup Bun
