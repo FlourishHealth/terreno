@@ -45,6 +45,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
+    "seed": "bun run src/scripts/seed-test-data.ts",
     "start": "bun run src/index.ts",
     "test": "bun test",
     "test:ci": "bun test",

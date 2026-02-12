@@ -156,9 +156,11 @@ const TodosScreen: React.FC = () => {
             <Box gap={3}>
               <TextField
                 disabled={isCreating}
+                id="todo-new-input"
                 onChange={setNewTodoTitle}
                 onEnter={handleCreateTodo}
                 placeholder="What needs to be done?"
+                testID="todo-new-input"
                 title="New Todo"
                 value={newTodoTitle}
               />
@@ -168,6 +170,7 @@ const TodosScreen: React.FC = () => {
                 iconName="plus"
                 loading={isCreating}
                 onClick={handleCreateTodo}
+                testID="todo-add-button"
                 text="Add Todo"
               />
             </Box>

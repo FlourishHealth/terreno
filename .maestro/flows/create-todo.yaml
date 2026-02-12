@@ -1,0 +1,40 @@
+url: http://localhost:8082/login
+---
+# Login and create a todo
+# Prerequisites: backend running on port 4000, test data seeded, frontend running on port 8082
+
+- launchApp
+
+# Wait for the login screen to load
+- extendedWaitUntil:
+    visible: "Welcome Back"
+    timeout: 30000
+
+# Login first
+- tapOn:
+    id: "login-email-input"
+- inputText: "test@example.com"
+
+- tapOn:
+    id: "login-password-input"
+- inputText: "testpassword123"
+
+- tapOn:
+    id: "Login"
+
+# Wait for Todos screen
+- extendedWaitUntil:
+    visible: "My Todos"
+    timeout: 15000
+
+# Create a new todo
+- tapOn:
+    id: "todo-new-input"
+- inputText: "Buy groceries"
+
+- tapOn: "Add Todo"
+
+# Assert the todo appears in the list
+- extendedWaitUntil:
+    visible: "Buy groceries"
+    timeout: 5000

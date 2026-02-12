@@ -155,6 +155,7 @@ const ProfileScreen: React.FC = () => {
               fullWidth
               iconName="right-from-bracket"
               onClick={handleLogout}
+              testID="profile-logout-button"
               text="Logout"
               variant="destructive"
             />

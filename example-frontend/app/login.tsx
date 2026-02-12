@@ -65,8 +65,10 @@ const LoginScreen: React.FC = () => {
           {isSignUp && (
             <TextField
               disabled={isLoading}
+              id="login-name-input"
               onChange={setName}
               placeholder="Name"
+              testID="login-name-input"
               title="Name"
               value={name}
             />
@@ -75,8 +77,10 @@ const LoginScreen: React.FC = () => {
           <TextField
             autoComplete="off"
             disabled={isLoading}
+            id="login-email-input"
             onChange={setEmail}
             placeholder="Email"
+            testID="login-email-input"
             title="Email"
             type="email"
             value={email}
@@ -84,8 +88,10 @@ const LoginScreen: React.FC = () => {
 
           <TextField
             disabled={isLoading}
+            id="login-password-input"
             onChange={setPassword}
             placeholder="Password"
+            testID="login-password-input"
             title="Password"
             type="password"
             value={password}
@@ -103,6 +109,7 @@ const LoginScreen: React.FC = () => {
               fullWidth
               loading={isLoading}
               onClick={handleSubmit}
+              testID="login-submit-button"
               text={isSignUp ? "Sign Up" : "Login"}
             />
           </Box>
@@ -112,6 +119,7 @@ const LoginScreen: React.FC = () => {
               disabled={isLoading}
               fullWidth
               onClick={toggleMode}
+              testID="login-toggle-button"
               text={isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
               variant="outline"
             />

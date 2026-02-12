@@ -1,0 +1,142 @@
+name: Maestro E2E Tests
+
+on:
+  push:
+    paths:
+      - "example-frontend/**"
+      - "example-backend/**"
+      - ".maestro/**"
+      - ".github/workflows/maestro-e2e.yml"
+
+jobs:
+  e2e:
+    name: Maestro E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: "6.0"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build API dependency
+        run: bun run compile
+        working-directory: api
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Export frontend for web
+        run: bun run export
+        working-directory: example-frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:4000
+
+      - name: Seed test data
+        run: bun run seed
+        working-directory: example-backend
+        env:
+          TOKEN_SECRET: ci-token-secret
+          REFRESH_TOKEN_SECRET: ci-refresh-secret
+          TOKEN_ISSUER: terreno-example
+          SESSION_SECRET: ci-session-secret
+
+      - name: Start backend
+        run: bun run dev &
+        working-directory: example-backend
+        env:
+          PORT: 4000
+          TOKEN_SECRET: ci-token-secret
+          REFRESH_TOKEN_SECRET: ci-refresh-secret
+          TOKEN_ISSUER: terreno-example
+          SESSION_SECRET: ci-session-secret
+          TOKEN_EXPIRES_IN: 15m
+          REFRESH_TOKEN_EXPIRES_IN: 30d
+
+      - name: Serve frontend static build
+        run: bunx serve -s example-frontend/dist -l 8082 &
+
+      - name: Wait for backend
+        run: |
+          for i in $(seq 1 30); do
+            curl -s http://localhost:4000/openapi.json > /dev/null && exit 0
+            sleep 2
+          done
+          echo "Backend failed to start" && exit 1
+
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 30); do
+            curl -s http://localhost:8082 > /dev/null && exit 0
+            sleep 2
+          done
+          echo "Frontend failed to start" && exit 1
+
+      - name: Install Maestro
+        run: curl -fsSL "https://get.maestro.mobile.dev" | bash
+
+      - name: Add Maestro to PATH
+        run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Setup Chrome for CI
+        run: |
+          CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
+          sudo mv "$CHROME_BIN" "${CHROME_BIN}.real"
+          printf '#!/bin/bash\nexec "%s.real" "$@" --no-sandbox --disable-dev-shm-usage\n' "$CHROME_BIN" | sudo tee "$CHROME_BIN" > /dev/null
+          sudo chmod 0755 "$CHROME_BIN"
+          "$CHROME_BIN" --version
+
+      - name: Verify login API works
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST http://localhost:4000/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"email":"test@example.com","password":"testpassword123"}')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Login API failed!" && exit 1
+          fi
+
+      - name: Run Maestro E2E tests
+        run: xvfb-run maestro test .maestro/flows/
+
+      - name: Upload Maestro artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-screenshots
+          path: ~/.maestro/tests/
