@@ -20,7 +20,7 @@ A monorepo containing shared packages for building full-stack applications with 
 
 ## Development
 
-Uses [Bun](https://bun.sh/) as the package manager. Use `yarn` commands, not `npm`.
+Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
 bun install              # Install dependencies
@@ -75,10 +75,10 @@ The three core packages form a complete full-stack framework:
 
 ## Example Apps (Keep These Updated!)
 
-The `frontend-example/` and `backend-example/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
 
 1. **Add examples** demonstrating new features
-2. **Update SDK** after backend changes: `cd frontend-example && bun run sdk`
+2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
 3. **Verify integration** by running both examples together
 
 ### Running the Full Stack
