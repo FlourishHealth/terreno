@@ -1,10 +1,3 @@
----
-localRoot: true
-targets: ["claudecode"]
-description: "Terreno monorepo Claude Code guidelines"
-globs: ["**/*"]
----
-
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.

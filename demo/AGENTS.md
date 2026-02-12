@@ -308,6 +308,23 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 - Minimize `use client`, `useEffect`, and `setState`
 - Always support React-Native Web
 
+## CI/CD Workflows
+
+### Required Secret Validation
+
+GitHub Actions workflows that use secrets or environment variables must validate all required variables are set before using them. Add a validation step early in the job that fails fast with a clear error message listing any missing variables.
+
+```yaml
+- name: Validate required secrets
+  run: |
+    missing=()
+    if [ -z "$VAR_NAME" ]; then missing+=("VAR_NAME"); fi
+    if [ ${#missing[@]} -ne 0 ]; then
+      echo "::error::Missing required secrets: ${missing[*]}"
+      exit 1
+    fi
+```
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
