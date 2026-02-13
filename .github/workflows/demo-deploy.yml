@@ -123,6 +123,8 @@ jobs:
           node -e "
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            config.expo.web = config.expo.web || {};
+            config.expo.web.output = 'static';
             config.expo.experiments = config.expo.experiments || {};
             config.expo.experiments.baseUrl = '/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}';
             fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
