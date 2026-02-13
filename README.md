@@ -150,34 +150,19 @@ The demo and example-frontend apps are deployed to Google Cloud Storage with CDN
 
 ### Initial Setup
 
-Create the buckets:
+Run the setup script to create all GCS and CDN resources:
 
 ```bash
-gsutil mb -p flourish-terreno -l us-east1 gs://flourish-terreno-terreno-frontend-example/
-gsutil mb -p flourish-terreno -l us-east1 gs://flourish-terreno-terreno-demo/
+scripts/setup-gcs-hosting.sh
 ```
 
-Make buckets publicly readable (required for web hosting):
+This creates:
+1. GCS buckets with public read access
+2. Static website config with SPA fallback (`index.html` served for 404s)
+3. Service account write access (prompts for the SA email)
+4. CDN backend buckets, URL maps, static IPs, HTTP proxies, and forwarding rules
 
-```bash
-gsutil iam ch allUsers:objectViewer gs://flourish-terreno-terreno-frontend-example/
-gsutil iam ch allUsers:objectViewer gs://flourish-terreno-terreno-demo/
-```
-
-Configure as static websites (SPA routing):
-
-```bash
-gsutil web set -m index.html -e index.html gs://flourish-terreno-terreno-frontend-example/
-gsutil web set -m index.html -e index.html gs://flourish-terreno-terreno-demo/
-```
-
-Grant the deploy service account write access (get `SA_EMAIL` from the service account key JSON's `client_email` field):
-
-```bash
-SA_EMAIL="<service-account>@flourish-terreno.iam.gserviceaccount.com"
-gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" gs://flourish-terreno-terreno-frontend-example/
-gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" gs://flourish-terreno-terreno-demo/
-```
+After running the script, point DNS records to the output IPs. To add HTTPS, follow the instructions printed at the end.
 
 ### Required Secrets
 
