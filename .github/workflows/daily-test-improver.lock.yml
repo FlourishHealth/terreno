@@ -19,38 +19,32 @@
 #   gh aw compile
 # For more information: https://github.com/github/gh-aw/blob/main/.github/aw/github-agentic-workflows.md
 #
-# This workflow improves JSDoc documentation for the Terreno monorepo by systematically adding
-# and improving JSDoc comments on exported functions, methods, and classes. The repo is a
-# Bun/TypeScript monorepo with workspace packages: api (Express/Mongoose), ui (React Native
-# components), rtk (Redux Toolkit Query), demo, example-frontend (Expo), example-backend
-# (Express), and mcp-server.
-# Operates in two modes: on push to master it performs targeted JSDoc improvements for
-# changed files, and on a daily schedule it systematically improves documentation across
-# the entire codebase using a three-phase approach.
+# This workflow performs test enhancements for the Terreno monorepo by systematically improving
+# test quality and coverage. The repo is a Bun/TypeScript monorepo with workspace packages:
+# api (Express/Mongoose), ui (React Native components), rtk (Redux Toolkit Query), demo,
+# example-frontend (Expo), example-backend (Express), and mcp-server.
+# Operates in three phases: research testing landscape and create coverage plan, infer build
+# and coverage steps, then implement new tests targeting untested code. Generates coverage
+# reports, identifies gaps, creates comprehensive test suites, and submits draft PRs.
 #
-# frontmatter-hash: 9fefbdbd270cd461a7ce480507470260c0d0e4eea2d27a126d4bb4747c0e7015
+# frontmatter-hash: d2197af785621aca8f8c8b7d1e4200a23d37ff5a3c411bc4891ae3fe7df32dba
 
-name: "Daily JSDoc Improver"
+name: "Daily Test Improver"
 "on":
-  push:
-    branches:
-    - master
   schedule:
-  - cron: "30 21 * * *"
+  - cron: "39 14 * * *"
     # Friendly format: daily (scattered)
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: "gh-aw-${{ github.workflow }}-${{ github.ref }}"
+  group: "gh-aw-${{ github.workflow }}"
 
-run-name: "Daily JSDoc Improver"
+run-name: "Daily Test Improver"
 
 jobs:
   activation:
-    needs: pre_activation
-    if: needs.pre_activation.outputs.activated == 'true'
     runs-on: ubuntu-slim
     permissions:
       contents: read
@@ -65,7 +59,7 @@ jobs:
       - name: Check workflow file timestamps
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_AW_WORKFLOW_FILE: "daily-jsdoc-improver.lock.yml"
+          GH_AW_WORKFLOW_FILE: "daily-test-improver.lock.yml"
         with:
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
@@ -91,6 +85,8 @@ jobs:
       repository-projects: read
       security-events: read
       statuses: read
+    concurrency:
+      group: "gh-aw-copilot-${{ github.workflow }}"
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
       GH_AW_ASSETS_ALLOWED_EXTS: ""
@@ -120,23 +116,27 @@ jobs:
         uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2
         with:
           bun-version: latest
+      - name: Start MongoDB (needed for api and example-backend tests)
+        uses: supercharge/mongodb-github-action@0db69880d3c2305e6297f8edbb8f0a82139f754c # 1.12.1
+        with:
+          mongodb-version: "6.0"
       - name: Install dependencies
         run: bun install --frozen-lockfile
         shell: bash
-      - id: check_audit_script
-        name: Check if audit script exists
+      - id: check_coverage_steps_file
+        name: Check if action.yml exists
         run: |
-          if [ -f ".github/actions/daily-jsdoc-improver/audit-jsdoc/action.yml" ]; then
+          if [ -f ".github/actions/daily-test-improver/coverage-steps/action.yml" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
         shell: bash
       - continue-on-error: true
-        id: audit-jsdoc
-        if: steps.check_audit_script.outputs.exists == 'true'
-        name: Run JSDoc audit, logging to jsdoc-audit.log
-        uses: ./.github/actions/daily-jsdoc-improver/audit-jsdoc
+        id: coverage-steps
+        if: steps.check_coverage_steps_file.outputs.exists == 'true'
+        name: Build the project and produce coverage report, logging to coverage-steps.log
+        uses: ./.github/actions/daily-test-improver/coverage-steps
 
       - name: Configure Git credentials
         env:
@@ -177,7 +177,7 @@ jobs:
               version: "",
               agent_version: "0.0.409",
               cli_version: "v0.43.18",
-              workflow_name: "Daily JSDoc Improver",
+              workflow_name: "Daily Test Improver",
               experimental: false,
               supports_tools_allowlist: true,
               supports_http_transport: true,
@@ -237,7 +237,7 @@ jobs:
           cat > /opt/gh-aw/safeoutputs/tools.json << 'GH_AW_SAFE_OUTPUTS_TOOLS_EOF'
           [
             {
-              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 1 issue(s) can be created. Labels [automation documentation] will be automatically added.",
+              "description": "Create a new GitHub issue for tracking bugs, feature requests, or tasks. Use this for actionable work items that need assignment, labeling, and status tracking. For reports, announcements, or status updates that don't require task tracking, use create_discussion instead. CONSTRAINTS: Maximum 1 issue(s) can be created. Labels [automation testing bug] will be automatically added.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -324,7 +324,7 @@ jobs:
               "name": "add_comment"
             },
             {
-              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Labels [automation documentation] will be automatically added. PRs will be created as drafts.",
+              "description": "Create a new GitHub pull request to propose code changes. Use this after making file edits to submit them for review and merging. The PR will be created from the current branch with your committed changes. For code review comments on an existing PR, use create_pull_request_review_comment instead. CONSTRAINTS: Maximum 1 pull request(s) can be created. Labels [automation testing] will be automatically added. PRs will be created as drafts.",
               "inputSchema": {
                 "additionalProperties": false,
                 "properties": {
@@ -733,7 +733,7 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
-          {{#runtime-import .github/workflows/daily-jsdoc-improver.md}}
+          {{#runtime-import .github/workflows/daily-test-improver.md}}
           GH_AW_PROMPT_EOF
       - name: Substitute placeholders
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
@@ -983,7 +983,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: 1
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -996,7 +996,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1009,10 +1009,10 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
-          GH_AW_WORKFLOW_ID: "daily-jsdoc-improver"
+          GH_AW_WORKFLOW_ID: "daily-test-improver"
           GH_AW_SECRET_VERIFICATION_RESULT: ${{ needs.agent.outputs.secret_verification_result }}
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_CREATE_DISCUSSION_ERRORS: ${{ needs.safe_outputs.outputs.create_discussion_errors }}
@@ -1029,7 +1029,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -1046,7 +1046,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
@@ -1063,7 +1063,7 @@ jobs:
           GH_AW_COMMENT_ID: ${{ needs.activation.outputs.comment_id }}
           GH_AW_COMMENT_REPO: ${{ needs.activation.outputs.comment_repo }}
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+          GH_AW_WORKFLOW_NAME: "Daily Test Improver"
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_DETECTION_CONCLUSION: ${{ needs.detection.result }}
         with:
@@ -1079,6 +1079,8 @@ jobs:
     if: needs.agent.outputs.output_types != '' || needs.agent.outputs.has_patch == 'true'
     runs-on: ubuntu-latest
     permissions: {}
+    concurrency:
+      group: "gh-aw-copilot-${{ github.workflow }}"
     timeout-minutes: 10
     outputs:
       success: ${{ steps.parse_results.outputs.success }}
@@ -1107,8 +1109,8 @@ jobs:
       - name: Setup threat detection
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "Daily JSDoc Improver"
-          WORKFLOW_DESCRIPTION: "This workflow improves JSDoc documentation for the Terreno monorepo by systematically adding\nand improving JSDoc comments on exported functions, methods, and classes. The repo is a\nBun/TypeScript monorepo with workspace packages: api (Express/Mongoose), ui (React Native\ncomponents), rtk (Redux Toolkit Query), demo, example-frontend (Expo), example-backend\n(Express), and mcp-server.\nOperates in two modes: on push to master it performs targeted JSDoc improvements for\nchanged files, and on a daily schedule it systematically improves documentation across\nthe entire codebase using a three-phase approach."
+          WORKFLOW_NAME: "Daily Test Improver"
+          WORKFLOW_DESCRIPTION: "This workflow performs test enhancements for the Terreno monorepo by systematically improving\ntest quality and coverage. The repo is a Bun/TypeScript monorepo with workspace packages:\napi (Express/Mongoose), ui (React Native components), rtk (Redux Toolkit Query), demo,\nexample-frontend (Expo), example-backend (Express), and mcp-server.\nOperates in three phases: research testing landscape and create coverage plan, infer build\nand coverage steps, then implement new tests targeting untested code. Generates coverage\nreports, identifies gaps, creates comprehensive test suites, and submits draft PRs."
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
           script: |
@@ -1173,28 +1175,6 @@ jobs:
           path: /tmp/gh-aw/threat-detection/detection.log
           if-no-files-found: ignore
 
-  pre_activation:
-    runs-on: ubuntu-slim
-    outputs:
-      activated: ${{ steps.check_membership.outputs.is_team_member == 'true' }}
-    steps:
-      - name: Setup Scripts
-        uses: github/gh-aw/actions/setup@5988e5ce8019318837dfd26303351a4ba704a3c8 # v0.43.18
-        with:
-          destination: /opt/gh-aw/actions
-      - name: Check team membership for workflow
-        id: check_membership
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        env:
-          GH_AW_REQUIRED_ROLES: admin,maintainer,write
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
-            setupGlobals(core, github, context, exec, io);
-            const { main } = require('/opt/gh-aw/actions/check_membership.cjs');
-            await main();
-
   safe_outputs:
     needs:
       - activation
@@ -1210,8 +1190,8 @@ jobs:
     timeout-minutes: 15
     env:
       GH_AW_ENGINE_ID: "copilot"
-      GH_AW_WORKFLOW_ID: "daily-jsdoc-improver"
-      GH_AW_WORKFLOW_NAME: "Daily JSDoc Improver"
+      GH_AW_WORKFLOW_ID: "daily-test-improver"
+      GH_AW_WORKFLOW_NAME: "Daily Test Improver"
     outputs:
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}
@@ -1264,7 +1244,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1,\"target\":\"*\"},\"create_discussion\":{\"category\":\"ideas\",\"expires\":168,\"fallback_to_issue\":true,\"max\":1,\"title_prefix\":\"${{ github.workflow }}\"},\"create_issue\":{\"labels\":[\"automation\",\"documentation\"],\"max\":1},\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"labels\":[\"automation\",\"documentation\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
+          GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"add_comment\":{\"max\":1,\"target\":\"*\"},\"create_discussion\":{\"category\":\"ideas\",\"expires\":168,\"fallback_to_issue\":true,\"max\":1,\"title_prefix\":\"${{ github.workflow }}\"},\"create_issue\":{\"labels\":[\"automation\",\"testing\",\"bug\"],\"max\":1},\"create_pull_request\":{\"base_branch\":\"${{ github.ref_name }}\",\"draft\":true,\"labels\":[\"automation\",\"testing\"],\"max\":1,\"max_patch_size\":1024},\"missing_data\":{},\"missing_tool\":{}}"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
