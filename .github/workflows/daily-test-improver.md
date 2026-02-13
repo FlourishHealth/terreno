@@ -1,4 +1,5 @@
 ---
+name: Daily Test Improver
 description: |
   This workflow performs test enhancements for the Terreno monorepo by systematically improving
   test quality and coverage. The repo is a Bun/TypeScript monorepo with workspace packages:
