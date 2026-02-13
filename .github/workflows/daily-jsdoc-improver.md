@@ -1,4 +1,5 @@
 ---
+name: Daily JSDoc Improver
 description: |
   This workflow improves JSDoc documentation for the Terreno monorepo by systematically adding
   and improving JSDoc comments on exported functions, methods, and classes. The repo is a
