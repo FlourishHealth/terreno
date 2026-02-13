@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types";

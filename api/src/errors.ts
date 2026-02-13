@@ -1,5 +1,5 @@
 // https://jsonapi.org/format/#errors
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
 import {Schema} from "mongoose";
 

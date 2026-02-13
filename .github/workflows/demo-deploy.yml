@@ -15,8 +15,8 @@ on:
       - ".github/workflows/demo-deploy.yml"
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  BUCKET: ${{ secrets.GCP_PROJECT_ID }}-terreno-demo
+  GCP_PROJECT_ID: flourish-terreno
+  BUCKET: flourish-terreno-terreno-demo
   BACKEND_BUCKET: terreno-demo-backend
 
 jobs:

@@ -105,7 +105,7 @@ To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.
 > **Note:** Bun automatically loads `.env` files before your code runs, so there's no need for `dotenv`. Just place a `.env` file in your project root and `process.env` will have your variables available immediately. See [Bun .env docs](https://bun.sh/docs/runtime/env).
 
 ```
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {nodeProfilingIntegration} from "@sentry/profiling-node";
 
 if (process.env.NODE_ENV === "production" && !process.env.SENTRY_DSN) {

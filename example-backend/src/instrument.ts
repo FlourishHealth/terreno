@@ -79,7 +79,7 @@ if (isTracingEnabled) {
 }
 
 // Initialize Sentry after trace agent
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 
 // import {nodeProfilingIntegration} from "@sentry/profiling-node";
 
@@ -101,9 +101,6 @@ Sentry.init({
     // including Express, mongoose, HTTP, etc. MongoDB/Mongoose instrumentation is automatic.
     // nodeProfilingIntegration(),
   ],
-  profilesSampleRate: process.env.SENTRY_PROFILES_SAMPLE_RATE
-    ? Number.parseFloat(process.env.SENTRY_PROFILES_SAMPLE_RATE)
-    : 0.1,
   tracesSampler: (samplingContext) => {
     const transactionName = samplingContext.name.toLowerCase();
     // ignore any transactions that include a match from the ignoreTraces list

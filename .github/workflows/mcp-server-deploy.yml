@@ -27,10 +27,10 @@ on:
           - staging
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_PROJECT_ID: flourish-terreno
   GCP_REGION: us-east1
   GCP_MCP_SERVICE_NAME: terreno-mcp
-  GCP_ARTIFACT_REGISTRY: ${{ secrets.GCP_ARTIFACT_REGISTRY }}
+  GCP_ARTIFACT_REGISTRY: terreno-mcp
 
 jobs:
   test:
@@ -75,6 +75,18 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v6
+
+      - name: Validate required secrets
+        working-directory: .
+        run: |
+          missing=()
+          if [ -z "$GCP_PROJECT_ID" ]; then missing+=("GCP_PROJECT_ID"); fi
+          if [ -z "$GCP_ARTIFACT_REGISTRY" ]; then missing+=("GCP_ARTIFACT_REGISTRY"); fi
+          if [ -z "${{ secrets.GCP_SA_KEY }}" ]; then missing+=("GCP_SA_KEY"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2

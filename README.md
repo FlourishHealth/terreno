@@ -132,6 +132,67 @@ The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
 
+## GCP Static Site Hosting
+
+The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
+
+### GCP Project
+
+- **Project ID**: `flourish-terreno`
+- **Region**: `us-east1`
+
+### Buckets
+
+| App | Bucket | Backend Bucket (CDN) |
+|-----|--------|---------------------|
+| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
+| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
+
+### Initial Setup
+
+Create the buckets:
+
+```bash
+gsutil mb -p flourish-terreno -l us-east1 gs://flourish-terreno-terreno-frontend-example/
+gsutil mb -p flourish-terreno -l us-east1 gs://flourish-terreno-terreno-demo/
+```
+
+Make buckets publicly readable (required for web hosting):
+
+```bash
+gsutil iam ch allUsers:objectViewer gs://flourish-terreno-terreno-frontend-example/
+gsutil iam ch allUsers:objectViewer gs://flourish-terreno-terreno-demo/
+```
+
+Configure as static websites (SPA routing):
+
+```bash
+gsutil web set -m index.html -e index.html gs://flourish-terreno-terreno-frontend-example/
+gsutil web set -m index.html -e index.html gs://flourish-terreno-terreno-demo/
+```
+
+Grant the deploy service account write access (get `SA_EMAIL` from the service account key JSON's `client_email` field):
+
+```bash
+SA_EMAIL="<service-account>@flourish-terreno.iam.gserviceaccount.com"
+gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" gs://flourish-terreno-terreno-frontend-example/
+gsutil iam ch "serviceAccount:${SA_EMAIL}:objectAdmin" gs://flourish-terreno-terreno-demo/
+```
+
+### Required Secrets
+
+- `GCP_SA_KEY` - Service account key JSON with permissions for GCS and CDN cache invalidation
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `frontend-example-deploy.yml` | Push to master (example-frontend/ui/rtk changes) | Builds and deploys to production bucket |
+| `frontend-example-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `demo-deploy.yml` | Push to master (demo/ui changes) | Builds and deploys to production bucket |
+| `demo-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `preview-cleanup.yml` | PR closed | Deletes preview files from both buckets |
+
 ## MCP Server
 
 Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.

@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import cron from "cron";
@@ -294,7 +294,7 @@ export interface SetupServerOptions {
       ) => void);
   addMiddleware?: AddRoutes;
   ignoreTraces?: string[];
-  sentryOptions?: Sentry.NodeOptions;
+  sentryOptions?: Sentry.BunOptions;
 }
 
 // Sets up the routes and returns a function to launch the API.

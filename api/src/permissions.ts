@@ -1,5 +1,5 @@
 // Defaults closed
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {NextFunction} from "express";
 import mongoose, {type Model} from "mongoose";

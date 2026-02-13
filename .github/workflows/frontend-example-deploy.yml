@@ -17,8 +17,8 @@ on:
       - ".github/workflows/frontend-example-deploy.yml"
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  BUCKET: ${{ secrets.GCP_PROJECT_ID }}-terreno-frontend-example
+  GCP_PROJECT_ID: flourish-terreno
+  BUCKET: flourish-terreno-terreno-frontend-example
   BACKEND_BUCKET: terreno-frontend-example-backend
 
 jobs:
