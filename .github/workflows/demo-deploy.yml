@@ -94,18 +94,43 @@ jobs:
 
   deploy-preview:
     name: Deploy Preview
-    needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      deployments: write
+    environment:
+      name: demo-preview-pr-${{ github.event.pull_request.number }}
+      url: https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}/index.html
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          name: demo-dist
-          path: dist
+          bun-version: latest
+
+      - name: Install root dependencies (workspace)
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Set baseUrl for preview
+        run: |
+          cd demo
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            config.expo.experiments = config.expo.experiments || {};
+            config.expo.experiments.baseUrl = '/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}';
+            fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
+          "
+
+      - name: Export demo for web
+        run: bun run export
+        working-directory: demo
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -121,13 +146,4 @@ jobs:
         run: |
           gsutil -m -h "Cache-Control:no-cache" \
             rsync -r -d \
-            dist/ "gs://$BUCKET/_previews/pr-${{ github.event.pull_request.number }}/"
-
-      - name: Comment on PR
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            **Demo Preview** deployed!
-            https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}/index.html
-          comment-tag: demo-preview
+            demo/dist/ "gs://$BUCKET/_previews/pr-${{ github.event.pull_request.number }}/"
