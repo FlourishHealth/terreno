@@ -13,7 +13,10 @@ on:
 
 permissions: read-all
 
-network: defaults
+network:
+  allowed:
+    - defaults
+    - "telemetry.business.githubcopilot.com"
 
 safe-outputs:
   create-pull-request:

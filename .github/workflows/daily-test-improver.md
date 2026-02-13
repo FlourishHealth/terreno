@@ -18,7 +18,10 @@ timeout-minutes: 30
 permissions:
   all: read
 
-network: defaults
+network:
+  allowed:
+    - defaults
+    - "telemetry.business.githubcopilot.com"
 
 safe-outputs:
   create-discussion: # needed to create planning discussion
