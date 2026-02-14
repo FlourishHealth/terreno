@@ -72,12 +72,13 @@ done
 # =============================================================================
 echo ""
 echo "--- Step 3: Configuring static website hosting ---"
-echo "  MainPageSuffix: index.html"
-echo "  NotFoundPage:   index.html (SPA fallback)"
+echo "  NotFoundPage: index.html (SPA fallback)"
+echo "  NOTE: MainPageSuffix is NOT set to avoid GCS 301 redirects"
+echo "        that break client-side routing (e.g. /demo/ -> /demo/index.html)"
 
 for bucket in "$DEMO_BUCKET" "$FRONTEND_BUCKET"; do
   echo "  Configuring gs://$bucket"
-  gsutil web set -m index.html -e index.html "gs://$bucket"
+  gsutil web set -e index.html "gs://$bucket"
 done
 
 # =============================================================================
