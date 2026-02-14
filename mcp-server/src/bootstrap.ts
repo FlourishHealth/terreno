@@ -54,8 +54,8 @@ A full-stack application built with the Terreno framework.
 
 ## Project Structure
 
-- **${appName}-frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
-- **${appName}-backend/** - Express/Mongoose backend using @terreno/api
+- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
+- **backend/** - Express/Mongoose backend using @terreno/api
 
 ## Development
 
@@ -63,11 +63,11 @@ Uses [Bun](https://bun.sh/) as the package manager.
 
 \`\`\`bash
 # Backend
-cd ${appName}-backend && bun run dev    # Start backend on port 4000
+cd backend && bun run dev    # Start backend on port 4000
 
 # Frontend
-cd ${appName}-frontend && bun run web   # Start web frontend
-cd ${appName}-frontend && bun run sdk   # Regenerate SDK after backend changes
+cd frontend && bun run web   # Start web frontend
+cd frontend && bun run sdk   # Regenerate SDK after backend changes
 \`\`\`
 
 ## Code Style
@@ -139,33 +139,33 @@ A full-stack application built with the Terreno framework.
 
 ## Project Structure
 
-- **${appName}-frontend/** - Expo/React Native frontend
-- **${appName}-backend/** - Express/Mongoose backend
+- **frontend/** - Expo/React Native frontend
+- **backend/** - Express/Mongoose backend
 
 ## Development
 
 \`\`\`bash
 # Install dependencies
-cd ${appName}-backend && bun install
-cd ${appName}-frontend && bun install
+cd backend && bun install
+cd frontend && bun install
 
 # Start backend (port 4000)
-cd ${appName}-backend && bun run dev
+cd backend && bun run dev
 
 # Start frontend (port 8082)
-cd ${appName}-frontend && bun run web
+cd frontend && bun run web
 
 # Regenerate SDK after backend changes
-cd ${appName}-frontend && bun run sdk
+cd frontend && bun run sdk
 \`\`\`
 
 ## Adding Features
 
-1. Create model in \`${appName}-backend/src/models/\`
-2. Create route in \`${appName}-backend/src/api/\`
-3. Register route in \`${appName}-backend/src/server.ts\`
-4. Regenerate SDK: \`cd ${appName}-frontend && bun run sdk\`
-5. Create screens in \`${appName}-frontend/app/\`
+1. Create model in \`backend/src/models/\`
+2. Create route in \`backend/src/api/\`
+3. Register route in \`backend/src/server.ts\`
+4. Regenerate SDK: \`cd frontend && bun run sdk\`
+5. Create screens in \`frontend/app/\`
 
 ## Code Style
 
@@ -206,6 +206,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
         format: "biome format --write .",
         lint: "biome check .",
         "lint:fix": "biome check --write .",
+        "lint:unsafefix": "biome check --write . --unsafe",
         start: "bun run src/index.ts",
         test: "bun test",
       },
@@ -562,6 +563,7 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         ios: "bun expo start --ios --port 8082",
         lint: "bun biome check .",
         "lint:fix": "bun biome check --write .",
+        "lint:unsafefix": "biome check --write . --unsafe",
         sdk: "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
         start: "bun expo start --port 8082",
         test: "bun test",
@@ -1496,8 +1498,8 @@ interface GeneratedFile {
 
 const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
   const {appName} = args;
-  const frontendDir = `${appName}-frontend`;
-  const backendDir = `${appName}-backend`;
+  const frontendDir = `frontend`;
+  const backendDir = `backend`;
 
   return [
     // Root files
