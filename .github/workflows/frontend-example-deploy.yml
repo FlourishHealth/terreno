@@ -121,9 +121,18 @@ jobs:
       - name: Get CDN IP
         id: cdn
         run: |
-          IP=$(gcloud compute addresses describe terreno-frontend-example-ip --global --format="value(address)")
-          echo "ip=$IP" >> "$GITHUB_OUTPUT"
-          echo "CDN IP: $IP"
+          IP=$(gcloud compute addresses describe terreno-frontend-example-ip --global --format="value(address)" 2>/dev/null || echo "")
+          if [ -n "$IP" ]; then
+            echo "ip=$IP" >> "$GITHUB_OUTPUT"
+            echo "base_url=/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "preview_url=http://$IP/_previews/pr-${{ github.event.pull_request.number }}/" >> "$GITHUB_OUTPUT"
+            echo "CDN IP: $IP"
+          else
+            echo "ip=" >> "$GITHUB_OUTPUT"
+            echo "base_url=/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "preview_url=https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}/index.html" >> "$GITHUB_OUTPUT"
+            echo "CDN not configured, falling back to storage.googleapis.com"
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -148,7 +157,7 @@ jobs:
             const fs = require('fs');
             const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
             config.expo.experiments = config.expo.experiments || {};
-            config.expo.experiments.baseUrl = '/_previews/pr-${{ github.event.pull_request.number }}';
+            config.expo.experiments.baseUrl = '${{ steps.cdn.outputs.base_url }}';
             fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
           "
 
@@ -166,9 +175,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const ip = '${{ steps.cdn.outputs.ip }}';
             const pr = ${{ github.event.pull_request.number }};
-            const url = `http://${ip}/_previews/pr-${pr}/`;
+            const url = '${{ steps.cdn.outputs.preview_url }}';
             const deployment = await github.rest.repos.createDeployment({
               ...context.repo,
               ref: context.sha,
