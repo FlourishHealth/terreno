@@ -48,6 +48,18 @@ jobs:
         run: bun run export
         working-directory: example-frontend
 
+      - name: Create route files for direct access
+        run: |
+          cd example-frontend/dist
+          # Copy each route's index.html to a file at the route path
+          # so GCS serves it directly instead of redirecting /route -> /route/index.html
+          find . -mindepth 2 -name 'index.html' | while read -r f; do
+            dir=$(dirname "$f")
+            route="${dir#./}"
+            cp "$f" "$route"
+            echo "Created route file: $route"
+          done
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -164,6 +176,16 @@ jobs:
       - name: Export example-frontend for web
         run: bun run export
         working-directory: example-frontend
+
+      - name: Create route files for direct access
+        run: |
+          cd example-frontend/dist
+          find . -mindepth 2 -name 'index.html' | while read -r f; do
+            dir=$(dirname "$f")
+            route="${dir#./}"
+            cp "$f" "$route"
+            echo "Created route file: $route"
+          done
 
       - name: Deploy preview to GCS
         run: |
