@@ -42,18 +42,6 @@ jobs:
         run: bun run export
         working-directory: demo
 
-      - name: Create route files for direct access
-        run: |
-          cd demo/dist
-          # Copy each route's index.html to a file at the route path
-          # so GCS serves it directly instead of redirecting /route -> /route/index.html
-          find . -mindepth 2 -name 'index.html' | while read -r f; do
-            dir=$(dirname "$f")
-            route="${dir#./}"
-            cp "$f" "$route"
-            echo "Created route file: $route"
-          done
-
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -95,6 +83,16 @@ jobs:
           # Upload index.html with no-cache
           gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
             cp dist/index.html "gs://$BUCKET/index.html"
+
+          # Upload route files at bare paths (e.g. /demo) so GCS serves them
+          # directly instead of redirecting /demo -> /demo/index.html
+          find dist -mindepth 2 -name 'index.html' | while read -r f; do
+            route="${f#dist/}"
+            route="${route%/index.html}"
+            gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
+              cp "$f" "gs://$BUCKET/$route"
+            echo "Uploaded route file: $route"
+          done
 
       - name: Invalidate CDN cache
         run: |
@@ -169,21 +167,21 @@ jobs:
         run: bun run export
         working-directory: demo
 
-      - name: Create route files for direct access
-        run: |
-          cd demo/dist
-          find . -mindepth 2 -name 'index.html' | while read -r f; do
-            dir=$(dirname "$f")
-            route="${dir#./}"
-            cp "$f" "$route"
-            echo "Created route file: $route"
-          done
-
       - name: Deploy preview to GCS
         run: |
+          PREVIEW_PATH="_previews/pr-${{ github.event.pull_request.number }}"
           gsutil -m -h "Cache-Control:no-cache" \
             rsync -r -d \
-            demo/dist/ "gs://$BUCKET/_previews/pr-${{ github.event.pull_request.number }}/"
+            demo/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
+
+          # Upload route files at bare paths
+          find demo/dist -mindepth 2 -name 'index.html' | while read -r f; do
+            route="${f#demo/dist/}"
+            route="${route%/index.html}"
+            gsutil -h "Cache-Control:no-cache" \
+              cp "$f" "gs://$BUCKET/$PREVIEW_PATH/$route"
+            echo "Uploaded route file: $PREVIEW_PATH/$route"
+          done
 
       - name: Create deployment
         uses: actions/github-script@v7
