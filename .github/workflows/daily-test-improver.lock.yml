@@ -27,13 +27,12 @@
 # and coverage steps, then implement new tests targeting untested code. Generates coverage
 # reports, identifies gaps, creates comprehensive test suites, and submits draft PRs.
 #
-# frontmatter-hash: 65612fc0b95b70f08d97695d9ff6b6caf2fe0931ad56c71ac28aedd8dac5e806
+# frontmatter-hash: 643c926c33e6a8cd1c2fda2a7419ad20ffd912e07caa18371673185705279985
 
 name: "Daily Test Improver"
 "on":
   schedule:
-  - cron: "39 14 * * *"
-    # Friendly format: daily (scattered)
+  - cron: "39 14 * * 1-5"
   workflow_dispatch:
 
 permissions: {}
