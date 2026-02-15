@@ -140,6 +140,19 @@ export const prompts: Prompt[] = [
     description: "Get the Terreno code style guide and best practices for writing code",
     name: "terreno_style_guide",
   },
+  {
+    arguments: [
+      {
+        description:
+          "Path to the server file to migrate (e.g., 'src/server.ts'). If not provided, general guidance is given.",
+        name: "serverFile",
+        required: false,
+      },
+    ],
+    description:
+      "Guide migration from the legacy setupServer function to the new TerrenoApp builder API with plugin support",
+    name: "migrate_to_terreno_app",
+  },
 ];
 
 const createCrudFeaturePrompt = (args: {
@@ -571,6 +584,30 @@ const styleGuidePrompt = (): string => {
   return loadMarkdown("style-guide.md");
 };
 
+const migrateToTerrenoAppPrompt = (args: {serverFile?: string}): string => {
+  const guide = loadMarkdown("migrate-to-terreno-app.md");
+
+  if (args.serverFile) {
+    return `${guide}
+
+---
+
+## Your Task
+
+Migrate the server file at \`${args.serverFile}\` from \`setupServer\` to \`TerrenoApp\`.
+
+1. Read the file at \`${args.serverFile}\`
+2. Identify all setupServer usage, addRoutes callbacks, addMiddleware callbacks, and environment variable dependencies
+3. Rewrite the file using TerrenoApp.create() with fluent API calls
+4. Add \`@terreno/api-health\` HealthApp plugin if a health endpoint is needed
+5. Configure graceful shutdown
+6. Update imports
+7. Run through the migration checklist above to verify completeness`;
+  }
+
+  return guide;
+};
+
 export const handlePromptRequest = (
   name: string,
   args: Record<string, string>
@@ -595,6 +632,9 @@ export const handlePromptRequest = (
       break;
     case "terreno_style_guide":
       content = styleGuidePrompt();
+      break;
+    case "migrate_to_terreno_app":
+      content = migrateToTerrenoAppPrompt(args as Parameters<typeof migrateToTerrenoAppPrompt>[0]);
       break;
     default:
       content = `Unknown prompt: ${name}`;
