@@ -648,7 +648,7 @@ describe("TerrenoApp", () => {
 
       await supertest(app).get("/test").expect(500);
       expect(capturedError).not.toBeNull();
-      expect((capturedError as Error).message).toBe("test error");
+      expect((capturedError as unknown as Error).message).toBe("test error");
     });
 
     it("throws when hook throws during build", () => {
