@@ -243,34 +243,77 @@ const generateBackendTsConfig = (): string => {
   );
 };
 
-const generateBackendBiomeJson = (): string => {
-  return JSON.stringify(
-    {
-      $schema: "https://biomejs.dev/schemas/2.3.13/schema.json",
-      assist: {
-        actions: {
-          source: {
-            organizeImports: "on",
-          },
-        },
-        enabled: true,
-      },
-      formatter: {
-        enabled: true,
-        indentStyle: "space",
-        indentWidth: 2,
-        lineWidth: 100,
-      },
-      linter: {
-        enabled: true,
-        rules: {
-          recommended: true,
-        },
-      },
+const generateBackendBiomeJsonc = (): string => {
+  return `{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on"
+      }
     },
-    null,
-    2
-  );
+    "enabled": true
+  },
+  "files": {
+    "includes": [
+      "package.json",
+      "src/**/*.ts",
+      "src/**/*.tsx",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/build",
+      "!!**/coverage",
+      "!!**/.git"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSpacing": false,
+      "jsxQuoteStyle": "double",
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5"
+    },
+    // TODO: Remove once we don't need to import React from 'react' in our JSX files.
+    "jsxRuntime": "reactClassic"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useExhaustiveSwitchCases": "error"
+      },
+      "recommended": true,
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["assert", "debug", "error", "info", "warn"]
+          }
+        },
+        "noExplicitAny": "off",
+        "noImplicitAnyLet": "off"
+      }
+    }
+  },
+  "vcs": {
+    "clientKind": "git",
+    "defaultBranch": "master",
+    "enabled": true
+  }
+}
+`;
 };
 
 const generateBackendIndex = (): string => {
@@ -672,35 +715,88 @@ const generateFrontendTsConfigCodegen = (): string => {
   );
 };
 
-const generateFrontendBiomeJson = (): string => {
-  return JSON.stringify(
-    {
-      $schema: "https://biomejs.dev/schemas/2.3.13/schema.json",
-      assist: {
-        actions: {
-          source: {
-            organizeImports: "on",
-          },
-        },
-        enabled: true,
-      },
-      formatter: {
-        enabled: true,
-        indentStyle: "space",
-        indentWidth: 2,
-        lineWidth: 100,
-      },
-      linter: {
-        enabled: true,
-        rules: {
-          recommended: true,
-        },
-      },
+const generateFrontendBiomeJsonc = (): string => {
+  return `{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on",
+        "useSortedAttributes": "on",
+        "useSortedKeys": "on"
+      }
     },
-    null,
-    2
-  );
-};
+    "enabled": true
+  },
+  "files": {
+    "includes": [
+      "package.json",
+      "app/**/*.ts",
+      "app/**/*.tsx",
+      "components/**/*.ts",
+      "components/**/*.tsx",
+      "store/**/*.ts",
+      "store/**/*.tsx",
+      "utils/**/*.ts",
+      "utils/**/*.tsx",
+      "constants/**/*.ts",
+      "scripts/**/*.ts",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/build",
+      "!!**/coverage",
+      "!!**/.expo",
+      "!!**/.next",
+      "!!**/generated",
+      "!!**/.git"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "javascript": {
+    "formatter": {
+      "arrowParentheses": "always",
+      "bracketSpacing": false,
+      "jsxQuoteStyle": "double",
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "es5"
+    },
+    // TODO: Remove once we don't need to import React from 'react' in our JSX files.
+    "jsxRuntime": "reactClassic"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useExhaustiveSwitchCases": "error"
+      },
+      "recommended": true,
+      "suspicious": {
+        "noConsole": {
+          "level": "error",
+          "options": {
+            "allow": ["assert", "debug", "error", "info", "warn"]
+          }
+        },
+        "noExplicitAny": "off",
+        "noImplicitAnyLet": "off"
+      }
+    }
+  },
+  "vcs": {
+    "clientKind": "git",
+    "defaultBranch": "master",
+    "enabled": true
+  }
+}
+`;};
 
 const generateFrontendOpenApiConfig = (): string => {
   return `import type {ConfigFile} from "@rtk-query/codegen-openapi";
@@ -1715,7 +1811,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     // Backend files
     {content: generateBackendPackageJson(args), path: `${backendDir}/package.json`},
     {content: generateBackendTsConfig(), path: `${backendDir}/tsconfig.json`},
-    {content: generateBackendBiomeJson(), path: `${backendDir}/biome.json`},
+    {content: generateBackendBiomeJsonc(), path: `${backendDir}/biome.jsonc`},
     {content: generateBackendIndex(), path: `${backendDir}/src/index.ts`},
     {content: generateBackendServer(args), path: `${backendDir}/src/server.ts`},
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
@@ -1732,7 +1828,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendAppJson(args), path: `${frontendDir}/app.json`},
     {content: generateFrontendTsConfig(), path: `${frontendDir}/tsconfig.json`},
     {content: generateFrontendTsConfigCodegen(), path: `${frontendDir}/tsconfig.codegen.json`},
-    {content: generateFrontendBiomeJson(), path: `${frontendDir}/biome.json`},
+    {content: generateFrontendBiomeJsonc(), path: `${frontendDir}/biome.jsonc`},
     {content: generateFrontendOpenApiConfig(), path: `${frontendDir}/openapi-config.ts`},
     {content: generateFrontendGenerateSdk(), path: `${frontendDir}/scripts/generate-sdk.ts`},
     {content: generateFrontendRootLayout(args), path: `${frontendDir}/app/_layout.tsx`},
