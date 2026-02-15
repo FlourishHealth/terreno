@@ -46,11 +46,24 @@ const eventSchema = new Schema({
 Assuming we have a model:
 
     const foodSchema = new Schema<Food>({
-      name: String,
-      hidden: {type: Boolean, default: false},
-      ownerId: {type: "ObjectId", ref: "User"},
+      name: {
+        description: "Name of the food item",
+        type: String,
+      },
+      hidden: {
+        description: "Whether the food is hidden from the list",
+        type: Boolean,
+        default: false,
+      },
+      ownerId: {
+        description: "The user who added this food",
+        type: "ObjectId",
+        ref: "User",
+      },
     });
     export const FoodModel = model("Food", foodSchema);
+
+**Important:** Every field must include a `description` property. This requirement ensures that the auto-generated OpenAPI specification and SDK have meaningful documentation for all fields.
 
 We can expose this model as an API like this:
 
