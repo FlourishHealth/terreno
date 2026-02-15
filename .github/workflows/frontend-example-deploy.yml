@@ -104,7 +104,9 @@ jobs:
             bare="${bare%/index}"
             COUNTER=$((COUNTER + 1))
             BASENAME=$(basename "$bare")
-            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            TMPSUBDIR="$BARE_DIR/$COUNTER"
+            mkdir -p "$TMPSUBDIR"
+            cp "$f" "$TMPSUBDIR/$BASENAME"
             DEST_DIR=$(dirname "$bare")
             if [ "$DEST_DIR" = "." ]; then
               GCS_DEST="gs://$BUCKET/"
@@ -112,8 +114,7 @@ jobs:
               GCS_DEST="gs://$BUCKET/$DEST_DIR/"
             fi
             gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
-            rm "$BARE_DIR/$BASENAME.$COUNTER"
+              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
             echo "Uploaded bare route: $bare"
           done
 
@@ -219,10 +220,11 @@ jobs:
             rel="${f#example-frontend/dist/}"
             bare="${rel%.html}"
             bare="${bare%/index}"
-            # Use numbered temp files to avoid name conflicts
             COUNTER=$((COUNTER + 1))
             BASENAME=$(basename "$bare")
-            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            TMPSUBDIR="$BARE_DIR/$COUNTER"
+            mkdir -p "$TMPSUBDIR"
+            cp "$f" "$TMPSUBDIR/$BASENAME"
             DEST_DIR=$(dirname "$bare")
             if [ "$DEST_DIR" = "." ]; then
               GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/"
@@ -230,8 +232,7 @@ jobs:
               GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
             fi
             gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
-            rm "$BARE_DIR/$BASENAME.$COUNTER"
+              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
             echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
 

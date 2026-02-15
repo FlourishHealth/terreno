@@ -98,7 +98,9 @@ jobs:
             bare="${bare%/index}"
             COUNTER=$((COUNTER + 1))
             BASENAME=$(basename "$bare")
-            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            TMPSUBDIR="$BARE_DIR/$COUNTER"
+            mkdir -p "$TMPSUBDIR"
+            cp "$f" "$TMPSUBDIR/$BASENAME"
             DEST_DIR=$(dirname "$bare")
             if [ "$DEST_DIR" = "." ]; then
               GCS_DEST="gs://$BUCKET/"
@@ -106,8 +108,7 @@ jobs:
               GCS_DEST="gs://$BUCKET/$DEST_DIR/"
             fi
             gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
-            rm "$BARE_DIR/$BASENAME.$COUNTER"
+              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
             echo "Uploaded bare route: $bare"
           done
 
@@ -205,16 +206,19 @@ jobs:
             cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
           echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
 
-          # All other HTML files → bare path objects (skip dynamic [param] routes)
+          # All other HTML files → bare path objects (skip dynamic [param] routes).
+          # Each file is placed in a numbered subdirectory so the filename matches
+          # the desired GCS object name (gsutil uses source basename as object name).
           COUNTER=0
           find demo/dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#demo/dist/}"
             bare="${rel%.html}"
             bare="${bare%/index}"
-            # Use numbered temp files to avoid name conflicts
             COUNTER=$((COUNTER + 1))
             BASENAME=$(basename "$bare")
-            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            TMPSUBDIR="$BARE_DIR/$COUNTER"
+            mkdir -p "$TMPSUBDIR"
+            cp "$f" "$TMPSUBDIR/$BASENAME"
             DEST_DIR=$(dirname "$bare")
             if [ "$DEST_DIR" = "." ]; then
               GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/"
@@ -222,8 +226,7 @@ jobs:
               GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
             fi
             gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
-            rm "$BARE_DIR/$BASENAME.$COUNTER"
+              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
             echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
 
