@@ -13,6 +13,9 @@
   "files": {
     "includes": [
       "package.json",
+      "ai/package.json",
+      "ai/src/**/*.ts",
+      "ai/src/**/*.tsx",
       "api/package.json",
       "api/src/**/*.ts",
       "api/src/**/*.tsx",
