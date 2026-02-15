@@ -134,7 +134,7 @@ jobs:
           else
             echo "ip=" >> "$GITHUB_OUTPUT"
             echo "base_url=/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "preview_url=https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}/index.html" >> "$GITHUB_OUTPUT"
+            echo "preview_url=https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
             echo "CDN not configured, falling back to storage.googleapis.com"
           fi
 
@@ -173,6 +173,11 @@ jobs:
           gsutil -m -h "Cache-Control:no-cache" \
             rsync -r -d \
             demo/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
+
+          # Upload root index.html at the bare preview path so the URL
+          # works without /index.html (which breaks Expo Router's path matching)
+          gsutil -h "Cache-Control:no-cache" \
+            cp demo/dist/index.html "gs://$BUCKET/$PREVIEW_PATH"
 
           # Upload route files at bare paths
           find demo/dist -mindepth 2 -name 'index.html' | while read -r f; do
