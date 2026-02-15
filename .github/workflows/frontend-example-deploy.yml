@@ -93,10 +93,11 @@ jobs:
 
           # Upload all HTML files at bare paths so any route works on refresh.
           # Rename files in temp dir to prevent gsutil directory-name collision.
+          # Skip dynamic [param] routes since we can't predict all values.
           BARE_DIR="/tmp/bare-routes"
           rm -rf "$BARE_DIR"
           mkdir -p "$BARE_DIR"
-          find dist -mindepth 2 -name '*.html' | while read -r f; do
+          find dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#dist/}"
             bare="${rel%.html}"
             bare="${bare%/index}"
@@ -203,8 +204,8 @@ jobs:
             cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
           echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
 
-          # All other HTML files → bare path objects
-          find example-frontend/dist -mindepth 2 -name '*.html' | while read -r f; do
+          # All other HTML files → bare path objects (skip dynamic [param] routes)
+          find example-frontend/dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#example-frontend/dist/}"
             bare="${rel%.html}"
             # Strip trailing /index for index.html files
