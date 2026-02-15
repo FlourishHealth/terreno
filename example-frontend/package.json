@@ -15,6 +15,7 @@
     "expo-splash-screen": "^31.0.13",
     "expo-updates": "^29.0.16",
     "expo-web-browser": "^15.0.10",
+    "linkify-it": "^5.0.0",
     "lodash": "^4.17.23",
     "luxon": "^3.7.2",
     "react": "19.1.0",
