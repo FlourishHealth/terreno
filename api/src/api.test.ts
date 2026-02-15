@@ -858,8 +858,12 @@ describe("@terreno/api", () => {
       const mongoose = await import("mongoose");
 
       const softDeleteSchema = new mongoose.Schema({
-        deleted: {default: false, type: Boolean},
-        name: String,
+        deleted: {
+          default: false,
+          description: "Whether this item has been soft deleted",
+          type: Boolean,
+        },
+        name: {description: "The name of the item", type: String},
       });
 
       let SoftDeleteModel;

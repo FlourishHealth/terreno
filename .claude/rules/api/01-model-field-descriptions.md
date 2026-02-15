@@ -1,7 +1,18 @@
-import mongoose from "mongoose";
-import type {TodoDocument, TodoModel} from "../types";
-import {addDefaultPlugins} from "./modelPlugins";
+---
+paths:
+  - '**/*'
+---
+# Model Field Descriptions
 
+Every field in a Mongoose schema **must** have a `description` property. Descriptions flow through to the OpenAPI spec via `mongoose-to-swagger`, making the generated API documentation and SDK more useful.
+
+## Rule
+
+When defining or modifying a Mongoose model schema, include a `description` on every field. The description should briefly explain what the field represents.
+
+## Example
+
+```typescript
 const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
   {
     completed: {
@@ -24,7 +35,4 @@ const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
-
-addDefaultPlugins(todoSchema);
-
-export const Todo = mongoose.model<TodoDocument, TodoModel>("Todo", todoSchema);
+```
