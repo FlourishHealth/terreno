@@ -3,11 +3,31 @@ import mongoose from "mongoose";
 
 import type {GptHistoryDocument, GptHistoryModel} from "../types";
 
+const contentPartSchema = new mongoose.Schema(
+  {
+    filename: {type: String},
+    mimeType: {type: String},
+    text: {type: String},
+    type: {enum: ["text", "image", "file"], required: true, type: String},
+    url: {type: String},
+  },
+  {_id: false}
+);
+
 const gptHistoryPromptSchema = new mongoose.Schema(
   {
+    args: {type: mongoose.Schema.Types.Mixed},
+    content: {type: [contentPartSchema]},
     model: {type: String},
+    result: {type: mongoose.Schema.Types.Mixed},
     text: {required: true, type: String},
-    type: {enum: ["user", "assistant", "system"], required: true, type: String},
+    toolCallId: {type: String},
+    toolName: {type: String},
+    type: {
+      enum: ["user", "assistant", "system", "tool-call", "tool-result"],
+      required: true,
+      type: String,
+    },
   },
   {_id: false}
 );

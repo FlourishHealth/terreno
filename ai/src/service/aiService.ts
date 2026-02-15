@@ -1,4 +1,4 @@
-import type {LanguageModel} from "ai";
+import type {CoreMessage, LanguageModel} from "ai";
 import {generateText as aiGenerateText, streamText} from "ai";
 import type mongoose from "mongoose";
 
@@ -9,6 +9,7 @@ import type {
   GenerateChatStreamOptions,
   GenerateStreamOptions,
   GenerateTextOptions,
+  GptHistoryPrompt,
   RemixOptions,
   SummaryOptions,
   TranslateOptions,
@@ -175,8 +176,44 @@ export class AIService {
     });
   }
 
+  buildMessages(prompts: GptHistoryPrompt[]): CoreMessage[] {
+    const messages: CoreMessage[] = [];
+
+    for (const prompt of prompts) {
+      if (prompt.type === "tool-call" || prompt.type === "tool-result") {
+        continue;
+      }
+
+      const role = prompt.type as "user" | "assistant" | "system";
+
+      if (prompt.content && prompt.content.length > 0 && role === "user") {
+        const parts: Array<{
+          type: string;
+          text?: string;
+          image?: URL;
+          data?: URL;
+          mimeType?: string;
+        }> = [];
+        for (const part of prompt.content) {
+          if (part.type === "text") {
+            parts.push({text: part.text, type: "text"});
+          } else if (part.type === "image") {
+            parts.push({image: new URL(part.url), mimeType: part.mimeType, type: "image"});
+          } else if (part.type === "file") {
+            parts.push({data: new URL(part.url), mimeType: part.mimeType, type: "file"});
+          }
+        }
+        messages.push({content: parts, role: "user"} as CoreMessage);
+      } else {
+        messages.push({content: prompt.text, role});
+      }
+    }
+
+    return messages;
+  }
+
   async *generateChatStream(options: GenerateChatStreamOptions): AsyncGenerator<string> {
-    const {messages, systemPrompt, userId} = options;
+    const {messages, systemPrompt, tools, toolChoice, maxSteps, userId} = options;
     const startTime = Date.now();
     let fullResponse = "";
 
@@ -184,10 +221,13 @@ export class AIService {
 
     try {
       const result = streamText({
+        maxSteps: maxSteps ?? 1,
         messages: messages.map((m) => ({content: m.content, role: m.role})),
         model: this.model,
         system: systemPrompt ?? DEFAULT_GPT_MEMORY,
         temperature: this.defaultTemperature,
+        toolChoice,
+        tools,
       });
 
       for await (const chunk of result.textStream) {

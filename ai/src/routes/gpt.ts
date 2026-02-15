@@ -1,12 +1,14 @@
 import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import type {CoreTool} from "ai";
+import {streamText} from "ai";
 import type express from "express";
 import type mongoose from "mongoose";
 
 import {GptHistory} from "../models/gptHistory";
-import type {GptHistoryPrompt, GptRouteOptions} from "../types";
+import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
 
 export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
-  const {aiService} = options;
+  const {aiService, mcpService, tools: routeTools, toolChoice, maxSteps} = options;
 
   router.post(
     "/gpt/prompt",
@@ -16,6 +18,18 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         .withTags(["gpt"])
         .withSummary("Stream a GPT chat response")
         .withRequestBody({
+          attachments: {
+            items: {
+              properties: {
+                filename: {type: "string"},
+                mimeType: {type: "string"},
+                type: {type: "string"},
+                url: {type: "string"},
+              },
+              type: "object",
+            },
+            type: "array",
+          },
           historyId: {type: "string"},
           prompt: {type: "string"},
           systemPrompt: {type: "string"},
@@ -24,7 +38,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {prompt, historyId, systemPrompt} = req.body;
+      const {prompt, historyId, systemPrompt, attachments} = req.body;
       const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
 
       if (!prompt || typeof prompt !== "string") {
@@ -45,15 +59,52 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         history = new GptHistory({prompts: [], userId});
       }
 
+      // Build content parts from attachments
+      const contentParts: MessageContentPart[] = [{text: prompt, type: "text"}];
+      if (attachments && Array.isArray(attachments)) {
+        for (const attachment of attachments) {
+          if (attachment.type === "image") {
+            contentParts.push({
+              mimeType: attachment.mimeType,
+              type: "image",
+              url: attachment.url,
+            });
+          } else if (attachment.type === "file") {
+            contentParts.push({
+              filename: attachment.filename,
+              mimeType: attachment.mimeType,
+              type: "file",
+              url: attachment.url,
+            });
+          }
+        }
+      }
+
       // Add user prompt to history
-      const userPrompt: GptHistoryPrompt = {text: prompt, type: "user"};
+      const hasAttachments = contentParts.length > 1;
+      const userPrompt: GptHistoryPrompt = {
+        text: prompt,
+        type: "user",
+        ...(hasAttachments ? {content: contentParts} : {}),
+      };
       history.prompts.push(userPrompt);
 
-      // Build messages from history
-      const messages = history.prompts.map((p) => ({
-        content: p.text,
-        role: p.type as "user" | "assistant" | "system",
-      }));
+      // Build messages from history using AIService helper
+      const messages = aiService.buildMessages(history.prompts);
+
+      // Merge tools from route config and MCP service
+      let allTools: Record<string, CoreTool> | undefined;
+      if (routeTools || mcpService) {
+        allTools = {...(routeTools ?? {})};
+        if (mcpService) {
+          try {
+            const mcpTools = await mcpService.getTools();
+            Object.assign(allTools, mcpTools);
+          } catch {
+            // MCP tool discovery failure should not block the request
+          }
+        }
+      }
 
       // Stream response via SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -62,24 +113,71 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       let fullResponse = "";
       try {
-        const stream = aiService.generateChatStream({
+        const result = streamText({
+          maxSteps: maxSteps ?? (allTools ? 5 : 1),
           messages,
-          systemPrompt,
-          userId,
+          model: (aiService as any).model,
+          system: systemPrompt ?? undefined,
+          temperature: (aiService as any).defaultTemperature,
+          toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
+          tools: allTools,
         });
 
-        for await (const chunk of stream) {
-          fullResponse += chunk;
-          res.write(`data: ${JSON.stringify({text: chunk})}\n\n`);
+        for await (const part of result.fullStream as AsyncIterable<{
+          type: string;
+          [key: string]: any;
+        }>) {
+          if (part.type === "text-delta") {
+            fullResponse += part.textDelta;
+            res.write(`data: ${JSON.stringify({text: part.textDelta})}\n\n`);
+          } else if (part.type === "tool-call") {
+            res.write(
+              `data: ${JSON.stringify({
+                toolCall: {
+                  args: part.args,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                },
+              })}\n\n`
+            );
+            // Persist tool call in history
+            history.prompts.push({
+              args: part.args as Record<string, unknown>,
+              text: `Tool call: ${part.toolName}`,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              type: "tool-call",
+            });
+          } else if (part.type === "tool-result") {
+            res.write(
+              `data: ${JSON.stringify({
+                toolResult: {
+                  result: part.result,
+                  toolCallId: part.toolCallId,
+                  toolName: part.toolName,
+                },
+              })}\n\n`
+            );
+            // Persist tool result in history
+            history.prompts.push({
+              result: part.result as unknown,
+              text: `Tool result: ${part.toolName}`,
+              toolCallId: part.toolCallId,
+              toolName: part.toolName,
+              type: "tool-result",
+            });
+          }
         }
 
         // Save assistant response to history
-        const assistantPrompt: GptHistoryPrompt = {
-          model: aiService.modelId,
-          text: fullResponse,
-          type: "assistant",
-        };
-        history.prompts.push(assistantPrompt);
+        if (fullResponse) {
+          const assistantPrompt: GptHistoryPrompt = {
+            model: aiService.modelId,
+            text: fullResponse,
+            type: "assistant",
+          };
+          history.prompts.push(assistantPrompt);
+        }
         await history.save();
 
         res.write(`data: ${JSON.stringify({done: true, historyId: history._id.toString()})}\n\n`);

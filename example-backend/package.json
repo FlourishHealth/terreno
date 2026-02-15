@@ -17,6 +17,7 @@
     "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@thream/socketio-jwt": "^3.1.4",
+    "ai": "^4.3.0",
     "ioredis": "^5.8.2",
     "lodash": "^4.17.21",
     "luxon": "^3.4.0",
@@ -24,7 +25,8 @@
     "passport-local-mongoose": "^9.0.1",
     "path-to-regexp": "^0.1.12",
     "qs": "^6.14.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

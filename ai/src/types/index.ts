@@ -45,13 +45,42 @@ export interface LogRequestParams {
 }
 
 // ============================================================
+// Content Part Types (Multi-modal)
+// ============================================================
+
+export interface TextContentPart {
+  type: "text";
+  text: string;
+}
+
+export interface ImageContentPart {
+  type: "image";
+  url: string;
+  mimeType?: string;
+}
+
+export interface FileContentPart {
+  type: "file";
+  url: string;
+  filename?: string;
+  mimeType: string;
+}
+
+export type MessageContentPart = TextContentPart | ImageContentPart | FileContentPart;
+
+// ============================================================
 // GptHistory Types
 // ============================================================
 
 export interface GptHistoryPrompt {
   model?: string;
   text: string;
-  type: "user" | "assistant" | "system";
+  type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  content?: MessageContentPart[];
+  toolCallId?: string;
+  toolName?: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
 }
 
 export type GptHistoryDocument = mongoose.Document<mongoose.Types.ObjectId> & {
@@ -79,10 +108,13 @@ export interface AIServiceOptions {
 }
 
 export interface GenerateTextOptions {
+  maxSteps?: number;
   maxTokens?: number;
   prompt: string;
   systemPrompt?: string;
   temperature?: number;
+  toolChoice?: "auto" | "none" | "required";
+  tools?: Record<string, import("ai").CoreTool>;
   userId?: mongoose.Types.ObjectId;
 }
 
@@ -96,7 +128,10 @@ export interface GenerateStreamOptions {
 
 export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
+  maxSteps?: number;
   systemPrompt?: string;
+  toolChoice?: "auto" | "none" | "required";
+  tools?: Record<string, import("ai").CoreTool>;
   userId?: mongoose.Types.ObjectId;
 }
 
@@ -123,7 +158,11 @@ export interface TranslateOptions {
 
 export interface GptRouteOptions {
   aiService: import("../service/aiService").AIService;
+  mcpService?: import("../service/mcpService").MCPService;
   openApiOptions?: Record<string, unknown>;
+  tools?: Record<string, import("ai").CoreTool>;
+  toolChoice?: "auto" | "none" | "required";
+  maxSteps?: number;
 }
 
 export interface GptHistoryRouteOptions {
@@ -132,4 +171,46 @@ export interface GptHistoryRouteOptions {
 
 export interface AiRequestsExplorerRouteOptions {
   openApiOptions?: Record<string, unknown>;
+}
+
+export interface FileRouteOptions {
+  gcsBucket: string;
+  maxFileSize?: number;
+  openApiOptions?: Record<string, unknown>;
+}
+
+export interface McpRouteOptions {
+  mcpService: import("../service/mcpService").MCPService;
+  openApiOptions?: Record<string, unknown>;
+}
+
+// ============================================================
+// File Attachment Types
+// ============================================================
+
+export interface FileAttachmentDocument extends mongoose.Document<mongoose.Types.ObjectId> {
+  created: Date;
+  deleted: boolean;
+  filename: string;
+  gcsKey: string;
+  mimeType: string;
+  size: number;
+  updated: Date;
+  url: string;
+  userId: mongoose.Types.ObjectId;
+}
+
+export interface FileAttachmentStatics
+  extends FindExactlyOnePlugin<FileAttachmentDocument>,
+    FindOneOrNonePlugin<FileAttachmentDocument> {}
+
+export type FileAttachmentModel = mongoose.Model<FileAttachmentDocument> & FileAttachmentStatics;
+
+// ============================================================
+// MCP Types
+// ============================================================
+
+export interface MCPServerConfig {
+  name: string;
+  transport: {type: "sse"; url: string; headers?: Record<string, string>};
 }

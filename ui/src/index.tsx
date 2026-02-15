@@ -28,6 +28,8 @@ export * from "./ErrorBoundary";
 export * from "./ErrorPage";
 export * from "./Field";
 export * from "./FlatList";
+export * from "./AttachmentPreview";
+export * from "./FilePickerButton";
 export * from "./GPTChat";
 export * from "./GPTMemoryModal";
 export * from "./Heading";
