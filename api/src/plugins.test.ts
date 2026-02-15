@@ -39,7 +39,7 @@ interface StuffModelType extends Model<Stuff> {
 }
 
 const stuffSchema = new Schema<Stuff>({
-  date: {description: "The date associated with this item", type: DateOnly},
+  date: {description: "The date associated with this item", type: DateOnly as any},
   name: {description: "The name of the item", type: String},
   ownerId: {description: "The user who owns this item", type: String},
 });

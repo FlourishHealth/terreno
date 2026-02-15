@@ -119,7 +119,7 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
-    expiration: {description: "Expiration date of the food", type: DateOnly},
+    expiration: {description: "Expiration date of the food", type: DateOnly as any},
     hidden: {
       default: false,
       description: "Whether this food is hidden from listings",
