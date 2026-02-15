@@ -10,5 +10,8 @@ export * from "./openApiEtag";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./terrenoApp";
+export * from "./terrenoAppHooks";
+export * from "./terrenoAppOptions";
 export * from "./transformers";
 export * from "./utils";
