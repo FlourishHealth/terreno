@@ -176,9 +176,10 @@ jobs:
 
           # Upload root index.html at the bare preview path so the URL
           # works without /index.html (which breaks Expo Router's path matching).
-          # Use stdin to prevent gsutil from treating the destination as a directory.
-          cat demo/dist/index.html | gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-            cp - "gs://$BUCKET/$PREVIEW_PATH"
+          # Rename file to match desired object name so gsutil doesn't treat dest as dir.
+          cp demo/dist/index.html "/tmp/pr-${{ github.event.pull_request.number }}"
+          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
+            cp "/tmp/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
 
           # Upload route files at bare paths
           find demo/dist -mindepth 2 -name 'index.html' | while read -r f; do
