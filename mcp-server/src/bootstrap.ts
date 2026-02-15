@@ -71,7 +71,7 @@ const _toPascalCase = (str: string): string => {
 };
 
 const generateCursorRules = (args: BootstrapArgs): string => {
-  const {appDisplayName, appName} = args;
+  const {appDisplayName} = args;
   return `# ${appDisplayName}
 
 A full-stack application built with the Terreno framework.
@@ -156,7 +156,7 @@ const generateMcpSettings = (args: BootstrapArgs): string => {
 };
 
 const generateClaudeMd = (args: BootstrapArgs): string => {
-  const {appDisplayName, appName} = args;
+  const {appDisplayName} = args;
   return `# ${appDisplayName}
 
 A full-stack application built with the Terreno framework.
@@ -2199,7 +2199,7 @@ bun run lint     # Lint code
 `;
 };
 
-const generateBackendClaudeRulesFile = (args: BootstrapArgs): string => {
+const _generateBackendClaudeRulesFile = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
   return `---
 localRoot: true
@@ -2277,7 +2277,7 @@ bun run lint     # Lint code
 `;
 };
 
-const generateFrontendClaudeRulesFile = (args: BootstrapArgs): string => {
+const _generateFrontendClaudeRulesFile = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
   return `---
 localRoot: true

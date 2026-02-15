@@ -17,7 +17,7 @@
     "typescript": "~5.9.2"
   },
   "main": "expo-router/entry",
-  "name": "@amoeba/frontend",
+  "name": "@terreno/example-frontend",
   "private": true,
   "scripts": {
     "android": "bun expo start --android --port 8082",
