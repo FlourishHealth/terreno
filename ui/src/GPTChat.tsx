@@ -168,9 +168,9 @@ const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.Reac
           return (
             <RNImage
               key={`content-${index}`}
+              resizeMode="contain"
               source={{uri: part.url}}
               style={{borderRadius: 8, height: 200, maxWidth: 300, width: "100%"}}
-              resizeMode="contain"
             />
           );
         }
@@ -211,24 +211,24 @@ const MCPStatusIndicator = ({servers}: {servers: MCPServerStatus[]}): React.Reac
         onClick={() => setShowList(!showList)}
       >
         <Box
-          rounding="circle"
           color={connectedCount > 0 ? "success" : "error"}
-          width={8}
           height={8}
+          rounding="circle"
+          width={8}
         />
-        <Text size="sm" color="secondaryDark">
+        <Text color="secondaryDark" size="sm">
           {connectedCount}/{servers.length} MCP
         </Text>
       </Box>
       {showList ? (
-        <Box border="default" marginTop={1} padding={2} rounding="md" position="absolute">
+        <Box border="default" marginTop={1} padding={2} position="absolute" rounding="md">
           {servers.map((server) => (
             <Box alignItems="center" direction="row" gap={1} key={server.name} padding={1}>
               <Box
-                rounding="circle"
                 color={server.connected ? "success" : "error"}
-                width={6}
                 height={6}
+                rounding="circle"
+                width={6}
               />
               <Text size="sm">{server.name}</Text>
             </Box>

@@ -72,12 +72,7 @@ export const FilePickerButton = ({
         onClick={() => setShowModal(true)}
         testID={testID ?? "file-picker-button"}
       />
-      <Modal
-        onDismiss={() => setShowModal(false)}
-        size="sm"
-        title="Attach"
-        visible={showModal}
-      >
+      <Modal onDismiss={() => setShowModal(false)} size="sm" title="Attach" visible={showModal}>
         <Box gap={2} padding={3}>
           <Button
             iconName="image"
@@ -85,12 +80,7 @@ export const FilePickerButton = ({
             text="Photo Library"
             variant="outline"
           />
-          <Button
-            iconName="file"
-            onClick={handlePickDocument}
-            text="Document"
-            variant="outline"
-          />
+          <Button iconName="file" onClick={handlePickDocument} text="Document" variant="outline" />
         </Box>
       </Modal>
     </>

@@ -3,9 +3,9 @@ import {Image as RNImage} from "react-native";
 
 import {Box} from "./Box";
 import {DismissButton} from "./DismissButton";
+import type {SelectedFile} from "./FilePickerButton";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
-import type {SelectedFile} from "./FilePickerButton";
 
 export interface AttachmentPreviewProps {
   attachments: SelectedFile[];
@@ -27,18 +27,12 @@ export const AttachmentPreview = ({
   }
 
   return (
-    <Box
-      direction="row"
-      gap={2}
-      padding={2}
-      testID={testID ?? "attachment-preview"}
-      wrap
-    >
+    <Box direction="row" gap={2} padding={2} testID={testID ?? "attachment-preview"} wrap>
       {attachments.map((attachment, index) => (
         <Box
+          alignItems="center"
           border="default"
           direction="row"
-          alignItems="center"
           gap={1}
           key={`attachment-${index}`}
           padding={1}
