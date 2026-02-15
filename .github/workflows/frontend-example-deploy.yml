@@ -97,14 +97,18 @@ jobs:
           BARE_DIR="/tmp/bare-routes"
           rm -rf "$BARE_DIR"
           mkdir -p "$BARE_DIR"
+          COUNTER=0
           find dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#dist/}"
             bare="${rel%.html}"
             bare="${bare%/index}"
-            mkdir -p "$BARE_DIR/$(dirname "$bare")"
-            cp "$f" "$BARE_DIR/$bare"
+            COUNTER=$((COUNTER + 1))
+            BASENAME=$(basename "$bare")
+            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            DEST_DIR=$(dirname "$bare")
             gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$bare" "gs://$BUCKET/$(dirname "$bare")/"
+              cp "$BARE_DIR/$BASENAME.$COUNTER" "gs://$BUCKET/$DEST_DIR/$BASENAME"
+            rm "$BARE_DIR/$BASENAME.$COUNTER"
             echo "Uploaded bare route: $bare"
           done
 
@@ -205,16 +209,19 @@ jobs:
           echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
 
           # All other HTML files → bare path objects (skip dynamic [param] routes)
+          COUNTER=0
           find example-frontend/dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#example-frontend/dist/}"
             bare="${rel%.html}"
-            # Strip trailing /index for index.html files
             bare="${bare%/index}"
-            # Create parent dirs in temp and copy with bare filename
-            mkdir -p "$BARE_DIR/$(dirname "$bare")"
-            cp "$f" "$BARE_DIR/$bare"
+            # Use numbered temp files to avoid name conflicts
+            COUNTER=$((COUNTER + 1))
+            BASENAME=$(basename "$bare")
+            cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
+            DEST_DIR=$(dirname "$bare")
             gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$bare" "gs://$BUCKET/$PREVIEW_PATH/$(dirname "$bare")/"
+              cp "$BARE_DIR/$BASENAME.$COUNTER" "gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/$BASENAME"
+            rm "$BARE_DIR/$BASENAME.$COUNTER"
             echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
 
