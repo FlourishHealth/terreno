@@ -30,6 +30,30 @@ export const bootstrapTools: Tool[] = [
     },
     name: "bootstrap_app",
   },
+  {
+    description:
+      "Bootstrap AI coding assistant rules for a Terreno project. Creates configuration files for Cursor, Windsurf, Claude Code, and GitHub Copilot with Terreno-specific guidelines adapted for the project.",
+    inputSchema: {
+      properties: {
+        appDisplayName: {
+          description: "Human-readable display name (e.g., 'My Todo App', 'Task Manager')",
+          type: "string",
+        },
+        appName: {
+          description:
+            "The application name in kebab-case (e.g., 'my-app', 'todo-app'). Used in rule file headers.",
+          type: "string",
+        },
+        description: {
+          description: "A brief description of the app (optional)",
+          type: "string",
+        },
+      },
+      required: ["appName", "appDisplayName"],
+      type: "object",
+    },
+    name: "bootstrap_ai_rules",
+  },
 ];
 
 interface BootstrapArgs {
@@ -796,7 +820,8 @@ const generateFrontendBiomeJsonc = (): string => {
     "enabled": true
   }
 }
-`;};
+`;
+};
 
 const generateFrontendOpenApiConfig = (): string => {
   return `import type {ConfigFile} from "@rtk-query/codegen-openapi";
@@ -1740,6 +1765,668 @@ jobs:
 `;
 };
 
+const generateRulesyncConfig = (): string => {
+  return JSON.stringify(
+    {
+      $schema:
+        "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
+      baseDirs: ["."],
+      delete: true,
+      features: ["rules"],
+      targets: ["cursor", "windsurf", "claudecode", "copilot"],
+      verbose: false,
+    },
+    null,
+    2
+  );
+};
+
+const generateRootRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName, description} = args;
+  const appDescription =
+    description || `A full-stack application built with the Terreno framework.`;
+
+  return `---
+root: true
+targets: ["cursor", "windsurf", "copilot"]
+description: "${appDisplayName} root guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName}
+
+${appDescription}
+
+## Project Structure
+
+- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
+- **backend/** - Express/Mongoose backend using @terreno/api
+
+## Development
+
+Uses [Bun](https://bun.sh/) as the package manager.
+
+\`\`\`bash
+# Backend
+cd backend && bun run dev    # Start backend on port 4000
+
+# Frontend
+cd frontend && bun run web   # Start web frontend
+cd frontend && bun run sdk   # Regenerate SDK after backend changes
+\`\`\`
+
+## Code Style
+
+### TypeScript/JavaScript
+- Use ES module syntax and TypeScript for all code
+- Prefer interfaces over types; avoid enums, use maps
+- Prefer const arrow functions over \`function\` keyword
+- Use descriptive variable names with auxiliary verbs (e.g., \`isLoading\`)
+- Use camelCase directories (e.g., \`components/authWizard\`)
+- Favor named exports
+- Use the RORO pattern (Receive an Object, Return an Object)
+
+### Dates and Time
+- Always use Luxon instead of Date or dayjs
+
+### Error Handling
+- Check error conditions at start of functions and return early
+- Limit nested if statements
+- Use multiline syntax with curly braces for all conditionals
+
+### Testing
+- Use bun test with expect for testing
+
+### Logging
+- Frontend: Use \`console.info\`, \`console.debug\`, \`console.warn\`, or \`console.error\` for permanent logs
+- Backend: Use \`logger.info/warn/error/debug\` for permanent logs
+- Use \`console.log\` only for debugging (to be removed)
+
+### Development Practices
+- Don't apologize for errors: fix them
+- Prioritize modularity, DRY, performance, and security
+- Focus on readability over performance
+- Write complete, functional code without TODOs when possible
+- Comments should describe purpose, not effect
+
+## Package Reference
+
+### @terreno/api
+
+REST API framework providing:
+
+- **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
+- **Permissions**: \`IsAuthenticated\`, \`IsOwner\`, \`IsAdmin\`, \`IsAuthenticatedOrReadOnly\`
+- **Query Filters**: \`OwnerQueryFilter\` for filtering list queries by owner
+- **setupServer**: Express server setup with auth, OpenAPI, and middleware
+- **APIError**: Standardized error handling
+- **logger**: Winston-based logging
+
+Key imports:
+\`\`\`typescript
+import {
+  modelRouter,
+  setupServer,
+  Permissions,
+  OwnerQueryFilter,
+  APIError,
+  logger,
+  asyncHandler,
+  authenticateMiddleware,
+} from "@terreno/api";
+\`\`\`
+
+#### modelRouter Usage
+
+\`\`\`typescript
+import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
+
+const router = modelRouter(YourModel, {
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [],  // Disabled
+  },
+  sort: "-created",
+  queryFields: ["_id", "type", "name"],
+});
+\`\`\`
+
+#### Custom Routes
+
+For non-CRUD endpoints, use the OpenAPI builder:
+
+\`\`\`typescript
+import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+
+router.get("/yourRoute/:id", [
+  authenticateMiddleware(),
+  createOpenApiBuilder(options)
+    .withTags(["yourTag"])
+    .withSummary("Brief summary")
+    .withPathParameter("id", {type: "string"})
+    .withResponse(200, {data: {type: "object"}})
+    .build(),
+], asyncHandler(async (req, res) => {
+  return res.json({data: result});
+}));
+\`\`\`
+
+#### API Conventions
+
+- Throw \`APIError\` with appropriate status codes: \`throw new APIError({status: 400, title: "Message"})\`
+- Do not use \`Model.findOne\` - use \`Model.findExactlyOne\` or \`Model.findOneOrThrow\`
+- Define statics/methods by direct assignment: \`schema.methods = {bar() {}}\`
+- All model types live in \`src/types/models/\`
+- In routes: \`req.user\` is \`UserDocument | undefined\`
+
+### @terreno/ui
+
+React Native component library with 88+ components:
+
+- **Layout**: Box, Page, SplitPage, Card
+- **Forms**: TextField, SelectField, DateTimeField, CheckBox
+- **Display**: Text, Heading, Badge, DataTable
+- **Actions**: Button, IconButton, Link
+- **Feedback**: Spinner, Modal, Toast
+- **Theming**: TerrenoProvider, useTheme
+
+Key imports:
+\`\`\`typescript
+import {
+  Box,
+  Button,
+  Card,
+  Page,
+  Text,
+  TextField,
+  TerrenoProvider,
+} from "@terreno/ui";
+\`\`\`
+
+#### UI Component Examples
+
+Layout with Box:
+\`\`\`typescript
+<Box direction="row" padding={4} gap={2} alignItems="center">
+  <Text>Content</Text>
+  <Button text="Action" />
+</Box>
+\`\`\`
+
+Buttons:
+\`\`\`typescript
+<Button
+  text="Submit"
+  variant="primary"  // 'primary' | 'secondary' | 'outline' | 'ghost'
+  onClick={handleSubmit}
+  loading={isLoading}
+  iconName="check"
+/>
+\`\`\`
+
+Forms:
+\`\`\`typescript
+<TextField
+  label="Email"
+  value={email}
+  onChangeText={setEmail}
+  error={emailError}
+  helperText="Enter a valid email"
+/>
+\`\`\`
+
+#### UI Common Pitfalls
+
+- Don't use inline styles when theme values are available
+- Don't use raw \`View\`/\`Text\` when \`Box\`/@terreno/ui \`Text\` are available
+- Don't forget loading and error states
+- Don't use \`style\` prop when equivalent props exist (\`padding\`, \`margin\`)
+- Never modify \`openApiSdk.ts\` manually
+
+### @terreno/rtk
+
+Redux Toolkit Query integration:
+
+- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
+- **emptyApi**: Base RTK Query API for code generation
+- **Platform utilities**: Secure token storage
+
+Key imports:
+\`\`\`typescript
+import {generateAuthSlice} from "@terreno/rtk";
+\`\`\`
+
+Always use generated SDK hooks - never use \`axios\` or \`request\` directly:
+
+\`\`\`typescript
+// Correct
+import {useGetYourRouteQuery} from "@/store/openApiSdk";
+const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
+
+// Wrong - don't use axios directly
+// const result = await axios.get("/api/yourRoute/value");
+\`\`\`
+
+## React Best Practices
+
+- Use functional components with \`React.FC\` type
+- Import hooks directly: \`import {useEffect, useMemo} from 'react'\`
+- Always provide return types for functions
+- Add explanatory comment above each \`useEffect\`
+- Wrap callbacks in \`useCallback\`
+- Prefer const arrow functions
+- Use inline styles over \`StyleSheet.create\`
+- Use Luxon for date operations
+- Place static content and interfaces at beginning of file
+- Minimize \`use client\`, \`useEffect\`, and \`setState\`
+- Always support React-Native Web
+`;
+};
+
+const generateClaudeCodeRootRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName, description} = args;
+  const appDescription =
+    description || `A full-stack application built with the Terreno framework.`;
+
+  return `---
+localRoot: true
+targets: ["claudecode"]
+description: "${appDisplayName} Claude Code guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName}
+
+${appDescription}
+
+## Project Structure
+
+- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
+- **backend/** - Express/Mongoose backend using @terreno/api
+
+## Development
+
+Uses [Bun](https://bun.sh/) as the package manager.
+
+\`\`\`bash
+# Backend
+cd backend && bun run dev    # Start backend on port 4000
+
+# Frontend
+cd frontend && bun run web   # Start web frontend
+cd frontend && bun run sdk   # Regenerate SDK after backend changes
+\`\`\`
+
+## Code Style
+
+### TypeScript/JavaScript
+- Use ES module syntax and TypeScript for all code
+- Prefer interfaces over types; avoid enums, use maps
+- Prefer const arrow functions over \`function\` keyword
+- Use descriptive variable names with auxiliary verbs (e.g., \`isLoading\`)
+- Use camelCase directories (e.g., \`components/authWizard\`)
+- Favor named exports
+- Use the RORO pattern (Receive an Object, Return an Object)
+
+### Dates and Time
+- Always use Luxon instead of Date or dayjs
+
+### Error Handling
+- Check error conditions at start of functions and return early
+- Limit nested if statements
+- Use multiline syntax with curly braces for all conditionals
+
+### Testing
+- Use bun test with expect for testing
+
+### Logging
+- Frontend: Use \`console.info\`, \`console.debug\`, \`console.warn\`, or \`console.error\` for permanent logs
+- Backend: Use \`logger.info/warn/error/debug\` for permanent logs
+- Use \`console.log\` only for debugging (to be removed)
+
+### Development Practices
+- Don't apologize for errors: fix them
+- Prioritize modularity, DRY, performance, and security
+- Focus on readability over performance
+- Write complete, functional code without TODOs when possible
+- Comments should describe purpose, not effect
+
+## Package Reference
+
+### @terreno/api
+
+REST API framework providing:
+
+- **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
+- **Permissions**: \`IsAuthenticated\`, \`IsOwner\`, \`IsAdmin\`, \`IsAuthenticatedOrReadOnly\`
+- **setupServer**: Express server setup with auth, OpenAPI, and middleware
+- **APIError**: Standardized error handling
+- **logger**: Winston-based logging
+
+Key imports:
+\`\`\`typescript
+import {
+  modelRouter,
+  setupServer,
+  Permissions,
+  OwnerQueryFilter,
+  APIError,
+  logger,
+  asyncHandler,
+  authenticateMiddleware,
+} from "@terreno/api";
+\`\`\`
+
+### @terreno/ui
+
+React Native component library with 88+ components:
+
+- **Layout**: Box, Page, SplitPage, Card
+- **Forms**: TextField, SelectField, DateTimeField, CheckBox
+- **Display**: Text, Heading, Badge, DataTable
+- **Actions**: Button, IconButton, Link
+- **Feedback**: Spinner, Modal, Toast
+- **Theming**: TerrenoProvider, useTheme
+
+Key imports:
+\`\`\`typescript
+import {
+  Box,
+  Button,
+  Card,
+  Page,
+  Text,
+  TextField,
+  TerrenoProvider,
+} from "@terreno/ui";
+\`\`\`
+
+### @terreno/rtk
+
+Redux Toolkit Query integration:
+
+- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
+- **emptyApi**: Base RTK Query API for code generation
+- **Platform utilities**: Secure token storage
+
+Key imports:
+\`\`\`typescript
+import {generateAuthSlice} from "@terreno/rtk";
+\`\`\`
+`;
+};
+
+const generateBackendRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
+  return `---
+root: true
+targets: ["cursor", "windsurf", "copilot"]
+description: "${appDisplayName} backend guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName} Backend
+
+Express/Mongoose backend using @terreno/api.
+
+## Development
+
+\`\`\`bash
+bun run dev      # Start on port 4000
+bun run test     # Run tests
+bun run lint     # Lint code
+\`\`\`
+
+## Backend Conventions
+
+- Use \`modelRouter\` for CRUD endpoints
+- Use \`APIError\` for error responses: \`throw new APIError({status: 400, title: "Message"})\`
+- Use \`logger.info/warn/error/debug\` for logging
+- Use \`Model.findExactlyOne\` or \`Model.findOneOrNone\` (not \`Model.findOne\`)
+- All model types live in \`src/types/models/\`
+- In routes: \`req.user\` is \`UserDocument | undefined\`
+
+## Adding a New Model
+
+1. Create model in \`src/models/yourModel.ts\`
+2. Create types in \`src/types/models/yourModelTypes.ts\`
+3. Export from \`src/models/index.ts\` and \`src/types/models/index.ts\`
+4. Create route in \`src/api/yourModel.ts\`
+5. Register route in \`src/server.ts\`
+`;
+};
+
+const generateBackendClaudeRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
+  return `---
+localRoot: true
+targets: ["claudecode"]
+description: "${appDisplayName} backend Claude Code guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName} Backend
+
+Express/Mongoose backend using @terreno/api.
+
+## Development
+
+\`\`\`bash
+bun run dev      # Start on port 4000
+bun run test     # Run tests
+bun run lint     # Lint code
+\`\`\`
+
+## Backend Conventions
+
+- Use \`modelRouter\` for CRUD endpoints
+- Use \`APIError\` for error responses: \`throw new APIError({status: 400, title: "Message"})\`
+- Use \`logger.info/warn/error/debug\` for logging
+- Use \`Model.findExactlyOne\` or \`Model.findOneOrNone\` (not \`Model.findOne\`)
+- All model types live in \`src/types/models/\`
+- In routes: \`req.user\` is \`UserDocument | undefined\`
+
+## Adding a New Model
+
+1. Create model in \`src/models/yourModel.ts\`
+2. Create types in \`src/types/models/yourModelTypes.ts\`
+3. Export from \`src/models/index.ts\` and \`src/types/models/index.ts\`
+4. Create route in \`src/api/yourModel.ts\`
+5. Register route in \`src/server.ts\`
+`;
+};
+
+const generateFrontendRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
+  return `---
+root: true
+targets: ["cursor", "windsurf", "copilot"]
+description: "${appDisplayName} frontend guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName} Frontend
+
+Expo/React Native frontend using @terreno/ui and @terreno/rtk.
+
+## Development
+
+\`\`\`bash
+bun run web      # Start web frontend on port 8082
+bun run sdk      # Regenerate SDK from backend OpenAPI spec
+bun run lint     # Lint code
+\`\`\`
+
+## Frontend Conventions
+
+- Use generated SDK hooks from \`@/store/openApiSdk\`
+- Use @terreno/ui components (Box, Page, Button, TextField, etc.)
+- Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
+- Use Luxon for date operations
+- Use Redux Toolkit for state management
+
+## Adding a New Screen
+
+1. Regenerate SDK if backend changed: \`bun run sdk\`
+2. Create screen in \`app/\` directory
+3. Use @terreno/ui components for layout
+4. Use SDK hooks for data fetching
+`;
+};
+
+const generateFrontendClaudeRulesFile = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
+  return `---
+localRoot: true
+targets: ["claudecode"]
+description: "${appDisplayName} frontend Claude Code guidelines"
+globs: ["**/*"]
+---
+
+# ${appDisplayName} Frontend
+
+Expo/React Native frontend using @terreno/ui and @terreno/rtk.
+
+## Development
+
+\`\`\`bash
+bun run web      # Start web frontend on port 8082
+bun run sdk      # Regenerate SDK from backend OpenAPI spec
+bun run lint     # Lint code
+\`\`\`
+
+## Frontend Conventions
+
+- Use generated SDK hooks from \`@/store/openApiSdk\`
+- Use @terreno/ui components (Box, Page, Button, TextField, etc.)
+- Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
+- Use Luxon for date operations
+- Use Redux Toolkit for state management
+
+## Adding a New Screen
+
+1. Regenerate SDK if backend changed: \`bun run sdk\`
+2. Create screen in \`app/\` directory
+3. Use @terreno/ui components for layout
+4. Use SDK hooks for data fetching
+`;
+};
+
+interface AiRulesFile {
+  path: string;
+  content: string;
+}
+
+const generateAiRulesFiles = (args: BootstrapArgs): AiRulesFile[] => {
+  // Strip frontmatter for direct output files
+  const stripFrontmatter = (content: string): string => {
+    return content.replace(/^---[\s\S]*?---\n\n?/, "");
+  };
+
+  const backendContent = stripFrontmatter(generateBackendRulesFile(args));
+  const frontendContent = stripFrontmatter(generateFrontendRulesFile(args));
+
+  return [
+    // .rulesync/rules/ source files (these are the source of truth for root)
+    {content: generateRootRulesFile(args), path: ".rulesync/rules/00-root.md"},
+    {content: generateClaudeCodeRootRulesFile(args), path: ".rulesync/rules/01-claudecode-root.md"},
+
+    // Direct output files for backend (AGENTS.md and CLAUDE.md in backend/)
+    {content: backendContent, path: "backend/AGENTS.md"},
+    {content: backendContent, path: "backend/CLAUDE.md"},
+
+    // Direct output files for frontend (AGENTS.md and CLAUDE.md in frontend/)
+    {content: frontendContent, path: "frontend/AGENTS.md"},
+    {content: frontendContent, path: "frontend/CLAUDE.md"},
+
+    // Rulesync config (only syncs root level files)
+    {content: generateRulesyncConfig(), path: "rulesync.jsonc"},
+  ];
+};
+
+export const handleBootstrapAiRulesToolCall = (
+  args: Record<string, unknown>
+): {content: Array<{type: "text"; text: string}>} => {
+  const bootstrapArgs = args as unknown as BootstrapArgs;
+
+  if (!bootstrapArgs.appName || !bootstrapArgs.appDisplayName) {
+    return {
+      content: [
+        {
+          text: "Error: appName and appDisplayName are required parameters",
+          type: "text",
+        },
+      ],
+    };
+  }
+
+  const files = generateAiRulesFiles(bootstrapArgs);
+
+  const fileList = files.map((f) => `- \`${f.path}\``).join("\n");
+
+  const instructions = `# Bootstrap AI Rules for ${bootstrapArgs.appDisplayName}
+
+## Files to Create
+
+The following AI coding assistant configuration files need to be created:
+
+${fileList}
+
+## Instructions
+
+1. **Create all the files listed above.** Each file's content is provided below.
+
+2. **Install rulesync** (required for syncing root-level rules to all AI tools):
+   \`\`\`bash
+   npm install -g rulesync
+   \`\`\`
+
+3. **Run rulesync to generate root-level AI tool configs:**
+   \`\`\`bash
+   rulesync sync
+   \`\`\`
+   
+   This generates root-level files from \`.rulesync/rules/\`:
+   - \`.cursorrules\`, \`.windsurfrules\`, \`.github/copilot-instructions.md\`, \`.claude/CLAUDE.local.md\`, \`AGENTS.md\`
+
+## How It Works
+
+- **\`.rulesync/rules/\`** - Source of truth for root-level AI coding guidelines
+- **\`rulesync.jsonc\`** - Configuration for rulesync tool (root only)
+- **\`backend/AGENTS.md\` & \`backend/CLAUDE.md\`** - Direct context files for backend
+- **\`frontend/AGENTS.md\` & \`frontend/CLAUDE.md\`** - Direct context files for frontend
+
+## Keeping Rules Updated
+
+- **Root rules**: Edit \`.rulesync/rules/\` and run \`rulesync sync\`
+- **Backend/Frontend rules**: Edit \`backend/AGENTS.md\` or \`frontend/AGENTS.md\` directly (and copy to CLAUDE.md)
+
+---
+
+## File Contents
+
+`;
+
+  const fileContents = files
+    .map((f) => {
+      const lang = f.path.endsWith(".json") || f.path.endsWith(".jsonc") ? "json" : "markdown";
+      return `### \`${f.path}\`
+
+\`\`\`${lang}
+${f.content}
+\`\`\`
+`;
+    })
+    .join("\n");
+
+  return {
+    content: [{text: instructions + fileContents, type: "text"}],
+  };
+};
+
 const generateFrontendCiWorkflow = (_args: BootstrapArgs): string => {
   return `name: Frontend CI
 
@@ -1856,6 +2543,10 @@ export const handleBootstrapToolCall = (
   name: string,
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
+  if (name === "bootstrap_ai_rules") {
+    return handleBootstrapAiRulesToolCall(args);
+  }
+
   if (name !== "bootstrap_app") {
     return {
       content: [{text: `Unknown bootstrap tool: ${name}`, type: "text"}],
@@ -2051,7 +2742,19 @@ The application should include:
 - Redux state management with persistence
 - RTK Query SDK generation from OpenAPI spec
 - Cursor rules for AI assistance
-- MCP integration for development assistance`;
+- MCP integration for development assistance
+
+**IMPORTANT: After completing the bootstrap_app steps, also run the \`bootstrap_ai_rules\` tool** with the same appName and appDisplayName to set up AI coding assistant rules for Cursor, Windsurf, Claude Code, and GitHub Copilot. This will create:
+- AGENTS.md files for each directory
+- .cursorrules and .windsurfrules files
+- GitHub Copilot instructions
+- Claude Code local rules
+- rulesync.jsonc for keeping rules in sync
+
+Then install rulesync to keep AI rules synchronized:
+\`\`\`bash
+npm install -g rulesync
+\`\`\``;
 
   return {
     messages: [

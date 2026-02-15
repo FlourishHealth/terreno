@@ -64,7 +64,7 @@ const createServer = (): McpServer => {
   });
 
   server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    logger.info("MCP CallTool", {name: request.params.name, arguments: request.params.arguments});
+    logger.info("MCP CallTool", {arguments: request.params.arguments, name: request.params.name});
     return handleToolCall(request.params.name, request.params.arguments ?? {});
   });
 
@@ -79,7 +79,7 @@ const createServer = (): McpServer => {
   });
 
   server.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    logger.info("MCP GetPrompt", {name: request.params.name, arguments: request.params.arguments});
+    logger.info("MCP GetPrompt", {arguments: request.params.arguments, name: request.params.name});
     return handlePromptRequest(request.params.name, request.params.arguments ?? {});
   });
 
