@@ -100,8 +100,13 @@ jobs:
             BASENAME=$(basename "$bare")
             cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
             DEST_DIR=$(dirname "$bare")
+            if [ "$DEST_DIR" = "." ]; then
+              GCS_DEST="gs://$BUCKET/"
+            else
+              GCS_DEST="gs://$BUCKET/$DEST_DIR/"
+            fi
             gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "gs://$BUCKET/$DEST_DIR/$BASENAME"
+              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
             rm "$BARE_DIR/$BASENAME.$COUNTER"
             echo "Uploaded bare route: $bare"
           done
@@ -211,8 +216,13 @@ jobs:
             BASENAME=$(basename "$bare")
             cp "$f" "$BARE_DIR/$BASENAME.$COUNTER"
             DEST_DIR=$(dirname "$bare")
+            if [ "$DEST_DIR" = "." ]; then
+              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/"
+            else
+              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
+            fi
             gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-              cp "$BARE_DIR/$BASENAME.$COUNTER" "gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/$BASENAME"
+              cp "$BARE_DIR/$BASENAME.$COUNTER" "$GCS_DEST"
             rm "$BARE_DIR/$BASENAME.$COUNTER"
             echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
