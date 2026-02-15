@@ -81,23 +81,30 @@ jobs:
 
       - name: Deploy to GCS
         run: |
-          # Sync all files with long cache, excluding previews dir and index.html
+          # Sync all files with long cache, excluding previews dir and HTML files
+          # (HTML files are uploaded separately with no-cache + bare paths)
           gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-            rsync -r -d -x '_previews/.*|index\.html$' \
+            rsync -r -d -x '_previews/.*|.*\.html$' \
             dist/ "gs://$BUCKET/"
 
-          # Upload index.html with no-cache
+          # Upload root index.html with no-cache
           gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
             cp dist/index.html "gs://$BUCKET/index.html"
 
-          # Upload route files at bare paths (e.g. /login) so GCS serves them
-          # directly instead of redirecting /login -> /login/index.html
-          find dist -mindepth 2 -name 'index.html' | while read -r f; do
-            route="${f#dist/}"
-            route="${route%/index.html}"
-            gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
-              cp "$f" "gs://$BUCKET/$route"
-            echo "Uploaded route file: $route"
+          # Upload all HTML files at bare paths so any route works on refresh.
+          # Rename files in temp dir to prevent gsutil directory-name collision.
+          BARE_DIR="/tmp/bare-routes"
+          rm -rf "$BARE_DIR"
+          mkdir -p "$BARE_DIR"
+          find dist -mindepth 2 -name '*.html' | while read -r f; do
+            rel="${f#dist/}"
+            bare="${rel%.html}"
+            bare="${bare%/index}"
+            mkdir -p "$BARE_DIR/$(dirname "$bare")"
+            cp "$f" "$BARE_DIR/$bare"
+            gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
+              cp "$BARE_DIR/$bare" "gs://$BUCKET/$(dirname "$bare")/"
+            echo "Uploaded bare route: $bare"
           done
 
       - name: Invalidate CDN cache
@@ -182,20 +189,32 @@ jobs:
             rsync -r -d \
             example-frontend/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
 
-          # Upload root index.html at the bare preview path so the URL
-          # works without /index.html (which breaks Expo Router's path matching).
-          # Rename file to match desired object name so gsutil doesn't treat dest as dir.
-          cp example-frontend/dist/index.html "/tmp/pr-${{ github.event.pull_request.number }}"
-          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-            cp "/tmp/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
+          # Upload all HTML files at bare paths (without .html extension) so
+          # refreshing any route works on storage.googleapis.com (which has no
+          # SPA fallback). Uses a temp dir with renamed files to prevent gsutil
+          # from treating destinations as directories.
+          BARE_DIR="/tmp/bare-routes"
+          rm -rf "$BARE_DIR"
+          mkdir -p "$BARE_DIR"
 
-          # Upload route files at bare paths
-          find example-frontend/dist -mindepth 2 -name 'index.html' | while read -r f; do
-            route="${f#example-frontend/dist/}"
-            route="${route%/index.html}"
-            gsutil -h "Cache-Control:no-cache" \
-              cp "$f" "gs://$BUCKET/$PREVIEW_PATH/$route"
-            echo "Uploaded route file: $PREVIEW_PATH/$route"
+          # Root index.html → bare preview path object
+          cp example-frontend/dist/index.html "$BARE_DIR/pr-${{ github.event.pull_request.number }}"
+          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
+            cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
+          echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
+
+          # All other HTML files → bare path objects
+          find example-frontend/dist -mindepth 2 -name '*.html' | while read -r f; do
+            rel="${f#example-frontend/dist/}"
+            bare="${rel%.html}"
+            # Strip trailing /index for index.html files
+            bare="${bare%/index}"
+            # Create parent dirs in temp and copy with bare filename
+            mkdir -p "$BARE_DIR/$(dirname "$bare")"
+            cp "$f" "$BARE_DIR/$bare"
+            gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
+              cp "$BARE_DIR/$bare" "gs://$BUCKET/$PREVIEW_PATH/$(dirname "$bare")/"
+            echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
 
       - name: Create deployment
