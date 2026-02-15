@@ -1,0 +1,52 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "ai": "^4.3.0",
+    "mongoose": "8.18.1"
+  },
+  "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.6",
+    "@types/bun": "^1.2.4",
+    "@types/express": "^4.17.21",
+    "@types/passport-local-mongoose": "^6.1.5",
+    "@types/supertest": "^6.0.2",
+    "passport-local-mongoose": "^9.0.1",
+    "supertest": "^7.0.0",
+    "typescript": "5.8.2",
+    "winston": "^3.18.3"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "ai",
+    "gpt",
+    "mongoose",
+    "express"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "name": "@terreno/ai",
+  "peerDependencies": {
+    "@terreno/api": "workspace:*",
+    "mongoose": "^8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "lint:unsafefix": "biome check --fix --unsafe ./src",
+    "test": "bun test --preload ./src/tests/bunSetup.ts",
+    "test:ci": "bun test --preload ./src/tests/bunSetup.ts"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.0.18"
+}
