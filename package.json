@@ -69,6 +69,9 @@
   },
   "private": true,
   "scripts": {
+    "ai:compile": "bun run --filter '@terreno/ai' compile",
+    "ai:lint": "bun run --filter '@terreno/ai' lint",
+    "ai:test": "bun run --filter '@terreno/ai' test",
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
     "api-health:compile": "bun run --filter '@terreno/api-health' compile",
@@ -111,6 +114,7 @@
   },
   "version": "1.0.0",
   "workspaces": [
+    "ai",
     "api",
     "api-health",
     "demo",
