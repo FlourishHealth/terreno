@@ -199,7 +199,7 @@ jobs:
             const url = '${{ steps.cdn.outputs.preview_url }}';
             const deployment = await github.rest.repos.createDeployment({
               ...context.repo,
-              ref: context.sha,
+              ref: '${{ github.event.pull_request.head.sha }}',
               environment: `frontend-example-preview-pr-${pr}`,
               auto_merge: false,
               required_contexts: [],
