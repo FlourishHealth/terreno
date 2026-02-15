@@ -184,18 +184,18 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
     {
       dependencies: {
         "@terreno/api": "latest",
-        dotenv: "^17.2.3",
-        luxon: "^3.4.0",
-        mongoose: "^8.0.0",
+        dotenv: "^16.4.7",
+        luxon: "^3.7.2",
+        mongoose: "^8.18.1",
         "passport-local-mongoose": "^9.0.1",
       },
       devDependencies: {
-        "@biomejs/biome": "^2.0.0",
+        "@biomejs/biome": "^2.3.6",
+        "@types/bun": "^1.2.4",
         "@types/express": "^4.17.21",
-        "@types/luxon": "^3.4.0",
+        "@types/luxon": "^3.4.2",
         "@types/passport-local-mongoose": "^6.1.5",
-        "bun-types": "latest",
-        typescript: "~5.8.3",
+        typescript: "5.8.2",
       },
       name: `@${appName}/backend`,
       private: true,
@@ -526,7 +526,7 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       dependencies: {
-        "@expo/vector-icons": "^14.0.0",
+        "@expo/vector-icons": "^14.1.0",
         "@react-native-async-storage/async-storage": "^2.1.2",
         "@react-navigation/native": "^7.1.2",
         "@reduxjs/toolkit": "^2.8.1",
@@ -538,7 +538,7 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "expo-font": "~13.0.4",
         "expo-router": "~4.0.0",
         "expo-splash-screen": "~0.29.0",
-        luxon: "^3.4.0",
+        luxon: "^3.7.2",
         react: "18.3.1",
         "react-dom": "18.3.1",
         "react-native": "0.79.2",
@@ -548,12 +548,13 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "redux-persist": "^6.0.0",
       },
       devDependencies: {
-        "@biomejs/biome": "^2.0.0",
+        "@biomejs/biome": "^2.3.6",
         "@rtk-query/codegen-openapi": "^2.2.0",
+        "@types/bun": "^1.2.6",
+        "@types/luxon": "^3.4.2",
         "@types/react": "~18.3.18",
-        "bun-types": "^1.3.4",
         "react-test-renderer": "18.3.1",
-        typescript: "~5.8.3",
+        typescript: "5.8.2",
       },
       main: "expo-router/entry",
       name: `@${appName}/frontend`,
@@ -776,7 +777,7 @@ exec(command, (error, _stdout, stderr) => {
 
 const generateFrontendRootLayout = (_args: BootstrapArgs): string => {
   return `import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
+import {DefaultTheme, ThemeProvider} from "@react-navigation/native";
 import {useFonts} from "expo-font";
 import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -786,7 +787,6 @@ import {baseUrl, useSelectCurrentUserId} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {useColorScheme} from "@/components/useColorScheme";
 import store, {persistor} from "@/store";
 
 export {ErrorBoundary} from "expo-router";
@@ -803,12 +803,14 @@ export default function RootLayout(): React.ReactElement | null {
     ...FontAwesome.font,
   });
 
+  // Handle font loading errors
   useEffect(() => {
     if (error) {
       throw error;
     }
   }, [error]);
 
+  // Hide splash screen when fonts are loaded
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -831,11 +833,10 @@ export default function RootLayout(): React.ReactElement | null {
 }
 
 function RootLayoutNav(): React.ReactElement {
-  const colorScheme = useColorScheme();
   const userId = useSelectCurrentUserId();
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <Stack>
         {!userId ? (
           <Stack.Screen name="login" options={{headerShown: false}} />
@@ -973,8 +974,7 @@ const generateFrontendTabsLayout = (): string => {
   return `import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {Tabs} from "expo-router";
 import type React from "react";
-import {useColorScheme} from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
+import {colors} from "@/constants/theme";
 
 const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -984,12 +984,10 @@ const TabBarIcon: React.FC<{
 };
 
 const TabLayout: React.FC = () => {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: colors.tint,
       }}
     >
       <Tabs.Screen
@@ -1446,33 +1444,127 @@ export const {useEmailLoginMutation, useEmailSignUpMutation} = injectedRtkApi;
 `;
 };
 
-const generateFrontendColors = (): string => {
-  return `const tintColorLight = "#0a7ea4";
-const tintColorDark = "#fff";
+const generateFrontendTheme = (): string => {
+  return `// Theme configuration for the app
+// Override these values to customize the app's appearance
+// Colors are based on @terreno/ui's default theme primitives
 
-export default {
-  dark: {
-    background: "#151718",
-    icon: "#9BA1A6",
-    tabIconDefault: "#9BA1A6",
-    tabIconSelected: tintColorDark,
-    text: "#ECEDEE",
-    tint: tintColorDark,
-  },
-  light: {
-    background: "#fff",
-    icon: "#687076",
-    tabIconDefault: "#687076",
-    tabIconSelected: tintColorLight,
-    text: "#11181C",
-    tint: tintColorLight,
-  },
+export const primitives = {
+  // Primary colors (teal/cyan)
+  primary000: "#EBFAFF",
+  primary050: "#BCE9F7",
+  primary100: "#90D8F0",
+  primary200: "#73CAE8",
+  primary300: "#40B8E0",
+  primary400: "#0E9DCD",
+  primary500: "#0086B3",
+  primary600: "#0A7092",
+  primary700: "#035D7E",
+  primary800: "#004B64",
+  primary900: "#013749",
+
+  // Secondary colors (dark teal)
+  secondary000: "#F2F9FA",
+  secondary050: "#D7E5EA",
+  secondary100: "#B6CDD5",
+  secondary200: "#9EB7BF",
+  secondary300: "#87A1AA",
+  secondary400: "#608997",
+  secondary500: "#2B6072",
+  secondary600: "#1C4E5F",
+  secondary700: "#0F3D4D",
+  secondary800: "#092E3A",
+  secondary900: "#041E27",
+
+  // Accent colors (gold/yellow)
+  accent000: "#FFFDF7",
+  accent050: "#FCECC2",
+  accent100: "#F9E0A1",
+  accent200: "#F7D582",
+  accent300: "#F2CB62",
+  accent400: "#E5B132",
+  accent500: "#D69C0E",
+  accent600: "#B58201",
+  accent700: "#956A00",
+  accent800: "#543C00",
+  accent900: "#332400",
+
+  // Neutral colors (grays)
+  neutral000: "#FFFFFF",
+  neutral050: "#F2F2F2",
+  neutral100: "#E6E6E6",
+  neutral200: "#D9D9D9",
+  neutral300: "#CDCDCD",
+  neutral400: "#B3B3B3",
+  neutral500: "#9A9A9A",
+  neutral600: "#686868",
+  neutral700: "#4E4E4E",
+  neutral800: "#353535",
+  neutral900: "#1C1C1C",
+
+  // Status colors
+  error000: "#FDD7D7",
+  error100: "#D33232",
+  error200: "#BD1111",
+  success000: "#DCF2E2",
+  success100: "#3EA45C",
+  success200: "#1A7F36",
+  warning000: "#FFE3C6",
+  warning100: "#F36719",
+  warning200: "#B14202",
 };
+
+// Semantic color mappings - override these to change app appearance
+export const colors = {
+  // Backgrounds
+  background: primitives.neutral000,
+  backgroundSecondary: primitives.neutral050,
+
+  // Text
+  text: primitives.neutral900,
+  textSecondary: primitives.neutral600,
+  textInverted: primitives.neutral000,
+
+  // Primary action colors
+  primary: primitives.primary400,
+  primaryDark: primitives.primary600,
+  primaryLight: primitives.primary100,
+
+  // Secondary colors
+  secondary: primitives.secondary500,
+  secondaryDark: primitives.secondary700,
+  secondaryLight: primitives.secondary100,
+
+  // Accent colors
+  accent: primitives.accent500,
+  accentDark: primitives.accent700,
+  accentLight: primitives.accent100,
+
+  // Status colors
+  error: primitives.error100,
+  errorLight: primitives.error000,
+  success: primitives.success100,
+  successLight: primitives.success000,
+  warning: primitives.warning100,
+  warningLight: primitives.warning000,
+
+  // UI elements
+  border: primitives.neutral300,
+  borderFocus: primitives.primary200,
+  icon: primitives.neutral600,
+  tint: primitives.primary400,
+
+  // Tab bar
+  tabIconDefault: primitives.neutral600,
+  tabIconSelected: primitives.primary400,
+};
+
+export default colors;
 `;
 };
 
-const generateFrontendUseColorScheme = (): string => {
-  return `export {useColorScheme} from "react-native";
+const generateFrontendEnv = (): string => {
+  return `EXPO_PUBLIC_API_URL=http://localhost:4000
 `;
 };
 
@@ -1491,13 +1583,126 @@ export const createSentryReduxEnhancer = (): unknown => {
 `;
 };
 
+const generateBackendCiWorkflow = (_args: BootstrapArgs): string => {
+  return `name: Backend CI
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Backend Lint, Build, and Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongodb-version: ["6.0"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-\${{ runner.os }}-\${{ github.ref }}-\${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-\${{ runner.os }}-\${{ github.ref }}-
+            bun-\${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: \${{ matrix.mongodb-version }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: backend
+
+      - name: Lint
+        run: bun run lint
+        working-directory: backend
+
+      - name: Build
+        run: bun run compile
+        working-directory: backend
+
+      - name: Test
+        run: bun run test
+        working-directory: backend
+        env:
+          CI: true
+`;
+};
+
+const generateFrontendCiWorkflow = (_args: BootstrapArgs): string => {
+  return `name: Frontend CI
+
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Frontend Lint, Build, and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-\${{ runner.os }}-\${{ github.ref }}-\${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-\${{ runner.os }}-\${{ github.ref }}-
+            bun-\${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Lint
+        run: bun run lint
+        working-directory: frontend
+
+      - name: TypeScript compile
+        run: bun run compile
+        working-directory: frontend
+
+      - name: Test
+        run: bun run test
+        working-directory: frontend
+        env:
+          CI: true
+`;
+};
+
 interface GeneratedFile {
   path: string;
   content: string;
 }
 
 const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
-  const {appName} = args;
   const frontendDir = `frontend`;
   const backendDir = `backend`;
 
@@ -1541,12 +1746,13 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendStoreErrors(), path: `${frontendDir}/store/errors.ts`},
     {content: generateFrontendStoreSdk(), path: `${frontendDir}/store/sdk.ts`},
     {content: generateFrontendStoreOpenApiSdk(), path: `${frontendDir}/store/openApiSdk.ts`},
-    {content: generateFrontendColors(), path: `${frontendDir}/constants/Colors.ts`},
-    {
-      content: generateFrontendUseColorScheme(),
-      path: `${frontendDir}/components/useColorScheme.ts`,
-    },
+    {content: generateFrontendTheme(), path: `${frontendDir}/constants/theme.ts`},
     {content: generateFrontendUtilsIndex(), path: `${frontendDir}/utils/index.ts`},
+    {content: generateFrontendEnv(), path: `${frontendDir}/.env`},
+
+    // GitHub Actions workflows
+    {content: generateBackendCiWorkflow(args), path: ".github/workflows/backend-ci.yml"},
+    {content: generateFrontendCiWorkflow(args), path: ".github/workflows/frontend-ci.yml"},
   ];
 };
 
@@ -1595,27 +1801,33 @@ ${fileList}
 
 2. **Create all the files listed above.** Each file's content is provided below.
 
-3. **Create asset directories:**
+3. **Create asset directories and download assets from Expo:**
    \`\`\`bash
-   mkdir -p ${bootstrapArgs.appName}-frontend/assets/fonts
-   mkdir -p ${bootstrapArgs.appName}-frontend/assets/images
+   mkdir -p frontend/assets/fonts
+   mkdir -p frontend/assets/images
+
+   # Download SpaceMono font
+   curl -L -o frontend/assets/fonts/SpaceMono-Regular.ttf \\
+     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/fonts/SpaceMono-Regular.ttf"
+
+   # Download Expo default images
+   curl -L -o frontend/assets/images/icon.png \\
+     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/icon.png"
+   curl -L -o frontend/assets/images/splash-icon.png \\
+     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/splash-icon.png"
+   curl -L -o frontend/assets/images/adaptive-icon.png \\
+     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/adaptive-icon.png"
+   curl -L -o frontend/assets/images/favicon.png \\
+     "https://github.com/expo/expo/raw/main/templates/expo-template-blank-typescript/assets/images/favicon.png"
    \`\`\`
 
-4. **Download placeholder assets:**
-   - Copy SpaceMono-Regular.ttf to \`${bootstrapArgs.appName}-frontend/assets/fonts/\`
-   - Create placeholder images in \`${bootstrapArgs.appName}-frontend/assets/images/\`:
-     - icon.png (1024x1024)
-     - splash-icon.png (1284x2778)
-     - adaptive-icon.png (1024x1024)
-     - favicon.png (48x48)
-
-5. **Install dependencies:**
+4. **Install dependencies:**
    \`\`\`bash
-   cd ${bootstrapArgs.appName}-backend && bun install
-   cd ../${bootstrapArgs.appName}-frontend && bun install
+   cd backend && bun install
+   cd ../frontend && bun install
    \`\`\`
 
-6. **Start MongoDB** (required for backend):
+5. **Start MongoDB** (required for backend):
    \`\`\`bash
    # Using Docker:
    docker run -d -p 27017:27017 mongo:latest
@@ -1623,19 +1835,19 @@ ${fileList}
    # Or install MongoDB locally
    \`\`\`
 
-7. **Start the backend:**
+6. **Start the backend:**
    \`\`\`bash
-   cd ${bootstrapArgs.appName}-backend && bun run dev
+   cd backend && bun run dev
    \`\`\`
 
-8. **In a new terminal, regenerate and start the frontend:**
+7. **In a new terminal, regenerate and start the frontend:**
    \`\`\`bash
-   cd ${bootstrapArgs.appName}-frontend
+   cd frontend
    bun run sdk  # Generate SDK from backend
    bun run web  # Start web frontend
    \`\`\`
 
-9. **Open http://localhost:8082** in your browser
+8. **Open http://localhost:8082** in your browser
 
 ## MCP Integration
 
@@ -1730,7 +1942,7 @@ Use the \`bootstrap_app\` tool to generate all the necessary files for the appli
 
 After generating the files:
 1. Create all directories and files as specified
-2. Create placeholder image assets
+2. Download assets from Expo's GitHub using the provided curl commands
 3. Install dependencies with \`bun install\`
 4. Start MongoDB
 5. Start the backend with \`bun run dev\`
