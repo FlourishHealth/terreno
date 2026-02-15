@@ -767,7 +767,7 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "bootstrap_app") {
+  if (name === "bootstrap_app" || name === "bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 

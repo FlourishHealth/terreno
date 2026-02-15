@@ -1,11 +1,9 @@
 import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
-import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useState} from "react";
 import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
 
 const LoginScreen: React.FC = () => {
-  const _router = useRouter();
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -32,11 +30,10 @@ const LoginScreen: React.FC = () => {
       } else {
         await emailLogin({email, password}).unwrap();
       }
-      // Navigation will happen automatically when userId is set in the store
     } catch (err) {
       console.error("Authentication error:", err);
     }
-  }, [email, password, name, isSignUp, emailLogin, emailSignUp, toast.warn]);
+  }, [email, password, name, isSignUp, emailLogin, emailSignUp, toast]);
 
   const toggleMode = useCallback((): void => {
     setIsSignUp(!isSignUp);
@@ -44,7 +41,6 @@ const LoginScreen: React.FC = () => {
 
   const isLoading = isLoginLoading || isSignUpLoading;
   const error = loginError || signUpError;
-
   const isSubmitDisabled = !email || !password || (isSignUp && !name) || isLoading;
 
   return (
@@ -71,7 +67,6 @@ const LoginScreen: React.FC = () => {
               value={name}
             />
           )}
-
           <TextField
             autoComplete="off"
             disabled={isLoading}
@@ -81,7 +76,6 @@ const LoginScreen: React.FC = () => {
             type="email"
             value={email}
           />
-
           <TextField
             disabled={isLoading}
             onChange={setPassword}
@@ -90,13 +84,11 @@ const LoginScreen: React.FC = () => {
             type="password"
             value={password}
           />
-
           {Boolean(error) && (
             <Text color="error">
               {(error as {data?: {message?: string}})?.data?.message || "An error occurred"}
             </Text>
           )}
-
           <Box marginTop={4}>
             <Button
               disabled={isSubmitDisabled}
@@ -106,7 +98,6 @@ const LoginScreen: React.FC = () => {
               text={isSignUp ? "Sign Up" : "Login"}
             />
           </Box>
-
           <Box marginTop={2}>
             <Button
               disabled={isLoading}

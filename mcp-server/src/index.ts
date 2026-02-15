@@ -43,6 +43,7 @@ const createServer = (): McpServer => {
   });
 
   server.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    logger.info("MCP ReadResource", {uri: request.params.uri});
     const resource = resources.find((r) => r.uri === request.params.uri);
     if (!resource) {
       throw new Error(`Resource not found: ${request.params.uri}`);
@@ -63,6 +64,7 @@ const createServer = (): McpServer => {
   });
 
   server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    logger.info("MCP CallTool", {arguments: request.params.arguments, name: request.params.name});
     return handleToolCall(request.params.name, request.params.arguments ?? {});
   });
 
@@ -77,6 +79,7 @@ const createServer = (): McpServer => {
   });
 
   server.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    logger.info("MCP GetPrompt", {arguments: request.params.arguments, name: request.params.name});
     return handlePromptRequest(request.params.name, request.params.arguments ?? {});
   });
 
