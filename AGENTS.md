@@ -191,7 +191,6 @@ router.get("/yourRoute/:id", [
 - All model types live in `src/modelInterfaces.ts`
 - In routes: `req.user` is `UserDocument | undefined`
 - In @terreno/api callbacks: cast with `const user = u as unknown as UserDocument`
-- Every Mongoose schema field must have a `description` property (flows to OpenAPI spec)
 
 ### @terreno/ui
 
