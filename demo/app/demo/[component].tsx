@@ -5,9 +5,6 @@ import {
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
-
-export const generateStaticParams = () =>
-  DemoConfig.map((c) => ({component: c.name}));
 import {
   Badge,
   Box,
@@ -29,6 +26,8 @@ import startCase from "lodash/startCase";
 import type React from "react";
 import {type FC, useEffect, useState} from "react";
 import MarkdownView from "react-native-markdown-display";
+
+export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
 
 const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
   // TODO: setup these widths for mobile too.
