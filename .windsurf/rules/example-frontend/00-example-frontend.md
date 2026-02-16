@@ -9,11 +9,22 @@ bun run start            # Start Expo dev server (port 8082)
 bun run web              # Start web version
 bun run ios              # Start iOS simulator
 bun run android          # Start Android emulator
+bun run export           # Export static web build to dist/
 bun run sdk              # Generate API SDK from backend OpenAPI spec
 bun run test             # Run tests
 bun run lint             # Lint code
 bun run lint:fix         # Fix lint issues
 ```
+
+## Deployment
+
+Deployed to Google Cloud Storage with Cloud CDN via `frontend-example-deploy.yml` workflow.
+
+- **Production**: Deploys to `flourish-terreno-terreno-frontend-example` bucket on master push (when example-frontend/, ui/, or rtk/ changes)
+- **Preview**: Deploys to `_previews/pr-{number}/` on pull requests with backend URL `https://pr-{N}---terreno-backend-example-7knxlrnpqq-uc.a.run.app`, cleanup on PR close via `preview-cleanup.yml`
+- **CDN**: Backend bucket `terreno-frontend-example-backend` with URL map, HTTP proxy, and global static IP
+
+Production uses long-cache headers for assets (1 year immutable) and no-cache for index.html. Preview deploys use no-cache for all files, set `expo.experiments.baseUrl` for subpath routing, and upload bare route objects for SPA routing support.
 
 ## Architecture
 

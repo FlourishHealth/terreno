@@ -330,6 +330,30 @@ GitHub Actions workflows that use secrets or environment variables must validate
     fi
 ```
 
+### Deployment Infrastructure
+
+Demo and example-frontend apps deploy to Google Cloud Storage with Cloud CDN for production and PR preview environments.
+
+#### GCS Buckets and CDN Configuration
+
+- **demo**: `flourish-terreno-terreno-demo` bucket → `terreno-demo-backend` backend bucket (CDN enabled)
+- **example-frontend**: `flourish-terreno-terreno-frontend-example` bucket → `terreno-frontend-example-backend` backend bucket (CDN enabled)
+
+Setup script: `scripts/setup-gcs-hosting.sh` creates buckets, CDN backend buckets, URL maps, HTTP proxies, forwarding rules, and static IPs.
+
+#### Deployment Workflows
+
+- `demo-deploy.yml`: Builds and deploys demo app (triggers on demo/ or ui/ changes)
+- `frontend-example-deploy.yml`: Builds and deploys example-frontend app (triggers on example-frontend/, ui/, or rtk/ changes)
+- `preview-cleanup.yml`: Deletes preview files from `_previews/pr-{number}/` when PRs close
+
+Production deploys: sync assets with long cache, upload index.html with no-cache, invalidate CDN cache.
+PR preview deploys: deploy to `_previews/pr-{number}/` subfolder with no-cache headers, upload bare route objects for SPA routing.
+
+#### Required Secrets
+
+- `GCP_SA_KEY`: Service account key JSON with `roles/storage.objectAdmin` and CDN invalidation permissions
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.

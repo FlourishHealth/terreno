@@ -9,10 +9,21 @@ bun run start            # Start Expo dev server (port 8085)
 bun run web              # Start web version
 bun run ios              # Start iOS simulator
 bun run android          # Start Android emulator
+bun run export           # Export static web build to dist/
 bun run compile          # Type check
 bun run lint             # Lint code
 bun run lint:fix         # Fix lint issues
 ```
+
+## Deployment
+
+Deployed to Google Cloud Storage with Cloud CDN via `demo-deploy.yml` workflow.
+
+- **Production**: Deploys to `flourish-terreno-terreno-demo` bucket on master push (when demo/ or ui/ changes)
+- **Preview**: Deploys to `_previews/pr-{number}/` on pull requests, cleanup on PR close via `preview-cleanup.yml`
+- **CDN**: Backend bucket `terreno-demo-backend` with URL map, HTTP proxy, and global static IP
+
+Production uses long-cache headers for assets (1 year immutable) and no-cache for index.html. Preview deploys use no-cache for all files and upload bare route objects for SPA routing support.
 
 ## Architecture
 
