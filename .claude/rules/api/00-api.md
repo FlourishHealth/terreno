@@ -30,6 +30,7 @@ src/
   expressServer.ts       # setupServer and middleware stack
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
+  openApiValidator.ts    # AJV-based request/response validation
   logger.ts              # Winston-based logging
   plugins.ts             # Mongoose schema plugins
   populate.ts            # Population and OpenAPI schema generation
@@ -99,6 +100,15 @@ modelRouter(Model, {
   // OpenAPI
   openApiOverwrite: {get: {...}, list: {...}},
   openApiExtraModelProperties: {...},
+
+  // Request Validation (opt-in, disabled by default)
+  validation: true,  // Enable for create and update operations
+  // OR granular:
+  validation: {
+    validateCreate: true,   // Validate POST request bodies
+    validateUpdate: false,  // Skip PATCH validation
+    onError: (errors, req) => {...},  // Custom error handler
+  },
 });
 ```
 
@@ -176,7 +186,112 @@ router.get("/stats/:id", [
 }));
 ```
 
-Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
+Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`, `withValidation`.
+
+### Builder with Validation
+
+```typescript
+createOpenApiBuilder(options)
+  .withRequestBody<{name: string}>({name: {type: "string", required: true}})
+  .withValidation()  // Enables AJV validation for this route
+  .build();
+```
+
+Use `buildWithSchemas()` for access to schemas:
+
+```typescript
+const {middleware, bodySchema} = createOpenApiBuilder(options)
+  .withRequestBody<{name: string}>({name: {type: "string"}})
+  .buildWithSchemas();
+
+router.post("/users", middleware, asyncHandler(
+  async (req, res) => {...},
+  {bodySchema, validate: true}
+));
+```
+
+## OpenAPI Request Validation
+
+AJV-based runtime validation of requests against OpenAPI schemas. Opt-in and disabled by default.
+
+### Global Configuration
+
+```typescript
+import {configureOpenApiValidator} from "@terreno/api";
+
+configureOpenApiValidator({
+  validateRequests: process.env.NODE_ENV !== "production",
+  coerceTypes: true,           // Auto-coerce "123" → 123 (default: true)
+  removeAdditional: false,     // Strip extra properties (default: false)
+  logValidationErrors: true,   // Log errors in dev (default: true in dev)
+  onValidationError: (errors, req) => {...},  // Custom handler
+});
+```
+
+### Standalone Middleware
+
+```typescript
+import {validateRequestBody, validateQueryParams, createValidator} from "@terreno/api";
+
+// Validate request body
+router.post("/users", [validateRequestBody({
+  name: {type: "string", required: true},
+  email: {type: "string", format: "email"},
+})], handler);
+
+// Validate query params
+router.get("/search", [validateQueryParams({
+  q: {type: "string", required: true},
+  limit: {type: "number"},
+})], handler);
+
+// Combined body + query validation
+router.post("/search", [createValidator({
+  body: {query: {type: "string", required: true}},
+  query: {limit: {type: "number"}},
+})], handler);
+```
+
+### Mongoose Model Validation
+
+```typescript
+import {validateModelRequestBody, createModelValidators} from "@terreno/api";
+
+// Validate body against model schema
+router.post("/users", [validateModelRequestBody(User)], handler);
+
+// Separate create/update validators
+const validators = createModelValidators(User, {
+  validateCreate: true,
+  validateUpdate: true,
+});
+router.post("/users", [validators.create], handler);
+```
+
+### asyncHandler Validation
+
+```typescript
+asyncHandler(async (req, res) => {...}, {
+  bodySchema: {name: {type: "string", required: true}},
+  querySchema: {page: {type: "number"}},
+  validate: true,  // Override global setting
+});
+```
+
+### Key Functions
+
+| Function | Description |
+|----------|-------------|
+| `configureOpenApiValidator(config)` | Set global validation config |
+| `getOpenApiValidatorConfig()` | Get current config |
+| `resetOpenApiValidatorConfig()` | Reset to defaults (testing) |
+| `validateRequestBody(schema)` | Body validator middleware |
+| `validateQueryParams(schema)` | Query params validator middleware |
+| `createValidator(options)` | Combined validator middleware |
+| `validateResponseData(data, schema)` | Response validation (testing) |
+| `getSchemaFromModel(model)` | Extract OpenAPI schema from Mongoose model |
+| `validateModelRequestBody(model)` | Model-based body validation |
+| `createModelValidators(model)` | Create create/update validators |
 
 ## Error Handling
 
