@@ -101,6 +101,12 @@ Documentation‑as‑Code, transparency, single source of truth, continuous impr
    - Update documentation based on user feedback in issues and discussions
    - mastertain and improve documentation toolchain and automation
 
+7. **Finalize Changes**
+   
+   - After making all documentation changes, run `bun rules` to regenerate AI assistant rule files
+   - This ensures AGENTS.md, .cursor/rules/, .github/copilot-instructions.md, and other generated files stay synchronized with documentation changes
+   - Verify the regenerated files are correct before creating the PR
+
 ### Output Requirements
 
 - **Create Draft Pull Requests**: When documentation needs updates, create focused draft pull requests with clear descriptions
