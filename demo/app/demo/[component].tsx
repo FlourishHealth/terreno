@@ -5,6 +5,9 @@ import {
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
+
+export const generateStaticParams = () =>
+  DemoConfig.map((c) => ({component: c.name}));
 import {
   Badge,
   Box,

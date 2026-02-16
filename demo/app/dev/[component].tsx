@@ -1,5 +1,8 @@
 import {ErrorBoundary} from "@components";
 import {DemoConfig} from "@config";
+
+export const generateStaticParams = () =>
+  DemoConfig.map((c) => ({component: c.name}));
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
 import {View} from "react-native";
