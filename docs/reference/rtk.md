@@ -348,9 +348,51 @@ if (IsWeb) {
 - **WebSocket:** Uses native WebSocket API on both platforms
 - **SSR safety:** Web code checks `typeof window !== "undefined"` before browser APIs
 
+## Environment Variables
+
+Configuration for frontend apps using @terreno/rtk:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `EXPO_PUBLIC_API_URL` | No | Auto-detected | Backend API base URL (production/staging deployments) |
+| `NODE_ENV` | No | `development` | Environment: `development`, `production`, `test` |
+
+**Base URL resolution priority:**
+
+1. `Constants.expoConfig?.extra?.BASE_URL` (from `app.json` `extra` field)
+2. `process.env.EXPO_PUBLIC_API_URL` (for web development)
+3. `Constants.expoConfig?.hostUri` + `:3000` (for Expo dev server - simulator/device)
+4. `http://localhost:3000` (fallback)
+
+**Example `app.json` configuration:**
+
+``````json
+{
+  "expo": {
+    "extra": {
+      "BASE_URL": "https://api.example.com",
+      "AUTH_DEBUG": true,
+      "WEBSOCKETS_DEBUG": false
+    }
+  }
+}
+``````
+
+**Debug flags (via `app.json` `extra` field):**
+
+- `AUTH_DEBUG` — Enable verbose auth logging (token refresh, login/logout)
+- `WEBSOCKETS_DEBUG` — Enable WebSocket connection/disconnection logs
+
+**Example `.env` for web development:**
+
+``````env
+EXPO_PUBLIC_API_URL=http://localhost:4000
+``````
+
 ## Related Documentation
 
 - [Authentication Architecture](../explanation/authentication.md) — Deep-dive into JWT + Passport system
+- [WebSocket Integration How-To](../how-to/websocket-integration.md) — Real-time connection setup
 - [Add GitHub OAuth](../how-to/add-github-oauth.md) — Step-by-step OAuth setup guide
 - [@terreno/api Reference](./api.md) — Backend API framework
 - [@terreno/ui Reference](./ui.md) — React Native components

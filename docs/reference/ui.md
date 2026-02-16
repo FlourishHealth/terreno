@@ -312,4 +312,30 @@ const buttonStyles = toggle(isPressed, pressedStyles, defaultStyles);
 
 **Note:** Most use cases are better served by Box props (`padding`, `color`, etc.).
 
+## Environment Variables
+
+@terreno/ui components do not require environment variables. All configuration is done at runtime via:
+
+- **TerrenoProvider props** — Theme customization, error handlers, base URL
+- **Theme hooks** — `useTheme()`, `setTheme()`, `setPrimitives()`
+- **Component props** — Direct prop overrides for individual components
+
+**Example configuration:**
+
+``````typescript
+import {TerrenoProvider} from "@terreno/ui";
+
+<TerrenoProvider
+  baseUrl="https://api.example.com"
+  theme={{
+    surface: {primary: "secondary500"},
+  }}
+  onError={(error) => console.error(error)}
+>
+  {children}
+</TerrenoProvider>
+``````
+
+## Related Documentation
+
 See the [ui package source](../../ui/src/) and [.cursor/rules/ui/](../../.cursor/rules/ui/) for props and conventions.
