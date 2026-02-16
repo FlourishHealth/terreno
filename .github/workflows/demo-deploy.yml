@@ -161,19 +161,9 @@ jobs:
       - name: Deploy preview to GCS
         run: |
           PREVIEW_PATH="_previews/pr-${{ github.event.pull_request.number }}"
-
-          # Sync non-HTML assets with aggressive caching (hashed filenames)
-          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-            rsync -r -d -x '.*\.html$' \
+          gsutil -m -h "Cache-Control:no-cache" \
+            rsync -r -d \
             demo/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
-
-          # Upload all HTML files with no-cache so users always get the
-          # latest index.html pointing to current asset hashes
-          find demo/dist -name '*.html' ! -name '*\[*' | while read -r f; do
-            rel="${f#demo/dist/}"
-            gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
-              cp "$f" "gs://$BUCKET/$PREVIEW_PATH/$rel"
-          done
 
           # Upload bare objects for SPA routing on previews. CDN's notFoundPage
           # serves the root index.html, not the preview's, so bare uploads are
@@ -184,7 +174,7 @@ jobs:
 
           # Root index.html → bare preview path object
           cp demo/dist/index.html "$BARE_DIR/pr-${{ github.event.pull_request.number }}"
-          gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
+          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
             cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
           echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
 
@@ -205,7 +195,7 @@ jobs:
             else
               GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
             fi
-            gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" -h "Content-Type:text/html" \
+            gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
               cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
             echo "Uploaded bare route: $PREVIEW_PATH/$bare"
           done
