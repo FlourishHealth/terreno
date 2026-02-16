@@ -3,7 +3,7 @@
  *
  * @packageDocumentation
  */
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
 import mongoose, {type Document, type Model} from "mongoose";

@@ -1,0 +1,1647 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Page renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Page content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with title 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Page Title",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "heading-bold",
+                              "fontSize": 16,
+                              "textAlign": "center",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flex": undefined,
+                          "flexDirection": "column",
+                          "flexGrow": 1,
+                          "flexShrink": 1,
+                          "justifyContent": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flex": undefined,
+                      "flexDirection": "row",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with back button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 0,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "paddingBottom": 12,
+                          "paddingTop": 12,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Page",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "heading-bold",
+                              "fontSize": 16,
+                              "textAlign": "center",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flex": undefined,
+                          "flexDirection": "column",
+                          "flexGrow": 1,
+                          "flexShrink": 1,
+                          "justifyContent": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flex": undefined,
+                      "flexDirection": "row",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with close button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 0,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "paddingBottom": 12,
+                          "paddingTop": 12,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Page",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "heading-bold",
+                              "fontSize": 16,
+                              "textAlign": "center",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flex": undefined,
+                          "flexDirection": "column",
+                          "flexGrow": 1,
+                          "flexShrink": 1,
+                          "justifyContent": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flex": undefined,
+                      "flexDirection": "row",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with right button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Page",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "heading-bold",
+                              "fontSize": 16,
+                              "textAlign": "center",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "display": "flex",
+                          "flex": undefined,
+                          "flexDirection": "column",
+                          "flexGrow": 1,
+                          "flexShrink": 1,
+                          "justifyContent": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Save",
+                                      ],
+                                      "props": {
+                                        "style": {
+                                          "color": "#353535",
+                                          "fontSize": 16,
+                                          "fontWeight": "700",
+                                        },
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "flexDirection": "row",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "accessibilityHint": "Press to perform action",
+                            "aria-label": "Save",
+                            "aria-role": "button",
+                            "disabled": undefined,
+                            "onPress": [Function: debounced],
+                            "style": {
+                              "alignItems": "center",
+                              "alignSelf": "flex-start",
+                              "backgroundColor": "#B6CDD5",
+                              "borderColor": undefined,
+                              "borderRadius": 360,
+                              "borderWidth": undefined,
+                              "flexDirection": "column",
+                              "justifyContent": "center",
+                              "paddingHorizontal": 20,
+                              "paddingVertical": 8,
+                              "width": "auto",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Pressable",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "alignItems": "center",
+                          "flex": 0,
+                          "flexDirection": "row",
+                          "justifyContent": "center",
+                          "paddingBottom": 12,
+                          "paddingTop": 12,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flex": undefined,
+                      "flexDirection": "row",
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders loading state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with footer 1`] = `
+[
+  {
+    "$$typeof": Symbol(react.test.json),
+    "children": [
+      {
+        "$$typeof": Symbol(react.test.json),
+        "children": [
+          {
+            "$$typeof": Symbol(react.test.json),
+            "children": [
+              {
+                "$$typeof": Symbol(react.test.json),
+                "children": [
+                  {
+                    "$$typeof": Symbol(react.test.json),
+                    "children": [
+                      {
+                        "$$typeof": Symbol(react.test.json),
+                        "children": [
+                          "Content",
+                        ],
+                        "props": {
+                          "numberOfLines": 0,
+                          "selectable": undefined,
+                          "style": {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text-regular",
+                            "fontSize": 14,
+                            "textAlign": "left",
+                          },
+                          "testID": undefined,
+                        },
+                        "type": "Text",
+                      },
+                    ],
+                    "props": {},
+                    "type": "View",
+                  },
+                ],
+                "props": {
+                  "onPointerEnter": [Function: AsyncFunction],
+                  "onPointerLeave": [Function: AsyncFunction],
+                  "style": {
+                    "alignSelf": "center",
+                    "avoidKeyboard": true,
+                    "backgroundColor": "#FFFFFF",
+                    "display": "flex",
+                    "flex": undefined,
+                    "flexDirection": "column",
+                    "flexGrow": 1,
+                    "flexShrink": 1,
+                    "height": "100%",
+                    "keyboardOffset": undefined,
+                    "maxWidth": 800,
+                    "padding": 8,
+                    "scroll": true,
+                    "width": "100%",
+                  },
+                  "testID": undefined,
+                },
+                "type": "View",
+              },
+            ],
+            "props": {
+              "contentContainerStyle": {
+                "alignContent": undefined,
+                "alignItems": undefined,
+                "justifyContent": undefined,
+              },
+              "horizontal": false,
+              "keyboardShouldPersistTaps": "handled",
+              "nestedScrollEnabled": true,
+              "onScroll": [Function],
+              "ref": {
+                "current": null,
+              },
+              "scrollEventThrottle": 50,
+              "style": {
+                "alignSelf": "center",
+                "avoidKeyboard": true,
+                "backgroundColor": "#FFFFFF",
+                "display": "flex",
+                "flex": undefined,
+                "flexDirection": "column",
+                "flexGrow": 1,
+                "flexShrink": 1,
+                "height": "100%",
+                "keyboardOffset": undefined,
+                "maxWidth": 800,
+                "padding": 8,
+                "scroll": true,
+                "width": "100%",
+              },
+            },
+            "type": "ScrollView",
+          },
+        ],
+        "props": {
+          "style": {
+            "display": "flex",
+            "flex": 1,
+          },
+        },
+        "type": "SafeAreaView",
+      },
+    ],
+    "props": {
+      "behavior": "padding",
+      "keyboardVerticalOffset": undefined,
+      "style": {
+        "display": "flex",
+        "flex": 1,
+      },
+    },
+    "type": "KeyboardAvoidingView",
+  },
+  {
+    "$$typeof": Symbol(react.test.json),
+    "children": [
+      {
+        "$$typeof": Symbol(react.test.json),
+        "children": [
+          {
+            "$$typeof": Symbol(react.test.json),
+            "children": [
+              "Footer content",
+            ],
+            "props": {
+              "numberOfLines": 0,
+              "selectable": undefined,
+              "style": {
+                "color": "#1C1C1C",
+                "fontFamily": "text-regular",
+                "fontSize": 14,
+                "textAlign": "left",
+              },
+              "testID": undefined,
+            },
+            "type": "Text",
+          },
+        ],
+        "props": {},
+        "type": "View",
+      },
+    ],
+    "props": {
+      "onPointerEnter": [Function: AsyncFunction],
+      "onPointerLeave": [Function: AsyncFunction],
+      "style": {
+        "alignSelf": "center",
+        "backgroundColor": "#D9D9D9",
+        "display": "flex",
+        "flex": undefined,
+        "flexDirection": "column",
+        "flexShrink": 1,
+        "marginBottom": 48,
+        "maxWidth": 800,
+        "paddingBottom": 8,
+        "paddingLeft": 32,
+        "paddingRight": 32,
+        "paddingTop": 8,
+        "width": "100%",
+      },
+      "testID": undefined,
+    },
+    "type": "View",
+  },
+]
+`;
+
+exports[`Page renders with custom padding 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 24,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 24,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with custom color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": undefined,
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 800,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": undefined,
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with scroll disabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 800,
+              "padding": 8,
+              "scroll": false,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Page renders with custom maxWidth 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignSelf": "center",
+                  "avoidKeyboard": true,
+                  "backgroundColor": "#FFFFFF",
+                  "display": "flex",
+                  "flex": undefined,
+                  "flexDirection": "column",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "height": "100%",
+                  "keyboardOffset": undefined,
+                  "maxWidth": 600,
+                  "padding": 8,
+                  "scroll": true,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "contentContainerStyle": {
+              "alignContent": undefined,
+              "alignItems": undefined,
+              "justifyContent": undefined,
+            },
+            "horizontal": false,
+            "keyboardShouldPersistTaps": "handled",
+            "nestedScrollEnabled": true,
+            "onScroll": [Function],
+            "ref": {
+              "current": null,
+            },
+            "scrollEventThrottle": 50,
+            "style": {
+              "alignSelf": "center",
+              "avoidKeyboard": true,
+              "backgroundColor": "#FFFFFF",
+              "display": "flex",
+              "flex": undefined,
+              "flexDirection": "column",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "height": "100%",
+              "keyboardOffset": undefined,
+              "maxWidth": 600,
+              "padding": 8,
+              "scroll": true,
+              "width": "100%",
+            },
+          },
+          "type": "ScrollView",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;

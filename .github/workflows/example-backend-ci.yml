@@ -1,0 +1,62 @@
+name: Example Backend CI
+
+on:
+  push:
+    paths:
+      - "example-backend/**"
+      - ".github/workflows/example-backend-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Example Backend Lint, Build, and Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongodb-version: ["6.0"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Build API first since example-backend depends on it
+      - name: Build API dependency
+        run: bun run compile
+        working-directory: api
+
+      - name: Lint
+        run: bun run lint
+        working-directory: example-backend
+
+      - name: Build
+        run: bun run compile
+        working-directory: example-backend
+
+      - name: Test
+        run: bun run test
+        working-directory: example-backend
+        env:
+          CI: true
+

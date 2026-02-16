@@ -54,10 +54,10 @@ export interface Food {
 }
 
 const userSchema = new Schema<User>({
-  admin: {default: false, type: Boolean},
-  age: Number,
-  name: String,
-  username: String,
+  admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+  age: {description: "The user's age", type: Number},
+  name: {description: "The user's display name", type: String},
+  username: {description: "The user's username", type: String},
 });
 
 userSchema.plugin(passportLocalMongoose as any, {
@@ -80,55 +80,65 @@ userSchema.methods.postCreate = async function (body: any) {
 export const UserModel = model<User>("User", userSchema);
 
 const superUserSchema = new Schema<SuperUser>({
-  superTitle: {required: true, type: String},
+  superTitle: {description: "The super user's title", required: true, type: String},
 });
 export const SuperUserModel = UserModel.discriminator("SuperUser", superUserSchema);
 
 const staffUserSchema = new Schema<StaffUser>({
-  department: {required: true, type: String},
+  department: {
+    description: "The department the staff member belongs to",
+    required: true,
+    type: String,
+  },
 });
 export const StaffUserModel = UserModel.discriminator("Staff", staffUserSchema);
 
 const foodCategorySchema = new Schema<FoodCategory>(
   {
-    name: String,
-    show: Boolean,
+    name: {description: "The name of the food category", type: String},
+    show: {description: "Whether this category is visible", type: Boolean},
   },
   {timestamps: {createdAt: "created", updatedAt: "updated"}}
 );
 
 const likesSchema = new Schema<any>({
-  likes: Boolean,
-  userId: {ref: "User", type: "ObjectId"},
+  likes: {description: "Whether the user liked the item", type: Boolean},
+  userId: {description: "The user who liked the item", ref: "User", type: "ObjectId"},
 });
 
 const foodSchema = new Schema<Food>(
   {
-    calories: Number,
-    categories: [foodCategorySchema],
-    created: Date,
+    calories: {description: "Number of calories in the food", type: Number},
+    categories: {description: "Categories this food belongs to", type: [foodCategorySchema]},
+    created: {description: "When this food was created", type: Date},
     eatenBy: [
       {
+        description: "Users who have eaten this food",
         ref: "User",
         required: true,
         type: Schema.Types.ObjectId,
       },
     ],
-    expiration: DateOnly,
-    hidden: {default: false, type: Boolean},
+    expiration: {description: "Expiration date of the food", type: DateOnly as any},
+    hidden: {
+      default: false,
+      description: "Whether this food is hidden from listings",
+      type: Boolean,
+    },
     lastEatenWith: {
+      description: "Map of user names to dates they last ate this food with",
       of: Date,
       type: Map,
     },
-    likesIds: {required: true, type: [likesSchema]},
-    name: String,
-    ownerId: {ref: "User", type: "ObjectId"},
+    likesIds: {description: "User likes for this food", required: true, type: [likesSchema]},
+    name: {description: "The name of the food", type: String},
+    ownerId: {description: "The user who owns this food entry", ref: "User", type: "ObjectId"},
     source: {
-      dateAdded: String,
-      href: String,
-      name: String,
+      dateAdded: {description: "When the source was added", type: String},
+      href: {description: "URL of the source", type: String},
+      name: {description: "Name of the source", type: String},
     },
-    tags: [String],
+    tags: {description: "Tags associated with this food", type: [String]},
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
@@ -145,8 +155,8 @@ interface RequiredField {
 }
 
 const requiredSchema = new Schema<RequiredField>({
-  about: String,
-  name: {required: true, type: String},
+  about: {description: "Information about the item", type: String},
+  name: {description: "The name of the item", required: true, type: String},
 });
 export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 

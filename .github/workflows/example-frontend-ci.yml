@@ -1,0 +1,54 @@
+name: Example Frontend CI
+
+on:
+  push:
+    paths:
+      - "example-frontend/**"
+      - ".github/workflows/example-frontend-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Example Frontend Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        id: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install root dependencies (workspace)
+        run: bun install --frozen-lockfile
+
+      # Build dependencies first since example-frontend depends on them
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Lint
+        run: bun run lint
+        working-directory: example-frontend
+
+      - name: Test
+        run: bun run test
+        working-directory: example-frontend
+        env:
+          CI: true
+

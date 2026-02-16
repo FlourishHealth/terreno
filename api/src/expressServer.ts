@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import cron from "cron";
@@ -12,6 +12,7 @@ import qs from "qs";
 import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -168,6 +169,8 @@ interface InitializeRoutesOptions {
   logRequests?: boolean;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  /** GitHub OAuth configuration. When provided, enables GitHub authentication. */
+  githubAuth?: GitHubAuthOptions;
 }
 
 function initializeRoutes(
@@ -241,6 +244,13 @@ function initializeRoutes(
   }
 
   addMeRoutes(app, UserModel as any, options?.authOptions);
+
+  // Set up GitHub OAuth if configured
+  if (options.githubAuth) {
+    setupGitHubAuth(app, UserModel as any, options.githubAuth);
+    addGitHubAuthRoutes(app, UserModel as any, options.githubAuth, options.authOptions);
+  }
+
   addRoutes(app, {openApi: oapi});
 
   Sentry.setupExpressErrorHandler(app);
@@ -264,6 +274,11 @@ export interface SetupServerOptions {
   addRoutes: AddRoutes;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  /**
+   * GitHub OAuth configuration. When provided, enables GitHub authentication.
+   * Requires the user schema to have GitHub fields (use githubUserPlugin).
+   */
+  githubAuth?: GitHubAuthOptions;
   skipListen?: boolean;
   corsOrigin?:
     | string
@@ -279,7 +294,7 @@ export interface SetupServerOptions {
       ) => void);
   addMiddleware?: AddRoutes;
   ignoreTraces?: string[];
-  sentryOptions?: Sentry.NodeOptions;
+  sentryOptions?: Sentry.BunOptions;
 }
 
 // Sets up the routes and returns a function to launch the API.
@@ -295,6 +310,7 @@ export function setupServer(options: SetupServerOptions) {
       addMiddleware: options.addMiddleware,
       authOptions: options.authOptions,
       corsOrigin: options.corsOrigin,
+      githubAuth: options.githubAuth,
     });
   } catch (error: any) {
     logger.error(`Error initializing routes: ${error.stack}`);

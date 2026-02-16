@@ -16,8 +16,8 @@ A monorepo containing shared packages for building full-stack applications.
 
 ### Example/Demo Apps (not published)
 
-- **backend-example/** - Example backend application using `@terreno/api`
-- **frontend-example/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
+- **example-backend/** - Example backend application using `@terreno/api`
+- **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
 - **demo/** - Demo app for showcasing and testing UI components
 
 ## Development
@@ -131,4 +131,87 @@ If no previous tag exists (first release), all packages are published.
 The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
+
+## MCP Server
+
+Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
+
+### Adding the MCP Server to Claude Code
+
+Add the following to your Claude Code MCP settings file (`~/.claude/claude_desktop_config.json` or `.claude/settings.json` in your project):
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+### Adding the MCP Server to Claude Desktop
+
+Add the following to your Claude Desktop configuration file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+### Adding the MCP Server to Cursor
+
+Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your project or global settings):
+
+```json
+{
+  "mcpServers": {
+    "terreno": {
+      "type": "sse",
+      "url": "https://mcp.terreno.flourish.health"
+    }
+  }
+}
+```
+
+After adding the configuration, restart your AI assistant to connect to the MCP server.
+
+## AI Rules Management
+
+This project uses [rulesync](https://github.com/dyoshikawa/rulesync) to maintain consistent AI assistant rules across multiple tools (Cursor, Windsurf, Claude Code, GitHub Copilot).
+
+### How It Works
+
+1. **Single source of truth**: Rules are defined in `.rulesync/rules/` as markdown files with YAML frontmatter
+2. **Generated files**: Running `bun run rules` generates tool-specific files:
+   - `.cursorrules` - Cursor AI rules
+   - `.windsurfrules` - Windsurf AI rules
+   - `CLAUDE.md` - Claude Code instructions
+   - `.github/copilot-instructions.md` - GitHub Copilot instructions
+3. **Per-package rules**: Each package has its own rules in addition to root-level rules
+
+### Commands
+
+```bash
+bun run rules        # Generate all rule files from source
+bun run rules:check  # Verify generated files are up to date (used in CI)
+```
+
+### Updating Rules
+
+1. Edit the source files in `.rulesync/rules/`
+2. Run `bun run rules` to regenerate all tool-specific files
+3. Commit both the source and generated files
+
+The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules stay in sync with source files.
 

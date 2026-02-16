@@ -46,11 +46,24 @@ const eventSchema = new Schema({
 Assuming we have a model:
 
     const foodSchema = new Schema<Food>({
-      name: String,
-      hidden: {type: Boolean, default: false},
-      ownerId: {type: "ObjectId", ref: "User"},
+      name: {
+        description: "Name of the food item",
+        type: String,
+      },
+      hidden: {
+        description: "Whether the food is hidden from the list",
+        type: Boolean,
+        default: false,
+      },
+      ownerId: {
+        description: "The user who added this food",
+        type: "ObjectId",
+        ref: "User",
+      },
     });
     export const FoodModel = model("Food", foodSchema);
+
+**Important:** Every field must include a `description` property. This requirement ensures that the auto-generated OpenAPI specification and SDK have meaningful documentation for all fields.
 
 We can expose this model as an API like this:
 
@@ -102,11 +115,10 @@ You can create your own permissions functions. Check permissions.ts for some exa
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.
 
-```
-// Include dotenv here at the start if you're including configuration from dot files.
-import "dotenv/config";
+> **Note:** Bun automatically loads `.env` files before your code runs, so there's no need for `dotenv`. Just place a `.env` file in your project root and `process.env` will have your variables available immediately. See [Bun .env docs](https://bun.sh/docs/runtime/env).
 
-import * as Sentry from "@sentry/node";
+```
+import * as Sentry from "@sentry/bun";
 import {nodeProfilingIntegration} from "@sentry/profiling-node";
 
 if (process.env.NODE_ENV === "production" && !process.env.SENTRY_DSN) {
