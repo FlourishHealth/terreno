@@ -10,6 +10,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 
 ## Development
 
@@ -125,6 +126,7 @@ bun run frontend:web
 REST API framework providing:
 
 - **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
+- **Authentication**: JWT + GitHub OAuth with multiple strategies
 - **Permissions**: `IsAuthenticated`, `IsOwner`, `IsAdmin`, `IsAuthenticatedOrReadOnly`
 - **Query Filters**: `OwnerQueryFilter` for filtering list queries by owner
 - **setupServer**: Express server setup with auth, OpenAPI, and middleware
@@ -142,6 +144,7 @@ import {
   logger,
   asyncHandler,
   authenticateMiddleware,
+  githubUserPlugin,
 } from "@terreno/api";
 ```
 
