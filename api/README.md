@@ -37,7 +37,7 @@ Then you can use it in your schemas:
 
 ```typescript
 const eventSchema = new Schema({
-  eventDate: {type: Schema.Types.DateOnly},
+  eventDate: {type: Schema.Types.DateOnly, description: "The date of the event (date only, no time)"},
 });
 ```
 
@@ -46,9 +46,9 @@ const eventSchema = new Schema({
 Assuming we have a model:
 
     const foodSchema = new Schema<Food>({
-      name: String,
-      hidden: {type: Boolean, default: false},
-      ownerId: {type: "ObjectId", ref: "User"},
+      name: {type: String, description: "The name of the food item"},
+      hidden: {type: Boolean, default: false, description: "Whether the food is hidden from listings"},
+      ownerId: {type: "ObjectId", ref: "User", description: "The user who owns this food item"},
     });
     export const FoodModel = model("Food", foodSchema);
 
@@ -98,6 +98,17 @@ Now we can perform operations on the Food model in a standard REST way. We've al
     DELETE /foods/62c86d787c7e2db0bf286acd
 
 You can create your own permissions functions. Check permissions.ts for some examples of how to write them.
+
+## Model Conventions
+
+When defining Mongoose schemas, **always include a `description` field** for every property. These descriptions flow through to the OpenAPI specification via `mongoose-to-swagger`, making your generated API documentation more helpful.
+
+```typescript
+const schema = new Schema({
+  name: {type: String, required: true, description: "User's display name"},
+  email: {type: String, unique: true, description: "User's email address"},
+});
+```
 
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.
