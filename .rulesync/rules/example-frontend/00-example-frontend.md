@@ -8,6 +8,21 @@ globs: ["**/*"]
 
 Example Expo app demonstrating full-stack usage with @terreno/api backend, @terreno/rtk for state, and @terreno/ui for components. This is a **frontend-only** app — no Express, no Mongoose, no backend code.
 
+## Setup
+
+1. **Install dependencies**:
+   ```bash
+   bun install
+   ```
+
+2. **Configure environment** (optional for local development):
+   ```bash
+   cp .env.example .env
+   ```
+   The app works out-of-the-box with default settings (connects to `http://localhost:4000`).
+
+3. **Start the backend** (required - see example-backend README)
+
 ## Commands
 
 ```bash
@@ -128,6 +143,18 @@ const handleCreate = useCallback(async () => {
 - `(tabs)/` group for bottom tab navigation
 - Conditional routing based on auth state in root `_layout.tsx`
 - Tab icons use FontAwesome via `@expo/vector-icons`
+
+## Environment Variables
+
+The frontend uses minimal environment variables and auto-detects the backend URL:
+
+- `EXPO_PUBLIC_API_URL` (optional) — Backend API URL. If not set, auto-detects:
+  - Web: `http://localhost:4000`
+  - Simulator: Uses Expo hostUri with port 4000
+  - Physical device: Manual configuration required
+- `OPENAPI_URL` (optional) — OpenAPI spec URL for SDK generation (default: `http://localhost:4000/openapi.json`)
+
+See `.env.example` for template.
 
 ## Conventions
 

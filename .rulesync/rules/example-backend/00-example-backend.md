@@ -8,6 +8,34 @@ globs: ["**/*"]
 
 Example Express backend demonstrating @terreno/api usage with Mongoose models, permissions, and OpenAPI generation. This is a **backend-only** app — no React, no UI components, no frontend code.
 
+## Setup
+
+1. **Install dependencies**:
+   ```bash
+   bun install
+   ```
+
+2. **Configure environment**:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` and set required variables:
+   - `TOKEN_SECRET` - JWT signing secret
+   - `TOKEN_ISSUER` - JWT issuer claim
+   - `REFRESH_TOKEN_SECRET` - Refresh token secret
+   - `SESSION_SECRET` - Express session secret
+   - `MONGO_URI` - MongoDB connection string (default: `mongodb://localhost:27017/terreno-example`)
+
+3. **Start MongoDB** (if not already running):
+   ```bash
+   # Using Docker
+   docker run -d -p 27017:27017 --name mongodb mongo
+   
+   # Or install MongoDB locally
+   # macOS: brew install mongodb-community
+   # Ubuntu: sudo apt-get install mongodb
+   ```
+
 ## Commands
 
 ```bash
