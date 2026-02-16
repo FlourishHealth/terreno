@@ -4,4 +4,4 @@ Understanding-oriented documentation: concepts, architecture, and context.
 
 ## Contents
 
-- *(Add explanations as needed, e.g. architecture overview, auth flow, theming)*
+- [Authentication architecture](authentication.md) — How JWT, OAuth, and token refresh work
