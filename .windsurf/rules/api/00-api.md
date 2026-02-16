@@ -107,9 +107,11 @@ modelRouter(Model, {
 
 ## Authentication
 
-JWT + Passport-based auth with token refresh.
+JWT + Passport-based auth with multiple strategies: Email/Password, GitHub OAuth, and Anonymous.
 
-### Key Functions
+### Email/Password Authentication
+
+Key functions:
 
 - `setupAuth(app, userModel)` — Configures Passport (JWT, Local, Anonymous strategies)
 - `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`
@@ -118,8 +120,47 @@ JWT + Passport-based auth with token refresh.
 - `signupUser(userModel, email, password, body?)` — Register user
 - `generateTokens(user, authOptions?)` — Sign JWT tokens
 
+Endpoints:
+- `POST /auth/signup` — User registration
+- `POST /auth/login` — Authenticate with email/password
+- `POST /auth/refresh_token` — Refresh access token
+- `GET /auth/me` — Get current user profile
+- `PATCH /auth/me` — Update current user profile
+
+### GitHub OAuth Authentication
+
+Add GitHub OAuth login to your API:
+
+```typescript
+import {githubUserPlugin, setupServer} from "@terreno/api";
+
+// Add GitHub fields to user schema
+userSchema.plugin(githubUserPlugin);
+
+setupServer({
+  userModel: User,
+  githubAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    callbackURL: process.env.GITHUB_CALLBACK_URL!,
+  },
+});
+```
+
+Key exports:
+- `githubUserPlugin` — Adds GitHub fields to user schema (githubId, githubUsername, githubProfileUrl, githubAvatarUrl)
+- `setupGitHubAuth(app, userModel, options)` — Configures GitHub OAuth strategy
+- `addGitHubAuthRoutes(app, userModel, authOptions, githubOptions)` — Adds GitHub OAuth routes
+
+GitHub OAuth endpoints:
+- `GET /auth/github` — Initiates GitHub OAuth flow
+- `GET /auth/github/callback` — GitHub OAuth callback
+- `POST /auth/github/link` — Link GitHub to existing account (requires authentication)
+- `DELETE /auth/github/unlink` — Unlink GitHub from account (requires authentication)
+
 ### Environment Variables
 
+Email/Password:
 - `TOKEN_SECRET` — JWT signing secret (required)
 - `TOKEN_ISSUER` — JWT issuer claim (required)
 - `REFRESH_TOKEN_SECRET` — Refresh token secret (required)
@@ -127,6 +168,11 @@ JWT + Passport-based auth with token refresh.
 - `TOKEN_EXPIRES_IN` — Token TTL (default: 15m)
 - `REFRESH_TOKEN_EXPIRES_IN` — Refresh token TTL (default: 30d)
 - `SIGNUP_DISABLED` — Disable user registration
+
+GitHub OAuth (optional):
+- `GITHUB_CLIENT_ID` — GitHub OAuth app client ID
+- `GITHUB_CLIENT_SECRET` — GitHub OAuth app client secret
+- `GITHUB_CALLBACK_URL` — GitHub OAuth callback URL (e.g., https://yourapp.com/auth/github/callback)
 
 ## Permissions
 
