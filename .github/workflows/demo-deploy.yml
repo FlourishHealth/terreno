@@ -169,7 +169,7 @@ jobs:
 
           # Upload all HTML files with no-cache so users always get the
           # latest index.html pointing to current asset hashes
-          find demo/dist -name '*.html' | while read -r f; do
+          find demo/dist -name '*.html' ! -name '*\[*' | while read -r f; do
             rel="${f#demo/dist/}"
             gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
               cp "$f" "gs://$BUCKET/$PREVIEW_PATH/$rel"
