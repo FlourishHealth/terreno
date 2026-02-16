@@ -56,8 +56,9 @@ setupServer({
 - `TOKEN_ISSUER` — JWT issuer claim (required)
 - `REFRESH_TOKEN_SECRET` — Refresh token secret (required)
 - `SESSION_SECRET` — Express session secret (required)
-- `TOKEN_EXPIRES_IN` — Token expiration (default: 15m)
-- `REFRESH_TOKEN_EXPIRES_IN` — Refresh token expiration (default: 30d)
+- `TOKEN_EXPIRES_IN` — Token expiration (default: `15m`)
+- `REFRESH_TOKEN_EXPIRES_IN` — Refresh token expiration (default: `30d`)
+- `SIGNUP_DISABLED` — Set to `"true"` to disable user signup endpoint
 
 ### GitHub OAuth Authentication
 
@@ -544,6 +545,87 @@ modelRouter(Model, {
 modelRouter(Model, {
   responseHandler: (doc, method) => serialize(doc),
 });
+``````
+
+## Environment Variables
+
+Complete reference of environment variables used by @terreno/api:
+
+### Authentication
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `TOKEN_SECRET` | Yes | — | JWT signing secret (use long random string) |
+| `TOKEN_ISSUER` | Yes | — | JWT issuer claim (e.g., "your-app-name") |
+| `REFRESH_TOKEN_SECRET` | Yes | — | Refresh token secret (different from TOKEN_SECRET) |
+| `SESSION_SECRET` | Yes | — | Express session secret |
+| `TOKEN_EXPIRES_IN` | No | `15m` | Access token expiration (e.g., "15m", "1h") |
+| `REFRESH_TOKEN_EXPIRES_IN` | No | `30d` | Refresh token expiration (e.g., "7d", "30d") |
+| `SIGNUP_DISABLED` | No | — | Set to `"true"` to disable POST /auth/signup endpoint |
+
+### Server Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | No | `3000` | HTTP server port |
+| `NODE_ENV` | No | `development` | Environment: `development`, `production`, `test` |
+| `MONGO_URI` or `MONGO_CONNECTION` | Yes | — | MongoDB connection string |
+| `ENABLE_SWAGGER` | No | — | Set to `"true"` to enable Swagger UI at `/docs` |
+| `WEBSOCKET_PORT` | No | `PORT + 1` | Socket.io server port (if using WebSockets) |
+
+### Logging & Monitoring
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `USE_SENTRY_LOGGING` | No | — | Set to `"true"` to enable Sentry error tracking |
+| `SENTRY_DSN` | No | — | Sentry Data Source Name (required if USE_SENTRY_LOGGING=true) |
+| `SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Sentry trace sampling rate (0.0 to 1.0) |
+| `DISABLE_LOG_ALL_REQUESTS` | No | — | Set to `"true"` to disable request logging |
+| `SLOW_REQUEST_THRESHOLD_MS` | No | `3000` | Log warning for requests slower than this (milliseconds) |
+| `SLOW_DB_QUERY_THRESHOLD_MS` | No | `1000` | Log warning for database queries slower than this |
+
+### Webhooks & Notifications
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SLACK_WEBHOOKS` | No | — | JSON object mapping names to Slack webhook URLs: `{"default":"https://..."}` |
+| `GOOGLE_CHAT_WEBHOOKS` | No | — | JSON object mapping names to Google Chat webhook URLs |
+| `ZOOM_CHAT_WEBHOOKS` | No | — | JSON object mapping names to Zoom webhook URLs |
+| `WEBHOOK_SECRET` | No | — | Secret for validating incoming webhook signatures |
+
+### Google Cloud Platform (Optional)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `GCP_PROJECT` | No | — | Google Cloud project ID (for Cloud Tasks, etc.) |
+| `GCP_LOCATION` | No | — | GCP region (e.g., "us-central1") |
+| `GCP_SERVICE_ACCOUNT_EMAIL` | No | — | Service account email for authentication |
+| `GCP_TASKS_NOTIFICATIONS_QUEUE` | No | — | Cloud Tasks queue name for notifications |
+| `GCP_TASK_PROCESSOR_QUEUE` | No | — | Cloud Tasks queue name for background jobs |
+
+### Other
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `VALKEY_URL` | No | — | Valkey/Redis connection URL (for caching) |
+| `GEMINI_API_KEY` | No | — | Google Gemini API key (if using AI features) |
+
+**Example `.env` file:**
+
+``````env
+# Required
+TOKEN_SECRET=your-long-random-secret-here
+TOKEN_ISSUER=my-app
+REFRESH_TOKEN_SECRET=different-long-random-secret
+SESSION_SECRET=session-secret-here
+MONGO_URI=mongodb://localhost:27017/myapp
+
+# Optional
+NODE_ENV=development
+PORT=4000
+ENABLE_SWAGGER=true
+USE_SENTRY_LOGGING=true
+SENTRY_DSN=https://...@sentry.io/...
 ``````
 
 ## Learn more
