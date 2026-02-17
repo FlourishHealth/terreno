@@ -334,4 +334,40 @@ GitHub Actions workflows that use secrets or environment variables must validate
 
 ## Dependency Management
 
-Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+### Bun Catalogs
+
+Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) for version consistency across the monorepo. Shared dependency versions are defined in the root `package.json` under the `catalog` field. Workspace packages reference catalog versions with the `catalog:` prefix.
+
+**Benefits:**
+- Single source of truth for shared dependency versions
+- Consistent versions across all packages
+- Easier updates — change once, apply everywhere
+
+### Dependabot & Auto-Merge
+
+Dependabot monitors dependencies with different update schedules and grouping strategies:
+
+| Group | Packages | Schedule | Strategy |
+|-------|----------|----------|----------|
+| GitHub Actions | Workflow dependencies | Weekly | Individual PRs |
+| Root | Catalog & dev tools | Monthly | Grouped PR |
+| Backend | api, example-backend, mcp-server | Monthly | Grouped PR |
+| Frontend | ui, rtk, demo, example-frontend | Monthly | Grouped PR |
+
+**7-Day Cooldown:** Dependabot waits 7 days after a package version is published before creating a PR (except security updates which bypass the cooldown). This protects against compromised NPM packages, which are typically detected and removed within 24 hours.
+
+**Auto-Merge Workflow:** The `dependabot-auto-merge.yml` workflow automatically approves and merges Dependabot PRs once all CI checks pass. PRs only merge after all required status checks pass, ensuring safety through comprehensive testing.
+
+### Best Practices
+
+**Update the catalog when:**
+- Multiple packages need the same dependency update
+- Major version updates require coordinated changes
+- New shared dependencies are introduced
+
+**Update individual packages when:**
+- Package-specific dependencies (not in catalog)
+- Testing new versions before promoting to catalog
+- Overriding catalog versions for specific use cases (rare)
+
+For detailed information, see [Dependency Management Documentation](../docs/explanation/dependency-management.md).
