@@ -11,8 +11,8 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Coming Soon
 
-- Set up CI/CD pipelines
-- Configure Dependabot for your project
 - Add custom permissions
 - Implement file uploads
 - Configure email notifications
+- Customize AI workflows
+- Set up custom CI/CD pipelines
