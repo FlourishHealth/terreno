@@ -29,18 +29,53 @@ bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
 bun run test             # Run tests in api and ui
+bun run rules            # Generate rules from .rulesync/rules/ sources
+bun run rules:check      # Verify rules are in sync (CI check)
 ```
 
 ### Package-specific commands
 
 ```bash
-bun run api:test         # Test API package
-bun run ui:test          # Test UI package
-bun run demo:start       # Start demo app
-bun run frontend:web     # Start frontend example
-bun run backend:dev      # Start backend example
-bun run mcp:build        # Build MCP server
-bun run mcp:start        # Start MCP server
+# API package
+bun run api:compile      # Compile TypeScript
+bun run api:lint         # Lint code
+bun run api:test         # Run tests
+
+# UI package
+bun run ui:compile       # Compile TypeScript
+bun run ui:dev           # Watch mode
+bun run ui:lint          # Lint code
+bun run ui:test          # Run tests
+
+# RTK package
+bun run rtk:compile      # Compile TypeScript
+bun run rtk:dev          # Watch mode
+bun run rtk:lint         # Lint code
+bun run rtk:test         # Run tests
+
+# Demo app
+bun run demo:start       # Start Expo dev server (port 8085)
+bun run demo:web         # Start web version
+bun run demo:ios         # Start iOS simulator
+bun run demo:android     # Start Android emulator
+bun run demo:compile     # Type check
+bun run demo:lint        # Lint code
+
+# Example frontend
+bun run frontend:web     # Start web version
+bun run frontend:ios     # Start iOS simulator
+bun run frontend:android # Start Android emulator
+bun run frontend:lint    # Lint code
+
+# Example backend
+bun run backend:dev      # Start dev server with watch (port 4000)
+bun run backend:lint     # Lint code
+
+# MCP server
+bun run mcp:build        # Build the server
+bun run mcp:dev          # Development mode
+bun run mcp:start        # Start the server
+bun run mcp:lint         # Lint code
 ```
 
 ## How the Packages Work Together
