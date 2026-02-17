@@ -132,6 +132,52 @@ The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
 
+## GCP Static Site Hosting
+
+The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
+
+### GCP Project
+
+- **Project ID**: `flourish-terreno`
+- **Region**: `us-east1`
+
+### Buckets
+
+| App | Bucket | Backend Bucket (CDN) |
+|-----|--------|---------------------|
+| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
+| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
+
+### Initial Setup
+
+Run the setup script to create all GCS and CDN resources:
+
+```bash
+scripts/setup-gcs-hosting.sh
+```
+
+This creates:
+1. GCS buckets with public read access
+2. Static website config with SPA fallback (`index.html` served for 404s)
+3. Service account write access (prompts for the SA email)
+4. CDN backend buckets, URL maps, static IPs, HTTP proxies, and forwarding rules
+
+After running the script, point DNS records to the output IPs. To add HTTPS, follow the instructions printed at the end.
+
+### Required Secrets
+
+- `GCP_SA_KEY` - Service account key JSON with permissions for GCS and CDN cache invalidation
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `frontend-example-deploy.yml` | Push to master (example-frontend/ui/rtk changes) | Builds and deploys to production bucket |
+| `frontend-example-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `demo-deploy.yml` | Push to master (demo/ui changes) | Builds and deploys to production bucket |
+| `demo-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `preview-cleanup.yml` | PR closed | Deletes preview files from both buckets |
+
 ## MCP Server
 
 Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
