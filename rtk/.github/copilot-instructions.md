@@ -77,6 +77,13 @@ The `example-frontend/` and `example-backend/` directories serve as both documen
 ### Running the Full Stack
 
 ```bash
+# Setup (first time only)
+cd example-backend && cp .env.example .env  # Edit required variables
+cd ../example-frontend && cp .env.example .env  # Optional
+
+# Start MongoDB (if not running)
+docker run -d -p 27017:27017 --name mongodb mongo
+
 # Terminal 1: Start backend
 bun run backend:dev
 
