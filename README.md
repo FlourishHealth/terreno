@@ -14,7 +14,11 @@ A monorepo containing shared packages for building full-stack applications.
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
 
-### Example/Demo Apps (not published)
+### Deployed Services
+
+- **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
+
+### Example/Demo Apps
 
 - **example-backend/** - Example backend application using `@terreno/api`
 - **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
