@@ -15,6 +15,7 @@ bun run start            # Start Expo dev server (port 8082)
 bun run web              # Start web version
 bun run ios              # Start iOS simulator
 bun run android          # Start Android emulator
+bun run export           # Export for web deployment
 bun run sdk              # Generate API SDK from backend OpenAPI spec
 bun run test             # Run tests
 bun run lint             # Lint code

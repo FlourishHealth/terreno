@@ -15,6 +15,7 @@ bun run start            # Start Expo dev server (port 8085)
 bun run web              # Start web version
 bun run ios              # Start iOS simulator
 bun run android          # Start Android emulator
+bun run export           # Export for web deployment
 bun run compile          # Type check
 bun run lint             # Lint code
 bun run lint:fix         # Fix lint issues
