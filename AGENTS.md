@@ -328,6 +328,20 @@ GitHub Actions workflows that use secrets or environment variables must validate
     fi
 ```
 
+### Documentation Synchronization
+
+When modifying `.rulesync/rules/` source files or making significant changes to package documentation:
+
+1. **Always run `bun rules`** after editing source files in `.rulesync/rules/` to regenerate target-specific rule files
+2. This regenerates:
+   - `AGENTS.md` - Main agent documentation
+   - `.cursor/rules/` - Cursor IDE rules
+   - `.github/copilot-instructions.md` - GitHub Copilot instructions
+   - `.windsurf/rules/` - Windsurf IDE rules
+   - `.claude/rules/` - Claude Code rules
+3. **Never edit generated files directly** - always edit the source files in `.rulesync/rules/`
+4. Verify changes with `bun run rules:check` before committing
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.

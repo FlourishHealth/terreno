@@ -133,6 +133,7 @@ bun run frontend:web
 REST API framework providing:
 
 - **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
+- **Authentication**: JWT + GitHub OAuth with multiple strategies
 - **Permissions**: `IsAuthenticated`, `IsOwner`, `IsAdmin`, `IsAuthenticatedOrReadOnly`
 - **Query Filters**: `OwnerQueryFilter` for filtering list queries by owner
 - **setupServer**: Express server setup with auth, OpenAPI, and middleware
@@ -150,6 +151,7 @@ import {
   logger,
   asyncHandler,
   authenticateMiddleware,
+  githubUserPlugin,
 } from "@terreno/api";
 ```
 
@@ -332,6 +334,20 @@ GitHub Actions workflows that use secrets or environment variables must validate
       exit 1
     fi
 ```
+
+### Documentation Synchronization
+
+When modifying `.rulesync/rules/` source files or making significant changes to package documentation:
+
+1. **Always run `bun rules`** after editing source files in `.rulesync/rules/` to regenerate target-specific rule files
+2. This regenerates:
+   - `AGENTS.md` - Main agent documentation
+   - `.cursor/rules/` - Cursor IDE rules
+   - `.github/copilot-instructions.md` - GitHub Copilot instructions
+   - `.windsurf/rules/` - Windsurf IDE rules
+   - `.claude/rules/` - Claude Code rules
+3. **Never edit generated files directly** - always edit the source files in `.rulesync/rules/`
+4. Verify changes with `bun run rules:check` before committing
 
 ## Dependency Management
 

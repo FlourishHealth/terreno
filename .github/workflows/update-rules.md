@@ -93,6 +93,13 @@ Rules-as-Code, single source of truth (.rulesync/rules/), consistency across Cur
    - After merges that add packages or change conventions, propose rule updates promptly
    - Align rule content with .cursor/rules/*.mdc where those are the canonical reference (avoid duplicate truths; prefer .rulesync/rules/ as source and generate into .cursor if applicable)
 
+7. **Finalize Changes**
+   
+   - After editing all source files in `.rulesync/rules/`, run `bun rules` to regenerate all target-specific rule files
+   - This regenerates AGENTS.md, .cursor/rules/, .github/copilot-instructions.md, .windsurf/rules/, .claude/rules/, and other generated files
+   - Verify the regenerated files are correct and include them in the PR
+   - Ensure all changes pass the rulesync-check workflow (`bun run rules:check`)
+
 ### Output Requirements
 
 - **Create Draft Pull Requests**: When rules or agent documentation need updates, create a focused draft PR with clear description. Include in the PR body that reviewers should run `bun run rules` locally and commit any regenerated files so CI (rulesync-check) passes.
