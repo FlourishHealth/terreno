@@ -82,20 +82,30 @@ jobs:
 
       - name: Deploy to GCS
         run: |
-          # Sync all non-HTML files with long cache (excludes previews dir and HTML)
+          # Step 1: Upload new hashed assets (additive, no deletions).
+          # Using rsync WITHOUT -d so old bundles remain while the previous
+          # index.html still references them.
           gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-            rsync -r -d -x '_previews/.*|.*\.html$' \
+            rsync -r -x '_previews/.*|.*\.html$' \
             dist/ "gs://$BUCKET/"
 
-          # Upload root index.html with no-cache
-          # CDN's notFoundPage config handles SPA routing (404 → index.html)
+          # Step 2: Upload index.html with no-cache so browsers always fetch
+          # the latest. This atomically switches users to the new bundle hashes.
           gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
             cp dist/index.html "gs://$BUCKET/index.html"
 
-      - name: Invalidate CDN cache
-        run: |
+          # Step 3: Invalidate CDN cache synchronously so stale index.html
+          # (referencing old hashes) is purged before we clean up old assets.
           gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
-            --path "/*" --async
+            --path "/index.html"
+          gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
+            --path "/"
+
+          # Step 4: Clean up old assets that are no longer referenced.
+          # Now safe because all CDN edges serve the new index.html.
+          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+            rsync -r -d -x '_previews/.*|.*\.html$' \
+            dist/ "gs://$BUCKET/"
 
       - name: Output deploy info
         run: echo "Example Frontend deployed to gs://$BUCKET"
