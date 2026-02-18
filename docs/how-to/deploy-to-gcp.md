@@ -109,13 +109,14 @@ git commit -m "Update demo UI"
 git push origin master
 ``````
 
-The workflows will:
-1. Build the app with Bun and Expo
-2. Upload the build artifact
-3. Sync assets to GCS with cache headers:
-   - Hashed assets: `Cache-Control: public, max-age=31536000, immutable`
-   - `index.html`: `Cache-Control: no-cache, no-store, must-revalidate`
-4. Invalidate the CDN cache
+The workflows follow a zero-downtime 4-step deployment sequence:
+
+1. **Upload new hashed assets** (additive, no deletions) — Old bundles remain while the previous `index.html` still references them
+2. **Upload new `index.html`** with no-cache headers — Atomically switches users to the new bundle hashes
+3. **Invalidate CDN cache synchronously** — Purges stale `index.html` from edges (targeted invalidation of `/index.html` and `/` instead of `/*`)
+4. **Clean up old assets** — Now safe to delete since all CDN edges serve the new `index.html`
+
+This prevents 404 errors for static JS bundles during deployments by ensuring the CDN never serves an `index.html` that references deleted assets.
 
 ### Triggered Workflows
 
@@ -162,7 +163,7 @@ When you close or merge a PR, the `preview-cleanup.yml` workflow automatically:
 
 ## Manual Deployment
 
-To deploy manually without GitHub Actions:
+To deploy manually without GitHub Actions, follow the zero-downtime 4-step sequence:
 
 ``````bash
 # Demo
@@ -170,31 +171,55 @@ cd demo
 bun install
 bun run compile
 bun run export
+
+# Step 1: Upload new hashed assets (additive, no deletions)
 gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-  rsync -r -d -x '.*\.html$' \
+  rsync -r -x '_previews/.*|.*\.html$' \
   dist/ gs://flourish-terreno-terreno-demo/
+
+# Step 2: Upload index.html with no-cache
 gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
   cp dist/index.html gs://flourish-terreno-terreno-demo/index.html
 
-# Invalidate CDN
+# Step 3: Invalidate CDN cache synchronously (targeted paths)
 gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
-  --path "/*" --async
+  --path "/index.html"
+gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
+  --path "/"
+
+# Step 4: Clean up old assets (now safe to delete)
+gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+  rsync -r -d -x '_previews/.*|.*\.html$' \
+  dist/ gs://flourish-terreno-terreno-demo/
 
 # Example Frontend
 cd example-frontend
 bun install
 bun run compile
 bun run export
+
+# Step 1: Upload new hashed assets (additive, no deletions)
 gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-  rsync -r -d -x '.*\.html$' \
+  rsync -r -x '_previews/.*|.*\.html$' \
   dist/ gs://flourish-terreno-terreno-frontend-example/
+
+# Step 2: Upload index.html with no-cache
 gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
   cp dist/index.html gs://flourish-terreno-terreno-frontend-example/index.html
 
-# Invalidate CDN
+# Step 3: Invalidate CDN cache synchronously (targeted paths)
 gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
-  --path "/*" --async
+  --path "/index.html"
+gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
+  --path "/"
+
+# Step 4: Clean up old assets (now safe to delete)
+gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+  rsync -r -d -x '_previews/.*|.*\.html$' \
+  dist/ gs://flourish-terreno-terreno-frontend-example/
 ``````
+
+> **Important**: Do not use `-d` flag in step 1 or combine steps. The 4-step sequence prevents 404 errors during deployment.
 
 ## Troubleshooting
 
@@ -214,10 +239,13 @@ gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
 
 **Problem**: CDN cache not invalidated.
 
-**Solution**: Run cache invalidation manually:
+**Solution**: Run cache invalidation manually for the index page:
 ``````bash
-gcloud compute url-maps invalidate-cdn-cache URLMAP_NAME --path "/*" --async
+gcloud compute url-maps invalidate-cdn-cache URLMAP_NAME --path "/index.html"
+gcloud compute url-maps invalidate-cdn-cache URLMAP_NAME --path "/"
 ``````
+
+Use targeted invalidation (`/index.html` and `/`) instead of wildcard (`/*`) for faster cache purging.
 
 ### Permission Denied on gsutil
 
@@ -236,6 +264,12 @@ gsutil iam ch "serviceAccount:SA_EMAIL:objectAdmin" gs://BUCKET_NAME
 ``````bash
 gsutil web set -e index.html gs://BUCKET_NAME
 ``````
+
+### 404 Errors for Static JS Bundles During Deploy
+
+**Problem**: CDN serves `index.html` referencing deleted asset bundles.
+
+**Solution**: This is prevented by the zero-downtime deployment sequence. If deploying manually, always follow the 4-step process in the correct order (see Manual Deployment section above).
 
 ## Next Steps
 

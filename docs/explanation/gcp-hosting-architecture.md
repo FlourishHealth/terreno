@@ -135,15 +135,29 @@ Both apps use the same architecture pattern optimized for single-page applicatio
 | **Hashed assets** (e.g., `main.abc123.js`) | `public, max-age=31536000, immutable` | Content hash in filename ensures uniqueness; safe to cache forever |
 | **index.html** | `no-cache, no-store, must-revalidate` | Entry point must never be cached to ensure users get the latest app shell |
 
+**Zero-Downtime Deployment**: The 4-step deployment process ensures old hashed assets remain available while the previous `index.html` still references them. Only after the new `index.html` is uploaded and CDN caches are purged do we delete old assets.
+
 **Implementation**: Deployment workflows use `gsutil -h` to set headers during upload:
 ``````bash
-# Sync hashed assets with long cache
+# Step 1: Sync new hashed assets WITHOUT -d (additive only)
 gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-  rsync -r -d -x '.*\.html$' dist/ gs://BUCKET/
+  rsync -r -x '_previews/.*|.*\.html$' \
+  dist/ "gs://$BUCKET/"
 
-# Upload index.html with no-cache
+# Step 2: Upload index.html with no-cache
 gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
-  cp dist/index.html gs://BUCKET/index.html
+  cp dist/index.html "gs://$BUCKET/index.html"
+
+# Step 3: Invalidate CDN cache synchronously (targeted paths)
+gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
+  --path "/index.html"
+gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
+  --path "/"
+
+# Step 4: Clean up old assets WITH -d (now safe)
+gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+  rsync -r -d -x '_previews/.*|.*\.html$' \
+  dist/ "gs://$BUCKET/"
 ``````
 
 ### SPA Routing Implementation
@@ -192,10 +206,13 @@ gs://bucket/
 
 1. **Trigger**: Push to `master` branch with changes to `demo/**`, `ui/**`, `example-frontend/**`, `rtk/**`
 2. **Build**: GitHub Actions runs `bun run export` to generate static files
-3. **Upload**:
-   - Sync non-HTML assets with long cache headers
-   - Upload `index.html` with no-cache header
-4. **Invalidate CDN**: `gcloud compute url-maps invalidate-cdn-cache` clears the cache
+3. **Deploy** (zero-downtime 4-step sequence):
+   - **Step 1**: Upload new hashed assets (additive, no deletions) — Old bundles remain
+   - **Step 2**: Upload `index.html` with no-cache header — Atomically switches users to new bundles
+   - **Step 3**: Invalidate CDN cache synchronously (targeted paths: `/index.html` and `/`)
+   - **Step 4**: Clean up old assets with `-d` flag — Safe now that all edges serve new `index.html`
+
+**Why this sequence?** Prevents 404 errors by ensuring the CDN never serves an `index.html` referencing deleted assets. The old bundles remain available until the new `index.html` is live and cached.
 
 ### Preview Deploy
 
