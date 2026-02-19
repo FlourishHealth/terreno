@@ -1,5 +1,7 @@
 #!/usr/bin/env bun
 
+import "./instrument.js";
+
 import {createMcpExpressApp} from "@modelcontextprotocol/sdk/server/express.js";
 import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -11,24 +13,27 @@ import {
   ListToolsRequestSchema,
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import * as Sentry from "@sentry/bun";
 import {logger} from "@terreno/api";
 import {handlePromptRequest, prompts} from "./prompts.js";
 import {resources} from "./resources.js";
 import {handleToolCall, tools} from "./tools.js";
 
 const createServer = (): McpServer => {
-  const server = new McpServer(
-    {
-      name: "terreno-mcp",
-      version: "1.0.0",
-    },
-    {
-      capabilities: {
-        prompts: {},
-        resources: {},
-        tools: {},
+  const server = Sentry.wrapMcpServerWithSentry(
+    new McpServer(
+      {
+        name: "terreno-mcp",
+        version: "1.0.0",
       },
-    }
+      {
+        capabilities: {
+          prompts: {},
+          resources: {},
+          tools: {},
+        },
+      }
+    )
   );
 
   server.server.setRequestHandler(ListResourcesRequestSchema, async () => {
@@ -130,6 +135,7 @@ const handleMcpRequest = async (req: McpRequest, res: McpResponse): Promise<void
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (error) {
+    Sentry.captureException(error);
     logger.error("Error handling MCP request:", error);
     if (!res.headersSent) {
       res.status(500).json({
@@ -195,5 +201,6 @@ const main = async (): Promise<void> => {
 };
 
 main().catch((error) => {
+  Sentry.captureException(error);
   logger.error("Fatal error starting MCP server:", error);
 });
