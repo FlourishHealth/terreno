@@ -40,8 +40,9 @@ class TerrenoApp {
   // Fluent configuration
   addModelRouter<T>(path: string, model: Model<T>, options: ModelRouterOptions<T>): this;
   addModelRouter<T>(path: string, model: Model<T>, permissions: RESTPermissions<T>): this;  // Shorthand
-  addRoute(path: string, router: Router | AddRoutesCallback): this;
+  addRoute(path: string, router: Router | AddRoutesCallback, options?: AddRouteOptions): this;
   addMiddleware(middleware: RequestHandler, options?: MiddlewareOptions): this;
+  addErrorHandlingMiddleware(middleware: ErrorRequestHandler): this;
 
   // WebSocket
   enableWebSocket(options?: WebSocketOptions): this;
@@ -383,13 +384,14 @@ interface AppHooks {
 │  4. Routes: health, openapi, model routers, custom routes       │
 │     └── onRoutesReady()                                         │
 │                                                                 │
-│  5. Error handlers: sentry, apiError, fallthrough               │
+│  5. Error handling middleware (addErrorHandlingMiddleware)       │
+│  6. Built-in error handlers: apiError, fallthrough              │
 │     └── onReady()                                               │
 │                                                                 │
-│  6. Server.listen()                                             │
+│  7. Server.listen()                                             │
 │     └── onListening()                                           │
 │                                                                 │
-│  7. WebSocket server created (if enabled)                       │
+│  8. WebSocket server created (if enabled)                       │
 │     └── onWebSocketReady()                                      │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -448,7 +450,7 @@ await app.start();
 ### Adding Model Routers
 
 ```typescript
-import { TerrenoApp, Permissions } from '@terreno/api';
+import { TerrenoApp, Permissions, OwnerQueryFilter } from '@terreno/api';
 import { User, Post, Comment } from './models';
 
 const app = TerrenoApp.create({ auth: { userModel: User, ... } })
@@ -462,6 +464,7 @@ const app = TerrenoApp.create({ auth: { userModel: User, ... } })
       list: [Permissions.IsAny],
     },
     queryFields: ['title', 'authorId'],
+    queryFilter: OwnerQueryFilter,
   })
   // Shorthand: just pass permissions object directly
   .addModelRouter('/comments', Comment, {
@@ -477,6 +480,27 @@ await app.start();
 
 The shorthand detects when you pass a permissions object directly (has `create`/`read`/`update`/`delete`/`list` keys) vs full ModelRouterOptions (has `permissions` key).
 
+#### Model Router Request Lifecycle
+
+When a request hits a modelRouter endpoint, processing follows this order:
+
+```
+1. Express middleware (cors, json, helmet, etc.)
+2. Authentication middleware (JWT verification → req.user)
+3. onRequest hook fires
+4. onAuthenticated hook fires (if user was authenticated)
+5. Permission check (e.g., IsAuthenticated, IsOwner)
+   └── If denied → 403 response, skip remaining steps
+6. Query filter applied (e.g., OwnerQueryFilter adds { ownerId: req.user.id } to list queries)
+7. Route handler executes (create/read/update/delete/list)
+   └── For list: queryFields restrict which fields can be filtered via query params
+   └── For update/delete: document is fetched first, then permissions (e.g., IsOwner) are checked against it
+8. onResponse hook fires
+9. Response sent
+```
+
+The `queryFilter` runs **after** authentication but **before** the database query, so it has access to `req.user` and can scope queries accordingly. This is useful for multi-tenant apps where users should only see their own data.
+
 ### Adding Custom Routes
 
 ```typescript
@@ -488,6 +512,20 @@ const app = TerrenoApp.create({ ... })
   .addRoute('/custom', (router) => {
     router.get('/ping', (req, res) => res.json({ pong: true }));
     router.post('/echo', (req, res) => res.json(req.body));
+  })
+
+  // Add route with OpenAPI spec (merged into generated /openapi.json)
+  .addRoute('/custom', (router) => {
+    router.get('/ping', (req, res) => res.json({ pong: true }));
+  }, {
+    openapi: {
+      '/ping': {
+        get: {
+          summary: 'Ping endpoint',
+          responses: { '200': { description: 'Pong response' } },
+        },
+      },
+    },
   })
 
   // Mount at root
@@ -605,6 +643,36 @@ const app = TerrenoApp.create({ ... })
     position: 'afterAuth',  // Insert after auth middleware
   });
 ```
+
+### Adding Error Handling Middleware
+
+Error handling middleware (4-argument Express handlers) must be mounted **after** all routes. Use `addErrorHandlingMiddleware()` for integrations like Sentry that require this ordering:
+
+```typescript
+import * as Sentry from '@sentry/node';
+
+const app = TerrenoApp.create({ ... })
+  .addModelRouter('/posts', Post, { ... })
+  .addRoute('/webhooks', webhookRouter)
+
+  // Mounted after all routes but before TerrenoApp's built-in error handler
+  .addErrorHandlingMiddleware(Sentry.setupExpressErrorHandler)
+
+  // Can add multiple — they run in order
+  .addErrorHandlingMiddleware((err, req, res, next) => {
+    // Custom error logging
+    logger.error('Unhandled error', { error: err, url: req.url });
+    next(err);
+  });
+```
+
+During `build()`, the ordering is:
+1. Built-in middleware (cors, json, helmet, etc.)
+2. Custom middleware via `addMiddleware()`
+3. Auth middleware
+4. Routes (model routers + custom routes)
+5. **Error handling middleware via `addErrorHandlingMiddleware()`** ← inserted here
+6. TerrenoApp's built-in error handler (APIError formatting, stack traces)
 
 ### WebSocket Support
 
