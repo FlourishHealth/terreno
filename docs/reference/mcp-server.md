@@ -407,11 +407,34 @@ Returns comprehensive code style guide from project documentation.
 | `PORT` | `8080` | HTTP server port |
 | `MCP_HOST` or `HOST` | `0.0.0.0` | Server host address |
 | `TERRENO_MCP_DOCS_DIR` | `../docs` | Path to documentation directory (relative to dist/) |
+| `NODE_ENV` | `development` | Node environment (`development`, `production`, `test`) |
+
+### Error Tracking
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SENTRY_DSN` | Yes (production) | - | Sentry project DSN for error tracking |
+| `APP_ENV` | No | `development` | Sentry environment tag (`development`, `staging`, `production`) |
+| `SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Performance traces sample rate (0.0–1.0) |
+
+**Error Tracking Behavior:**
+
+- **Production**: `SENTRY_DSN` is required. Server will throw an error on startup if missing.
+- **Development/Test**: Sentry is initialized as a no-op when `SENTRY_DSN` is not set.
+- Exceptions are automatically captured in MCP request handlers and fatal startup errors.
 
 **Example:**
 
 ``````bash
+# Development (Sentry optional)
 PORT=3001 HOST=localhost bun run start
+
+# Production (Sentry required)
+NODE_ENV=production \
+SENTRY_DSN=https://your-key@sentry.io/your-project \
+APP_ENV=production \
+SENTRY_TRACES_SAMPLE_RATE=0.2 \
+bun run start
 ``````
 
 ## Development

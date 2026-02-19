@@ -7,6 +7,7 @@ Comprehensive guide to environment variables used across Terreno packages and ex
 - [@terreno/api (Backend)](#terrenoapi-backend)
 - [@terreno/rtk (Frontend State)](#terrenortk-frontend-state)
 - [@terreno/ui (Components)](#terrenoui-components)
+- [@terreno/mcp-server (MCP Server)](#terrenomcp-server-mcp-server)
 - [Example Backend](#example-backend)
 - [Example Frontend](#example-frontend)
 
@@ -175,6 +176,49 @@ import {TerrenoProvider} from "@terreno/ui";
 >
   <App />
 </TerrenoProvider>
+``````
+
+---
+
+## @terreno/mcp-server (MCP Server)
+
+Environment variables used by the `@terreno/mcp-server` package.
+
+### Server Configuration
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `PORT` | ❌ | `8080` | HTTP server port |
+| `MCP_HOST` or `HOST` | ❌ | `0.0.0.0` | Server host address |
+| `NODE_ENV` | ❌ | `development` | Node environment (`development`, `production`, `test`) |
+| `TERRENO_MCP_DOCS_DIR` | ❌ | `../docs` | Path to documentation directory (relative to dist/) |
+
+### Error Tracking
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SENTRY_DSN` | ✅ (production)<br/>❌ (dev/test) | - | Sentry project DSN for error tracking |
+| `APP_ENV` | ❌ | `development` | Sentry environment tag (`development`, `staging`, `production`) |
+| `SENTRY_TRACES_SAMPLE_RATE` | ❌ | `0.1` | Performance traces sample rate (0.0–1.0) |
+
+**Error Tracking Behavior:**
+
+- **Production** (`NODE_ENV=production`): `SENTRY_DSN` is required. Server throws error on startup if missing.
+- **Development/Test**: Sentry initializes as a no-op when `SENTRY_DSN` is not set.
+- Exceptions are automatically captured in MCP request handlers and fatal startup errors.
+- Performance tracing captures 10% of requests by default (configurable via `SENTRY_TRACES_SAMPLE_RATE`).
+
+### Example .env File
+
+``````bash
+# Required in production
+SENTRY_DSN=https://your-key@sentry.io/your-project
+
+# Optional configuration
+PORT=3001
+HOST=localhost
+APP_ENV=production
+SENTRY_TRACES_SAMPLE_RATE=0.2
 ``````
 
 ---
