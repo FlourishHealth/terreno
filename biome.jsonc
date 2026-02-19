@@ -13,6 +13,12 @@
   "files": {
     "includes": [
       "package.json",
+      "admin-backend/package.json",
+      "admin-backend/src/**/*.ts",
+      "admin-backend/src/**/*.tsx",
+      "admin-frontend/package.json",
+      "admin-frontend/src/**/*.ts",
+      "admin-frontend/src/**/*.tsx",
       "api/package.json",
       "api/src/**/*.ts",
       "api/src/**/*.tsx",

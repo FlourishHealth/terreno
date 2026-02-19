@@ -5,6 +5,7 @@
     "@react-navigation/native": "^7.1.8",
     "@reduxjs/toolkit": "^2.11.2",
     "@sentry/react": "^10.29.0",
+    "@terreno/admin-frontend": "workspace:*",
     "@terreno/rtk": "latest",
     "@terreno/ui": "latest",
     "expo": "~54.0.29",

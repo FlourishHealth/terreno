@@ -35,6 +35,14 @@ const TabLayout: React.FC = () => {
           title: "Profile",
         }}
       />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          headerShown: false,
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="cog" />,
+          title: "Admin",
+        }}
+      />
     </Tabs>
   );
 };
