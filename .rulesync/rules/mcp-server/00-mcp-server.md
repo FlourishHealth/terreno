@@ -24,6 +24,7 @@ bun run lint             # Lint code
 ```
 src/
   index.ts               # Express HTTP server with JSON-RPC handlers
+  instrument.ts          # Sentry initialization (must be imported first)
   tools.ts               # Code generation tools (models, routes, screens, forms)
   prompts.ts             # Multi-step workflow prompts (CRUD, auth, components)
   resources.ts           # Documentation resources loaded from markdown
@@ -70,6 +71,17 @@ Resources are loaded from markdown files with dynamic path resolution.
 - Handles: ListResources, ReadResource, ListTools, CallTool, ListPrompts, GetPrompt
 - Configurable port and host via environment variables
 - Health check endpoint at root
+- Sentry error tracking and performance monitoring
+
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SENTRY_DSN` | Yes (prod) | — | Sentry project DSN for error tracking |
+| `APP_ENV` | No | `development` | Sentry environment tag |
+| `SENTRY_TRACES_SAMPLE_RATE` | No | `0.1` | Performance traces sample rate (0–1) |
+
+**Note**: `SENTRY_DSN` is required in production (throws on missing), no-op in development/test.
 
 ## Adding a New Tool
 
