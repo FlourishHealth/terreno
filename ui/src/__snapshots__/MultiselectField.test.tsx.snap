@@ -1,0 +1,1454 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`MultiselectField renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Select items",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option A from list of options",
+            "aria-label": "Option A",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option B",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option B from list of options",
+            "aria-label": "Option B",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option C",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option C from list of options",
+            "aria-label": "Option C",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Contains a prompt and list of options to select",
+    "aria-label": "Select items",
+    "aria-role": "combobox",
+    "style": {
+      "display": "flex",
+      "gap": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MultiselectField shows selected options 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Title",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#0A7092",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option A from list of options",
+            "aria-label": "Option A",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option B",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option B from list of options",
+            "aria-label": "Option B",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option C",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#0A7092",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option C from list of options",
+            "aria-label": "Option C",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Contains a prompt and list of options to select",
+    "aria-label": "Title",
+    "aria-role": "combobox",
+    "style": {
+      "display": "flex",
+      "gap": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MultiselectField renders with leftText variant (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Title",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option A from list of options",
+            "aria-label": "Option A",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option B",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option B from list of options",
+            "aria-label": "Option B",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option C",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 0,
+                  "paddingStart": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option C from list of options",
+            "aria-label": "Option C",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Contains a prompt and list of options to select",
+    "aria-label": "Title",
+    "aria-role": "combobox",
+    "style": {
+      "display": "flex",
+      "gap": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MultiselectField renders with rightText variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Title",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option A",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 8,
+                  "paddingStart": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option A from list of options",
+            "aria-label": "Option A",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row-reverse",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option B",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 8,
+                  "paddingStart": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option B from list of options",
+            "aria-label": "Option B",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row-reverse",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option C",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "flexWrap": "wrap",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "transparent",
+                      "borderColor": "#0A7092",
+                      "borderRadius": 3,
+                      "borderWidth": 1,
+                      "height": 16,
+                      "justifyContent": "center",
+                      "width": 16,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingEnd": 8,
+                  "paddingStart": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Select Option C from list of options",
+            "aria-label": "Option C",
+            "aria-role": "checkbox",
+            "hitSlop": {
+              "bottom": 10,
+              "left": 10,
+              "right": 10,
+              "top": 10,
+            },
+            "onPress": [Function],
+            "style": {
+              "justifyContent": "center",
+            },
+          },
+          "type": "TouchableOpacity",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flexDirection": "row-reverse",
+          "justifyContent": "space-between",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Contains a prompt and list of options to select",
+    "aria-label": "Title",
+    "aria-role": "combobox",
+    "style": {
+      "display": "flex",
+      "gap": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MultiselectField renders disabled state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Title",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "heading-semibold",
+          "fontSize": 14,
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "a, b",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Contains a prompt and list of options to select",
+    "aria-label": "Title",
+    "aria-role": "combobox",
+    "style": {
+      "display": "flex",
+      "gap": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

@@ -1,0 +1,965 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`MarkdownView renders correctly with simple text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Hello world",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "flex-start",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "justifyContent": "flex-start",
+          "marginBottom": 10,
+          "marginTop": 10,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders markdown headings 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Heading 1",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "heading-bold",
+                    "fontSize": 28,
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Heading 2",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "heading-bold",
+                    "fontSize": 20,
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Heading 3",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "heading-bold",
+                    "fontSize": 16,
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders markdown bold and italic 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "bold",
+                  ],
+                  "props": {
+                    "style": [
+                      {
+                        "color": "#1C1C1C",
+                        "fontFamily": "text",
+                        "fontWeight": "bold",
+                      },
+                      {},
+                    ],
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "fontWeight": "bold",
+                },
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                " and ",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "italic",
+                  ],
+                  "props": {
+                    "style": [
+                      {
+                        "color": "#1C1C1C",
+                        "fontFamily": "text",
+                        "fontStyle": "italic",
+                      },
+                      {},
+                    ],
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "fontStyle": "italic",
+                },
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                " text",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "flex-start",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "justifyContent": "flex-start",
+          "marginBottom": 10,
+          "marginTop": 10,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders markdown lists 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "·",
+              ],
+              "props": {
+                "accessible": false,
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Item 1",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "·",
+              ],
+              "props": {
+                "accessible": false,
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Item 2",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "·",
+              ],
+              "props": {
+                "accessible": false,
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Item 3",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {},
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders with inverted colors 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Inverted text colors",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#FFFFFF",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "flex-start",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "justifyContent": "flex-start",
+          "marginBottom": 10,
+          "marginTop": 10,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders numbered lists 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+                ".",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "First",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+                ".",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Second",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+                ".",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "marginLeft": 10,
+                    "marginRight": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Third",
+                      ],
+                      "props": {
+                        "style": [
+                          {
+                            "color": "#1C1C1C",
+                            "fontFamily": "text",
+                          },
+                          {},
+                        ],
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "style": {},
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "justifyContent": "flex-start",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {},
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders code blocks 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "code block",
+      ],
+      "props": {
+        "style": [
+          {
+            "color": "#1C1C1C",
+            "fontFamily": "text",
+          },
+          {
+            "backgroundColor": "#f5f5f5",
+            "borderColor": "#CCCCCC",
+            "borderRadius": 4,
+            "borderWidth": 1,
+            "fontFamily": "Courier",
+            "padding": 10,
+          },
+        ],
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`MarkdownView renders inline code 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Use ",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "inline code",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {
+                    "backgroundColor": "#f5f5f5",
+                    "borderColor": "#CCCCCC",
+                    "borderRadius": 4,
+                    "borderWidth": 1,
+                    "fontFamily": "Courier",
+                    "padding": 10,
+                  },
+                ],
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                " here",
+              ],
+              "props": {
+                "style": [
+                  {
+                    "color": "#1C1C1C",
+                    "fontFamily": "text",
+                  },
+                  {},
+                ],
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {},
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "flex-start",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "justifyContent": "flex-start",
+          "marginBottom": 10,
+          "marginTop": 10,
+          "width": "100%",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {},
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

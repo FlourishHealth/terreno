@@ -4,6 +4,8 @@ import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
 import {View} from "react-native";
 
+export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
+
 const DevComponentPage: FC = () => {
   const {component, story} = useLocalSearchParams<{component: string; story?: string}>();
 

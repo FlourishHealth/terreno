@@ -1,5 +1,5 @@
 // https://jsonapi.org/format/#errors
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
 import {Schema} from "mongoose";
 
@@ -136,21 +136,24 @@ export class APIError extends Error {
 // model.
 export function errorsPlugin(schema: Schema): void {
   const errorSchema = new Schema({
-    code: String,
-    detail: String,
-    id: String,
+    code: {description: "Application-specific error code", type: String},
+    detail: {description: "Human-readable explanation of the error", type: String},
+    id: {description: "Unique identifier for this error occurrence", type: String},
     links: {
-      about: String,
-      type: String,
+      about: {description: "Link to documentation about this error", type: String},
+      type: {description: "Link describing the error type", type: String},
     },
-    meta: Schema.Types.Mixed,
+    meta: {description: "Non-standard meta information about the error", type: Schema.Types.Mixed},
     source: {
-      header: String,
-      parameter: String,
-      pointer: String,
+      header: {description: "HTTP header that caused the error", type: String},
+      parameter: {description: "Query parameter that caused the error", type: String},
+      pointer: {
+        description: "JSON pointer to the request field that caused the error",
+        type: String,
+      },
     },
-    status: Number,
-    title: {required: true, type: String},
+    status: {description: "HTTP status code for this error", type: Number},
+    title: {description: "Short summary of the error", required: true, type: String},
   });
 
   schema.add({apiErrors: errorSchema});

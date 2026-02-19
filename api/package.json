@@ -4,7 +4,7 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "@sentry/node": "^10.25.0",
+    "@sentry/bun": "^10.25.0",
     "@sentry/profiling-node": "^10.25.0",
     "@types/qs": "^6.14.0",
     "@wesleytodd/openapi": "^1.1.0",
@@ -23,6 +23,7 @@
     "on-finished": "^2.3.0",
     "passport": "^0.7.0",
     "passport-anonymous": "^1.0.1",
+    "passport-github2": "^0.1.12",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "passport-local-mongoose": "^9.0.1",
@@ -44,6 +45,7 @@
     "@types/on-finished": "^2.3.4",
     "@types/passport": "^1.0.17",
     "@types/passport-anonymous": "^1.0.5",
+    "@types/passport-github2": "^1.2.9",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/sinon": "^17.0.4",
@@ -85,5 +87,5 @@
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.14"
+  "version": "0.0.18"
 }

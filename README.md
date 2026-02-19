@@ -14,7 +14,11 @@ A monorepo containing shared packages for building full-stack applications.
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
 
-### Example/Demo Apps (not published)
+### Deployed Services
+
+- **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
+
+### Example/Demo Apps
 
 - **example-backend/** - Example backend application using `@terreno/api`
 - **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
@@ -132,6 +136,52 @@ The following secrets must be configured in your GitHub repository:
 - `NPM_PUBLISH_TOKEN` - npm access token with publish permissions
 - `SLACK_WEBHOOK` - (optional) Slack webhook URL for notifications
 
+## GCP Static Site Hosting
+
+The demo and example-frontend apps are deployed to Google Cloud Storage with CDN. PR previews are deployed automatically.
+
+### GCP Project
+
+- **Project ID**: `flourish-terreno`
+- **Region**: `us-east1`
+
+### Buckets
+
+| App | Bucket | Backend Bucket (CDN) |
+|-----|--------|---------------------|
+| example-frontend | `flourish-terreno-terreno-frontend-example` | `terreno-frontend-example-backend` |
+| demo | `flourish-terreno-terreno-demo` | `terreno-demo-backend` |
+
+### Initial Setup
+
+Run the setup script to create all GCS and CDN resources:
+
+```bash
+scripts/setup-gcs-hosting.sh
+```
+
+This creates:
+1. GCS buckets with public read access
+2. Static website config with SPA fallback (`index.html` served for 404s)
+3. Service account write access (prompts for the SA email)
+4. CDN backend buckets, URL maps, static IPs, HTTP proxies, and forwarding rules
+
+After running the script, point DNS records to the output IPs. To add HTTPS, follow the instructions printed at the end.
+
+### Required Secrets
+
+- `GCP_SA_KEY` - Service account key JSON with permissions for GCS and CDN cache invalidation
+
+### Workflows
+
+| Workflow | Trigger | What it does |
+|----------|---------|--------------|
+| `frontend-example-deploy.yml` | Push to master (example-frontend/ui/rtk changes) | Builds and deploys to production bucket |
+| `frontend-example-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `demo-deploy.yml` | Push to master (demo/ui changes) | Builds and deploys to production bucket |
+| `demo-deploy.yml` | Pull request | Deploys preview to `_previews/pr-{number}/` |
+| `preview-cleanup.yml` | PR closed | Deletes preview files from both buckets |
+
 ## MCP Server
 
 Terreno provides an MCP (Model Context Protocol) server that enables AI assistants to interact with your backend API. The server is available at `mcp.terreno.flourish.health`.
@@ -185,4 +235,33 @@ Add the following to your Cursor MCP settings (`.cursor/mcp.json` in your projec
 ```
 
 After adding the configuration, restart your AI assistant to connect to the MCP server.
+
+## AI Rules Management
+
+This project uses [rulesync](https://github.com/dyoshikawa/rulesync) to maintain consistent AI assistant rules across multiple tools (Cursor, Windsurf, Claude Code, GitHub Copilot).
+
+### How It Works
+
+1. **Single source of truth**: Rules are defined in `.rulesync/rules/` as markdown files with YAML frontmatter
+2. **Generated files**: Running `bun run rules` generates tool-specific files:
+   - `.cursorrules` - Cursor AI rules
+   - `.windsurfrules` - Windsurf AI rules
+   - `CLAUDE.md` - Claude Code instructions
+   - `.github/copilot-instructions.md` - GitHub Copilot instructions
+3. **Per-package rules**: Each package has its own rules in addition to root-level rules
+
+### Commands
+
+```bash
+bun run rules        # Generate all rule files from source
+bun run rules:check  # Verify generated files are up to date (used in CI)
+```
+
+### Updating Rules
+
+1. Edit the source files in `.rulesync/rules/`
+2. Run `bun run rules` to regenerate all tool-specific files
+3. Commit both the source and generated files
+
+The CI workflow (`.github/workflows/rulesync-check.yml`) ensures generated rules stay in sync with source files.
 

@@ -1,5 +1,5 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import mongoose from "mongoose";

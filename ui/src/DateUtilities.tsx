@@ -78,7 +78,7 @@ export function humanDate(
     return clonedDate.toFormat("MMM d");
   } else {
     // December 25, 2022
-    return clonedDate.toFormat("MMM d, iiii");
+    return clonedDate.toFormat("MMM d, yyyy");
   }
 }
 
@@ -119,7 +119,7 @@ export function humanDateAndTime(
     return `${clonedDate.toFormat("MMM d")} ${time}`;
   } else {
     // December 25, 2022
-    return `${clonedDate.toFormat("MMM d, iiii")} ${time}`;
+    return `${clonedDate.toFormat("MMM d, yyyy")} ${time}`;
   }
 }
 

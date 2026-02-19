@@ -1,3 +1,5 @@
+// Re-export React Native style types for use in consumer projects
+export type {StyleProp, ViewStyle} from "react-native";
 export * from "./Accordion";
 export * from "./ActionSheet";
 export * from "./AddressField";
@@ -83,6 +85,7 @@ export * from "./table/TableTitle";
 export * from "./table/tableContext";
 export * from "./UnifiedAddressAutoComplete";
 export * from "./Unifier";
+export * from "./UserInactivity";
 export * from "./Utilities";
 export * from "./useStoredState";
 export * from "./WebAddressAutocomplete";

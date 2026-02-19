@@ -530,6 +530,7 @@ jobs:
           fi
 
       - name: Create Pull Request
+        id: create-pr
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "chore: bump package versions to ${{ needs.check-changes.outputs.version }}"
@@ -546,6 +547,12 @@ jobs:
             ${{ needs.publish-rtk.result == 'success' && '- ✅ @terreno/rtk' || '- ⏭️ @terreno/rtk (no changes)' }}
           assignees: joshgachnang
           reviewers: joshgachnang
+
+      - name: Auto-merge version bump PR
+        if: steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch
 
   notify:
     needs: [check-changes, publish-api, publish-ui, publish-rtk]
@@ -597,6 +604,9 @@ jobs:
           MESSAGE="${MESSAGE}Tag: ${TAG_NAME}\n"
           MESSAGE="${MESSAGE}Commit: ${COMMIT_SHORT}\n"
           MESSAGE="${MESSAGE}View: ${TAG_URL}"
+          
+          # Convert \n escape sequences to actual newlines
+          MESSAGE=$(printf "%b" "$MESSAGE")
           
           curl -X POST "${{ secrets.ZOOM_WEBHOOK_URL }}" \
             -H "Authorization: ${{ secrets.ZOOM_WEBHOOK_TOKEN }}" \

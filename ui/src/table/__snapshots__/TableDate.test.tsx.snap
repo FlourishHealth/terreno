@@ -1,0 +1,61 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TableDate renders correctly with ISO string date 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "01/15/2024",
+  ],
+  "props": {
+    "style": {
+      "fontSize": 16,
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableDate renders correctly with Date object 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "06/19/2024",
+  ],
+  "props": {
+    "style": {
+      "fontSize": 16,
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableDate renders date in MM/dd/yyyy format by default 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "03/25/2024",
+  ],
+  "props": {
+    "style": {
+      "fontSize": 16,
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableDate renders annotated date with relative time 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "12/31/2023 (-7 Mo -17 Day)",
+  ],
+  "props": {
+    "style": {
+      "fontSize": 16,
+    },
+  },
+  "type": "Text",
+}
+`;

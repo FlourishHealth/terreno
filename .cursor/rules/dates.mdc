@@ -1,6 +1,0 @@
----
-description: 
-globs: *.ts,*.tsx
-alwaysApply: false
----
-When working with date or time, always use Luxon instead of Date or dayjs.

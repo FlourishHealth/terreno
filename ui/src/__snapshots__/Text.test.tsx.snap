@@ -1,0 +1,558 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Text renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Hello World",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with sm size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Small text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 10,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with md size (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Medium text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with lg size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Large text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-medium",
+          "fontSize": 16,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with xl size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Extra large text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-medium",
+          "fontSize": 18,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with 2xl size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "2XL text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-medium",
+          "fontSize": 40,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders bold text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Bold text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-bold",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders italic text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Italic text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular-italic",
+          "fontSize": 14,
+          "fontStyle": "italic",
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders bold italic text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Bold italic text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-bold-italic",
+          "fontSize": 14,
+          "fontStyle": "italic",
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders underlined text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Underlined text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+          "textDecorationLine": "underline",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with left alignment (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Left aligned",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with center alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Centered",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "center",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with right alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Right aligned",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "right",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with secondary color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Secondary color",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": undefined,
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with accent color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Accent color",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#956A00",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with link color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Link color",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#0A7092",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with truncate 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "This is a long text that should be truncated",
+      ],
+      "props": {
+        "numberOfLines": 1,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with numberOfLines 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Multiple lines of text",
+      ],
+      "props": {
+        "numberOfLines": 2,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Text renders with skipLinking 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "No hyperlinks",
+  ],
+  "props": {
+    "numberOfLines": 0,
+    "selectable": undefined,
+    "style": {
+      "color": "#1C1C1C",
+      "fontFamily": "text-regular",
+      "fontSize": 14,
+      "textAlign": "left",
+    },
+    "testID": undefined,
+  },
+  "type": "Text",
+}
+`;
+
+exports[`Text renders with multiple style props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Styled text",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#956A00",
+          "fontFamily": "text-bold",
+          "fontSize": 16,
+          "textAlign": "center",
+          "textDecorationLine": "underline",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;

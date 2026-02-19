@@ -1,0 +1,685 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Body renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Body content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "height": "100%",
+                      "padding": 24,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders with scroll enabled 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Scrollable content",
+                              ],
+                              "props": {
+                                "numberOfLines": 0,
+                                "selectable": undefined,
+                                "style": {
+                                  "color": "#1C1C1C",
+                                  "fontFamily": "text-regular",
+                                  "fontSize": 14,
+                                  "textAlign": "left",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {},
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "onPointerEnter": [Function: AsyncFunction],
+                        "onPointerLeave": [Function: AsyncFunction],
+                        "style": {
+                          "height": "100%",
+                          "padding": 24,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "avoidKeyboard": true,
+                      "height": "100%",
+                      "scroll": true,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "contentContainerStyle": {
+                  "alignContent": undefined,
+                  "alignItems": undefined,
+                  "justifyContent": undefined,
+                },
+                "horizontal": false,
+                "keyboardShouldPersistTaps": "handled",
+                "nestedScrollEnabled": true,
+                "onScroll": [Function],
+                "ref": {
+                  "current": null,
+                },
+                "scrollEventThrottle": 50,
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": true,
+                },
+              },
+              "type": "ScrollView",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders with loading state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "color": "#1C1C1C",
+                        "size": "large",
+                      },
+                      "type": "ActivityIndicator",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "height": "100%",
+                      "padding": 24,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders with custom padding 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "height": "100%",
+                      "padding": 64,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders with custom height 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "height": 500,
+                      "padding": 24,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders without keyboard avoiding when avoidKeyboard is false 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Content",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "height": "100%",
+                  "padding": 24,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "avoidKeyboard": true,
+              "height": "100%",
+              "scroll": undefined,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "SafeAreaView",
+    },
+  ],
+  "props": {
+    "behavior": "padding",
+    "keyboardVerticalOffset": undefined,
+    "style": {
+      "display": "flex",
+      "flex": 1,
+    },
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;
+
+exports[`Body renders with keyboard avoiding by default 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "height": "100%",
+                      "padding": 24,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "avoidKeyboard": true,
+                  "height": "100%",
+                  "scroll": undefined,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "display": "flex",
+              "flex": 1,
+            },
+          },
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "behavior": "padding",
+        "keyboardVerticalOffset": undefined,
+        "style": {
+          "display": "flex",
+          "flex": 1,
+        },
+      },
+      "type": "KeyboardAvoidingView",
+    },
+  ],
+  "props": {
+    "behavior": "position",
+  },
+  "type": "KeyboardAvoidingView",
+}
+`;

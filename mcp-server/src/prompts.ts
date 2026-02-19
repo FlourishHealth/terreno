@@ -1,6 +1,7 @@
 import {existsSync, readFileSync} from "node:fs";
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
+import {bootstrapPrompts, handleBootstrapPromptRequest} from "./bootstrap.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,6 +42,7 @@ interface Prompt {
 }
 
 export const prompts: Prompt[] = [
+  ...bootstrapPrompts,
   {
     arguments: [
       {
@@ -612,6 +614,11 @@ export const handlePromptRequest = (
   name: string,
   args: Record<string, string>
 ): {messages: Array<{role: "user"; content: {type: "text"; text: string}}>} => {
+  // Handle bootstrap prompts
+  if (name === "bootstrap_terreno_app") {
+    return handleBootstrapPromptRequest(name, args);
+  }
+
   let content: string;
 
   switch (name) {

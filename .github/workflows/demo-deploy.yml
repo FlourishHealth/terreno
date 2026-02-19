@@ -1,0 +1,234 @@
+name: Demo GCP Deploy
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "demo/**"
+      - "ui/**"
+      - ".github/workflows/demo-deploy.yml"
+  pull_request:
+    paths:
+      - "demo/**"
+      - "ui/**"
+      - ".github/workflows/demo-deploy.yml"
+
+env:
+  GCP_PROJECT_ID: flourish-terreno
+  BUCKET: flourish-terreno-terreno-demo
+  BACKEND_BUCKET: terreno-demo-backend
+
+jobs:
+  build:
+    name: Build Demo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install root dependencies (workspace)
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Export demo for web
+        run: bun run export
+        working-directory: demo
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-dist
+          path: demo/dist
+          retention-days: 1
+
+  deploy-production:
+    name: Deploy to Production
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: demo-dist
+          path: dist
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Deploy to GCS
+        run: |
+          # Step 1: Upload new hashed assets (additive, no deletions).
+          # Using rsync WITHOUT -d so old bundles remain while the previous
+          # index.html still references them.
+          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+            rsync -r -x '_previews/.*|.*\.html$' \
+            dist/ "gs://$BUCKET/"
+
+          # Step 2: Upload index.html with no-cache so browsers always fetch
+          # the latest. This atomically switches users to the new bundle hashes.
+          gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
+            cp dist/index.html "gs://$BUCKET/index.html"
+
+          # Step 3: Invalidate CDN cache synchronously so stale index.html
+          # (referencing old hashes) is purged before we clean up old assets.
+          gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
+            --path "/index.html"
+          gcloud compute url-maps invalidate-cdn-cache terreno-demo-url-map \
+            --path "/"
+
+          # Step 4: Clean up old assets that are no longer referenced.
+          # Now safe because all CDN edges serve the new index.html.
+          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
+            rsync -r -d -x '_previews/.*|.*\.html$' \
+            dist/ "gs://$BUCKET/"
+
+      - name: Output deploy info
+        run: echo "Demo deployed to gs://$BUCKET"
+
+  deploy-preview:
+    name: Deploy Preview
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Get CDN IP
+        id: cdn
+        run: |
+          IP=$(gcloud compute addresses describe terreno-demo-ip --global --format="value(address)" 2>/dev/null || echo "")
+          if [ -n "$IP" ]; then
+            echo "ip=$IP" >> "$GITHUB_OUTPUT"
+            echo "base_url=/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "preview_url=http://$IP/_previews/pr-${{ github.event.pull_request.number }}/" >> "$GITHUB_OUTPUT"
+            echo "CDN IP: $IP"
+          else
+            echo "ip=" >> "$GITHUB_OUTPUT"
+            echo "base_url=/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "preview_url=https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "CDN not configured, falling back to storage.googleapis.com"
+          fi
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install root dependencies (workspace)
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Set baseUrl for preview
+        run: |
+          cd demo
+          node -e "
+            const fs = require('fs');
+            const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+            config.expo.web = config.expo.web || {};
+            config.expo.web.output = 'static';
+            config.expo.experiments = config.expo.experiments || {};
+            config.expo.experiments.baseUrl = '${{ steps.cdn.outputs.base_url }}';
+            fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
+          "
+
+      - name: Export demo for web
+        run: bun run export
+        working-directory: demo
+
+      - name: Deploy preview to GCS
+        run: |
+          PREVIEW_PATH="_previews/pr-${{ github.event.pull_request.number }}"
+          gsutil -m -h "Cache-Control:no-cache" \
+            rsync -r -d \
+            demo/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
+
+          # Upload bare objects for SPA routing on previews. CDN's notFoundPage
+          # serves the root index.html, not the preview's, so bare uploads are
+          # always needed for preview sub-routes to work on refresh.
+          BARE_DIR="/tmp/bare-routes"
+          rm -rf "$BARE_DIR"
+          mkdir -p "$BARE_DIR"
+
+          # Root index.html → bare preview path object
+          cp demo/dist/index.html "$BARE_DIR/pr-${{ github.event.pull_request.number }}"
+          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
+            cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
+          echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
+
+          # All other HTML files → bare path objects (skip dynamic [param] routes).
+          COUNTER=0
+          find demo/dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
+            rel="${f#demo/dist/}"
+            bare="${rel%.html}"
+            bare="${bare%/index}"
+            COUNTER=$((COUNTER + 1))
+            BASENAME=$(basename "$bare")
+            TMPSUBDIR="$BARE_DIR/$COUNTER"
+            mkdir -p "$TMPSUBDIR"
+            cp "$f" "$TMPSUBDIR/$BASENAME"
+            DEST_DIR=$(dirname "$bare")
+            if [ "$DEST_DIR" = "." ]; then
+              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/"
+            else
+              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
+            fi
+            gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
+              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
+            echo "Uploaded bare route: $PREVIEW_PATH/$bare"
+          done
+
+      - name: Create deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = ${{ github.event.pull_request.number }};
+            const url = '${{ steps.cdn.outputs.preview_url }}';
+            const deployment = await github.rest.repos.createDeployment({
+              ...context.repo,
+              ref: '${{ github.event.pull_request.head.sha }}',
+              environment: `demo-preview-pr-${pr}`,
+              auto_merge: false,
+              required_contexts: [],
+              transient_environment: true,
+            });
+            await github.rest.repos.createDeploymentStatus({
+              ...context.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment_url: url,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
+            core.info(`Preview deployed to ${url}`);
