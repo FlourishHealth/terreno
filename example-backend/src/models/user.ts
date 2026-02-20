@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
     email: {
       description: "The user's email address, used for authentication",
       lowercase: true,
-      required: true,
+      sparse: true,
       trim: true,
       type: String,
       unique: true,
@@ -24,6 +24,15 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       trim: true,
       type: String,
     },
+    username: {
+      description: "The user's unique username, used as an alternative to email for login",
+      index: true,
+      lowercase: true,
+      sparse: true,
+      trim: true,
+      type: String,
+      unique: true,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
@@ -31,6 +40,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
 // Add passport-local-mongoose plugin
 userSchema.plugin(passportLocalMongoose, {
   usernameField: "email",
+  usernameQueryFields: ["username"],
 });
 
 addDefaultPlugins(userSchema);

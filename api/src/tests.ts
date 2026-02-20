@@ -10,8 +10,8 @@ import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "./plugins";
 export interface User {
   admin: boolean;
   name?: string;
-  username: string;
-  email: string;
+  username?: string;
+  email?: string;
   age?: number;
   disabled?: boolean;
 }
@@ -56,8 +56,11 @@ export interface Food {
 const userSchema = new Schema<User>({
   admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
   age: {description: "The user's age", type: Number},
+  // Define email before passport-local-mongoose plugin so the plugin uses our field config
+  // instead of creating its own. sparse: true allows multiple users with null/undefined email.
+  email: {description: "The user's email address", sparse: true, type: String, unique: true},
   name: {description: "The user's display name", type: String},
-  username: {description: "The user's username", type: String},
+  username: {description: "The user's username", sparse: true, type: String, unique: true},
 });
 
 userSchema.plugin(passportLocalMongoose as any, {
@@ -68,6 +71,7 @@ userSchema.plugin(passportLocalMongoose as any, {
   maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
   usernameCaseInsensitive: true,
   usernameField: "email",
+  usernameQueryFields: ["username"],
 });
 // userSchema.plugin(tokenPlugin);
 userSchema.plugin(createdUpdatedPlugin);
@@ -203,12 +207,21 @@ export async function setupDb() {
 
   // Broken out of the try/catch below so you can test the catch logger by shutting down mongo.
   await Promise.all([UserModel.deleteMany({}), FoodModel.deleteMany({})]).catch(logger.catch);
+  // Sync indexes to ensure schema changes (e.g. sparse unique constraints) are applied.
+  await UserModel.syncIndexes().catch(logger.catch);
 
   try {
-    const [notAdmin, admin, adminOther] = await Promise.all([
-      UserModel.create({email: "notAdmin@example.com", name: "Not Admin"}),
-      UserModel.create({admin: true, email: "admin@example.com", name: "Admin"}),
-      UserModel.create({admin: true, email: "admin+other@example.com", name: "Admin Other"}),
+    const [notAdmin, admin, adminOther, usernameOnly] = await Promise.all([
+      UserModel.create({email: "notAdmin@example.com", name: "Not Admin", username: "notadmin"}),
+      UserModel.create({admin: true, email: "admin@example.com", name: "Admin", username: "admin"}),
+      UserModel.create({
+        admin: true,
+        email: "admin+other@example.com",
+        name: "Admin Other",
+        username: "adminother",
+      }),
+      // User with only a username and no email — tests that email-less users can authenticate
+      UserModel.create({name: "Username Only", username: "usernameonly"}),
     ]);
     await (notAdmin as any).setPassword("password");
     await notAdmin.save();
@@ -217,10 +230,12 @@ export async function setupDb() {
     await admin.save();
 
     await (adminOther as any).setPassword("otherPassword");
-
     await adminOther.save();
 
-    return [admin, notAdmin, adminOther];
+    await (usernameOnly as any).setPassword("usernamePass");
+    await usernameOnly.save();
+
+    return [admin, notAdmin, adminOther, usernameOnly];
   } catch (error) {
     console.error("Error setting up DB", error);
     throw error;

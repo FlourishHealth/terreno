@@ -22,4 +22,5 @@ export type UserDocument = DefaultDoc &
     admin: boolean;
     email: string;
     name: string;
+    username?: string;
   };

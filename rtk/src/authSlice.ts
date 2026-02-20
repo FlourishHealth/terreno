@@ -24,12 +24,14 @@ export interface UserResponse {
 }
 
 export interface EmailLoginRequest {
-  email: string;
+  email?: string;
+  username?: string;
   password: string;
 }
 
 export interface EmailSignupRequest {
-  email: string;
+  email?: string;
+  username?: string;
   password: string;
   // Extra data
   [key: string]: unknown;
@@ -58,8 +60,8 @@ export function generateProfileEndpoints(
     // Unlike emailSignUp, this doesn't log in as the user.
     createEmailUser: builder.mutation<UserResponse, EmailSignupRequest>({
       invalidatesTags: [path, "conversations"],
-      query: ({email, password, ...body}) => ({
-        body: {email, password, ...body},
+      query: ({email, username, password, ...body}) => ({
+        body: {email, password, username, ...body},
         method: "POST",
         url: `auth/signup`,
       }),
@@ -67,16 +69,16 @@ export function generateProfileEndpoints(
     emailLogin: builder.mutation<UserResponse, EmailLoginRequest>({
       extraOptions: {maxRetries: 0},
       invalidatesTags: [path],
-      query: ({email, password}) => ({
-        body: {email, password},
+      query: ({email, username, password}) => ({
+        body: {email, password, username},
         method: "POST",
         url: "auth/login",
       }),
     }),
     emailSignUp: builder.mutation<UserResponse, EmailSignupRequest>({
       invalidatesTags: [path],
-      query: ({email, password, ...body}) => ({
-        body: {email, password, ...body},
+      query: ({email, username, password, ...body}) => ({
+        body: {email, password, username, ...body},
         method: "POST",
         url: `auth/signup`,
       }),

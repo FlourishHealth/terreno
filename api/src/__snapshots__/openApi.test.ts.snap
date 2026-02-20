@@ -230,6 +230,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "type": "boolean",
                                 },
                                 "email": {
+                                  "description": "The user's email address",
                                   "type": "string",
                                 },
                                 "hash": {
@@ -334,6 +335,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "type": "boolean",
                               },
                               "email": {
+                                "description": "The user's email address",
                                 "type": "string",
                               },
                               "hash": {
@@ -545,6 +547,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -649,6 +652,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "boolean",
                       },
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "hash": {
@@ -789,6 +793,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -893,6 +898,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -1163,6 +1169,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -1267,6 +1274,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -1471,6 +1479,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -1575,6 +1584,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "boolean",
                       },
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "hash": {
@@ -1715,6 +1725,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -1819,6 +1830,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -2166,6 +2178,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "type": "boolean",
                                 },
                                 "email": {
+                                  "description": "The user's email address",
                                   "type": "string",
                                 },
                                 "hash": {
@@ -2270,6 +2283,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "type": "boolean",
                               },
                               "email": {
+                                "description": "The user's email address",
                                 "type": "string",
                               },
                               "hash": {
@@ -2481,6 +2495,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -2585,6 +2600,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "boolean",
                       },
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "hash": {
@@ -2725,6 +2741,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -2829,6 +2846,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -3099,6 +3117,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -3203,6 +3222,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -3407,6 +3427,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -3511,6 +3532,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "boolean",
                       },
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "hash": {
@@ -3651,6 +3673,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "boolean",
                           },
                           "email": {
+                            "description": "The user's email address",
                             "type": "string",
                           },
                           "hash": {
@@ -3755,6 +3778,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "boolean",
                         },
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "hash": {
@@ -4138,6 +4162,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                           "ownerId": {
                             "properties": {
                               "email": {
+                                "description": "The user's email address",
                                 "type": "string",
                               },
                               "name": {
@@ -4351,6 +4376,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                   "ownerId": {
                     "properties": {
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "name": {
@@ -4493,6 +4519,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                     "ownerId": {
                       "properties": {
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "name": {
@@ -4765,6 +4792,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                     "ownerId": {
                       "properties": {
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "name": {
@@ -4971,6 +4999,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                   "ownerId": {
                     "properties": {
                       "email": {
+                        "description": "The user's email address",
                         "type": "string",
                       },
                       "name": {
@@ -5113,6 +5142,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
                     "ownerId": {
                       "properties": {
                         "email": {
+                          "description": "The user's email address",
                           "type": "string",
                         },
                         "name": {

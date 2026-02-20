@@ -53,7 +53,7 @@ export function authenticateMiddleware(anonymous = false) {
 
 export async function signupUser(
   userModel: UserModel,
-  email: string,
+  email: string | undefined,
   password: string,
   body?: any
 ) {
@@ -62,7 +62,16 @@ export async function signupUser(
   const {email: _email, password: _password, ...bodyRest} = body;
 
   try {
-    const user = await (userModel as any).register({email, ...bodyRest}, password);
+    let user;
+    if (email) {
+      // Email-based registration using passport-local-mongoose's register method
+      user = await (userModel as any).register({email, ...bodyRest}, password);
+    } else {
+      // Username-only registration — create user and set password manually since
+      // passport-local-mongoose's register() requires the usernameField (email).
+      user = new (userModel as any)(bodyRest);
+      await (user as any).setPassword(password);
+    }
 
     if (user.postCreate) {
       try {
@@ -290,23 +299,33 @@ export function addAuthRoutes(
 ): void {
   const router = express.Router();
   router.post("/login", async (req, res, next) => {
-    passport.authenticate("local", {session: false}, async (err: any, user: any, info: any) => {
-      if (err) {
-        logger.error(`Error logging in: ${err}`);
-        return next(err);
+    // If username is provided without email, pass it as the email field so passport-local-mongoose's
+    // findByUsername (with usernameQueryFields) searches both email and username via $or.
+    if (req.body.username && !req.body.email) {
+      req.body.email = req.body.username;
+    }
+
+    return passport.authenticate(
+      "local",
+      {session: false},
+      async (err: any, user: any, info: any) => {
+        if (err) {
+          logger.error(`Error logging in: ${err}`);
+          return next(err);
+        }
+        if (!user) {
+          logger.warn(`Invalid login: ${info}`);
+          return res.status(401).json({message: info?.message});
+        }
+        if (process.env.NODE_ENV !== "test") {
+          logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
+        }
+        const tokens = await generateTokens(user, authOptions);
+        return res.json({
+          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
+        });
       }
-      if (!user) {
-        logger.warn(`Invalid login: ${info}`);
-        return res.status(401).json({message: info?.message});
-      }
-      if (process.env.NODE_ENV !== "test") {
-        logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
-      }
-      const tokens = await generateTokens(user, authOptions);
-      return res.json({
-        data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
-      });
-    })(req, res, next);
+    )(req, res, next);
   });
 
   router.post("/refresh_token", async (req, res) => {
@@ -342,16 +361,44 @@ export function addAuthRoutes(
 
   const signupDisabled = process.env.SIGNUP_DISABLED === "true";
   if (!signupDisabled) {
-    router.post(
-      "/signup",
-      passport.authenticate("signup", {failWithError: true, session: false}),
-      async (req: any, res: any) => {
-        const tokens = await generateTokens(req.user, authOptions);
-        return res.json({
-          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: req.user._id},
-        });
+    router.post("/signup", async (req: any, res: any, next: any) => {
+      const {email, username, password} = req.body;
+
+      if (!password) {
+        return res.status(400).json({message: "Password is required"});
       }
-    );
+      if (!email && !username) {
+        return res.status(400).json({message: "Email or username is required"});
+      }
+
+      if (email) {
+        // Email-based signup: use existing passport signup strategy
+        return passport.authenticate(
+          "signup",
+          {failWithError: true, session: false},
+          async (err: any, user: any) => {
+            if (err) {
+              return next(err);
+            }
+            const tokens = await generateTokens(user, authOptions);
+            return res.json({
+              data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user._id},
+            });
+          }
+        )(req, res, next);
+      }
+
+      // Username-only signup: bypass passport strategy since register() requires email
+      try {
+        const user = await signupUser(userModel, undefined, password, req.body);
+        const tokens = await generateTokens(user, authOptions);
+        return res.json({
+          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user._id},
+        });
+      } catch (error) {
+        return next(error);
+      }
+    });
   }
   app.set("etag", false);
   app.use("/auth", router);

@@ -201,6 +201,120 @@ describe("auth tests", () => {
     expect(res.body.data.token).toBeDefined();
   });
 
+  it("login with username instead of email", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({username: "admin", password: "securePassword"})
+      .expect(200);
+    const {userId, token, refreshToken} = res.body.data;
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
+
+    await agent.set("authorization", `Bearer ${token}`);
+    const meRes = await agent.get("/auth/me").expect(200);
+    expect(meRes.body.data.email).toBe("admin@example.com");
+  });
+
+  it("case insensitive username login", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({username: "ADMIN", password: "securePassword"})
+      .expect(200);
+    expect(res.body.data.token).toBeDefined();
+  });
+
+  it("login with invalid username", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({username: "nonexistent", password: "securePassword"})
+      .expect(401);
+    expect(res.body).toEqual({
+      message: "Password or username is incorrect",
+    });
+  });
+
+  it("login with username and wrong password", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({username: "admin", password: "wrongPassword"})
+      .expect(401);
+    expect(res.body).toEqual({
+      message: "Password or username is incorrect",
+    });
+  });
+
+  it("email takes priority when both email and username are provided", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", username: "notadmin", password: "securePassword"})
+      .expect(200);
+    expect(res.body.data.token).toBeDefined();
+
+    await agent.set("authorization", `Bearer ${res.body.data.token}`);
+    const meRes = await agent.get("/auth/me").expect(200);
+    expect(meRes.body.data.email).toBe("admin@example.com");
+  });
+
+  it("login with username for user that has no email", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({username: "usernameonly", password: "usernamePass"})
+      .expect(200);
+    const {userId, token, refreshToken} = res.body.data;
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
+
+    await agent.set("authorization", `Bearer ${token}`);
+    const meRes = await agent.get("/auth/me").expect(200);
+    expect(meRes.body.data.username).toBe("usernameonly");
+    expect(meRes.body.data.email).toBeUndefined();
+  });
+
+  it("signup with username only (no email)", async () => {
+    const res = await agent
+      .post("/auth/signup")
+      .send({username: "brandnewuser", password: "newPass123"})
+      .expect(200);
+    const {userId, token, refreshToken} = res.body.data;
+    expect(userId).toBeDefined();
+    expect(token).toBeDefined();
+    expect(refreshToken).toBeDefined();
+
+    await agent.set("authorization", `Bearer ${token}`);
+    const meRes = await agent.get("/auth/me").expect(200);
+    expect(meRes.body.data.username).toBe("brandnewuser");
+    expect(meRes.body.data.email).toBeUndefined();
+
+    // Verify login works for newly signed up username-only user
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({username: "brandnewuser", password: "newPass123"})
+      .expect(200);
+    expect(loginRes.body.data.token).toBeDefined();
+  });
+
+  it("signup with username and extra data (no email)", async () => {
+    const res = await agent
+      .post("/auth/signup")
+      .send({age: 30, username: "extradatauser", password: "pass123"})
+      .expect(200);
+    expect(res.body.data.userId).toBeDefined();
+
+    const user = await UserModel.findOne({username: "extradatauser"});
+    expect(user?.age).toBe(30);
+    expect((user as any)?.email).toBeUndefined();
+  });
+
+  it("signup fails without email or username", async () => {
+    await agent.post("/auth/signup").send({password: "pass123"}).expect(400);
+  });
+
+  it("signup fails without password", async () => {
+    await agent.post("/auth/signup").send({username: "nopassuser"}).expect(400);
+  });
+
   it("completes token login e2e", async () => {
     const res = await agent
       .post("/auth/login")

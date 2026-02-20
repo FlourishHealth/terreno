@@ -33,6 +33,7 @@ testUserSchema.plugin(passportLocalMongoose as any, {
   maxInterval: 1,
   usernameCaseInsensitive: true,
   usernameField: "email",
+  usernameQueryFields: ["username"],
 });
 testUserSchema.plugin(createdUpdatedPlugin);
 testUserSchema.plugin(isDisabledPlugin);
