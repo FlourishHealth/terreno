@@ -275,6 +275,7 @@ describe("openApi populate", () => {
     expect(properties.ownerId).toEqual({
       properties: {
         email: {
+          description: "The user's email address",
           type: "string",
         },
         name: {
