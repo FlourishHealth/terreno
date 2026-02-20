@@ -1,0 +1,43 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "express": "^4.21.2"
+  },
+  "description": "Health check plugin for @terreno/api",
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.6",
+    "@types/bun": "^1.2.4",
+    "@types/express": "^4.17.21",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "typescript": "5.8.2"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "health",
+    "api",
+    "express",
+    "terreno"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "name": "@terreno/api-health",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test src/",
+    "test:ci": "bun test src/"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.0.14"
+}

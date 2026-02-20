@@ -71,6 +71,9 @@
   "scripts": {
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
+    "api-health:compile": "bun run --filter '@terreno/api-health' compile",
+    "api-health:lint": "bun run --filter '@terreno/api-health' lint",
+    "api-health:test": "bun run --filter '@terreno/api-health' test",
     "api:test": "bun run --filter '@terreno/api' test",
     "backend:dev": "bun run --filter '@terreno/example-backend' dev",
     "backend:lint": "bun run --filter '@terreno/example-backend' lint",
@@ -109,6 +112,7 @@
   "version": "1.0.0",
   "workspaces": [
     "api",
+    "api-health",
     "demo",
     "example-backend",
     "example-frontend",
