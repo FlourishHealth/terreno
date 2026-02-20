@@ -29,6 +29,7 @@ export * from "./Field";
 export * from "./FlatList";
 export * from "./Heading";
 export * from "./HeightActionSheet";
+export * from "./HeightField";
 export * from "./Icon";
 export * from "./IconButton";
 export * from "./Image";
