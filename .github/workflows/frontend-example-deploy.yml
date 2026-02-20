@@ -80,6 +80,11 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      - name: Ensure negative caching is disabled
+        run: |
+          gcloud compute backend-buckets update $BACKEND_BUCKET \
+            --no-negative-caching
+
       - name: Deploy to GCS
         run: |
           # Step 1: Upload new hashed assets (additive, no deletions).
@@ -94,12 +99,11 @@ jobs:
           gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
             cp dist/index.html "gs://$BUCKET/index.html"
 
-          # Step 3: Invalidate CDN cache synchronously so stale index.html
-          # (referencing old hashes) is purged before we clean up old assets.
+          # Step 3: Invalidate entire CDN cache so stale index.html and any
+          # negatively-cached 404s for new asset hashes are purged before we
+          # clean up old assets.
           gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
-            --path "/index.html"
-          gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
-            --path "/"
+            --path "/*"
 
           # Step 4: Clean up old assets that are no longer referenced.
           # Now safe because all CDN edges serve the new index.html.
