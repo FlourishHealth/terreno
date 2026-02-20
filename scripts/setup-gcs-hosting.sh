@@ -115,7 +115,8 @@ create_backend_bucket() {
     echo "  Creating backend bucket $name -> gs://$bucket"
     gcloud compute backend-buckets create "$name" \
       --gcs-bucket-name="$bucket" \
-      --enable-cdn
+      --enable-cdn \
+      --no-negative-caching
   fi
 }
 
