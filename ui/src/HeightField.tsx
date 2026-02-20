@@ -1,8 +1,8 @@
 import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Platform, Pressable, TextInput, View} from "react-native";
+import {Platform, Pressable, type StyleProp, TextInput, View} from "react-native";
 
 import {Box} from "./Box";
-import type {HeightFieldProps} from "./Common";
+import type {HeightFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {HeightActionSheet} from "./HeightActionSheet";
 import {isMobileDevice} from "./MediaQuery";
@@ -123,13 +123,16 @@ const HeightSegment: FC<HeightSegmentProps> = ({
           placeholderTextColor={theme.text.secondaryLight}
           ref={inputRef}
           selectTextOnFocus
-          style={{
-            color: error ? theme.text.error : theme.text.primary,
-            fontFamily: "text",
-            fontSize: 16,
-            textAlign: "center",
-            width: "100%",
-          }}
+          style={
+            {
+              color: error ? theme.text.error : theme.text.primary,
+              fontFamily: "text",
+              fontSize: 16,
+              textAlign: "center",
+              width: "100%",
+              ...(Platform.OS === "web" ? {outline: "none"} : {}),
+            } as StyleProp<TextStyleWithOutline>
+          }
           value={value}
         />
       </View>
