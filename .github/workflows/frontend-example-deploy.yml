@@ -6,12 +6,14 @@ on:
       - master
     paths:
       - "example-frontend/**"
+      - "admin-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
     paths:
       - "example-frontend/**"
+      - "admin-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-deploy.yml"
@@ -38,6 +40,10 @@ jobs:
       - name: Build RTK dependency
         run: bun run compile
         working-directory: rtk
+
+      - name: Build Admin Frontend dependency
+        run: bun run compile
+        working-directory: admin-frontend
 
       - name: Check for backend changes in PR
         id: backend-changes
