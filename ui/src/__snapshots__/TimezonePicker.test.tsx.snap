@@ -2391,16 +2391,6 @@ exports[`TimezonePicker renders worldwide timezones when specified 1`] = `
                       "children": null,
                       "props": {
                         "color": undefined,
-                        "label": "America/Coyhaique",
-                        "value": "America/Coyhaique",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
                         "label": "America/Creston",
                         "value": "America/Creston",
                       },
@@ -3753,6 +3743,16 @@ exports[`TimezonePicker renders worldwide timezones when specified 1`] = `
                         "color": undefined,
                         "label": "Asia/Chita",
                         "value": "Asia/Chita",
+                      },
+                      "type": "Picker.Item",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "color": undefined,
+                        "label": "Asia/Choibalsan",
+                        "value": "Asia/Choibalsan",
                       },
                       "type": "Picker.Item",
                     },
