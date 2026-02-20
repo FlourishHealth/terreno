@@ -69,45 +69,51 @@ jobs:
             });
 
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-      - name: Build and push Docker image
+      - name: Build Docker image
         run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest"
-          docker build -t "$IMAGE" -f ./example-backend/Dockerfile .
-          docker push "$IMAGE"
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }} \
+            --tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest
 
       - name: Deploy to Cloud Run
         id: deploy
-        run: |
-          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:latest"
-
-          gcloud run deploy '${{ env.GCP_SERVICE_NAME }}' \
-            --platform managed \
-            --region '${{ env.GCP_REGION }}' \
-            --image "$IMAGE" \
-            --port 3000 \
-            --memory '512Mi' \
-            --min-instances 0 \
-            --max-instances 10 \
-            --concurrency 80 \
-            --timeout 300 \
-            --allow-unauthenticated \
-            --set-env-vars "NODE_ENV=production,MONGODB_URI=${{ secrets.MONGO_URI }}" \
-            --quiet
-
-          # Get the service URL for output
-          URL=$(gcloud run services describe '${{ env.GCP_SERVICE_NAME }}' --region '${{ env.GCP_REGION }}' --format 'value(status.url)')
-          echo "url=$URL" >> $GITHUB_OUTPUT
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+          env_vars: |
+            NODE_ENV=production
+            MONGODB_URI=${{ secrets.MONGO_URI }}
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
 
       - name: Set deployment status to success
         if: success()
@@ -151,41 +157,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Determine environment
-        id: env
-        run: |
-          echo "environment=production" >> $GITHUB_OUTPUT
-          echo "is_production=true" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Deployment
-        id: create-deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'example-frontend-${{ steps.env.outputs.environment }}',
-              auto_merge: false,
-              required_contexts: [],
-              description: 'Example Frontend Deployment'
-            });
-            core.setOutput('deployment_id', deployment.data.id);
-            return deployment.data.id;
-
-      - name: Set deployment status to in_progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'in_progress',
-              description: 'Deploying frontend to Netlify'
-            });
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -208,6 +179,12 @@ jobs:
         env:
           EXPO_PUBLIC_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
 
+      - name: Get commit message header
+        id: commit
+        run: echo "message=$(echo "$COMMIT_MSG" | head -n 1)" >> "$GITHUB_OUTPUT"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+
       - name: Deploy to Netlify
         id: netlify
         uses: nwtgck/actions-netlify@v3.0
@@ -216,40 +193,15 @@ jobs:
           production-branch: master
           production-deploy: ${{ github.ref == 'refs/heads/master' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions - ${{ github.event.head_commit.message }}"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
+          deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message || github.event.pull_request.title }}"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+          github-deployment-environment: example-frontend
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
         timeout-minutes: 5
-
-      - name: Set deployment status to success
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'success',
-              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
-              description: 'Frontend deployed successfully'
-            });
-
-      - name: Set deployment status to failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'failure',
-              description: 'Frontend deployment failed'
-            });
 
       - name: Output frontend URL
         run: |
