@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
 import {APIError} from "../errors";

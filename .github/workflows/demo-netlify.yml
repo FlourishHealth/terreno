@@ -1,4 +1,5 @@
 name: Demo Netlify Deploy
+# Trigger test for Netlify deploy
 
 on:
   push:
@@ -18,49 +19,8 @@ jobs:
   build-and-deploy:
     name: Build and Deploy Demo
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      deployments: write
     steps:
       - uses: actions/checkout@v6
-
-      - name: Determine environment
-        id: env
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "environment=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          else
-            echo "environment=production" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create GitHub Deployment
-        id: create-deployment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const deployment = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: 'demo-${{ steps.env.outputs.environment }}',
-              auto_merge: false,
-              required_contexts: [],
-              description: 'Demo Deployment'
-            });
-            core.setOutput('deployment_id', deployment.data.id);
-            return deployment.data.id;
-
-      - name: Set deployment status to in_progress
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'in_progress',
-              description: 'Deploying demo to Netlify'
-            });
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -78,6 +38,12 @@ jobs:
         run: bun run export
         working-directory: demo
 
+      - name: Get commit message header
+        id: commit
+        run: echo "message=$(echo "$COMMIT_MSG" | head -n 1)" >> "$GITHUB_OUTPUT"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+
       - name: Deploy to Netlify
         id: netlify
         uses: nwtgck/actions-netlify@v3.0
@@ -86,41 +52,15 @@ jobs:
           production-branch: master
           production-deploy: ${{ github.ref == 'refs/heads/master' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions - ${{ github.event.head_commit.message || github.event.pull_request.title }}"
-          enable-pull-request-comment: false
-          enable-commit-comment: false
-          alias: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || '' }}
+          deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message || github.event.pull_request.title }}"
+          enable-pull-request-comment: true
+          enable-commit-comment: true
+          overwrites-pull-request-comment: true
+          github-deployment-environment: demo
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
         timeout-minutes: 5
-
-      - name: Set deployment status to success
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'success',
-              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
-              description: 'Demo deployed successfully'
-            });
-
-      - name: Set deployment status to failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
-              state: 'failure',
-              description: 'Demo deployment failed'
-            });
 
       - name: Output deploy URL
         run: echo "Demo deployed to ${{ steps.netlify.outputs.deploy-url }}"

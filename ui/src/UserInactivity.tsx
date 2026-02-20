@@ -46,7 +46,7 @@ export const UserInactivity: FC<UserInactivityProps> = ({
 
   const initialActive = isActiveProp === undefined ? true : isActiveProp;
   const [active, setActive] = useState(initialActive);
-  const [resetKey, setResetKey] = useState(0);
+  const [_resetKey, setResetKey] = useState(0);
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstRender = useRef(true);
@@ -79,7 +79,7 @@ export const UserInactivity: FC<UserInactivityProps> = ({
     }, timeForInactivity);
 
     return clearTimer;
-  }, [resetKey, timeForInactivity, onAction, clearTimer]);
+  }, [timeForInactivity, onAction, clearTimer]);
 
   // Trigger onAction when active state changes (except on first render)
   useEffect(() => {

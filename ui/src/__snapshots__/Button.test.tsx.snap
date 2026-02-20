@@ -51,7 +51,7 @@ exports[`Button renders correctly with default props 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -119,7 +119,7 @@ exports[`Button renders primary variant 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -187,7 +187,7 @@ exports[`Button renders secondary variant 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#2B6072",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -255,7 +255,7 @@ exports[`Button renders muted variant 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#B6CDD5",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -323,7 +323,7 @@ exports[`Button renders outline variant 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#FFFFFF",
       "borderColor": "#092E3A",
       "borderRadius": 360,
@@ -391,7 +391,7 @@ exports[`Button renders destructive variant 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#BD1111",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -459,7 +459,7 @@ exports[`Button renders disabled state 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#9A9A9A",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -527,7 +527,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#9A9A9A",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -618,7 +618,7 @@ exports[`Button renders loading state 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -767,7 +767,7 @@ exports[`Button renders with icon on left 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -848,7 +848,7 @@ exports[`Button renders with icon on right 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
@@ -916,7 +916,7 @@ exports[`Button renders with confirmation modal props 1`] = `
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
-      "alignSelf": undefined,
+      "alignSelf": "flex-start",
       "backgroundColor": "#0E9DCD",
       "borderColor": undefined,
       "borderRadius": 360,
