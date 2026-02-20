@@ -112,10 +112,11 @@ git push origin master
 The workflows will:
 1. Build the app with Bun and Expo
 2. Upload the build artifact
-3. Sync assets to GCS with cache headers:
+3. Ensure negative caching is disabled on the backend bucket to prevent cached 404s
+4. Sync assets to GCS with cache headers:
    - Hashed assets: `Cache-Control: public, max-age=31536000, immutable`
    - `index.html`: `Cache-Control: no-cache, no-store, must-revalidate`
-4. Invalidate the CDN cache
+5. Invalidate the entire CDN cache with `--path "/*"` to clear all stale content and cached 404s
 
 ### Triggered Workflows
 
@@ -210,14 +211,20 @@ gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
 
 **Solution**: The deploy workflow uploads "bare" route objects. Check that the workflow completed successfully.
 
-### CDN Shows Stale Content
+### CDN Shows Stale Content or 404s for New Assets
 
-**Problem**: CDN cache not invalidated.
+**Problem**: CDN cache not invalidated or negative caching enabled.
 
-**Solution**: Run cache invalidation manually:
-``````bash
-gcloud compute url-maps invalidate-cdn-cache URLMAP_NAME --path "/*" --async
-``````
+**Solution**: 
+1. Ensure negative caching is disabled:
+   ``````bash
+   gcloud compute backend-buckets update BACKEND_BUCKET_NAME --no-negative-caching
+   ``````
+
+2. Invalidate the entire cache:
+   ``````bash
+   gcloud compute url-maps invalidate-cdn-cache URLMAP_NAME --path "/*" --async
+   ``````
 
 ### Permission Denied on gsutil
 

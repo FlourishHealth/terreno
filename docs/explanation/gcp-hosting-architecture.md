@@ -77,7 +77,7 @@ Both apps use the same architecture pattern optimized for single-page applicatio
 
 **Configuration**:
 - **CDN enabled**: Responses are cached at Google edge locations worldwide
-- **Negative caching disabled**: Prevents Cloud CDN from caching 404 responses, which would cause stale 404s for newly-deployed asset hashes
+- **Negative caching disabled** (`--no-negative-caching`): Prevents Cloud CDN from caching 404 responses, which would cause stale 404s for newly-deployed asset hashes. This is critical for continuous deployment workflows where asset hashes change with each build.
 - **Linked to GCS bucket**: Single bucket per backend
 
 **Performance**: CDN reduces latency by serving cached content from edge locations closest to users.
@@ -193,12 +193,12 @@ gs://bucket/
 
 1. **Trigger**: Push to `master` branch with changes to `demo/**`, `ui/**`, `example-frontend/**`, `rtk/**`
 2. **Build**: GitHub Actions runs `bun run export` to generate static files
-3. **Ensure negative caching disabled**: Update backend bucket to prevent cached 404s
+3. **Ensure negative caching disabled**: Update backend bucket with `--no-negative-caching` to prevent Cloud CDN from caching 404 responses for newly-deployed asset hashes
 4. **Upload**:
-   - Sync new hashed assets (additive, no deletions) so old bundles remain available
+   - Sync new hashed assets (additive, no deletions) so old bundles remain available while the previous index.html still references them
    - Upload `index.html` with no-cache header, atomically switching to new bundle hashes
-5. **Invalidate CDN**: `gcloud compute url-maps invalidate-cdn-cache --path "/*"` clears all cached paths
-6. **Cleanup**: Sync with deletions (`-d`) to remove old assets no longer referenced
+5. **Invalidate CDN**: `gcloud compute url-maps invalidate-cdn-cache --path "/*"` clears all cached paths including any stale 404s
+6. **Cleanup**: Sync with deletions (`-d`) to remove old assets no longer referenced by any index.html
 
 ### Preview Deploy
 
