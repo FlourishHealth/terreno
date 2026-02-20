@@ -316,6 +316,25 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 - Minimize `use client`, `useEffect`, and `setState`
 - Always support React-Native Web
 
+## Deployment
+
+### GCP Static Hosting
+
+The demo and example-frontend apps deploy to Google Cloud Storage with Cloud CDN:
+
+- **Infrastructure**: GCS buckets → Backend buckets (CDN-enabled) → URL maps → Static IPs
+- **Setup script**: `scripts/setup-gcs-hosting.sh` provisions all GCP resources with `--no-negative-caching`
+- **Deployment workflows**: `.github/workflows/demo-deploy.yml` and `frontend-example-deploy.yml`
+- **Cache strategy**:
+  - Hashed assets: `Cache-Control: public, max-age=31536000, immutable`
+  - index.html: `Cache-Control: no-cache, no-store, must-revalidate`
+  - CDN invalidation: `--path "/*"` (wildcard) to clear all cached paths
+- **Negative caching disabled**: Backend buckets created with `--no-negative-caching` to prevent cached 404s for new asset hashes
+
+For detailed architecture and deployment steps, see:
+- [docs/explanation/gcp-hosting-architecture.md](docs/explanation/gcp-hosting-architecture.md)
+- [docs/how-to/deploy-to-gcp.md](docs/how-to/deploy-to-gcp.md)
+
 ## CI/CD Workflows
 
 ### Required Secret Validation
