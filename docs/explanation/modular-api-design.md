@@ -220,7 +220,6 @@ Migration will be supported with:
 ## Learn More
 
 - 📖 [Implementation plan](../implementationPlans/ModularAPI.md) — Full technical specification
-- 📝 [Migration guide](../how-to/migrate-to-terreno-app.md) — How to upgrade from setupServer
 - 💬 [GitHub PR #149](https://github.com/FlourishHealth/terreno/pull/149) — Discussion and feedback
 
 ## Related
