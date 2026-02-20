@@ -338,3 +338,14 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Implementation Plans
+
+The `docs/implementationPlans/` directory contains design documents for planned features that are **not yet implemented**. These documents outline future architectural changes and new APIs. When working with the codebase:
+
+- **Check implementation plans** before suggesting major refactors - the change may already be planned
+- **Use current APIs** - implementation plans describe future features, not current functionality
+- **Reference plans in discussions** of future work or architectural decisions
+
+Current implementation plans:
+- [ModularAPI.md](../docs/implementationPlans/ModularAPI.md) - Planned `TerrenoApp` class to replace `setupServer` in @terreno/api
