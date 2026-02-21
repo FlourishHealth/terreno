@@ -163,7 +163,45 @@ const router = modelRouter(YourModel, {
   },
   sort: "-created",
   queryFields: ["_id", "type", "name"],
+  validation: {
+    validateCreate: true,   // Validate POST requests
+    validateUpdate: true,   // Validate PATCH requests
+    validateQuery: true,    // Validate query parameters
+  },
 });
+```
+
+#### OpenAPI Validation
+
+Runtime request validation using AJV against OpenAPI schemas. Validation is always installed as middleware but inactive by default.
+
+Enable validation globally at server startup:
+
+```typescript
+import {configureOpenApiValidator, logger} from "@terreno/api";
+
+configureOpenApiValidator({
+  removeAdditional: true,  // Strip unknown properties (default: true)
+  coerceTypes: true,       // Coerce types like "123" to 123 (default: true)
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+```
+
+Use `withValidation()` in OpenAPI builder for custom routes:
+
+```typescript
+router.post("/custom", [
+  authenticateMiddleware(),
+  createOpenApiBuilder(options)
+    .withTags(["custom"])
+    .withRequestBody({name: {type: "string", required: true}, age: {type: "number"}})
+    .withValidation(true)  // Enable validation for this route
+    .build(),
+], asyncHandler(async (req, res) => {
+  return res.json({data: result});
+}));
 ```
 
 #### Custom Routes
