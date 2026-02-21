@@ -1,4 +1,4 @@
-name: Example Full Stack Deploy
+name: Example Backend Deploy
 
 on:
   push:
@@ -7,10 +7,8 @@ on:
       - example-deploy
     paths:
       - "example-backend/**"
-      - "example-frontend/**"
       - "api/**"
-      - "ui/**"
-      - "rtk/**"
+      - "api-health/**"
       - ".github/workflows/deploy-example-gcp.yml"
 
 env:
@@ -144,66 +142,3 @@ jobs:
 
       - name: Output backend URL
         run: echo "Backend deployed to ${{ steps.deploy.outputs.url }}"
-
-  deploy-frontend:
-    name: Deploy Frontend
-    runs-on: ubuntu-latest
-    needs: deploy-backend
-    permissions:
-      contents: read
-      deployments: write
-    outputs:
-      frontend_url: ${{ steps.netlify.outputs.deploy-url }}
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
-
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
-
-      - name: Export frontend for web
-        run: bun run export
-        working-directory: example-frontend
-        env:
-          EXPO_PUBLIC_API_URL: ${{ needs.deploy-backend.outputs.backend_url }}
-
-      - name: Get commit message header
-        id: commit
-        run: echo "message=$(echo "$COMMIT_MSG" | head -n 1)" >> "$GITHUB_OUTPUT"
-        env:
-          COMMIT_MSG: ${{ github.event.head_commit.message }}
-
-      - name: Deploy to Netlify
-        id: netlify
-        uses: nwtgck/actions-netlify@v3.0
-        with:
-          publish-dir: "./example-frontend/dist"
-          production-branch: master
-          production-deploy: ${{ github.ref == 'refs/heads/master' }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message || github.event.pull_request.title }}"
-          enable-pull-request-comment: true
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-          github-deployment-environment: example-frontend
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
-        timeout-minutes: 5
-
-      - name: Output frontend URL
-        run: |
-          echo "Frontend deployed to ${{ steps.netlify.outputs.deploy-url }}"
-          echo "Connected to backend at ${{ needs.deploy-backend.outputs.backend_url }}"
