@@ -25,8 +25,8 @@ Shared dependency versions are defined in the root `package.json` under the `cat
 // root package.json
 {
   "catalog": {
-    "react": "18.2.0",
-    "react-native": "0.73.2"
+    "react": "19.1.0",
+    "react-native": "0.81.5"
   }
 }
 ``````
