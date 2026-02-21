@@ -4,9 +4,9 @@
  * Provides runtime validation of incoming requests against OpenAPI schemas.
  * Uses AJV for JSON Schema validation with OpenAPI-compatible settings.
  *
- * This module provides a configurable, opt-in validation layer that can be
- * easily enabled in development/staging and disabled in production for
- * performance if needed.
+ * Validation is always installed as middleware but only activates after
+ * `configureOpenApiValidator()` is called. This makes it safe to include
+ * in modelRouter by default.
  *
  * @module openApiValidator
  *
@@ -16,20 +16,21 @@
  * ```typescript
  * // Enable validation globally at server startup
  * configureOpenApiValidator({
- *   validateRequests: process.env.NODE_ENV !== "production",
+ *   removeAdditional: true,
+ *   onAdditionalPropertiesRemoved: (props, req) => {
+ *     logger.warn(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+ *   },
  * });
  *
- * // Use with OpenApiMiddlewareBuilder
- * createOpenApiBuilder(options)
- *   .withRequestBody<{name: string}>({name: {type: "string", required: true}})
- *   .withValidation() // Enables validation for this route
- *   .build();
- *
- * // Or use standalone middleware
- * router.post("/users", [
- *   openApiMiddleware,
- *   validateRequestBody({name: {type: "string", required: true}}),
- * ], handler);
+ * // modelRouter automatically validates when configured
+ * modelRouter(Todo, {
+ *   permissions: {...},
+ *   validation: {
+ *     validateCreate: true,
+ *     validateUpdate: true,
+ *     validateQuery: true,
+ *   },
+ * });
  * ```
  */
 
@@ -50,7 +51,7 @@ import type {OpenApiSchema, OpenApiSchemaProperty} from "./openApiBuilder";
 export interface OpenApiValidatorConfig {
   /**
    * Enable or disable request body validation.
-   * Default: false (opt-in for safety)
+   * Default: true (when configureOpenApiValidator is called)
    */
   validateRequests?: boolean;
 
@@ -68,7 +69,7 @@ export interface OpenApiValidatorConfig {
 
   /**
    * Whether to remove additional properties not in the schema.
-   * Default: false
+   * Default: true
    */
   removeAdditional?: boolean;
 
@@ -80,36 +81,61 @@ export interface OpenApiValidatorConfig {
 
   /**
    * Log validation errors for debugging.
-   * Default: true in development, false in production
+   * Default: true
    */
   logValidationErrors?: boolean;
+
+  /**
+   * Callback fired when additional properties are removed from a request body.
+   * Only fires when `removeAdditional: true` and extra properties are present.
+   * Receives the list of removed property names and the request.
+   */
+  onAdditionalPropertiesRemoved?: (removedProperties: string[], req: Request) => void;
 }
+
+// Whether configureOpenApiValidator() has been called
+let isConfigured = false;
 
 // Global validator configuration - can be modified at runtime
 let globalConfig: OpenApiValidatorConfig = {
   coerceTypes: true,
-  logValidationErrors: process.env.NODE_ENV !== "production",
-  removeAdditional: false,
-  validateRequests: false,
+  logValidationErrors: true,
+  removeAdditional: true,
+  validateRequests: true,
   validateResponses: false,
 };
 
 /**
+ * Check whether `configureOpenApiValidator()` has been called.
+ * Validation middleware is a no-op when this returns false.
+ */
+export function isOpenApiValidatorConfigured(): boolean {
+  return isConfigured;
+}
+
+/**
  * Configure the global OpenAPI validator settings.
+ * Calling this function activates validation — middleware that was previously
+ * installed as a no-op will begin validating requests.
  *
  * @param config - Configuration options to merge with existing config
  *
  * @example
  * ```typescript
- * // Enable validation in development
  * configureOpenApiValidator({
- *   validateRequests: process.env.NODE_ENV !== "production",
- *   logValidationErrors: true,
+ *   removeAdditional: true,
+ *   onAdditionalPropertiesRemoved: (props, req) => {
+ *     Sentry.captureMessage(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+ *   },
  * });
  * ```
  */
-export function configureOpenApiValidator(config: Partial<OpenApiValidatorConfig>): void {
+export function configureOpenApiValidator(config: Partial<OpenApiValidatorConfig> = {}): void {
+  isConfigured = true;
   globalConfig = {...globalConfig, ...config};
+  // Clear cached AJV instances so new config takes effect
+  ajvCache.clear();
+  validatorCache.clear();
   logger.debug(`OpenAPI validator configured: ${JSON.stringify(globalConfig)}`);
 }
 
@@ -122,29 +148,49 @@ export function getOpenApiValidatorConfig(): OpenApiValidatorConfig {
 
 /**
  * Reset the global validator configuration to defaults.
+ * Also resets `isConfigured` to false.
  * Useful for testing.
  */
 export function resetOpenApiValidatorConfig(): void {
+  isConfigured = false;
   globalConfig = {
     coerceTypes: true,
-    logValidationErrors: process.env.NODE_ENV !== "production",
-    removeAdditional: false,
-    validateRequests: false,
+    logValidationErrors: true,
+    removeAdditional: true,
+    validateRequests: true,
     validateResponses: false,
   };
+  ajvCache.clear();
+  validatorCache.clear();
 }
 
-// Create a shared AJV instance with OpenAPI-compatible settings
-const ajv = new Ajv({
-  allErrors: true,
-  coerceTypes: true,
-  removeAdditional: false,
-  strict: false,
-  useDefaults: true,
-});
-addFormats(ajv);
+// Lazy AJV instance cache keyed by coerceTypes + removeAdditional
+const ajvCache = new Map<string, Ajv>();
 
-// Cache compiled validators by schema hash
+/**
+ * Get or create an AJV instance with the current config settings.
+ */
+function getAjvInstance(): Ajv {
+  const key = `coerce:${globalConfig.coerceTypes ?? true},remove:${globalConfig.removeAdditional ?? true}`;
+  let instance = ajvCache.get(key);
+
+  if (!instance) {
+    instance = new Ajv({
+      allErrors: true,
+      coerceTypes: globalConfig.coerceTypes ?? true,
+      removeAdditional: globalConfig.removeAdditional ?? true,
+      strict: false,
+      useDefaults: true,
+      validateSchema: false,
+    });
+    addFormats(instance);
+    ajvCache.set(key, instance);
+  }
+
+  return instance;
+}
+
+// Cache compiled validators by schema hash + config key
 const validatorCache = new Map<string, ValidateFunction>();
 
 /**
@@ -156,17 +202,31 @@ function hashSchema(schema: OpenApiSchema): string {
 
 /**
  * Get or create a compiled validator for a schema.
+ * Uses the current config so changes take effect on next call.
+ * Returns null if the schema cannot be compiled (e.g., non-standard types from mongoose-to-swagger).
  */
-function getValidator(schema: OpenApiSchema): ValidateFunction {
-  const hash = hashSchema(schema);
-  let validator = validatorCache.get(hash);
+function getValidator(schema: OpenApiSchema): ValidateFunction | null {
+  const ajv = getAjvInstance();
+  const configKey = `coerce:${globalConfig.coerceTypes ?? true},remove:${globalConfig.removeAdditional ?? true}`;
+  const hash = `${configKey}:${hashSchema(schema)}`;
+  const cached = validatorCache.get(hash);
 
-  if (!validator) {
-    validator = ajv.compile(schema);
-    validatorCache.set(hash, validator);
+  if (cached !== undefined) {
+    return cached;
   }
 
-  return validator;
+  try {
+    const validator = ajv.compile(schema);
+    validatorCache.set(hash, validator);
+    return validator;
+  } catch (err) {
+    logger.debug(
+      `Could not compile validation schema (non-standard types from mongoose-to-swagger?): ${(err as Error).message}`
+    );
+    // Cache null so we don't retry compilation on every request
+    validatorCache.set(hash, null as unknown as ValidateFunction);
+    return null;
+  }
 }
 
 /**
@@ -184,6 +244,8 @@ function formatValidationErrors(errors: ErrorObject[]): string {
 
 /**
  * Convert OpenApiSchemaProperty to a full OpenApiSchema suitable for AJV.
+ * Strips `required` from individual properties (OpenAPI-style) and moves it
+ * to the schema-level `required` array (JSON Schema-style) for AJV compatibility.
  */
 function propertiesToSchema(
   properties: Record<string, OpenApiSchemaProperty>,
@@ -196,11 +258,26 @@ function propertiesToSchema(
 
   const allRequired = [...new Set([...(requiredFields ?? []), ...autoRequired])];
 
-  return {
-    properties,
+  // Strip `required` from individual properties — AJV only accepts `required` at schema level
+  const cleanedProperties: Record<string, OpenApiSchemaProperty> = {};
+  for (const [key, prop] of Object.entries(properties)) {
+    const {required: _, ...rest} = prop;
+    cleanedProperties[key] = rest as OpenApiSchemaProperty;
+  }
+
+  const schema: OpenApiSchema = {
+    properties: cleanedProperties,
     required: allRequired.length > 0 ? allRequired : undefined,
     type: "object",
   };
+
+  // When removeAdditional is enabled, set additionalProperties: false
+  // so AJV knows to strip unknown properties
+  if (globalConfig.removeAdditional) {
+    schema.additionalProperties = false;
+  }
+
+  return schema;
 }
 
 /**
@@ -221,38 +298,37 @@ export interface RequestBodyValidatorOptions {
    * Custom error handler for this specific route.
    */
   onError?: (errors: ErrorObject[], req: Request) => void;
+
+  /**
+   * Callback fired when additional properties are removed.
+   * Overrides the global onAdditionalPropertiesRemoved for this route.
+   */
+  onAdditionalPropertiesRemoved?: (removedProperties: string[], req: Request) => void;
 }
 
 /**
  * Creates middleware that validates the request body against an OpenAPI schema.
  *
- * This middleware is designed to be used after the OpenAPI documentation middleware
- * but before the route handler.
+ * The middleware checks `isConfigured` at request time — if `configureOpenApiValidator()`
+ * has not been called, the middleware is a no-op.
  *
  * @param schema - The schema to validate against (same format as withRequestBody)
  * @param options - Optional configuration for this validator
  * @returns Express middleware function
- *
- * @example
- * ```typescript
- * router.post("/users", [
- *   createOpenApiBuilder(options)
- *     .withRequestBody<{name: string}>({name: {type: "string", required: true}})
- *     .build(),
- *   validateRequestBody({name: {type: "string", required: true}}),
- * ], asyncHandler(async (req, res) => {
- *   // req.body is guaranteed to match the schema
- * }));
- * ```
  */
 export function validateRequestBody(
   schema: Record<string, OpenApiSchemaProperty>,
   options?: RequestBodyValidatorOptions
 ): (req: Request, res: Response, next: NextFunction) => void {
   const fullSchema = propertiesToSchema(schema, options?.required);
-  const validator = getValidator(fullSchema);
 
   return (req: Request, _res: Response, next: NextFunction): void => {
+    // No-op if not configured
+    if (!isConfigured) {
+      next();
+      return;
+    }
+
     // Check if validation is enabled (route override takes precedence)
     const isEnabled = options?.enabled ?? globalConfig.validateRequests;
 
@@ -261,8 +337,20 @@ export function validateRequestBody(
       return;
     }
 
-    // Clone body if we might modify it (coercion)
-    const bodyToValidate = globalConfig.coerceTypes ? {...req.body} : req.body;
+    // Capture keys before validation for removeAdditional detection
+    const keysBefore = req.body && typeof req.body === "object" ? Object.keys(req.body) : [];
+
+    // Get validator at request time so config changes take effect
+    const validator = getValidator(fullSchema);
+
+    // If schema couldn't be compiled (e.g., non-standard types), skip validation
+    if (!validator) {
+      next();
+      return;
+    }
+
+    // Clone body if we might modify it (coercion or removeAdditional)
+    const bodyToValidate: Record<string, unknown> = {...req.body};
 
     const valid = validator(bodyToValidate);
 
@@ -304,8 +392,28 @@ export function validateRequestBody(
       });
     }
 
-    // If coercion is enabled, update req.body with coerced values
-    if (globalConfig.coerceTypes && valid) {
+    // Update req.body with coerced/stripped values
+    if (valid) {
+      // Detect removed properties (top-level only)
+      if (globalConfig.removeAdditional) {
+        const keysAfter = Object.keys(bodyToValidate);
+        const removedProperties = keysBefore.filter((k) => !keysAfter.includes(k));
+
+        if (removedProperties.length > 0) {
+          const hook =
+            options?.onAdditionalPropertiesRemoved ?? globalConfig.onAdditionalPropertiesRemoved;
+          if (hook) {
+            hook(removedProperties, req);
+          }
+
+          if (globalConfig.logValidationErrors) {
+            logger.debug(
+              `Stripped additional properties from ${req.method} ${req.path}: ${removedProperties.join(", ")}`
+            );
+          }
+        }
+      }
+
       req.body = bodyToValidate;
     }
 
@@ -340,12 +448,26 @@ export function validateQueryParams(
   options?: QueryValidatorOptions
 ): (req: Request, res: Response, next: NextFunction) => void {
   const fullSchema = propertiesToSchema(schema);
-  const validator = getValidator(fullSchema);
 
   return (req: Request, _res: Response, next: NextFunction): void => {
+    // No-op if not configured
+    if (!isConfigured) {
+      next();
+      return;
+    }
+
     const isEnabled = options?.enabled ?? globalConfig.validateRequests;
 
     if (!isEnabled) {
+      next();
+      return;
+    }
+
+    // Get validator at request time
+    const validator = getValidator(fullSchema);
+
+    // If schema couldn't be compiled, skip validation
+    if (!validator) {
       next();
       return;
     }
@@ -489,6 +611,11 @@ export function validateResponseData(
 
   const fullSchema = propertiesToSchema(schema);
   const validator = getValidator(fullSchema);
+
+  if (!validator) {
+    return {valid: true};
+  }
+
   const valid = validator(data);
 
   if (!valid && validator.errors) {
@@ -512,16 +639,18 @@ const m2sOptions = {
  *
  * @param model - A Mongoose model
  * @returns Schema properties suitable for validation
- *
- * @example
- * ```typescript
- * const userSchema = getSchemaFromModel(User);
- * const validateUser = validateRequestBody(userSchema);
- * ```
  */
 export function getSchemaFromModel<T>(model: Model<T>): Record<string, OpenApiSchemaProperty> {
   const modelSwagger = m2s(model, m2sOptions);
   return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
+}
+
+/**
+ * Extract required field names from a Mongoose model's swagger schema.
+ */
+function getRequiredFieldsFromModel<T>(model: Model<T>): string[] {
+  const modelSwagger = m2s(model, m2sOptions);
+  return (modelSwagger.required as string[]) ?? [];
 }
 
 /**
@@ -531,23 +660,17 @@ export function getSchemaFromModel<T>(model: Model<T>): Record<string, OpenApiSc
  * @param model - A Mongoose model to derive the schema from
  * @param options - Optional configuration for the validator
  * @returns Express middleware function
- *
- * @example
- * ```typescript
- * router.post("/users", [
- *   createOpenApiMiddleware(User, options),
- *   validateModelRequestBody(User),
- * ], asyncHandler(async (req, res) => {
- *   // req.body is validated against the User model schema
- * }));
- * ```
  */
 export function validateModelRequestBody<T>(
   model: Model<T>,
   options?: RequestBodyValidatorOptions
 ): (req: Request, res: Response, next: NextFunction) => void {
   const schema = getSchemaFromModel(model);
-  return validateRequestBody(schema, options);
+  const requiredFields = getRequiredFieldsFromModel(model);
+  return validateRequestBody(schema, {
+    ...options,
+    required: [...(options?.required ?? []), ...requiredFields],
+  });
 }
 
 /**
@@ -567,9 +690,21 @@ export interface ModelRouterValidationOptions {
   validateUpdate?: boolean;
 
   /**
+   * Enable validation for query (GET list) requests.
+   * Default: true (when validation is globally enabled)
+   */
+  validateQuery?: boolean;
+
+  /**
    * Custom error handler for validation failures.
    */
   onError?: (errors: ErrorObject[], req: Request) => void;
+
+  /**
+   * Callback fired when additional properties are removed from a request body.
+   * Overrides the global onAdditionalPropertiesRemoved for this router.
+   */
+  onAdditionalPropertiesRemoved?: (removedProperties: string[], req: Request) => void;
 }
 
 /**
@@ -579,16 +714,6 @@ export interface ModelRouterValidationOptions {
  * @param model - The Mongoose model
  * @param options - Configuration options
  * @returns Object with create and update validation middleware
- *
- * @example
- * ```typescript
- * const validators = createModelValidators(User, {validateCreate: true});
- *
- * // Use in custom endpoints within modelRouter
- * router.post("/custom", [
- *   validators.create,
- * ], handler);
- * ```
  */
 export function createModelValidators<T>(
   model: Model<T>,
@@ -602,11 +727,46 @@ export function createModelValidators<T>(
   return {
     create: validateRequestBody(schema, {
       enabled: options?.validateCreate,
+      onAdditionalPropertiesRemoved: options?.onAdditionalPropertiesRemoved,
       onError: options?.onError,
     }),
     update: validateRequestBody(schema, {
       enabled: options?.validateUpdate,
+      onAdditionalPropertiesRemoved: options?.onAdditionalPropertiesRemoved,
       onError: options?.onError,
     }),
   };
+}
+
+/**
+ * Build a query parameter schema from a model's Mongoose schema and queryFields array.
+ * Always includes pagination parameters (limit, page, sort).
+ *
+ * @param model - A Mongoose model
+ * @param queryFields - Array of field names allowed for querying
+ * @returns Schema properties suitable for query validation
+ */
+export function buildQuerySchemaFromFields<T>(
+  model: Model<T>,
+  queryFields: string[] = []
+): Record<string, OpenApiSchemaProperty> {
+  const modelSchema = getSchemaFromModel(model);
+  const querySchema: Record<string, OpenApiSchemaProperty> = {
+    limit: {type: "number"},
+    page: {type: "number"},
+    sort: {type: "string"},
+  };
+
+  for (const field of queryFields) {
+    const modelField = modelSchema[field];
+    if (modelField) {
+      // Use the model's type info, but mark as not required for queries
+      querySchema[field] = {...modelField, required: false};
+    } else {
+      // Field not in model schema — allow as string
+      querySchema[field] = {type: "string"};
+    }
+  }
+
+  return querySchema;
 }

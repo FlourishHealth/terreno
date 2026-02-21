@@ -101,13 +101,15 @@ modelRouter(Model, {
   openApiOverwrite: {get: {...}, list: {...}},
   openApiExtraModelProperties: {...},
 
-  // Request Validation (opt-in, disabled by default)
-  validation: true,  // Enable for create and update operations
+  // Request Validation — always installed, activates after configureOpenApiValidator()
+  validation: true,  // Enable for create, update, and query operations
   // OR granular:
   validation: {
     validateCreate: true,   // Validate POST request bodies
-    validateUpdate: false,  // Skip PATCH validation
+    validateUpdate: true,   // Validate PATCH request bodies
+    validateQuery: true,    // Validate GET query parameters
     onError: (errors, req) => {...},  // Custom error handler
+    onAdditionalPropertiesRemoved: (props, req) => {...},  // Hook for stripped properties
   },
 });
 ```
@@ -212,23 +214,48 @@ router.post("/users", middleware, asyncHandler(
 
 ## OpenAPI Request Validation
 
-AJV-based runtime validation of requests against OpenAPI schemas. Opt-in and disabled by default.
+AJV-based runtime validation of requests against OpenAPI schemas. Validation middleware is always installed in modelRouter but only activates after `configureOpenApiValidator()` is called.
 
-### Global Configuration
+### modelRouter Validation (Primary Usage)
+
+modelRouter automatically installs validation middleware on POST, PATCH, and GET (list) routes. Call `configureOpenApiValidator()` once at server startup to activate:
 
 ```typescript
 import {configureOpenApiValidator} from "@terreno/api";
 
+// Activates validation for all modelRouter routes
 configureOpenApiValidator({
-  validateRequests: process.env.NODE_ENV !== "production",
-  coerceTypes: true,           // Auto-coerce "123" → 123 (default: true)
-  removeAdditional: false,     // Strip extra properties (default: false)
-  logValidationErrors: true,   // Log errors in dev (default: true in dev)
-  onValidationError: (errors, req) => {...},  // Custom handler
+  // Defaults when called:
+  // validateRequests: true
+  // removeAdditional: true  (strips unknown properties)
+  // logValidationErrors: true
+  // coerceTypes: true
+  onAdditionalPropertiesRemoved: (props, req) => {
+    Sentry.captureMessage(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
 });
 ```
 
-### Standalone Middleware
+Per-route control:
+
+```typescript
+modelRouter(Model, {
+  permissions: {...},
+  validation: {
+    validateCreate: true,
+    validateUpdate: true,
+    validateQuery: true,
+    onAdditionalPropertiesRemoved: (props, req) => {...},
+  },
+});
+
+// Or disable entirely for one route:
+modelRouter(Model, {permissions: {...}, validation: false});
+```
+
+### Custom Route Validation
+
+For non-CRUD endpoints, use standalone middleware or the builder:
 
 ```typescript
 import {validateRequestBody, validateQueryParams, createValidator} from "@terreno/api";
@@ -252,22 +279,6 @@ router.post("/search", [createValidator({
 })], handler);
 ```
 
-### Mongoose Model Validation
-
-```typescript
-import {validateModelRequestBody, createModelValidators} from "@terreno/api";
-
-// Validate body against model schema
-router.post("/users", [validateModelRequestBody(User)], handler);
-
-// Separate create/update validators
-const validators = createModelValidators(User, {
-  validateCreate: true,
-  validateUpdate: true,
-});
-router.post("/users", [validators.create], handler);
-```
-
 ### asyncHandler Validation
 
 ```typescript
@@ -282,9 +293,10 @@ asyncHandler(async (req, res) => {...}, {
 
 | Function | Description |
 |----------|-------------|
-| `configureOpenApiValidator(config)` | Set global validation config |
+| `configureOpenApiValidator(config)` | Activate and configure validation |
+| `isOpenApiValidatorConfigured()` | Check if validator is active |
 | `getOpenApiValidatorConfig()` | Get current config |
-| `resetOpenApiValidatorConfig()` | Reset to defaults (testing) |
+| `resetOpenApiValidatorConfig()` | Reset to defaults + deactivate (testing) |
 | `validateRequestBody(schema)` | Body validator middleware |
 | `validateQueryParams(schema)` | Query params validator middleware |
 | `createValidator(options)` | Combined validator middleware |
@@ -292,6 +304,7 @@ asyncHandler(async (req, res) => {...}, {
 | `getSchemaFromModel(model)` | Extract OpenAPI schema from Mongoose model |
 | `validateModelRequestBody(model)` | Model-based body validation |
 | `createModelValidators(model)` | Create create/update validators |
+| `buildQuerySchemaFromFields(model, fields)` | Build query schema from model + queryFields |
 
 ## Error Handling
 

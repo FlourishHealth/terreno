@@ -36,6 +36,7 @@ import {logger} from "./logger";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {
   getOpenApiValidatorConfig,
+  isOpenApiValidatorConfigured,
   validateQueryParams,
   validateRequestBody,
 } from "./openApiValidator";
@@ -682,7 +683,8 @@ export class OpenApiMiddlewareBuilder {
 
     const globalConfig = getOpenApiValidatorConfig();
     const validationEnabled =
-      this.validationConfig.enabled ?? globalConfig.validateRequests ?? false;
+      this.validationConfig.enabled ??
+      (isOpenApiValidatorConfigured() && (globalConfig.validateRequests ?? false));
 
     return {
       bodySchema: this.requestBodySchema,
@@ -742,7 +744,9 @@ export class OpenApiMiddlewareBuilder {
 
     // Check if validation should be enabled
     const globalConfig = getOpenApiValidatorConfig();
-    const shouldValidate = this.validationConfig.enabled ?? globalConfig.validateRequests ?? false;
+    const shouldValidate =
+      this.validationConfig.enabled ??
+      (isOpenApiValidatorConfigured() && (globalConfig.validateRequests ?? false));
 
     if (!shouldValidate) {
       return openApiMiddleware;

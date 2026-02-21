@@ -19,9 +19,10 @@ import {
   patchOpenApiMiddleware,
 } from "./openApi";
 import {
-  getOpenApiValidatorConfig,
+  buildQuerySchemaFromFields,
   type ModelRouterValidationOptions,
   validateModelRequestBody,
+  validateQueryParams,
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
@@ -327,8 +328,13 @@ function checkQueryParamAllowed(
 //   return result;
 // }
 
-// Helper to determine if validation should be enabled for a specific operation
-function shouldValidate(options: ModelRouterOptions<any>, operation: "create" | "update"): boolean {
+// Helper to determine if validation should be enabled for a specific operation.
+// When options.validation is not set, returns true — the middleware's own
+// isConfigured check will decide whether to actually validate.
+function shouldValidate(
+  options: ModelRouterOptions<any>,
+  operation: "create" | "update" | "query"
+): boolean {
   // Check route-specific validation option first
   if (options.validation !== undefined) {
     if (typeof options.validation === "boolean") {
@@ -337,24 +343,54 @@ function shouldValidate(options: ModelRouterOptions<any>, operation: "create" | 
     if (operation === "create") {
       return options.validation.validateCreate ?? true;
     }
-    return options.validation.validateUpdate ?? true;
+    if (operation === "update") {
+      return options.validation.validateUpdate ?? true;
+    }
+    return options.validation.validateQuery ?? true;
   }
 
-  // Fall back to global config
-  return getOpenApiValidatorConfig().validateRequests ?? false;
+  // Default: let middleware's isConfigured check decide
+  return true;
 }
 
-// Get validation middleware if validation is enabled
-function getValidationMiddleware<T>(
+// Get body validation middleware if validation is enabled
+function getBodyValidationMiddleware<T>(
   model: Model<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
-): ((req: Request, res: Response, next: NextFunction) => void) | null {
+): (req: Request, res: Response, next: NextFunction) => void {
+  const validationOptions: import("./openApiValidator").RequestBodyValidatorOptions = {};
   if (!shouldValidate(options, operation)) {
-    return null;
+    validationOptions.enabled = false;
+  }
+  if (typeof options.validation === "object") {
+    if (options.validation.onError) {
+      validationOptions.onError = options.validation.onError;
+    }
+    if (options.validation.onAdditionalPropertiesRemoved) {
+      validationOptions.onAdditionalPropertiesRemoved =
+        options.validation.onAdditionalPropertiesRemoved;
+    }
   }
 
-  return validateModelRequestBody(model, {enabled: true});
+  return validateModelRequestBody(model, validationOptions);
+}
+
+// Get query validation middleware if validation is enabled
+function getQueryValidationMiddleware<T>(
+  model: Model<T>,
+  options: ModelRouterOptions<T>
+): (req: Request, res: Response, next: NextFunction) => void {
+  const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
+  const validationOptions: import("./openApiValidator").QueryValidatorOptions = {};
+  if (!shouldValidate(options, "query")) {
+    validationOptions.enabled = false;
+  }
+  if (typeof options.validation === "object" && options.validation.onError) {
+    validationOptions.onError = options.validation.onError;
+  }
+
+  return validateQueryParams(querySchema, validationOptions);
 }
 
 /**
@@ -373,9 +409,10 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
 
   const responseHandler = options.responseHandler ?? defaultResponseHandler;
 
-  // Get validation middleware for create and update operations
-  const createValidation = getValidationMiddleware(model, options, "create");
-  const updateValidation = getValidationMiddleware(model, options, "update");
+  // Always install validation middleware — they are no-ops until configureOpenApiValidator() is called
+  const createValidation = getBodyValidationMiddleware(model, options, "create");
+  const updateValidation = getBodyValidationMiddleware(model, options, "update");
+  const queryValidation = getQueryValidationMiddleware(model, options);
 
   router.post(
     "/",
@@ -383,7 +420,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
       authenticateMiddleware(options.allowAnonymous),
       createOpenApiMiddleware(model, options),
       permissionMiddleware(model, options),
-      ...(createValidation ? [createValidation] : []),
+      createValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
@@ -492,6 +529,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
       authenticateMiddleware(options.allowAnonymous),
       permissionMiddleware(model, options),
       listOpenApiMiddleware(model, options),
+      queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
       let query: any = {};
@@ -678,7 +716,7 @@ export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>):
       authenticateMiddleware(options.allowAnonymous),
       patchOpenApiMiddleware(model, options),
       permissionMiddleware(model, options),
-      ...(updateValidation ? [updateValidation] : []),
+      updateValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
       let doc: mongoose.Document & T = (req as any).obj;
