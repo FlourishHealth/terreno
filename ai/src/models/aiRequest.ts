@@ -5,19 +5,31 @@ import type {AIRequestDocument, AIRequestModel, LogRequestParams} from "../types
 
 const aiRequestSchema = new mongoose.Schema<AIRequestDocument, AIRequestModel>(
   {
-    aiModel: {required: true, type: String},
-    error: {type: String},
-    metadata: {type: mongoose.Schema.Types.Mixed},
-    prompt: {required: true, type: String},
+    aiModel: {
+      description: "The AI model identifier used for this request",
+      required: true,
+      type: String,
+    },
+    error: {description: "Error message if the request failed", type: String},
+    metadata: {
+      description: "Additional metadata about the request",
+      type: mongoose.Schema.Types.Mixed,
+    },
+    prompt: {description: "The input prompt sent to the AI model", required: true, type: String},
     requestType: {
+      description: "The type of AI request",
       enum: ["general", "remix", "summarization", "translation"],
       required: true,
       type: String,
     },
-    response: {type: String},
-    responseTime: {type: Number},
-    tokensUsed: {type: Number},
-    userId: {ref: "User", type: mongoose.Schema.Types.ObjectId},
+    response: {description: "The AI model response text", type: String},
+    responseTime: {description: "Response time in milliseconds", type: Number},
+    tokensUsed: {description: "Total tokens consumed by the request", type: Number},
+    userId: {
+      description: "The user who made this request",
+      ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
+    },
   },
   {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );

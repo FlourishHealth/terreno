@@ -5,18 +5,33 @@ import type {GptHistoryDocument, GptHistoryModel} from "../types";
 
 const gptHistoryPromptSchema = new mongoose.Schema(
   {
-    model: {type: String},
-    text: {required: true, type: String},
-    type: {enum: ["user", "assistant", "system"], required: true, type: String},
+    model: {description: "The AI model used for this message", type: String},
+    text: {description: "The message content", required: true, type: String},
+    type: {
+      description: "The role of the message sender",
+      enum: ["user", "assistant", "system"],
+      required: true,
+      type: String,
+    },
   },
   {_id: false}
 );
 
 const gptHistorySchema = new mongoose.Schema<GptHistoryDocument, GptHistoryModel>(
   {
-    prompts: {default: [], type: [gptHistoryPromptSchema]},
-    title: {type: String},
-    userId: {index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId},
+    prompts: {
+      default: [],
+      description: "The conversation messages in order",
+      type: [gptHistoryPromptSchema],
+    },
+    title: {description: "Auto-generated title from first assistant response", type: String},
+    userId: {
+      description: "The user who owns this conversation",
+      index: true,
+      ref: "User",
+      required: true,
+      type: mongoose.Schema.Types.ObjectId,
+    },
   },
   {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );

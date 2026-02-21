@@ -1,9 +1,4 @@
-import {
-  AIService,
-  addAiRequestsExplorerRoutes,
-  addGptHistoryRoutes,
-  addGptRoutes,
-} from "@terreno/ai";
+import {AIService, addAiRoutes as addAiRoutesFromPackage} from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
 
 let aiServiceInstance: AIService | undefined;
@@ -44,7 +39,5 @@ export const addAiRoutes = (
 ): void => {
   const aiService = getAiService();
 
-  addGptHistoryRoutes(router, options);
-  addGptRoutes(router, {aiService, openApiOptions: options});
-  addAiRequestsExplorerRoutes(router, {openApiOptions: options});
+  addAiRoutesFromPackage(router, {aiService, openApiOptions: options});
 };
