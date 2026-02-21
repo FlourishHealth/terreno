@@ -34,6 +34,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "BASE_URL": "https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
     }
   }
 }

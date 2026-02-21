@@ -1,7 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {Tabs} from "expo-router";
 import type React from "react";
-import {useClientOnlyValue} from "@/components/useClientOnlyValue";
 import {useColorScheme} from "@/components/useColorScheme";
 import Colors from "@/constants/Colors";
 
@@ -18,9 +17,7 @@ const TabLayout: React.FC = () => {
   return (
     <Tabs
       screenOptions={{
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
+        headerShown: false,
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
       }}
     >
@@ -34,7 +31,6 @@ const TabLayout: React.FC = () => {
       <Tabs.Screen
         name="profile"
         options={{
-          headerShown: false,
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
           title: "Profile",
         }}
