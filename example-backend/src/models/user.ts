@@ -7,9 +7,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
   {
     admin: {
       default: false,
+      description: "Whether the user has admin privileges",
       type: Boolean,
     },
     email: {
+      description: "The user's email address, used for authentication",
       lowercase: true,
       required: true,
       trim: true,
@@ -17,6 +19,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       unique: true,
     },
     name: {
+      description: "The user's display name",
       required: true,
       trim: true,
       type: String,

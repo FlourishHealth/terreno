@@ -10,7 +10,7 @@ description: |
   reports, identifies gaps, creates comprehensive test suites, and submits draft PRs.
 
 on:
-  schedule: daily
+  schedule: "39 14 * * 1-5"
   workflow_dispatch:
 
 timeout-minutes: 30

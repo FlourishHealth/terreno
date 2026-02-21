@@ -36,7 +36,7 @@ const LoginScreen: React.FC = () => {
     } catch (err) {
       console.error("Authentication error:", err);
     }
-  }, [email, password, name, isSignUp, emailLogin, emailSignUp]);
+  }, [email, password, name, isSignUp, emailLogin, emailSignUp, toast.warn]);
 
   const toggleMode = useCallback((): void => {
     setIsSignUp(!isSignUp);

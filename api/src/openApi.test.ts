@@ -160,13 +160,13 @@ describe("openApi", () => {
     // Ensure that a Number query field supports gt/gte/lt/lte and just a Number
     expect(foodQuery.schema).toEqual({
       oneOf: [
-        {type: "number"},
+        {description: "Number of calories in the food", type: "number"},
         {
           properties: {
-            $gt: {type: "number"},
-            $gte: {type: "number"},
-            $lt: {type: "number"},
-            $lte: {type: "number"},
+            $gt: {description: "Number of calories in the food", type: "number"},
+            $gte: {description: "Number of calories in the food", type: "number"},
+            $lt: {description: "Number of calories in the food", type: "number"},
+            $lte: {description: "Number of calories in the food", type: "number"},
           },
           type: "object",
         },
@@ -278,6 +278,7 @@ describe("openApi populate", () => {
           type: "string",
         },
         name: {
+          description: "The user's display name",
           type: "string",
         },
       },
@@ -293,12 +294,14 @@ describe("openApi populate", () => {
     });
 
     expect(properties.likesIds).toEqual({
+      description: "User likes for this food",
       items: {
         properties: {
           _id: {
             type: "string",
           },
           likes: {
+            description: "Whether the user liked the item",
             type: "boolean",
           },
           userId: {

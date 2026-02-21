@@ -414,20 +414,24 @@ export const getConfiguration = async (): Promise<string> => {
 const configurationSchema = new mongoose.Schema<ConfigurationDocument, ConfigurationModel>(
   {
     description: {
+      description: "Human-readable description of the configuration key",
       type: String,
     },
     key: {
+      description: "Unique identifier for the configuration entry",
       index: true,
       required: true,
       type: String,
       unique: true,
     },
     type: {
+      description: "Data type of the configuration value",
       enum: ["string", "number", "boolean"],
       required: true,
       type: String,
     },
     value: {
+      description: "The configuration value",
       required: true,
       type: mongoose.Schema.Types.Mixed,
     },

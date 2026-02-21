@@ -39,5 +39,6 @@ Run the example full stack to see Terreno in action.
 
 ## Next steps
 
+- [How to create a model](../how-to/create-a-model.md) — Learn model conventions including required field descriptions
 - [How-to guides](../how-to/) — Task-focused guides
 - [Reference](../reference/) — Package and API details
