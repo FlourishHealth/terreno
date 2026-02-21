@@ -26,6 +26,7 @@ src/
   expressServer.ts       # setupServer and middleware stack
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
+  openApiValidator.ts    # AJV-based request validation
   logger.ts              # Winston-based logging
   plugins.ts             # Mongoose schema plugins
   populate.ts            # Population and OpenAPI schema generation
@@ -91,6 +92,14 @@ modelRouter(Model, {
 
   // Custom Routes (registered before CRUD)
   endpoints: (router) => { router.get("/custom", handler); },
+
+  // Request Validation (runtime validation against OpenAPI schemas)
+  validation: true,  // Enable for all operations, or use object for fine control
+  validation: {
+    validateCreate: true,   // Validate POST requests
+    validateUpdate: true,   // Validate PATCH requests
+    validateQuery: true,    // Validate GET list query params
+  },
 
   // OpenAPI
   openApiOverwrite: {get: {...}, list: {...}},
@@ -219,6 +228,63 @@ router.get("/stats/:id", [
 ```
 
 Builder methods: `withTags`, `withSummary`, `withDescription`, `withRequestBody`, `withResponse`, `withArrayResponse`, `withQueryParameter`, `withPathParameter`.
+
+## OpenAPI Request Validation
+
+Runtime validation of incoming requests against OpenAPI schemas using AJV. Validation is always installed on modelRouter routes but acts as a no-op until activated.
+
+### Activation
+
+Enable validation globally at server startup:
+
+```typescript
+import {configureOpenApiValidator} from "@terreno/api";
+
+configureOpenApiValidator({
+  removeAdditional: true,  // Strip unknown properties from requests
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+```
+
+### Per-Route Control
+
+Control validation per modelRouter:
+
+```typescript
+modelRouter(Todo, {
+  permissions: {...},
+  validation: true,  // Enable all validation (create, update, query)
+  // OR fine-grained control:
+  validation: {
+    validateCreate: true,   // Validate POST request bodies
+    validateUpdate: true,   // Validate PATCH request bodies
+    validateQuery: true,    // Validate GET list query parameters
+  },
+});
+```
+
+### Features
+
+- **Automatic property stripping**: Unknown fields are removed from request bodies (when `removeAdditional: true`)
+- **Required field validation**: Enforces required fields from Mongoose schema
+- **Type coercion**: Converts string "123" to number 123 (configurable)
+- **Query parameter validation**: Validates list endpoint query params against `queryFields`
+- **Non-standard schema handling**: Gracefully skips validation for schemas with custom types
+
+### Key Exports
+
+```typescript
+import {
+  configureOpenApiValidator,      // Activate validation globally
+  isOpenApiValidatorConfigured,   // Check if configured
+  getOpenApiValidatorConfig,      // Get current config
+  validateRequestBody,            // Manual validation middleware
+  validateQueryParams,            // Manual query validation
+  buildQuerySchemaFromFields,     // Generate query schema from queryFields
+} from "@terreno/api";
+```
 
 ## Error Handling
 
