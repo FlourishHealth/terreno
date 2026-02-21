@@ -151,7 +151,7 @@ import {
 #### modelRouter Usage
 
 ```typescript
-import {modelRouter, Permissions} from "@terreno/api";
+import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
 
 const router = modelRouter(YourModel, {
   permissions: {
@@ -165,39 +165,6 @@ const router = modelRouter(YourModel, {
   queryFields: ["_id", "type", "name"],
 });
 ```
-
-#### Request Validation (modelRouter)
-
-modelRouter always installs validation middleware. It activates once `configureOpenApiValidator()` is called at server startup:
-
-```typescript
-import {configureOpenApiValidator} from "@terreno/api";
-
-// Call once at startup — all modelRouter routes begin validating
-configureOpenApiValidator({
-  // removeAdditional: true (default) strips unknown properties
-  onAdditionalPropertiesRemoved: (props, req) => {
-    Sentry.captureMessage(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
-  },
-});
-```
-
-Per-route control via the `validation` option:
-
-```typescript
-modelRouter(YourModel, {
-  permissions: {...},
-  validation: {
-    validateCreate: true,   // Validate POST bodies
-    validateUpdate: true,   // Validate PATCH bodies
-    validateQuery: true,    // Validate GET query params
-    onError: (errors, req) => {...},
-    onAdditionalPropertiesRemoved: (props, req) => {...},
-  },
-});
-```
-
-Disable validation for a specific route: `validation: false`.
 
 #### Custom Routes
 
