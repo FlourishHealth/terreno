@@ -3,6 +3,7 @@ name: Example Backend CI
 on:
   push:
     paths:
+      - "admin-backend/**"
       - "example-backend/**"
       - "api-health/**"
       - ".github/workflows/example-backend-ci.yml"
@@ -50,6 +51,10 @@ jobs:
       - name: Build API Health dependency
         run: bun run compile
         working-directory: api-health
+
+      - name: Build Admin Backend dependency
+        run: bun run compile
+        working-directory: admin-backend
 
       - name: Lint
         run: bun run lint

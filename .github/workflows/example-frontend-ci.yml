@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "example-frontend/**"
+      - "admin-frontend/**"
       - ".github/workflows/example-frontend-ci.yml"
 
 jobs:
@@ -41,6 +42,10 @@ jobs:
       - name: Build RTK dependency
         run: bun run compile
         working-directory: rtk
+
+      - name: Build Admin Frontend dependency
+        run: bun run compile
+        working-directory: admin-frontend
 
       - name: Lint
         run: bun run lint
