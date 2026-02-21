@@ -101,15 +101,11 @@ modelRouter(Model, {
   openApiOverwrite: {get: {...}, list: {...}},
   openApiExtraModelProperties: {...},
 
-  // Request Validation — always installed, activates after configureOpenApiValidator()
-  validation: true,  // Enable for create, update, and query operations
-  // OR granular:
+  // Validation (optional) — per-route validation control
   validation: {
-    validateCreate: true,   // Validate POST request bodies
-    validateUpdate: true,   // Validate PATCH request bodies
-    validateQuery: true,    // Validate GET query parameters
-    onError: (errors, req) => {...},  // Custom error handler
-    onAdditionalPropertiesRemoved: (props, req) => {...},  // Hook for stripped properties
+    validateCreate: true,     // Validate POST requests
+    validateUpdate: true,     // Validate PATCH requests
+    validateQuery: true,      // Validate query parameters on GET list
   },
 });
 ```
@@ -120,6 +116,77 @@ modelRouter(Model, {
 - Sorting: `?sort=-created` or as object `{field: 'ascending'}`
 - Field queries: `?name=test&status=active` (must be in queryFields)
 - Complex queries: `?$and=[{...}]`, `?$or=[{...}]`
+
+## OpenAPI Validation
+
+Runtime request validation using AJV against OpenAPI schemas. Validation is always installed as middleware but inactive by default.
+
+### Enable Validation
+
+Call `configureOpenApiValidator()` at server startup to activate validation globally:
+
+```typescript
+import {configureOpenApiValidator, logger} from "@terreno/api";
+
+configureOpenApiValidator({
+  removeAdditional: true,  // Strip unknown properties (default: true)
+  coerceTypes: true,       // Coerce types like "123" to 123 (default: true)
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+```
+
+### Per-Route Validation
+
+Control validation per modelRouter instance:
+
+```typescript
+modelRouter(Todo, {
+  permissions: {...},
+  validation: {
+    validateCreate: true,   // Validate POST requests
+    validateUpdate: true,   // Validate PATCH requests
+    validateQuery: true,    // Validate query parameters
+  },
+});
+```
+
+### Validation Behavior
+
+- **Inactive by default** — validation middleware is no-op until `configureOpenApiValidator()` is called
+- **Strips unknown properties** — `removeAdditional: true` removes fields not in schema
+- **Type coercion** — Converts string "123" to number 123 when schema expects number
+- **Query validation** — Validates query parameters on list endpoints using `buildQuerySchemaFromFields()`
+- **Non-standard types** — Gracefully skips validation for models with non-standard Mongoose types (e.g., `schemaobjectid`, `dateonly`)
+
+### Custom Routes with Validation
+
+Use `withValidation()` in OpenAPI builder:
+
+```typescript
+router.post("/custom", [
+  authenticateMiddleware(),
+  createOpenApiBuilder(options)
+    .withTags(["custom"])
+    .withRequestBody({name: {type: "string", required: true}, age: {type: "number"}})
+    .withValidation(true)  // Enable validation for this route
+    .build(),
+], asyncHandler(async (req, res) => {
+  return res.json({data: result});
+}));
+```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `validateRequests` | boolean | true | Enable request body validation |
+| `validateResponses` | boolean | false | Enable response validation (overhead) |
+| `coerceTypes` | boolean | true | Coerce types (e.g., string to number) |
+| `removeAdditional` | boolean | true | Strip unknown properties |
+| `onValidationError` | function | undefined | Custom error handler |
+| `onAdditionalPropertiesRemoved` | function | undefined | Hook for monitoring stripped properties |
 
 ## Authentication
 

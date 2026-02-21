@@ -547,6 +547,109 @@ modelRouter(Model, {
 });
 ``````
 
+## OpenAPI Validation
+
+@terreno/api provides runtime request validation using AJV against OpenAPI schemas. Validation middleware is always installed but inactive by default—activate it at server startup with `configureOpenApiValidator()`.
+
+### Enabling Validation
+
+Call `configureOpenApiValidator()` before starting your server:
+
+``````typescript
+import {configureOpenApiValidator, logger, setupServer} from "@terreno/api";
+
+// Configure validation globally
+configureOpenApiValidator({
+  removeAdditional: true,  // Strip unknown properties (default: true)
+  coerceTypes: true,       // Type coercion, e.g., "123" → 123 (default: true)
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router, options) => {
+    // Routes now validate requests automatically
+    router.use("/todos", modelRouter(Todo, {...options}));
+  },
+});
+``````
+
+### Per-Route Validation Control
+
+Control validation at the modelRouter level:
+
+``````typescript
+modelRouter(Todo, {
+  permissions: {...},
+  validation: {
+    validateCreate: true,   // Validate POST requests
+    validateUpdate: true,   // Validate PATCH requests
+    validateQuery: true,    // Validate query parameters on GET list
+  },
+});
+``````
+
+### Custom Route Validation
+
+Use `withValidation()` in the OpenAPI builder for custom endpoints:
+
+``````typescript
+import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+
+router.post("/custom", [
+  authenticateMiddleware(),
+  createOpenApiBuilder(options)
+    .withTags(["custom"])
+    .withRequestBody({
+      name: {type: "string", required: true},
+      age: {type: "number"},
+    })
+    .withValidation(true)  // Enable validation for this route
+    .build(),
+], asyncHandler(async (req, res) => {
+  // req.body is now validated against the schema
+  return res.json({data: result});
+}));
+``````
+
+### Configuration Options
+
+All options are optional—sensible defaults are provided:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `validateRequests` | boolean | `true` | Enable request body validation |
+| `validateResponses` | boolean | `false` | Enable response validation (performance overhead) |
+| `coerceTypes` | boolean | `true` | Coerce types (e.g., string "123" to number 123) |
+| `removeAdditional` | boolean | `true` | Strip properties not in schema |
+| `onValidationError` | function | undefined | Custom error handler for validation failures |
+| `onAdditionalPropertiesRemoved` | function | undefined | Hook called when properties are stripped |
+
+### Validation Behavior
+
+- **Inactive by default** — Middleware is a no-op until `configureOpenApiValidator()` is called
+- **Removes unknown fields** — With `removeAdditional: true`, extra fields are silently removed
+- **Type coercion** — Converts compatible types (e.g., "42" becomes 42 for number fields)
+- **Query validation** — List endpoints validate query parameters using `buildQuerySchemaFromFields()`
+- **Graceful handling** — Skips validation for models with non-standard Mongoose types (e.g., `schemaobjectid`, `dateonly`)
+- **Error responses** — Validation failures return 400 with field-level error details
+
+**Example validation error response:**
+
+``````json
+{
+  "status": 400,
+  "title": "Validation failed",
+  "detail": "Request body does not match schema",
+  "fields": {
+    "name": "must be string",
+    "age": "must be >= 0"
+  }
+}
+``````
+
 ## Environment Variables
 
 Complete reference of environment variables used by @terreno/api:
