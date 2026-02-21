@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "@sentry/bun": "^9.46.0",
     "@terreno/api": "workspace:*"
   },
   "devDependencies": {

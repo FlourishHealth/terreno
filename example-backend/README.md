@@ -9,12 +9,29 @@ Backend API built with @terreno/api, Bun, and MongoDB.
 bun install
 ```
 
-2. Copy `.env.example` to `.env` and configure:
+2. Copy `.env.example` to `.env` and configure required variables:
 ```bash
 cp .env.example .env
 ```
 
-3. Make sure MongoDB is running locally or update `MONGO_URI` in `.env`
+   **Required variables** (must be set):
+   - `TOKEN_SECRET` - JWT signing secret
+   - `TOKEN_ISSUER` - JWT issuer claim
+   - `REFRESH_TOKEN_SECRET` - Refresh token secret
+   - `SESSION_SECRET` - Express session secret
+   - `MONGO_URI` - MongoDB connection string (default: `mongodb://localhost:27017/terreno-example`)
+
+   See `.env.example` for all available configuration options.
+
+3. Make sure MongoDB is running locally or update `MONGO_URI` in `.env`:
+```bash
+# Using Docker
+docker run -d -p 27017:27017 --name mongodb mongo
+
+# Or install MongoDB locally
+# macOS: brew install mongodb-community
+# Ubuntu: sudo apt-get install mongodb
+```
 
 ### Environment Variables
 

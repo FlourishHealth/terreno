@@ -9,6 +9,14 @@ These APIs integrate with @terreno/rtk to create consistent types on the fronten
 and backend, and automatically generated React hooks to fetch, query, and modify
 model instances.
 
+## Features
+
+- **modelRouter** — Automatic CRUD endpoints for Mongoose models
+- **Authentication** — JWT with email/password and GitHub OAuth support
+- **Permissions** — Fine-grained access control (IsAuthenticated, IsOwner, IsAdmin, etc.)
+- **OpenAPI** — Automatic spec generation from models and routes
+- **Logging** — Winston-based logging with Google Cloud and Sentry support
+
 ## Getting started
 
 To install:
@@ -111,6 +119,55 @@ Now we can perform operations on the Food model in a standard REST way. We've al
     DELETE /foods/62c86d787c7e2db0bf286acd
 
 You can create your own permissions functions. Check permissions.ts for some examples of how to write them.
+
+## Authentication
+
+@terreno/api includes built-in authentication with JWT and OAuth support.
+
+### Email/Password Authentication
+
+Built-in email/password authentication using `passport-local-mongoose`:
+
+```typescript
+import {setupServer} from "@terreno/api";
+import {User} from "./models/user";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Your routes here
+  },
+});
+```
+
+This automatically adds:
+- `POST /auth/signup` — User registration
+- `POST /auth/login` — Authentication
+- `POST /auth/refresh_token` — Token refresh
+- `GET /auth/me` — Get current user
+- `PATCH /auth/me` — Update current user
+
+### GitHub OAuth
+
+Add GitHub OAuth login to your API:
+
+```typescript
+import {githubUserPlugin, setupServer} from "@terreno/api";
+
+// Add GitHub fields to user schema
+userSchema.plugin(githubUserPlugin);
+
+setupServer({
+  userModel: User,
+  githubAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    callbackURL: process.env.GITHUB_CALLBACK_URL!,
+  },
+});
+```
+
+**Learn more:** See the [GitHub OAuth how-to guide](../docs/how-to/add-github-oauth.md) for complete setup instructions.
 
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.

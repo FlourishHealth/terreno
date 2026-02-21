@@ -132,6 +132,46 @@ Pre-configured RTK Query API with authentication, retry logic, and token refresh
 - `App-Version` from Expo config
 - `App-Platform` ("web" or "mobile")
 
+## Environment Variables
+
+Configuration for frontends using @terreno/rtk:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `EXPO_PUBLIC_API_URL` | No | Auto-detected | Backend API base URL (for web development) |
+
+**Base URL resolution priority:**
+
+1. `Constants.expoConfig?.extra?.BASE_URL` (from `app.json` `extra` field - production/staging)
+2. `process.env.EXPO_PUBLIC_API_URL` (for web development)
+3. `Constants.expoConfig?.hostUri` + `:3000` (for Expo dev server - simulator/device)
+4. `http://localhost:3000` (fallback)
+
+**Debug flags (via `app.json` `extra` field):**
+
+- `AUTH_DEBUG` — Enable verbose auth logging (token refresh, login/logout)
+- `WEBSOCKETS_DEBUG` — Enable WebSocket connection/disconnection logs
+
+**Example `app.json` configuration:**
+
+```json
+{
+  "expo": {
+    "extra": {
+      "BASE_URL": "https://api.example.com",
+      "AUTH_DEBUG": true,
+      "WEBSOCKETS_DEBUG": false
+    }
+  }
+}
+```
+
+**Example `.env` for web development:**
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:4000
+```
+
 ## SDK Code Generation
 
 Frontend apps generate typed RTK Query hooks from the backend's OpenAPI spec.
