@@ -9,6 +9,12 @@ on:
       - "api/**"
       - "api-health/**"
       - ".github/workflows/deploy-example-gcp.yml"
+  pull_request:
+    paths:
+      - "example-backend/**"
+      - "api/**"
+      - "api-health/**"
+      - ".github/workflows/deploy-example-gcp.yml"
 
 env:
   GCP_PROJECT_ID: flourish-terreno
@@ -16,8 +22,9 @@ env:
   GCP_SERVICE_NAME: terreno-backend-example
 
 jobs:
-  deploy-backend:
-    name: Deploy Backend
+  deploy-production:
+    name: Deploy Production
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -29,13 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Determine environment
-        id: env
-        run: |
-          echo "environment=production" >> $GITHUB_OUTPUT
-          echo "service_suffix=" >> $GITHUB_OUTPUT
-          echo "is_production=true" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Deployment
         id: create-deployment
         uses: actions/github-script@v7
@@ -45,7 +45,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: context.sha,
-              environment: 'example-backend-${{ steps.env.outputs.environment }}',
+              environment: 'example-backend-production',
               auto_merge: false,
               required_contexts: [],
               description: 'Example Backend Deployment'
@@ -141,3 +141,142 @@ jobs:
 
       - name: Output backend URL
         run: echo "Backend deployed to ${{ steps.deploy.outputs.url }}"
+
+  deploy-preview:
+    name: Deploy Preview
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Deactivate previous preview deployments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = `example-backend-preview-pr-${{ github.event.pull_request.number }}`;
+            try {
+              const deployments = await github.rest.repos.listDeployments({
+                ...context.repo,
+                environment,
+              });
+              for (const deployment of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo,
+                  deployment_id: deployment.id,
+                  state: 'inactive',
+                });
+              }
+            } catch (e) {
+              core.info(`No previous deployments found for ${environment}`);
+            }
+
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: `example-backend-preview-pr-${{ github.event.pull_request.number }}`,
+              transient_environment: true,
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Example Backend Preview Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying backend preview to Cloud Run'
+            });
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }} \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run with tag
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_SERVICE_NAME }}
+          region: ${{ env.GCP_REGION }}
+          image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+          tag: pr-${{ github.event.pull_request.number }}
+          no_traffic: true
+          env_vars: |
+            NODE_ENV=production
+            MONGODB_URI=${{ secrets.MONGO_URI }}
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
+
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tagUrl = `https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: tagUrl,
+              description: 'Backend preview deployed successfully'
+            });
+
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Backend preview deployment failed'
+            });
+
+      - name: Output preview URL
+        run: echo "Backend preview deployed to https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
