@@ -14,6 +14,7 @@
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@terreno/api": "workspace:*",
+    "@terreno/api-health": "workspace:*",
     "@thream/socketio-jwt": "^3.1.4",
     "ioredis": "^5.8.2",
     "lodash": "^4.17.21",

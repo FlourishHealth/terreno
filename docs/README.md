@@ -8,6 +8,7 @@ Documentation for the Terreno monorepo: shared packages for full-stack applicati
 - **[How-to guides](how-to/)** — Problem-oriented, practical steps
 - **[Reference](reference/)** — Technical reference for APIs and packages
 - **[Explanation](explanation/)** — Concepts and context
+- **[Implementation Plans](implementationPlans/)** — Forward-looking plans for major features
 
 ## Packages
 

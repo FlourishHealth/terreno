@@ -1,7 +1,8 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
-import {addHealthRoutes} from "./api/health";
+import {HealthApp} from "@terreno/api-health";
+import mongoose from "mongoose";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
@@ -17,7 +18,6 @@ const addMiddleware: AddRoutes = (_router, _options) => {
 
 const addRoutes: AddRoutes = (router, options): void => {
   // Add API routes with OpenAPI middleware
-  addHealthRoutes(router, options);
   addTodoRoutes(router, options);
   addUserRoutes(router, options);
 };
@@ -63,6 +63,20 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     });
+
+    // Register health check plugin
+    new HealthApp({
+      check: async () => {
+        const mongoConnected = mongoose.connection.readyState === 1;
+        return {
+          details: {
+            database: mongoConnected ? "connected" : "disconnected",
+            uptime: process.uptime(),
+          },
+          healthy: mongoConnected,
+        };
+      },
+    }).register(app);
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
