@@ -95,7 +95,7 @@ jobs:
 
       - name: Create GitHub Deployment
         id: create-deployment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -110,7 +110,7 @@ jobs:
             core.setOutput('deployment_id', deployment.data.id);
 
       - name: Set deployment status to in_progress
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -139,7 +139,7 @@ jobs:
 
       - name: Set deployment status to success
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -153,7 +153,7 @@ jobs:
 
       - name: Set deployment status to failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -182,7 +182,7 @@ jobs:
           path: dist
 
       - name: Deactivate previous preview deployments
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const environment = `example-frontend-preview-pr-${{ github.event.pull_request.number }}`;
@@ -204,7 +204,7 @@ jobs:
 
       - name: Create GitHub Deployment
         id: create-deployment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -220,7 +220,7 @@ jobs:
             core.setOutput('deployment_id', deployment.data.id);
 
       - name: Set deployment status to in_progress
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -249,7 +249,7 @@ jobs:
 
       - name: Set deployment status to success
         if: success()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -263,7 +263,7 @@ jobs:
 
       - name: Set deployment status to failure
         if: failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
