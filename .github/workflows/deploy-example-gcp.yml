@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - example-deploy
     paths:
       - "example-backend/**"
       - "api/**"

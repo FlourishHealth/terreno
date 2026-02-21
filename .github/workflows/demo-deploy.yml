@@ -52,7 +52,6 @@ jobs:
     permissions:
       contents: read
       deployments: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v6
 
@@ -68,6 +67,34 @@ jobs:
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
 
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'demo',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Demo Production Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying demo to Netlify'
+            });
+
       - name: Deploy to Netlify
         id: netlify
         uses: nwtgck/actions-netlify@v3.0
@@ -77,16 +104,39 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message }}"
           enable-pull-request-comment: false
-          enable-commit-comment: true
-          overwrites-pull-request-comment: false
-          github-deployment-environment: demo
+          enable-commit-comment: false
+          enable-github-deployment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
         timeout-minutes: 5
 
-      - name: Output deploy info
-        run: echo "Demo deployed to ${{ steps.netlify.outputs.deploy-url }}"
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
+              description: 'Demo deployed successfully'
+            });
+
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Demo deployment failed'
+            });
 
   deploy-preview:
     name: Deploy Preview
@@ -96,7 +146,6 @@ jobs:
     permissions:
       contents: read
       deployments: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@v6
 
@@ -106,6 +155,56 @@ jobs:
           name: demo-dist
           path: dist
 
+      - name: Deactivate previous preview deployments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = `demo-preview-pr-${{ github.event.pull_request.number }}`;
+            try {
+              const deployments = await github.rest.repos.listDeployments({
+                ...context.repo,
+                environment,
+              });
+              for (const deployment of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo,
+                  deployment_id: deployment.id,
+                  state: 'inactive',
+                });
+              }
+            } catch (e) {
+              core.info(`No previous deployments found for ${environment}`);
+            }
+
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: `demo-preview-pr-${{ github.event.pull_request.number }}`,
+              transient_environment: true,
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Demo Preview Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying demo preview to Netlify'
+            });
+
       - name: Deploy to Netlify
         id: netlify
         uses: nwtgck/actions-netlify@v3.0
@@ -114,14 +213,37 @@ jobs:
           production-deploy: false
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Preview for PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
-          enable-pull-request-comment: true
+          enable-pull-request-comment: false
           enable-commit-comment: false
-          overwrites-pull-request-comment: true
-          github-deployment-environment: demo-preview
+          enable-github-deployment: false
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
         timeout-minutes: 5
 
-      - name: Output preview URL
-        run: echo "Demo preview deployed to ${{ steps.netlify.outputs.deploy-url }}"
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
+              description: 'Demo preview deployed successfully'
+            });
+
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Demo preview deployment failed'
+            });
