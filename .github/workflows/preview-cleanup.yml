@@ -6,16 +6,20 @@ on:
 
 env:
   GCP_PROJECT_ID: flourish-terreno
+  GCP_REGION: us-central1
+  GCP_SERVICE_NAME: terreno-backend-example
 
 jobs:
   cleanup:
-    name: Delete Preview Files
+    name: Deactivate Preview Deployments
     runs-on: ubuntu-latest
     permissions:
       contents: read
       deployments: write
+      id-token: write
     steps:
       - name: Authenticate to Google Cloud
+        id: auth
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
@@ -25,15 +29,11 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      - name: Delete demo preview
-        continue-on-error: true
+      - name: Remove Cloud Run preview tag
         run: |
-          gsutil -m rm -r "gs://flourish-terreno-terreno-demo/_previews/pr-${{ github.event.pull_request.number }}/" || true
-
-      - name: Delete frontend-example preview
-        continue-on-error: true
-        run: |
-          gsutil -m rm -r "gs://flourish-terreno-terreno-frontend-example/_previews/pr-${{ github.event.pull_request.number }}/" || true
+          gcloud run services update-traffic ${{ env.GCP_SERVICE_NAME }} \
+            --remove-tags=pr-${{ github.event.pull_request.number }} \
+            --region=${{ env.GCP_REGION }} || true
 
       - name: Deactivate deployments
         uses: actions/github-script@v7
@@ -42,7 +42,12 @@ jobs:
             const pr = ${{ github.event.pull_request.number }};
             const envNames = [
               `demo-preview-pr-${pr}`,
+              `example-frontend-preview-pr-${pr}`,
+              `example-backend-preview-pr-${pr}`,
+              // Legacy environment names from before pr-N naming convention
               `frontend-example-preview-pr-${pr}`,
+              'demo-preview',
+              'example-frontend-preview',
             ];
             for (const envName of envNames) {
               try {

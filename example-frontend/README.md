@@ -1,6 +1,6 @@
 # Example Frontend
 
-Example Expo app demonstrating full-stack Terreno usage with @terreno/api backend, @terreno/rtk for state management, and @terreno/ui for components.
+Example Expo app demonstrating full-stack Terreno usage with @terreno/api backend, @terreno/rtk for state management, and @terreno/ui for components. Deployed to Netlify on push to master.
 
 ## Features
 

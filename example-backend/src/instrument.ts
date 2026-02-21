@@ -2,7 +2,7 @@
 import {DateOnly} from "@terreno/api";
 import mongoose from "mongoose";
 
-// biome-ignore lint/suspicious/noExplicitAny: Setting a custom type on mongoose.Schema.Types.
+// biome-ignore lint/suspicious/noExplicitAny: Setting a custom type on mongoose.Schema.Types
 (mongoose.Schema.Types as any).DateOnly = DateOnly;
 
 // Initialize OpenTelemetry first - must be before any other imports

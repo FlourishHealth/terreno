@@ -1,4 +1,4 @@
-name: Example Frontend GCP Deploy
+name: Example Frontend Deploy
 
 on:
   push:
@@ -15,12 +15,6 @@ on:
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-deploy.yml"
-
-env:
-  GCP_PROJECT_ID: flourish-terreno
-  BUCKET: flourish-terreno-terreno-frontend-example
-  BACKEND_BUCKET: terreno-frontend-example-backend
-  CLOUD_RUN_BACKEND: terreno-backend-example-7knxlrnpqq-uc.a.run.app
 
 jobs:
   build:
@@ -45,6 +39,26 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Check for backend changes in PR
+        id: backend-changes
+        if: github.event_name == 'pull_request'
+        run: |
+          BACKEND_CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-backend/|api/|api-health/)' || true)
+          if [ "$BACKEND_CHANGES" -gt 0 ]; then
+            echo "has_backend_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_backend_changes=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Override BASE_URL for backend preview
+        if: steps.backend-changes.outputs.has_backend_changes == 'true'
+        run: |
+          TAGGED_URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+          jq --arg url "$TAGGED_URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
+        working-directory: example-frontend
+
       - name: Export example-frontend for web
         run: bun run export
         working-directory: example-frontend
@@ -63,59 +77,96 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      deployments: write
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-example-dist
           path: dist
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Get commit message header
+        id: commit
+        run: echo "message=$(echo "$COMMIT_MSG" | head -n 1)" >> "$GITHUB_OUTPUT"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v7
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'example-frontend',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Example Frontend Production Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
         with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying example frontend to Netlify'
+            });
 
-      - name: Ensure negative caching is disabled
-        run: |
-          gcloud compute backend-buckets update $BACKEND_BUCKET \
-            --no-negative-caching
+      - name: Deploy to Netlify
+        id: netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: "./dist"
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
+        timeout-minutes: 5
 
-      - name: Deploy to GCS
-        run: |
-          # Step 1: Upload new hashed assets (additive, no deletions).
-          # Using rsync WITHOUT -d so old bundles remain while the previous
-          # index.html still references them.
-          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-            rsync -r -x '_previews/.*|.*\.html$' \
-            dist/ "gs://$BUCKET/"
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
+              description: 'Example frontend deployed successfully'
+            });
 
-          # Step 2: Upload index.html with no-cache so browsers always fetch
-          # the latest. This atomically switches users to the new bundle hashes.
-          gsutil -h "Cache-Control:no-cache, no-store, must-revalidate" \
-            cp dist/index.html "gs://$BUCKET/index.html"
-
-          # Step 3: Invalidate entire CDN cache so stale index.html and any
-          # negatively-cached 404s for new asset hashes are purged before we
-          # clean up old assets.
-          gcloud compute url-maps invalidate-cdn-cache terreno-frontend-example-url-map \
-            --path "/*"
-
-          # Step 4: Clean up old assets that are no longer referenced.
-          # Now safe because all CDN edges serve the new index.html.
-          gsutil -m -h "Cache-Control:public, max-age=31536000, immutable" \
-            rsync -r -d -x '_previews/.*|.*\.html$' \
-            dist/ "gs://$BUCKET/"
-
-      - name: Output deploy info
-        run: echo "Example Frontend deployed to gs://$BUCKET"
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Example frontend deployment failed'
+            });
 
   deploy-preview:
     name: Deploy Preview
+    needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
@@ -124,126 +175,101 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          name: frontend-example-dist
+          path: dist
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v3
-        with:
-          project_id: ${{ env.GCP_PROJECT_ID }}
-
-      - name: Get CDN IP
-        id: cdn
-        run: |
-          IP=$(gcloud compute addresses describe terreno-frontend-example-ip --global --format="value(address)" 2>/dev/null || echo "")
-          if [ -n "$IP" ]; then
-            echo "ip=$IP" >> "$GITHUB_OUTPUT"
-            echo "base_url=/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "preview_url=http://$IP/_previews/pr-${{ github.event.pull_request.number }}/" >> "$GITHUB_OUTPUT"
-            echo "CDN IP: $IP"
-          else
-            echo "ip=" >> "$GITHUB_OUTPUT"
-            echo "base_url=/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "preview_url=https://storage.googleapis.com/${{ env.BUCKET }}/_previews/pr-${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
-            echo "CDN not configured, falling back to storage.googleapis.com"
-          fi
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install root dependencies (workspace)
-        run: bun install --frozen-lockfile
-
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
-
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
-
-      - name: Set baseUrl for preview
-        run: |
-          cd example-frontend
-          node -e "
-            const fs = require('fs');
-            const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
-            config.expo.experiments = config.expo.experiments || {};
-            config.expo.experiments.baseUrl = '${{ steps.cdn.outputs.base_url }}';
-            fs.writeFileSync('app.json', JSON.stringify(config, null, 2));
-          "
-
-      - name: Export example-frontend for web
-        run: bun run export
-        working-directory: example-frontend
-        env:
-          EXPO_PUBLIC_API_URL: https://pr-${{ github.event.pull_request.number }}---${{ env.CLOUD_RUN_BACKEND }}
-
-      - name: Deploy preview to GCS
-        run: |
-          PREVIEW_PATH="_previews/pr-${{ github.event.pull_request.number }}"
-          gsutil -m -h "Cache-Control:no-cache" \
-            rsync -r -d \
-            example-frontend/dist/ "gs://$BUCKET/$PREVIEW_PATH/"
-
-          # Upload bare objects for SPA routing on previews. CDN's notFoundPage
-          # serves the root index.html, not the preview's, so bare uploads are
-          # always needed for preview sub-routes to work on refresh.
-          BARE_DIR="/tmp/bare-routes"
-          rm -rf "$BARE_DIR"
-          mkdir -p "$BARE_DIR"
-
-          # Root index.html → bare preview path object
-          cp example-frontend/dist/index.html "$BARE_DIR/pr-${{ github.event.pull_request.number }}"
-          gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-            cp "$BARE_DIR/pr-${{ github.event.pull_request.number }}" "gs://$BUCKET/_previews/"
-          echo "Uploaded bare root: _previews/pr-${{ github.event.pull_request.number }}"
-
-          # All other HTML files → bare path objects (skip dynamic [param] routes)
-          COUNTER=0
-          find example-frontend/dist -mindepth 2 -name '*.html' ! -name '*\[*' | while read -r f; do
-            rel="${f#example-frontend/dist/}"
-            bare="${rel%.html}"
-            bare="${bare%/index}"
-            COUNTER=$((COUNTER + 1))
-            BASENAME=$(basename "$bare")
-            TMPSUBDIR="$BARE_DIR/$COUNTER"
-            mkdir -p "$TMPSUBDIR"
-            cp "$f" "$TMPSUBDIR/$BASENAME"
-            DEST_DIR=$(dirname "$bare")
-            if [ "$DEST_DIR" = "." ]; then
-              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/"
-            else
-              GCS_DEST="gs://$BUCKET/$PREVIEW_PATH/$DEST_DIR/"
-            fi
-            gsutil -h "Cache-Control:no-cache" -h "Content-Type:text/html" \
-              cp "$TMPSUBDIR/$BASENAME" "$GCS_DEST"
-            echo "Uploaded bare route: $PREVIEW_PATH/$bare"
-          done
-
-      - name: Create deployment
+      - name: Deactivate previous preview deployments
         uses: actions/github-script@v7
         with:
           script: |
-            const pr = ${{ github.event.pull_request.number }};
-            const url = '${{ steps.cdn.outputs.preview_url }}';
+            const environment = `example-frontend-preview-pr-${{ github.event.pull_request.number }}`;
+            try {
+              const deployments = await github.rest.repos.listDeployments({
+                ...context.repo,
+                environment,
+              });
+              for (const deployment of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo,
+                  deployment_id: deployment.id,
+                  state: 'inactive',
+                });
+              }
+            } catch (e) {
+              core.info(`No previous deployments found for ${environment}`);
+            }
+
+      - name: Create GitHub Deployment
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
             const deployment = await github.rest.repos.createDeployment({
-              ...context.repo,
-              ref: '${{ github.event.pull_request.head.sha }}',
-              environment: `frontend-example-preview-pr-${pr}`,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: `example-frontend-preview-pr-${{ github.event.pull_request.number }}`,
+              transient_environment: true,
               auto_merge: false,
               required_contexts: [],
-              transient_environment: true,
+              description: 'Example Frontend Preview Deployment'
             });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Set deployment status to in_progress
+        uses: actions/github-script@v7
+        with:
+          script: |
             await github.rest.repos.createDeploymentStatus({
-              ...context.repo,
-              deployment_id: deployment.data.id,
-              state: 'success',
-              environment_url: url,
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'in_progress',
+              description: 'Deploying example frontend preview to Netlify'
             });
-            core.info(`Preview deployed to ${url}`);
+
+      - name: Deploy to Netlify
+        id: netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: "./dist"
+          production-deploy: false
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Preview for PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_FRONTEND_EXAMPLE_SITE_ID }}
+        timeout-minutes: 5
+
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: '${{ steps.netlify.outputs.deploy-url }}',
+              description: 'Example frontend preview deployed successfully'
+            });
+
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Example frontend preview deployment failed'
+            });
