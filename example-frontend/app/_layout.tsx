@@ -1,13 +1,4 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {
-  Nunito_400Regular,
-  Nunito_400Regular_Italic,
-  Nunito_500Medium,
-  Nunito_500Medium_Italic,
-  Nunito_700Bold,
-  Nunito_700Bold_Italic,
-} from "@expo-google-fonts/nunito";
-import {TitilliumWeb_600SemiBold, TitilliumWeb_700Bold} from "@expo-google-fonts/titillium-web";
 import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
 import {useFonts} from "expo-font";
 import {Stack} from "expo-router";
@@ -38,17 +29,17 @@ export default function RootLayout(): React.ReactElement | null {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
-    heading: TitilliumWeb_600SemiBold,
-    "heading-bold": TitilliumWeb_700Bold,
-    "heading-semibold": TitilliumWeb_600SemiBold,
-    // Terreno UI fonts
-    text: Nunito_400Regular,
-    "text-bold": Nunito_700Bold,
-    "text-bold-italic": Nunito_700Bold_Italic,
-    "text-medium": Nunito_500Medium,
-    "text-medium-italic": Nunito_500Medium_Italic,
-    "text-regular": Nunito_400Regular,
-    "text-regular-italic": Nunito_400Regular_Italic,
+    // Terreno UI fonts (loaded locally to avoid bun symlink cache path issues in production builds)
+    heading: require("../assets/fonts/TitilliumWeb_600SemiBold.ttf"),
+    "heading-bold": require("../assets/fonts/TitilliumWeb_700Bold.ttf"),
+    "heading-semibold": require("../assets/fonts/TitilliumWeb_600SemiBold.ttf"),
+    text: require("../assets/fonts/Nunito_400Regular.ttf"),
+    "text-bold": require("../assets/fonts/Nunito_700Bold.ttf"),
+    "text-bold-italic": require("../assets/fonts/Nunito_700Bold_Italic.ttf"),
+    "text-medium": require("../assets/fonts/Nunito_500Medium.ttf"),
+    "text-medium-italic": require("../assets/fonts/Nunito_500Medium_Italic.ttf"),
+    "text-regular": require("../assets/fonts/Nunito_400Regular.ttf"),
+    "text-regular-italic": require("../assets/fonts/Nunito_400Regular_Italic.ttf"),
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
