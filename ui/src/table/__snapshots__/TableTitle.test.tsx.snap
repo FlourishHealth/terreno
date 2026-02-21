@@ -1,0 +1,109 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TableTitle renders correctly with title 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Column Header",
+  ],
+  "props": {
+    "aria-label": "Table title: Column Header",
+    "aria-role": "header",
+    "ellipsizeMode": "tail",
+    "numberOfLines": 3,
+    "style": {
+      "color": "#1C1C1C",
+      "flexWrap": "wrap",
+      "fontFamily": "text",
+      "fontSize": 10,
+      "fontWeight": "700",
+      "lineHeight": 16,
+      "overflow": "hidden",
+      "textAlign": "left",
+      "textTransform": "uppercase",
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableTitle renders with left alignment (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Left Title",
+  ],
+  "props": {
+    "aria-label": "Table title: Left Title",
+    "aria-role": "header",
+    "ellipsizeMode": "tail",
+    "numberOfLines": 3,
+    "style": {
+      "color": "#1C1C1C",
+      "flexWrap": "wrap",
+      "fontFamily": "text",
+      "fontSize": 10,
+      "fontWeight": "700",
+      "lineHeight": 16,
+      "overflow": "hidden",
+      "textAlign": "left",
+      "textTransform": "uppercase",
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableTitle renders with center alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Centered Title",
+  ],
+  "props": {
+    "aria-label": "Table title: Centered Title",
+    "aria-role": "header",
+    "ellipsizeMode": "tail",
+    "numberOfLines": 3,
+    "style": {
+      "color": "#1C1C1C",
+      "flexWrap": "wrap",
+      "fontFamily": "text",
+      "fontSize": 10,
+      "fontWeight": "700",
+      "lineHeight": 16,
+      "overflow": "hidden",
+      "textAlign": "center",
+      "textTransform": "uppercase",
+    },
+  },
+  "type": "Text",
+}
+`;
+
+exports[`TableTitle renders with right alignment 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    "Right Title",
+  ],
+  "props": {
+    "aria-label": "Table title: Right Title",
+    "aria-role": "header",
+    "ellipsizeMode": "tail",
+    "numberOfLines": 3,
+    "style": {
+      "color": "#1C1C1C",
+      "flexWrap": "wrap",
+      "fontFamily": "text",
+      "fontSize": 10,
+      "fontWeight": "700",
+      "lineHeight": 16,
+      "overflow": "hidden",
+      "textAlign": "right",
+      "textTransform": "uppercase",
+    },
+  },
+  "type": "Text",
+}
+`;

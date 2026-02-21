@@ -1,9 +1,4 @@
 {
-  "overrides": {
-    "qs": "^6.14.1",
-    "tar": "^7.5.3",
-    "semver": "^7.5.2"
-  },
   "catalog": {
     "@biomejs/biome": "^2.3.6",
     "@expo/config-plugins": "~54.0.4",
@@ -52,7 +47,6 @@
     "react-native-signature-canvas": "^4.7.4",
     "react-native-svg": "15.12.1",
     "react-native-swiper-flatlist": "^3.2.5",
-    "react-native-toast-notifications": "^3.4.0",
     "react-native-web": "~0.21.0",
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",
@@ -63,18 +57,33 @@
     "redux-persist": "^6.0.0",
     "typescript": "~5.9.2"
   },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "rulesync": "^5.9.0"
+  },
   "name": "@terreno/root",
+  "overrides": {
+    "qs": "^6.14.1",
+    "semver": "^7.5.2",
+    "tar": "^7.5.3"
+  },
   "private": true,
   "scripts": {
     "api:compile": "bun run --filter '@terreno/api' compile",
     "api:lint": "bun run --filter '@terreno/api' lint",
+    "api-health:compile": "bun run --filter '@terreno/api-health' compile",
+    "api-health:lint": "bun run --filter '@terreno/api-health' lint",
+    "api-health:test": "bun run --filter '@terreno/api-health' test",
     "api:test": "bun run --filter '@terreno/api' test",
     "backend:dev": "bun run --filter '@terreno/example-backend' dev",
     "backend:lint": "bun run --filter '@terreno/example-backend' lint",
     "compile": "bun run --filter '*' compile",
+    "demo:android": "bun run --filter 'terreno-demo' android",
     "demo:compile": "bun run --filter 'terreno-demo' compile",
+    "demo:ios": "bun run --filter 'terreno-demo' ios",
     "demo:lint": "bun run --filter 'terreno-demo' lint",
     "demo:start": "bun run --filter 'terreno-demo' start",
+    "demo:web": "bun run --filter 'terreno-demo' web",
     "frontend:android": "bun run --filter '@terreno/example-frontend' android",
     "frontend:ios": "bun run --filter '@terreno/example-frontend' ios",
     "frontend:lint": "bun run --filter '@terreno/example-frontend' lint",
@@ -91,6 +100,8 @@
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
     "rtk:test": "bun run --filter '@terreno/rtk' test:ci",
     "rtk:web": "bun run --filter '@terreno/rtk' web",
+    "rules": "bunx rulesync generate",
+    "rules:check": "bunx rulesync generate && git diff --exit-code",
     "test": "bun run --filter '*' test:ci",
     "ui:compile": "bun run --filter '@terreno/ui' compile",
     "ui:dev": "bun run --filter '@terreno/ui' dev",
@@ -98,12 +109,10 @@
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
     "ui:web": "bun run --filter '@terreno/ui' web"
   },
-  "devDependencies": {
-    "@biomejs/biome": "catalog:"
-  },
   "version": "1.0.0",
   "workspaces": [
     "api",
+    "api-health",
     "demo",
     "example-backend",
     "example-frontend",

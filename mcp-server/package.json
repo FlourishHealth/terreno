@@ -8,18 +8,20 @@
     "terreno-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc && cp -r src/docs dist/",
+    "build": "bun run sync-ui-docs && tsc && cp -r src/docs dist/",
     "dev": "bun --watch src/index.ts",
     "start": "bun dist/index.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "tsc && cp -r src/docs dist/",
+    "compile": "bun run sync-ui-docs && tsc && cp -r src/docs dist/",
+    "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
     "test": "bun test",
     "test:ci": "bun test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "@sentry/bun": "^9.46.0",
     "@terreno/api": "workspace:*"
   },
   "devDependencies": {

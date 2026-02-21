@@ -2837,3 +2837,48 @@ export interface SliderProps extends HelperTextProps, ErrorTextProps {
    */
   valueMapping?: ValueMappingItem[];
 }
+
+export interface UserInactivityProps {
+  /**
+   * Children components to embed inside UserInactivity's View.
+   * If any children component is pressed, `onAction` is called after
+   * `timeForInactivity` milliseconds.
+   */
+  children: React.ReactNode;
+
+  /**
+   * If it's explicitly set to `true` after the component has already been initialized,
+   * the timer restarts and the view is considered active until the new timer expires.
+   * @default true
+   */
+  isActive?: boolean;
+
+  /**
+   * Callback triggered anytime UserInactivity's View isn't touched for more than
+   * `timeForInactivity` milliseconds.
+   * The `active` argument is true if and only if the View wasn't touched for more
+   * than `timeForInactivity` milliseconds.
+   */
+  onAction: (active: boolean) => void;
+
+  /**
+   * If set to true, the timer is not reset when the keyboard appears
+   * or disappears.
+   * @default false
+   */
+  skipKeyboard?: boolean;
+
+  /**
+   * Optional custom style for UserInactivity's View.
+   * @default { flex: 1 }
+   */
+  style?: StyleProp<ViewStyle>;
+
+  /**
+   * Number of milliseconds after which the view is considered inactive.
+   * If it changed, the timer restarts and the view is considered active until
+   * the new timer expires.
+   * @default 10000
+   */
+  timeForInactivity?: number;
+}

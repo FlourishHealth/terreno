@@ -32,8 +32,8 @@ interface Food {
 }
 
 const userSchema = new Schema<User>({
-  admin: {default: false, type: Boolean},
-  username: String,
+  admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+  username: {description: "The user's username", type: String},
 });
 
 userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
@@ -42,11 +42,11 @@ userSchema.plugin(baseUserPlugin);
 const UserModel = model<User>("User", userSchema);
 
 const schema = new Schema<Food>({
-  calories: Number,
-  created: Date,
-  hidden: {default: false, type: Boolean},
-  name: String,
-  ownerId: {ref: "User", type: "ObjectId"},
+  calories: {description: "Number of calories in the food", type: Number},
+  created: {description: "When this food was created", type: Date},
+  hidden: {default: false, description: "Whether this food is hidden from listings", type: Boolean},
+  name: {description: "The name of the food", type: String},
+  ownerId: {description: "The user who owns this food entry", ref: "User", type: "ObjectId"},
 });
 
 const FoodModel = model<Food>("Food", schema);

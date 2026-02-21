@@ -1,13 +1,16 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {
   type AddRoutes,
   type AuthProvider,
   type BetterAuthConfig,
   checkModelsStrict,
+  configureOpenApiValidator,
   logger,
   setupServer,
 } from "@terreno/api";
+import {HealthApp} from "@terreno/api-health";
+import mongoose from "mongoose";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
@@ -75,6 +78,19 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
   // Connect to MongoDB first
   await connectToMongoDB();
 
+  // Enable OpenAPI request validation. Strips unknown properties and logs them.
+  configureOpenApiValidator({
+    onAdditionalPropertiesRemoved: (props: string[], req: {method: string; path: string}) => {
+      const msg = `Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`;
+      logger.warn(msg);
+      try {
+        Sentry.captureMessage(msg);
+      } catch {
+        // Sentry may not be initialized yet
+      }
+    },
+  });
+
   const authProvider = (process.env.AUTH_PROVIDER as AuthProvider) ?? "jwt";
   logger.info(
     `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
@@ -119,6 +135,20 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     });
+
+    // Register health check plugin
+    new HealthApp({
+      check: async () => {
+        const mongoConnected = mongoose.connection.readyState === 1;
+        return {
+          details: {
+            database: mongoConnected ? "connected" : "disconnected",
+            uptime: process.uptime(),
+          },
+          healthy: mongoConnected,
+        };
+      },
+    }).register(result.app);
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);

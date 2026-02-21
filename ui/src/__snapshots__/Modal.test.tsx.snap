@@ -1,0 +1,1477 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Modal renders correctly when visible 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Test Modal",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Test Modal",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Modal content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal does not show content when not visible 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Test Modal",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Test Modal",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Modal content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": false,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal renders with both buttons 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Confirm Action",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Confirm Action",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Are you sure?",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Cancel",
+                                      ],
+                                      "props": {
+                                        "style": {
+                                          "color": "#353535",
+                                          "fontSize": 16,
+                                          "fontWeight": "700",
+                                        },
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "flexDirection": "row",
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "flexDirection": "row",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "accessibilityHint": "Press to perform action",
+                            "aria-label": "Cancel",
+                            "aria-role": "button",
+                            "disabled": undefined,
+                            "onPress": [Function: debounced],
+                            "style": {
+                              "alignItems": "center",
+                              "alignSelf": "flex-start",
+                              "backgroundColor": "#B6CDD5",
+                              "borderColor": undefined,
+                              "borderRadius": 360,
+                              "borderWidth": undefined,
+                              "flexDirection": "column",
+                              "justifyContent": "center",
+                              "paddingHorizontal": 20,
+                              "paddingVertical": 8,
+                              "width": "auto",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Pressable",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "marginRight": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Save",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#FFFFFF",
+                                      "fontSize": 16,
+                                      "fontWeight": "700",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "flexDirection": "row",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "style": {
+                              "flexDirection": "row",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Press to perform action",
+                        "aria-label": "Save",
+                        "aria-role": "button",
+                        "disabled": undefined,
+                        "onPress": [Function: debounced],
+                        "style": {
+                          "alignItems": "center",
+                          "alignSelf": "flex-start",
+                          "backgroundColor": "#0E9DCD",
+                          "borderColor": undefined,
+                          "borderRadius": 360,
+                          "borderWidth": undefined,
+                          "flexDirection": "column",
+                          "justifyContent": "center",
+                          "paddingHorizontal": 20,
+                          "paddingVertical": 8,
+                          "width": "auto",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal renders with disabled primary button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Title",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Title",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "Save",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#FFFFFF",
+                                      "fontSize": 16,
+                                      "fontWeight": "700",
+                                    },
+                                  },
+                                  "type": "Text",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "flexDirection": "row",
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "style": {
+                              "flexDirection": "row",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "accessibilityHint": "Press to perform action",
+                        "aria-label": "Save",
+                        "aria-role": "button",
+                        "disabled": true,
+                        "onPress": [Function: debounced],
+                        "style": {
+                          "alignItems": "center",
+                          "alignSelf": "flex-start",
+                          "backgroundColor": "#9A9A9A",
+                          "borderColor": undefined,
+                          "borderRadius": 360,
+                          "borderWidth": undefined,
+                          "flexDirection": "column",
+                          "justifyContent": "center",
+                          "paddingHorizontal": 20,
+                          "paddingVertical": 8,
+                          "width": "auto",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal renders with small size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Small Modal",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Small Modal",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal renders with medium size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Medium Modal",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Medium Modal",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;
+
+exports[`Modal renders with large size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityHint": "Closes the modal",
+                        "aria-label": "Close modal",
+                        "aria-role": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "bottom": -8,
+                          "flex": 1,
+                          "justifyContent": "center",
+                          "left": -8,
+                          "position": "absolute",
+                          "right": -8,
+                          "top": -8,
+                        },
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Large Modal",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "heading-bold",
+                          "fontSize": 20,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityHint": "Modal title",
+                    "aria-label": "Large Modal",
+                    "aria-role": "header",
+                    "style": {
+                      "alignSelf": "flex-start",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Content",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#1C1C1C",
+                              "fontFamily": "text-regular",
+                              "fontSize": 14,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "marginTop": 12,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "alignSelf": "flex-end",
+                      "flexDirection": "row",
+                      "marginTop": 32,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "center",
+                  "backgroundColor": "#FFFFFF",
+                  "borderRadius": 4,
+                  "boxShadow": "0px 4px 24px rgba(0, 0, 0, 0.5)",
+                  "elevation": 24,
+                  "margin": "auto",
+                  "maxHeight": "100%",
+                  "padding": 32,
+                  "width": "90%",
+                  "zIndex": 1,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPress": [Function],
+            "style": {
+              "cursor": "auto",
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "rgba(0, 0, 0, 0.5)",
+          "flex": 1,
+          "justifyContent": "center",
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "animationType": "none",
+    "onRequestClose": [Function],
+    "transparent": true,
+    "visible": true,
+  },
+  "type": "Modal",
+}
+`;

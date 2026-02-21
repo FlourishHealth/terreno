@@ -1,4 +1,4 @@
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import cron from "cron";
@@ -21,6 +21,7 @@ import {
   setupBetterAuthUserSync,
 } from "./betterAuthSetup";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -186,6 +187,8 @@ interface InitializeRoutesOptions {
   logRequests?: boolean;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  /** GitHub OAuth configuration. When provided, enables GitHub authentication. */
+  githubAuth?: GitHubAuthOptions;
   // Auth provider selection: "jwt" (default) or "better-auth"
   authProvider?: AuthProvider;
   // Better Auth configuration (required when authProvider is "better-auth")
@@ -290,6 +293,13 @@ function initializeRoutes(
   if (authProvider === "jwt") {
     addMeRoutes(app, UserModel as any, options?.authOptions);
   }
+
+  // Set up GitHub OAuth if configured (works with JWT auth)
+  if (options.githubAuth) {
+    setupGitHubAuth(app, UserModel as any, options.githubAuth);
+    addGitHubAuthRoutes(app, UserModel as any, options.githubAuth, options.authOptions);
+  }
+
   addRoutes(app, {openApi: oapi});
 
   Sentry.setupExpressErrorHandler(app);
@@ -313,6 +323,11 @@ export interface SetupServerOptions {
   addRoutes: AddRoutes;
   loggingOptions?: LoggingOptions;
   authOptions?: AuthOptions;
+  /**
+   * GitHub OAuth configuration. When provided, enables GitHub authentication.
+   * Requires the user schema to have GitHub fields (use githubUserPlugin).
+   */
+  githubAuth?: GitHubAuthOptions;
   skipListen?: boolean;
   corsOrigin?:
     | string
@@ -328,7 +343,7 @@ export interface SetupServerOptions {
       ) => void);
   addMiddleware?: AddRoutes;
   ignoreTraces?: string[];
-  sentryOptions?: Sentry.NodeOptions;
+  sentryOptions?: Sentry.BunOptions;
   /**
    * Auth provider selection: "jwt" (default) or "better-auth".
    * @default "jwt"
@@ -361,6 +376,7 @@ export function setupServer(options: SetupServerOptions): SetupServerResult {
       authProvider,
       betterAuthConfig: options.betterAuthConfig,
       corsOrigin: options.corsOrigin,
+      githubAuth: options.githubAuth,
     });
   } catch (error: any) {
     logger.error(`Error initializing routes: ${error.stack}`);

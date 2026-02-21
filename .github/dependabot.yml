@@ -1,8 +1,3 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
 version: 2
 updates:
   # Maintain dependencies for GitHub Actions
@@ -10,13 +5,32 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-  # Maintain dependencies for bun in backend di
+    cooldown:
+      default-days: 7
+
+  # Maintain dependencies for root package.json (devDependencies, catalog)
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      root:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # Maintain dependencies for backend packages
   - package-ecosystem: "bun"
     directories:
       - "/api"
       - "/example-backend"
+      - "/mcp-server"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     ignore:
       # Until we move to Express 5, we need to stick with the types for Express 4
       - dependency-name: "@types/express"
@@ -28,15 +42,18 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
-  # Maintain dependencies for bun in demo/
+
+  # Maintain dependencies for frontend packages
   - package-ecosystem: "bun"
-    directories: 
+    directories:
       - "/demo"
       - "/ui"
       - "/example-frontend"
       - "/rtk"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7
     ignore:
       # These packages are controlled by the catalog in root package.json
       - dependency-name: "@biomejs/biome"
@@ -86,7 +103,6 @@ updates:
       - dependency-name: "react-native-signature-canvas"
       - dependency-name: "react-native-svg"
       - dependency-name: "react-native-swiper-flatlist"
-      - dependency-name: "react-native-toast-notifications"
       - dependency-name: "react-native-web"
       - dependency-name: "react-native-webview"
       - dependency-name: "react-native-worklets"
@@ -101,4 +117,3 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
-
