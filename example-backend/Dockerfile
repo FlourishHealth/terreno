@@ -7,6 +7,7 @@ COPY . .
 
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run --filter "@terreno/api" compile
+RUN bun run --filter "@terreno/api-health" compile
 
 WORKDIR /app/example-backend
 RUN bun build --compile src/index.ts --outfile dist/backend
