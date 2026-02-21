@@ -52,7 +52,14 @@ src/
 ## Server Setup
 
 ```typescript
-import {setupServer} from "@terreno/api";
+import {configureOpenApiValidator, setupServer} from "@terreno/api";
+
+// Enable OpenAPI request validation before setupServer
+configureOpenApiValidator({
+  onAdditionalPropertiesRemoved: (props, req) => {
+    Sentry.captureMessage(`Stripped: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
 
 setupServer({
   userModel: User,
@@ -69,11 +76,12 @@ setupServer({
 ### Startup Sequence
 
 1. Connect to MongoDB
-2. Configure logging (Winston + Google Cloud support)
-3. Initialize Sentry
-4. Run `checkModelsStrict()` in non-production (validates schema consistency)
-5. Set up OpenAPI middleware
-6. Start Express server
+2. Call `configureOpenApiValidator()` to activate request validation
+3. Configure logging (Winston + Google Cloud support)
+4. Initialize Sentry
+5. Run `checkModelsStrict()` in non-production (validates schema consistency)
+6. Set up OpenAPI middleware
+7. Start Express server
 
 ## Model Patterns
 
@@ -151,6 +159,12 @@ export const addTodoRoutes = (router, options?) => {
     queryFilter: OwnerQueryFilter,     // Restricts list to user's own
     queryFields: ["completed", "ownerId"],
     sort: "-created",
+    // Enable request validation for all operations
+    validation: {
+      validateCreate: true,
+      validateUpdate: true,
+      validateQuery: true,
+    },
   }));
 };
 ```
