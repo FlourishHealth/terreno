@@ -44,6 +44,10 @@ jobs:
               `demo-preview-pr-${pr}`,
               `example-frontend-preview-pr-${pr}`,
               `example-backend-preview-pr-${pr}`,
+              // Legacy environment names from before pr-N naming convention
+              `frontend-example-preview-pr-${pr}`,
+              'demo-preview',
+              'example-frontend-preview',
             ];
             for (const envName of envNames) {
               try {
