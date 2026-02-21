@@ -36,7 +36,7 @@ jobs:
             --region=${{ env.GCP_REGION }} || true
 
       - name: Deactivate deployments
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const pr = ${{ github.event.pull_request.number }};
