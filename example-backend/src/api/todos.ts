@@ -29,6 +29,12 @@ export const addTodoRoutes = (
       // Filter list queries to only show user's own todos
       queryFilter: OwnerQueryFilter,
       sort: "-created",
+      // Enable request validation for all operations
+      validation: {
+        validateCreate: true,
+        validateQuery: true,
+        validateUpdate: true,
+      },
     })
   );
 };

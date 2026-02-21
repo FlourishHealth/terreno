@@ -1,6 +1,12 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
+import {
+  type AddRoutes,
+  checkModelsStrict,
+  configureOpenApiValidator,
+  logger,
+  setupServer,
+} from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
@@ -28,6 +34,19 @@ const addRoutes: AddRoutes = (router, options): void => {
 export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
   // Connect to MongoDB first
   await connectToMongoDB();
+
+  // Enable OpenAPI request validation. Strips unknown properties and logs them.
+  configureOpenApiValidator({
+    onAdditionalPropertiesRemoved: (props: string[], req: {method: string; path: string}) => {
+      const msg = `Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`;
+      logger.warn(msg);
+      try {
+        Sentry.captureMessage(msg);
+      } catch {
+        // Sentry may not be initialized yet
+      }
+    },
+  });
 
   logger.info(`Starting server on port ${process.env.PORT}, deployed: ${isDeployed}`);
   // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.

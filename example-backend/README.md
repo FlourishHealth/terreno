@@ -1,6 +1,6 @@
 # Backend
 
-Backend API built with @terreno/api, Bun, and MongoDB.
+Backend API built with @terreno/api, Bun, and MongoDB. Deployed to Google Cloud Run on push to master.
 
 ## Setup
 

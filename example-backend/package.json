@@ -43,7 +43,7 @@
   "name": "@terreno/example-backend",
   "private": true,
   "scripts": {
-    "build": "bun build src/index.ts --outdir ./dist --target node",
+    "build": "bun build src/index.ts --outdir ./dist --target bun --packages external",
     "compile": "tsc",
     "dev": "PORT=4000 bun run --watch src/index.ts",
     "format": "biome format --write .",
@@ -51,6 +51,7 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "start": "bun run src/index.ts",
+    "start:prod": "bun run dist/index.js",
     "test": "bun test",
     "test:ci": "bun test",
     "test:coverage": "bun test --coverage",
