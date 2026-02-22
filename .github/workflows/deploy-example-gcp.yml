@@ -6,12 +6,14 @@ on:
       - master
     paths:
       - "example-backend/**"
+      - "admin-backend/**"
       - "api/**"
       - "api-health/**"
       - ".github/workflows/deploy-example-gcp.yml"
   pull_request:
     paths:
       - "example-backend/**"
+      - "admin-backend/**"
       - "api/**"
       - "api-health/**"
       - ".github/workflows/deploy-example-gcp.yml"

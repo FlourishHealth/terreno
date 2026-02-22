@@ -31,6 +31,7 @@ export const addTodoRoutes = (
       sort: "-created",
       // Enable request validation for all operations
       validation: {
+        excludeFromCreate: ["ownerId"],
         validateCreate: true,
         validateQuery: true,
         validateUpdate: true,

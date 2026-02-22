@@ -6,12 +6,14 @@ on:
       - master
     paths:
       - "example-frontend/**"
+      - "admin-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
     paths:
       - "example-frontend/**"
+      - "admin-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/frontend-example-deploy.yml"
@@ -39,6 +41,10 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Build Admin Frontend dependency
+        run: bun run compile
+        working-directory: admin-frontend
+
       - name: Check for backend changes in PR
         id: backend-changes
         if: github.event_name == 'pull_request'
@@ -52,11 +58,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Override BASE_URL for backend preview
-        if: steps.backend-changes.outputs.has_backend_changes == 'true'
+      - name: Set BASE_URL for deploy
         run: |
-          TAGGED_URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
-          jq --arg url "$TAGGED_URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
+          if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+          elif [ "${{ steps.backend-changes.outputs.has_backend_changes }}" = "true" ]; then
+            URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+          else
+            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+          fi
+          jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "BASE_URL set to $URL"
         working-directory: example-frontend
 
       - name: Export example-frontend for web
