@@ -169,7 +169,7 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
           routePath: "/users",
         },
       ],
-    }).register(app);
+    }).register(result.app);
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
