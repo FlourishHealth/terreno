@@ -338,3 +338,45 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+### Bun Catalog Pattern
+
+**Benefits:**
+- Single source of truth for shared dependency versions
+- Consistent versions across all packages
+- Easier updates — change once, apply everywhere
+
+**Example:**
+
+```json
+// root package.json
+{
+  "catalog": {
+    "react": "19.1.0",
+    "react-native": "0.81.5"
+  }
+}
+```
+
+```json
+// ui/package.json
+{
+  "dependencies": {
+    "react": "catalog:",
+    "react-native": "catalog:"
+  }
+}
+```
+
+### Dependabot & Auto-Merge
+
+Terreno uses automated dependency management:
+- **7-day cooldown**: Dependabot waits 7 days after package publication before creating PRs (security updates bypass this)
+- **Auto-merge workflow**: PRs auto-merge after all CI checks pass
+- **Update groups**: Backend, Frontend, and Root packages are grouped into monthly PRs
+- **Ignored deps**: Frontend packages ignore catalog-managed dependencies to prevent duplicate PRs
+
+**When to update catalog vs individual packages:**
+- Update root `package.json` catalog for shared dependencies used across multiple packages
+- Update individual packages for package-specific dependencies not in the catalog
+- See `docs/explanation/dependency-management.md` for detailed workflow and troubleshooting
