@@ -1,4 +1,4 @@
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder, logger} from "@terreno/api";
 import type {CoreTool} from "ai";
 import {streamText} from "ai";
 import type express from "express";
@@ -77,8 +77,14 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       }
 
       // Resolve AI service (per-request key takes priority, then configured service)
+      const hasPerRequestKey = !!req.headers["x-ai-api-key"];
+      const hasCreateModelFn = !!options.createModelFn;
+      const hasConfiguredService = !!options.aiService;
+      logger.debug("Resolving AI service", {hasConfiguredService, hasCreateModelFn, hasPerRequestKey});
+
       const aiService = resolveAiService(req, options);
       if (!aiService) {
+        logger.debug("No AI service available, sending demo response");
         return sendDemoResponse(res);
       }
 
@@ -150,6 +156,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       let fullResponse = "";
       try {
+        logger.debug("Starting streamText", {model: (aiService as any).model?.modelId});
         const result = streamText({
           maxSteps: maxSteps ?? (allTools ? 5 : 1),
           messages,
@@ -160,10 +167,21 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           tools: allTools,
         });
 
+        let partCount = 0;
         for await (const part of result.fullStream as AsyncIterable<{
           type: string;
           [key: string]: any;
         }>) {
+          partCount++;
+          if (partCount <= 3 || part.type === "error") {
+            logger.debug("Stream part", {error: part.type === "error" ? String(part.error ?? part) : undefined, partCount, type: part.type});
+          }
+          if (part.type === "error") {
+            const errMsg = part.error instanceof Error ? part.error.message : String(part.error ?? "Unknown stream error");
+            logger.error("AI stream error part", {error: errMsg});
+            res.write(`data: ${JSON.stringify({error: errMsg})}\n\n`);
+            continue;
+          }
           if (part.type === "text-delta") {
             fullResponse += part.textDelta;
             res.write(`data: ${JSON.stringify({text: part.textDelta})}\n\n`);
@@ -206,6 +224,8 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           }
         }
 
+        logger.debug("Stream completed", {fullResponseLength: fullResponse.length, partCount});
+
         // Save assistant response to history
         if (fullResponse) {
           const assistantPrompt: GptHistoryPrompt = {
@@ -220,6 +240,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         res.write(`data: ${JSON.stringify({done: true, historyId: history._id.toString()})}\n\n`);
         res.end();
       } catch (error) {
+        logger.error("Error in GPT stream", {error: error instanceof Error ? error.message : String(error)});
         res.write(
           `data: ${JSON.stringify({error: error instanceof Error ? error.message : "Unknown error"})}\n\n`
         );

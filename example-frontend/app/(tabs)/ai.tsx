@@ -36,7 +36,7 @@ const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<GPTChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
-  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
+  const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
 
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
@@ -229,10 +229,12 @@ const AiScreen: React.FC = () => {
     <GPTChat
       currentHistoryId={currentHistoryId}
       currentMessages={currentMessages}
+      geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
       onCreateHistory={handleCreateHistory}
       onDeleteHistory={handleDeleteHistory}
+      onGeminiApiKeyChange={setGeminiApiKey}
       onSelectHistory={handleSelectHistory}
       onSubmit={handleSubmit}
       onUpdateTitle={handleUpdateTitle}

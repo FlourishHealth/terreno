@@ -51,7 +51,8 @@ const createModelFromKey = (apiKey: string) => {
   if (!google) {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
-  return google.google("gemini-2.5-flash", {apiKey});
+  const provider = google.createGoogleGenerativeAI({apiKey});
+  return provider("gemini-2.5-flash");
 };
 
 const getMcpService = (): MCPService | undefined => {

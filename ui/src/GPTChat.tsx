@@ -1,4 +1,3 @@
-import * as Clipboard from "expo-clipboard";
 import React, {useCallback, useRef, useState} from "react";
 import {Image as RNImage, type ScrollView as RNScrollView} from "react-native";
 
@@ -11,9 +10,11 @@ import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {IconButton} from "./IconButton";
 import {MarkdownView} from "./MarkdownView";
+import {Modal} from "./Modal";
 import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 import {TextArea} from "./TextArea";
+import {TextField} from "./TextField";
 
 // ============================================================
 // Content Part Types (mirroring backend types for rendering)
@@ -83,12 +84,14 @@ export interface GPTChatProps {
   attachments?: SelectedFile[];
   currentHistoryId?: string;
   currentMessages: GPTChatMessage[];
+  geminiApiKey?: string;
   histories: GPTChatHistory[];
   isStreaming?: boolean;
   mcpServers?: MCPServerStatus[];
   onAttachFiles?: (files: SelectedFile[]) => void;
   onCreateHistory: () => void;
   onDeleteHistory: (id: string) => void;
+  onGeminiApiKeyChange?: (key: string) => void;
   onMemoryEdit?: (memory: string) => void;
   onRemoveAttachment?: (index: number) => void;
   onSelectHistory: (id: string) => void;
@@ -243,12 +246,14 @@ export const GPTChat = ({
   attachments = [],
   currentHistoryId,
   currentMessages,
+  geminiApiKey,
   histories,
   isStreaming = false,
   mcpServers,
   onAttachFiles,
   onCreateHistory,
   onDeleteHistory,
+  onGeminiApiKeyChange,
   onMemoryEdit,
   onRemoveAttachment,
   onSelectHistory,
@@ -259,6 +264,8 @@ export const GPTChat = ({
   const [inputValue, setInputValue] = useState("");
   const scrollViewRef = useRef<RNScrollView>(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
+  const [apiKeyDraft, setApiKeyDraft] = useState(geminiApiKey ?? "");
 
   const handleSubmit = useCallback(() => {
     const trimmed = inputValue.trim();
@@ -270,6 +277,7 @@ export const GPTChat = ({
   }, [inputValue, isStreaming, onSubmit]);
 
   const handleCopyMessage = useCallback(async (text: string) => {
+    const Clipboard = await import("expo-clipboard");
     await Clipboard.setStringAsync(text);
   }, []);
 
@@ -285,6 +293,16 @@ export const GPTChat = ({
     [onAttachFiles]
   );
 
+  const handleOpenApiKeyModal = useCallback(() => {
+    setApiKeyDraft(geminiApiKey ?? "");
+    setIsApiKeyModalVisible(true);
+  }, [geminiApiKey]);
+
+  const handleSaveApiKey = useCallback(() => {
+    onGeminiApiKeyChange?.(apiKeyDraft);
+    setIsApiKeyModalVisible(false);
+  }, [apiKeyDraft, onGeminiApiKeyChange]);
+
   return (
     <Box direction="row" flex="grow" testID={testID}>
       {/* Sidebar */}
@@ -294,6 +312,14 @@ export const GPTChat = ({
           <Box direction="row" gap={1}>
             {mcpServers && mcpServers.length > 0 ? (
               <MCPStatusIndicator servers={mcpServers} />
+            ) : null}
+            {onGeminiApiKeyChange ? (
+              <IconButton
+                accessibilityLabel="Set Gemini API key"
+                iconName="key"
+                onClick={handleOpenApiKeyModal}
+                testID="gpt-api-key-button"
+              />
             ) : null}
             {onMemoryEdit ? (
               <IconButton
@@ -457,6 +483,30 @@ export const GPTChat = ({
           />
         </Box>
       </Box>
+
+      {onGeminiApiKeyChange ? (
+        <Modal
+          onDismiss={() => setIsApiKeyModalVisible(false)}
+          primaryButtonOnClick={handleSaveApiKey}
+          primaryButtonText="Save"
+          secondaryButtonOnClick={() => setIsApiKeyModalVisible(false)}
+          secondaryButtonText="Cancel"
+          size="sm"
+          subtitle="Provide your own Gemini API key for AI requests."
+          title="Gemini API Key"
+          visible={isApiKeyModalVisible}
+        >
+          <Box padding={2}>
+            <TextField
+              onChange={setApiKeyDraft}
+              placeholder="Enter Gemini API key..."
+              testID="gpt-api-key-input"
+              type="password"
+              value={apiKeyDraft}
+            />
+          </Box>
+        </Modal>
+      ) : null}
     </Box>
   );
 };

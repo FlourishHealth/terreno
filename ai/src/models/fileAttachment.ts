@@ -12,7 +12,7 @@ const fileAttachmentSchema = new mongoose.Schema<FileAttachmentDocument, FileAtt
     url: {required: true, type: String},
     userId: {index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId},
   },
-  {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}}
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
 fileAttachmentSchema.plugin(createdUpdatedPlugin);

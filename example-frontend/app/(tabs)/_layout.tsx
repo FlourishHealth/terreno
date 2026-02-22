@@ -31,7 +31,7 @@ const TabLayout: React.FC = () => {
         name="ai"
         options={{
           headerShown: false,
-          tabBarIcon: ({color}) => <TabBarIcon color={color} name="robot" />,
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="comments" />,
           title: "AI",
         }}
       />

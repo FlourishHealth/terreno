@@ -1,5 +1,3 @@
-import * as DocumentPicker from "expo-document-picker";
-import * as ImagePicker from "expo-image-picker";
 import React, {useCallback, useState} from "react";
 
 import {Box} from "./Box";
@@ -30,6 +28,7 @@ export const FilePickerButton = ({
 
   const handlePickImage = useCallback(async () => {
     setShowModal(false);
+    const ImagePicker = await import("expo-image-picker");
     const result = await ImagePicker.launchImageLibraryAsync({
       allowsMultipleSelection: multiple,
       mediaTypes: ["images"],
@@ -48,6 +47,7 @@ export const FilePickerButton = ({
 
   const handlePickDocument = useCallback(async () => {
     setShowModal(false);
+    const DocumentPicker = await import("expo-document-picker");
     const result = await DocumentPicker.getDocumentAsync({
       multiple,
       type: ["application/pdf", "text/plain", "text/csv", "application/json"],

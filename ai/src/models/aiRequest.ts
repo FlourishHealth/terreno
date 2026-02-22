@@ -19,7 +19,7 @@ const aiRequestSchema = new mongoose.Schema<AIRequestDocument, AIRequestModel>(
     tokensUsed: {type: Number},
     userId: {ref: "User", type: mongoose.Schema.Types.ObjectId},
   },
-  {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}}
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
 aiRequestSchema.plugin(createdUpdatedPlugin);
