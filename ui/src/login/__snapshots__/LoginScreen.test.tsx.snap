@@ -411,7 +411,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
-                                  "alignSelf": undefined,
+                                  "alignSelf": "flex-start",
                                   "backgroundColor": "#9A9A9A",
                                   "borderColor": undefined,
                                   "borderRadius": 360,

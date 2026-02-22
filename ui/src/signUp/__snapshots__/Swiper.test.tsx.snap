@@ -228,12 +228,10 @@ exports[`Swiper renders correctly 1`] = `
         },
       ],
       "props": {
-        "autoplay": true,
-        "autoplayDelay": 4,
-        "autoplayLoop": true,
-        "showPagination": true,
+        "style": undefined,
+        "testID": "swiper-flatlist",
       },
-      "type": "SwiperFlatList",
+      "type": "View",
     },
   ],
   "props": {
