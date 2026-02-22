@@ -3,6 +3,7 @@
 [![@terreno/api](https://img.shields.io/npm/v/@terreno/api?label=%40terreno%2Fapi)](https://www.npmjs.com/package/@terreno/api)
 [![@terreno/ui](https://img.shields.io/npm/v/@terreno/ui?label=%40terreno%2Fui)](https://www.npmjs.com/package/@terreno/ui)
 [![@terreno/rtk](https://img.shields.io/npm/v/@terreno/rtk?label=%40terreno%2Frtk)](https://www.npmjs.com/package/@terreno/rtk)
+[![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 
 A monorepo containing shared packages for building full-stack applications.
 
@@ -13,6 +14,7 @@ A monorepo containing shared packages for building full-stack applications.
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
+- **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
 
 ### Deployed Services
 
