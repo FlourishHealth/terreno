@@ -77,11 +77,12 @@ describe("auth tests", () => {
         })
       );
     }
-    app = setupServer({
+    const result = setupServer({
       addRoutes,
       skipListen: true,
       userModel: UserModel as any,
     });
+    app = result.app;
     agent = supertest.agent(app);
   });
 

@@ -2,6 +2,8 @@ import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {
   type AddRoutes,
+  type AuthProvider,
+  type BetterAuthConfig,
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
@@ -28,6 +30,49 @@ const addRoutes: AddRoutes = (router, options): void => {
   addUserRoutes(router, options);
 };
 
+/**
+ * Builds Better Auth configuration from environment variables.
+ * Returns undefined if AUTH_PROVIDER is not set to "better-auth".
+ */
+const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
+  const authProvider = process.env.AUTH_PROVIDER as AuthProvider | undefined;
+
+  if (authProvider !== "better-auth") {
+    return undefined;
+  }
+
+  const config: BetterAuthConfig = {
+    enabled: true,
+    trustedOrigins: ["terreno://", "exp://"],
+  };
+
+  // Add Google OAuth if configured
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    config.googleOAuth = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    };
+  }
+
+  // Add GitHub OAuth if configured
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    config.githubOAuth = {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    };
+  }
+
+  // Add Apple OAuth if configured
+  if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
+    config.appleOAuth = {
+      clientId: process.env.APPLE_CLIENT_ID,
+      clientSecret: process.env.APPLE_CLIENT_SECRET,
+    };
+  }
+
+  return config;
+};
+
 // Return type uses ReturnType to match what setupServer actually returns
 export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
   // Connect to MongoDB first
@@ -46,7 +91,11 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
     },
   });
 
-  logger.info(`Starting server on port ${process.env.PORT}, deployed: ${isDeployed}`);
+  const authProvider = (process.env.AUTH_PROVIDER as AuthProvider) ?? "jwt";
+  logger.info(
+    `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
+  );
+
   // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.
   const transports: any[] = [];
 
@@ -65,9 +114,13 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
   }
 
   try {
-    const app = setupServer({
+    const betterAuthConfig = buildBetterAuthConfig();
+
+    const result = setupServer({
       addMiddleware,
       addRoutes,
+      authProvider,
+      betterAuthConfig,
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -95,13 +148,13 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
           healthy: mongoConnected,
         };
       },
-    }).register(app);
+    }).register(result.app);
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
     const totalBootTimeMs = Math.round(totalBootTime[0] * 1000 + totalBootTime[1] * 0.000001);
     logger.debug(`Total server boot completed in ${totalBootTimeMs}ms`);
-    return app;
+    return result;
   } catch (error) {
     logger.error(`Error in start function: ${error}`);
     logger.error(`Error setting up server: ${error}`);
