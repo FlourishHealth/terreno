@@ -15,11 +15,13 @@
     "react-dom": "catalog:",
     "react-native": "catalog:",
     "react-native-web": "catalog:",
+    "lodash": "catalog:",
     "react-redux": "catalog:",
     "redux-persist": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@types/lodash": "catalog:",
     "@playwright/test": "^1.58.2",
     "@types/react": "catalog:",
     "babel-preset-expo": "~54.0.10",

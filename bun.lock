@@ -258,6 +258,7 @@
         "expo-router": "catalog:",
         "expo-splash-screen": "catalog:",
         "expo-updates": "catalog:",
+        "lodash": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
         "react-native": "catalog:",
@@ -268,6 +269,7 @@
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@playwright/test": "^1.58.2",
+        "@types/lodash": "catalog:",
         "@types/react": "catalog:",
         "babel-preset-expo": "~54.0.10",
         "typescript": "catalog:",
