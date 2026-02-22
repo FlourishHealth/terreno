@@ -39,7 +39,7 @@ const resolveAiService = (
 };
 
 export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
-  const {mcpService, tools: routeTools, toolChoice, maxSteps} = options;
+  const {mcpService, tools: routeTools, createRequestTools, toolChoice, maxSteps} = options;
 
   router.post(
     "/gpt/prompt",
@@ -135,10 +135,15 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       // Build messages from history using AIService helper
       const messages = aiService.buildMessages(history.prompts);
 
-      // Merge tools from route config and MCP service
+      // Some models (e.g. gemini-2.5-flash-image) don't support tool calling
+      const modelId = (aiService as any).model?.modelId as string | undefined;
+      const supportsTools = !modelId?.includes("image");
+
+      // Merge tools from route config, per-request tools, and MCP service
       let allTools: Record<string, CoreTool> | undefined;
-      if (routeTools || mcpService) {
-        allTools = {...(routeTools ?? {})};
+      const requestTools = createRequestTools ? createRequestTools(req) : undefined;
+      if (supportsTools && (routeTools || requestTools || mcpService)) {
+        allTools = {...(routeTools ?? {}), ...(requestTools ?? {})};
         if (mcpService) {
           try {
             const mcpTools = await mcpService.getTools();
@@ -155,12 +160,16 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       res.setHeader("Connection", "keep-alive");
 
       let fullResponse = "";
+      const generatedImages: Array<{mimeType: string; url: string}> = [];
       try {
-        logger.debug("Starting streamText", {model: (aiService as any).model?.modelId});
+        logger.debug("Starting streamText", {model: modelId, supportsTools});
         const result = streamText({
           maxSteps: maxSteps ?? (allTools ? 5 : 1),
           messages,
           model: (aiService as any).model,
+          providerOptions: !supportsTools
+            ? {google: {responseModalities: ["TEXT", "IMAGE"]}}
+            : undefined,
           system: systemPrompt ?? undefined,
           temperature: (aiService as any).defaultTemperature,
           toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
@@ -173,13 +182,22 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           [key: string]: any;
         }>) {
           partCount++;
-          if (partCount <= 3 || part.type === "error") {
-            logger.debug("Stream part", {error: part.type === "error" ? String(part.error ?? part) : undefined, partCount, type: part.type});
+          if (partCount <= 5 || part.type === "error" || part.type === "file") {
+            logger.debug("Stream part", {partCount, type: part.type, ...(part.type === "file" ? {mimeType: part.mimeType} : {}), ...(part.type === "error" ? {error: String(part.error ?? part)} : {})});
           }
           if (part.type === "error") {
             const errMsg = part.error instanceof Error ? part.error.message : String(part.error ?? "Unknown stream error");
             logger.error("AI stream error part", {error: errMsg});
             res.write(`data: ${JSON.stringify({error: errMsg})}\n\n`);
+            continue;
+          }
+          if (part.type === "file") {
+            if (part.mimeType?.startsWith("image/")) {
+              const dataUrl = `data:${part.mimeType};base64,${part.base64}`;
+              generatedImages.push({mimeType: part.mimeType, url: dataUrl});
+              res.write(`data: ${JSON.stringify({image: {mimeType: part.mimeType, url: dataUrl}})}\n\n`);
+              logger.debug("Sent inline image from stream");
+            }
             continue;
           }
           if (part.type === "text-delta") {
@@ -204,18 +222,40 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               type: "tool-call",
             });
           } else if (part.type === "tool-result") {
+            const toolResult = part.result as Record<string, unknown> | undefined;
+
+            // If the tool result contains file data, send it as a separate file SSE event
+            if (toolResult?.fileData && typeof toolResult.fileData === "string") {
+              res.write(
+                `data: ${JSON.stringify({
+                  file: {
+                    filename: toolResult.filename ?? "document",
+                    mimeType: toolResult.mimeType ?? "application/octet-stream",
+                    url: toolResult.fileData,
+                  },
+                })}\n\n`
+              );
+              logger.debug("Sent generated file from tool result", {
+                filename: toolResult.filename,
+                mimeType: toolResult.mimeType,
+              });
+            }
+
+            // Strip fileData from result before sending/storing to avoid bloating the SSE and DB
+            const {fileData: _fileData, ...cleanResult} = toolResult ?? {};
+
             res.write(
               `data: ${JSON.stringify({
                 toolResult: {
-                  result: part.result,
+                  result: cleanResult,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                 },
               })}\n\n`
             );
-            // Persist tool result in history
+            // Persist tool result in history (without the large file data)
             history.prompts.push({
-              result: part.result as unknown,
+              result: cleanResult as unknown,
               text: `Tool result: ${part.toolName}`,
               toolCallId: part.toolCallId,
               toolName: part.toolName,
@@ -226,12 +266,39 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
         logger.debug("Stream completed", {fullResponseLength: fullResponse.length, partCount});
 
+        // Check for generated images (e.g. from gemini-2.5-flash-image)
+        try {
+          const files = await result.files;
+          if (files && files.length > 0) {
+            for (const file of files) {
+              if (file.mimeType.startsWith("image/")) {
+                const dataUrl = `data:${file.mimeType};base64,${file.base64}`;
+                generatedImages.push({mimeType: file.mimeType, url: dataUrl});
+                res.write(
+                  `data: ${JSON.stringify({
+                    image: {mimeType: file.mimeType, url: dataUrl},
+                  })}\n\n`
+                );
+              }
+            }
+            logger.debug("Sent generated images", {count: files.length});
+          }
+        } catch (fileErr) {
+          logger.debug("No files in response", {error: fileErr instanceof Error ? fileErr.message : String(fileErr)});
+        }
+
         // Save assistant response to history
-        if (fullResponse) {
+        if (fullResponse || generatedImages.length > 0) {
+          const contentParts: MessageContentPart[] = generatedImages.map((img) => ({
+            mimeType: img.mimeType,
+            type: "image" as const,
+            url: img.url,
+          }));
           const assistantPrompt: GptHistoryPrompt = {
             model: aiService.modelId,
-            text: fullResponse,
+            text: fullResponse || "(image)",
             type: "assistant",
+            ...(contentParts.length > 0 ? {content: contentParts} : {}),
           };
           history.prompts.push(assistantPrompt);
         }

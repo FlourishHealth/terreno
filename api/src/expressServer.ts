@@ -193,7 +193,7 @@ function initializeRoutes(
     options.addMiddleware(app);
   }
 
-  app.use(express.json());
+  app.use(express.json({limit: "50mb"}));
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
   addAuthRoutes(app, UserModel as any, options?.authOptions);

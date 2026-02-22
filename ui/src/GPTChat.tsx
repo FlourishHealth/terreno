@@ -163,6 +163,18 @@ const ToolResultCard = ({toolResult}: {toolResult: ToolResultInfo}): React.React
   );
 };
 
+const handleDownloadFile = (url: string, filename: string): void => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.ReactElement => {
   return (
     <Box gap={2}>
@@ -178,6 +190,32 @@ const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.Reac
           );
         }
         if (part.type === "file") {
+          const hasDownloadableUrl = part.url?.startsWith("data:") || part.url?.startsWith("http");
+          const filename = part.filename ?? "File";
+          const isPdf = part.mimeType === "application/pdf";
+          const iconName = isPdf ? "file-pdf" : "file";
+
+          if (hasDownloadableUrl) {
+            return (
+              <Box
+                accessibilityHint="Download this file"
+                accessibilityLabel={`File: ${filename}`}
+                alignItems="center"
+                border="default"
+                direction="row"
+                gap={1}
+                key={`content-${index}`}
+                onClick={() => handleDownloadFile(part.url, filename)}
+                padding={2}
+                rounding="md"
+              >
+                <Icon iconName={iconName} size="sm" />
+                <Text size="sm">{filename}</Text>
+                <Icon iconName="download" size="xs" />
+              </Box>
+            );
+          }
+
           return (
             <Box
               alignItems="center"
@@ -188,8 +226,8 @@ const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.Reac
               padding={2}
               rounding="md"
             >
-              <Icon iconName="file" size="sm" />
-              <Text size="sm">{part.filename ?? "File"}</Text>
+              <Icon iconName={iconName} size="sm" />
+              <Text size="sm">{filename}</Text>
             </Box>
           );
         }

@@ -4,6 +4,7 @@ import {
   GPTChat,
   type GPTChatHistory,
   type GPTChatMessage,
+  type SelectedFile,
   Spinner,
   useStoredState,
 } from "@terreno/ui";
@@ -20,6 +21,13 @@ const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   id: history.id,
   prompts: history.prompts.map((p) => ({
     content: p.text,
+    contentParts: p.content?.map((c) => ({
+      ...(c.filename ? {filename: c.filename} : {}),
+      mimeType: c.mimeType ?? "",
+      type: c.type as "text" | "image" | "file",
+      ...(c.text ? {text: c.text} : {}),
+      ...(c.url ? {url: c.url} : {}),
+    })),
     role: p.type,
     ...(p.toolCallId && p.type === "tool-call"
       ? {toolCall: {args: p.args ?? {}, toolCallId: p.toolCallId, toolName: p.toolName ?? ""}}
@@ -32,11 +40,30 @@ const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   updated: history.updated,
 });
 
+const IMAGE_MIME_PREFIXES = ["image/"];
+
+const isImageMimeType = (mimeType: string): boolean =>
+  IMAGE_MIME_PREFIXES.some((prefix) => mimeType.startsWith(prefix));
+
+const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<string> => {
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      resolve(reader.result as string);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<GPTChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
+  const [attachments, setAttachments] = useState<SelectedFile[]>([]);
 
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
@@ -86,13 +113,49 @@ const AiScreen: React.FC = () => {
     [patchHistory]
   );
 
+  const handleAttachFiles = useCallback((files: SelectedFile[]) => {
+    setAttachments((prev) => [...prev, ...files]);
+  }, []);
+
+  const handleRemoveAttachment = useCallback((index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
   const handleSubmit = useCallback(
     async (prompt: string) => {
-      const userMessage: GPTChatMessage = {content: prompt, role: "user"};
+      const currentAttachments = [...attachments];
+      setAttachments([]);
+
+      // Build content parts for display in the chat from attached files
+      const userContentParts: GPTChatMessage["contentParts"] = currentAttachments.map((file) => ({
+        filename: file.name,
+        mimeType: file.mimeType,
+        type: isImageMimeType(file.mimeType) ? ("image" as const) : ("file" as const),
+        url: file.uri,
+      }));
+
+      const userMessage: GPTChatMessage = {
+        content: prompt,
+        contentParts: userContentParts.length > 0 ? userContentParts : undefined,
+        role: "user",
+      };
       setCurrentMessages((prev) => [...prev, userMessage]);
       setIsStreaming(true);
 
       try {
+        // Convert local file URIs to base64 data URLs for the API
+        const apiAttachments = await Promise.all(
+          currentAttachments.map(async (file) => {
+            const dataUrl = await readFileAsBase64DataUrl(file.uri, file.mimeType);
+            return {
+              filename: file.name,
+              mimeType: file.mimeType,
+              type: isImageMimeType(file.mimeType) ? "image" : "file",
+              url: dataUrl,
+            };
+          })
+        );
+
         const token = await getAuthToken();
         const headers: Record<string, string> = {
           Authorization: `Bearer ${token}`,
@@ -102,7 +165,11 @@ const AiScreen: React.FC = () => {
           headers["x-ai-api-key"] = geminiApiKey;
         }
         const response = await fetch(`${baseUrl}/gpt/prompt`, {
-          body: JSON.stringify({historyId: currentHistoryId, prompt}),
+          body: JSON.stringify({
+            attachments: apiAttachments.length > 0 ? apiAttachments : undefined,
+            historyId: currentHistoryId,
+            prompt,
+          }),
           headers,
           method: "POST",
         });
@@ -184,6 +251,45 @@ const AiScreen: React.FC = () => {
                   }
                   return updated;
                 });
+              } else if (data.image) {
+                setCurrentMessages((prev) => {
+                  const updated = [...prev];
+                  const lastIdx = updated.length - 1;
+                  if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+                    const existing = updated[lastIdx].contentParts ?? [];
+                    updated[lastIdx] = {
+                      ...updated[lastIdx],
+                      contentParts: [
+                        ...existing,
+                        {mimeType: data.image.mimeType, type: "image", url: data.image.url},
+                      ],
+                    };
+                  }
+                  return updated;
+                });
+              } else if (data.file) {
+                const isImage = typeof data.file.mimeType === "string" &&
+                  data.file.mimeType.startsWith("image/");
+                setCurrentMessages((prev) => {
+                  const updated = [...prev];
+                  const lastIdx = updated.length - 1;
+                  if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
+                    const existing = updated[lastIdx].contentParts ?? [];
+                    updated[lastIdx] = {
+                      ...updated[lastIdx],
+                      contentParts: [
+                        ...existing,
+                        {
+                          filename: data.file.filename,
+                          mimeType: data.file.mimeType,
+                          type: isImage ? ("image" as const) : ("file" as const),
+                          url: data.file.url,
+                        },
+                      ],
+                    };
+                  }
+                  return updated;
+                });
               } else if (data.done) {
                 // Clean up trailing empty assistant messages
                 setCurrentMessages((prev) =>
@@ -214,7 +320,7 @@ const AiScreen: React.FC = () => {
         setIsStreaming(false);
       }
     },
-    [currentHistoryId, geminiApiKey]
+    [attachments, currentHistoryId, geminiApiKey]
   );
 
   if (isLoading) {
@@ -227,14 +333,17 @@ const AiScreen: React.FC = () => {
 
   return (
     <GPTChat
+      attachments={attachments}
       currentHistoryId={currentHistoryId}
       currentMessages={currentMessages}
       geminiApiKey={geminiApiKey}
       histories={histories}
       isStreaming={isStreaming}
+      onAttachFiles={handleAttachFiles}
       onCreateHistory={handleCreateHistory}
       onDeleteHistory={handleDeleteHistory}
       onGeminiApiKeyChange={setGeminiApiKey}
+      onRemoveAttachment={handleRemoveAttachment}
       onSelectHistory={handleSelectHistory}
       onSubmit={handleSubmit}
       onUpdateTitle={handleUpdateTitle}

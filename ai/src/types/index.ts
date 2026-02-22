@@ -161,6 +161,8 @@ export interface GptRouteOptions {
   aiService?: import("../service/aiService").AIService;
   /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
   createModelFn?: (apiKey: string) => import("ai").LanguageModel;
+  /** Factory to create per-request tools (e.g. tools that need the request's API key). Merged with static tools. */
+  createRequestTools?: (req: import("express").Request) => Record<string, import("ai").CoreTool>;
   /** Return canned responses when no AI service is available. */
   demoMode?: boolean;
   mcpService?: import("../service/mcpService").MCPService;

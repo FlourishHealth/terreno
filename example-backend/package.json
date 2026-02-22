@@ -26,6 +26,7 @@
     "mongoose": "^8.0.0",
     "passport-local-mongoose": "^9.0.1",
     "path-to-regexp": "^0.1.12",
+    "pdf-lib": "^1.17.1",
     "qs": "^6.14.1",
     "socket.io": "^4.8.1",
     "zod": "^3.23.0"
