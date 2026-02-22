@@ -144,12 +144,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    const result = setupServer({
+    app = setupServer({
       addRoutes: addRoutesWithBuilder,
       skipListen: true,
       userModel: UserModel as any,
     });
-    app = result.app;
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
   });

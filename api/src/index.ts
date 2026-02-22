@@ -1,6 +1,7 @@
 export * from "./api";
 export * from "./auth";
 export * from "./betterAuth";
+export * from "./betterAuthApp";
 export * from "./betterAuthSetup";
 export * from "./errors";
 export * from "./expressServer";

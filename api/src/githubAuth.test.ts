@@ -96,7 +96,7 @@ describe("GitHub auth routes", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    ({app} = setupServer({
+    app = setupServer({
       addRoutes,
       githubAuth: {
         allowAccountLinking: true,
@@ -106,7 +106,7 @@ describe("GitHub auth routes", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as any,
-    }));
+    });
     agent = supertest.agent(app);
   });
 
@@ -203,11 +203,11 @@ describe("GitHub auth disabled", () => {
     }
 
     // Setup server WITHOUT GitHub auth
-    ({app} = setupServer({
+    app = setupServer({
       addRoutes,
       skipListen: true,
       userModel: GitHubTestUserModel as any,
-    }));
+    });
     agent = supertest.agent(app);
   });
 

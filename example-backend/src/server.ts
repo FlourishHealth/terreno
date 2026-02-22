@@ -4,6 +4,7 @@ import {AdminApp} from "@terreno/admin-backend";
 import {
   type AddRoutes,
   type AuthProvider,
+  BetterAuthApp,
   type BetterAuthConfig,
   checkModelsStrict,
   configureOpenApiValidator,
@@ -11,6 +12,7 @@ import {
   setupServer,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import type express from "express";
 import mongoose from "mongoose";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
@@ -75,8 +77,7 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
   return config;
 };
 
-// Return type uses ReturnType to match what setupServer actually returns
-export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
+export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
 
@@ -118,11 +119,9 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
   try {
     const betterAuthConfig = buildBetterAuthConfig();
 
-    const result = setupServer({
+    const app = setupServer({
       addMiddleware,
       addRoutes,
-      authProvider,
-      betterAuthConfig,
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -150,7 +149,7 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
           healthy: mongoConnected,
         };
       },
-    }).register(result.app);
+    }).register(app);
 
     // Register admin panel plugin
     new AdminApp({
@@ -169,13 +168,19 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
           routePath: "/users",
         },
       ],
-    }).register(result.app);
+    }).register(app);
+
+    // Register Better Auth plugin if configured
+    if (authProvider === "better-auth" && betterAuthConfig) {
+      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+      new BetterAuthApp({config: betterAuthConfig, userModel: User as any}).register(app);
+    }
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
     const totalBootTimeMs = Math.round(totalBootTime[0] * 1000 + totalBootTime[1] * 0.000001);
     logger.debug(`Total server boot completed in ${totalBootTimeMs}ms`);
-    return result;
+    return app;
   } catch (error) {
     logger.error(`Error in start function: ${error}`);
     logger.error(`Error setting up server: ${error}`);

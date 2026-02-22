@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {describe, expect, it} from "bun:test";
 
 import type {AuthProvider, BetterAuthConfig, BetterAuthOAuthProvider} from "./betterAuth";
 
@@ -57,12 +57,6 @@ describe("Better Auth types", () => {
 });
 
 describe("Better Auth setup", () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    process.env = {...originalEnv};
-  });
-
   it("syncBetterAuthUser creates a new user when not found", async () => {
     // This test would require mocking MongoDB which is complex
     // For now we test the interface structure
@@ -120,81 +114,6 @@ describe("Better Auth setup", () => {
     };
 
     expect(sessionData.session.userId).toBe(sessionData.user.id);
-  });
-});
-
-describe("setupEnvironment with auth providers", () => {
-  const originalEnv = process.env;
-
-  beforeEach(() => {
-    process.env = {...originalEnv};
-  });
-
-  it("validates JWT environment variables when authProvider is jwt", async () => {
-    process.env.TOKEN_ISSUER = "test-issuer";
-    process.env.TOKEN_SECRET = "test-secret";
-    process.env.REFRESH_TOKEN_SECRET = "test-refresh-secret";
-    process.env.SESSION_SECRET = "test-session-secret";
-
-    const {setupEnvironment} = await import("./expressServer");
-
-    // Should not throw
-    expect(() => setupEnvironment("jwt")).not.toThrow();
-  });
-
-  it("throws when JWT env vars are missing for jwt provider", async () => {
-    process.env.TOKEN_ISSUER = "";
-    process.env.TOKEN_SECRET = "";
-
-    const {setupEnvironment} = await import("./expressServer");
-
-    expect(() => setupEnvironment("jwt")).toThrow("TOKEN_ISSUER must be set in env.");
-  });
-
-  it("validates Better Auth environment variables when authProvider is better-auth", async () => {
-    process.env.BETTER_AUTH_SECRET = "test-better-auth-secret";
-    process.env.BETTER_AUTH_URL = "http://localhost:3000";
-
-    const {setupEnvironment} = await import("./expressServer");
-
-    // Should not throw
-    expect(() => setupEnvironment("better-auth")).not.toThrow();
-  });
-
-  it("throws when Better Auth env vars are missing", async () => {
-    process.env.BETTER_AUTH_SECRET = undefined;
-    process.env.BETTER_AUTH_URL = undefined;
-
-    const {setupEnvironment} = await import("./expressServer");
-
-    expect(() => setupEnvironment("better-auth")).toThrow(
-      "BETTER_AUTH_SECRET must be set for Better Auth."
-    );
-  });
-});
-
-describe("SetupServerOptions with Better Auth", () => {
-  it("accepts authProvider option", () => {
-    const options = {
-      authProvider: "better-auth" as AuthProvider,
-      betterAuthConfig: {
-        enabled: true,
-        googleOAuth: {
-          clientId: "google-id",
-          clientSecret: "google-secret",
-        },
-        trustedOrigins: ["terreno://"],
-      } satisfies BetterAuthConfig,
-    };
-
-    expect(options.authProvider).toBe("better-auth");
-    expect(options.betterAuthConfig.enabled).toBe(true);
-    expect(options.betterAuthConfig.googleOAuth?.clientId).toBe("google-id");
-  });
-
-  it("defaults to jwt when authProvider not specified", () => {
-    const defaultProvider: AuthProvider = "jwt";
-    expect(defaultProvider).toBe("jwt");
   });
 });
 
