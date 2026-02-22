@@ -1,6 +1,6 @@
 import {emptySplitApi as api} from "@terreno/rtk";
 
-export const addTagTypes = ["todos", "users", "profile"] as const;
+export const addTagTypes = ["todos", "users", "profile", "gptHistories"] as const;
 
 // Todo types
 export interface Todo {
@@ -35,6 +35,55 @@ export interface UpdateTodoBody {
   completed?: boolean;
 }
 
+// GptHistory types
+export interface GptHistoryPrompt {
+  text: string;
+  type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
+  model?: string;
+  content?: Array<{
+    type: string;
+    text?: string;
+    url?: string;
+    mimeType?: string;
+    filename?: string;
+  }>;
+  toolCallId?: string;
+  toolName?: string;
+  args?: Record<string, unknown>;
+  result?: unknown;
+}
+
+export interface GptHistory {
+  _id: string;
+  id: string;
+  title?: string;
+  userId: string;
+  prompts: GptHistoryPrompt[];
+  created: string;
+  updated: string;
+}
+
+export interface GptHistoriesListResponse {
+  data: GptHistory[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+}
+
+export interface GptHistoryResponse {
+  data: GptHistory;
+}
+
+export interface CreateGptHistoryBody {
+  title?: string;
+  prompts?: GptHistoryPrompt[];
+}
+
+export interface UpdateGptHistoryBody {
+  title?: string;
+}
+
 // User types
 export interface User {
   _id: string;
@@ -63,6 +112,18 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      // GptHistory endpoints
+      deleteGptHistoriesById: build.mutation<void, {id: string}>({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/gpt/histories/${queryArg.id}`,
+        }),
+      }),
+
       deleteTodosById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -72,6 +133,20 @@ const injectedRtkApi = api
           method: "DELETE",
           url: `/todos/${queryArg.id}`,
         }),
+      }),
+      getGptHistories: build.query<GptHistoriesListResponse, void>({
+        providesTags: (result) =>
+          result?.data
+            ? [
+                ...result.data.map(({id}) => ({id, type: "gptHistories" as const})),
+                {id: "LIST", type: "gptHistories" as const},
+              ]
+            : [{id: "LIST", type: "gptHistories" as const}],
+        query: () => ({url: "/gpt/histories"}),
+      }),
+      getGptHistoriesById: build.query<GptHistoryResponse, {id: string}>({
+        providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
+        query: (queryArg) => ({url: `/gpt/histories/${queryArg.id}`}),
       }),
       // Todos endpoints
       getTodos: build.query<TodosListResponse, {completed?: boolean; ownerId?: string}>({
@@ -115,6 +190,20 @@ const injectedRtkApi = api
         providesTags: (_result, _error, {id}) => [{id, type: "users" as const}],
         query: (queryArg) => ({url: `/users/${queryArg.id}`}),
       }),
+      patchGptHistoriesById: build.mutation<
+        GptHistoryResponse,
+        {id: string; body: UpdateGptHistoryBody}
+      >({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "gptHistories" as const},
+          {id: "LIST", type: "gptHistories" as const},
+        ],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/gpt/histories/${queryArg.id}`,
+        }),
+      }),
       patchTodosById: build.mutation<TodoResponse, {id: string; body: UpdateTodoBody}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -137,6 +226,14 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
+      postGptHistories: build.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
+        invalidatesTags: [{id: "LIST", type: "gptHistories" as const}],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: "/gpt/histories",
+        }),
+      }),
       postTodos: build.mutation<TodoResponse, {body: CreateTodoBody}>({
         invalidatesTags: [{id: "LIST", type: "todos" as const}],
         query: (queryArg) => ({
@@ -152,6 +249,11 @@ const injectedRtkApi = api
 export {injectedRtkApi as openapi};
 
 export const {
+  useDeleteGptHistoriesByIdMutation,
+  useGetGptHistoriesQuery,
+  useGetGptHistoriesByIdQuery,
+  usePatchGptHistoriesByIdMutation,
+  usePostGptHistoriesMutation,
   useGetTodosQuery,
   useGetTodosByIdQuery,
   usePostTodosMutation,
