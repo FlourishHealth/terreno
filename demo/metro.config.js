@@ -84,9 +84,10 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
 // (e.g. "http://localhost:8085/?platform=web"). The web HMR client falls back to location.href
 // when document.currentScript is unavailable, producing this invalid entry point URL.
 // Rewrite root-path URLs to the actual entry file path (relative to the monorepo/server root).
+const pkgMain = require(path.resolve(projectRoot, "package.json")).main;
 const entryModuleName = path.relative(
   monorepoRoot,
-  require.resolve(require(path.resolve(projectRoot, "package.json")).main, {paths: [projectRoot]})
+  require.resolve(pkgMain.startsWith(".") ? pkgMain : `./${pkgMain}`, {paths: [projectRoot]})
 );
 const existingRewrite = config.server?.rewriteRequestUrl;
 config.server.rewriteRequestUrl = (url) => {

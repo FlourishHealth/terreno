@@ -432,6 +432,29 @@ if (typeof globalThis.expo === "undefined") {
   } as any;
 }
 
+// Mock expo-router
+mock.module("expo-router", () => ({
+  router: {
+    back: mock(() => {}),
+    canGoBack: mock(() => true),
+    navigate: mock(() => {}),
+    push: mock(() => {}),
+    replace: mock(() => {}),
+  },
+  useRouter: mock(() => ({
+    back: mock(() => {}),
+    canGoBack: mock(() => true),
+    navigate: mock(() => {}),
+    push: mock(() => {}),
+    replace: mock(() => {}),
+  })),
+  useLocalSearchParams: mock(() => ({})),
+  useSegments: mock(() => []),
+  Link: ({children, ...props}: any) => React.createElement("Link", props, children),
+  Stack: ({children, ...props}: any) => React.createElement("Stack", props, children),
+  Tabs: ({children, ...props}: any) => React.createElement("Tabs", props, children),
+}));
+
 // Mock @react-native-async-storage/async-storage
 mock.module("@react-native-async-storage/async-storage", () => ({
   clear: mock(() => Promise.resolve()),

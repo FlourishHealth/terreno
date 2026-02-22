@@ -261,6 +261,7 @@
         "react": "catalog:",
         "react-dom": "catalog:",
         "react-native": "catalog:",
+        "react-native-web": "catalog:",
         "react-redux": "catalog:",
       },
       "devDependencies": {
