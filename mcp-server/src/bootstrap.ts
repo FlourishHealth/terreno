@@ -597,11 +597,11 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "@sentry/react": "^10.29.0",
         "@terreno/rtk": "latest",
         "@terreno/ui": "latest",
-        "expo": "~54.0.29",
-        "react": "19.1.0",
+        expo: "~54.0.29",
+        react: "19.1.0",
         "react-dom": "19.1.0",
         "react-native": "0.81.5",
-        "react-redux": "^9.2.0"
+        "react-redux": "^9.2.0",
       },
       devDependencies: {
         "@biomejs/biome": "^2.3.6",

@@ -200,10 +200,74 @@ function hashSchema(schema: OpenApiSchema): string {
   return JSON.stringify(schema);
 }
 
+const VALID_JSON_SCHEMA_TYPES = new Set([
+  "string",
+  "number",
+  "integer",
+  "boolean",
+  "array",
+  "object",
+  "null",
+]);
+
+// mongoose-to-swagger emits non-standard type strings for some Mongoose types
+const MONGOOSE_TYPE_MAP: Record<string, {type: string; format?: string}> = {
+  dateonly: {format: "date", type: "string"},
+  schemaobjectid: {type: "string"},
+};
+
+/**
+ * Recursively replace non-standard mongoose-to-swagger types with valid JSON Schema types
+ * so AJV can compile the schema.
+ */
+function sanitizeSchemaForAjv(schema: Record<string, unknown>): Record<string, unknown> {
+  if (!schema || typeof schema !== "object") {
+    return schema;
+  }
+
+  const result = {...schema};
+
+  if (typeof result.type === "string" && !VALID_JSON_SCHEMA_TYPES.has(result.type)) {
+    const mapped = MONGOOSE_TYPE_MAP[result.type];
+    if (mapped) {
+      result.type = mapped.type;
+      if (mapped.format && !result.format) {
+        result.format = mapped.format;
+      }
+    } else {
+      result.type = "string";
+    }
+  }
+
+  if (result.items && typeof result.items === "object") {
+    result.items = sanitizeSchemaForAjv(result.items as Record<string, unknown>);
+  }
+
+  if (result.properties && typeof result.properties === "object") {
+    const sanitizedProps: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(result.properties as Record<string, unknown>)) {
+      sanitizedProps[key] =
+        typeof value === "object" && value !== null
+          ? sanitizeSchemaForAjv(value as Record<string, unknown>)
+          : value;
+    }
+    result.properties = sanitizedProps;
+  }
+
+  if (result.additionalProperties && typeof result.additionalProperties === "object") {
+    result.additionalProperties = sanitizeSchemaForAjv(
+      result.additionalProperties as Record<string, unknown>
+    );
+  }
+
+  return result;
+}
+
 /**
  * Get or create a compiled validator for a schema.
  * Uses the current config so changes take effect on next call.
- * Returns null if the schema cannot be compiled (e.g., non-standard types from mongoose-to-swagger).
+ * Sanitizes non-standard mongoose-to-swagger types before compilation.
+ * Returns null if the schema still cannot be compiled after sanitization.
  */
 function getValidator(schema: OpenApiSchema): ValidateFunction | null {
   const ajv = getAjvInstance();
@@ -215,15 +279,16 @@ function getValidator(schema: OpenApiSchema): ValidateFunction | null {
     return cached;
   }
 
+  const sanitized = sanitizeSchemaForAjv(schema);
+
   try {
-    const validator = ajv.compile(schema);
+    const validator = ajv.compile(sanitized);
     validatorCache.set(hash, validator);
     return validator;
   } catch (err) {
     logger.debug(
-      `Could not compile validation schema (non-standard types from mongoose-to-swagger?): ${(err as Error).message}`
+      `Could not compile validation schema after sanitization: ${(err as Error).message}`
     );
-    // Cache null so we don't retry compilation on every request
     validatorCache.set(hash, null as unknown as ValidateFunction);
     return null;
   }
@@ -293,6 +358,12 @@ export interface RequestBodyValidatorOptions {
    * List of required field names.
    */
   required?: string[];
+
+  /**
+   * Fields to exclude from validation (e.g. fields set by preCreate hooks).
+   * Excluded fields are removed from both the schema properties and the required array.
+   */
+  excludeFields?: string[];
 
   /**
    * Custom error handler for this specific route.
@@ -665,8 +736,15 @@ export function validateModelRequestBody<T>(
   model: Model<T>,
   options?: RequestBodyValidatorOptions
 ): (req: Request, res: Response, next: NextFunction) => void {
-  const schema = getSchemaFromModel(model);
-  const requiredFields = getRequiredFieldsFromModel(model);
+  let schema = getSchemaFromModel(model);
+  let requiredFields = getRequiredFieldsFromModel(model);
+
+  if (options?.excludeFields?.length) {
+    const excluded = new Set(options.excludeFields);
+    schema = Object.fromEntries(Object.entries(schema).filter(([key]) => !excluded.has(key)));
+    requiredFields = requiredFields.filter((f) => !excluded.has(f));
+  }
+
   return validateRequestBody(schema, {
     ...options,
     required: [...(options?.required ?? []), ...requiredFields],
@@ -694,6 +772,16 @@ export interface ModelRouterValidationOptions {
    * Default: true (when validation is globally enabled)
    */
   validateQuery?: boolean;
+
+  /**
+   * Fields to exclude from create validation (e.g. fields injected by preCreate).
+   */
+  excludeFromCreate?: string[];
+
+  /**
+   * Fields to exclude from update validation (e.g. fields injected by preUpdate).
+   */
+  excludeFromUpdate?: string[];
 
   /**
    * Custom error handler for validation failures.

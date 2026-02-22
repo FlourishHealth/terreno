@@ -77,8 +77,9 @@ Rules-as-Code, single source of truth (.rulesync/rules/), consistency across Cur
    - Use Markdown; preserve existing YAML frontmatter and structure
 
 4. **Regenerate and Verify**
-   
-   - After editing .rulesync/rules/, the workflow or PR description should instruct to run `bun run rules` to regenerate .cursorrules, CLAUDE.md, .windsurfrules, .github/copilot-instructions.md
+
+   - After editing .rulesync/rules/, run `bun install && bun run rules` from the repository root to regenerate all output files (.cursorrules, CLAUDE.md, .windsurfrules, .github/copilot-instructions.md, .github/instructions/)
+   - Commit the regenerated files alongside your rule source changes
    - Ensure no broken references (e.g. paths, package names, script names)
    - Keep cross-references between AGENTS.md, docs/, and .rulesync/rules/ consistent
 

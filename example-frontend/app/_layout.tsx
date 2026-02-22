@@ -1,7 +1,6 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DarkTheme, DefaultTheme, ThemeProvider} from "@react-navigation/native";
 import {useFonts} from "expo-font";
-import {Stack} from "expo-router";
+import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
@@ -9,7 +8,6 @@ import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
-import {useColorScheme} from "@/components/useColorScheme";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 
 export {
@@ -18,18 +16,15 @@ export {
 } from "expo-router";
 
 export const unstable_settings = {
-  // Ensure that reloading keeps the tabs visible
   initialRouteName: "(tabs)",
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout(): React.ReactElement | null {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
-    // Terreno UI fonts (loaded locally to avoid bun symlink cache path issues in production builds)
     heading: require("../assets/fonts/TitilliumWeb_600SemiBold.ttf"),
     "heading-bold": require("../assets/fonts/TitilliumWeb_700Bold.ttf"),
     "heading-semibold": require("../assets/fonts/TitilliumWeb_600SemiBold.ttf"),
@@ -72,15 +67,17 @@ export default function RootLayout(): React.ReactElement | null {
 }
 
 function RootLayoutNav(): React.ReactElement {
-  const colorScheme = useColorScheme();
   const userId = useSelectCurrentUserId();
   const dispatch = useAppDispatch();
+  const segments = useSegments();
+  const router = useRouter();
 
+  // Validate stored auth token on mount
   useEffect(() => {
     if (!userId) {
       return;
     }
-    const checkToken = async () => {
+    const checkToken = async (): Promise<void> => {
       const token = await getAuthToken();
       if (!token) {
         dispatch(logout());
@@ -89,15 +86,22 @@ function RootLayoutNav(): React.ReactElement {
     void checkToken();
   }, [userId, dispatch]);
 
+  // Redirect based on auth state — keeps all routes declared so refresh works
+  useEffect(() => {
+    const isOnLoginPage = segments[0] === "login";
+
+    if (!userId && !isOnLoginPage) {
+      router.replace("/login");
+    } else if (userId && isOnLoginPage) {
+      router.replace("/(tabs)");
+    }
+  }, [userId, segments, router]);
+
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack>
-        {!userId ? (
-          <Stack.Screen name="login" options={{headerShown: false}} />
-        ) : (
-          <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-        )}
-      </Stack>
-    </ThemeProvider>
+    <Stack screenOptions={{headerShown: false}}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="admin" />
+      <Stack.Screen name="login" />
+    </Stack>
   );
 }

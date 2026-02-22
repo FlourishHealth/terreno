@@ -1,8 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import {useTheme} from "@terreno/ui";
 import {Tabs} from "expo-router";
 import type React from "react";
-import {useColorScheme} from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
 
 const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -12,13 +11,13 @@ const TabBarIcon: React.FC<{
 };
 
 const TabLayout: React.FC = () => {
-  const colorScheme = useColorScheme();
+  const {theme} = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarActiveTintColor: theme.surface.primary,
       }}
     >
       <Tabs.Screen
