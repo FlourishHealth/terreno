@@ -7,7 +7,9 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
+- [Request Validation](#request-validation)
 - [Middleware](#middleware)
+- [Extensibility](#extensibility)
 - [Webhooks & Notifications](#webhooks--notifications)
 - [Utilities](#utilities)
 - [Script Helpers](#script-helpers)
@@ -19,7 +21,9 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - `createOpenApiBuilder`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
+- Validation: `configureOpenApiValidator`, `validateRequestBody`, `validateQueryParams`, `createValidator`
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
+- Extensibility: `TerrenoPlugin` interface
 - Notifiers: `sendSlackMessage`, `sendGoogleChatMessage`, `sendZoomMessage`
 
 ## Authentication
@@ -309,6 +313,180 @@ export const addDefaultPlugins = (schema) => {
 todoSchema.plugin(addDefaultPlugins);
 ``````
 
+## Request Validation
+
+@terreno/api provides runtime validation of incoming requests against OpenAPI schemas using [AJV](https://ajv.js.org/). Validation is opt-in and can be enabled globally or per-route.
+
+### Enabling Validation
+
+Call `configureOpenApiValidator()` at server startup to enable validation:
+
+``````typescript
+import {configureOpenApiValidator, setupServer} from "@terreno/api";
+
+// Enable validation before setting up the server
+configureOpenApiValidator({
+  removeAdditional: true,
+  coerceTypes: true,
+  logValidationErrors: true,
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Routes will automatically validate when enabled
+  },
+});
+``````
+
+**Configuration options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `validateRequests` | boolean | `true` | Enable request body validation |
+| `validateResponses` | boolean | `false` | Enable response validation (performance cost) |
+| `coerceTypes` | boolean | `true` | Convert types (e.g., `"123"` → `123`) |
+| `removeAdditional` | boolean | `true` | Strip properties not in schema |
+| `logValidationErrors` | boolean | `true` | Log validation failures |
+| `onValidationError` | function | throws APIError | Custom error handler |
+| `onAdditionalPropertiesRemoved` | function | undefined | Callback when props are stripped |
+
+### Using with modelRouter
+
+When validation is enabled globally, modelRouter automatically validates create and update requests:
+
+``````typescript
+import {modelRouter, Permissions} from "@terreno/api";
+
+router.use("/todos", modelRouter(Todo, {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    update: [Permissions.IsOwner],
+  },
+  // Validation happens automatically based on Mongoose schema
+}));
+``````
+
+### Manual Validation
+
+For custom routes, use validation middleware directly:
+
+``````typescript
+import {validateRequestBody, validateQueryParams, createOpenApiBuilder} from "@terreno/api";
+
+router.post("/search", [
+  createOpenApiBuilder()
+    .withRequestBody({
+      query: {type: "string", required: true},
+      filters: {type: "object"},
+    })
+    .build(),
+  validateRequestBody({
+    query: {type: "string", required: true},
+    filters: {type: "object"},
+  }),
+  asyncHandler(async (req, res) => {
+    // req.body is validated and coerced
+    const {query, filters} = req.body;
+    return res.json({results: []});
+  }),
+]);
+``````
+
+### Validating Query Parameters
+
+``````typescript
+import {validateQueryParams} from "@terreno/api";
+
+router.get("/items", [
+  validateQueryParams({
+    limit: {type: "number"},
+    status: {type: "string", enum: ["active", "inactive"]},
+  }),
+  asyncHandler(async (req, res) => {
+    // req.query is validated and type-coerced
+    const {limit, status} = req.query;
+    return res.json({items: []});
+  }),
+]);
+``````
+
+### Combined Validation
+
+Validate both body and query in a single middleware:
+
+``````typescript
+import {createValidator} from "@terreno/api";
+
+router.post("/search", [
+  createValidator({
+    body: {query: {type: "string", required: true}},
+    query: {limit: {type: "number"}, page: {type: "number"}},
+  }),
+  asyncHandler(async (req, res) => {
+    // Both req.body and req.query are validated
+    return res.json({results: []});
+  }),
+]);
+``````
+
+### Model-based Validation
+
+Generate validators directly from Mongoose models:
+
+``````typescript
+import {validateModelRequestBody, getSchemaFromModel} from "@terreno/api";
+
+// Use model schema for validation
+router.post("/todos", [
+  authenticateMiddleware(),
+  validateModelRequestBody(Todo),
+  asyncHandler(async (req, res) => {
+    // req.body validated against Todo schema
+    const todo = await Todo.create(req.body);
+    return res.json({data: todo});
+  }),
+]);
+``````
+
+### Validation Behavior
+
+**When `removeAdditional: true`:**
+- Extra properties are silently removed from request body
+- `onAdditionalPropertiesRemoved` callback fires if configured
+- Useful for preventing client-side injection of unexpected fields
+
+**When `coerceTypes: true`:**
+- Query strings are converted to correct types (`"10"` → `10`)
+- Request body values are coerced when possible
+- Reduces type mismatch errors from URL parameters
+
+**Error response format:**
+``````json
+{
+  "errors": [{
+    "status": "400",
+    "title": "Request validation failed",
+    "detail": "/body/email: must be a valid email",
+    "source": {"pointer": "/body"},
+    "meta": {
+      "validationErrors": "[{\"path\":\"/email\",\"message\":\"must be a valid email\"}]"
+    }
+  }]
+}
+``````
+
+**Performance considerations:**
+- Validators are compiled once and cached
+- Minimal overhead after first request (~1-2ms for typical schemas)
+- Response validation is disabled by default due to performance cost
+- Use in development/staging to catch API contract violations
+
+**Learn more:** See `api/src/openApiValidator.ts` for advanced usage and `api/src/api.ts` for modelRouter integration.
+
 ## Middleware
 
 ### openApiEtagMiddleware
@@ -348,6 +526,99 @@ app.use(sentryAppVersionMiddleware);
 **Sentry tag:** `app_version: 1.2.3`
 
 **Use case:** Filter Sentry errors by app version to identify version-specific bugs.
+
+## Extensibility
+
+### TerrenoPlugin Interface
+
+The `TerrenoPlugin` interface provides a standard way to extend Terreno applications with reusable functionality.
+
+``````typescript
+import type {TerrenoPlugin} from "@terreno/api";
+import type express from "express";
+
+export interface TerrenoPlugin {
+  register(app: express.Application): void;
+}
+``````
+
+**Creating a plugin:**
+
+``````typescript
+import type {TerrenoPlugin} from "@terreno/api";
+import type express from "express";
+
+export class MyPlugin implements TerrenoPlugin {
+  private options: MyPluginOptions;
+
+  constructor(options?: MyPluginOptions) {
+    this.options = options ?? {};
+  }
+
+  register(app: express.Application): void {
+    // Add routes, middleware, or other setup
+    app.get("/my-plugin/status", (_req, res) => {
+      res.json({status: "ok"});
+    });
+  }
+}
+``````
+
+**Using a plugin:**
+
+``````typescript
+import {setupServer} from "@terreno/api";
+import {MyPlugin} from "./plugins/myPlugin";
+
+const myPlugin = new MyPlugin({enabled: true});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Register the plugin
+    myPlugin.register(router as any);
+  },
+});
+``````
+
+**Example: Health Check Plugin**
+
+See `@terreno/api-health` for a complete plugin implementation:
+
+``````typescript
+import {HealthApp} from "@terreno/api-health";
+
+const healthCheck = new HealthApp({
+  enabled: true,
+  path: "/health",
+  check: async () => {
+    const dbConnected = await checkDatabaseConnection();
+    return {
+      healthy: dbConnected,
+      details: {database: dbConnected ? "connected" : "disconnected"},
+    };
+  },
+});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    healthCheck.register(router as any);
+  },
+});
+``````
+
+**Plugin patterns:**
+- **Conditional registration:** Check options to enable/disable functionality
+- **Route registration:** Add custom endpoints (health checks, admin panels, webhooks)
+- **Middleware injection:** Add request/response interceptors
+- **Service initialization:** Connect to external services (monitoring, analytics)
+
+**Benefits:**
+- Reusable across multiple Terreno projects
+- Testable in isolation
+- Optional/configurable functionality
+- Clean separation of concerns
 
 ## Webhooks & Notifications
 
