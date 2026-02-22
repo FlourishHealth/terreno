@@ -31,7 +31,6 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
           key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
@@ -84,7 +83,6 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
           key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
