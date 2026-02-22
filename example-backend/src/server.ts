@@ -9,6 +9,7 @@ import {
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import mongoose from "mongoose";
+import {addAiRoutes} from "./api/ai";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
@@ -24,6 +25,7 @@ const addMiddleware: AddRoutes = (_router, _options) => {
 
 const addRoutes: AddRoutes = (router, options): void => {
   // Add API routes with OpenAPI middleware
+  addAiRoutes(router, options);
   addTodoRoutes(router, options);
   addUserRoutes(router, options);
 };
