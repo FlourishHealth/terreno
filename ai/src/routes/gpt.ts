@@ -11,6 +11,7 @@ import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../typ
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
 
+/** Send a canned SSE demo response when no AI service is available. */
 const sendDemoResponse = (res: express.Response, historyId?: string): void => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -20,6 +21,12 @@ const sendDemoResponse = (res: express.Response, historyId?: string): void => {
   res.end();
 };
 
+/**
+ * Resolve the AIService for a request. Priority:
+ * 1. Per-request API key via `x-ai-api-key` header (creates a temporary AIService)
+ * 2. Pre-configured aiService from route options
+ * 3. undefined (triggers demo mode response)
+ */
 const resolveAiService = (
   req: express.Request,
   options: GptRouteOptions

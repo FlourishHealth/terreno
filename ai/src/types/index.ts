@@ -157,8 +157,11 @@ export interface TranslateOptions {
 // ============================================================
 
 export interface GptRouteOptions {
+  /** Pre-configured AIService. Optional when using per-request keys or demo mode. */
   aiService?: import("../service/aiService").AIService;
+  /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
   createModelFn?: (apiKey: string) => import("ai").LanguageModel;
+  /** Return canned responses when no AI service is available. */
   demoMode?: boolean;
   mcpService?: import("../service/mcpService").MCPService;
   openApiOptions?: Record<string, unknown>;
