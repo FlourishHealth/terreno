@@ -1,9 +1,11 @@
 import {Box, Button, Card, Heading, Page, Spinner, Text, TextField} from "@terreno/ui";
+import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useState} from "react";
 import {logout, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
 
 const ProfileScreen: React.FC = () => {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery();
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
@@ -74,6 +76,10 @@ const ProfileScreen: React.FC = () => {
     dispatch(logout());
   }, [dispatch]);
 
+  const handleNavigateToAdmin = useCallback((): void => {
+    router.push("/admin");
+  }, [router]);
+
   if (isLoading) {
     return (
       <Page navigation={undefined}>
@@ -137,7 +143,6 @@ const ProfileScreen: React.FC = () => {
             <Box marginTop={2}>
               <Button
                 disabled={!hasChanges || isUpdating}
-                fullWidth
                 iconName="check"
                 loading={isUpdating}
                 onClick={handleSave}
@@ -147,16 +152,27 @@ const ProfileScreen: React.FC = () => {
           </Box>
         </Card>
 
-        <Card>
+        <Card marginBottom={6}>
           <Box gap={4}>
             <Heading size="lg">Session</Heading>
             <Text color="secondaryLight">Logged in as {profile?.email}</Text>
             <Button
-              fullWidth
               iconName="right-from-bracket"
               onClick={handleLogout}
               text="Logout"
               variant="destructive"
+            />
+          </Box>
+        </Card>
+
+        <Card>
+          <Box gap={4}>
+            <Heading size="lg">Developer</Heading>
+            <Button
+              iconName="gear"
+              onClick={handleNavigateToAdmin}
+              text="Admin Panel"
+              variant="secondary"
             />
           </Box>
         </Card>

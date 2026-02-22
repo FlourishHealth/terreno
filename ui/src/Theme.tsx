@@ -163,11 +163,39 @@ type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
+const computeTheme = (
+  themeConfig: DeepPartial<TerrenoThemeConfig>,
+  primitives: ThemePrimitives
+): TerrenoTheme => {
+  const theme = Object.keys(themeConfig).reduce((acc, key) => {
+    if (key === "primitives") {
+      return acc;
+    }
+    const value = themeConfig[key as keyof TerrenoThemeConfig] ?? {};
+    acc[key as keyof TerrenoTheme] = Object.keys(value).reduce((accKey, valueKey) => {
+      const primitiveKey = value[valueKey as keyof typeof value] as keyof ThemePrimitives;
+      if (key === "font") {
+        accKey[valueKey] = primitiveKey;
+      } else {
+        if (primitives[primitiveKey] === undefined) {
+          console.error(`Primitive ${primitiveKey} not found in theme.`);
+        }
+        accKey[valueKey as keyof typeof accKey] = primitives[primitiveKey];
+      }
+      return accKey;
+    }, {} as any);
+    return acc;
+  }, {} as TerrenoTheme);
+  return {...theme, primitives};
+};
+
+const defaultComputedTheme = computeTheme(defaultTheme, defaultPrimitives);
+
 export const ThemeContext = createContext({
   resetTheme: () => {},
   setPrimitives: (_primitives: DeepPartial<typeof defaultPrimitives>) => {},
   setTheme: (_theme: DeepPartial<TerrenoThemeConfig>) => {},
-  theme: {} as TerrenoTheme,
+  theme: defaultComputedTheme,
 });
 
 interface ThemeProviderProps {
@@ -178,32 +206,10 @@ export const ThemeProvider = ({children}: ThemeProviderProps) => {
   const [providerTheme, setProviderTheme] = useState<DeepPartial<TerrenoThemeConfig>>(defaultTheme);
   const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(defaultPrimitives);
 
-  const computedTheme = useMemo(() => {
-    // Map the providerTheme and transform the strings into the actual values from the primitives.
-    // Do this for each sub-object in the theme. E.g. theme.text, theme.surface, etc.
-    const theme = Object.keys(providerTheme).reduce((acc, key) => {
-      if (key === "primitives") return acc;
-      const value = providerTheme[key as keyof TerrenoThemeConfig] ?? {};
-      // for each key, map the value to the primitive value.
-      acc[key as keyof TerrenoTheme] = Object.keys(value).reduce((accKey, valueKey) => {
-        const primitiveKey = value[valueKey as keyof typeof value] as keyof ThemePrimitives;
-        if (key === "font") {
-          accKey[valueKey] = primitiveKey;
-        } else {
-          if (providerPrimitives[primitiveKey] === undefined) {
-            console.error(`Primitive ${primitiveKey} not found in theme.`);
-          }
-          accKey[valueKey as keyof typeof accKey] = providerPrimitives[primitiveKey];
-        }
-        return accKey;
-      }, {} as any);
-      return acc;
-    }, {} as TerrenoTheme);
-    return {
-      ...theme,
-      primitives: providerPrimitives,
-    };
-  }, [providerTheme, providerPrimitives]);
+  const computedTheme = useMemo(
+    () => computeTheme(providerTheme, providerPrimitives),
+    [providerTheme, providerPrimitives]
+  );
 
   const setPrimitives = (newPrimitives: Partial<ThemePrimitives>) => {
     setProviderPrimitives((prev) => ({...prev, ...newPrimitives}));

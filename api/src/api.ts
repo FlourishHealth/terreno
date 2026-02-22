@@ -371,6 +371,13 @@ function getBodyValidationMiddleware<T>(
       validationOptions.onAdditionalPropertiesRemoved =
         options.validation.onAdditionalPropertiesRemoved;
     }
+    const excludeFields =
+      operation === "create"
+        ? options.validation.excludeFromCreate
+        : options.validation.excludeFromUpdate;
+    if (excludeFields?.length) {
+      validationOptions.excludeFields = excludeFields;
+    }
   }
 
   return validateModelRequestBody(model, validationOptions);

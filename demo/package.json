@@ -93,6 +93,7 @@
     "build-preview": "NODE_OPTIONS=--openssl-legacy-provider bun run build-web",
     "build-web": "NODE_OPTIONS=--openssl-legacy-provider bunx expo export",
     "compile": "tsc",
+    "compile:watch": "tsc -w",
     "doctor": "bunx expo-doctor",
     "export": "expo export -p web",
     "ios": "NODE_OPTIONS=--openssl-legacy-provider expo start --ios --port 8085",

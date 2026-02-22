@@ -14,6 +14,7 @@
     "@sentry/bun": "^10.32.1",
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
+    "@terreno/admin-backend": "workspace:*",
     "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",
@@ -45,6 +46,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir ./dist --target bun --packages external",
     "compile": "tsc",
+    "compile:watch": "tsc -w",
     "dev": "PORT=4000 bun run --watch src/index.ts",
     "format": "biome format --write .",
     "lint": "biome check .",

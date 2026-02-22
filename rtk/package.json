@@ -38,6 +38,7 @@
   },
   "scripts": {
     "compile": "tsc",
+    "compile:watch": "tsc -w",
     "dev": "tsc -w",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

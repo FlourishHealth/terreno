@@ -1,5 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
+import {AdminApp} from "@terreno/admin-backend";
 import {
   type AddRoutes,
   checkModelsStrict,
@@ -14,6 +15,7 @@ import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {Configuration} from "./models/configuration";
+import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {connectToMongoDB} from "./utils/database";
 
@@ -97,6 +99,25 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
           healthy: mongoConnected,
         };
       },
+    }).register(app);
+
+    // Register admin panel plugin
+    new AdminApp({
+      models: [
+        {
+          displayName: "Todos",
+          listFields: ["title", "completed", "ownerId", "created"],
+          model: Todo,
+          routePath: "/todos",
+        },
+        {
+          displayName: "Users",
+          listFields: ["email", "name", "admin", "created"],
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          model: User as any,
+          routePath: "/users",
+        },
+      ],
     }).register(app);
 
     // Log total boot time

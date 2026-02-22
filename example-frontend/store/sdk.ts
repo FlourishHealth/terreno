@@ -99,7 +99,7 @@ export const terrenoApi = openapi
     addTagTypes: ["consentForms", "gptHistories", "profile"],
     endpoints: {
       ...generateTags(openapi, [...addTagTypes]),
-      // Add any additional endpoints here.
+      postTodos: {invalidatesTags: ["todos"]},
     },
   });
 
