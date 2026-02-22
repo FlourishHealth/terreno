@@ -1,7 +1,6 @@
 import type {TerrenoPlugin} from "@terreno/api";
 import type {CoreTool, LanguageModel} from "ai";
 import type express from "express";
-import {Router} from "express";
 
 import {addAiRequestsExplorerRoutes} from "./routes/aiRequestsExplorer";
 import {addFileRoutes} from "./routes/files";
@@ -33,7 +32,8 @@ export class AiApp implements TerrenoPlugin {
   }
 
   register(app: express.Application): void {
-    const router = Router();
+    // Use app directly as the router — all addXxxRoutes functions accept `any`
+    const router = app;
     const {
       aiService,
       createModelFn,
@@ -71,7 +71,5 @@ export class AiApp implements TerrenoPlugin {
     if (mcpService) {
       addMcpRoutes(router, {mcpService, openApiOptions});
     }
-
-    app.use(router);
   }
 }
