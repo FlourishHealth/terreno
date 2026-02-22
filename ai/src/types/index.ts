@@ -157,7 +157,9 @@ export interface TranslateOptions {
 // ============================================================
 
 export interface GptRouteOptions {
-  aiService: import("../service/aiService").AIService;
+  aiService?: import("../service/aiService").AIService;
+  createModelFn?: (apiKey: string) => import("ai").LanguageModel;
+  demoMode?: boolean;
   mcpService?: import("../service/mcpService").MCPService;
   openApiOptions?: Record<string, unknown>;
   tools?: Record<string, import("ai").CoreTool>;

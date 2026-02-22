@@ -16,32 +16,42 @@ let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
 
-const getAiService = (): AIService => {
-  if (!aiServiceInstance) {
-    // Lazy import to avoid loading AI SDK at module load time
-    // Consuming apps provide their own model - here we use Google's Gemini
-    // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-    let createModel: any;
-    try {
-      const google = require("@ai-sdk/google");
-      createModel = google.google;
-    } catch {
-      throw new Error(
-        "Missing @ai-sdk/google dependency. Install it to use AI features, " +
-          "or set GEMINI_API_KEY environment variable."
-      );
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error("GEMINI_API_KEY environment variable is required for AI features.");
-    }
-
-    aiServiceInstance = new AIService({
-      model: createModel("gemini-2.5-flash"),
-    });
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
+const getGoogleModule = (): any => {
+  try {
+    return require("@ai-sdk/google");
+  } catch {
+    return undefined;
   }
+};
+
+const getAiService = (): AIService | undefined => {
+  if (aiServiceInstance) {
+    return aiServiceInstance;
+  }
+
+  const google = getGoogleModule();
+  if (!google) {
+    return undefined;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return undefined;
+  }
+
+  aiServiceInstance = new AIService({
+    model: google.google("gemini-2.5-flash"),
+  });
   return aiServiceInstance;
+};
+
+const createModelFromKey = (apiKey: string) => {
+  const google = getGoogleModule();
+  if (!google) {
+    throw new Error("Missing @ai-sdk/google dependency.");
+  }
+  return google.google("gemini-2.5-flash", {apiKey});
 };
 
 const getMcpService = (): MCPService | undefined => {
@@ -110,6 +120,8 @@ export const addAiRoutes = (
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
     aiService,
+    createModelFn: createModelFromKey,
+    demoMode: !aiService,
     maxSteps: 5,
     mcpService,
     openApiOptions: options,

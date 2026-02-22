@@ -5,10 +5,34 @@ import type express from "express";
 import type mongoose from "mongoose";
 
 import {GptHistory} from "../models/gptHistory";
+import {AIService} from "../service/aiService";
 import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
 
+const DEMO_RESPONSE =
+  "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
+
+const sendDemoResponse = (res: express.Response, historyId?: string): void => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.write(`data: ${JSON.stringify({text: DEMO_RESPONSE})}\n\n`);
+  res.write(`data: ${JSON.stringify({done: true, ...(historyId ? {historyId} : {})})}\n\n`);
+  res.end();
+};
+
+const resolveAiService = (
+  req: express.Request,
+  options: GptRouteOptions
+): AIService | undefined => {
+  const perRequestKey = req.headers["x-ai-api-key"] as string | undefined;
+  if (perRequestKey && options.createModelFn) {
+    return new AIService({model: options.createModelFn(perRequestKey)});
+  }
+  return options.aiService;
+};
+
 export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
-  const {aiService, mcpService, tools: routeTools, toolChoice, maxSteps} = options;
+  const {mcpService, tools: routeTools, toolChoice, maxSteps} = options;
 
   router.post(
     "/gpt/prompt",
@@ -43,6 +67,12 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       if (!prompt || typeof prompt !== "string") {
         throw new APIError({status: 400, title: "prompt is required"});
+      }
+
+      // Resolve AI service (per-request key takes priority, then configured service)
+      const aiService = resolveAiService(req, options);
+      if (!aiService) {
+        return sendDemoResponse(res);
       }
 
       // Load or create history
@@ -210,6 +240,11 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});
+      }
+
+      const aiService = resolveAiService(req, options);
+      if (!aiService) {
+        return res.json({data: DEMO_RESPONSE});
       }
 
       const result = await aiService.generateRemix({text, userId});

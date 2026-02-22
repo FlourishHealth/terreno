@@ -1,5 +1,12 @@
 import {baseUrl, getAuthToken} from "@terreno/rtk";
-import {Box, GPTChat, type GPTChatHistory, type GPTChatMessage, Spinner} from "@terreno/ui";
+import {
+  Box,
+  GPTChat,
+  type GPTChatHistory,
+  type GPTChatMessage,
+  Spinner,
+  useStoredState,
+} from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
 import {
@@ -25,10 +32,11 @@ const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   updated: history.updated,
 });
 
-const ChatScreen: React.FC = () => {
+const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<GPTChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+  const [geminiApiKey] = useStoredState<string>("geminiApiKey", "");
 
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
@@ -86,12 +94,16 @@ const ChatScreen: React.FC = () => {
 
       try {
         const token = await getAuthToken();
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        };
+        if (geminiApiKey) {
+          headers["x-ai-api-key"] = geminiApiKey;
+        }
         const response = await fetch(`${baseUrl}/gpt/prompt`, {
           body: JSON.stringify({historyId: currentHistoryId, prompt}),
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
           method: "POST",
         });
 
@@ -202,7 +214,7 @@ const ChatScreen: React.FC = () => {
         setIsStreaming(false);
       }
     },
-    [currentHistoryId]
+    [currentHistoryId, geminiApiKey]
   );
 
   if (isLoading) {
@@ -229,4 +241,4 @@ const ChatScreen: React.FC = () => {
   );
 };
 
-export default ChatScreen;
+export default AiScreen;
