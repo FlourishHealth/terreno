@@ -37,6 +37,13 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
+        name="admin"
+        options={{
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="shield" />,
+          title: "Admin",
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
