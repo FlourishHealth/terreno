@@ -74,6 +74,8 @@ jobs:
       - name: Export example-frontend for web
         run: bun run export
         working-directory: example-frontend
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
