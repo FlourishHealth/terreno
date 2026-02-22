@@ -1,6 +1,6 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {Box, Button, Page, Spinner, Text} from "@terreno/ui";
-import {router} from "expo-router";
+import {Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
+import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
 import type {AdminFieldConfig, AdminModelConfig} from "./types";
@@ -33,11 +33,24 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [formState, setFormState] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
+  const navigation = useNavigation();
 
   const modelConfig: AdminModelConfig | undefined = useMemo(
     () => config?.models.find((m: AdminModelConfig) => m.name === modelName),
     [config, modelName]
   );
+
+  const toast = useToast();
+
+  // Set the navigation header title based on mode and model name
+  useEffect(() => {
+    if (!modelConfig) {
+      return;
+    }
+    const title =
+      mode === "create" ? `Create ${modelConfig.displayName}` : `Edit ${modelConfig.displayName}`;
+    navigation.setOptions({title});
+  }, [navigation, mode, modelConfig]);
 
   const {useReadQuery, useCreateMutation, useUpdateMutation, useDeleteMutation} = useAdminApi(
     api,
@@ -55,12 +68,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   // Initialize form state from fetched item in edit mode
   useEffect(() => {
-    if (mode === "edit" && itemData?.data && !isInitialized) {
-      const item = itemData.data;
+    if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
       if (modelConfig) {
         for (const [key] of getEditableFields(modelConfig.fields)) {
-          initial[key] = item[key] ?? "";
+          initial[key] = itemData[key] ?? "";
         }
       }
       setFormState(initial);
@@ -115,9 +127,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       }
       router.back();
     } catch (err) {
-      console.error("Failed to save:", err);
+      toast.catch(err, `Failed to ${mode === "create" ? "create" : "update"} ${modelName}`);
     }
-  }, [mode, formState, itemId, createItem, updateItem, validate]);
+  }, [mode, formState, itemId, createItem, updateItem, validate, toast, modelName]);
 
   const handleDelete = useCallback(async () => {
     if (!itemId) {
@@ -127,13 +139,13 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       await deleteItem(itemId).unwrap();
       router.back();
     } catch (err) {
-      console.error("Failed to delete:", err);
+      toast.catch(err, `Failed to delete ${modelName}`);
     }
-  }, [itemId, deleteItem]);
+  }, [itemId, deleteItem, toast, modelName]);
 
   if (isConfigLoading || !modelConfig) {
     return (
-      <Page navigation={null} title="Loading...">
+      <Page maxWidth="100%">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -143,7 +155,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   if (mode === "edit" && isItemLoading) {
     return (
-      <Page backButton navigation={null} title={modelConfig.displayName}>
+      <Page maxWidth="100%">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -153,15 +165,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const editableFields = getEditableFields(modelConfig.fields);
   const isSaving = isCreating || isUpdating;
-  const title =
-    mode === "create" ? `Create ${modelConfig.displayName}` : `Edit ${modelConfig.displayName}`;
 
   const modelConfigs =
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
 
   return (
     <Page
-      backButton
       footer={
         <Box direction="row" gap={2} justifyContent="between" padding={2}>
           <Box>
@@ -186,9 +195,8 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           />
         </Box>
       }
-      navigation={null}
+      maxWidth="100%"
       scroll
-      title={title}
     >
       <Box gap={3} padding={4}>
         {editableFields.map(([fieldKey, fieldConfig]) => (

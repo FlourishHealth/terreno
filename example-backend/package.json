@@ -42,6 +42,7 @@
   "scripts": {
     "build": "bun build src/index.ts --outdir ./dist --target bun --packages external",
     "compile": "tsc",
+    "compile:watch": "tsc -w",
     "dev": "PORT=4000 bun run --watch src/index.ts",
     "format": "biome format --write .",
     "lint": "biome check .",

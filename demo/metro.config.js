@@ -80,4 +80,27 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return context.resolveRequest(context, moduleName, platform);
 };
 
+// Metro's HMR server crashes when jsc-safe-url receives a root-path URL with query params
+// (e.g. "http://localhost:8085/?platform=web"). The web HMR client falls back to location.href
+// when document.currentScript is unavailable, producing this invalid entry point URL.
+// Rewrite root-path URLs to the actual entry file path (relative to the monorepo/server root).
+const entryModuleName = path.relative(
+  monorepoRoot,
+  require.resolve(require(path.resolve(projectRoot, "package.json")).main, {paths: [projectRoot]})
+);
+const existingRewrite = config.server?.rewriteRequestUrl;
+config.server.rewriteRequestUrl = (url) => {
+  if (existingRewrite) {
+    url = existingRewrite(url);
+  }
+  try {
+    const parsed = new URL(url);
+    if ((parsed.pathname === "/" || parsed.pathname === "") && parsed.search) {
+      parsed.pathname = `/${entryModuleName.replace(/\.[^/.]+$/, "")}.bundle`;
+      return parsed.toString();
+    }
+  } catch {}
+  return url;
+};
+
 module.exports = config;

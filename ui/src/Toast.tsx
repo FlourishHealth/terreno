@@ -32,6 +32,10 @@ export function useToast(): {
 } {
   const toast = useToastNotifications();
   const show = (title: string, options?: UseToastOptions): string => {
+    if (!toast?.show) {
+      console.warn("Toast not ready yet — provider ref may not be initialized");
+      return "";
+    }
     const toastData = {
       variant: "info",
       ...options,
@@ -39,7 +43,6 @@ export function useToast(): {
     };
     return toast.show(title, {
       data: toastData,
-      // a duration of 0 keeps the toast up infinitely until hidden
       duration: options?.persistent ? 0 : TOAST_DURATION_MS,
     });
   };
@@ -60,7 +63,7 @@ export function useToast(): {
       console.error(title);
       return show(title, {...options, variant: "error"});
     },
-    hide: (id: string) => toast.hide(id),
+    hide: (id: string) => toast?.hide?.(id),
     info: (title: string, options?: UseToastVariantOptions): string => {
       console.info(title);
       return show(title, {...options, variant: "info"});

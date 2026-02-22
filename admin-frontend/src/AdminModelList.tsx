@@ -13,13 +13,16 @@ interface AdminModelListProps {
 export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
-  const handlePress = useCallback((modelName: string) => {
-    router.push(`./${modelName}`);
-  }, []);
+  const handlePress = useCallback(
+    (modelName: string) => {
+      router.push(`${baseUrl}/${modelName}` as any);
+    },
+    [baseUrl]
+  );
 
   if (isLoading) {
     return (
-      <Page navigation={null} title="Admin">
+      <Page maxWidth="100%" title="Admin">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -29,7 +32,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
 
   if (error || !config) {
     return (
-      <Page navigation={null} title="Admin">
+      <Page maxWidth="100%" title="Admin">
         <Box padding={4}>
           <Text color="error">Failed to load admin configuration.</Text>
         </Box>
@@ -38,7 +41,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
   }
 
   return (
-    <Page navigation={null} scroll title="Admin">
+    <Page maxWidth="100%" scroll title="Admin">
       <Box direction="row" gap={4} padding={4} wrap>
         {config.models.map((model: AdminModelConfig) => {
           const fieldCount = Object.keys(model.fields).length;

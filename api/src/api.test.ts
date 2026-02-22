@@ -1737,11 +1737,11 @@ describe("@terreno/api", () => {
   });
 
   describe("soft delete with deleted field", () => {
-    let admin: any;
+    let _admin: any;
     let agent: TestAgent;
 
     beforeEach(async () => {
-      [admin] = await setupDb();
+      [_admin] = await setupDb();
 
       app = getBaseServer();
       setupAuth(app, UserModel as any);
@@ -1751,7 +1751,6 @@ describe("@terreno/api", () => {
     it("soft deletes document with deleted field using isDeletedPlugin", async () => {
       // Create a test schema with the isDeletedPlugin
       const mongoose = await import("mongoose");
-      const {isDeletedPlugin} = await import("./plugins");
 
       // Create a temporary model with the deleted field
       const softDeleteSchema = new mongoose.Schema({

@@ -14,6 +14,8 @@ const config = getDefaultConfig(projectRoot);
 // in your app workspace, you can automate this list instead of hardcoding them.
 const monorepoPackages = {
   "@terreno/ui": path.resolve(monorepoRoot, "ui"),
+  "@terreno/admin-frontend": path.resolve(monorepoRoot, "admin-frontend"),
+  "@terreno/rtk": path.resolve(monorepoRoot, "rtk"),
 };
 
 // 1. Watch the local app folder, and only the shared packages (limiting the scope and speeding it
@@ -40,6 +42,12 @@ const sharedDependencies = {
   "react-native-web": resolveSymlink(path.resolve(projectRoot, "node_modules/react-native-web")),
 };
 
+const expoRouterEntryPath = resolveSymlink(require.resolve("expo-router/entry"));
+const expoRouterEntryPathFromMonorepo = path.relative(monorepoRoot, expoRouterEntryPath);
+const expoRouterEntryBundlePath = expoRouterEntryPathFromMonorepo
+  .replace(/\\/g, "/")
+  .replace(/\.js$/, ".bundle");
+
 // Add the monorepo workspaces as `extraNodeModules` to Metro.
 // If your monorepo tooling creates workspace symlinks in the `node_modules` folder,
 // you can either add symlink support to Metro or set the `extraNodeModules` to avoid the symlinks.
@@ -62,13 +70,61 @@ config.resolver.unstable_enableSymlinks = true;
 // Force React-related imports to resolve to a single canonical path
 // This prevents the "Invalid hook call" error caused by duplicate React instances
 const reactPackages = ["react", "react-dom", "react-native", "react-native-web"];
+
+// Fix HMR resolution bug: when origin is monorepo root (terreno/.), relative imports like
+// ./login, ./profile, or ./[model] fail because they resolve from the wrong directory.
+// Dynamically discover all _layout.tsx files so this works at any nesting depth.
+const isOriginMonorepoRoot = (originPath) => {
+  const normalized = path.normalize(originPath);
+  return normalized === monorepoRoot || normalized === path.join(monorepoRoot, ".");
+};
+
+const findLayoutFiles = (dir) => {
+  const results = [];
+  for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...findLayoutFiles(fullPath));
+    } else if (entry.name === "_layout.tsx") {
+      results.push(fullPath);
+    }
+  }
+  return results;
+};
+
+const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
-  // Keep this in case a transitive dependency tries to import it
   if (platform === "web" && (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/"))) {
     return {
       type: "empty",
     };
+  }
+
+  // Fix relative imports when HMR incorrectly uses monorepo root as origin.
+  // 1. Try each app layout as origin (handles static routes like ./login, ./profile)
+  // 2. Try default resolution (handles real monorepo imports like ./example-frontend/index)
+  // 3. Resolve to app entry point (handles dynamic route URLs like ./admin/User that
+  //    don't map to real files — the [model] segment makes them unresolvable as imports)
+  if (moduleName.startsWith("./") && isOriginMonorepoRoot(context.originModulePath)) {
+    for (const layoutPath of appLayoutFiles) {
+      try {
+        return context.resolveRequest(
+          {...context, originModulePath: layoutPath},
+          moduleName,
+          platform,
+        );
+      } catch {
+        // This layout doesn't contain the route, try the next one
+      }
+    }
+    try {
+      return context.resolveRequest(context, moduleName, platform);
+    } catch {
+      const entryPoint = `./${path.relative(monorepoRoot, path.resolve(projectRoot, "index.js"))}`;
+      return context.resolveRequest(context, entryPoint, platform);
+    }
   }
 
   // Check if this is a React-related import
@@ -77,7 +133,6 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   );
 
   if (packageName && sharedDependencies[packageName]) {
-    // Redirect to the canonical path
     const newContext = {
       ...context,
       originModulePath: path.resolve(projectRoot, "index.js"),
@@ -86,6 +141,22 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   }
 
   return context.resolveRequest(context, moduleName, platform);
+};
+
+const previousRewriteRequestUrl = config.server?.rewriteRequestUrl;
+config.server = config.server || {};
+config.server.rewriteRequestUrl = (requestUrl) => {
+  const rewrittenUrl = previousRewriteRequestUrl ? previousRewriteRequestUrl(requestUrl) : requestUrl;
+
+  // Guard against malformed HMR registration URL: `/?platform=web`.
+  if (/^https?:\/\/[^/]+\/\?platform=web(?:&|$)/.test(rewrittenUrl)) {
+    return rewrittenUrl.replace(
+      /\/\?platform=web/,
+      `/${expoRouterEntryBundlePath}?platform=web`
+    );
+  }
+
+  return rewrittenUrl;
 };
 
 module.exports = config;
