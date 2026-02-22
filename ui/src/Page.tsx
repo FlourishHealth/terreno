@@ -1,3 +1,4 @@
+import {router} from "expo-router";
 import React from "react";
 
 import {Box} from "./Box";
@@ -23,7 +24,7 @@ export class Page extends React.Component<PageProps, {}> {
               accessibilityHint="Navigate back"
               accessibilityLabel=""
               iconName="chevron-left"
-              onClick={() => this.props.navigation.goBack()}
+              onClick={() => router.back()}
             />
           </Box>
         )}
@@ -33,7 +34,7 @@ export class Page extends React.Component<PageProps, {}> {
               accessibilityHint="Close page"
               accessibilityLabel=""
               iconName="xmark"
-              onClick={() => this.props.navigation.goBack()}
+              onClick={() => router.back()}
             />
           </Box>
         )}

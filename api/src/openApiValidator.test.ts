@@ -153,8 +153,8 @@ describe("openApiValidator", () => {
     });
   });
 
-  describe("graceful handling of non-standard schemas", () => {
-    it("skips validation when model schema has non-standard types", async () => {
+  describe("sanitization of non-standard mongoose-to-swagger types", () => {
+    it("validates models with ObjectId and DateOnly fields after sanitization", async () => {
       configureOpenApiValidator({removeAdditional: true});
 
       const freshApp = await setupFreshApp();
@@ -174,8 +174,6 @@ describe("openApiValidator", () => {
       );
       const admin = await authAsUser(freshApp, "admin");
 
-      // FoodModel has non-standard types (schemaobjectid, dateonly) that AJV can't compile.
-      // Validation should gracefully skip and let the request through to Mongoose.
       const res = await admin
         .post("/food")
         .send({calories: 100, likesIds: [], name: "Apple", source: {name: "Test"}})

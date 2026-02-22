@@ -40,6 +40,7 @@
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
     "libphonenumber-js": "^1.12.36",
+    "linkify-it": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-app-polyfill": "^3.0.0",
@@ -119,6 +120,7 @@
   },
   "scripts": {
     "compile": "tsc",
+    "compile:watch": "tsc -w",
     "dev": "tsc -w",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",

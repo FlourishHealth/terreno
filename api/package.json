@@ -81,6 +81,7 @@
   },
   "scripts": {
     "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "docs": "typedoc --out docs src/index.ts",
     "lint": "biome check ./src",
