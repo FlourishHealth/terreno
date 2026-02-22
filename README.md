@@ -13,6 +13,8 @@ A monorepo containing shared packages for building full-stack applications.
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
+- **admin-backend/** - Admin panel backend plugin for `@terreno/api` (published as `@terreno/admin-backend`)
+- **admin-frontend/** - Admin panel React Native UI components (published as `@terreno/admin-frontend`)
 
 ### Deployed Services
 

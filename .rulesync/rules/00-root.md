@@ -14,6 +14,8 @@ A monorepo containing shared packages for building full-stack applications with 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **admin-backend/** - Admin panel backend plugin (`@terreno/admin-backend`)
+- **admin-frontend/** - Admin panel React Native UI components (`@terreno/admin-frontend`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
