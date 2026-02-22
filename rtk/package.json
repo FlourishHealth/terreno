@@ -46,5 +46,5 @@
     "test:ci": "echo 'No tests'"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.18"
+  "version": "0.1.0"
 }
