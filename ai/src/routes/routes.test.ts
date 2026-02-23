@@ -24,33 +24,24 @@ userSchema.plugin(createdUpdatedPlugin);
 
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
-// Create mock AI model
+// Create mock AI model (LanguageModelV2)
 const createMockModel = () => ({
   doGenerate: mock(async () => ({
+    content: [{text: "AI response", type: "text" as const}],
     finishReason: "stop" as const,
-    rawCall: {rawPrompt: "", rawSettings: {}},
-    text: "AI response",
-    usage: {completionTokens: 10, promptTokens: 5},
+    usage: {inputTokens: 5, outputTokens: 10},
   })),
   doStream: mock(async () => ({
-    rawCall: {rawPrompt: "", rawSettings: {}},
     stream: new ReadableStream({
       start(controller) {
-        controller.enqueue({
-          finishReason: undefined,
-          textDelta: "AI ",
-          type: "text-delta" as const,
-        });
-        controller.enqueue({
-          finishReason: undefined,
-          textDelta: "response",
-          type: "text-delta" as const,
-        });
+        controller.enqueue({id: "t1", type: "text-start" as const});
+        controller.enqueue({delta: "AI ", id: "t1", type: "text-delta" as const});
+        controller.enqueue({delta: "response", id: "t1", type: "text-delta" as const});
+        controller.enqueue({id: "t1", type: "text-end" as const});
         controller.enqueue({
           finishReason: "stop" as const,
-          logprobs: undefined,
           type: "finish" as const,
-          usage: {completionTokens: 10, promptTokens: 5},
+          usage: {inputTokens: 5, outputTokens: 10},
         });
         controller.close();
       },
@@ -58,7 +49,8 @@ const createMockModel = () => ({
   })),
   modelId: "mock-model",
   provider: "mock-provider",
-  specificationVersion: "v1" as const,
+  specificationVersion: "v2" as const,
+  supportedUrls: {},
 });
 
 let app: any;

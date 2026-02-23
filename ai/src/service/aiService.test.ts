@@ -4,34 +4,25 @@ import mongoose from "mongoose";
 import {AIRequest} from "../models/aiRequest";
 import {AIService, TemperaturePresets} from "./aiService";
 
-// Create a mock LanguageModel
+// Create a mock LanguageModelV2
 const createMockModel = (responseText = "Mock response") => {
   return {
     doGenerate: mock(async () => ({
+      content: [{text: responseText, type: "text" as const}],
       finishReason: "stop" as const,
-      rawCall: {rawPrompt: "", rawSettings: {}},
-      text: responseText,
-      usage: {completionTokens: 10, promptTokens: 5},
+      usage: {inputTokens: 5, outputTokens: 10},
     })),
     doStream: mock(async () => ({
-      rawCall: {rawPrompt: "", rawSettings: {}},
       stream: new ReadableStream({
         start(controller) {
-          controller.enqueue({
-            finishReason: undefined,
-            textDelta: "Mock ",
-            type: "text-delta" as const,
-          });
-          controller.enqueue({
-            finishReason: undefined,
-            textDelta: "response",
-            type: "text-delta" as const,
-          });
+          controller.enqueue({id: "t1", type: "text-start" as const});
+          controller.enqueue({delta: "Mock ", id: "t1", type: "text-delta" as const});
+          controller.enqueue({delta: "response", id: "t1", type: "text-delta" as const});
+          controller.enqueue({id: "t1", type: "text-end" as const});
           controller.enqueue({
             finishReason: "stop" as const,
-            logprobs: undefined,
             type: "finish" as const,
-            usage: {completionTokens: 10, promptTokens: 5},
+            usage: {inputTokens: 5, outputTokens: 10},
           });
           controller.close();
         },
@@ -39,7 +30,8 @@ const createMockModel = (responseText = "Mock response") => {
     })),
     modelId: "mock-model",
     provider: "mock-provider",
-    specificationVersion: "v1" as const,
+    specificationVersion: "v2" as const,
+    supportedUrls: {},
   };
 };
 
