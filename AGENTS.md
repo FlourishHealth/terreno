@@ -7,8 +7,10 @@ A monorepo containing shared packages for building full-stack applications with 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **ai/** - AI service layer for GPT chat, request logging, and admin tools (`@terreno/ai`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **api-health/** - Health check plugin for @terreno/api (`@terreno/api-health`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -29,7 +31,10 @@ bun run test             # Run tests in api and ui
 ### Package-specific commands
 
 ```bash
+bun run ai:test          # Test AI package
+bun run ai:compile       # Compile AI package
 bun run api:test         # Test API package
+bun run api-health:test  # Test API health plugin
 bun run ui:test          # Test UI package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
