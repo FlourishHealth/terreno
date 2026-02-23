@@ -400,9 +400,21 @@ function getQueryValidationMiddleware<T>(
   return validateQueryParams(querySchema, validationOptions);
 }
 
+/**
+ * Registration object returned by modelRouter when called with a path.
+ *
+ * Used with `TerrenoApp.register()` to mount model routers at specific paths.
+ * Contains the Express router and the path it should be mounted at.
+ *
+ * @see modelRouter for creating registrations
+ * @see TerrenoApp for registering routers
+ */
 export interface ModelRouterRegistration {
+  /** Internal type discriminator for registration detection */
   __type: "modelRouter";
+  /** The path where the router should be mounted (e.g., "/todos") */
   path: string;
+  /** The Express router containing CRUD endpoints */
   router: express.Router;
 }
 
