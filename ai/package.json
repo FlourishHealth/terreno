@@ -7,7 +7,7 @@
     "@ai-sdk/mcp": "^1.0.21",
     "@google-cloud/storage": "^7.15.0",
     "@terreno/api": "workspace:*",
-    "ai": "^6.0.97",
+    "ai": "catalog:",
     "multer": "^1.4.5-lts.1"
   },
   "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",

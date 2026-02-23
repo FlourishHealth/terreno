@@ -1,5 +1,6 @@
 {
   "catalog": {
+    "ai": "^6.0.97",
     "@biomejs/biome": "^2.3.6",
     "@expo/config-plugins": "~54.0.4",
     "@expo/vector-icons": "^15.0.3",
