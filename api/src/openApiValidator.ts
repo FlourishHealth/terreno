@@ -183,7 +183,7 @@ function getAjvInstance(): Ajv {
       useDefaults: true,
       validateSchema: false,
     });
-    addFormats(instance);
+    addFormats(instance as any);
     ajvCache.set(key, instance);
   }
 
