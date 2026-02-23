@@ -147,6 +147,51 @@ setupServer({
 
 **Learn more:** [Add GitHub OAuth authentication](../how-to/add-github-oauth.md)
 
+### Better Auth Authentication
+
+Add Better Auth as an alternative authentication system with built-in social OAuth:
+
+``````typescript
+import {BetterAuthApp, TerrenoApp} from "@terreno/api";
+
+const betterAuthConfig = {
+  enabled: true,
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  trustedOrigins: ["yourapp://", "exp://"],
+  googleOAuth: {
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  },
+  githubOAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  },
+};
+
+const app = new TerrenoApp({userModel: User});
+app.register(new BetterAuthApp({config: betterAuthConfig, userModel: User}));
+const server = app.start();
+``````
+
+**Endpoints (when enabled):**
+- `POST /api/auth/signup/email` — Email/password signup
+- `POST /api/auth/signin/email` — Email/password signin
+- `GET /api/auth/signin/{provider}` — Initiate OAuth (google, github, apple)
+- `GET /api/auth/callback/{provider}` — OAuth callback
+- `POST /api/auth/signout` — Sign out
+- `GET /api/auth/session` — Get session
+
+**Environment variables:**
+- `AUTH_PROVIDER` — Set to `"better-auth"` to enable (default: `"jwt"`)
+- `BETTER_AUTH_SECRET` — Session encryption secret (required)
+- `BETTER_AUTH_URL` — Base URL for auth server (required)
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth (optional)
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — GitHub OAuth (optional)
+- `APPLE_CLIENT_ID` / `APPLE_CLIENT_SECRET` — Apple Sign In (optional)
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
+
 ## Model Schema Conventions
 
 ### Required field descriptions

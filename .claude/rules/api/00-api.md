@@ -25,6 +25,9 @@ src/
   index.ts               # All package exports
   api.ts                 # modelRouter core (~1000 lines)
   auth.ts                # JWT/Passport authentication
+  betterAuth.ts          # Better Auth types and configuration
+  betterAuthSetup.ts     # Better Auth initialization with MongoDB
+  betterAuthApp.ts       # Better Auth TerrenoPlugin
   permissions.ts         # Permission system
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
@@ -218,9 +221,67 @@ GitHub OAuth endpoints:
 - `POST /auth/github/link` — Link GitHub to existing account (requires authentication)
 - `DELETE /auth/github/unlink` — Unlink GitHub from account (requires authentication)
 
+### Better Auth Authentication
+
+Better Auth is an optional, modern authentication provider supporting social OAuth (Google, GitHub, Apple) and email/password. Use it alongside or instead of JWT/Passport.
+
+Add Better Auth to your API:
+
+```typescript
+import {BetterAuthApp, type BetterAuthConfig, TerrenoApp} from "@terreno/api";
+
+const betterAuthConfig: BetterAuthConfig = {
+  enabled: true,
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  basePath: "/api/auth",  // Optional, default
+  trustedOrigins: ["terreno://", "exp://"],  // For mobile deep links
+  googleOAuth: {
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  },
+  githubOAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  },
+  appleOAuth: {
+    clientId: process.env.APPLE_CLIENT_ID!,
+    clientSecret: process.env.APPLE_CLIENT_SECRET!,
+  },
+};
+
+const app = new TerrenoApp({
+  userModel: User,
+  plugins: [
+    new BetterAuthApp({config: betterAuthConfig, userModel: User}),
+  ],
+});
+```
+
+Key exports:
+- `BetterAuthApp` — TerrenoPlugin for registering Better Auth
+- `BetterAuthConfig` interface — Configuration options
+- `createBetterAuth(options)` — Initialize Better Auth instance
+- `createBetterAuthSessionMiddleware(auth, userModel)` — Session extraction middleware
+- `syncBetterAuthUser(userModel, betterAuthUser)` — Sync Better Auth user to app User model
+
+Better Auth automatically:
+- Creates OAuth routes at `{basePath}/{provider}` (e.g., `/api/auth/google`)
+- Extracts sessions from requests and populates `req.user`
+- Syncs Better Auth users to your Mongoose User model (requires `betterAuthId` field)
+- Supports email/password signup and login
+
+User model fields for Better Auth:
+```typescript
+{
+  betterAuthId: {type: String, index: true},  // Better Auth user ID
+  oauthProvider: {type: String},               // OAuth provider name
+}
+```
+
 ### Environment Variables
 
-Email/Password:
+Email/Password (JWT):
 - `TOKEN_SECRET` — JWT signing secret (required)
 - `TOKEN_ISSUER` — JWT issuer claim (required)
 - `REFRESH_TOKEN_SECRET` — Refresh token secret (required)
@@ -229,10 +290,20 @@ Email/Password:
 - `REFRESH_TOKEN_EXPIRES_IN` — Refresh token TTL (default: 30d)
 - `SIGNUP_DISABLED` — Disable user registration
 
-GitHub OAuth (optional):
+GitHub OAuth (JWT auth, optional):
 - `GITHUB_CLIENT_ID` — GitHub OAuth app client ID
 - `GITHUB_CLIENT_SECRET` — GitHub OAuth app client secret
 - `GITHUB_CALLBACK_URL` — GitHub OAuth callback URL (e.g., https://yourapp.com/auth/github/callback)
+
+Better Auth (optional):
+- `AUTH_PROVIDER` — "jwt" (default) or "better-auth"
+- `BETTER_AUTH_SECRET` — Session encryption secret (required if using Better Auth)
+- `BETTER_AUTH_URL` — Base URL for auth server (required if using Better Auth)
+- `GOOGLE_CLIENT_ID` — Google OAuth client ID (optional)
+- `GOOGLE_CLIENT_SECRET` — Google OAuth client secret (optional)
+- `APPLE_CLIENT_ID` — Apple OAuth client ID (optional)
+- `APPLE_CLIENT_SECRET` — Apple OAuth client secret (optional)
+- GitHub OAuth with Better Auth uses same `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
 
 ## Permissions
 
