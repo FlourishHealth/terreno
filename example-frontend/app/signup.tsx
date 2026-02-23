@@ -1,29 +1,29 @@
-import type {LoginScreenProps} from "@terreno/ui";
-import {LoginScreen} from "@terreno/ui";
+import type {SignUpScreenProps} from "@terreno/ui";
+import {SignUpScreen, simplePasswordRequirements} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
-import {isBetterAuthEnabled, signInWithEmail, signInWithSocial} from "@/lib/betterAuth";
-import {useEmailLoginMutation} from "@/store";
+import {isBetterAuthEnabled, signInWithSocial, signUpWithEmail} from "@/lib/betterAuth";
+import {useEmailSignUpMutation} from "@/store";
 
-const Login: React.FC = () => {
+const SignUp: React.FC = () => {
   const router = useRouter();
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
 
   const useBetterAuth = isBetterAuthEnabled();
 
-  const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
+  const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
 
   const handleSubmit = useCallback(
     async (values: Record<string, string>): Promise<void> => {
-      const {email, password} = values;
+      const {email, password, name} = values;
       if (useBetterAuth) {
-        await signInWithEmail(email, password);
+        await signUpWithEmail(email, password, name);
       } else {
-        await emailLogin({email, password}).unwrap();
+        await emailSignUp({email, name, password}).unwrap();
       }
     },
-    [emailLogin, useBetterAuth]
+    [emailSignUp, useBetterAuth]
   );
 
   const handleSocialLogin = useCallback(
@@ -38,37 +38,39 @@ const Login: React.FC = () => {
     []
   );
 
-  const oauthProviders = useMemo((): LoginScreenProps["oauthProviders"] => {
+  const oauthProviders = useMemo((): SignUpScreenProps["oauthProviders"] => {
     if (!useBetterAuth) {
       return undefined;
     }
     return (["google", "github", "apple"] as const).map((provider) => ({
-      disabled: isLoginLoading || Boolean(socialLoading),
+      disabled: isSignUpLoading || Boolean(socialLoading),
       loading: socialLoading === provider,
       onPress: () => handleSocialLogin(provider),
       provider,
     }));
-  }, [useBetterAuth, isLoginLoading, socialLoading, handleSocialLogin]);
+  }, [useBetterAuth, isSignUpLoading, socialLoading, handleSocialLogin]);
 
-  const isLoading = isLoginLoading || Boolean(socialLoading);
-  const errorMessage = loginError
-    ? (loginError as {data?: {message?: string}})?.data?.message || "An error occurred"
+  const isLoading = isSignUpLoading || Boolean(socialLoading);
+  const errorMessage = signUpError
+    ? (signUpError as {data?: {message?: string}})?.data?.message || "An error occurred"
     : undefined;
 
   return (
-    <LoginScreen
+    <SignUpScreen
       error={errorMessage}
       fields={[
+        {label: "Name", name: "name", required: true, type: "text"},
         {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
         {label: "Password", name: "password", required: true, type: "password"},
       ]}
       loading={isLoading}
       oauthProviders={oauthProviders}
-      onSignUpPress={() => router.push("/signup")}
+      onLoginPress={() => router.back()}
       onSubmit={handleSubmit}
-      testID="login-screen"
+      passwordRequirements={simplePasswordRequirements}
+      testID="signup-screen"
     />
   );
 };
 
-export default Login;
+export default SignUp;

@@ -1,7 +1,15 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp} from "@terreno/admin-backend";
-import {checkModelsStrict, configureOpenApiValidator, logger, TerrenoApp} from "@terreno/api";
+import {
+  type AuthProvider,
+  BetterAuthApp,
+  type BetterAuthConfig,
+  checkModelsStrict,
+  configureOpenApiValidator,
+  logger,
+  TerrenoApp,
+} from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
@@ -15,6 +23,49 @@ import {User} from "./models/user";
 import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
+
+/**
+ * Builds Better Auth configuration from environment variables.
+ * Returns undefined if AUTH_PROVIDER is not set to "better-auth".
+ */
+const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
+  const authProvider = process.env.AUTH_PROVIDER as AuthProvider | undefined;
+
+  if (authProvider !== "better-auth") {
+    return undefined;
+  }
+
+  const config: BetterAuthConfig = {
+    enabled: true,
+    trustedOrigins: ["terreno://", "exp://"],
+  };
+
+  // Add Google OAuth if configured
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    config.googleOAuth = {
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    };
+  }
+
+  // Add GitHub OAuth if configured
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    config.githubOAuth = {
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    };
+  }
+
+  // Add Apple OAuth if configured
+  if (process.env.APPLE_CLIENT_ID && process.env.APPLE_CLIENT_SECRET) {
+    config.appleOAuth = {
+      clientId: process.env.APPLE_CLIENT_ID,
+      clientSecret: process.env.APPLE_CLIENT_SECRET,
+    };
+  }
+
+  return config;
+};
 
 export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
@@ -33,7 +84,11 @@ export async function start(skipListen = false): Promise<express.Application> {
     },
   });
 
-  logger.info(`Starting server on port ${process.env.PORT}, deployed: ${isDeployed}`);
+  const authProvider = (process.env.AUTH_PROVIDER as AuthProvider) ?? "jwt";
+  logger.info(
+    `Starting server on port ${process.env.PORT}, deployed: ${isDeployed}, authProvider: ${authProvider}`
+  );
+
   // biome-ignore lint/suspicious/noExplicitAny: Need to figure out winston transport types.
   const transports: any[] = [];
 
@@ -52,7 +107,9 @@ export async function start(skipListen = false): Promise<express.Application> {
   }
 
   try {
-    const app = new TerrenoApp({
+    const betterAuthConfig = buildBetterAuthConfig();
+
+    const terraApp = new TerrenoApp({
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -100,8 +157,15 @@ export async function start(skipListen = false): Promise<express.Application> {
             },
           ],
         })
-      )
-      .start();
+      );
+
+    // Register Better Auth plugin if configured
+    if (betterAuthConfig) {
+      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    const app = terraApp.start();
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);

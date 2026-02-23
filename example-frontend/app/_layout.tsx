@@ -102,6 +102,7 @@ function RootLayoutNav(): React.ReactElement {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin" />
       <Stack.Screen name="login" />
+      <Stack.Screen name="signup" />
     </Stack>
   );
 }

@@ -17,6 +17,11 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       description: "Whether the user has admin privileges",
       type: Boolean,
     },
+    betterAuthId: {
+      index: true,
+      sparse: true,
+      type: String,
+    },
     email: {
       description: "The user's email address, used for authentication",
       lowercase: true,
@@ -29,6 +34,10 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       description: "The user's display name",
       required: true,
       trim: true,
+      type: String,
+    },
+    oauthProvider: {
+      enum: ["google", "github", "apple", null],
       type: String,
     },
   },

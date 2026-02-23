@@ -94,6 +94,7 @@
     "react": "catalog:",
     "react-router": "catalog:",
     "react-router-dom": "catalog:",
+    "react-test-renderer": "catalog:",
     "tsc-watch": "^7.1.1",
     "typescript": "catalog:"
   },
