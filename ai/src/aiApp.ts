@@ -1,5 +1,5 @@
 import type {TerrenoPlugin} from "@terreno/api";
-import type {CoreTool, LanguageModel} from "ai";
+import type {LanguageModel, Tool} from "ai";
 import type express from "express";
 
 import {addAiRequestsExplorerRoutes} from "./routes/aiRequestsExplorer";
@@ -31,7 +31,7 @@ export interface AiAppOptions {
   /** Tool choice strategy for chat requests. Defaults to "auto" when tools are present. */
   toolChoice?: "auto" | "none" | "required";
   /** Tool definitions available to the AI model during chat. */
-  tools?: Record<string, CoreTool>;
+  tools?: Record<string, Tool>;
 }
 
 /**

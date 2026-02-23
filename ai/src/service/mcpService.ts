@@ -1,11 +1,11 @@
-import type {CoreTool} from "ai";
-import {experimental_createMCPClient as createMCPClient} from "ai";
+import {createMCPClient} from "@ai-sdk/mcp";
+import type {Tool} from "ai";
 
 import type {MCPServerConfig} from "../types";
 
 interface MCPClientInstance {
   close: () => Promise<void>;
-  tools: () => Promise<Record<string, CoreTool>>;
+  tools: () => Promise<Record<string, Tool>>;
 }
 
 interface MCPConnection {
@@ -94,8 +94,8 @@ export class MCPService {
     }
   }
 
-  async getTools(): Promise<Record<string, CoreTool>> {
-    const allTools: Record<string, CoreTool> = {};
+  async getTools(): Promise<Record<string, Tool>> {
+    const allTools: Record<string, Tool> = {};
 
     for (const [, connection] of this.connections) {
       if (connection.connected && connection.client) {

@@ -308,25 +308,23 @@ const ProfileScreen: React.FC = () => {
           </Box>
         </Card>
 
-        {isAdmin && (
-          <Card>
-            <Box gap={4}>
-              <Heading size="lg">Admin</Heading>
-              <Button
-                iconName="chart-bar"
-                onClick={handleOpenExplorer}
-                text="View AI Requests"
-                variant="secondary"
-              />
-              <Button
-                iconName="gear"
-                onClick={handleNavigateToAdmin}
-                text="Admin Panel"
-                variant="secondary"
-              />
-            </Box>
-          </Card>
-        )}
+        <Card marginBottom={6}>
+          <Box gap={4}>
+            <Heading size="lg">Developer</Heading>
+            <Button
+              iconName="gear"
+              onClick={handleNavigateToAdmin}
+              text="Admin Panel"
+              variant="secondary"
+            />
+            <Button
+              iconName="chart-bar"
+              onClick={handleOpenExplorer}
+              text="AI Admin"
+              variant="secondary"
+            />
+          </Box>
+        </Card>
       </Box>
 
       <Modal

@@ -1,5 +1,5 @@
-import type {CoreMessage, LanguageModel} from "ai";
-import {generateText as aiGenerateText, streamText} from "ai";
+import type {LanguageModel, ModelMessage} from "ai";
+import {generateText as aiGenerateText, stepCountIs, streamText} from "ai";
 import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -30,6 +30,13 @@ export const TemperaturePresets = {
   MAXIMUM: 2.0,
 } as const;
 
+const getModelId = (model: LanguageModel): string => {
+  if (typeof model === "string") {
+    return model;
+  }
+  return (model as {modelId?: string}).modelId ?? "unknown";
+};
+
 export class AIService {
   private model: LanguageModel;
   private defaultTemperature: number;
@@ -40,7 +47,7 @@ export class AIService {
   }
 
   get modelId(): string {
-    return this.model.modelId;
+    return getModelId(this.model);
   }
 
   private async logRequest(params: {
@@ -61,12 +68,12 @@ export class AIService {
   }
 
   async generateText(options: GenerateTextOptions): Promise<string> {
-    const {prompt, systemPrompt, temperature, maxTokens, userId} = options;
+    const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
     const startTime = Date.now();
 
     try {
       const result = await aiGenerateText({
-        maxTokens,
+        maxOutputTokens,
         model: this.model,
         prompt,
         system: systemPrompt,
@@ -75,7 +82,7 @@ export class AIService {
 
       const responseTime = Date.now() - startTime;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         prompt,
         requestType: "general",
         response: result.text,
@@ -88,7 +95,7 @@ export class AIService {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
         prompt,
         requestType: "general",
@@ -100,13 +107,13 @@ export class AIService {
   }
 
   async *generateTextStream(options: GenerateStreamOptions): AsyncGenerator<string> {
-    const {prompt, systemPrompt, temperature, maxTokens, userId} = options;
+    const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
     const startTime = Date.now();
     let fullResponse = "";
 
     try {
       const result = streamText({
-        maxTokens,
+        maxOutputTokens,
         model: this.model,
         prompt,
         system: systemPrompt,
@@ -121,7 +128,7 @@ export class AIService {
       const responseTime = Date.now() - startTime;
       const usage = await result.usage;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         prompt,
         requestType: "general",
         response: fullResponse,
@@ -132,7 +139,7 @@ export class AIService {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
         prompt,
         requestType: "general",
@@ -176,8 +183,8 @@ export class AIService {
     });
   }
 
-  buildMessages(prompts: GptHistoryPrompt[]): CoreMessage[] {
-    const messages: CoreMessage[] = [];
+  buildMessages(prompts: GptHistoryPrompt[]): ModelMessage[] {
+    const messages: ModelMessage[] = [];
 
     for (const prompt of prompts) {
       if (prompt.type === "tool-call" || prompt.type === "tool-result") {
@@ -203,7 +210,7 @@ export class AIService {
             parts.push({data: new URL(part.url), mimeType: part.mimeType, type: "file"});
           }
         }
-        messages.push({content: parts, role: "user"} as CoreMessage);
+        messages.push({content: parts, role: "user"} as ModelMessage);
       } else {
         messages.push({content: prompt.text, role});
       }
@@ -213,7 +220,7 @@ export class AIService {
   }
 
   async *generateChatStream(options: GenerateChatStreamOptions): AsyncGenerator<string> {
-    const {messages, systemPrompt, tools, toolChoice, maxSteps, userId} = options;
+    const {messages, systemPrompt, tools, toolChoice, stopWhen, userId} = options;
     const startTime = Date.now();
     let fullResponse = "";
 
@@ -221,9 +228,9 @@ export class AIService {
 
     try {
       const result = streamText({
-        maxSteps: maxSteps ?? 1,
         messages: messages.map((m) => ({content: m.content, role: m.role})),
         model: this.model,
+        stopWhen: stopWhen ?? stepCountIs(1),
         system: systemPrompt ?? DEFAULT_GPT_MEMORY,
         temperature: this.defaultTemperature,
         toolChoice,
@@ -238,7 +245,7 @@ export class AIService {
       const responseTime = Date.now() - startTime;
       const usage = await result.usage;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         prompt: promptText,
         requestType: "general",
         response: fullResponse,
@@ -249,7 +256,7 @@ export class AIService {
     } catch (error) {
       const responseTime = Date.now() - startTime;
       await this.logRequest({
-        aiModel: this.model.modelId,
+        aiModel: getModelId(this.model),
         error: error instanceof Error ? error.message : String(error),
         prompt: promptText,
         requestType: "general",

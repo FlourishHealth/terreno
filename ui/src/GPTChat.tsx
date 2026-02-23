@@ -185,7 +185,7 @@ const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.Reac
               key={`content-${index}`}
               resizeMode="contain"
               source={{uri: part.url}}
-              style={{borderRadius: 8, height: 200, maxWidth: 300, width: "100%"}}
+              style={{borderRadius: 8, height: 400, maxWidth: 800, minWidth: 400, width: "100%"}}
             />
           );
         }
@@ -429,11 +429,12 @@ export const GPTChat = ({
               );
             }
 
+            const hasImages = message.contentParts?.some((p) => p.type === "image");
             return (
               <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
                 <Box
                   color={message.role === "user" ? "primary" : "neutralLight"}
-                  maxWidth="80%"
+                  maxWidth={hasImages ? "90%" : "80%"}
                   padding={3}
                   rounding="lg"
                 >

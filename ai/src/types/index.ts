@@ -108,18 +108,18 @@ export interface AIServiceOptions {
 }
 
 export interface GenerateTextOptions {
-  maxSteps?: number;
-  maxTokens?: number;
+  maxOutputTokens?: number;
   prompt: string;
+  stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
   temperature?: number;
   toolChoice?: "auto" | "none" | "required";
-  tools?: Record<string, import("ai").CoreTool>;
+  tools?: Record<string, import("ai").Tool>;
   userId?: mongoose.Types.ObjectId;
 }
 
 export interface GenerateStreamOptions {
-  maxTokens?: number;
+  maxOutputTokens?: number;
   prompt: string;
   systemPrompt?: string;
   temperature?: number;
@@ -128,10 +128,10 @@ export interface GenerateStreamOptions {
 
 export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
-  maxSteps?: number;
+  stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
   toolChoice?: "auto" | "none" | "required";
-  tools?: Record<string, import("ai").CoreTool>;
+  tools?: Record<string, import("ai").Tool>;
   userId?: mongoose.Types.ObjectId;
 }
 
@@ -162,12 +162,12 @@ export interface GptRouteOptions {
   /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
   createModelFn?: (apiKey: string) => import("ai").LanguageModel;
   /** Factory to create per-request tools (e.g. tools that need the request's API key). Merged with static tools. */
-  createRequestTools?: (req: import("express").Request) => Record<string, import("ai").CoreTool>;
+  createRequestTools?: (req: import("express").Request) => Record<string, import("ai").Tool>;
   /** Return canned responses when no AI service is available. */
   demoMode?: boolean;
   mcpService?: import("../service/mcpService").MCPService;
   openApiOptions?: Record<string, unknown>;
-  tools?: Record<string, import("ai").CoreTool>;
+  tools?: Record<string, import("ai").Tool>;
   toolChoice?: "auto" | "none" | "required";
   maxSteps?: number;
 }

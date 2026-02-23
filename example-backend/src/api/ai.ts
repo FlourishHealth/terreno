@@ -9,10 +9,10 @@ import {
   MCPService,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import type {CoreTool} from "ai";
-import {generateText, tool} from "ai";
+import type {Tool} from "ai";
+import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
-import {PDFDocument, StandardFonts, rgb} from "pdf-lib";
+import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 
 let aiServiceInstance: AIService | undefined;
@@ -44,7 +44,7 @@ const getAiService = (): AIService | undefined => {
   }
 
   aiServiceInstance = new AIService({
-    model: google.google("gemini-2.5-flash"),
+    model: google.google("gemini-3-flash-preview"),
   });
   return aiServiceInstance;
 };
@@ -55,7 +55,7 @@ const createModelFromKey = (apiKey: string) => {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider("gemini-2.5-flash");
+  return provider("gemini-3-flash-preview");
 };
 
 const getMcpService = (): MCPService | undefined => {
@@ -135,7 +135,7 @@ const generatePdfBytes = async ({
     text: string,
     textFont: typeof font,
     fontSize: number,
-    lineHeight: number,
+    lineHeight: number
   ): void => {
     const words = text.split(" ");
     let line = "";
@@ -146,7 +146,13 @@ const generatePdfBytes = async ({
 
       if (width > PDF_CONTENT_WIDTH && line) {
         ensureSpace(lineHeight);
-        page.drawText(line, {color: rgb(0, 0, 0), font: textFont, size: fontSize, x: PDF_MARGIN, y});
+        page.drawText(line, {
+          color: rgb(0, 0, 0),
+          font: textFont,
+          size: fontSize,
+          x: PDF_MARGIN,
+          y,
+        });
         y -= lineHeight;
         line = word;
       } else {
@@ -266,103 +272,111 @@ const createImageModel = (apiKey: string) => {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider("gemini-2.5-flash-image");
+  return provider.image("imagen-4.0-fast-generate-001");
 };
 
 const GENERATE_IMAGE_DESCRIPTION =
-  "Generate an image from a text description. Use this when the user asks you to create, draw, or generate an image or picture.";
+  "Generate an image from a text description. ONLY use this tool when the user explicitly asks to create, draw, or generate an image or picture. Do NOT use for regular text questions.";
 
 const GENERATE_PDF_DESCRIPTION =
-  "Generate a PDF document. Use markdown-style formatting in content: # for main headings, ## for subheadings, - for bullet points, and blank lines between paragraphs.";
+  "Generate a PDF document. ONLY use this tool when the user explicitly asks to create or generate a PDF file. Do NOT use for regular text questions. Use markdown-style formatting in content: # for main headings, ## for subheadings, - for bullet points, and blank lines between paragraphs.";
 
-const createPerRequestTools = (req: express.Request): Record<string, CoreTool> => {
+const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
   if (!apiKey) {
     return {};
   }
 
-  return {
-    generate_image: tool({
-      description: GENERATE_IMAGE_DESCRIPTION,
-      execute: async ({prompt}) => {
-        const imageModel = createImageModel(apiKey);
-        const result = await generateText({
-          model: imageModel,
-          prompt,
-          providerOptions: {google: {responseModalities: ["TEXT", "IMAGE"]}},
-        });
+  const imageTool = tool({
+    description: GENERATE_IMAGE_DESCRIPTION,
+    execute: async ({prompt}: {prompt: string}) => {
+      const imageModel = createImageModel(apiKey);
+      const result = await generateImage({
+        model: imageModel,
+        prompt,
+      });
 
-        const imageFile = result.files?.find((f) => f.mimeType.startsWith("image/"));
-        if (!imageFile) {
-          return {description: "No image was generated. Try a different prompt.", success: false};
-        }
+      const image = result.image;
+      if (!image) {
+        return {description: "No image was generated. Try a different prompt.", success: false};
+      }
 
-        const dataUrl = `data:${imageFile.mimeType};base64,${imageFile.base64}`;
-        return {
-          description: `Generated image for: "${prompt}"`,
-          fileData: dataUrl,
-          filename: `image-${Date.now()}.png`,
-          mimeType: imageFile.mimeType,
-        };
-      },
-      experimental_toToolResultContent: (result) => {
-        return [{text: result.description ?? "Image generated.", type: "text" as const}];
-      },
-      parameters: z.object({
+      const mediaType = image.mediaType ?? "image/png";
+      const dataUrl = `data:${mediaType};base64,${image.base64}`;
+      return {
+        description: `Generated image for: "${prompt}"`,
+        fileData: dataUrl,
+        filename: `image-${Date.now()}.png`,
+        mimeType: mediaType,
+      };
+    },
+    inputSchema: zodSchema(
+      z.object({
         prompt: z.string().describe("Detailed description of the image to generate"),
-      }),
-    }),
-  };
+      })
+    ),
+  });
+  // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
+  (imageTool as any).toModelOutput = ({output}: {output: any}) => [
+    {text: output.description ?? "Image generated.", type: "text"},
+  ];
+
+  return {generate_image: imageTool as Tool};
 };
+
+const pdfTool = tool({
+  description: GENERATE_PDF_DESCRIPTION,
+  execute: async ({title, content, author}: {title: string; content: string; author?: string}) => {
+    const pdfBytes = await generatePdfBytes({author, content, title});
+    const base64 = Buffer.from(pdfBytes).toString("base64");
+    const sanitizedTitle = title.replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_");
+    const sizeKb = Math.round(pdfBytes.length / 1024);
+    return {
+      description: `Generated PDF document: "${title}" (${sizeKb}KB)`,
+      fileData: `data:application/pdf;base64,${base64}`,
+      filename: `${sanitizedTitle}.pdf`,
+      mimeType: "application/pdf",
+    };
+  },
+  inputSchema: zodSchema(
+    z.object({
+      author: z.string().optional().describe("Author name for PDF metadata"),
+      content: z
+        .string()
+        .describe(
+          "The document content. Use # for headings, ## for subheadings, - for bullet points, and blank lines between paragraphs."
+        ),
+      title: z.string().describe("Title displayed at the top of the PDF"),
+    })
+  ),
+});
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
+(pdfTool as any).toModelOutput = ({output}: {output: any}) => [
+  {text: output.description ?? "PDF generated.", type: "text"},
+];
 
 // Sample tools for demo purposes
 const demoTools = {
-  generate_pdf: tool({
-    description: GENERATE_PDF_DESCRIPTION,
-    execute: async ({title, content, author}) => {
-      const pdfBytes = await generatePdfBytes({author, content, title});
-      const base64 = Buffer.from(pdfBytes).toString("base64");
-      const sanitizedTitle = title.replace(/[^a-zA-Z0-9-_ ]/g, "").replace(/\s+/g, "_");
-      const sizeKb = Math.round(pdfBytes.length / 1024);
-      return {
-        description: `Generated PDF document: "${title}" (${sizeKb}KB)`,
-        fileData: `data:application/pdf;base64,${base64}`,
-        filename: `${sanitizedTitle}.pdf`,
-        mimeType: "application/pdf",
-      };
-    },
-    experimental_toToolResultContent: (result) => {
-      return [{text: result.description ?? "PDF generated.", type: "text" as const}];
-    },
-    parameters: z.object({
-      author: z.string().optional().describe("Author name for PDF metadata"),
-      content: z.string().describe(
-        "The document content. Use # for headings, ## for subheadings, - for bullet points, and blank lines between paragraphs."
-      ),
-      title: z.string().describe("Title displayed at the top of the PDF"),
-    }),
-  }),
+  generate_pdf: pdfTool,
   get_current_time: tool({
     description: "Get the current date and time",
-    execute: async ({timezone}) => {
+    execute: async ({timezone}: {timezone?: string}) => {
       const now = new Date();
       return {
         time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
         timezone: timezone ?? "UTC",
       };
     },
-    parameters: z.object({
-      timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
-    }),
+    inputSchema: zodSchema(
+      z.object({
+        timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
+      })
+    ),
   }),
 };
 
-export const addAiRoutes = (
-  // biome-ignore lint/suspicious/noExplicitAny: Express Router type mismatch between packages
-  router: any,
-  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic requires document type
-  options?: Partial<ModelRouterOptions<any>>
-): void => {
+// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
+export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
   const fileStorageService = getFileStorageService();

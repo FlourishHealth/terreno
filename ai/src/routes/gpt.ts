@@ -1,6 +1,12 @@
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder, logger} from "@terreno/api";
-import type {CoreTool} from "ai";
-import {streamText} from "ai";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  logger,
+} from "@terreno/api";
+import type {Tool} from "ai";
+import {stepCountIs, streamText} from "ai";
 import type express from "express";
 import type mongoose from "mongoose";
 
@@ -80,7 +86,11 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       const hasPerRequestKey = !!req.headers["x-ai-api-key"];
       const hasCreateModelFn = !!options.createModelFn;
       const hasConfiguredService = !!options.aiService;
-      logger.debug("Resolving AI service", {hasConfiguredService, hasCreateModelFn, hasPerRequestKey});
+      logger.debug("Resolving AI service", {
+        hasConfiguredService,
+        hasCreateModelFn,
+        hasPerRequestKey,
+      });
 
       const aiService = resolveAiService(req, options);
       if (!aiService) {
@@ -136,11 +146,11 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       const messages = aiService.buildMessages(history.prompts);
 
       // Some models (e.g. gemini-2.5-flash-image) don't support tool calling
-      const modelId = (aiService as any).model?.modelId as string | undefined;
+      const modelId = aiService.modelId;
       const supportsTools = !modelId?.includes("image");
 
       // Merge tools from route config, per-request tools, and MCP service
-      let allTools: Record<string, CoreTool> | undefined;
+      let allTools: Record<string, Tool> | undefined;
       const requestTools = createRequestTools ? createRequestTools(req) : undefined;
       if (supportsTools && (routeTools || requestTools || mcpService)) {
         allTools = {...(routeTools ?? {}), ...(requestTools ?? {})};
@@ -164,12 +174,12 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       try {
         logger.debug("Starting streamText", {model: modelId, supportsTools});
         const result = streamText({
-          maxSteps: maxSteps ?? (allTools ? 5 : 1),
           messages,
           model: (aiService as any).model,
           providerOptions: !supportsTools
             ? {google: {responseModalities: ["TEXT", "IMAGE"]}}
             : undefined,
+          stopWhen: allTools ? stepCountIs(maxSteps ?? 5) : stepCountIs(1),
           system: systemPrompt ?? undefined,
           temperature: (aiService as any).defaultTemperature,
           toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
@@ -177,37 +187,79 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         });
 
         let partCount = 0;
+        // Buffer text per step so we can discard reasoning text when a tool call follows
+        let stepTextBuffer = "";
+        let stepHasToolCall = false;
+
         for await (const part of result.fullStream as AsyncIterable<{
           type: string;
           [key: string]: any;
         }>) {
           partCount++;
           if (partCount <= 5 || part.type === "error" || part.type === "file") {
-            logger.debug("Stream part", {partCount, type: part.type, ...(part.type === "file" ? {mimeType: part.mimeType} : {}), ...(part.type === "error" ? {error: String(part.error ?? part)} : {})});
+            logger.debug("Stream part", {
+              partCount,
+              type: part.type,
+              ...(part.type === "file" ? {mediaType: part.mediaType} : {}),
+              ...(part.type === "error" ? {error: String(part.error ?? part)} : {}),
+            });
           }
+
+          // Track step boundaries to discard reasoning text from tool-call steps
+          if (part.type === "start-step") {
+            stepTextBuffer = "";
+            stepHasToolCall = false;
+            continue;
+          }
+          if (part.type === "finish-step") {
+            // Only emit buffered text if no tool call happened in this step
+            if (!stepHasToolCall && stepTextBuffer) {
+              // Strip model reasoning that leaks as JSON action blobs
+              const cleaned = stepTextBuffer
+                .replace(/\{[\s\S]*?"action"[\s\S]*?\}\s*$/g, "")
+                .trim();
+              if (cleaned) {
+                fullResponse += cleaned;
+                res.write(`data: ${JSON.stringify({text: cleaned})}\n\n`);
+              }
+            }
+            stepTextBuffer = "";
+            stepHasToolCall = false;
+            continue;
+          }
+
           if (part.type === "error") {
-            const errMsg = part.error instanceof Error ? part.error.message : String(part.error ?? "Unknown stream error");
+            const errMsg =
+              part.error instanceof Error
+                ? part.error.message
+                : String(part.error ?? "Unknown stream error");
             logger.error("AI stream error part", {error: errMsg});
             res.write(`data: ${JSON.stringify({error: errMsg})}\n\n`);
             continue;
           }
           if (part.type === "file") {
-            if (part.mimeType?.startsWith("image/")) {
-              const dataUrl = `data:${part.mimeType};base64,${part.base64}`;
-              generatedImages.push({mimeType: part.mimeType, url: dataUrl});
-              res.write(`data: ${JSON.stringify({image: {mimeType: part.mimeType, url: dataUrl}})}\n\n`);
+            const mediaType = part.mediaType as string | undefined;
+            if (mediaType?.startsWith("image/")) {
+              const dataUrl = `data:${mediaType};base64,${part.base64}`;
+              generatedImages.push({mimeType: mediaType, url: dataUrl});
+              res.write(
+                `data: ${JSON.stringify({image: {mimeType: mediaType, url: dataUrl}})}\n\n`
+              );
               logger.debug("Sent inline image from stream");
             }
             continue;
           }
           if (part.type === "text-delta") {
-            fullResponse += part.textDelta;
-            res.write(`data: ${JSON.stringify({text: part.textDelta})}\n\n`);
+            const textChunk = (part.text ?? "") as string;
+            if (textChunk) {
+              stepTextBuffer += textChunk;
+            }
           } else if (part.type === "tool-call") {
+            stepHasToolCall = true;
             res.write(
               `data: ${JSON.stringify({
                 toolCall: {
-                  args: part.args,
+                  args: part.input,
                   toolCallId: part.toolCallId,
                   toolName: part.toolName,
                 },
@@ -215,14 +267,14 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             );
             // Persist tool call in history
             history.prompts.push({
-              args: part.args as Record<string, unknown>,
+              args: part.input as Record<string, unknown>,
               text: `Tool call: ${part.toolName}`,
               toolCallId: part.toolCallId,
               toolName: part.toolName,
               type: "tool-call",
             });
           } else if (part.type === "tool-result") {
-            const toolResult = part.result as Record<string, unknown> | undefined;
+            const toolResult = part.output as Record<string, unknown> | undefined;
 
             // If the tool result contains file data, send it as a separate file SSE event
             if (toolResult?.fileData && typeof toolResult.fileData === "string") {
@@ -264,6 +316,15 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           }
         }
 
+        // Flush any remaining buffered text from the last step
+        if (!stepHasToolCall && stepTextBuffer) {
+          const cleaned = stepTextBuffer.replace(/\{[\s\S]*?"action"[\s\S]*?\}\s*$/g, "").trim();
+          if (cleaned) {
+            fullResponse += cleaned;
+            res.write(`data: ${JSON.stringify({text: cleaned})}\n\n`);
+          }
+        }
+
         logger.debug("Stream completed", {fullResponseLength: fullResponse.length, partCount});
 
         // Check for generated images (e.g. from gemini-2.5-flash-image)
@@ -271,12 +332,12 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           const files = await result.files;
           if (files && files.length > 0) {
             for (const file of files) {
-              if (file.mimeType.startsWith("image/")) {
-                const dataUrl = `data:${file.mimeType};base64,${file.base64}`;
-                generatedImages.push({mimeType: file.mimeType, url: dataUrl});
+              if (file.mediaType.startsWith("image/")) {
+                const dataUrl = `data:${file.mediaType};base64,${file.base64}`;
+                generatedImages.push({mimeType: file.mediaType, url: dataUrl});
                 res.write(
                   `data: ${JSON.stringify({
-                    image: {mimeType: file.mimeType, url: dataUrl},
+                    image: {mimeType: file.mediaType, url: dataUrl},
                   })}\n\n`
                 );
               }
@@ -284,7 +345,9 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             logger.debug("Sent generated images", {count: files.length});
           }
         } catch (fileErr) {
-          logger.debug("No files in response", {error: fileErr instanceof Error ? fileErr.message : String(fileErr)});
+          logger.debug("No files in response", {
+            error: fileErr instanceof Error ? fileErr.message : String(fileErr),
+          });
         }
 
         // Save assistant response to history
@@ -304,10 +367,16 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         }
         await history.save();
 
+        logger.debug("Sending done event", {
+          fullResponseLength: fullResponse.length,
+          historyId: history._id.toString(),
+        });
         res.write(`data: ${JSON.stringify({done: true, historyId: history._id.toString()})}\n\n`);
         res.end();
       } catch (error) {
-        logger.error("Error in GPT stream", {error: error instanceof Error ? error.message : String(error)});
+        logger.error("Error in GPT stream", {
+          error: error instanceof Error ? error.message : String(error),
+        });
         res.write(
           `data: ${JSON.stringify({error: error instanceof Error ? error.message : "Unknown error"})}\n\n`
         );

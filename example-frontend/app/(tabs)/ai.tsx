@@ -4,6 +4,7 @@ import {
   GPTChat,
   type GPTChatHistory,
   type GPTChatMessage,
+  type MessageContentPart,
   type SelectedFile,
   Spinner,
   useStoredState,
@@ -21,13 +22,15 @@ const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
   id: history.id,
   prompts: history.prompts.map((p) => ({
     content: p.text,
-    contentParts: p.content?.map((c) => ({
-      ...(c.filename ? {filename: c.filename} : {}),
-      mimeType: c.mimeType ?? "",
-      type: c.type as "text" | "image" | "file",
-      ...(c.text ? {text: c.text} : {}),
-      ...(c.url ? {url: c.url} : {}),
-    })),
+    contentParts: p.content?.map((c): MessageContentPart => {
+      if (c.type === "text") {
+        return {text: c.text ?? "", type: "text"};
+      }
+      if (c.type === "image") {
+        return {mimeType: c.mimeType, type: "image", url: c.url ?? ""};
+      }
+      return {filename: c.filename, mimeType: c.mimeType ?? "", type: "file", url: c.url ?? ""};
+    }),
     role: p.type,
     ...(p.toolCallId && p.type === "tool-call"
       ? {toolCall: {args: p.args ?? {}, toolCallId: p.toolCallId, toolName: p.toolName ?? ""}}
@@ -187,9 +190,6 @@ const AiScreen: React.FC = () => {
         let assistantText = "";
         let buffer = "";
 
-        // Add initial empty assistant message
-        setCurrentMessages((prev) => [...prev, {content: "", role: "assistant"}]);
-
         while (true) {
           const {done, value} = await reader.read();
           if (done) {
@@ -216,8 +216,11 @@ const AiScreen: React.FC = () => {
                 setCurrentMessages((prev) => {
                   const updated = [...prev];
                   const lastIdx = updated.length - 1;
+                  // Update existing assistant message or create one
                   if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
                     updated[lastIdx] = {...updated[lastIdx], content: updatedText};
+                  } else {
+                    updated.push({content: updatedText, role: "assistant"});
                   }
                   return updated;
                 });
@@ -251,7 +254,18 @@ const AiScreen: React.FC = () => {
                   }
                   return updated;
                 });
-              } else if (data.image) {
+              } else if (data.image || data.file) {
+                const part = data.image
+                  ? {mimeType: data.image.mimeType, type: "image" as const, url: data.image.url}
+                  : {
+                      filename: data.file.filename,
+                      mimeType: data.file.mimeType,
+                      type: (typeof data.file.mimeType === "string" &&
+                      data.file.mimeType.startsWith("image/")
+                        ? "image"
+                        : "file") as "image" | "file",
+                      url: data.file.url,
+                    };
                 setCurrentMessages((prev) => {
                   const updated = [...prev];
                   const lastIdx = updated.length - 1;
@@ -259,41 +273,22 @@ const AiScreen: React.FC = () => {
                     const existing = updated[lastIdx].contentParts ?? [];
                     updated[lastIdx] = {
                       ...updated[lastIdx],
-                      contentParts: [
-                        ...existing,
-                        {mimeType: data.image.mimeType, type: "image", url: data.image.url},
-                      ],
+                      contentParts: [...existing, part],
                     };
-                  }
-                  return updated;
-                });
-              } else if (data.file) {
-                const isImage = typeof data.file.mimeType === "string" &&
-                  data.file.mimeType.startsWith("image/");
-                setCurrentMessages((prev) => {
-                  const updated = [...prev];
-                  const lastIdx = updated.length - 1;
-                  if (lastIdx >= 0 && updated[lastIdx].role === "assistant") {
-                    const existing = updated[lastIdx].contentParts ?? [];
-                    updated[lastIdx] = {
-                      ...updated[lastIdx],
-                      contentParts: [
-                        ...existing,
-                        {
-                          filename: data.file.filename,
-                          mimeType: data.file.mimeType,
-                          type: isImage ? ("image" as const) : ("file" as const),
-                          url: data.file.url,
-                        },
-                      ],
-                    };
+                  } else {
+                    updated.push({content: "", contentParts: [part], role: "assistant"});
                   }
                   return updated;
                 });
               } else if (data.done) {
                 // Clean up trailing empty assistant messages
                 setCurrentMessages((prev) =>
-                  prev.filter((m) => m.content || m.role !== "assistant")
+                  prev.filter(
+                    (m) =>
+                      m.content ||
+                      (m.contentParts && m.contentParts.length > 0) ||
+                      m.role !== "assistant"
+                  )
                 );
                 if (data.historyId) {
                   setCurrentHistoryId(data.historyId);
