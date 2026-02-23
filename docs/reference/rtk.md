@@ -75,6 +75,47 @@ const userId = useSelectCurrentUserId();
 const userId = selectCurrentUserId(state);
 ``````
 
+### Better Auth Integration
+
+For apps using Better Auth instead of JWT:
+
+``````typescript
+import {createBetterAuthClient, generateBetterAuthSlice} from "@terreno/rtk";
+import {configureStore} from "@reduxjs/toolkit";
+
+// Create Better Auth client
+export const authClient = createBetterAuthClient({
+  baseURL: process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000",
+});
+
+// Generate session Redux slice
+const {sessionReducer, sessionMiddleware} = generateBetterAuthSlice(authClient);
+
+export const store = configureStore({
+  reducer: {
+    session: sessionReducer,
+    // ... other reducers
+  },
+  middleware: (getDefault) => getDefault().concat(sessionMiddleware),
+});
+``````
+
+**Key exports:**
+- `createBetterAuthClient` — Factory for Better Auth client with Expo support
+- `generateBetterAuthSlice` — Redux slice for session state management
+- `BetterAuthSessionData` — TypeScript types for session/user data
+
+**Session State:**
+``````typescript
+{
+  session: BetterAuthSession | null;
+  user: BetterAuthUser | null;
+  isLoading: boolean;
+}
+``````
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
+
 ## WebSocket Integration
 
 ### useSocketConnection
