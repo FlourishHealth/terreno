@@ -13,6 +13,7 @@ import {
 import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
+import {addAiRoutes} from "./api/ai";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
@@ -121,6 +122,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     })
+      .register({register: (app: express.Application) => addAiRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
       .register(

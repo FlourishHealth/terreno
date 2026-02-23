@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@ai-sdk/google": "^3.0.30",
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/logging-winston": "^6.0.1",
     "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0",
@@ -14,16 +15,21 @@
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@terreno/admin-backend": "workspace:*",
+    "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",
     "@thream/socketio-jwt": "^3.1.4",
+    "ai": "catalog:",
     "ioredis": "^5.8.2",
     "lodash": "^4.17.23",
     "luxon": "^3.4.0",
     "mongoose": "^8.0.0",
     "passport-local-mongoose": "^9.0.1",
+    "path-to-regexp": "^0.1.12",
+    "pdf-lib": "^1.17.1",
     "qs": "^6.14.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.0",

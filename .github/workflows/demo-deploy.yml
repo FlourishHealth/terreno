@@ -52,6 +52,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      statuses: write
     steps:
       - uses: actions/checkout@v6
 
@@ -146,6 +147,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      statuses: write
     steps:
       - uses: actions/checkout@v6
 

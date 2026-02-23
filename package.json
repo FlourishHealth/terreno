@@ -1,5 +1,6 @@
 {
   "catalog": {
+    "ai": "^6.0.97",
     "@biomejs/biome": "^2.3.6",
     "@expo/config-plugins": "~54.0.4",
     "@expo/vector-icons": "^15.0.3",
@@ -76,6 +77,9 @@
     "admin-backend:test": "bun run --filter '@terreno/admin-backend' test",
     "admin-frontend:compile": "bun run --filter '@terreno/admin-frontend' compile",
     "admin-frontend:lint": "bun run --filter '@terreno/admin-frontend' lint",
+    "ai:compile": "bun run --filter '@terreno/ai' compile",
+    "ai:lint": "bun run --filter '@terreno/ai' lint",
+    "ai:test": "bun run --filter '@terreno/ai' test",
     "api-health:compile": "bun run --filter '@terreno/api-health' compile",
     "api-health:lint": "bun run --filter '@terreno/api-health' lint",
     "api-health:test": "bun run --filter '@terreno/api-health' test",
@@ -121,6 +125,7 @@
   "workspaces": [
     "admin-backend",
     "admin-frontend",
+    "ai",
     "api",
     "api-health",
     "demo",
