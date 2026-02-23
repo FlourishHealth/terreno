@@ -1,18 +1,13 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp} from "@terreno/admin-backend";
-import {
-  type AddRoutes,
-  checkModelsStrict,
-  configureOpenApiValidator,
-  logger,
-  setupServer,
-} from "@terreno/api";
+import {checkModelsStrict, configureOpenApiValidator, logger, TerrenoApp} from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
-import {addTodoRoutes} from "./api/todos";
-import {addUserRoutes} from "./api/users";
+import {todoRouter} from "./api/todos";
+import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
@@ -21,19 +16,7 @@ import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
 
-const addMiddleware: AddRoutes = (_router, _options) => {
-  // Add middleware here
-};
-
-const addRoutes: AddRoutes = (router, options): void => {
-  // Add API routes with OpenAPI middleware
-  addAiRoutes(router, options);
-  addTodoRoutes(router, options);
-  addUserRoutes(router, options);
-};
-
-// Return type uses ReturnType to match what setupServer actually returns
-export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
+export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
 
@@ -69,9 +52,7 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
   }
 
   try {
-    const app = setupServer({
-      addMiddleware,
-      addRoutes,
+    const app = new TerrenoApp({
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
@@ -79,46 +60,48 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
         level: Configuration.get<string>("LOGGING_LEVEL") as "debug" | "info" | "warn" | "error",
         logRequests: Boolean(!isDeployed),
         transports,
-        // Whether to log when requests are slow.
-        // logSlowRequests: false,
       },
       skipListen,
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
-    });
-
-    // Register health check plugin
-    new HealthApp({
-      check: async () => {
-        const mongoConnected = mongoose.connection.readyState === 1;
-        return {
-          details: {
-            database: mongoConnected ? "connected" : "disconnected",
-            uptime: process.uptime(),
+    })
+      .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register(todoRouter)
+      .register(userRouter)
+      .register(
+        new HealthApp({
+          check: async () => {
+            const mongoConnected = mongoose.connection.readyState === 1;
+            return {
+              details: {
+                database: mongoConnected ? "connected" : "disconnected",
+                uptime: process.uptime(),
+              },
+              healthy: mongoConnected,
+            };
           },
-          healthy: mongoConnected,
-        };
-      },
-    }).register(app);
-
-    // Register admin panel plugin
-    new AdminApp({
-      models: [
-        {
-          displayName: "Todos",
-          listFields: ["title", "completed", "ownerId", "created"],
-          model: Todo,
-          routePath: "/todos",
-        },
-        {
-          displayName: "Users",
-          listFields: ["email", "name", "admin", "created"],
-          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-          model: User as any,
-          routePath: "/users",
-        },
-      ],
-    }).register(app);
+        })
+      )
+      .register(
+        new AdminApp({
+          models: [
+            {
+              displayName: "Todos",
+              listFields: ["title", "completed", "ownerId", "created"],
+              model: Todo,
+              routePath: "/todos",
+            },
+            {
+              displayName: "Users",
+              listFields: ["email", "name", "admin", "created"],
+              // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+              model: User as any,
+              routePath: "/users",
+            },
+          ],
+        })
+      )
+      .start();
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);
@@ -126,7 +109,6 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
     logger.debug(`Total server boot completed in ${totalBootTimeMs}ms`);
     return app;
   } catch (error) {
-    logger.error(`Error in start function: ${error}`);
     logger.error(`Error setting up server: ${error}`);
     throw error;
   }
