@@ -24,6 +24,8 @@ src/
   permissions.ts         # Permission system
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
+  terrenoApp.ts          # TerrenoApp class with register pattern
+  terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
   logger.ts              # Winston-based logging
@@ -36,9 +38,63 @@ src/
   tests/bunSetup.ts      # Test environment setup
 ```
 
+## Server Setup
+
+### TerrenoApp (Recommended)
+
+Fluent API with a register pattern:
+
+```typescript
+import {TerrenoApp, modelRouter} from "@terreno/api";
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {...},
+  queryFilter: OwnerQueryFilter,
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+Methods:
+- `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
+- `addMiddleware(fn)` — Add Express middleware
+- `build()` — Build Express app without listening
+- `start()` — Build and start server
+
+### setupServer (Legacy)
+
+Callback-based pattern:
+
+```typescript
+import {setupServer, modelRouter} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, options));
+  },
+});
+```
+
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+
 ## modelRouter
 
 Auto-generates RESTful CRUD APIs for Mongoose models with permissions, population, filtering, and lifecycle hooks.
+
+**Two signatures:**
+
+```typescript
+// 1. Router signature (for setupServer):
+router.use("/todos", modelRouter(Todo, options));
+
+// 2. Registration signature (for TerrenoApp):
+const todoRouter = modelRouter("/todos", Todo, options);
+app.register(todoRouter);
+```
 
 ### Generated Endpoints
 
@@ -197,6 +253,85 @@ import {OwnerQueryFilter} from "@terreno/api";
 // Produces: {ownerId: user.id}
 ```
 
+## Request Validation
+
+Runtime validation of incoming requests against OpenAPI schemas using AJV. Validation is opt-in and can be enabled globally or per-route.
+
+### Enabling Validation
+
+```typescript
+import {configureOpenApiValidator, setupServer} from "@terreno/api";
+
+// Enable validation before setting up the server
+configureOpenApiValidator({
+  removeAdditional: true,
+  coerceTypes: true,
+  logValidationErrors: true,
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Routes will automatically validate when enabled
+  },
+});
+```
+
+Options: `validateRequests` (default: true), `validateResponses` (default: false), `coerceTypes` (default: true), `removeAdditional` (default: true), `logValidationErrors` (default: true).
+
+### Using with modelRouter
+
+When validation is enabled globally, modelRouter automatically validates create and update requests based on the Mongoose schema.
+
+### Manual Validation
+
+For custom routes:
+
+```typescript
+import {validateRequestBody, validateQueryParams, createValidator} from "@terreno/api";
+
+// Validate request body
+router.post("/search", [
+  validateRequestBody({
+    query: {type: "string", required: true},
+    filters: {type: "object"},
+  }),
+  asyncHandler(async (req, res) => {
+    const {query, filters} = req.body;  // Validated and type-coerced
+    return res.json({results: []});
+  }),
+]);
+
+// Validate query parameters
+router.get("/items", [
+  validateQueryParams({
+    limit: {type: "number"},
+    status: {type: "string", enum: ["active", "inactive"]},
+  }),
+  asyncHandler(async (req, res) => {
+    const {limit, status} = req.query;  // Validated and type-coerced
+    return res.json({items: []});
+  }),
+]);
+
+// Validate both body and query
+router.post("/search", [
+  createValidator({
+    body: {query: {type: "string", required: true}},
+    query: {limit: {type: "number"}, page: {type: "number"}},
+  }),
+  asyncHandler(async (req, res) => {
+    // Both req.body and req.query are validated
+    return res.json({results: []});
+  }),
+]);
+```
+
+Validation errors throw `APIError` with field-level details.
+
 ## Custom Routes with OpenAPI Builder
 
 For non-CRUD endpoints, use the fluent builder to generate OpenAPI documentation:
@@ -309,6 +444,62 @@ setupServer({
 
 - `ENABLE_SWAGGER=true` — Enable Swagger UI at `/swagger`
 - `USE_SENTRY_LOGGING=true` — Send errors to Sentry
+
+## Extensibility
+
+### TerrenoPlugin Interface
+
+The `TerrenoPlugin` interface provides a standard way to extend Terreno applications with reusable functionality:
+
+```typescript
+import type {TerrenoPlugin} from "@terreno/api";
+import type express from "express";
+
+export interface TerrenoPlugin {
+  register(app: express.Application): void;
+}
+```
+
+**Creating a plugin:**
+
+```typescript
+import type {TerrenoPlugin} from "@terreno/api";
+
+export class MyPlugin implements TerrenoPlugin {
+  private options: MyPluginOptions;
+
+  constructor(options?: MyPluginOptions) {
+    this.options = options ?? {};
+  }
+
+  register(app: express.Application): void {
+    // Add routes, middleware, or other setup
+    app.get("/my-plugin/status", (_req, res) => {
+      res.json({status: "ok"});
+    });
+  }
+}
+```
+
+**Using a plugin:**
+
+```typescript
+import {setupServer} from "@terreno/api";
+import {MyPlugin} from "./plugins/myPlugin";
+
+const myPlugin = new MyPlugin({enabled: true});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    myPlugin.register(router as any);
+  },
+});
+```
+
+**Example:** See `@terreno/api-health` for a complete plugin implementation with health check endpoints.
+
+**Common patterns:** Route registration, middleware injection, conditional setup, service initialization.
 
 ## Logging
 
