@@ -400,13 +400,59 @@ function getQueryValidationMiddleware<T>(
   return validateQueryParams(querySchema, validationOptions);
 }
 
+export interface ModelRouterRegistration {
+  __type: "modelRouter";
+  path: string;
+  router: express.Router;
+}
+
 /**
  * Create a set of CRUD routes given a Mongoose model and configuration options.
  *
- * @param model A Mongoose Model
- * @param options Options for configuring the REST API, such as permissions, transformers, and hooks.
+ * When called with a path as the first argument, returns a `ModelRouterRegistration` that can be
+ * passed to `TerrenoApp.register()`.
+ *
+ * @example
+ * // Traditional usage (returns express.Router):
+ * router.use("/todos", modelRouter(Todo, options));
+ *
+ * // Registration usage (returns ModelRouterRegistration):
+ * const todoRouter = modelRouter("/todos", Todo, options);
+ * app.register(todoRouter);
  */
-export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
+export function modelRouter<T>(
+  path: string,
+  model: Model<T>,
+  options: ModelRouterOptions<T>
+): ModelRouterRegistration;
+export function modelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router;
+export function modelRouter<T>(
+  pathOrModel: string | Model<T>,
+  modelOrOptions: Model<T> | ModelRouterOptions<T>,
+  maybeOptions?: ModelRouterOptions<T>
+): express.Router | ModelRouterRegistration {
+  let model: Model<T>;
+  let options: ModelRouterOptions<T>;
+  let path: string | undefined;
+
+  if (typeof pathOrModel === "string") {
+    path = pathOrModel;
+    model = modelOrOptions as Model<T>;
+    options = maybeOptions as ModelRouterOptions<T>;
+  } else {
+    model = pathOrModel;
+    options = modelOrOptions as ModelRouterOptions<T>;
+  }
+
+  const router = _buildModelRouter(model, options);
+
+  if (path !== undefined) {
+    return {__type: "modelRouter", path, router};
+  }
+  return router;
+}
+
+function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
 
   // Do before the other router options so endpoints take priority.
