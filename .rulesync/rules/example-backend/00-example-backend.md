@@ -26,7 +26,7 @@ bun run lint:fix         # Fix lint issues
 ```
 src/
   index.ts               # Entry point (imports instrument, calls start())
-  server.ts              # Express setup with setupServer()
+  server.ts              # Express setup with TerrenoApp
   conf.ts                # Configuration management
   models/
     user.ts              # User model with passport-local-mongoose
@@ -35,9 +35,8 @@ src/
     index.ts             # Model exports
     modelPlugins.ts      # Default plugins (timestamps, etc.)
   api/
-    users.ts             # User CRUD routes (admin-only)
-    todos.ts             # Todo CRUD routes (owner-based)
-    health.ts            # Health check endpoint
+    users.ts             # User router export
+    todos.ts             # Todo router export
   types/
     models/
       userTypes.ts       # User Document/Model/Statics interfaces
@@ -53,6 +52,27 @@ src/
 
 ## Server Setup
 
+**Current pattern** — Uses TerrenoApp with register pattern:
+
+```typescript
+import {TerrenoApp} from "@terreno/api";
+import {HealthApp} from "@terreno/api-health";
+import {todoRouter} from "./api/todos";
+import {userRouter} from "./api/users";
+
+const app = new TerrenoApp({
+  userModel: User,
+  loggingOptions: {logRequests: true, logSlowRequests: true},
+  sentryOptions: {...},
+})
+  .register(todoRouter)
+  .register(userRouter)
+  .register(new HealthApp())
+  .start();
+```
+
+**Legacy pattern** — setupServer is still supported:
+
 ```typescript
 import {setupServer} from "@terreno/api";
 
@@ -61,7 +81,6 @@ setupServer({
   addRoutes: (router, options) => {
     addTodoRoutes(router, options);
     addUserRoutes(router, options);
-    addHealthRoutes(router, options);
   },
   loggingOptions: {logRequests: true, logSlowRequests: true},
   sentryOptions: {...},
@@ -135,6 +154,33 @@ export interface UserModel extends DefaultModel<UserDocument>, UserStatics {
 
 ### Owner-based CRUD (Todo)
 
+**New pattern (with TerrenoApp):**
+
+```typescript
+import {modelRouter, Permissions, OwnerQueryFilter} from "@terreno/api";
+
+export const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+  preCreate: (body, req) => ({
+    ...body,
+    ownerId: (req.user as UserDocument)?._id,
+  }),
+  queryFilter: OwnerQueryFilter,     // Restricts list to user's own
+  queryFields: ["completed", "ownerId"],
+  sort: "-created",
+});
+
+// Usage: app.register(todoRouter)
+```
+
+**Legacy pattern (with setupServer):**
+
 ```typescript
 export const addTodoRoutes = (router, options?) => {
   router.use("/todos", modelRouter(Todo, {
@@ -150,7 +196,7 @@ export const addTodoRoutes = (router, options?) => {
       ...body,
       ownerId: (req.user as UserDocument)?._id,
     }),
-    queryFilter: OwnerQueryFilter,     // Restricts list to user's own
+    queryFilter: OwnerQueryFilter,
     queryFields: ["completed", "ownerId"],
     sort: "-created",
   }));
@@ -158,6 +204,28 @@ export const addTodoRoutes = (router, options?) => {
 ```
 
 ### Admin-only CRUD (User)
+
+**New pattern (with TerrenoApp):**
+
+```typescript
+export const userRouter = modelRouter("/users", User, {
+  permissions: {
+    create: [Permissions.IsAdmin],
+    list: [Permissions.IsAdmin],
+    read: [Permissions.IsAdmin],
+    update: [Permissions.IsAdmin],
+    delete: [],  // Disabled
+  },
+  responseHandler: async (value, method) => {
+    // Strip sensitive fields
+    const clean = (u) => {const {hash, salt, ...rest} = serialize(u); return rest;};
+    return Array.isArray(value) ? value.map(clean) : clean(value);
+  },
+  queryFields: ["email", "name"],
+});
+```
+
+**Legacy pattern (with setupServer):**
 
 ```typescript
 export const addUserRoutes = (router, options?) => {
@@ -180,7 +248,11 @@ export const addUserRoutes = (router, options?) => {
 };
 ```
 
-### Custom Endpoints (Health)
+### Custom Endpoints
+
+**Note:** With TerrenoApp, custom endpoints are typically handled by plugins (e.g., HealthApp from @terreno/api-health).
+
+**Legacy pattern (with setupServer):**
 
 ```typescript
 router.get("/health", [

@@ -371,6 +371,105 @@ export type YourModelDocument = DefaultDoc & YourModelMethods & {
 - In @terreno/api callbacks: `const user = u as unknown as UserDocument`
 - Never use `as any as UserDocument`
 
+## TerrenoApp
+
+**Alternative to setupServer** — A class-based API builder using the register pattern instead of callback-based `addRoutes`. Provides a fluent interface for composing your API from model routers and plugins.
+
+### Basic Usage
+
+```typescript
+import {TerrenoApp} from "@terreno/api";
+import {HealthApp} from "@terreno/api-health";
+import {AdminApp} from "@terreno/admin-backend";
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .register(new HealthApp())
+  .register(new AdminApp({...}))
+  .start();
+```
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `register(registration)` | Register a ModelRouterRegistration or TerrenoPlugin |
+| `addMiddleware(fn)` | Add Express middleware |
+| `build()` | Assemble Express app without listening |
+| `start()` | Build + listen on configured port |
+
+### Options
+
+```typescript
+interface TerrenoAppOptions {
+  userModel: UserModel;              // User model (required)
+  corsOrigin?: CorsOrigin;           // CORS config (default: true)
+  loggingOptions?: LoggingOptions;   // Logging config
+  authOptions?: AuthOptions;         // Auth config
+  githubAuth?: GitHubAuthOptions;    // GitHub OAuth config
+  skipListen?: boolean;              // Don't start server (for testing)
+  sentryOptions?: Sentry.BunOptions; // Sentry config
+  arrayLimit?: number;               // Query array limit (default: 100)
+  logRequests?: boolean;             // Log all requests (default: false)
+}
+```
+
+### modelRouter Overload for TerrenoApp
+
+When using TerrenoApp, use the path-first overload to create a registration:
+
+```typescript
+// New overload (returns ModelRouterRegistration)
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [],
+  },
+});
+
+app.register(todoRouter);
+
+// Legacy usage (still works with setupServer)
+router.use("/todos", modelRouter(Todo, options));
+```
+
+### TerrenoPlugin Interface
+
+Plugins implement a simple interface:
+
+```typescript
+interface TerrenoPlugin {
+  register(app: express.Application): void;
+}
+```
+
+**Built-in plugins:**
+- `@terreno/api-health` — HealthApp (health check endpoints)
+- `@terreno/admin-backend` — AdminApp (admin panel CRUD)
+
+**Example custom plugin:**
+
+```typescript
+import type {TerrenoPlugin} from "@terreno/api";
+
+export class MyPlugin implements TerrenoPlugin {
+  constructor(private options: MyPluginOptions) {}
+
+  register(app: express.Application): void {
+    app.get("/my-route", (_req, res) => {
+      res.json({status: "ok"});
+    });
+  }
+}
+
+// Usage
+app.register(new MyPlugin({enabled: true}));
+```
+
 ## setupServer
 
 ```typescript
@@ -394,62 +493,6 @@ setupServer({
 
 - `ENABLE_SWAGGER=true` — Enable Swagger UI at `/swagger`
 - `USE_SENTRY_LOGGING=true` — Send errors to Sentry
-
-## Extensibility
-
-### TerrenoPlugin Interface
-
-The `TerrenoPlugin` interface provides a standard way to extend Terreno applications with reusable functionality:
-
-```typescript
-import type {TerrenoPlugin} from "@terreno/api";
-import type express from "express";
-
-export interface TerrenoPlugin {
-  register(app: express.Application): void;
-}
-```
-
-**Creating a plugin:**
-
-```typescript
-import type {TerrenoPlugin} from "@terreno/api";
-
-export class MyPlugin implements TerrenoPlugin {
-  private options: MyPluginOptions;
-
-  constructor(options?: MyPluginOptions) {
-    this.options = options ?? {};
-  }
-
-  register(app: express.Application): void {
-    // Add routes, middleware, or other setup
-    app.get("/my-plugin/status", (_req, res) => {
-      res.json({status: "ok"});
-    });
-  }
-}
-```
-
-**Using a plugin:**
-
-```typescript
-import {setupServer} from "@terreno/api";
-import {MyPlugin} from "./plugins/myPlugin";
-
-const myPlugin = new MyPlugin({enabled: true});
-
-setupServer({
-  userModel: User,
-  addRoutes: (router) => {
-    myPlugin.register(router as any);
-  },
-});
-```
-
-**Example:** See `@terreno/api-health` for a complete plugin implementation with health check endpoints.
-
-**Common patterns:** Route registration, middleware injection, conditional setup, service initialization.
 
 ## Logging
 
