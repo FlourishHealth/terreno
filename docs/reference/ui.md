@@ -9,6 +9,7 @@ React Native UI component library (88+ components). Layout (Box, Page, Card), fo
 - Display: `Text`, `Heading`, `Badge`, `DataTable`
 - Actions: `Button`, `IconButton`, `Link`
 - Feedback: `Spinner`, `Modal`, `Toast`
+- Authentication: `SocialLoginButton`, `LoginScreen`, `SignUpScreen`
 - Theming: `TerrenoProvider`, `useTheme`
 - **Type re-exports:** `StyleProp`, `ViewStyle` (re-exported from react-native to avoid version conflicts)
 
@@ -50,6 +51,82 @@ Buttons automatically size to their content unless `fullWidth` is specified:
 ``````
 
 Internally, Button sets `alignSelf: 'flex-start'` when `fullWidth={false}` to prevent stretching in column layouts.
+
+## Authentication Components
+
+### SocialLoginButton
+
+Branded social login buttons for OAuth authentication with Google, GitHub, and Apple.
+
+``````typescript
+import {SocialLoginButton} from "@terreno/ui";
+import {authClient} from "@/store/authClient";
+
+<SocialLoginButton
+  provider="google"  // "google" | "github" | "apple"
+  variant="primary"  // "primary" | "outline"
+  onPress={async () => {
+    await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "yourapp://auth/callback",
+    });
+  }}
+  loading={isLoading}
+  fullWidth
+/>
+``````
+
+**Features:**
+- Proper brand colors for each provider (follows brand guidelines)
+- Built-in icons (FontAwesome 6)
+- Primary and outline variants
+- Loading states with spinner
+- Automatic text: "Continue with {Provider}"
+
+### LoginScreen
+
+Complete login screen with email/password and optional social providers.
+
+``````typescript
+import {LoginScreen} from "@terreno/ui";
+import {authClient} from "@/store/authClient";
+
+<LoginScreen
+  onEmailLogin={async ({email, password}) => {
+    await authClient.signIn.email({email, password});
+  }}
+  onSocialLogin={async (provider) => {
+    await authClient.signIn.social({provider, callbackURL: "yourapp://auth"});
+  }}
+  socialProviders={["google", "github", "apple"]}
+  onForgotPassword={() => navigation.navigate("ForgotPassword")}
+  onSignUp={() => navigation.navigate("SignUp")}
+/>
+``````
+
+### SignUpScreen
+
+Complete signup screen with email/password and optional social providers.
+
+``````typescript
+import {SignUpScreen} from "@terreno/ui";
+import {authClient} from "@/store/authClient";
+
+<SignUpScreen
+  onEmailSignUp={async ({email, password, name}) => {
+    await authClient.signUp.email({email, password, name});
+  }}
+  onSocialLogin={async (provider) => {
+    await authClient.signIn.social({provider, callbackURL: "yourapp://auth"});
+  }}
+  socialProviders={["google", "github"]}
+  onSignIn={() => navigation.navigate("Login")}
+  requireName
+  requireTermsAcceptance
+/>
+``````
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
 
 ## Testing Utilities
 
