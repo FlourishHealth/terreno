@@ -49,6 +49,43 @@ OAuth 2.0 authentication with GitHub.
 
 **Learn more:** [How to add GitHub OAuth](../how-to/add-github-oauth.md)
 
+### Better Auth Strategy
+
+Modern authentication provider supporting social OAuth (Google, GitHub, Apple) and email/password authentication.
+
+**Flow:**
+1. User initiates authentication (social login or email/password)
+2. For social login: Better Auth redirects to OAuth provider → user authorizes → callback
+3. Better Auth creates/finds user and establishes session
+4. Session stored securely on frontend (expo-secure-store on mobile, AsyncStorage on web)
+5. Session automatically included in API requests
+6. Frontend Redux state updated with user information
+
+**Providers:**
+- **Google OAuth** — Sign in with Google
+- **GitHub OAuth** — Sign in with GitHub  
+- **Apple OAuth** — Sign in with Apple
+- **Email/Password** — Traditional authentication
+
+**Key Differences from JWT:**
+- Supports multiple social OAuth providers out of the box
+- Built-in mobile deep link support for Expo/React Native
+- Automatic session management with secure storage
+- Modern API design
+
+**Use Better Auth when:**
+- Building new applications
+- Need Google or Apple OAuth
+- Want simplified mobile authentication
+- Prefer modern authentication patterns
+
+**Use JWT/Passport when:**
+- Maintaining existing applications
+- Need custom authentication flows
+- Want fine-grained control over tokens
+
+Both systems can run in parallel. See [Add Better Auth](../how-to/add-better-auth.md) for setup.
+
 ### Anonymous Strategy
 
 Allows limited access without authentication.
