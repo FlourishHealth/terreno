@@ -22,7 +22,6 @@
     "luxon": "^3.4.0",
     "mongoose": "^8.0.0",
     "passport-local-mongoose": "^9.0.1",
-    "path-to-regexp": "^0.1.12",
     "qs": "^6.14.1",
     "socket.io": "^4.8.1"
   },
