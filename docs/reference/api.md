@@ -4,6 +4,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 
 ## Table of Contents
 
+- [Server Setup](#server-setup)
 - [Authentication](#authentication)
 - [Model Schema Conventions](#model-schema-conventions)
 - [Mongoose Plugins](#mongoose-plugins)
@@ -16,7 +17,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 
 ## Key exports
 
-- `modelRouter`, `setupServer`, `Permissions`, `OwnerQueryFilter`
+- `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
 - `createOpenApiBuilder`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
@@ -25,6 +26,58 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - Middleware: `openApiEtagMiddleware`, `sentryAppVersionMiddleware`
 - Extensibility: `TerrenoPlugin` interface
 - Notifiers: `sendSlackMessage`, `sendGoogleChatMessage`, `sendZoomMessage`
+
+## Server Setup
+
+Two patterns for building Terreno APIs:
+
+### TerrenoApp (Recommended)
+
+Fluent API with a register pattern:
+
+``````typescript
+import {TerrenoApp, modelRouter} from "@terreno/api";
+import {User, Todo} from "./models";
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+  queryFilter: OwnerQueryFilter,
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+``````
+
+**Methods:**
+- `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
+- `addMiddleware(fn)` — Add Express middleware
+- `build()` — Build Express app without listening
+- `start()` — Build and start server
+
+### setupServer (Legacy)
+
+Callback-based pattern:
+
+``````typescript
+import {setupServer, modelRouter} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, options));
+  },
+});
+``````
+
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
 
 ## Authentication
 

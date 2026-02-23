@@ -30,6 +30,8 @@ src/
   permissions.ts         # Permission system
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
+  terrenoApp.ts          # TerrenoApp class with register pattern
+  terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
   logger.ts              # Winston-based logging
@@ -42,9 +44,63 @@ src/
   tests/bunSetup.ts      # Test environment setup
 ```
 
+## Server Setup
+
+### TerrenoApp (Recommended)
+
+Fluent API with a register pattern:
+
+```typescript
+import {TerrenoApp, modelRouter} from "@terreno/api";
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {...},
+  queryFilter: OwnerQueryFilter,
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+Methods:
+- `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
+- `addMiddleware(fn)` — Add Express middleware
+- `build()` — Build Express app without listening
+- `start()` — Build and start server
+
+### setupServer (Legacy)
+
+Callback-based pattern:
+
+```typescript
+import {setupServer, modelRouter} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, options));
+  },
+});
+```
+
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+
 ## modelRouter
 
 Auto-generates RESTful CRUD APIs for Mongoose models with permissions, population, filtering, and lifecycle hooks.
+
+**Two signatures:**
+
+```typescript
+// 1. Router signature (for setupServer):
+router.use("/todos", modelRouter(Todo, options));
+
+// 2. Registration signature (for TerrenoApp):
+const todoRouter = modelRouter("/todos", Todo, options);
+app.register(todoRouter);
+```
 
 ### Generated Endpoints
 
