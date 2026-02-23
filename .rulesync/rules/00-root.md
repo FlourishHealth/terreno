@@ -16,6 +16,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **api-health/** - Health check plugin for @terreno/api (`@terreno/api-health`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -45,6 +46,9 @@ bun run mcp:build        # Build MCP server
 bun run mcp:start        # Start MCP server
 bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
+bun run api-health:compile      # Compile api-health package
+bun run api-health:lint         # Lint api-health package
+bun run api-health:test         # Test api-health package
 ```
 
 ## How the Packages Work Together
