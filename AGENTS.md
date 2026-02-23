@@ -9,6 +9,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **api-health/** - Health check plugin for @terreno/api (`@terreno/api-health`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -69,7 +70,7 @@ The three core packages form a complete full-stack framework:
 ### Integration Flow
 
 1. **Backend (api)**: Define Mongoose models, use `modelRouter` to create CRUD endpoints with permissions
-2. **OpenAPI Generation**: `setupServer` automatically generates `/openapi.json`
+2. **OpenAPI Generation**: `TerrenoApp` (or legacy `setupServer`) automatically generates `/openapi.json`
 3. **SDK Codegen**: Frontend runs `bun run sdk` to generate RTK Query hooks from OpenAPI spec
 4. **Frontend (rtk + ui)**: Use generated hooks with UI components for type-safe API calls
 
@@ -131,16 +132,18 @@ bun run frontend:web
 
 REST API framework providing:
 
+- **TerrenoApp**: Fluent API server builder with plugin support (recommended)
 - **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
 - **Permissions**: `IsAuthenticated`, `IsOwner`, `IsAdmin`, `IsAuthenticatedOrReadOnly`
 - **Query Filters**: `OwnerQueryFilter` for filtering list queries by owner
-- **setupServer**: Express server setup with auth, OpenAPI, and middleware
+- **setupServer**: Express server setup with auth, OpenAPI, and middleware (legacy)
 - **APIError**: Standardized error handling
 - **logger**: Winston-based logging
 
 Key imports:
 ```typescript
 import {
+  TerrenoApp,
   modelRouter,
   setupServer,
   Permissions,
@@ -152,12 +155,12 @@ import {
 } from "@terreno/api";
 ```
 
-#### modelRouter Usage
+#### TerrenoApp Usage (Recommended)
 
 ```typescript
-import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
+import {TerrenoApp, modelRouter} from "@terreno/api";
 
-const router = modelRouter(YourModel, {
+const todoRouter = modelRouter("/todos", Todo, {
   permissions: {
     list: [Permissions.IsAuthenticated],
     create: [Permissions.IsAuthenticated],
@@ -165,8 +168,37 @@ const router = modelRouter(YourModel, {
     update: [Permissions.IsOwner],
     delete: [],  // Disabled
   },
+  queryFilter: OwnerQueryFilter,
   sort: "-created",
   queryFields: ["_id", "type", "name"],
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+#### modelRouter Usage (Legacy setupServer)
+
+```typescript
+import {setupServer, modelRouter, Permissions} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, {
+      permissions: {
+        list: [Permissions.IsAuthenticated],
+        create: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+        delete: [],  // Disabled
+      },
+      sort: "-created",
+      queryFields: ["_id", "type", "name"],
+    }));
+  },
 });
 ```
 
