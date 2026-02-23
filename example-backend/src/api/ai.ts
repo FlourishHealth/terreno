@@ -382,16 +382,17 @@ export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<an
   const fileStorageService = getFileStorageService();
 
   addGptHistoryRoutes(router, options);
+  // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
   addGptRoutes(router, {
     aiService,
     createModelFn: createModelFromKey,
-    createRequestTools: createPerRequestTools,
+    createRequestTools: createPerRequestTools as any,
     demoMode: !aiService,
     maxSteps: 5,
     mcpService,
     openApiOptions: options,
     toolChoice: "auto",
-    tools: demoTools,
+    tools: demoTools as any,
   });
   addAiRequestsExplorerRoutes(router, {openApiOptions: options});
 
