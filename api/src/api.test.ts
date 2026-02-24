@@ -897,6 +897,275 @@ describe("@terreno/api", () => {
 
       await SoftDeleteModel.deleteMany({});
     });
+  });
+
+  describe("delete with body", () => {
+    let admin: any;
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      [admin] = await setupDb();
+
+      app = getBaseServer();
+      setupAuth(app, UserModel as any);
+      addAuthRoutes(app, UserModel as any);
+    });
+
+    it("applies body fields to document during soft delete", async () => {
+      const mongoose = await import("mongoose");
+
+      const softDeleteSchema = new mongoose.Schema({
+        deleted: {default: false, type: Boolean},
+        deletedReason: String,
+        name: String,
+      });
+
+      let SoftDeleteBodyModel;
+      try {
+        SoftDeleteBodyModel = mongoose.model("SoftDeleteBodyTest");
+      } catch {
+        SoftDeleteBodyModel = mongoose.model("SoftDeleteBodyTest", softDeleteSchema);
+      }
+
+      await SoftDeleteBodyModel.deleteMany({});
+      const testDoc = await SoftDeleteBodyModel.create({name: "TestItem"});
+
+      app.use(
+        "/softdeletebody",
+        modelRouter(SoftDeleteBodyModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      await agent
+        .delete(`/softdeletebody/${testDoc._id}`)
+        .send({deletedReason: "no longer needed"})
+        .expect(204);
+
+      const softDeleted = await SoftDeleteBodyModel.findById(testDoc._id);
+      expect(softDeleted).not.toBeNull();
+      expect(softDeleted?.deleted).toBe(true);
+      expect(softDeleted?.deletedReason).toBe("no longer needed");
+
+      await SoftDeleteBodyModel.deleteMany({});
+    });
+
+    it("applies body fields to document during hard delete", async () => {
+      const spinach = await FoodModel.create({
+        calories: 1,
+        created: new Date(),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+      });
+
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      // The body fields are saved before the hard delete
+      await agent.delete(`/food/${spinach._id}`).send({hidden: true}).expect(204);
+
+      // Document should be gone after hard delete
+      const deleted = await FoodModel.findById(spinach._id);
+      expect(deleted).toBeNull();
+    });
+
+    it("delete without body still works as before", async () => {
+      const spinach = await FoodModel.create({
+        calories: 1,
+        created: new Date(),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+      });
+
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      await agent.delete(`/food/${spinach._id}`).expect(204);
+
+      const deleted = await FoodModel.findById(spinach._id);
+      expect(deleted).toBeNull();
+    });
+
+    it("postDelete hook sees body fields on the document", async () => {
+      const mongoose = await import("mongoose");
+
+      const softDeleteSchema = new mongoose.Schema({
+        deleted: {default: false, type: Boolean},
+        deletedReason: String,
+        name: String,
+      });
+
+      let SoftDeleteHookModel;
+      try {
+        SoftDeleteHookModel = mongoose.model("SoftDeleteHookTest");
+      } catch {
+        SoftDeleteHookModel = mongoose.model("SoftDeleteHookTest", softDeleteSchema);
+      }
+
+      await SoftDeleteHookModel.deleteMany({});
+      const testDoc = await SoftDeleteHookModel.create({name: "HookItem"});
+
+      let postDeleteReason: string | undefined;
+
+      app.use(
+        "/softdeletehook",
+        modelRouter(SoftDeleteHookModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          postDelete: (_req, value: any) => {
+            postDeleteReason = value.deletedReason;
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      await agent
+        .delete(`/softdeletehook/${testDoc._id}`)
+        .send({deletedReason: "user requested"})
+        .expect(204);
+
+      expect(postDeleteReason).toBe("user requested");
+
+      await SoftDeleteHookModel.deleteMany({});
+    });
+
+    it("delete body transform error returns 400", async () => {
+      const spinach = await FoodModel.create({
+        calories: 1,
+        created: new Date(),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+      });
+
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+          transformer: AdminOwnerTransformer({
+            adminWriteFields: ["name"],
+            authWriteFields: [],
+          }),
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent
+        .delete(`/food/${spinach._id}`)
+        .send({hidden: true})
+        .expect(400);
+      expect(res.body.title).toContain("DELETE body transform error");
+    });
+
+    it("delete body save error on soft delete returns 400", async () => {
+      const mongoose = await import("mongoose");
+
+      const strictSchema = new mongoose.Schema(
+        {
+          deleted: {default: false, type: Boolean},
+          name: {type: String, required: true},
+        },
+        {strict: "throw"}
+      );
+
+      let StrictDeleteModel;
+      try {
+        StrictDeleteModel = mongoose.model("StrictDeleteTest");
+      } catch {
+        StrictDeleteModel = mongoose.model("StrictDeleteTest", strictSchema);
+      }
+
+      await StrictDeleteModel.deleteMany({});
+      const testDoc = await StrictDeleteModel.create({name: "StrictItem"});
+
+      app.use(
+        "/strictdelete",
+        modelRouter(StrictDeleteModel, {
+          allowAnonymous: true,
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "notAdmin");
+
+      const res = await agent
+        .delete(`/strictdelete/${testDoc._id}`)
+        .send({unknownField: "value"})
+        .expect(400);
+      expect(res.body.title).toContain("DELETE body error");
+
+      await StrictDeleteModel.deleteMany({});
+    });
+  });
+
+  describe("array operation transform error", () => {
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      await setupDb();
+
+      app = getBaseServer();
+      setupAuth(app, UserModel as any);
+      addAuthRoutes(app, UserModel as any);
+    });
 
     it("array operation transform error is handled", async () => {
       const apple = await FoodModel.create({
