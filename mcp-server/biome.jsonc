@@ -6,10 +6,13 @@
     "includes": [
       "package.json",
       "src/**/*.ts",
+      "src/**/*.tsx",
       "!!**/node_modules",
       "!!node_modules",
       "!!**/dist",
-      "!!dist"
+      "!!dist",
+      "!!**/*.template.tsx",
+      "!!**/*.template.ts"
     ]
   }
 }

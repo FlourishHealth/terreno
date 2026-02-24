@@ -20,9 +20,9 @@ interface TestUser extends GitHubUserFields {
 
 // Create schema for GitHub-enabled user
 const testUserSchema = new Schema<TestUser>({
-  admin: {default: false, type: Boolean},
-  name: String,
-  username: String,
+  admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+  name: {description: "The user's display name", type: String},
+  username: {description: "The user's username", type: String},
 });
 
 testUserSchema.plugin(passportLocalMongoose as any, {

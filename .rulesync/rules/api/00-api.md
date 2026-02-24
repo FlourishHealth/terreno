@@ -27,9 +27,14 @@ src/
   index.ts               # All package exports
   api.ts                 # modelRouter core (~1000 lines)
   auth.ts                # JWT/Passport authentication
+  betterAuth.ts          # Better Auth types and configuration
+  betterAuthSetup.ts     # Better Auth initialization with MongoDB
+  betterAuthApp.ts       # Better Auth TerrenoPlugin
   permissions.ts         # Permission system
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
+  terrenoApp.ts          # TerrenoApp class with register pattern
+  terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
   logger.ts              # Winston-based logging
@@ -42,9 +47,63 @@ src/
   tests/bunSetup.ts      # Test environment setup
 ```
 
+## Server Setup
+
+### TerrenoApp (Recommended)
+
+Fluent API with a register pattern:
+
+```typescript
+import {TerrenoApp, modelRouter} from "@terreno/api";
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {...},
+  queryFilter: OwnerQueryFilter,
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+Methods:
+- `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
+- `addMiddleware(fn)` — Add Express middleware
+- `build()` — Build Express app without listening
+- `start()` — Build and start server
+
+### setupServer (Legacy)
+
+Callback-based pattern:
+
+```typescript
+import {setupServer, modelRouter} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, options));
+  },
+});
+```
+
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+
 ## modelRouter
 
 Auto-generates RESTful CRUD APIs for Mongoose models with permissions, population, filtering, and lifecycle hooks.
+
+**Two signatures:**
+
+```typescript
+// 1. Router signature (for setupServer):
+router.use("/todos", modelRouter(Todo, options));
+
+// 2. Registration signature (for TerrenoApp):
+const todoRouter = modelRouter("/todos", Todo, options);
+app.register(todoRouter);
+```
 
 ### Generated Endpoints
 
@@ -113,9 +172,11 @@ modelRouter(Model, {
 
 ## Authentication
 
-JWT + Passport-based auth with token refresh.
+JWT + Passport-based auth with multiple strategies: Email/Password, GitHub OAuth, and Anonymous.
 
-### Key Functions
+### Email/Password Authentication
+
+Key functions:
 
 - `setupAuth(app, userModel)` — Configures Passport (JWT, Local, Anonymous strategies)
 - `addAuthRoutes(app, userModel, authOptions?)` — POST `/auth/login`, `/auth/signup`, `/auth/refresh_token`
@@ -124,8 +185,105 @@ JWT + Passport-based auth with token refresh.
 - `signupUser(userModel, email, password, body?)` — Register user
 - `generateTokens(user, authOptions?)` — Sign JWT tokens
 
+Endpoints:
+- `POST /auth/signup` — User registration
+- `POST /auth/login` — Authenticate with email/password
+- `POST /auth/refresh_token` — Refresh access token
+- `GET /auth/me` — Get current user profile
+- `PATCH /auth/me` — Update current user profile
+
+### GitHub OAuth Authentication
+
+Add GitHub OAuth login to your API:
+
+```typescript
+import {githubUserPlugin, setupServer} from "@terreno/api";
+
+// Add GitHub fields to user schema
+userSchema.plugin(githubUserPlugin);
+
+setupServer({
+  userModel: User,
+  githubAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    callbackURL: process.env.GITHUB_CALLBACK_URL!,
+  },
+});
+```
+
+Key exports:
+- `githubUserPlugin` — Adds GitHub fields to user schema (githubId, githubUsername, githubProfileUrl, githubAvatarUrl)
+- `setupGitHubAuth(app, userModel, options)` — Configures GitHub OAuth strategy
+- `addGitHubAuthRoutes(app, userModel, authOptions, githubOptions)` — Adds GitHub OAuth routes
+
+GitHub OAuth endpoints:
+- `GET /auth/github` — Initiates GitHub OAuth flow
+- `GET /auth/github/callback` — GitHub OAuth callback
+- `POST /auth/github/link` — Link GitHub to existing account (requires authentication)
+- `DELETE /auth/github/unlink` — Unlink GitHub from account (requires authentication)
+
+### Better Auth Authentication
+
+Better Auth is an optional, modern authentication provider supporting social OAuth (Google, GitHub, Apple) and email/password. Use it alongside or instead of JWT/Passport.
+
+Add Better Auth to your API:
+
+```typescript
+import {BetterAuthApp, type BetterAuthConfig, TerrenoApp} from "@terreno/api";
+
+const betterAuthConfig: BetterAuthConfig = {
+  enabled: true,
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  basePath: "/api/auth",  // Optional, default
+  trustedOrigins: ["terreno://", "exp://"],  // For mobile deep links
+  googleOAuth: {
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  },
+  githubOAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  },
+  appleOAuth: {
+    clientId: process.env.APPLE_CLIENT_ID!,
+    clientSecret: process.env.APPLE_CLIENT_SECRET!,
+  },
+};
+
+const app = new TerrenoApp({
+  userModel: User,
+  plugins: [
+    new BetterAuthApp({config: betterAuthConfig, userModel: User}),
+  ],
+});
+```
+
+Key exports:
+- `BetterAuthApp` — TerrenoPlugin for registering Better Auth
+- `BetterAuthConfig` interface — Configuration options
+- `createBetterAuth(options)` — Initialize Better Auth instance
+- `createBetterAuthSessionMiddleware(auth, userModel)` — Session extraction middleware
+- `syncBetterAuthUser(userModel, betterAuthUser)` — Sync Better Auth user to app User model
+
+Better Auth automatically:
+- Creates OAuth routes at `{basePath}/{provider}` (e.g., `/api/auth/google`)
+- Extracts sessions from requests and populates `req.user`
+- Syncs Better Auth users to your Mongoose User model (requires `betterAuthId` field)
+- Supports email/password signup and login
+
+User model fields for Better Auth:
+```typescript
+{
+  betterAuthId: {type: String, index: true},  // Better Auth user ID
+  oauthProvider: {type: String},               // OAuth provider name
+}
+```
+
 ### Environment Variables
 
+Email/Password (JWT):
 - `TOKEN_SECRET` — JWT signing secret (required)
 - `TOKEN_ISSUER` — JWT issuer claim (required)
 - `REFRESH_TOKEN_SECRET` — Refresh token secret (required)
@@ -133,6 +291,21 @@ JWT + Passport-based auth with token refresh.
 - `TOKEN_EXPIRES_IN` — Token TTL (default: 15m)
 - `REFRESH_TOKEN_EXPIRES_IN` — Refresh token TTL (default: 30d)
 - `SIGNUP_DISABLED` — Disable user registration
+
+GitHub OAuth (JWT auth, optional):
+- `GITHUB_CLIENT_ID` — GitHub OAuth app client ID
+- `GITHUB_CLIENT_SECRET` — GitHub OAuth app client secret
+- `GITHUB_CALLBACK_URL` — GitHub OAuth callback URL (e.g., https://yourapp.com/auth/github/callback)
+
+Better Auth (optional):
+- `AUTH_PROVIDER` — "jwt" (default) or "better-auth"
+- `BETTER_AUTH_SECRET` — Session encryption secret (required if using Better Auth)
+- `BETTER_AUTH_URL` — Base URL for auth server (required if using Better Auth)
+- `GOOGLE_CLIENT_ID` — Google OAuth client ID (optional)
+- `GOOGLE_CLIENT_SECRET` — Google OAuth client secret (optional)
+- `APPLE_CLIENT_ID` — Apple OAuth client ID (optional)
+- `APPLE_CLIENT_SECRET` — Apple OAuth client secret (optional)
+- GitHub OAuth with Better Auth uses same `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
 
 ## Permissions
 
@@ -156,6 +329,85 @@ import {OwnerQueryFilter} from "@terreno/api";
 // queryFilter: OwnerQueryFilter
 // Produces: {ownerId: user.id}
 ```
+
+## Request Validation
+
+Runtime validation of incoming requests against OpenAPI schemas using AJV. Validation is opt-in and can be enabled globally or per-route.
+
+### Enabling Validation
+
+```typescript
+import {configureOpenApiValidator, setupServer} from "@terreno/api";
+
+// Enable validation before setting up the server
+configureOpenApiValidator({
+  removeAdditional: true,
+  coerceTypes: true,
+  logValidationErrors: true,
+  onAdditionalPropertiesRemoved: (props, req) => {
+    logger.warn(`Stripped properties: ${props.join(", ")} on ${req.method} ${req.path}`);
+  },
+});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Routes will automatically validate when enabled
+  },
+});
+```
+
+Options: `validateRequests` (default: true), `validateResponses` (default: false), `coerceTypes` (default: true), `removeAdditional` (default: true), `logValidationErrors` (default: true).
+
+### Using with modelRouter
+
+When validation is enabled globally, modelRouter automatically validates create and update requests based on the Mongoose schema.
+
+### Manual Validation
+
+For custom routes:
+
+```typescript
+import {validateRequestBody, validateQueryParams, createValidator} from "@terreno/api";
+
+// Validate request body
+router.post("/search", [
+  validateRequestBody({
+    query: {type: "string", required: true},
+    filters: {type: "object"},
+  }),
+  asyncHandler(async (req, res) => {
+    const {query, filters} = req.body;  // Validated and type-coerced
+    return res.json({results: []});
+  }),
+]);
+
+// Validate query parameters
+router.get("/items", [
+  validateQueryParams({
+    limit: {type: "number"},
+    status: {type: "string", enum: ["active", "inactive"]},
+  }),
+  asyncHandler(async (req, res) => {
+    const {limit, status} = req.query;  // Validated and type-coerced
+    return res.json({items: []});
+  }),
+]);
+
+// Validate both body and query
+router.post("/search", [
+  createValidator({
+    body: {query: {type: "string", required: true}},
+    query: {limit: {type: "number"}, page: {type: "number"}},
+  }),
+  asyncHandler(async (req, res) => {
+    // Both req.body and req.query are validated
+    return res.json({results: []});
+  }),
+]);
+```
+
+Validation errors throw `APIError` with field-level details.
 
 ## Custom Routes with OpenAPI Builder
 
@@ -269,6 +521,62 @@ setupServer({
 
 - `ENABLE_SWAGGER=true` — Enable Swagger UI at `/swagger`
 - `USE_SENTRY_LOGGING=true` — Send errors to Sentry
+
+## Extensibility
+
+### TerrenoPlugin Interface
+
+The `TerrenoPlugin` interface provides a standard way to extend Terreno applications with reusable functionality:
+
+```typescript
+import type {TerrenoPlugin} from "@terreno/api";
+import type express from "express";
+
+export interface TerrenoPlugin {
+  register(app: express.Application): void;
+}
+```
+
+**Creating a plugin:**
+
+```typescript
+import type {TerrenoPlugin} from "@terreno/api";
+
+export class MyPlugin implements TerrenoPlugin {
+  private options: MyPluginOptions;
+
+  constructor(options?: MyPluginOptions) {
+    this.options = options ?? {};
+  }
+
+  register(app: express.Application): void {
+    // Add routes, middleware, or other setup
+    app.get("/my-plugin/status", (_req, res) => {
+      res.json({status: "ok"});
+    });
+  }
+}
+```
+
+**Using a plugin:**
+
+```typescript
+import {setupServer} from "@terreno/api";
+import {MyPlugin} from "./plugins/myPlugin";
+
+const myPlugin = new MyPlugin({enabled: true});
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    myPlugin.register(router as any);
+  },
+});
+```
+
+**Example:** See `@terreno/api-health` for a complete plugin implementation with health check endpoints.
+
+**Common patterns:** Route registration, middleware injection, conditional setup, service initialization.
 
 ## Logging
 

@@ -23,6 +23,9 @@ bun run lint:fix         # Fix lint issues
 src/
   index.ts               # All exports
   authSlice.ts           # generateAuthSlice - JWT auth with Redux
+  betterAuthSlice.ts     # generateBetterAuthSlice - Better Auth with Redux
+  betterAuthClient.ts    # Better Auth client factory for Expo/RN
+  betterAuthTypes.ts     # Better Auth standalone types
   emptyApi.ts            # Base RTK Query API with retry and token refresh
   socket.ts              # useSocketConnection hook
   constants.ts           # Base URL resolution, debug flags
@@ -99,6 +102,93 @@ const userId = useSelectCurrentUserId();  // Hook version
 const userId = selectCurrentUserId(state);  // Selector version
 ```
 
+## generateBetterAuthSlice
+
+Creates a complete Better Auth Redux integration for session state management.
+
+### Usage
+
+```typescript
+import {createBetterAuthClient, generateBetterAuthSlice} from "@terreno/rtk";
+
+// Create Better Auth client
+const authClient = createBetterAuthClient({
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  basePath: "/api/auth",
+});
+
+// Generate Redux slice
+const {
+  betterAuthReducer,
+  betterAuthSlice,
+  actions: {setSession, setUser, clearSession, setLoading, setError},
+  selectors: {selectIsAuthenticated, selectUserId, selectUser, selectIsLoading, selectError},
+  middleware,
+} = generateBetterAuthSlice(authClient);
+
+// Add to Redux store
+const store = configureStore({
+  reducer: {
+    betterAuth: betterAuthReducer,
+  },
+  middleware: (getDefault) => getDefault().concat(...middleware),
+});
+```
+
+### What It Returns
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `betterAuthReducer` | Reducer | Better Auth state reducer |
+| `betterAuthSlice` | Slice | Full Redux slice |
+| `actions` | Object | `setSession`, `setUser`, `clearSession`, `setLoading`, `setError` |
+| `selectors` | Object | `selectIsAuthenticated`, `selectUserId`, `selectUser`, `selectIsLoading`, `selectError` |
+| `middleware` | Middleware[] | Listener middleware for logout side effects |
+
+### Better Auth State
+
+```typescript
+{
+  isAuthenticated: boolean;
+  userId: string | null;
+  user: BetterAuthUser | null;
+  isLoading: boolean;
+  error: string | null;
+}
+```
+
+### createBetterAuthClient
+
+Creates a Better Auth client instance for React Native/Expo:
+
+```typescript
+const authClient = createBetterAuthClient({
+  baseURL: "https://api.example.com",  // Required
+  basePath: "/api/auth",               // Optional, default: "/api/auth"
+});
+
+// Use with React components
+await authClient.signIn.email({email, password});
+await authClient.signIn.social({provider: "google"});
+await authClient.signUp.email({email, password, name});
+await authClient.signOut();
+```
+
+The client automatically handles:
+- Platform-specific storage (expo-secure-store on native, AsyncStorage on web)
+- Session persistence and retrieval
+- OAuth redirects with deep links
+
+### Selectors
+
+```typescript
+import {selectIsAuthenticated, selectUserId, selectUser} from "@terreno/rtk";
+
+const isAuthenticated = selectIsAuthenticated(state);
+const userId = selectUserId(state);
+const user = selectUser(state);
+```
+
 ## emptyApi — Base RTK Query API
 
 Pre-configured RTK Query API with authentication, retry logic, and token refresh.
@@ -130,6 +220,46 @@ Pre-configured RTK Query API with authentication, retry logic, and token refresh
 - `authorization: Bearer <token>`
 - `App-Version` from Expo config
 - `App-Platform` ("web" or "mobile")
+
+## Environment Variables
+
+Configuration for frontends using @terreno/rtk:
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `EXPO_PUBLIC_API_URL` | No | Auto-detected | Backend API base URL (for web development) |
+
+**Base URL resolution priority:**
+
+1. `Constants.expoConfig?.extra?.BASE_URL` (from `app.json` `extra` field - production/staging)
+2. `process.env.EXPO_PUBLIC_API_URL` (for web development)
+3. `Constants.expoConfig?.hostUri` + `:3000` (for Expo dev server - simulator/device)
+4. `http://localhost:3000` (fallback)
+
+**Debug flags (via `app.json` `extra` field):**
+
+- `AUTH_DEBUG` — Enable verbose auth logging (token refresh, login/logout)
+- `WEBSOCKETS_DEBUG` — Enable WebSocket connection/disconnection logs
+
+**Example `app.json` configuration:**
+
+```json
+{
+  "expo": {
+    "extra": {
+      "BASE_URL": "https://api.example.com",
+      "AUTH_DEBUG": true,
+      "WEBSOCKETS_DEBUG": false
+    }
+  }
+}
+```
+
+**Example `.env` for web development:**
+
+```env
+EXPO_PUBLIC_API_URL=http://localhost:4000
+```
 
 ## SDK Code Generation
 

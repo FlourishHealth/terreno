@@ -5,9 +5,12 @@
   },
   "dependencies": {
     "@sentry/bun": "^10.25.0",
+    "better-auth": "^1.2.8",
     "@sentry/profiling-node": "^10.25.0",
     "@types/qs": "^6.14.0",
     "@wesleytodd/openapi": "^1.1.0",
+    "ajv": "8.18.0",
+    "ajv-formats": "^3.0.1",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "cron": "^4.3.4",
@@ -15,7 +18,7 @@
     "express": "^4.21.2",
     "generaterr": "^1.5.0",
     "jsonwebtoken": "^9.0.2",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "luxon": "^3.7.2",
     "mongoose": "8.18.1",
     "mongoose-to-swagger": "^1.4.0",
@@ -41,6 +44,7 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "^4.17.15",
+    "@types/mongodb": "^4.0.7",
     "@types/node": "^22.13.5",
     "@types/on-finished": "^2.3.4",
     "@types/passport": "^1.0.17",
@@ -50,6 +54,7 @@
     "@types/passport-local": "^1.0.38",
     "@types/sinon": "^17.0.4",
     "@types/supertest": "^6.0.2",
+    "mongodb-memory-server": "^11.0.1",
     "sinon": "^19.0.2",
     "supertest": "^7.0.0",
     "typedoc": "~0.27.9",
@@ -77,6 +82,7 @@
   },
   "scripts": {
     "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "docs": "typedoc --out docs src/index.ts",
     "lint": "biome check ./src",
@@ -87,5 +93,5 @@
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.17"
+  "version": "0.1.0"
 }

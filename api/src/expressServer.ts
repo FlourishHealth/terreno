@@ -177,7 +177,7 @@ function initializeRoutes(
   UserModel: UserMongooseModel,
   addRoutes: AddRoutes,
   options: InitializeRoutesOptions = {}
-) {
+): express.Application {
   const app = express();
 
   // TODO: Log a warning when we hit the array limit.
@@ -193,11 +193,10 @@ function initializeRoutes(
     options.addMiddleware(app);
   }
 
-  app.use(express.json());
+  app.use(express.json({limit: "50mb"}));
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
   addAuthRoutes(app, UserModel as any, options?.authOptions);
-
   setupAuth(app as any, UserModel as any);
 
   if (options.logRequests !== false) {
@@ -245,7 +244,7 @@ function initializeRoutes(
 
   addMeRoutes(app, UserModel as any, options?.authOptions);
 
-  // Set up GitHub OAuth if configured
+  // Set up GitHub OAuth if configured (works with JWT auth)
   if (options.githubAuth) {
     setupGitHubAuth(app, UserModel as any, options.githubAuth);
     addGitHubAuthRoutes(app, UserModel as any, options.githubAuth, options.authOptions);
@@ -297,8 +296,8 @@ export interface SetupServerOptions {
   sentryOptions?: Sentry.BunOptions;
 }
 
-// Sets up the routes and returns a function to launch the API.
-export function setupServer(options: SetupServerOptions) {
+// Sets up the routes and returns the app.
+export function setupServer(options: SetupServerOptions): express.Application {
   const UserModel = options.userModel;
   const addRoutes = options.addRoutes;
 

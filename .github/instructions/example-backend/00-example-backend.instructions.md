@@ -51,6 +51,21 @@ src/
 
 ## Server Setup
 
+Uses the new `TerrenoApp` pattern:
+
+```typescript
+import {TerrenoApp} from "@terreno/api";
+import {todoRouter} from "./api/todos";
+import {userRouter} from "./api/users";
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+**Legacy pattern (still supported):**
+
 ```typescript
 import {setupServer} from "@terreno/api";
 
@@ -132,6 +147,29 @@ export interface UserModel extends DefaultModel<UserDocument>, UserStatics {
 ## Route Patterns
 
 ### Owner-based CRUD (Todo)
+
+**TerrenoApp pattern:**
+
+```typescript
+export const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {
+    create: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [Permissions.IsOwner],
+  },
+  preCreate: (body, req) => ({
+    ...body,
+    ownerId: (req.user as UserDocument)?._id,
+  }),
+  queryFilter: OwnerQueryFilter,
+  queryFields: ["completed", "ownerId"],
+  sort: "-created",
+});
+```
+
+**Legacy pattern:**
 
 ```typescript
 export const addTodoRoutes = (router, options?) => {

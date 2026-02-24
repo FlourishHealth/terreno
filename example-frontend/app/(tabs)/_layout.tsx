@@ -1,9 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import {useTheme} from "@terreno/ui";
 import {Tabs} from "expo-router";
 import type React from "react";
-import {useClientOnlyValue} from "@/components/useClientOnlyValue";
-import {useColorScheme} from "@/components/useColorScheme";
-import Colors from "@/constants/Colors";
 
 const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
@@ -13,15 +11,13 @@ const TabBarIcon: React.FC<{
 };
 
 const TabLayout: React.FC = () => {
-  const colorScheme = useColorScheme();
+  const {theme} = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        headerShown: false,
+        tabBarActiveTintColor: theme.surface.primary,
       }}
     >
       <Tabs.Screen
@@ -32,9 +28,16 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="ai"
         options={{
           headerShown: false,
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="comments" />,
+          title: "AI",
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
           title: "Profile",
         }}

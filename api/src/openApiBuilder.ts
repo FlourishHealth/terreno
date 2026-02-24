@@ -34,6 +34,12 @@ import merge from "lodash/merge";
 import type {ModelRouterOptions} from "./api";
 import {logger} from "./logger";
 import {defaultOpenApiErrorResponses} from "./openApi";
+import {
+  getOpenApiValidatorConfig,
+  isOpenApiValidatorConfigured,
+  validateQueryParams,
+  validateRequestBody,
+} from "./openApiValidator";
 
 /**
  * Defines a property within an OpenAPI schema.
@@ -223,6 +229,33 @@ interface OpenApiConfig {
 }
 
 /**
+ * Internal validation configuration for the builder.
+ */
+interface ValidationConfig {
+  /** Whether to validate request body */
+  validateBody?: boolean;
+  /** Whether to validate query parameters */
+  validateQuery?: boolean;
+  /** Override the global validation enabled setting */
+  enabled?: boolean;
+}
+
+/**
+ * Result from building OpenAPI middleware with schemas exposed.
+ * Useful when you want to use the schemas with asyncHandler's validation.
+ */
+export interface OpenApiBuildResult {
+  /** The OpenAPI documentation middleware */
+  middleware: any;
+  /** Request body schema if defined */
+  bodySchema?: Record<string, OpenApiSchemaProperty>;
+  /** Query parameter schemas if defined */
+  querySchema?: Record<string, OpenApiSchemaProperty>;
+  /** Whether validation was enabled on this builder */
+  validationEnabled: boolean;
+}
+
+/**
  * A fluent builder for constructing OpenAPI middleware.
  *
  * This class provides a chainable API for defining OpenAPI documentation
@@ -255,6 +288,15 @@ export class OpenApiMiddlewareBuilder {
   /** Accumulated OpenAPI configuration from builder methods */
   private config: OpenApiConfig;
 
+  /** Validation configuration */
+  private validationConfig: ValidationConfig;
+
+  /** Store the raw request body schema for validation */
+  private requestBodySchema?: Record<string, OpenApiSchemaProperty>;
+
+  /** Store the raw query parameter schemas for validation */
+  private queryParamSchemas: Record<string, OpenApiSchemaProperty> = {};
+
   /**
    * Creates a new OpenApiMiddlewareBuilder instance.
    *
@@ -265,6 +307,7 @@ export class OpenApiMiddlewareBuilder {
     this.config = {
       responses: {},
     };
+    this.validationConfig = {};
   }
 
   /**
@@ -368,6 +411,10 @@ export class OpenApiMiddlewareBuilder {
       },
       required: options?.required ?? true,
     };
+
+    // Store the schema for validation
+    this.requestBodySchema = schema as Record<string, OpenApiSchemaProperty>;
+
     return this;
   }
 
@@ -515,6 +562,13 @@ export class OpenApiMiddlewareBuilder {
       required: options?.required ?? false,
       schema,
     });
+
+    // Store for validation
+    this.queryParamSchemas[name] = {
+      ...schema,
+      required: options?.required,
+    };
+
     return this;
   }
 
@@ -558,16 +612,103 @@ export class OpenApiMiddlewareBuilder {
   }
 
   /**
+   * Enables runtime validation for this route.
+   *
+   * When enabled, the built middleware will validate incoming requests
+   * against the documented schema before the handler runs.
+   *
+   * @param options - Optional configuration for validation
+   * @param options.body - Enable body validation (default: true if request body is defined)
+   * @param options.query - Enable query parameter validation (default: true if query params are defined)
+   * @param options.enabled - Override the global validation enabled setting
+   * @returns The builder instance for chaining
+   *
+   * @example
+   * ```typescript
+   * createOpenApiBuilder(options)
+   *   .withRequestBody<{name: string}>({name: {type: "string", required: true}})
+   *   .withValidation() // Enable validation
+   *   .build();
+   * ```
+   */
+  withValidation(options?: {body?: boolean; query?: boolean; enabled?: boolean}): this {
+    this.validationConfig = {
+      enabled: options?.enabled ?? true,
+      validateBody: options?.body ?? true,
+      validateQuery: options?.query ?? true,
+    };
+    return this;
+  }
+
+  /**
+   * Builds and returns the OpenAPI middleware along with schemas.
+   *
+   * This method is useful when you want to use asyncHandler's integrated
+   * validation instead of separate validation middleware.
+   *
+   * @returns Object containing middleware and schemas
+   *
+   * @example
+   * ```typescript
+   * const {middleware, bodySchema} = createOpenApiBuilder(options)
+   *   .withRequestBody<{name: string}>({name: {type: "string", required: true}})
+   *   .buildWithSchemas();
+   *
+   * router.post("/users", middleware, asyncHandler(async (req, res) => {
+   *   // handler code
+   * }, {bodySchema, validate: true}));
+   * ```
+   */
+  buildWithSchemas(): OpenApiBuildResult {
+    const noop = (_a: any, _b: any, next: () => void): void => next();
+
+    // Build the OpenAPI documentation middleware only (no validation middleware)
+    let openApiMiddleware: any = noop;
+    if (this.options.openApi?.path) {
+      openApiMiddleware = this.options.openApi.path(
+        merge(
+          {
+            ...this.config,
+            responses: {
+              ...this.config.responses,
+              ...defaultOpenApiErrorResponses,
+            },
+          },
+          this.options.openApiOverwrite?.get ?? {}
+        )
+      );
+    } else {
+      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+    }
+
+    const globalConfig = getOpenApiValidatorConfig();
+    const validationEnabled =
+      this.validationConfig.enabled ??
+      (isOpenApiValidatorConfigured() && (globalConfig.validateRequests ?? false));
+
+    return {
+      bodySchema: this.requestBodySchema,
+      middleware: openApiMiddleware,
+      querySchema:
+        Object.keys(this.queryParamSchemas).length > 0 ? this.queryParamSchemas : undefined,
+      validationEnabled,
+    };
+  }
+
+  /**
    * Builds and returns the OpenAPI middleware.
    *
    * This method finalizes the configuration and returns Express middleware
    * that integrates with the OpenAPI documentation system. If no OpenAPI
    * path is configured in options, returns a no-op middleware.
    *
+   * If validation was enabled via `withValidation()`, returns an array
+   * of middleware: [openApiDocMiddleware, validationMiddleware].
+   *
    * Default error responses (400, 401, 403, 404, 405) are automatically
    * merged with the configured responses.
    *
-   * @returns Express middleware function for OpenAPI documentation
+   * @returns Express middleware function(s) for OpenAPI documentation and optional validation
    *
    * @example
    * ```typescript
@@ -582,23 +723,55 @@ export class OpenApiMiddlewareBuilder {
   build(): any {
     const noop = (_a: any, _b: any, next: () => void): void => next();
 
-    if (!this.options.openApi?.path) {
+    // Build the OpenAPI documentation middleware
+    let openApiMiddleware: any = noop;
+    if (this.options.openApi?.path) {
+      openApiMiddleware = this.options.openApi.path(
+        merge(
+          {
+            ...this.config,
+            responses: {
+              ...this.config.responses,
+              ...defaultOpenApiErrorResponses,
+            },
+          },
+          this.options.openApiOverwrite?.get ?? {}
+        )
+      );
+    } else {
       logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
-      return noop;
     }
 
-    return this.options.openApi.path(
-      merge(
-        {
-          ...this.config,
-          responses: {
-            ...this.config.responses,
-            ...defaultOpenApiErrorResponses,
-          },
-        },
-        this.options.openApiOverwrite?.get ?? {}
-      )
-    );
+    // Check if validation should be enabled
+    const globalConfig = getOpenApiValidatorConfig();
+    const shouldValidate =
+      this.validationConfig.enabled ??
+      (isOpenApiValidatorConfigured() && (globalConfig.validateRequests ?? false));
+
+    if (!shouldValidate) {
+      return openApiMiddleware;
+    }
+
+    // Build validation middleware
+    const validators: any[] = [openApiMiddleware];
+
+    // Add body validation if we have a request body schema
+    if (this.validationConfig.validateBody && this.requestBodySchema) {
+      validators.push(validateRequestBody(this.requestBodySchema, {enabled: true}));
+    }
+
+    // Add query validation if we have query parameter schemas
+    if (this.validationConfig.validateQuery && Object.keys(this.queryParamSchemas).length > 0) {
+      validators.push(validateQueryParams(this.queryParamSchemas, {enabled: true}));
+    }
+
+    // If only one middleware (the openApi one), return it directly
+    if (validators.length === 1) {
+      return openApiMiddleware;
+    }
+
+    // Return array of middleware to be spread in route definition
+    return validators;
   }
 }
 

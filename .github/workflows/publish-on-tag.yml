@@ -109,8 +109,7 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -224,8 +223,7 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -373,8 +371,7 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -405,16 +402,16 @@ jobs:
           node -e "
           const fs = require('fs');
           const path = require('path');
-          
+
           // Read root catalog
           const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
           const catalog = rootPkg.catalog || {};
-          
+
           // Read current package.json
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const version = process.env.VERSION;
           const uiVersion = process.env.UI_VERSION;
-          
+
           // Replace catalog: in dependencies
           if (pkg.dependencies) {
             for (const [key, value] of Object.entries(pkg.dependencies)) {
@@ -433,7 +430,7 @@ jobs:
               }
             }
           }
-          
+
           // Replace catalog: in devDependencies
           if (pkg.devDependencies) {
             for (const [key, value] of Object.entries(pkg.devDependencies)) {
@@ -452,7 +449,7 @@ jobs:
               }
             }
           }
-          
+
           // Replace catalog: in peerDependencies
           if (pkg.peerDependencies) {
             for (const [key, value] of Object.entries(pkg.peerDependencies)) {
@@ -471,7 +468,7 @@ jobs:
               }
             }
           }
-          
+
           // Write updated package.json
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
@@ -530,6 +527,7 @@ jobs:
           fi
 
       - name: Create Pull Request
+        id: create-pr
         uses: peter-evans/create-pull-request@v8
         with:
           commit-message: "chore: bump package versions to ${{ needs.check-changes.outputs.version }}"
@@ -546,6 +544,12 @@ jobs:
             ${{ needs.publish-rtk.result == 'success' && '- ✅ @terreno/rtk' || '- ⏭️ @terreno/rtk (no changes)' }}
           assignees: joshgachnang
           reviewers: joshgachnang
+
+      - name: Auto-merge version bump PR
+        if: steps.create-pr.outputs.pull-request-number
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch
 
   notify:
     needs: [check-changes, publish-api, publish-ui, publish-rtk]

@@ -1,7 +1,0 @@
-# Netlify configuration for the example-frontend site
-# Build is handled by GitHub Actions workflow
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
