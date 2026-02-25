@@ -1,0 +1,128 @@
+import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import type express from "express";
+import type mongoose from "mongoose";
+import multer from "multer";
+
+import {FileAttachment} from "../models/fileAttachment";
+import type {FileStorageService} from "../service/fileStorage";
+import type {FileRouteOptions} from "../types";
+
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+  "text/plain",
+  "text/csv",
+  "application/json",
+]);
+
+const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+export const addFileRoutes = (
+  router: any,
+  options: FileRouteOptions & {fileStorageService: FileStorageService}
+): void => {
+  const {fileStorageService, maxFileSize = DEFAULT_MAX_FILE_SIZE} = options;
+
+  const upload = multer({
+    fileFilter: (_req, file, cb) => {
+      if (ALLOWED_MIME_TYPES.has(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`File type ${file.mimetype} is not allowed`));
+      }
+    },
+    limits: {fileSize: maxFileSize},
+    storage: multer.memoryStorage(),
+  });
+
+  router.post(
+    "/files/upload",
+    [
+      authenticateMiddleware(),
+      upload.single("file"),
+      createOpenApiBuilder(options.openApiOptions ?? {})
+        .withTags(["files"])
+        .withSummary("Upload a file")
+        .withResponse(200, {
+          filename: {type: "string"},
+          gcsKey: {type: "string"},
+          mimeType: {type: "string"},
+          size: {type: "number"},
+          url: {type: "string"},
+        })
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const file = (req as any).file as Express.Multer.File | undefined;
+      const userId = (req as any).user?._id as mongoose.Types.ObjectId;
+
+      if (!file) {
+        throw new APIError({status: 400, title: "No file provided"});
+      }
+
+      const result = await fileStorageService.upload({
+        buffer: file.buffer,
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        userId,
+      });
+
+      return res.json({data: result});
+    })
+  );
+
+  router.get(
+    "/files/:gcsKey(*)",
+    [
+      createOpenApiBuilder(options.openApiOptions ?? {})
+        .withTags(["files"])
+        .withSummary("Get file URL")
+        .withPathParameter("gcsKey", {type: "string"})
+        .withResponse(200, {url: {type: "string"}})
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const {gcsKey} = req.params;
+
+      const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
+      if (!attachment) {
+        throw new APIError({status: 404, title: "File not found"});
+      }
+
+      const url = await fileStorageService.getSignedUrl(gcsKey);
+      return res.json({data: {url}});
+    })
+  );
+
+  router.delete(
+    "/files/:gcsKey(*)",
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(options.openApiOptions ?? {})
+        .withTags(["files"])
+        .withSummary("Delete a file")
+        .withPathParameter("gcsKey", {type: "string"})
+        .withResponse(200, {success: {type: "boolean"}})
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const {gcsKey} = req.params;
+      const userId = (req as any).user?._id as mongoose.Types.ObjectId;
+
+      const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
+      if (!attachment) {
+        throw new APIError({status: 404, title: "File not found"});
+      }
+
+      if (attachment.userId.toString() !== userId.toString()) {
+        throw new APIError({status: 403, title: "Not authorized to delete this file"});
+      }
+
+      await fileStorageService.delete(gcsKey);
+      return res.json({data: {success: true}});
+    })
+  );
+};

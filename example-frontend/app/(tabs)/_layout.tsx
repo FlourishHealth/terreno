@@ -28,6 +28,14 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
+        name="ai"
+        options={{
+          headerShown: false,
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="comments" />,
+          title: "AI",
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,

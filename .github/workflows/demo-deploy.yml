@@ -52,11 +52,12 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      statuses: write
     steps:
       - uses: actions/checkout@v6
 
       - name: Download build artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v7.0.0
         with:
           name: demo-dist
           path: dist
@@ -146,11 +147,12 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      statuses: write
     steps:
       - uses: actions/checkout@v6
 
       - name: Download build artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v7.0.0
         with:
           name: demo-dist
           path: dist
