@@ -1,0 +1,68 @@
+name: Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+
+env:
+  GCP_PROJECT_ID: flourish-terreno
+  GCP_REGION: us-central1
+  GCP_SERVICE_NAME: terreno-backend-example
+
+jobs:
+  cleanup:
+    name: Deactivate Preview Deployments
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
+    steps:
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Remove Cloud Run preview tag
+        run: |
+          gcloud run services update-traffic ${{ env.GCP_SERVICE_NAME }} \
+            --remove-tags=pr-${{ github.event.pull_request.number }} \
+            --region=${{ env.GCP_REGION }} || true
+
+      - name: Deactivate deployments
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = ${{ github.event.pull_request.number }};
+            const envNames = [
+              `demo-preview-pr-${pr}`,
+              `example-frontend-preview-pr-${pr}`,
+              `example-backend-preview-pr-${pr}`,
+              // Legacy environment names from before pr-N naming convention
+              `frontend-example-preview-pr-${pr}`,
+              'demo-preview',
+              'example-frontend-preview',
+            ];
+            for (const envName of envNames) {
+              try {
+                const deployments = await github.rest.repos.listDeployments({
+                  ...context.repo,
+                  environment: envName,
+                });
+                for (const deployment of deployments.data) {
+                  await github.rest.repos.createDeploymentStatus({
+                    ...context.repo,
+                    deployment_id: deployment.id,
+                    state: 'inactive',
+                  });
+                }
+              } catch (e) {
+                core.info(`No deployments found for ${envName}`);
+              }
+            }

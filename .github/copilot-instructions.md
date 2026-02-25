@@ -7,13 +7,16 @@ A monorepo containing shared packages for building full-stack applications with 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
+- **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
+- **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
 
 ## Development
 
-Uses [Bun](https://bun.sh/) as the package manager. Use `yarn` commands, not `npm`.
+Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
 bun install              # Install dependencies
@@ -31,6 +34,10 @@ bun run ui:test          # Test UI package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example
+bun run mcp:build        # Build MCP server
+bun run mcp:start        # Start MCP server
+bun run admin-backend:compile   # Compile admin backend
+bun run admin-frontend:compile  # Compile admin frontend
 ```
 
 ## How the Packages Work Together
@@ -68,10 +75,10 @@ The three core packages form a complete full-stack framework:
 
 ## Example Apps (Keep These Updated!)
 
-The `frontend-example/` and `backend-example/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
+The `example-frontend/` and `example-backend/` directories serve as both documentation and integration tests. When adding features to api, ui, or rtk:
 
 1. **Add examples** demonstrating new features
-2. **Update SDK** after backend changes: `cd frontend-example && bun run sdk`
+2. **Update SDK** after backend changes: `cd example-frontend && bun run sdk`
 3. **Verify integration** by running both examples together
 
 ### Running the Full Stack
@@ -307,6 +314,23 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 - Place static content and interfaces at beginning of file
 - Minimize `use client`, `useEffect`, and `setState`
 - Always support React-Native Web
+
+## CI/CD Workflows
+
+### Required Secret Validation
+
+GitHub Actions workflows that use secrets or environment variables must validate all required variables are set before using them. Add a validation step early in the job that fails fast with a clear error message listing any missing variables.
+
+```yaml
+- name: Validate required secrets
+  run: |
+    missing=()
+    if [ -z "$VAR_NAME" ]; then missing+=("VAR_NAME"); fi
+    if [ ${#missing[@]} -ne 0 ]; then
+      echo "::error::Missing required secrets: ${missing[*]}"
+      exit 1
+    fi
+```
 
 ## Dependency Management
 

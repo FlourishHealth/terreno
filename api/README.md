@@ -9,6 +9,14 @@ These APIs integrate with @terreno/rtk to create consistent types on the fronten
 and backend, and automatically generated React hooks to fetch, query, and modify
 model instances.
 
+## Features
+
+- **modelRouter** — Automatic CRUD endpoints for Mongoose models
+- **Authentication** — JWT with email/password and GitHub OAuth support
+- **Permissions** — Fine-grained access control (IsAuthenticated, IsOwner, IsAdmin, etc.)
+- **OpenAPI** — Automatic spec generation from models and routes
+- **Logging** — Winston-based logging with Google Cloud and Sentry support
+
 ## Getting started
 
 To install:
@@ -46,11 +54,24 @@ const eventSchema = new Schema({
 Assuming we have a model:
 
     const foodSchema = new Schema<Food>({
-      name: String,
-      hidden: {type: Boolean, default: false},
-      ownerId: {type: "ObjectId", ref: "User"},
+      name: {
+        description: "Name of the food item",
+        type: String,
+      },
+      hidden: {
+        description: "Whether the food is hidden from the list",
+        type: Boolean,
+        default: false,
+      },
+      ownerId: {
+        description: "The user who added this food",
+        type: "ObjectId",
+        ref: "User",
+      },
     });
     export const FoodModel = model("Food", foodSchema);
+
+**Important:** Every field must include a `description` property. This requirement ensures that the auto-generated OpenAPI specification and SDK have meaningful documentation for all fields.
 
 We can expose this model as an API like this:
 
@@ -99,13 +120,62 @@ Now we can perform operations on the Food model in a standard REST way. We've al
 
 You can create your own permissions functions. Check permissions.ts for some examples of how to write them.
 
+## Authentication
+
+@terreno/api includes built-in authentication with JWT and OAuth support.
+
+### Email/Password Authentication
+
+Built-in email/password authentication using `passport-local-mongoose`:
+
+```typescript
+import {setupServer} from "@terreno/api";
+import {User} from "./models/user";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    // Your routes here
+  },
+});
+```
+
+This automatically adds:
+- `POST /auth/signup` — User registration
+- `POST /auth/login` — Authentication
+- `POST /auth/refresh_token` — Token refresh
+- `GET /auth/me` — Get current user
+- `PATCH /auth/me` — Update current user
+
+### GitHub OAuth
+
+Add GitHub OAuth login to your API:
+
+```typescript
+import {githubUserPlugin, setupServer} from "@terreno/api";
+
+// Add GitHub fields to user schema
+userSchema.plugin(githubUserPlugin);
+
+setupServer({
+  userModel: User,
+  githubAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    callbackURL: process.env.GITHUB_CALLBACK_URL!,
+  },
+});
+```
+
+**Learn more:** See the [GitHub OAuth how-to guide](../docs/how-to/add-github-oauth.md) for complete setup instructions.
+
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.
 
 > **Note:** Bun automatically loads `.env` files before your code runs, so there's no need for `dotenv`. Just place a `.env` file in your project root and `process.env` will have your variables available immediately. See [Bun .env docs](https://bun.sh/docs/runtime/env).
 
 ```
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import {nodeProfilingIntegration} from "@sentry/profiling-node";
 
 if (process.env.NODE_ENV === "production" && !process.env.SENTRY_DSN) {

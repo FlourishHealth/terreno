@@ -1,0 +1,42 @@
+{
+  "dependencies": {
+    "@terreno/ui": "workspace:*",
+    "expo-router": "catalog:",
+    "lodash": "catalog:",
+    "luxon": "catalog:",
+    "react-native": "catalog:"
+  },
+  "description": "Admin panel frontend screens for @terreno/api backends",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@reduxjs/toolkit": "catalog:",
+    "@types/lodash": "catalog:",
+    "@types/luxon": "catalog:",
+    "@types/react": "catalog:",
+    "react": "catalog:",
+    "react-redux": "catalog:",
+    "typescript": "catalog:"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "name": "@terreno/admin-frontend",
+  "peerDependencies": {
+    "@reduxjs/toolkit": "catalog:",
+    "react": "catalog:",
+    "react-redux": "catalog:"
+  },
+  "scripts": {
+    "compile": "tsc",
+    "compile:watch": "tsc -w",
+    "dev": "tsc -w",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "lint:unsafefix": "biome check --write --unsafe ."
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.0.1"
+}

@@ -184,6 +184,45 @@ export const tools: Tool[] = [
     },
     name: "validate_model_schema",
   },
+  {
+    description:
+      "Generate admin panel integration files and instructions for a Terreno project. Creates frontend screen files and provides backend/frontend setup snippets for @terreno/admin-backend and @terreno/admin-frontend.",
+    inputSchema: {
+      properties: {
+        models: {
+          description: "Array of model configurations for the admin panel",
+          items: {
+            properties: {
+              displayName: {
+                description: "Human-readable display name (e.g., 'Todos')",
+                type: "string",
+              },
+              listFields: {
+                description:
+                  "Fields to show in the admin list table (e.g., ['title', 'completed', 'created'])",
+                items: {type: "string"},
+                type: "array",
+              },
+              modelName: {
+                description: "The Mongoose model name (e.g., 'Todo')",
+                type: "string",
+              },
+              routePath: {
+                description: "The route path for this model (e.g., '/todos')",
+                type: "string",
+              },
+            },
+            required: ["modelName", "routePath", "displayName", "listFields"],
+            type: "object",
+          },
+          type: "array",
+        },
+      },
+      required: ["models"],
+      type: "object",
+    },
+    name: "install_admin",
+  },
 ];
 
 const generateModel = (args: {
@@ -743,6 +782,213 @@ Suggestions:
 ${suggestions.map((s) => `- ${s}`).join("\n")}`;
 };
 
+const generateInstallAdmin = (args: {
+  models: Array<{
+    modelName: string;
+    routePath: string;
+    displayName: string;
+    listFields: string[];
+  }>;
+}): string => {
+  const {models} = args;
+
+  const modelConfigs = models
+    .map(
+      (m) =>
+        `    {
+      model: ${m.modelName},
+      routePath: "${m.routePath}",
+      displayName: "${m.displayName}",
+      listFields: ${JSON.stringify(m.listFields)},
+    },`
+    )
+    .join("\n");
+
+  const modelImports = models.map((m) => m.modelName).join(", ");
+
+  interface GeneratedFile {
+    path: string;
+    content: string;
+  }
+
+  const files: GeneratedFile[] = [
+    {
+      content: `import {AdminModelList} from "@terreno/admin-frontend";
+import type React from "react";
+import {terrenoApi} from "@/store/sdk";
+import {baseUrl} from "@terreno/rtk";
+
+const AdminIndexScreen: React.FC = () => {
+  return <AdminModelList api={terrenoApi} baseUrl={\`\${baseUrl}/admin\`} />;
+};
+
+export default AdminIndexScreen;
+`,
+      path: "frontend/app/(tabs)/admin/index.tsx",
+    },
+    {
+      content: `import {AdminModelTable} from "@terreno/admin-frontend";
+import type React from "react";
+import {useLocalSearchParams} from "expo-router";
+import {terrenoApi} from "@/store/sdk";
+import {baseUrl} from "@terreno/rtk";
+
+const AdminModelScreen: React.FC = () => {
+  const {model} = useLocalSearchParams<{model: string}>();
+
+  return (
+    <AdminModelTable api={terrenoApi} baseUrl={\`\${baseUrl}/admin\`} modelName={model!} />
+  );
+};
+
+export default AdminModelScreen;
+`,
+      path: "frontend/app/(tabs)/admin/[model].tsx",
+    },
+    {
+      content: `import {AdminModelForm} from "@terreno/admin-frontend";
+import type React from "react";
+import {useLocalSearchParams} from "expo-router";
+import {terrenoApi} from "@/store/sdk";
+import {baseUrl} from "@terreno/rtk";
+
+const AdminCreateScreen: React.FC = () => {
+  const {model} = useLocalSearchParams<{model: string}>();
+
+  return (
+    <AdminModelForm
+      api={terrenoApi}
+      baseUrl={\`\${baseUrl}/admin\`}
+      mode="create"
+      modelName={model!}
+    />
+  );
+};
+
+export default AdminCreateScreen;
+`,
+      path: "frontend/app/(tabs)/admin/[model]/create.tsx",
+    },
+    {
+      content: `import {AdminModelForm} from "@terreno/admin-frontend";
+import type React from "react";
+import {useLocalSearchParams} from "expo-router";
+import {terrenoApi} from "@/store/sdk";
+import {baseUrl} from "@terreno/rtk";
+
+const AdminEditScreen: React.FC = () => {
+  const {model, id} = useLocalSearchParams<{model: string; id: string}>();
+
+  return (
+    <AdminModelForm
+      api={terrenoApi}
+      baseUrl={\`\${baseUrl}/admin\`}
+      itemId={id}
+      mode="edit"
+      modelName={model!}
+    />
+  );
+};
+
+export default AdminEditScreen;
+`,
+      path: "frontend/app/(tabs)/admin/[model]/[id].tsx",
+    },
+  ];
+
+  const fileList = files.map((f) => `- \`${f.path}\``).join("\n");
+
+  const fileContents = files
+    .map(
+      (f) => `### \`${f.path}\`
+
+\`\`\`typescript
+${f.content}\`\`\`
+`
+    )
+    .join("\n");
+
+  return `# Install Admin Panel
+
+## Files to Create
+
+${fileList}
+
+## Setup Instructions
+
+### Step 1: Add \`@terreno/admin-backend\` to backend
+
+Add the dependency to \`backend/package.json\`:
+
+\`\`\`bash
+cd backend && bun add @terreno/admin-backend
+\`\`\`
+
+### Step 2: Register AdminApp in your backend server
+
+Add the following to your \`backend/src/server.ts\`:
+
+\`\`\`typescript
+import {AdminApp} from "@terreno/admin-backend";
+import {${modelImports}} from "./models";
+
+const adminApp = new AdminApp({
+  models: [
+${modelConfigs}
+  ],
+});
+\`\`\`
+
+Then call \`adminApp.register(app)\` inside your \`addRoutes\` function:
+
+\`\`\`typescript
+const addRoutes: AddRoutes = (router, options): void => {
+  // ... existing routes ...
+  adminApp.register(app);
+};
+\`\`\`
+
+### Step 3: Add \`@terreno/admin-frontend\` to frontend
+
+Add the dependency to \`frontend/package.json\`:
+
+\`\`\`bash
+cd frontend && bun add @terreno/admin-frontend
+\`\`\`
+
+### Step 4: Create the 4 screen files
+
+Create the files listed above. Each file's content is provided below.
+
+### Step 5: Add Admin tab to \`frontend/app/(tabs)/_layout.tsx\`
+
+Add a new \`Tabs.Screen\` entry for the admin section:
+
+\`\`\`typescript
+<Tabs.Screen
+  name="admin"
+  options={{
+    headerShown: false,
+    tabBarIcon: ({color}) => <TabBarIcon color={color} name="cog" />,
+    title: "Admin",
+  }}
+/>
+\`\`\`
+
+### Step 6: Install dependencies
+
+\`\`\`bash
+cd backend && bun install
+cd ../frontend && bun install
+\`\`\`
+
+---
+
+## File Contents
+
+${fileContents}`;
+};
+
 const wrapWithFileInstructions = (
   code: string,
   filePath: string,
@@ -767,7 +1013,7 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "bootstrap_app") {
+  if (name === "bootstrap_app" || name === "bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 
@@ -811,6 +1057,9 @@ export const handleToolCall = (
     }
     case "validate_model_schema":
       result = validateModelSchema(args as Parameters<typeof validateModelSchema>[0]);
+      break;
+    case "install_admin":
+      result = generateInstallAdmin(args as Parameters<typeof generateInstallAdmin>[0]);
       break;
     default:
       result = `Unknown tool: ${name}`;

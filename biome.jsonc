@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.12/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "assist": {
     "actions": {
       "source": {
@@ -13,9 +13,21 @@
   "files": {
     "includes": [
       "package.json",
+      "admin-backend/package.json",
+      "admin-backend/src/**/*.ts",
+      "admin-backend/src/**/*.tsx",
+      "admin-frontend/package.json",
+      "admin-frontend/src/**/*.ts",
+      "admin-frontend/src/**/*.tsx",
+      "ai/package.json",
+      "ai/src/**/*.ts",
+      "ai/src/**/*.tsx",
       "api/package.json",
       "api/src/**/*.ts",
       "api/src/**/*.tsx",
+      "api-health/package.json",
+      "api-health/src/**/*.ts",
+      "api-health/src/**/*.tsx",
       "example-backend/package.json",
       "example-backend/src/**/*.ts",
       "example-backend/src/**/*.tsx",

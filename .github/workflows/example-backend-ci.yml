@@ -3,7 +3,10 @@ name: Example Backend CI
 on:
   push:
     paths:
+      - "ai/**"
+      - "admin-backend/**"
       - "example-backend/**"
+      - "api-health/**"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:
@@ -27,8 +30,7 @@ jobs:
         with:
           path: |
             ~/.bun/install/cache
-            node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -41,10 +43,22 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # Build API first since example-backend depends on it
+      # Build dependencies since example-backend depends on them
       - name: Build API dependency
         run: bun run compile
         working-directory: api
+
+      - name: Build AI dependency
+        run: bun run compile
+        working-directory: ai
+
+      - name: Build API Health dependency
+        run: bun run compile
+        working-directory: api-health
+
+      - name: Build Admin Backend dependency
+        run: bun run compile
+        working-directory: admin-backend
 
       - name: Lint
         run: bun run lint

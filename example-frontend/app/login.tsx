@@ -1,125 +1,74 @@
-import {Box, Button, Heading, Page, Text, TextField, useToast} from "@terreno/ui";
+import type {LoginScreenProps} from "@terreno/ui";
+import {LoginScreen} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
-import {useCallback, useState} from "react";
-import {useEmailLoginMutation, useEmailSignUpMutation} from "@/store";
+import {useCallback, useMemo, useState} from "react";
+import {isBetterAuthEnabled, signInWithEmail, signInWithSocial} from "@/lib/betterAuth";
+import {useEmailLoginMutation} from "@/store";
 
-const LoginScreen: React.FC = () => {
-  const _router = useRouter();
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [isSignUp, setIsSignUp] = useState<boolean>(false);
-  const toast = useToast();
+const Login: React.FC = () => {
+  const router = useRouter();
+  const [socialLoading, setSocialLoading] = useState<string | null>(null);
+
+  const useBetterAuth = isBetterAuthEnabled();
 
   const [emailLogin, {isLoading: isLoginLoading, error: loginError}] = useEmailLoginMutation();
-  const [emailSignUp, {isLoading: isSignUpLoading, error: signUpError}] = useEmailSignUpMutation();
 
-  const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!email || !password) {
-      toast.warn("Email and password are required");
-      return;
-    }
-
-    if (isSignUp && !name) {
-      toast.warn("Signup requires name");
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        await emailSignUp({email, name, password}).unwrap();
+  const handleSubmit = useCallback(
+    async (values: Record<string, string>): Promise<void> => {
+      const {email, password} = values;
+      if (useBetterAuth) {
+        await signInWithEmail(email, password);
       } else {
         await emailLogin({email, password}).unwrap();
       }
-      // Navigation will happen automatically when userId is set in the store
-    } catch (err) {
-      console.error("Authentication error:", err);
+    },
+    [emailLogin, useBetterAuth]
+  );
+
+  const handleSocialLogin = useCallback(
+    async (provider: "google" | "github" | "apple"): Promise<void> => {
+      setSocialLoading(provider);
+      try {
+        await signInWithSocial(provider);
+      } finally {
+        setSocialLoading(null);
+      }
+    },
+    []
+  );
+
+  const oauthProviders = useMemo((): LoginScreenProps["oauthProviders"] => {
+    if (!useBetterAuth) {
+      return undefined;
     }
-  }, [email, password, name, isSignUp, emailLogin, emailSignUp]);
+    return (["google", "github", "apple"] as const).map((provider) => ({
+      disabled: isLoginLoading || Boolean(socialLoading),
+      loading: socialLoading === provider,
+      onPress: () => handleSocialLogin(provider),
+      provider,
+    }));
+  }, [useBetterAuth, isLoginLoading, socialLoading, handleSocialLogin]);
 
-  const toggleMode = useCallback((): void => {
-    setIsSignUp(!isSignUp);
-  }, [isSignUp]);
-
-  const isLoading = isLoginLoading || isSignUpLoading;
-  const error = loginError || signUpError;
-
-  const isSubmitDisabled = !email || !password || (isSignUp && !name) || isLoading;
+  const isLoading = isLoginLoading || Boolean(socialLoading);
+  const errorMessage = loginError
+    ? (loginError as {data?: {message?: string}})?.data?.message || "An error occurred"
+    : undefined;
 
   return (
-    <Page navigation={undefined}>
-      <Box
-        alignItems="center"
-        alignSelf="center"
-        flex="grow"
-        justifyContent="center"
-        maxWidth={400}
-        padding={4}
-        width="100%"
-      >
-        <Box marginBottom={8}>
-          <Heading>{isSignUp ? "Create Account" : "Welcome Back"}</Heading>
-        </Box>
-        <Box gap={4} width="100%">
-          {isSignUp && (
-            <TextField
-              disabled={isLoading}
-              onChange={setName}
-              placeholder="Name"
-              title="Name"
-              value={name}
-            />
-          )}
-
-          <TextField
-            autoComplete="off"
-            disabled={isLoading}
-            onChange={setEmail}
-            placeholder="Email"
-            title="Email"
-            type="email"
-            value={email}
-          />
-
-          <TextField
-            disabled={isLoading}
-            onChange={setPassword}
-            placeholder="Password"
-            title="Password"
-            type="password"
-            value={password}
-          />
-
-          {Boolean(error) && (
-            <Text color="error">
-              {(error as {data?: {message?: string}})?.data?.message || "An error occurred"}
-            </Text>
-          )}
-
-          <Box marginTop={4}>
-            <Button
-              disabled={isSubmitDisabled}
-              fullWidth
-              loading={isLoading}
-              onClick={handleSubmit}
-              text={isSignUp ? "Sign Up" : "Login"}
-            />
-          </Box>
-
-          <Box marginTop={2}>
-            <Button
-              disabled={isLoading}
-              fullWidth
-              onClick={toggleMode}
-              text={isSignUp ? "Already have an account? Login" : "Need an account? Sign Up"}
-              variant="outline"
-            />
-          </Box>
-        </Box>
-      </Box>
-    </Page>
+    <LoginScreen
+      error={errorMessage}
+      fields={[
+        {autoComplete: "off", label: "Email", name: "email", required: true, type: "email"},
+        {label: "Password", name: "password", required: true, type: "password"},
+      ]}
+      loading={isLoading}
+      oauthProviders={oauthProviders}
+      onSignUpPress={() => router.push("/signup")}
+      onSubmit={handleSubmit}
+      testID="login-screen"
+    />
   );
 };
 
-export default LoginScreen;
+export default Login;

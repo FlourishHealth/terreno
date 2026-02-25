@@ -1547,6 +1547,58 @@ export interface ButtonProps {
   onClick: () => void | Promise<void>;
 }
 
+/**
+ * Props for the SocialLoginButton component.
+ * Used for OAuth social login buttons (Google, GitHub, Apple).
+ */
+export interface SocialLoginButtonProps {
+  /**
+   * The OAuth provider for the social login.
+   */
+  provider: "google" | "github" | "apple";
+
+  /**
+   * The function to call when the button is pressed.
+   * Should initiate the OAuth flow.
+   */
+  onPress: () => Promise<void>;
+
+  /**
+   * If true, a loading spinner will be shown in the button.
+   */
+  loading?: boolean;
+
+  /**
+   * The visual variant of the button.
+   * - "primary": Uses the provider's brand colors
+   * - "outline": Uses an outline style with neutral colors
+   * @default "primary"
+   */
+  variant?: "primary" | "outline";
+
+  /**
+   * If true, the button will be disabled.
+   * @default false
+   */
+  disabled?: boolean;
+
+  /**
+   * If true, the button will take the full width of its container.
+   * @default true
+   */
+  fullWidth?: boolean;
+
+  /**
+   * Custom text for the button. Defaults to "Continue with {Provider}".
+   */
+  text?: string;
+
+  /**
+   * Test ID for testing purposes.
+   */
+  testID?: string;
+}
+
 export interface CustomSelectFieldProps {
   /**
    * The current value of the custom select field.
@@ -1849,8 +1901,7 @@ export interface NumberPickerActionSheetProps {
 }
 
 export interface PageProps {
-  // TODO: figure out navigation
-  navigation: any;
+  navigation?: any;
   scroll?: boolean;
   loading?: boolean;
   display?: "flex" | "none" | "block" | "inlineBlock";

@@ -1,0 +1,249 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Swiper renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Welcome",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "heading-bold",
+                  "fontSize": 16,
+                  "textAlign": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Get started with our app",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#686868",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "marginTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "padding": 16,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Features",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "heading-bold",
+                  "fontSize": 16,
+                  "textAlign": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Discover what we offer",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#686868",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "marginTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "padding": 16,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Ready?",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "heading-bold",
+                  "fontSize": 16,
+                  "textAlign": "center",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Create your account",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#686868",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "center",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "marginTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
+            "style": {
+              "alignItems": "center",
+              "justifyContent": "center",
+              "padding": 16,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": undefined,
+        "testID": "swiper-flatlist",
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "height": 300,
+      "testID": "swiper",
+      "width": "100%",
+    },
+    "testID": "swiper",
+  },
+  "type": "View",
+}
+`;
