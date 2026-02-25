@@ -41,6 +41,12 @@ Configuration.register("BACKEND_SERVICE", {
   type: "string",
 });
 
+Configuration.register("GCP_PROJECT_ID", {
+  description: "Google Cloud Platform project ID for Secret Manager",
+  envVar: "GCP_PROJECT_ID",
+  type: "string",
+});
+
 Configuration.register("PR_NUMBER", {
   description: "Pull request number",
   envVar: "PR_NUMBER",
