@@ -365,11 +365,25 @@ export const GPTChat = ({
     []
   );
 
+  const [scrollTrigger, setScrollTrigger] = useState(0);
+  const prevMessagesRef = useRef(currentMessages);
+
+  if (
+    currentMessages !== prevMessagesRef.current &&
+    (currentMessages.length !== prevMessagesRef.current.length ||
+      currentMessages[currentMessages.length - 1]?.content !==
+        prevMessagesRef.current[prevMessagesRef.current.length - 1]?.content)
+  ) {
+    prevMessagesRef.current = currentMessages;
+    setScrollTrigger((prev) => prev + 1);
+  }
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scrollTrigger is intentionally used to trigger scroll on message changes
   useEffect(() => {
     if (!isScrolledUp) {
       scrollToBottom();
     }
-  }, [currentMessages, isScrolledUp, scrollToBottom]);
+  }, [scrollTrigger, isScrolledUp, scrollToBottom]);
 
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");
@@ -463,102 +477,102 @@ export const GPTChat = ({
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout}>
-        <Box
-          flex="grow"
-          gap={3}
-          onScroll={handleScroll}
-          scroll={true}
-          scrollRef={scrollViewRef}
-        >
-          <Box gap={3} onLayout={handleContentLayout}>
-          {currentMessages.map((message, index) => {
-            // Tool call/result messages
-            if (message.role === "tool-call" && message.toolCall) {
-              return (
-                <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                  <ToolCallCard toolCall={message.toolCall} />
-                </Box>
-              );
-            }
-            if (message.role === "tool-result" && message.toolResult) {
-              return (
-                <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
-                  <ToolResultCard toolResult={message.toolResult} />
-                </Box>
-              );
-            }
-
-            const hasImages = message.contentParts?.some((p) => p.type === "image");
-            return (
-              <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
-                <Box
-                  color={message.role === "user" ? "primary" : "neutralLight"}
-                  maxWidth={hasImages ? "90%" : "80%"}
-                  padding={3}
-                  rounding="lg"
-                >
-                  {/* Render content parts (images, files) */}
-                  {message.contentParts && message.contentParts.length > 0 ? (
-                    <Box marginBottom={message.content ? 2 : 0}>
-                      <MessageContentParts
-                        parts={message.contentParts.filter((p) => p.type !== "text")}
-                      />
+          <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
+            <Box gap={3} onLayout={handleContentLayout}>
+              {currentMessages.map((message, index) => {
+                // Tool call/result messages
+                if (message.role === "tool-call" && message.toolCall) {
+                  return (
+                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+                      <ToolCallCard toolCall={message.toolCall} />
                     </Box>
-                  ) : null}
+                  );
+                }
+                if (message.role === "tool-result" && message.toolResult) {
+                  return (
+                    <Box alignItems="start" key={`msg-${index}`} maxWidth="80%">
+                      <ToolResultCard toolResult={message.toolResult} />
+                    </Box>
+                  );
+                }
 
-                  {/* Render text content */}
-                  {message.role === "assistant" ? (
-                    <MarkdownView>{message.content}</MarkdownView>
-                  ) : (
-                    <Text color={message.role === "user" ? "inverted" : "primary"}>
-                      {message.content}
-                    </Text>
-                  )}
-
-                  {/* Action buttons */}
-                  {message.role === "assistant" ? (
-                    <Box alignItems="end" direction="row" gap={1} justifyContent="end" marginTop={1}>
-                      {onRateFeedback ? (
-                        <>
-                          <IconButton
-                            accessibilityLabel="Thumbs up"
-                            iconName="thumbs-up"
-                            onClick={() =>
-                              onRateFeedback(index, message.rating === "up" ? null : "up")
-                            }
-                            testID={`gpt-rate-up-${index}`}
-                            variant={message.rating === "up" ? "primary" : "muted"}
+                const hasImages = message.contentParts?.some((p) => p.type === "image");
+                return (
+                  <Box alignItems={message.role === "user" ? "end" : "start"} key={`msg-${index}`}>
+                    <Box
+                      color={message.role === "user" ? "primary" : "neutralLight"}
+                      maxWidth={hasImages ? "90%" : "80%"}
+                      padding={3}
+                      rounding="lg"
+                    >
+                      {/* Render content parts (images, files) */}
+                      {message.contentParts && message.contentParts.length > 0 ? (
+                        <Box marginBottom={message.content ? 2 : 0}>
+                          <MessageContentParts
+                            parts={message.contentParts.filter((p) => p.type !== "text")}
                           />
-                          <IconButton
-                            accessibilityLabel="Thumbs down"
-                            iconName="thumbs-down"
-                            onClick={() =>
-                              onRateFeedback(index, message.rating === "down" ? null : "down")
-                            }
-                            testID={`gpt-rate-down-${index}`}
-                            variant={message.rating === "down" ? "primary" : "muted"}
-                          />
-                        </>
+                        </Box>
                       ) : null}
-                      <IconButton
-                        accessibilityLabel="Copy message"
-                        iconName="copy"
-                        onClick={() => handleCopyMessage(message.content)}
-                        testID={`gpt-copy-msg-${index}`}
-                      />
+
+                      {/* Render text content */}
+                      {message.role === "assistant" ? (
+                        <MarkdownView>{message.content}</MarkdownView>
+                      ) : (
+                        <Text color={message.role === "user" ? "inverted" : "primary"}>
+                          {message.content}
+                        </Text>
+                      )}
+
+                      {/* Action buttons */}
+                      {message.role === "assistant" ? (
+                        <Box
+                          alignItems="end"
+                          direction="row"
+                          gap={1}
+                          justifyContent="end"
+                          marginTop={1}
+                        >
+                          {onRateFeedback ? (
+                            <>
+                              <IconButton
+                                accessibilityLabel="Thumbs up"
+                                iconName="thumbs-up"
+                                onClick={() =>
+                                  onRateFeedback(index, message.rating === "up" ? null : "up")
+                                }
+                                testID={`gpt-rate-up-${index}`}
+                                variant={message.rating === "up" ? "primary" : "muted"}
+                              />
+                              <IconButton
+                                accessibilityLabel="Thumbs down"
+                                iconName="thumbs-down"
+                                onClick={() =>
+                                  onRateFeedback(index, message.rating === "down" ? null : "down")
+                                }
+                                testID={`gpt-rate-down-${index}`}
+                                variant={message.rating === "down" ? "primary" : "muted"}
+                              />
+                            </>
+                          ) : null}
+                          <IconButton
+                            accessibilityLabel="Copy message"
+                            iconName="copy"
+                            onClick={() => handleCopyMessage(message.content)}
+                            testID={`gpt-copy-msg-${index}`}
+                          />
+                        </Box>
+                      ) : null}
                     </Box>
-                  ) : null}
+                  </Box>
+                );
+              })}
+              {isStreaming ? (
+                <Box alignItems="start" padding={2}>
+                  <Spinner size="sm" />
                 </Box>
-              </Box>
-            );
-          })}
-          {isStreaming ? (
-            <Box alignItems="start" padding={2}>
-              <Spinner size="sm" />
+              ) : null}
             </Box>
-          ) : null}
           </Box>
-        </Box>
         </Box>
 
         {/* Scroll to bottom button */}
