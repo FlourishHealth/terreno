@@ -10,6 +10,7 @@ import {stepCountIs, streamText} from "ai";
 import type express from "express";
 import type mongoose from "mongoose";
 
+import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {AIService} from "../service/aiService";
 import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
@@ -35,11 +36,12 @@ const sendDemoResponse = (res: express.Response, historyId?: string): void => {
  */
 const resolveAiService = (
   req: express.Request,
-  options: GptRouteOptions
+  options: GptRouteOptions,
+  modelId?: string
 ): AIService | undefined => {
   const perRequestKey = req.headers["x-ai-api-key"] as string | undefined;
   if (perRequestKey && options.createModelFn) {
-    return new AIService({model: options.createModelFn(perRequestKey)});
+    return new AIService({model: options.createModelFn(perRequestKey, modelId)});
   }
   return options.aiService;
 };
@@ -68,6 +70,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             type: "array",
           },
           historyId: {type: "string"},
+          model: {type: "string"},
           prompt: {type: "string"},
           systemPrompt: {type: "string"},
         })
@@ -75,7 +78,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {prompt, historyId, systemPrompt, attachments} = req.body;
+      const {prompt, historyId, systemPrompt, attachments, model: requestModel} = req.body;
       const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
 
       if (!prompt || typeof prompt !== "string") {
@@ -92,7 +95,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         hasPerRequestKey,
       });
 
-      const aiService = resolveAiService(req, options);
+      const aiService = resolveAiService(req, options, requestModel);
       if (!aiService) {
         logger.debug("No AI service available, sending demo response");
         return sendDemoResponse(res);
@@ -171,6 +174,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       let fullResponse = "";
       const generatedImages: Array<{mimeType: string; url: string}> = [];
+      const startTime = Date.now();
       try {
         logger.debug("Starting streamText", {model: modelId, supportsTools});
         const result = streamText({
@@ -367,6 +371,21 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         }
         await history.save();
 
+        try {
+          await AIRequest.logRequest({
+            aiModel: modelId ?? "unknown",
+            prompt,
+            requestType: "general",
+            response: fullResponse,
+            responseTime: Date.now() - startTime,
+            userId: userId ?? undefined,
+          });
+        } catch (logErr) {
+          logger.warn("Failed to log AIRequest", {
+            error: logErr instanceof Error ? logErr.message : String(logErr),
+          });
+        }
+
         logger.debug("Sending done event", {
           fullResponseLength: fullResponse.length,
           historyId: history._id.toString(),
@@ -377,11 +396,77 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         logger.error("Error in GPT stream", {
           error: error instanceof Error ? error.message : String(error),
         });
+
+        try {
+          await AIRequest.logRequest({
+            aiModel: modelId ?? "unknown",
+            error: error instanceof Error ? error.message : String(error),
+            prompt,
+            requestType: "general",
+            responseTime: Date.now() - startTime,
+            userId: userId ?? undefined,
+          });
+        } catch (logErr) {
+          logger.warn("Failed to log AIRequest error", {
+            error: logErr instanceof Error ? logErr.message : String(logErr),
+          });
+        }
+
         res.write(
           `data: ${JSON.stringify({error: error instanceof Error ? error.message : "Unknown error"})}\n\n`
         );
         res.end();
       }
+    })
+  );
+
+  router.patch(
+    "/gpt/histories/:id/rating",
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(options.openApiOptions ?? {})
+        .withTags(["gpt"])
+        .withSummary("Rate a prompt in a GPT history")
+        .withPathParameter("id", {type: "string"})
+        .withRequestBody({
+          promptIndex: {type: "number"},
+          rating: {type: "string"},
+        })
+        .withResponse(200, {data: {type: "object"}})
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const {id} = req.params;
+      const {promptIndex, rating} = req.body;
+      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+
+      if (typeof promptIndex !== "number" || promptIndex < 0) {
+        throw new APIError({status: 400, title: "promptIndex must be a non-negative number"});
+      }
+      if (rating !== null && rating !== "up" && rating !== "down") {
+        throw new APIError({status: 400, title: "rating must be 'up', 'down', or null"});
+      }
+
+      const history = await GptHistory.findById(id);
+      if (!history) {
+        throw new APIError({status: 404, title: "History not found"});
+      }
+      if (history.userId.toString() !== userId?.toString()) {
+        throw new APIError({status: 403, title: "Not authorized to access this history"});
+      }
+      if (promptIndex >= history.prompts.length) {
+        throw new APIError({status: 400, title: "promptIndex out of range"});
+      }
+
+      if (rating === null) {
+        history.prompts[promptIndex].rating = undefined;
+      } else {
+        history.prompts[promptIndex].rating = rating;
+      }
+      history.markModified("prompts");
+      await history.save();
+
+      return res.json({data: {promptIndex, rating: history.prompts[promptIndex].rating ?? null}});
     })
   );
 

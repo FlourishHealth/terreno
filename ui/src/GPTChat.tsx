@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useState} from "react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
 import {Image as RNImage, type ScrollView as RNScrollView} from "react-native";
 
 import {AttachmentPreview} from "./AttachmentPreview";
@@ -11,6 +11,7 @@ import {Icon} from "./Icon";
 import {IconButton} from "./IconButton";
 import {MarkdownView} from "./MarkdownView";
 import {Modal} from "./Modal";
+import {SelectField} from "./SelectField";
 import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 import {TextArea} from "./TextArea";
@@ -63,6 +64,7 @@ export interface ToolResultInfo {
 export interface GPTChatMessage {
   content: string;
   contentParts?: MessageContentPart[];
+  rating?: "up" | "down";
   role: "user" | "assistant" | "system" | "tool-call" | "tool-result";
   toolCall?: ToolCallInfo;
   toolResult?: ToolResultInfo;
@@ -82,6 +84,7 @@ export interface MCPServerStatus {
 
 export interface GPTChatProps {
   attachments?: SelectedFile[];
+  availableModels?: Array<{label: string; value: string}>;
   currentHistoryId?: string;
   currentMessages: GPTChatMessage[];
   geminiApiKey?: string;
@@ -93,10 +96,13 @@ export interface GPTChatProps {
   onDeleteHistory: (id: string) => void;
   onGeminiApiKeyChange?: (key: string) => void;
   onMemoryEdit?: (memory: string) => void;
+  onModelChange?: (modelId: string) => void;
+  onRateFeedback?: (promptIndex: number, rating: "up" | "down" | null) => void;
   onRemoveAttachment?: (index: number) => void;
   onSelectHistory: (id: string) => void;
   onSubmit: (prompt: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
+  selectedModel?: string;
   systemMemory?: string;
   testID?: string;
 }
@@ -282,6 +288,7 @@ const MCPStatusIndicator = ({servers}: {servers: MCPServerStatus[]}): React.Reac
 
 export const GPTChat = ({
   attachments = [],
+  availableModels,
   currentHistoryId,
   currentMessages,
   geminiApiKey,
@@ -293,15 +300,21 @@ export const GPTChat = ({
   onDeleteHistory,
   onGeminiApiKeyChange,
   onMemoryEdit,
+  onModelChange,
+  onRateFeedback,
   onRemoveAttachment,
   onSelectHistory,
   onSubmit,
+  selectedModel,
   systemMemory,
   testID,
 }: GPTChatProps): React.ReactElement => {
   const [inputValue, setInputValue] = useState("");
   const scrollViewRef = useRef<RNScrollView>(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const contentHeightRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+  const viewportHeightRef = useRef(0);
   const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
   const [apiKeyDraft, setApiKeyDraft] = useState(geminiApiKey ?? "");
 
@@ -310,6 +323,7 @@ export const GPTChat = ({
     if (!trimmed || isStreaming) {
       return;
     }
+    setIsScrolledUp(false);
     onSubmit(trimmed);
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
@@ -331,6 +345,32 @@ export const GPTChat = ({
     [onAttachFiles]
   );
 
+  const handleScroll = useCallback((offsetY: number) => {
+    scrollOffsetRef.current = offsetY;
+    const distanceFromBottom = contentHeightRef.current - offsetY - viewportHeightRef.current;
+    setIsScrolledUp(distanceFromBottom > 100);
+  }, []);
+
+  const handleContentLayout = useCallback(
+    (_event: {nativeEvent: {layout: {height: number; width: number; x: number; y: number}}}) => {
+      contentHeightRef.current = _event.nativeEvent.layout.height;
+    },
+    []
+  );
+
+  const handleViewportLayout = useCallback(
+    (event: {nativeEvent: {layout: {height: number; width: number; x: number; y: number}}}) => {
+      viewportHeightRef.current = event.nativeEvent.layout.height;
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!isScrolledUp) {
+      scrollToBottom();
+    }
+  }, [currentMessages, isScrolledUp, scrollToBottom]);
+
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");
     setIsApiKeyModalVisible(true);
@@ -345,6 +385,17 @@ export const GPTChat = ({
     <Box direction="row" flex="grow" testID={testID}>
       {/* Sidebar */}
       <Box border="default" color="base" minWidth={250} overflow="scrollY" padding={3} width="30%">
+        {availableModels && availableModels.length > 0 && onModelChange ? (
+          <Box marginBottom={2}>
+            <SelectField
+              onChange={onModelChange}
+              options={availableModels}
+              requireValue
+              value={selectedModel ?? availableModels[0]?.value ?? ""}
+            />
+          </Box>
+        ) : null}
+
         <Box alignItems="center" direction="row" justifyContent="between" marginBottom={3}>
           <Heading size="sm">Chats</Heading>
           <Box direction="row" gap={1}>
@@ -411,7 +462,15 @@ export const GPTChat = ({
       {/* Chat Panel */}
       <Box direction="column" flex="grow" padding={4}>
         {/* Messages */}
-        <Box flex="grow" gap={3} marginBottom={3} overflow="scrollY">
+        <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout}>
+        <Box
+          flex="grow"
+          gap={3}
+          onScroll={handleScroll}
+          scroll={true}
+          scrollRef={scrollViewRef}
+        >
+          <Box gap={3} onLayout={handleContentLayout}>
           {currentMessages.map((message, index) => {
             // Tool call/result messages
             if (message.role === "tool-call" && message.toolCall) {
@@ -456,9 +515,31 @@ export const GPTChat = ({
                     </Text>
                   )}
 
-                  {/* Copy button */}
+                  {/* Action buttons */}
                   {message.role === "assistant" ? (
-                    <Box alignItems="end" marginTop={1}>
+                    <Box alignItems="end" direction="row" gap={1} justifyContent="end" marginTop={1}>
+                      {onRateFeedback ? (
+                        <>
+                          <IconButton
+                            accessibilityLabel="Thumbs up"
+                            iconName="thumbs-up"
+                            onClick={() =>
+                              onRateFeedback(index, message.rating === "up" ? null : "up")
+                            }
+                            testID={`gpt-rate-up-${index}`}
+                            variant={message.rating === "up" ? "primary" : "muted"}
+                          />
+                          <IconButton
+                            accessibilityLabel="Thumbs down"
+                            iconName="thumbs-down"
+                            onClick={() =>
+                              onRateFeedback(index, message.rating === "down" ? null : "down")
+                            }
+                            testID={`gpt-rate-down-${index}`}
+                            variant={message.rating === "down" ? "primary" : "muted"}
+                          />
+                        </>
+                      ) : null}
                       <IconButton
                         accessibilityLabel="Copy message"
                         iconName="copy"
@@ -476,10 +557,12 @@ export const GPTChat = ({
               <Spinner size="sm" />
             </Box>
           ) : null}
+          </Box>
+        </Box>
         </Box>
 
         {/* Scroll to bottom button */}
-        {isScrolledUp && isStreaming ? (
+        {isScrolledUp ? (
           <Box alignItems="center" marginBottom={2}>
             <Button
               iconName="arrow-down"
