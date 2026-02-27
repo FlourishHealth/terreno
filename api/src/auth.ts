@@ -44,11 +44,17 @@ export function authenticateMiddleware(anonymous = false) {
   if (anonymous) {
     strategies.push("anonymous");
   }
-  return passport.authenticate(strategies, {
+  const passportAuth = passport.authenticate(strategies, {
     failureMessage: false, // this is just avoiding storing the message in the session
     failWithError: true,
     session: false,
   });
+  return (req: any, res: any, next: any) => {
+    if (req.user) {
+      return next();
+    }
+    return passportAuth(req, res, next);
+  };
 }
 
 export async function signupUser(
