@@ -175,9 +175,10 @@ export const syncBetterAuthUser = async (
       return userByEmail;
     }
 
-    // Create new user with Better Auth ID as _id so frontend IDs match
+    // Use Better Auth ID as _id when it's a valid ObjectId (MongoDB adapter) so frontend IDs match
+    const useAsId = mongoose.isValidObjectId(betterAuthUser.id) ? {_id: betterAuthUser.id} : {};
     const newUser: any = new (userModel as any)({
-      _id: betterAuthUser.id,
+      ...useAsId,
       admin: false,
       betterAuthId: betterAuthUser.id,
       email: betterAuthUser.email,
