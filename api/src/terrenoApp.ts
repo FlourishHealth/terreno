@@ -204,7 +204,7 @@ export class TerrenoApp {
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
     );
 
-    app.use(cors({origin: options.corsOrigin ?? "*", credentials: true}));
+    app.use(cors({credentials: true, origin: options.corsOrigin ?? "*"}));
 
     // Apply custom middleware before JSON parsing
     for (const fn of this.middlewareFns) {
