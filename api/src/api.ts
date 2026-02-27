@@ -180,12 +180,18 @@ export interface ModelRouterOptions<T> {
    */
   preUpdate?: (value: Partial<T>, request: express.Request) => T | Promise<T> | null;
   /**
-   * Hook that runs after `transformer.transform` but before the object is deleted.
+   * Hook that runs before the object is deleted.
    * Return null to return a generic 403 error.
    * Throw an APIError to return a 400 with specific error information.
    *
-   * @param value - The document to be deleted, before the soft update of deleted: true (type: T).
-   * @param request - The Express request object.
+   * If the DELETE request includes a body, the body fields are applied to the document
+   * **after** this hook runs. To inspect or modify the incoming body, access `request.body`
+   * directly. For soft deletes (models with a `deleted` boolean field), the body fields are
+   * persisted alongside `deleted: true`. For hard deletes, the body fields are saved to the
+   * document before it is removed.
+   *
+   * @param value - The document to be deleted, before any body fields or soft-delete flag are applied.
+   * @param request - The Express request object. `request.body` contains the raw delete body, if any.
    */
   preDelete?: (value: T, request: express.Request) => T | Promise<T> | null;
   /**
@@ -217,8 +223,12 @@ export interface ModelRouterOptions<T> {
    * to other models or performing async tasks/side effects, such as cascading object deletions.
    * Throw an APIError to return a 400 with an error message.
    *
+   * If the DELETE request included a body, those fields will already be applied to `value`
+   * when this hook is called.
+   *
    * @param request - The Express request object.
-   * @param value - The document that was deleted, after the soft update of deleted: true (type: T).
+   * @param value - The document after deletion. Includes any body fields from the request
+   *   and, for soft deletes, `deleted: true`.
    */
   postDelete?: (request: express.Request, value: T) => void | Promise<void>;
   /** Hook that runs after the object is fetched but before it is serialized.
@@ -892,10 +902,28 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     asyncHandler(async (req: Request, res: Response) => {
       const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
 
-      if (options.preDelete) {
-        let body;
+      // Process the request body if present. This allows callers to update fields on the
+      // document as part of the delete operation — for example, setting a `deletedReason`
+      // or `deletedBy` field alongside a soft delete. The body is applied to the document
+      // after the preDelete hook runs but before the delete/soft-delete is executed.
+      let deleteBody: Partial<T> | undefined;
+      if (req.body && Object.keys(req.body).length > 0) {
         try {
-          body = await options.preDelete(doc, req);
+          deleteBody = transform<T>(options, req.body, "update", req.user) as Partial<T>;
+        } catch (error: any) {
+          throw new APIError({
+            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+            error,
+            status: 400,
+            title: `DELETE body transform error on ${req.params.id}: ${error.message}`,
+          });
+        }
+      }
+
+      if (options.preDelete) {
+        let preDeleteResult;
+        try {
+          preDeleteResult = await options.preDelete(doc, req);
         } catch (error: any) {
           if (isAPIError(error)) {
             throw error;
@@ -907,18 +935,32 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             title: `preDelete hook error on ${req.params.id}: ${error.message}`,
           });
         }
-        if (body === undefined) {
+        if (preDeleteResult === undefined) {
           throw new APIError({
             detail: "A body must be returned from preDelete",
             status: 403,
             title: "Delete not allowed",
           });
         }
-        if (body === null) {
+        if (preDeleteResult === null) {
           throw new APIError({
             detail: `preDelete hook for ${req.params.id} returned null`,
             status: 403,
             title: "Delete not allowed",
+          });
+        }
+      }
+
+      // Apply body fields to the document before the delete operation.
+      if (deleteBody) {
+        try {
+          doc.set(deleteBody);
+        } catch (error: any) {
+          throw new APIError({
+            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+            error,
+            status: 400,
+            title: `DELETE body error on ${req.params.id}: ${error.message}`,
           });
         }
       }
@@ -929,10 +971,22 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         model.schema.paths.deleted.instance === "Boolean"
       ) {
         doc.deleted = true;
-        await doc.save();
-      } else {
-        // For models without the isDeleted plugin
         try {
+          await doc.save();
+        } catch (error: any) {
+          throw new APIError({
+            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+            error,
+            status: 400,
+            title: `DELETE save error on ${req.params.id}: ${error.message}`,
+          });
+        }
+      } else {
+        // For models without the isDeleted plugin, persist body fields before hard delete.
+        try {
+          if (deleteBody) {
+            await doc.save();
+          }
           await doc.deleteOne();
         } catch (error: any) {
           throw new APIError({
