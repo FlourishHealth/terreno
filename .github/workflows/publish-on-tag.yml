@@ -480,8 +480,8 @@ jobs:
       - name: Install dependencies after replacement
         run: bun install
 
-      - name: Compile @terreno/ui dependency
-        run: cd ../ui && bun tsc
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
         run: bun run compile
@@ -561,8 +561,8 @@ jobs:
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
 
-      - name: Compile @terreno/api dependency
-        run: cd ../api && bun tsc
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
         run: bun run compile
@@ -656,8 +656,8 @@ jobs:
           VERSION: ${{ needs.check-changes.outputs.version }}
           UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
 
-      - name: Compile @terreno/ui dependency
-        run: cd ../ui && bun tsc
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
         run: bun run compile
@@ -742,8 +742,8 @@ jobs:
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
 
-      - name: Compile @terreno/api dependency
-        run: cd ../api && bun tsc
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
         run: bun run compile
@@ -826,8 +826,8 @@ jobs:
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
 
-      - name: Compile @terreno/api dependency
-        run: cd ../api && bun tsc
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
 
       - name: Compile
         run: bun run compile
