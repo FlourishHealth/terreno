@@ -74,6 +74,7 @@ export type MessageContentPart = TextContentPart | ImageContentPart | FileConten
 
 export interface GptHistoryPrompt {
   model?: string;
+  rating?: "up" | "down";
   text: string;
   type: "user" | "assistant" | "system" | "tool-call" | "tool-result";
   content?: MessageContentPart[];
@@ -160,7 +161,7 @@ export interface GptRouteOptions {
   /** Pre-configured AIService. Optional when using per-request keys or demo mode. */
   aiService?: import("../service/aiService").AIService;
   /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
-  createModelFn?: (apiKey: string) => import("ai").LanguageModel;
+  createModelFn?: (apiKey: string, modelId?: string) => import("ai").LanguageModel;
   /** Factory to create per-request tools (e.g. tools that need the request's API key). Merged with static tools. */
   createRequestTools?: (req: import("express").Request) => Record<string, import("ai").Tool>;
   /** Return canned responses when no AI service is available. */

@@ -19,6 +19,11 @@ const gptHistoryPromptSchema = new mongoose.Schema(
     args: {type: mongoose.Schema.Types.Mixed},
     content: {type: [contentPartSchema]},
     model: {type: String},
+    rating: {
+      description: "User feedback rating for this prompt",
+      enum: ["up", "down"],
+      type: String,
+    },
     result: {type: mongoose.Schema.Types.Mixed},
     text: {required: true, type: String},
     toolCallId: {type: String},
