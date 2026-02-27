@@ -175,8 +175,9 @@ export const syncBetterAuthUser = async (
       return userByEmail;
     }
 
-    // Create new user
+    // Create new user with Better Auth ID as _id so frontend IDs match
     const newUser: any = new (userModel as any)({
+      _id: betterAuthUser.id,
       admin: false,
       betterAuthId: betterAuthUser.id,
       email: betterAuthUser.email,
