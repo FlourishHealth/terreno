@@ -8,6 +8,7 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
+  RealtimeApp,
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
@@ -147,6 +148,13 @@ export async function start(skipListen = false): Promise<express.Application> {
         new DocumentStorageApp({
           basePath: "/admin/documents",
           bucketName: process.env.GCS_BUCKET ?? "",
+        })
+      )
+      .register(
+        new RealtimeApp({
+          changeStream: {
+            ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
+          },
         })
       )
       .register(

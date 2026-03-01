@@ -18,6 +18,10 @@ export const todoRouter = modelRouter("/todos", Todo, {
   },
   queryFields: ["completed", "ownerId"],
   queryFilter: OwnerQueryFilter,
+  realtime: {
+    methods: ["create", "update", "delete"],
+    roomStrategy: "owner",
+  },
   sort: "-created",
   validation: {
     excludeFromCreate: ["ownerId"],
