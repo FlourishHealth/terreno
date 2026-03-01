@@ -26,6 +26,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {registerRealtime} from "./realtime/registry";
+import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -282,6 +284,14 @@ export interface ModelRouterOptions<T> {
    * This option overrides the global setting for this specific router.
    */
   validation?: boolean | ModelRouterValidationOptions;
+  /**
+   * Enable real-time sync for this model via WebSocket events.
+   * When configured, CRUD operations will emit events to connected clients
+   * through the RealtimeApp plugin's change stream watcher.
+   *
+   * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   */
+  realtime?: RealtimeConfig;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -459,8 +469,26 @@ export function modelRouter<T>(
   const router = _buildModelRouter(model, options);
 
   if (path !== undefined) {
+    // Register for real-time sync if configured
+    if (options.realtime) {
+      registerRealtime({
+        collectionName: model.collection.collectionName,
+        config: options.realtime,
+        modelName: model.modelName,
+        options,
+        routePath: path,
+      });
+    }
     return {__type: "modelRouter", path, router};
   }
+
+  if (options.realtime) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
+        "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+
   return router;
 }
 
@@ -799,6 +827,31 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         });
       }
 
+      // Conflict detection: if client sends If-Unmodified-Since header or _updatedAt body field,
+      // check if the document has been modified since the client last fetched it.
+      if (req.headers["if-unmodified-since"] || req.body._updatedAt) {
+        const clientTimestamp = req.headers["if-unmodified-since"]
+          ? new Date(req.headers["if-unmodified-since"] as string)
+          : new Date(req.body._updatedAt);
+        const serverTimestamp = (doc as any).updated;
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          throw new APIError({
+            detail: JSON.stringify({
+              clientUpdated: clientTimestamp,
+              serverUpdated: serverTimestamp,
+            }),
+            status: 409,
+            title: "Conflict: document has been modified since you last fetched it",
+          });
+        }
+        // Remove _updatedAt from body so it doesn't get saved
+        delete req.body._updatedAt;
+        if (body) {
+          delete (body as any)._updatedAt;
+        }
+      }
+
       if (options.preUpdate) {
         try {
           // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
@@ -992,9 +1045,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
+    const field = req.params.field as string;
+    const itemId = req.params.itemId as string;
+
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.
-    if (operation !== "DELETE" && req.body[req.params.field] === undefined) {
+    if (operation !== "DELETE" && req.body[field] === undefined) {
       throw new APIError({
         status: 400,
         title: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
@@ -1003,28 +1059,26 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    const field = req.params.field;
-
     const array = [...doc[field]];
     if (operation === "POST") {
       array.push(req.body[field]);
     } else if (operation === "PATCH" || operation === "DELETE") {
       // Check for subschema vs String array:
       let index;
-      if (isValidObjectId(req.params.itemId)) {
-        index = array.findIndex((x: any) => x.id === req.params.itemId);
+      if (isValidObjectId(itemId)) {
+        index = array.findIndex((x: any) => x.id === itemId);
       } else {
-        index = array.findIndex((x: string) => x === req.params.itemId);
+        index = array.findIndex((x: string) => x === itemId);
       }
       if (index === -1) {
         throw new APIError({
           status: 404,
-          title: `Could not find ${field}/${req.params.itemId}`,
+          title: `Could not find ${field}/${itemId}`,
         });
       }
       // For PATCHing an item by ID, we need to merge the objects so we don't override the _id or
       // other parts of the subdocument.
-      if (operation === "PATCH" && isValidObjectId(req.params.itemId)) {
+      if (operation === "PATCH" && isValidObjectId(itemId)) {
         Object.assign(array[index], req.body[field]);
       } else if (operation === "PATCH") {
         // For PATCHing a string array, we can replace the whole object.

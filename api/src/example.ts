@@ -54,7 +54,7 @@ const FoodModel = model<Food>("Food", schema);
 function getBaseServer() {
   const app = express();
 
-  app.all("/*", (req, res, next) => {
+  app.all("/{*splat}", (req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "*");
     // intercepts OPTIONS method

@@ -79,6 +79,7 @@ export function setupGitHubAuth(
 
   passport.use(
     "github",
+    // @ts-expect-error passport-github2 types reference @types/express@4 which conflicts with express v5 types
     new GitHubStrategy(
       {
         callbackURL: githubOptions.callbackURL,
