@@ -4,7 +4,13 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId, useSocketConnection, useSyncConnection} from "@terreno/rtk";
+import {
+  baseUrl,
+  getAuthToken,
+  useSelectCurrentUserId,
+  useSocketConnection,
+  useSyncConnection,
+} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
