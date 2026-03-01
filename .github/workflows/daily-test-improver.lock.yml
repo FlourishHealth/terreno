@@ -119,6 +119,7 @@ jobs:
         uses: supercharge/mongodb-github-action@0db69880d3c2305e6297f8edbb8f0a82139f754c # 1.12.1
         with:
           mongodb-version: "6.0"
+          mongodb-image: mirror.gcr.io/library/mongo
       - name: Install dependencies
         run: bun install --frozen-lockfile
         shell: bash

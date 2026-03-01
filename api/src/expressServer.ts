@@ -15,6 +15,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
+import {openApiCompatMiddleware} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 
 const SLOW_READ_MAX = 200;
@@ -226,6 +227,7 @@ function initializeRoutes(
   });
 
   // Add ETag middleware for OpenAPI JSON endpoint before the openapi middleware
+  app.use(openApiCompatMiddleware);
   app.use(openApiEtagMiddleware);
 
   const oapi = openapi({
