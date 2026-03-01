@@ -115,13 +115,23 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [config, modelName]
   );
 
-  // Set the navigation header title to the model display name
+  // Set the navigation header title and create button
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    navigation.setOptions({title: modelConfig.displayName});
-  }, [navigation, modelConfig]);
+    navigation.setOptions({
+      headerRight: () => (
+        <Button
+          onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+          testID="admin-create-button"
+          text="Create"
+          variant="primary"
+        />
+      ),
+      title: modelConfig.displayName,
+    });
+  }, [navigation, modelConfig, baseUrl, modelName]);
 
   const displayFields = useMemo(
     () => columnsProp ?? modelConfig?.listFields ?? [],
@@ -143,10 +153,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     {skip: !modelConfig}
   );
   const [deleteItem] = useDeleteMutation();
-
-  const handleCreate = useCallback(() => {
-    router.push(`${baseUrl}/${modelName}/create` as any);
-  }, [baseUrl, modelName]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -270,19 +276,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const totalPages = listData ? Math.ceil(listData.total / DEFAULT_LIMIT) : 1;
 
   return (
-    <Page
-      footer={
-        <Box direction="row" justifyContent="end" padding={2}>
-          <Button
-            onClick={handleCreate}
-            testID="admin-create-button"
-            text="Create"
-            variant="primary"
-          />
-        </Box>
-      }
-      maxWidth="100%"
-    >
+    <Page maxWidth="100%">
       {isListLoading ? (
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />

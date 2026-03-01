@@ -47,7 +47,7 @@ export const AdminRefField: React.FC<AdminRefFieldProps> = ({
           }),
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, routePath, endpointKey]);
 
