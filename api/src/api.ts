@@ -1045,9 +1045,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
+    const field = req.params.field as string;
+    const itemId = req.params.itemId as string;
+
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.
-    if (operation !== "DELETE" && req.body[req.params.field] === undefined) {
+    if (operation !== "DELETE" && req.body[field] === undefined) {
       throw new APIError({
         status: 400,
         title: `Malformed body, array operations should have a single, top level key, got: ${Object.keys(
@@ -1056,28 +1059,26 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    const field = req.params.field;
-
     const array = [...doc[field]];
     if (operation === "POST") {
       array.push(req.body[field]);
     } else if (operation === "PATCH" || operation === "DELETE") {
       // Check for subschema vs String array:
       let index;
-      if (isValidObjectId(req.params.itemId)) {
-        index = array.findIndex((x: any) => x.id === req.params.itemId);
+      if (isValidObjectId(itemId)) {
+        index = array.findIndex((x: any) => x.id === itemId);
       } else {
-        index = array.findIndex((x: string) => x === req.params.itemId);
+        index = array.findIndex((x: string) => x === itemId);
       }
       if (index === -1) {
         throw new APIError({
           status: 404,
-          title: `Could not find ${field}/${req.params.itemId}`,
+          title: `Could not find ${field}/${itemId}`,
         });
       }
       // For PATCHing an item by ID, we need to merge the objects so we don't override the _id or
       // other parts of the subdocument.
-      if (operation === "PATCH" && isValidObjectId(req.params.itemId)) {
+      if (operation === "PATCH" && isValidObjectId(itemId)) {
         Object.assign(array[index], req.body[field]);
       } else if (operation === "PATCH") {
         // For PATCHing a string array, we can replace the whole object.
