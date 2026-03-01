@@ -10,6 +10,7 @@ A monorepo containing shared packages for building full-stack applications with 
 ## Packages
 
 - **api/** - REST API framework built on Express/Mongoose (`@terreno/api`)
+- **api-health/** - Health check endpoint plugin for @terreno/api (`@terreno/api-health`)
 - **ui/** - React Native UI component library (`@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
@@ -35,6 +36,7 @@ bun run test             # Run tests in api and ui
 
 ```bash
 bun run api:test         # Test API package
+bun run api-health:test  # Test API health plugin
 bun run ui:test          # Test UI package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
