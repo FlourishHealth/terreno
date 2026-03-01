@@ -1,4 +1,15 @@
-import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it} from "bun:test";
+import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+
+// Mock @google-cloud/secret-manager to prevent real GCP credential lookups
+// that cause unhandled async errors in test environments
+mock.module("@google-cloud/secret-manager", () => ({
+  SecretManagerServiceClient: class MockSecretManagerServiceClient {
+    async accessSecretVersion() {
+      throw new Error("Mock GSM client: no credentials available");
+    }
+  },
+}));
+
 import {connectToMongoDB} from "../utils/database";
 import {Configuration, ConfigurationDB} from "./configuration";
 
@@ -549,9 +560,9 @@ describe("Configuration", () => {
       }
     });
 
-    it("should not throw when fetchSecret is called with a full resource path", async () => {
-      // Full resource paths don't need GCP_PROJECT_ID, but will fail at GSM client level
-      // We just verify it doesn't throw the GCP_PROJECT_ID error
+    it("should not throw GCP_PROJECT_ID error when fetchSecret is called with a full resource path", async () => {
+      // Full resource paths bypass the GCP_PROJECT_ID check. The error will
+      // come from the (mocked) GSM client instead.
       try {
         await Configuration.fetchSecret("projects/my-project/secrets/my-secret");
       } catch (error) {
