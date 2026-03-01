@@ -21,14 +21,14 @@
     "test:ci": "bun test"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "@sentry/bun": "^9.46.0",
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "@sentry/bun": "^10.39.0",
     "@terreno/api": "workspace:*"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "^1.2.4",
-    "@types/node": "^22.10.0",
+    "@types/node": "^25.3.0",
     "typescript": "catalog:"
   },
   "files": [

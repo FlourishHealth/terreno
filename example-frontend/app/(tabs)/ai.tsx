@@ -31,6 +31,7 @@ const mapHistoryToChat = (history: GptHistory): GPTChatHistory => ({
       }
       return {filename: c.filename, mimeType: c.mimeType ?? "", type: "file", url: c.url ?? ""};
     }),
+    rating: (p as unknown as {rating?: "up" | "down"}).rating,
     role: p.type,
     ...(p.toolCallId && p.type === "tool-call"
       ? {toolCall: {args: p.args ?? {}, toolCallId: p.toolCallId, toolName: p.toolName ?? ""}}
@@ -61,12 +62,19 @@ const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<
   });
 };
 
+const AVAILABLE_MODELS = [
+  {label: "Gemini 3 Flash", value: "gemini-3-flash-preview"},
+  {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash-preview-05-20"},
+  {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro-preview-05-06"},
+];
+
 const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<GPTChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [attachments, setAttachments] = useState<SelectedFile[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
 
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
@@ -124,6 +132,39 @@ const AiScreen: React.FC = () => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const handleRateFeedback = useCallback(
+    async (promptIndex: number, rating: "up" | "down" | null) => {
+      if (!currentHistoryId) {
+        return;
+      }
+      try {
+        const token = await getAuthToken();
+        await fetch(`${baseUrl}/gpt/histories/${currentHistoryId}/rating`, {
+          body: JSON.stringify({promptIndex, rating}),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          method: "PATCH",
+        });
+        // Update local state
+        setCurrentMessages((prev) => {
+          const updated = [...prev];
+          if (promptIndex < updated.length) {
+            updated[promptIndex] = {
+              ...updated[promptIndex],
+              rating: rating ?? undefined,
+            };
+          }
+          return updated;
+        });
+      } catch (err) {
+        console.error("Error rating message:", err);
+      }
+    },
+    [currentHistoryId]
+  );
+
   const handleSubmit = useCallback(
     async (prompt: string) => {
       const currentAttachments = [...attachments];
@@ -171,6 +212,7 @@ const AiScreen: React.FC = () => {
           body: JSON.stringify({
             attachments: apiAttachments.length > 0 ? apiAttachments : undefined,
             historyId: currentHistoryId,
+            model: selectedModel,
             prompt,
           }),
           headers,
@@ -315,7 +357,7 @@ const AiScreen: React.FC = () => {
         setIsStreaming(false);
       }
     },
-    [attachments, currentHistoryId, geminiApiKey]
+    [attachments, currentHistoryId, geminiApiKey, selectedModel]
   );
 
   if (isLoading) {
@@ -329,6 +371,7 @@ const AiScreen: React.FC = () => {
   return (
     <GPTChat
       attachments={attachments}
+      availableModels={AVAILABLE_MODELS}
       currentHistoryId={currentHistoryId}
       currentMessages={currentMessages}
       geminiApiKey={geminiApiKey}
@@ -338,10 +381,13 @@ const AiScreen: React.FC = () => {
       onCreateHistory={handleCreateHistory}
       onDeleteHistory={handleDeleteHistory}
       onGeminiApiKeyChange={setGeminiApiKey}
+      onModelChange={setSelectedModel}
+      onRateFeedback={handleRateFeedback}
       onRemoveAttachment={handleRemoveAttachment}
       onSelectHistory={handleSelectHistory}
       onSubmit={handleSubmit}
       onUpdateTitle={handleUpdateTitle}
+      selectedModel={selectedModel}
       testID="chat"
     />
   );

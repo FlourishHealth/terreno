@@ -49,13 +49,13 @@ const getAiService = (): AIService | undefined => {
   return aiServiceInstance;
 };
 
-const createModelFromKey = (apiKey: string) => {
+const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider("gemini-3-flash-preview");
+  return provider(modelId ?? "gemini-3-flash-preview");
 };
 
 const getMcpService = (): MCPService | undefined => {
