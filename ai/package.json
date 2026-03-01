@@ -35,7 +35,7 @@
   "name": "@terreno/ai",
   "peerDependencies": {
     "@terreno/api": "workspace:*",
-    "mongoose": "^8.0.0"
+    "mongoose": "^9.0.0"
   },
   "repository": {
     "type": "git",
