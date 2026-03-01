@@ -29,3 +29,27 @@ export interface AdminScreenProps {
 
 // System fields that should be skipped in forms
 export const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
+
+export interface DocumentFile {
+  name: string;
+  fullPath: string;
+  size: number;
+  contentType: string | undefined;
+  updated: string;
+  isFolder: boolean;
+}
+
+export interface DocumentListResponse {
+  files: DocumentFile[];
+  folders: string[];
+  prefix: string;
+}
+
+export interface DocumentStorageBrowserProps {
+  api: Api<any, any, any, any>;
+  basePath: string;
+  title?: string;
+  allowDelete?: boolean;
+  allowUpload?: boolean;
+  onFileSelect?: (file: DocumentFile) => void;
+}
