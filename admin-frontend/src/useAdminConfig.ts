@@ -15,7 +15,7 @@ export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) =>
           }),
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, baseUrl]);
 
