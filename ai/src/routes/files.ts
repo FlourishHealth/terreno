@@ -75,7 +75,7 @@ export const addFileRoutes = (
   );
 
   router.get(
-    "/files/:gcsKey(*)",
+    "/files/{*gcsKey}",
     [
       createOpenApiBuilder(options.openApiOptions ?? {})
         .withTags(["files"])
@@ -98,7 +98,7 @@ export const addFileRoutes = (
   );
 
   router.delete(
-    "/files/:gcsKey(*)",
+    "/files/{*gcsKey}",
     [
       authenticateMiddleware(),
       createOpenApiBuilder(options.openApiOptions ?? {})

@@ -210,7 +210,7 @@ function initializeRoutes(
   });
 
   // Add Sentry scopes for session, transaction, and userId if any are set
-  app.all("*", (req: any, _res: any, next: any) => {
+  app.use((req: any, _res: any, next: any) => {
     const transactionId = req.header("X-Transaction-ID");
     const sessionId = req.header("X-Session-ID");
     if (transactionId) {
