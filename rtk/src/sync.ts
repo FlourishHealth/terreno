@@ -113,7 +113,7 @@ export const useSyncConnection = ({
 
     const getApiQueries = (): Record<string, any> | null => {
       try {
-        const state = store.getState();
+        const state = store.getState() as Record<string, any>;
         return state?.[apiRef.current.reducerPath]?.queries ?? null;
       } catch {
         return null;
