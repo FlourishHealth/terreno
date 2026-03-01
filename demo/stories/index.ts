@@ -16,6 +16,7 @@ export * from "./EmailField.stories";
 export * from "./EmojiSelector.stories";
 export * from "./Field.stories";
 export * from "./Heading.stories";
+export * from "./HeightField.stories";
 export * from "./Icon.stories";
 export * from "./IconButton.stories";
 export * from "./Link.stories";
