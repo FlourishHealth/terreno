@@ -235,7 +235,7 @@ export class TerrenoApp {
     });
 
     // Sentry scopes
-    app.all("*", (req: any, _res: any, next: any) => {
+    app.all("/{*splat}", (req: any, _res: any, next: any) => {
       const transactionId = req.header("X-Transaction-ID");
       const sessionId = req.header("X-Session-ID");
       if (transactionId) {
