@@ -79,7 +79,7 @@ export function setupGitHubAuth(
 
   passport.use(
     "github",
-    new GitHubStrategy(
+    new (GitHubStrategy as any)(
       {
         callbackURL: githubOptions.callbackURL,
         clientID: githubOptions.clientId,
