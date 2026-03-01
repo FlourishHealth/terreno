@@ -1,3 +1,4 @@
+import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
 import openapi from "@wesleytodd/openapi";
 import cors from "cors";
@@ -327,7 +328,16 @@ export class TerrenoApp {
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
       try {
-        app.listen(port, () => {
+        const server = createServer(app);
+
+        // Notify plugins that need access to the HTTP server (e.g. WebSocket plugins)
+        for (const reg of this.registrations) {
+          if (!this.isModelRouterRegistration(reg) && typeof reg.onServerCreated === "function") {
+            reg.onServerCreated(server);
+          }
+        }
+
+        server.listen(port, () => {
           logger.info(`Listening on port ${port}`);
         });
       } catch (error) {

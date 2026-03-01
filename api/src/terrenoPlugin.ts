@@ -1,3 +1,4 @@
+import type http from "node:http";
 import type express from "express";
 
 /**
@@ -36,4 +37,15 @@ export interface TerrenoPlugin {
    * @param app - The Express application instance to register with
    */
   register(app: express.Application): void;
+
+  /**
+   * Called after the HTTP server is created but before it starts listening.
+   * Use this to attach services that need the raw HTTP server, such as
+   * Socket.io or other WebSocket libraries.
+   *
+   * Only called when using `TerrenoApp.start()` (not `build()`).
+   *
+   * @param server - The Node.js HTTP server instance
+   */
+  onServerCreated?(server: http.Server): void;
 }

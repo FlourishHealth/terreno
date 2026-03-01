@@ -8,6 +8,7 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
+  RealtimeApp,
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
@@ -136,6 +137,13 @@ export async function start(skipListen = false): Promise<express.Application> {
               },
               healthy: mongoConnected,
             };
+          },
+        })
+      )
+      .register(
+        new RealtimeApp({
+          changeStream: {
+            ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },
         })
       )

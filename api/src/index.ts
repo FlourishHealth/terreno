@@ -15,6 +15,7 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./realtime";
 export * from "./terrenoApp";
 export * from "./terrenoPlugin";
 export * from "./transformers";
