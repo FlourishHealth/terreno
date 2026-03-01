@@ -1,10 +1,12 @@
 import * as Sentry from "@sentry/bun";
-import type {ChangeStream, ChangeStreamDocument, ChangeStreamOptions} from "mongodb";
 import mongoose from "mongoose";
 import type {Server} from "socket.io";
 
+type ChangeStream = mongoose.mongo.ChangeStream;
+type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
+type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
+
 import {logger} from "../logger";
-import {serialize} from "../transformers";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
@@ -87,9 +89,8 @@ const serializeDoc = async (
   if (entry.config.realtimeResponseHandler) {
     return entry.config.realtimeResponseHandler(doc, method);
   }
-  // Use simple serialization (toJSON) rather than the full responseHandler
-  // since we don't have a request context in change streams
-  return serialize(doc);
+  // Use toJSON for simple serialization since we don't have a request context in change streams
+  return typeof doc.toJSON === "function" ? doc.toJSON() : doc;
 };
 
 /**
