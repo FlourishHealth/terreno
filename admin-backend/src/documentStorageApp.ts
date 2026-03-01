@@ -179,10 +179,10 @@ export class DocumentStorageApp {
 
     // GET basePath/url/* — Get signed download URL
     app.get(
-      `${basePath}/url/*`,
+      `${basePath}/url/{*filepath}`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = (req.params as any)[0] as string;
+        const filePath = req.params.filepath as string;
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }
@@ -207,10 +207,10 @@ export class DocumentStorageApp {
 
     // DELETE basePath/* — Delete a file
     app.delete(
-      `${basePath}/*`,
+      `${basePath}/{*filepath}`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = (req.params as any)[0] as string;
+        const filePath = req.params.filepath as string;
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }
