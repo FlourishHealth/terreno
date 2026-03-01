@@ -7,7 +7,6 @@
     "@google-cloud/storage": "^7.15.0",
     "@terreno/api": "workspace:*",
     "express": "^5.2.1",
-    "mongoose": "^8.15.1",
     "multer": "^1.4.5-lts.1"
   },
   "description": "Admin panel backend plugin for @terreno/api",
@@ -26,6 +25,9 @@
     "terreno"
   ],
   "license": "Apache-2.0",
+  "peerDependencies": {
+    "mongoose": ">=8.0.0"
+  },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
   "repository": {
