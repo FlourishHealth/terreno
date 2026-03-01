@@ -160,7 +160,7 @@ export function permissionMiddleware<T>(
       if (!data) {
         // Check if document exists but is hidden. Completely skip plugins.
         const hiddenDoc = await model.collection.findOne({
-          _id: new mongoose.Types.ObjectId(req.params.id as string),
+          _id: new mongoose.Types.ObjectId(req.params.id),
         });
 
         if (!hiddenDoc) {

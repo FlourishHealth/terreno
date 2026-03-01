@@ -1045,8 +1045,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    const field = req.params.field as string;
-    const itemId = req.params.itemId as string;
+    const {field, itemId} = req.params;
 
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.

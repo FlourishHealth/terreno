@@ -75,7 +75,7 @@ export const addFileRoutes = (
   );
 
   router.get(
-    "/files/{*gcsKey}",
+    "/files/:gcsKey(*)",
     [
       createOpenApiBuilder(options.openApiOptions ?? {})
         .withTags(["files"])
@@ -85,7 +85,7 @@ export const addFileRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const gcsKey = req.params.gcsKey as string;
+      const {gcsKey} = req.params;
 
       const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
       if (!attachment) {
@@ -98,7 +98,7 @@ export const addFileRoutes = (
   );
 
   router.delete(
-    "/files/{*gcsKey}",
+    "/files/:gcsKey(*)",
     [
       authenticateMiddleware(),
       createOpenApiBuilder(options.openApiOptions ?? {})
@@ -109,7 +109,7 @@ export const addFileRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const gcsKey = req.params.gcsKey as string;
+      const {gcsKey} = req.params;
       const userId = (req as any).user?._id as mongoose.Types.ObjectId;
 
       const attachment = await FileAttachment.findOne({deleted: false, gcsKey});

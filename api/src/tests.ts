@@ -163,7 +163,7 @@ export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 export function getBaseServer(): Express {
   const app = express();
 
-  app.all("/{*splat}", (req, res, next) => {
+  app.all("/*", (req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "*");
     // intercepts OPTIONS method
