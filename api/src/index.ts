@@ -10,6 +10,7 @@ export * from "./logger";
 export * from "./middleware";
 export * from "./notifiers";
 export * from "./openApiBuilder";
+export * from "./openApiCompat";
 export * from "./openApiEtag";
 export * from "./openApiValidator";
 export * from "./permissions";

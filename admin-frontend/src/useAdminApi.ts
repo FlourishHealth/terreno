@@ -55,7 +55,7 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
           }),
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, routePath, modelName]);
 
