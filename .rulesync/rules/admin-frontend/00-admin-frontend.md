@@ -130,7 +130,7 @@ Features:
 - Uses DataTable from @terreno/ui
 - Column headers from `listFields` in backend config
 - Click row to edit
-- "Create New" button (navigates to `{baseUrl}/{modelName}/new`)
+- "Create" button in navigation header (navigates to `{baseUrl}/{modelName}/create`)
 - Pagination controls
 - Loading and error states
 - Reference fields render as clickable links (via AdminRefField)
@@ -242,6 +242,8 @@ const {data, isLoading} = useListQuery({limit: 20, page: 1});
 const [create, {isLoading: isCreating}] = useCreateMutation();
 await create({email: "test@example.com", name: "Test User"}).unwrap();
 ```
+
+**Note**: All admin hooks (`useAdminApi`, `useAdminConfig`, `AdminRefField`) use `overrideExisting: true` when injecting endpoints, allowing multiple admin screens to safely re-register the same endpoints without conflicts.
 
 ## Types
 
