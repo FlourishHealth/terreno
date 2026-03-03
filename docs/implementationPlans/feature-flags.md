@@ -6,7 +6,7 @@
 
 ### FeatureFlag
 
-New Mongoose model in `@terreno/flags-backend`. Stores flag definitions synced from code, global state, and audit history.
+New Mongoose model in `@terreno/admin-backend`. Stores flag definitions synced from code and global state. Change tracking is handled via audit logs, not embedded history.
 
 ```typescript
 const featureFlagSchema = new mongoose.Schema({
@@ -48,35 +48,6 @@ const featureFlagSchema = new mongoose.Schema({
     default: "active",
     description: "Active flags are registered in code; archived flags have been removed from code",
   },
-  history: [{
-    changedBy: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      description: "Admin user who made the change",
-    },
-    changedAt: {
-      type: Date,
-      default: Date.now,
-      description: "When the change was made",
-    },
-    field: {
-      type: String,
-      description: "Which field was changed (enabled, globalValue, userOverride)",
-    },
-    previousValue: {
-      type: Schema.Types.Mixed,
-      description: "Value before the change",
-    },
-    newValue: {
-      type: Schema.Types.Mixed,
-      description: "Value after the change",
-    },
-    targetUserId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      description: "If this was a per-user override change, which user it applies to",
-    },
-  }],
 }, {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}});
 
 featureFlagSchema.plugin(createdUpdatedPlugin);
@@ -84,7 +55,7 @@ featureFlagSchema.plugin(createdUpdatedPlugin);
 
 ### User Plugin (`featureFlagsPlugin`)
 
-Mongoose plugin that adds a `featureFlags` field to any User schema.
+Mongoose plugin exported from `@terreno/admin-backend` that adds a `featureFlags` field to any User schema.
 
 ```typescript
 export const featureFlagsPlugin = (schema: Schema) => {
@@ -107,38 +78,46 @@ userSchema.plugin(featureFlagsPlugin);
 
 ## APIs
 
-All endpoints are admin-only. Regular users never interact with flags directly — evaluation happens in server code.
+Flag management routes are mounted by `AdminApp` automatically when flags are configured. Admin endpoints require `IsAdmin`, the `/flags/me` endpoint requires `IsAuthenticated`.
 
-### Flag Management (mounted by FlagsApp)
+### Flag Management (mounted by AdminApp)
 
 | Method | Path | Description | Permission |
 |--------|------|-------------|------------|
-| GET | `/flags` | List all flags (filterable by `status`) | IsAdmin |
-| GET | `/flags/:key` | Get a single flag by key | IsAdmin |
-| PATCH | `/flags/:key` | Update flag (`enabled`, `globalValue`) | IsAdmin |
-| GET | `/flags/:key/users` | List users with overrides for this flag | IsAdmin |
-| PUT | `/flags/:key/users/:userId` | Set a user's override for this flag | IsAdmin |
-| DELETE | `/flags/:key/users/:userId` | Remove a user's override for this flag | IsAdmin |
+| GET | `/admin/flags` | List all flags (filterable by `status`) | IsAdmin |
+| GET | `/admin/flags/:key` | Get a single flag by key | IsAdmin |
+| PATCH | `/admin/flags/:key` | Update flag (`enabled`, `globalValue`) | IsAdmin |
+| GET | `/admin/flags/:key/users` | List users with overrides for this flag | IsAdmin |
+| PUT | `/admin/flags/:key/users/:userId` | Set a user's override for this flag | IsAdmin |
+| DELETE | `/admin/flags/:key/users/:userId` | Remove a user's override for this flag | IsAdmin |
+
+### User-Facing Endpoint
+
+| Method | Path | Description | Permission |
+|--------|------|-------------|------------|
+| GET | `/admin/flags/me` | Get all evaluated flag values for the current user | IsAuthenticated |
+
+Returns a simple `Record<string, boolean | string>` — just keys and resolved values. No flag metadata, no admin details. This is what frontends consume to gate UI features.
 
 **Notes:**
 - No POST (create) or DELETE (delete) — flags are code-declared only.
-- PATCH records history entries with `changedBy`, previous/new values.
-- User override endpoints update `user.featureFlags` Map AND record history on the flag doc.
-- GET `/flags` supports `?status=active` and `?status=archived` query params.
-- GET `/flags/:key/users` returns a list of users who have overrides set, with their override values.
+- PATCH and user override endpoints write audit log entries (who changed what, previous/new values).
+- User override endpoints update `user.featureFlags` Map.
+- GET `/admin/flags` supports `?status=active` and `?status=archived` query params.
+- GET `/admin/flags/:key/users` returns a list of users who have overrides set, with their override values.
 
 ### Internal Evaluation API (not HTTP — used in code)
 
 ```typescript
 // Generic evaluation
-flagsApp.variation(key: string, user: UserDocument | null, defaultValue: any): Promise<any>
+adminApp.variation(key: string, user: UserDocument | null, defaultValue: any): Promise<any>
 
 // Typed evaluation
-flagsApp.boolVariation(key: string, user: UserDocument | null, defaultValue: boolean): Promise<boolean>
-flagsApp.stringVariation(key: string, user: UserDocument | null, defaultValue: string): Promise<string>
+adminApp.boolVariation(key: string, user: UserDocument | null, defaultValue: boolean): Promise<boolean>
+adminApp.stringVariation(key: string, user: UserDocument | null, defaultValue: string): Promise<string>
 
 // Bulk evaluation
-flagsApp.allFlags(user: UserDocument | null): Promise<Record<string, any>>
+adminApp.allFlags(user: UserDocument | null): Promise<Record<string, any>>
 ```
 
 **Evaluation order:**
@@ -149,11 +128,11 @@ flagsApp.allFlags(user: UserDocument | null): Promise<Record<string, any>>
 
 ## Notifications
 
-No notifications required for this feature. Flag changes are tracked via audit history on the FeatureFlag model, visible in the admin UI.
+No notifications required for this feature. Flag changes are tracked via audit logs.
 
 ## UI
 
-### Admin Frontend Screens
+### Admin Frontend Screens (in `@terreno/admin-frontend`)
 
 #### 1. Flag List Screen (`FlagList`)
 - DataTable showing all flags: key, description, type, enabled (toggle), status badge
@@ -167,17 +146,17 @@ No notifications required for this feature. Flag changes are tracked via audit h
 - **User Overrides section**:
   - Table of users with overrides: name/email, override value, remove button
   - "Add Override" button → user search + value input
-- **History section**:
-  - Chronological list of changes: who, when, what field, old → new value
+- **Audit Log section**:
+  - Chronological list of changes pulled from audit logs: who, when, what field, old → new value
   - Shows targetUserId for per-user changes
 
 ### Navigation
-- Admin nav gets a "Feature Flags" entry
+- Admin nav gets a "Feature Flags" entry automatically
 - `FlagList` → `FlagDetail` via row click
 
 ### Reusable Components
 - From `@terreno/ui`: DataTable, Button, TextField, SelectField, Badge, Card, Page, Box, Text
-- From `@terreno/admin-frontend`: layout patterns, `useAdminApi`-style hooks
+- Existing `@terreno/admin-frontend` patterns: `useAdminApi`, `AdminFieldRenderer`, etc.
 
 ## Phases
 
@@ -185,8 +164,12 @@ No notifications required for this feature. Flag changes are tracked via audit h
 
 Everything needed for flags to work in code, manageable via API.
 
-- `@terreno/flags-backend` package: FeatureFlag model, FlagsApp (TerrenoPlugin), startup sync (transactional), evaluation API, flagged logger, admin API endpoints
-- `featureFlagsPlugin` for User schema
+- FeatureFlag model added to `@terreno/admin-backend`
+- `featureFlagsPlugin` for User schema exported from `@terreno/admin-backend`
+- Flag registration and transactional startup sync added to `AdminApp`
+- Evaluation API (`variation`, `boolVariation`, `stringVariation`, `allFlags`) on `AdminApp`
+- `createFlaggedLogger` utility exported from `@terreno/admin-backend`
+- Flag admin API endpoints mounted by `AdminApp`
 - Tests for model, sync, evaluation, and routes
 - Example backend integration
 
@@ -196,23 +179,22 @@ Everything needed for flags to work in code, manageable via API.
 
 UI for managing flags without API calls.
 
-- `@terreno/flags-frontend` package: FlagList screen, FlagDetail screen (toggle, global value, user overrides, history)
-- Navigation integration with admin-frontend patterns
+- FlagList and FlagDetail screens added to `@terreno/admin-frontend`
+- `useFlagsApi` hook in `@terreno/admin-frontend`
+- Navigation integration (automatic "Feature Flags" entry)
 - Example frontend integration
 
 **Deliverable:** Admins can view, toggle, and manage flags per-user through the admin UI.
 
 ## Feature Flags & Migrations
 
-No feature flag needed for the feature flag system — it's additive. Apps opt in by:
-1. Adding `featureFlagsPlugin` to their User schema
-2. Registering `FlagsApp` with `TerrenoApp`
+No feature flag needed for the feature flag system — it's automatically available when using `AdminApp`. Apps opt in to per-user overrides by applying `featureFlagsPlugin` to their User schema. Flag registration is optional — if no flags are configured, the feature is inert.
 
 No data migrations. Existing users get an empty `featureFlags` Map on first access.
 
 ## Activity Log & User Updates
 
-No activity logging beyond the built-in `history` array on the FeatureFlag model. This is admin-only tooling with no user-facing updates.
+Flag changes (toggle, global value, user overrides) are written to audit logs with: who changed it, what field, previous value, new value, and target user (for per-user overrides). No user-facing updates.
 
 ## Not Included / Future Work
 
@@ -222,11 +204,9 @@ No activity logging beyond the built-in `history` array on the FeatureFlag model
 - Multi-kind contexts (only User — no org, device, etc.)
 - Real-time flag updates via websocket/SSE (evaluate on each request)
 - `track()` analytics or experimentation metrics
-- Client-side SDK or frontend evaluation helper
 - Flag scheduling (turn on/off at a specific time)
 - Flag environments (different values for dev/staging/prod)
 - Bulk user override operations (CSV import, etc.)
-- History pagination or cap (monitor growth, add later if needed)
 
 ---
 
@@ -236,88 +216,76 @@ No activity logging beyond the built-in `history` array on the FeatureFlag model
 
 ### Phase 1: Backend + Core Evaluation
 
-- [ ] **Task 1.1**: Scaffold `flags-backend` package
-  - Description: Create `flags-backend/` directory with `package.json`, `tsconfig.json`, `src/index.ts`. Add to root workspace. Follow the same structure as `admin-backend/`.
-  - Files: `flags-backend/package.json`, `flags-backend/tsconfig.json`, `flags-backend/src/index.ts`, root `package.json` (workspace entry)
+- [ ] **Task 1.1**: Add FeatureFlag model to `admin-backend`
+  - Description: Create the FeatureFlag Mongoose model with schema, types, indexes, and `createdUpdatedPlugin` as specified in the Models section. Export from `@terreno/admin-backend`.
+  - Files: `admin-backend/src/models/featureFlag.ts`, `admin-backend/src/index.ts`
   - Depends on: none
-  - Acceptance: `bun install` succeeds, package compiles with `bun run compile`
+  - Acceptance: Model can be imported from `@terreno/admin-backend`, schema matches spec, unique index on `key`
 
-- [ ] **Task 1.2**: Create FeatureFlag model
-  - Description: Implement the FeatureFlag Mongoose model with schema, types, indexes, and plugins as specified in the Models section. Include `createdUpdatedPlugin`. Export from package index.
-  - Files: `flags-backend/src/models/featureFlag.ts`, `flags-backend/src/index.ts`
-  - Depends on: Task 1.1
-  - Acceptance: Model can be imported, schema matches spec, unique index on `key`
-
-- [ ] **Task 1.3**: Create `featureFlagsPlugin`
-  - Description: Implement the Mongoose plugin that adds `featureFlags: Map<string, Mixed>` to a schema. Export from package index.
-  - Files: `flags-backend/src/plugins/featureFlagsPlugin.ts`, `flags-backend/src/index.ts`
-  - Depends on: Task 1.1
+- [ ] **Task 1.2**: Add `featureFlagsPlugin` to `admin-backend`
+  - Description: Implement the Mongoose plugin that adds `featureFlags: Map<string, Mixed>` to a schema. Export from `@terreno/admin-backend`.
+  - Files: `admin-backend/src/plugins/featureFlagsPlugin.ts`, `admin-backend/src/index.ts`
+  - Depends on: none
   - Acceptance: Plugin can be applied to a schema, adds the `featureFlags` field
 
-- [ ] **Task 1.4**: Implement flag registration and startup sync
-  - Description: Build the `FlagsApp` class implementing `TerrenoPlugin`. Constructor accepts an array of flag definitions `{key, type, defaultValue, description}`. On `register()`, perform transactional sync: bulkWrite upserts for registered flags, updateMany to archive unregistered flags. Use `mongoose.startSession()` with `withTransaction()`.
-  - Files: `flags-backend/src/flagsApp.ts`, `flags-backend/src/index.ts`
-  - Depends on: Task 1.2
-  - Acceptance: Flags sync to DB on startup, concurrent starts don't create duplicates, removed flags get archived, existing `enabled`/`globalValue` are preserved
+- [ ] **Task 1.3**: Add flag registration and startup sync to `AdminApp`
+  - Description: Extend `AdminApp` constructor to accept an optional `flags` array of `{key, type, defaultValue, description}`. On `register()`, perform transactional sync: bulkWrite upserts for registered flags, updateMany to archive unregistered flags. Use `mongoose.startSession()` with `withTransaction()`. If no flags are configured, skip sync entirely.
+  - Files: `admin-backend/src/adminApp.ts`
+  - Depends on: Task 1.1
+  - Acceptance: Flags sync to DB on startup, concurrent starts don't create duplicates, removed flags get archived, existing `enabled`/`globalValue` are preserved, no-op when no flags configured
 
-- [ ] **Task 1.5**: Implement evaluation API
-  - Description: Add `variation()`, `boolVariation()`, `stringVariation()`, and `allFlags()` methods to `FlagsApp`. Follow evaluation order: user override → global value → flag default → code default. Anonymous (null user) gets global default only.
-  - Files: `flags-backend/src/flagsApp.ts`
-  - Depends on: Task 1.4
+- [ ] **Task 1.4**: Add evaluation API to `AdminApp`
+  - Description: Add `variation()`, `boolVariation()`, `stringVariation()`, and `allFlags()` methods to `AdminApp`. Follow evaluation order: user override → global value → flag default → code default. Anonymous (null user) gets global default only.
+  - Files: `admin-backend/src/adminApp.ts`
+  - Depends on: Task 1.3
   - Acceptance: All four methods work correctly, evaluation order is correct, never throws (always returns a value)
 
-- [ ] **Task 1.6**: Implement `createFlaggedLogger`
-  - Description: Add `createFlaggedLogger(flagKey, namespace)` to `FlagsApp` that returns a logger object with `debug(user, message, meta?)`, `info(user, message, meta?)`, `warn(user, message, meta?)`, `error(user, message, meta?)` methods. Each method checks the flag for the given user before logging via Winston logger.
-  - Files: `flags-backend/src/flaggedLogger.ts`, `flags-backend/src/index.ts`
-  - Depends on: Task 1.5
+- [ ] **Task 1.5**: Add `createFlaggedLogger` to `admin-backend`
+  - Description: Add `createFlaggedLogger(flagKey, namespace)` to `AdminApp` that returns a logger object with `debug(user, message, meta?)`, `info(user, message, meta?)`, `warn(user, message, meta?)`, `error(user, message, meta?)` methods. Each method checks the flag for the given user before logging via Winston logger.
+  - Files: `admin-backend/src/flaggedLogger.ts`, `admin-backend/src/index.ts`
+  - Depends on: Task 1.4
   - Acceptance: Logger no-ops when flag is off, logs with namespace prefix when flag is on
 
-- [ ] **Task 1.7**: Implement admin API endpoints
-  - Description: Add the 6 admin endpoints to `FlagsApp.register()`: list flags, get flag, update flag, list user overrides, set user override, remove user override. All require `IsAdmin`. PATCH and override endpoints record history entries. User override endpoints update `user.featureFlags` Map.
-  - Files: `flags-backend/src/flagsApp.ts` or `flags-backend/src/routes/flags.ts`
-  - Depends on: Task 1.4, Task 1.3
-  - Acceptance: All 6 endpoints work, history is recorded, user.featureFlags is updated on override changes
+- [ ] **Task 1.6**: Add flag admin API endpoints to `AdminApp`
+  - Description: Add the 7 endpoints to `AdminApp.register()`: GET `/admin/flags/me` (IsAuthenticated, returns evaluated flags for current user), plus 6 admin endpoints — list flags, get flag, update flag, list user overrides, set user override, remove user override (all IsAdmin). Mount under the admin basePath. PATCH and override endpoints write audit log entries. User override endpoints update `user.featureFlags` Map.
+  - Files: `admin-backend/src/adminApp.ts` or `admin-backend/src/routes/flags.ts`
+  - Depends on: Task 1.4, Task 1.2
+  - Acceptance: `/admin/flags/me` returns resolved flag values for authenticated user, all 6 admin endpoints work, audit logs are written, user.featureFlags is updated on override changes
 
-- [ ] **Task 1.8**: Write tests for flags-backend
-  - Description: Write tests covering: model creation/validation, startup sync (including concurrent/idempotent behavior), evaluation order, flagged logger, admin endpoints (CRUD, history, user overrides). Use bun test with MongoDB memory server.
-  - Files: `flags-backend/src/tests/`, `flags-backend/src/tests/bunSetup.ts`
-  - Depends on: Task 1.7
+- [ ] **Task 1.7**: Write tests for feature flags
+  - Description: Write tests covering: model creation/validation, startup sync (including concurrent/idempotent behavior), evaluation order, flagged logger, admin endpoints (CRUD, audit logging, user overrides). Use bun test with MongoDB memory server.
+  - Files: `admin-backend/src/tests/featureFlags.test.ts`
+  - Depends on: Task 1.6
   - Acceptance: All tests pass, cover happy paths and edge cases
 
-- [ ] **Task 1.9**: Integrate with example-backend
-  - Description: Apply `featureFlagsPlugin` to example User model. Register `FlagsApp` with example `TerrenoApp` with a few sample flags (e.g., `new-feature`, `ws-debug`). Add a flagged logger example.
-  - Files: `example-backend/src/models/user.ts`, `example-backend/src/server.ts`, `example-backend/package.json`
-  - Depends on: Task 1.7
-  - Acceptance: Example backend starts, flags sync, evaluation works, admin endpoints accessible
+- [ ] **Task 1.8**: Integrate with example-backend
+  - Description: Apply `featureFlagsPlugin` to example User model. Add flags config to `AdminApp` with a few sample flags (e.g., `new-feature`, `ws-debug`). Add a flagged logger example.
+  - Files: `example-backend/src/models/user.ts`, `example-backend/src/server.ts`
+  - Depends on: Task 1.6
+  - Acceptance: Example backend starts, flags sync, evaluation works, admin flag endpoints accessible
 
 ### Phase 2: Admin Frontend
 
-- [ ] **Task 2.1**: Scaffold `flags-frontend` package
-  - Description: Create `flags-frontend/` directory with `package.json`, `tsconfig.json`, `src/index.tsx`. Add to root workspace. Follow `admin-frontend/` structure.
-  - Files: `flags-frontend/package.json`, `flags-frontend/tsconfig.json`, `flags-frontend/src/index.tsx`, root `package.json`
+- [ ] **Task 2.1**: Add `useFlagsApi` hook to `admin-frontend`
+  - Description: RTK Query hook (similar to `useAdminApi`) that injects endpoints for the 7 flag routes. Returns typed hooks: `useListFlagsQuery`, `useGetFlagQuery`, `useUpdateFlagMutation`, `useListFlagUsersQuery`, `useSetUserOverrideMutation`, `useRemoveUserOverrideMutation`, `useMyFlagsQuery`.
+  - Files: `admin-frontend/src/useFlagsApi.tsx`, `admin-frontend/src/index.tsx`
   - Depends on: none
-  - Acceptance: Package compiles
-
-- [ ] **Task 2.2**: Create `useFlagsApi` hook
-  - Description: RTK Query hook (similar to `useAdminApi`) that injects endpoints for the 6 flag admin routes. Returns typed hooks: `useListFlagsQuery`, `useGetFlagQuery`, `useUpdateFlagMutation`, `useListFlagUsersQuery`, `useSetUserOverrideMutation`, `useRemoveUserOverrideMutation`.
-  - Files: `flags-frontend/src/useFlagsApi.tsx`
-  - Depends on: Task 2.1
   - Acceptance: Hooks connect to backend endpoints, types are correct
 
-- [ ] **Task 2.3**: Build FlagList screen
+- [ ] **Task 2.2**: Build FlagList screen in `admin-frontend`
   - Description: DataTable screen listing all flags. Columns: key, description, flagType, enabled (toggle), status (badge). Filter by active/archived. Row click navigates to detail. Uses `@terreno/ui` components.
-  - Files: `flags-frontend/src/FlagList.tsx`
-  - Depends on: Task 2.2
+  - Files: `admin-frontend/src/FlagList.tsx`, `admin-frontend/src/index.tsx`
+  - Depends on: Task 2.1
   - Acceptance: Lists flags, filter works, inline toggle updates flag, navigation works
 
-- [ ] **Task 2.4**: Build FlagDetail screen
-  - Description: Detail screen with: read-only metadata (key, description, type, defaultValue), global toggle + value input, user overrides table with add/remove, history list. Uses `useFlagsApi` hooks for all mutations.
-  - Files: `flags-frontend/src/FlagDetail.tsx`
-  - Depends on: Task 2.2
-  - Acceptance: All sections render, mutations work, history displays correctly
+- [ ] **Task 2.3**: Build FlagDetail screen in `admin-frontend`
+  - Description: Detail screen with: read-only metadata (key, description, type, defaultValue), global toggle + value input, user overrides table with add/remove, audit log section. Uses `useFlagsApi` hooks for all mutations.
+  - Files: `admin-frontend/src/FlagDetail.tsx`, `admin-frontend/src/index.tsx`
+  - Depends on: Task 2.1
+  - Acceptance: All sections render, mutations work, audit log displays correctly
 
-- [ ] **Task 2.5**: Export and integrate with example-frontend
-  - Description: Export `FlagList` and `FlagDetail` from package. Add flag screens to example-frontend admin section. Add navigation entry.
-  - Files: `flags-frontend/src/index.tsx`, `example-frontend/app/admin/flags/` screens, `example-frontend/package.json`
-  - Depends on: Task 2.3, Task 2.4
+- [ ] **Task 2.4**: Integrate with example-frontend
+  - Description: Add flag screens to example-frontend admin section. Add navigation entry for "Feature Flags".
+  - Files: `example-frontend/app/admin/flags/` screens
+  - Depends on: Task 2.2, Task 2.3
   - Acceptance: Flag management accessible from admin UI in example app, full workflow works end-to-end
