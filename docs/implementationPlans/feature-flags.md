@@ -2,6 +2,34 @@
 
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
+## Problem
+
+There is no way to toggle features at runtime — enabling or disabling functionality requires a code change and deploy. Developers can't safely roll out new features to specific users, and there's no mechanism to gate debug tooling (e.g., verbose websocket logging) per-user without redeploying.
+
+## Business Case
+
+Feature flags enable safer rollouts, per-user debugging, and runtime configuration without deploys. Integrating directly into the admin panel makes flag management accessible to non-engineers and removes the need for a third-party service like LaunchDarkly for simple use cases.
+
+## Solution
+
+A LaunchDarkly-inspired feature flag system built into `@terreno/admin-backend` and `@terreno/admin-frontend`. Flags are **declared in code** (version-controlled, tied to PRs) and **managed in admin** (toggled, overridden per-user). Supports boolean and string flag types.
+
+Key capabilities:
+- **Code-declared flags** with transactional startup sync (safe for multi-node deploys)
+- **Evaluation API** on `AdminApp`: `variation()`, `boolVariation()`, `stringVariation()`, `allFlags()`
+- **Per-user overrides** via Mongoose plugin on User schema
+- **Flagged logger** utility for gating debug logs behind flags
+- **Admin UI** with full flag management: global toggle, per-user overrides, audit log
+- **Frontend endpoint** (`GET /admin/flags/me`) returning resolved flag values for the current user
+
+## Scope
+
+**In scope:** Flag model, user plugin, startup sync, evaluation API, flagged logger, 7 API endpoints, admin list/detail screens, example app integration.
+
+**Out of scope:** Percentage rollouts, targeting rules, flag prerequisites, multi-kind contexts, real-time updates, analytics/experimentation, flag scheduling, environment-specific values.
+
+---
+
 ## Models
 
 ### FeatureFlag
