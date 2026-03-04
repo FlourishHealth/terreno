@@ -3,6 +3,10 @@
 [![@terreno/api](https://img.shields.io/npm/v/@terreno/api?label=%40terreno%2Fapi)](https://www.npmjs.com/package/@terreno/api)
 [![@terreno/ui](https://img.shields.io/npm/v/@terreno/ui?label=%40terreno%2Fui)](https://www.npmjs.com/package/@terreno/ui)
 [![@terreno/rtk](https://img.shields.io/npm/v/@terreno/rtk?label=%40terreno%2Frtk)](https://www.npmjs.com/package/@terreno/rtk)
+[![@terreno/ai](https://img.shields.io/npm/v/@terreno/ai?label=%40terreno%2Fai)](https://www.npmjs.com/package/@terreno/ai)
+[![@terreno/admin-backend](https://img.shields.io/npm/v/@terreno/admin-backend?label=%40terreno%2Fadmin-backend)](https://www.npmjs.com/package/@terreno/admin-backend)
+[![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
+[![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 
 A monorepo containing shared packages for building full-stack applications.
 
