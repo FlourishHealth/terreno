@@ -578,6 +578,10 @@ setupServer({
 
 **Common patterns:** Route registration, middleware injection, conditional setup, service initialization.
 
+**Example:** See `@terreno/api-health` for a complete plugin implementation with health check endpoints.
+
+**Common patterns:** Route registration, middleware injection, conditional setup, service initialization.
+
 ## Logging
 
 Use the `logger` object, never `console.log`:
