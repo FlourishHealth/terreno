@@ -10,6 +10,30 @@ interface AdminModelListProps {
   api: Api<any, any, any, any>;
 }
 
+/**
+ * Admin panel entry screen that displays all available models as clickable cards.
+ *
+ * Fetches the admin configuration from the backend and renders a grid of model cards.
+ * Each card shows the model's display name and field count. Clicking a card navigates
+ * to the model's table view.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelList} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ *
+ * function AdminIndexScreen() {
+ *   return <AdminModelList baseUrl="/admin" api={api} />;
+ * }
+ * ```
+ *
+ * @see AdminModelTable for the table view that this navigates to
+ * @see useAdminConfig for the configuration hook
+ */
 export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
