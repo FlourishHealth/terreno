@@ -101,6 +101,68 @@ Workspace packages reference these versions using `catalog:`:
 
 This ensures consistent versions across all packages. To update a shared dependency version, change it in the root `catalog` and run `bun install`.
 
+## Linking Terreno Packages in Another Repo
+
+Consumers (e.g. [Flourish](https://github.com/FlourishHealth/flourish)) can develop against local copies of any published package—`@terreno/api`, `@terreno/ui`, `@terreno/rtk`—or multiple at once, using Bun’s link feature.
+
+### Which package goes where
+
+- **@terreno/api** — Link in the consumer’s backend (e.g. `backend/package.json`). Restart the server after changes; run `bun run api:compile` or `bun run api:dev` in terreno so the consumer uses the built output.
+- **@terreno/ui** — Link in the consumer’s frontend app (e.g. `app/package.json`). When the app uses Metro/Expo, the consumer’s Metro config must be updated (see step 5 below). Run `bun run ui:compile` or `bun run ui:dev` in terreno so the consumer uses `ui/dist/`.
+- **@terreno/rtk** — Link in the consumer’s frontend app. If the app uses Metro and you link rtk, you may need the same Metro resolution tweaks as for ui so dependencies resolve from the app’s `node_modules`.
+
+### One-time setup in the consumer repo
+
+1. **Clone both repos**  
+   Place terreno next to the consumer repo (e.g. `flourish` and `terreno` as siblings). Adjust paths below if your layout differs.
+
+2. **Declare the link(s) in the right package.json**  
+   In the workspace that depends on the package, set the dependency to the link protocol. Examples for a consumer where terreno is at `../terreno`:
+   ```json
+   "@terreno/api": "link:../../terreno/api",
+   "@terreno/ui": "link:../../terreno/ui",
+   "@terreno/rtk": "link:../../terreno/rtk"
+   ```
+   You can link one, two, or all three; use the path that resolves from that package.json to the terreno package directory.
+
+3. **Register and link each package**  
+   For each package you’re linking, from the consumer repo:
+   ```bash
+   cd ../terreno/<package-dir> && bun link && cd - && cd <consumer-dir> && bun link @terreno/<name>
+   ```
+   Example for ui when the consumer app is in `app/`:
+   ```bash
+   cd ../terreno/ui && bun link && cd - && cd app && bun link @terreno/ui
+   ```
+   Repeat for api (from backend dir) and rtk (from app dir) as needed. Or use scripts in the consumer repo (e.g. `bun run link:ui`, `bun run link:api`) if they exist.
+
+4. **Fix symlinks if resolution fails**  
+   If Bun creates a bad relative symlink and the package can’t be resolved, replace it with an absolute path. From the consumer workspace that contains `node_modules`:
+   ```bash
+   rm node_modules/@terreno/<name>
+   ln -s /absolute/path/to/terreno/<package-dir> node_modules/@terreno/<name>
+   ```
+
+5. **Metro (Expo / React Native)**  
+   When linking **@terreno/ui** (and optionally **@terreno/rtk**) in an Expo/Metro app, the consumer’s Metro config must:
+   - Add the linked package directory (e.g. `terreno/ui`) to `watchFolders`
+   - Resolve the linked package’s dependencies from the app’s `node_modules` (e.g. `resolver.nodeModulesPaths` and a `resolveRequest` fallback for bare imports from the linked path) so there’s only one copy of React and all deps resolve.
+
+   See a consumer that already does this (e.g. Flourish’s `app/metro.config.js`) for a reference.
+
+6. **Restart dev servers**  
+   After linking or Metro config changes, restart the bundler with a clean cache (e.g. `bun start --clear`). For backend, restart the API server so it picks up the linked `@terreno/api`.
+
+### In the terreno repo
+
+- Run the relevant compile or dev command for each linked package so the consumer sees changes: `bun run api:compile` / `api:dev`, `bun run ui:compile` / `ui:dev`, `bun run rtk:compile` / `rtk:dev`.
+
+### Reverting to published packages
+
+In the consumer’s `package.json`, set each linked dependency back to a version (e.g. `"@terreno/ui": "0.0.17"`) and run `bun install` in that workspace.
+
+---
+
 ## Releasing
 
 Packages are published to npm automatically when you create a release on GitHub. All publishable packages (`@terreno/api`, `@terreno/ui`, `@terreno/rtk`) are kept in lockstep with the same version number.
