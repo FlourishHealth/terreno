@@ -30,6 +30,8 @@ bun run test             # Run tests in api and ui
 ```bash
 bun run api:test         # Test API package
 bun run ui:test          # Test UI package
+bun run ai:test          # Test AI package
+bun run api-health:test  # Test API health package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example
