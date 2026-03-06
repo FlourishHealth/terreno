@@ -4,6 +4,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Contents
 
+- [Link Terreno packages locally](link-packages-locally.md) — Develop against local copies of api, ui, or rtk packages
 - [Create a Mongoose model](create-a-model.md) — Define models with proper conventions
 - [Add GitHub OAuth authentication](add-github-oauth.md) — Enable GitHub login for your API
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)

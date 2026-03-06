@@ -1,5 +1,5 @@
 ---
-localRoot: true
+root: true
 targets: ["claudecode"]
 description: "Terreno monorepo Claude Code guidelines"
 globs: ["**/*"]
