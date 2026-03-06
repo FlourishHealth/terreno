@@ -8,7 +8,45 @@
 [![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
 [![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 
-A monorepo containing shared packages for building full-stack applications.
+**The full-stack TypeScript framework for building and launching apps fast.**
+
+Terreno is to React Native + Express what Django is to Python web development: a batteries-included framework where the generic, undifferentiated work is already done so you can focus on what makes your app unique — the business logic.
+
+## Vision
+
+Most apps need the same foundational pieces: authentication, user management, CRUD APIs, admin panels, real-time updates, AI integrations, consent flows, onboarding carousels. These features are table stakes — they don't differentiate your product, but they take weeks to build from scratch. Terreno handles all of it out of the box.
+
+**The goal:** all the low-level, generalized code lives in Terreno. Your app only contains business logic.
+
+### What Terreno gives you today
+
+- **Authentication** — Email/password, Google, GitHub, and Apple OAuth with JWT or Better Auth. Login, signup, token refresh, and session management all built in.
+- **REST APIs in minutes** — Define a Mongoose model, pass it to `modelRouter`, and get a full CRUD API with permissions, pagination, filtering, sorting, and OpenAPI docs.
+- **90+ UI components** — A themed React Native component library that works on iOS, Android, and web. Forms, tables, modals, navigation — everything you need to build real screens.
+- **Auto-generated frontend SDK** — Your backend's OpenAPI spec generates type-safe RTK Query hooks. Change a backend route and regenerate — no manual API wiring.
+- **Admin panel** — Register your models and get a full admin interface with list views, forms, and reference linking. No custom admin code needed.
+- **AI integration** — Provider-agnostic AI service with streaming chat, text generation, conversation history, and request logging. Plug in any model via Vercel AI SDK.
+- **Real-time** — Socket.io integration with auth-aware connections, auto-reconnect, and token refresh.
+
+### Where Terreno is headed
+
+- **Onboarding & signup flows** — Pre-built carousel-based signup experiences that you configure, not code.
+- **Consent & legal** — Terms of service, privacy policy, and consent form management baked into the framework.
+- **Notifications** — Push notifications, in-app notifications, and email with a unified API.
+- **File uploads & media** — Managed file storage with image processing and CDN integration.
+- **Feature flags & remote config** — Runtime configuration without redeploying.
+- **Background jobs** — Queued task processing for emails, data sync, and scheduled work.
+
+### The best way to build with AI
+
+Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
+
+### Philosophy
+
+- **Flexible but opinionated.** Terreno makes strong default choices (Mongoose, RTK Query, Expo Router) so you don't have to. But every layer is configurable when you need it to be.
+- **Your app is just business logic.** If most apps need it and it doesn't add unique value to your product, it belongs in Terreno, not in your codebase.
+- **Full-stack coherence.** Backend models flow into OpenAPI specs, which generate frontend hooks, which power typed UI components. One change propagates cleanly across the stack.
+- **Ship, don't configure.** Terreno optimizes for getting to a launchable product with minimal effort — not for maximum flexibility at the cost of productivity.
 
 ## Packages
 
