@@ -22,6 +22,57 @@ const getEditableFields = (
   return Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
 };
 
+/**
+ * Form screen for creating or editing a model instance in the admin panel.
+ *
+ * Auto-generates form fields based on the model schema from the backend configuration.
+ * Handles field validation, type-specific inputs (text, boolean, select, date, reference fields),
+ * and save/cancel actions. System fields (_id, __v, created, updated, deleted) are automatically
+ * excluded from the form.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.modelName - Name of the model to create/edit (e.g., "User")
+ * @param props.mode - Form mode: "create" for new items, "edit" for existing items
+ * @param props.itemId - ID of the item to edit (required when mode is "edit")
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelForm} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ * import {useLocalSearchParams} from "expo-router";
+ *
+ * function AdminCreateScreen() {
+ *   const {modelName} = useLocalSearchParams();
+ *   return (
+ *     <AdminModelForm
+ *       baseUrl="/admin"
+ *       api={api}
+ *       modelName={modelName as string}
+ *       mode="create"
+ *     />
+ *   );
+ * }
+ *
+ * function AdminEditScreen() {
+ *   const {modelName, id} = useLocalSearchParams();
+ *   return (
+ *     <AdminModelForm
+ *       baseUrl="/admin"
+ *       api={api}
+ *       modelName={modelName as string}
+ *       mode="edit"
+ *       itemId={id as string}
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @see AdminFieldRenderer for field type rendering
+ * @see AdminModelTable for the list view
+ * @see SYSTEM_FIELDS for excluded fields
+ */
 export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   baseUrl,
   api,

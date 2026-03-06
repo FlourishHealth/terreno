@@ -99,6 +99,35 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   return <Link onClick={() => router.push(href as any)} text={text} />;
 };
 
+/**
+ * Table view for a specific admin model with pagination, sorting, and CRUD actions.
+ *
+ * Displays model data in a DataTable with columns from the model's `listFields` configuration.
+ * Provides actions for creating new items, editing existing items, and deleting items.
+ * Supports pagination, sorting, and reference field rendering as clickable links.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.modelName - Name of the model to display (e.g., "User")
+ * @param props.columns - Optional array of field names to display. Defaults to model's listFields.
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelTable} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ * import {useLocalSearchParams} from "expo-router";
+ *
+ * function AdminModelScreen() {
+ *   const {modelName} = useLocalSearchParams();
+ *   return <AdminModelTable baseUrl="/admin" api={api} modelName={modelName as string} />;
+ * }
+ * ```
+ *
+ * @see AdminModelForm for the create/edit form
+ * @see AdminModelList for the model list screen
+ * @see useAdminApi for the CRUD API hooks
+ */
 export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   baseUrl,
   api,
