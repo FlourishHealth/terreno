@@ -59,6 +59,7 @@
     "typescript": "~5.9.2"
   },
   "devDependencies": {
+    "@babel/plugin-transform-class-properties": "^7.28.6",
     "@biomejs/biome": "catalog:",
     "rulesync": "^5.9.0"
   },
