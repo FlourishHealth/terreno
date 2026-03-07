@@ -10,6 +10,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {openApiCompatMiddleware} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 
@@ -250,6 +251,7 @@ export class TerrenoApp {
     });
 
     // OpenAPI
+    app.use(openApiCompatMiddleware);
     app.use(openApiEtagMiddleware);
     const oapi = openapi({
       info: {

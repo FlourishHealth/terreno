@@ -99,6 +99,35 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   return <Link onClick={() => router.push(href as any)} text={text} />;
 };
 
+/**
+ * Table view for a specific admin model with pagination, sorting, and CRUD actions.
+ *
+ * Displays model data in a DataTable with columns from the model's `listFields` configuration.
+ * Provides actions for creating new items, editing existing items, and deleting items.
+ * Supports pagination, sorting, and reference field rendering as clickable links.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.modelName - Name of the model to display (e.g., "User")
+ * @param props.columns - Optional array of field names to display. Defaults to model's listFields.
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelTable} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ * import {useLocalSearchParams} from "expo-router";
+ *
+ * function AdminModelScreen() {
+ *   const {modelName} = useLocalSearchParams();
+ *   return <AdminModelTable baseUrl="/admin" api={api} modelName={modelName as string} />;
+ * }
+ * ```
+ *
+ * @see AdminModelForm for the create/edit form
+ * @see AdminModelList for the model list screen
+ * @see useAdminApi for the CRUD API hooks
+ */
 export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   baseUrl,
   api,
@@ -115,13 +144,23 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [config, modelName]
   );
 
-  // Set the navigation header title to the model display name
+  // Set the navigation header title and create button
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    navigation.setOptions({title: modelConfig.displayName});
-  }, [navigation, modelConfig]);
+    navigation.setOptions({
+      headerRight: () => (
+        <Button
+          onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+          testID="admin-create-button"
+          text="Create"
+          variant="primary"
+        />
+      ),
+      title: modelConfig.displayName,
+    });
+  }, [navigation, modelConfig, baseUrl, modelName]);
 
   const displayFields = useMemo(
     () => columnsProp ?? modelConfig?.listFields ?? [],
@@ -143,10 +182,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     {skip: !modelConfig}
   );
   const [deleteItem] = useDeleteMutation();
-
-  const handleCreate = useCallback(() => {
-    router.push(`${baseUrl}/${modelName}/create` as any);
-  }, [baseUrl, modelName]);
 
   const handleDelete = useCallback(
     async (id: string) => {
@@ -270,19 +305,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const totalPages = listData ? Math.ceil(listData.total / DEFAULT_LIMIT) : 1;
 
   return (
-    <Page
-      footer={
-        <Box direction="row" justifyContent="end" padding={2}>
-          <Button
-            onClick={handleCreate}
-            testID="admin-create-button"
-            text="Create"
-            variant="primary"
-          />
-        </Box>
-      }
-      maxWidth="100%"
-    >
+    <Page maxWidth="100%">
       {isListLoading ? (
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />

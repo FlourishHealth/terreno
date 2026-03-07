@@ -7,16 +7,36 @@ import {
 import type express from "express";
 import type {Model} from "mongoose";
 
-export interface AdminModelConfig {
-  model: Model<any>;
-  routePath: string;
-  displayName: string;
-  listFields: string[];
-  defaultSort?: string;
+/**
+ * Configuration for a single model in the admin panel.
+ */
+export interface AdminFieldOverride {
+  /** Widget to use for this field in the admin form (e.g., "markdown") */
+  widget?: string;
 }
 
+export interface AdminModelConfig {
+  /** The Mongoose model to expose in the admin panel */
+  model: Model<any>;
+  /** Route path for this model's endpoints, relative to basePath (e.g., "/users") */
+  routePath: string;
+  /** Human-readable name shown in the admin UI (e.g., "Users") */
+  displayName: string;
+  /** Field names to display in the list view table */
+  listFields: string[];
+  /** Default sort order for list queries (e.g., "-created"). Defaults to "-created" if not provided. */
+  defaultSort?: string;
+  /** Per-field overrides for widget type and other display options */
+  fieldOverrides?: Record<string, AdminFieldOverride>;
+}
+
+/**
+ * Configuration options for the AdminApp plugin.
+ */
 export interface AdminOptions {
+  /** Array of model configurations to expose in the admin panel */
   models: AdminModelConfig[];
+  /** Base path for all admin routes. Defaults to "/admin". */
   basePath?: string;
 }
 
@@ -27,6 +47,7 @@ interface AdminFieldMeta {
   enum?: string[];
   default?: any;
   ref?: string;
+  widget?: string;
 }
 
 interface AdminModelMeta {
@@ -65,13 +86,74 @@ const extractFieldMeta = (
   return fields;
 };
 
+/**
+ * TerrenoPlugin that auto-generates admin CRUD endpoints for Mongoose models.
+ *
+ * Creates a metadata endpoint (`GET {basePath}/config`) and full CRUD routes for each
+ * configured model. All routes require `Permissions.IsAdmin`.
+ *
+ * @example
+ * ```typescript
+ * import {AdminApp} from "@terreno/admin-backend";
+ * import {User, Todo} from "./models";
+ *
+ * const admin = new AdminApp({
+ *   basePath: "/admin",
+ *   models: [
+ *     {
+ *       model: User,
+ *       routePath: "/users",
+ *       displayName: "Users",
+ *       listFields: ["email", "name", "admin"],
+ *       defaultSort: "-created",
+ *     },
+ *     {
+ *       model: Todo,
+ *       routePath: "/todos",
+ *       displayName: "Todos",
+ *       listFields: ["title", "completed", "ownerId"],
+ *     },
+ *   ],
+ * });
+ *
+ * // Register with TerrenoApp
+ * new TerrenoApp({ userModel: User })
+ *   .register(admin)
+ *   .start();
+ * ```
+ *
+ * @see AdminOptions for configuration options
+ * @see AdminModelConfig for model configuration
+ * @see TerrenoPlugin for the plugin interface
+ */
 export class AdminApp {
   private options: AdminOptions;
 
+  /**
+   * Create a new AdminApp plugin.
+   *
+   * @param options - Admin panel configuration including models and base path
+   */
   constructor(options: AdminOptions) {
     this.options = options;
   }
 
+  /**
+   * Register admin routes with the Express application.
+   *
+   * Creates:
+   * - `GET {basePath}/config` - Returns metadata for all configured models
+   * - CRUD endpoints for each model at `{basePath}{model.routePath}`:
+   *   - `GET /` - List with pagination
+   *   - `POST /` - Create
+   *   - `GET /:id` - Read single item
+   *   - `PATCH /:id` - Update
+   *   - `DELETE /:id` - Delete
+   *
+   * All endpoints require `Permissions.IsAdmin` authentication.
+   *
+   * @param app - The Express application instance to register with
+   */
   register(app: express.Application): void {
     const basePath = this.options.basePath ?? "/admin";
     const modelConfigs = this.options.models;
@@ -92,6 +174,15 @@ export class AdminApp {
           // Handle array of refs
           if (Array.isArray(pathOptions?.type) && pathOptions.type[0]?.ref) {
             field.ref = pathOptions.type[0].ref;
+          }
+        }
+      }
+
+      // Apply field overrides (e.g., widget: "markdown")
+      if (config.fieldOverrides) {
+        for (const [key, override] of Object.entries(config.fieldOverrides)) {
+          if (fields[key] && override.widget) {
+            fields[key].widget = override.widget;
           }
         }
       }

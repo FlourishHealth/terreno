@@ -1,4 +1,10 @@
-import {BooleanField, DateTimeField, SelectField, TextField} from "@terreno/ui";
+import {
+  BooleanField,
+  DateTimeField,
+  MarkdownEditorField,
+  SelectField,
+  TextField,
+} from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";
@@ -13,6 +19,42 @@ interface AdminFieldRendererProps extends AdminScreenProps {
   modelConfigs?: Array<{name: string; routePath: string}>;
 }
 
+/**
+ * Renders an appropriate input field for a given model field in the admin form.
+ *
+ * Maps field types to the correct UI component:
+ * - `boolean` → BooleanField
+ * - `number` → TextField with number validation
+ * - `date`/`datetime` → DateTimeField
+ * - `enum` → SelectField with enum values as options
+ * - ObjectId with `ref` → AdminRefField (select from referenced model)
+ * - Default → TextField
+ *
+ * @param props - Component props
+ * @param props.fieldKey - The field key/name in the model
+ * @param props.fieldConfig - Field configuration metadata from backend
+ * @param props.value - Current field value
+ * @param props.onChange - Callback when field value changes
+ * @param props.errorText - Optional validation error message
+ * @param props.baseUrl - Base URL for admin routes
+ * @param props.api - RTK Query API instance
+ * @param props.modelConfigs - Available model configurations for reference field lookups
+ *
+ * @example
+ * ```typescript
+ * <AdminFieldRenderer
+ *   fieldKey="status"
+ *   fieldConfig={{type: "string", required: true, enum: ["active", "inactive"]}}
+ *   value={formState.status}
+ *   onChange={(val) => setFormState({...formState, status: val})}
+ *   baseUrl="/admin"
+ *   api={api}
+ * />
+ * ```
+ *
+ * @see AdminRefField for reference field rendering
+ * @see AdminModelForm for form usage
+ */
 export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   fieldKey,
   fieldConfig,
@@ -106,6 +148,20 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  // Markdown widget
+  if (fieldConfig.widget === "markdown") {
+    return (
+      <MarkdownEditorField
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={value ?? ""}
       />
     );
   }

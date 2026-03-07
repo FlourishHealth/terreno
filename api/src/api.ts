@@ -992,11 +992,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    // We apply the operation *before* the hooks. As far as the callers are concerned, this should
-    // be like PATCHing the field and replacing the whole thing.
     const field = req.params.field as string;
     const itemId = req.params.itemId as string;
 
+    // We apply the operation *before* the hooks. As far as the callers are concerned, this should
+    // be like PATCHing the field and replacing the whole thing.
     if (operation !== "DELETE" && req.body[field] === undefined) {
       throw new APIError({
         status: 400,
