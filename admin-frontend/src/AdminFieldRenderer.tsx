@@ -1,4 +1,10 @@
-import {BooleanField, DateTimeField, MarkdownEditorField, SelectField, TextField} from "@terreno/ui";
+import {
+  BooleanField,
+  DateTimeField,
+  MarkdownEditorField,
+  SelectField,
+  TextField,
+} from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";

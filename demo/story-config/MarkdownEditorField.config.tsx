@@ -42,7 +42,7 @@ export const MarkdownEditorFieldConfiguration: DemoConfiguration = {
     size: "lg",
   },
   stories: {
-    Default: {description: "Side-by-side editor with preview.", render: MarkdownEditorFieldDemo},
+    Default: {description: "Side-by-side editor with preview.", render: () => <MarkdownEditorFieldDemo />},
     WithHelperText: {description: "With helper text.", render: MarkdownEditorFieldWithHelper},
     WithError: {description: "With error state.", render: MarkdownEditorFieldWithError},
     Disabled: {description: "Disabled state.", render: MarkdownEditorFieldDisabled},
