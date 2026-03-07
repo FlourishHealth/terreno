@@ -43,6 +43,7 @@ export * from "./InfoTooltipButton";
 export * from "./Link";
 export * from "./login";
 
+export * from "./MarkdownEditorField";
 export * from "./MarkdownView";
 export * from "./MediaQuery";
 export * from "./MobileAddressAutoComplete";

@@ -37,6 +37,9 @@ jobs:
         run: bun run export
         working-directory: demo
 
+      - name: Fix asset paths for Netlify
+        run: bash demo/scripts/fix-netlify-assets.sh demo/dist
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -106,7 +109,7 @@ jobs:
           deploy-message: "Deploy from GitHub Actions - ${{ steps.commit.outputs.message }}"
           enable-pull-request-comment: false
           enable-commit-comment: false
-          enable-github-deployment: false
+          enable-github-deployment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}
@@ -217,7 +220,7 @@ jobs:
           deploy-message: "Preview for PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
           enable-pull-request-comment: false
           enable-commit-comment: false
-          enable-github-deployment: false
+          enable-github-deployment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_DEMO_SITE_ID }}

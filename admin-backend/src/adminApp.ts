@@ -10,6 +10,11 @@ import type {Model} from "mongoose";
 /**
  * Configuration for a single model in the admin panel.
  */
+export interface AdminFieldOverride {
+  /** Widget to use for this field in the admin form (e.g., "markdown") */
+  widget?: string;
+}
+
 export interface AdminModelConfig {
   /** The Mongoose model to expose in the admin panel */
   model: Model<any>;
@@ -21,6 +26,8 @@ export interface AdminModelConfig {
   listFields: string[];
   /** Default sort order for list queries (e.g., "-created"). Defaults to "-created" if not provided. */
   defaultSort?: string;
+  /** Per-field overrides for widget type and other display options */
+  fieldOverrides?: Record<string, AdminFieldOverride>;
 }
 
 /**
@@ -40,6 +47,7 @@ interface AdminFieldMeta {
   enum?: string[];
   default?: any;
   ref?: string;
+  widget?: string;
 }
 
 interface AdminModelMeta {
@@ -166,6 +174,15 @@ export class AdminApp {
           // Handle array of refs
           if (Array.isArray(pathOptions?.type) && pathOptions.type[0]?.ref) {
             field.ref = pathOptions.type[0].ref;
+          }
+        }
+      }
+
+      // Apply field overrides (e.g., widget: "markdown")
+      if (config.fieldOverrides) {
+        for (const [key, override] of Object.entries(config.fieldOverrides)) {
+          if (fields[key] && override.widget) {
+            fields[key].widget = override.widget;
           }
         }
       }
