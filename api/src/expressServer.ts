@@ -15,7 +15,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
-import {openApiCompatMiddleware} from "./openApiCompat";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 
 const SLOW_READ_MAX = 200;
@@ -180,6 +180,9 @@ function initializeRoutes(
   options: InitializeRoutesOptions = {}
 ): express.Application {
   const app = express();
+
+  // Record mount paths on layers for Express 5 → OpenAPI compat
+  patchAppUse(app);
 
   // TODO: Log a warning when we hit the array limit.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));

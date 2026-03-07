@@ -1,10 +1,12 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
+import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {logger} from "./logger";
+import {patchAppUse} from "./openApiCompat";
 import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "./plugins";
 
 export interface User {
@@ -162,6 +164,14 @@ export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
 export function getBaseServer(): Express {
   const app = express();
+
+  // Express 5 defaults to 'simple' query parser (Node querystring) which doesn't
+  // support nested bracket notation like name[$regex]=Green. Use qs to match
+  // what setupServer() configures.
+  app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
+
+  // Record mount paths on layers for Express 5 → OpenAPI compat
+  patchAppUse(app);
 
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");

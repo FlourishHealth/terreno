@@ -205,7 +205,8 @@ export const mountBetterAuthRoutes = (
   const handler = toNodeHandler(auth);
 
   // Mount at the base path with wildcard
-  app.all(`${basePath}/*`, (req, res) => {
+  // Express 5 (path-to-regexp v8) requires named wildcards
+  app.all(`${basePath}/*path`, (req, res) => {
     return handler(req, res);
   });
 
