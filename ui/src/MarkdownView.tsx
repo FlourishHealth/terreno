@@ -55,7 +55,7 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
       style={{
         body: {fontFamily: "text", ...color},
         code_block: {
-          backgroundColor: theme.surface.disabled,
+          backgroundColor: theme.surface.neutralLight,
           borderColor: theme.border.default,
           borderRadius: 4,
           borderWidth: 1,
@@ -65,7 +65,7 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           ...color,
         },
         code_inline: {
-          backgroundColor: theme.surface.disabled,
+          backgroundColor: theme.surface.neutralLight,
           borderColor: theme.border.default,
           borderRadius: 3,
           borderWidth: 1,
@@ -76,7 +76,7 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
           ...color,
         },
         fence: {
-          backgroundColor: theme.surface.disabled,
+          backgroundColor: theme.surface.neutralLight,
           borderColor: theme.border.default,
           borderRadius: 4,
           borderWidth: 1,

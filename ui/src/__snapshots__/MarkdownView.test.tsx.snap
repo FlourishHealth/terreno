@@ -849,7 +849,7 @@ exports[`MarkdownView renders code blocks 1`] = `
             "fontFamily": "text",
           },
           {
-            "backgroundColor": "#9A9A9A",
+            "backgroundColor": "#D9D9D9",
             "borderColor": "#CDCDCD",
             "borderRadius": 4,
             "borderWidth": 1,
@@ -909,7 +909,7 @@ exports[`MarkdownView renders inline code 1`] = `
                     "fontFamily": "text",
                   },
                   {
-                    "backgroundColor": "#9A9A9A",
+                    "backgroundColor": "#D9D9D9",
                     "borderColor": "#CDCDCD",
                     "borderRadius": 3,
                     "borderWidth": 1,

@@ -91,7 +91,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
           {!disabled && (
             <View
               style={{
-                backgroundColor: theme.surface.disabled,
+                backgroundColor: theme.surface.neutralLight,
                 borderColor: theme.border.default,
                 borderTopWidth: 1,
                 flexDirection: "row",
@@ -106,21 +106,25 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
                   key={button.label}
                   onPress={() => onChange(button.insert(value))}
                   style={({pressed}) => ({
+                    alignItems: "center",
                     backgroundColor: pressed ? theme.border.default : "transparent",
                     borderColor: theme.border.default,
                     borderRadius: 3,
                     borderWidth: 1,
+                    justifyContent: "center",
+                    minHeight: 24,
                     minWidth: 28,
                     paddingHorizontal: 5,
-                    paddingVertical: 2,
+                    paddingVertical: 3,
                   })}
                 >
                   <RNText
                     style={{
                       color: theme.text.primary,
                       fontFamily: monoFont,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: button.label === "B" ? "700" : "400",
+                      lineHeight: 14,
                       textAlign: "center",
                     }}
                   >
