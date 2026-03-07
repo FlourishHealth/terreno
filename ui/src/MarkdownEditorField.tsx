@@ -1,5 +1,5 @@
-import type {MarkdownStyle} from "@expensify/react-native-live-markdown";
-import {MarkdownTextInput, parseExpensiMark} from "@expensify/react-native-live-markdown";
+import type {MarkdownRange, MarkdownStyle} from "@expensify/react-native-live-markdown";
+import {MarkdownTextInput} from "@expensify/react-native-live-markdown";
 import type React from "react";
 import {useMemo, useRef} from "react";
 import {Platform, Pressable, Text as RNText, View} from "react-native";
@@ -38,6 +38,85 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   {block: true, label: ">", prefix: "> ", suffix: ""},
   {label: "🔗", prefix: "[", suffix: "](url)"},
 ];
+
+/**
+ * Lightweight markdown parser for react-native-live-markdown.
+ * Handles bold, italic, strikethrough, inline code, headings, links, and blockquotes
+ * without requiring expensify-common or browser globals.
+ */
+const parseMarkdown = (text: string): MarkdownRange[] => {
+  "worklet";
+  const ranges: MarkdownRange[] = [];
+
+  // Inline patterns: **bold**, _italic_, ~~strikethrough~~, `code`, [text](url)
+  const inlinePatterns: Array<{
+    pattern: RegExp;
+    type: "bold" | "italic" | "strikethrough" | "code" | "link";
+  }> = [
+    {pattern: /\*\*(.+?)\*\*/g, type: "bold"},
+    {pattern: /(?<!\w)_(.+?)_(?!\w)/g, type: "italic"},
+    {pattern: /~~(.+?)~~/g, type: "strikethrough"},
+    {pattern: /`([^`]+)`/g, type: "code"},
+  ];
+
+  for (const {pattern, type} of inlinePatterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      const syntaxLen =
+        type === "code" ? 1 : type === "bold" ? 2 : type === "strikethrough" ? 2 : 1;
+      ranges.push({length: syntaxLen, start: match.index, type: "syntax"});
+      ranges.push({length: match[1]!.length, start: match.index + syntaxLen, type});
+      ranges.push({
+        length: syntaxLen,
+        start: match.index + syntaxLen + match[1]!.length,
+        type: "syntax",
+      });
+    }
+  }
+
+  // Links: [text](url)
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let linkMatch;
+  while ((linkMatch = linkPattern.exec(text)) !== null) {
+    ranges.push({length: 1, start: linkMatch.index, type: "syntax"}); // [
+    ranges.push({length: linkMatch[1]!.length, start: linkMatch.index + 1, type: "bold"}); // text
+    ranges.push({length: 2, start: linkMatch.index + 1 + linkMatch[1]!.length, type: "syntax"}); // ](
+    ranges.push({
+      length: linkMatch[2]!.length,
+      start: linkMatch.index + 2 + linkMatch[1]!.length + 1,
+      type: "link",
+    }); // url
+    ranges.push({
+      length: 1,
+      start: linkMatch.index + 2 + linkMatch[1]!.length + 1 + linkMatch[2]!.length,
+      type: "syntax",
+    }); // )
+  }
+
+  // Line-level patterns: # heading, > blockquote
+  const lines = text.split("\n");
+  let pos = 0;
+  for (const line of lines) {
+    const h1Match = line.match(/^(# )(.+)/);
+    const h2Match = line.match(/^(## )(.+)/);
+    const bqMatch = line.match(/^(> )(.+)/);
+
+    if (h2Match) {
+      ranges.push({length: 3, start: pos, type: "syntax"});
+      ranges.push({length: h2Match[2]!.length, start: pos + 3, type: "h1"});
+    } else if (h1Match) {
+      ranges.push({length: 2, start: pos, type: "syntax"});
+      ranges.push({length: h1Match[2]!.length, start: pos + 2, type: "h1"});
+    } else if (bqMatch) {
+      ranges.push({length: 2, start: pos, type: "syntax"});
+      ranges.push({length: bqMatch[2]!.length, start: pos + 2, type: "blockquote"});
+    }
+
+    pos += line.length + 1; // +1 for \n
+  }
+
+  return ranges;
+};
 
 export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
   title,
@@ -104,7 +183,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
             markdownStyle={markdownStyle}
             multiline
             onChangeText={onChange}
-            parser={parseExpensiMark}
+            parser={parseMarkdown}
             placeholder={placeholder ?? "Enter markdown..."}
             placeholderTextColor={theme.text.secondaryDark}
             ref={inputRef}
