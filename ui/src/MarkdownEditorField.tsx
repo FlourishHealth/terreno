@@ -34,11 +34,11 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
     <View testID={testID}>
       {title && <FieldTitle text={title} />}
       <Box
+        border={errorText ? "error" : "default"}
         direction={isWeb ? "row" : "column"}
         gap={0}
-        border={errorText ? "error" : "default"}
-        rounding="md"
         overflow="hidden"
+        rounding="md"
       >
         <View style={{flex: 1, minHeight: 200}}>
           <TextInput
@@ -49,12 +49,14 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
             placeholderTextColor={theme.text.secondaryDark}
             style={{
               backgroundColor: theme.surface.base,
+              borderBottomWidth: isWeb ? 0 : 1,
               borderColor: theme.border.default,
               borderRightWidth: isWeb ? 1 : 0,
-              borderBottomWidth: isWeb ? 0 : 1,
               color: theme.text.primary,
               flex: 1,
-              fontFamily: isWeb ? "monospace" : Platform.select({ios: "Menlo", android: "monospace"}),
+              fontFamily: isWeb
+                ? "monospace"
+                : Platform.select({android: "monospace", ios: "Menlo"}),
               fontSize: 14,
               minHeight: 200,
               padding: 12,
@@ -65,7 +67,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
           />
         </View>
         <View style={{flex: 1, minHeight: 200}}>
-          <Box padding={3} color="base" style={{flex: 1, minHeight: 200}}>
+          <Box color="base" padding={3} style={{flex: 1, minHeight: 200}}>
             {value ? (
               <MarkdownView>{value}</MarkdownView>
             ) : (
