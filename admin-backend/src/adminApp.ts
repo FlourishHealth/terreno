@@ -3,6 +3,7 @@ import {
   asyncHandler,
   authenticateMiddleware,
   BackgroundTask,
+  type BackgroundTaskDocument,
   getOpenApiSpecForModel,
   logger,
   type ModelRouterOptions,
@@ -288,7 +289,7 @@ export class AdminApp {
         const isWetRun = req.query.wetRun === "true";
         const now = DateTime.now().toJSDate();
 
-        const task = await BackgroundTask.create({
+        const task = (await BackgroundTask.create({
           createdBy: user._id,
           isDryRun: !isWetRun,
           logs: [
@@ -298,7 +299,7 @@ export class AdminApp {
           startedAt: now,
           status: "running",
           taskType: script.name,
-        });
+        })) as BackgroundTaskDocument;
 
         // Build context for cancellation and progress reporting
         const ctx: ScriptContext = {
