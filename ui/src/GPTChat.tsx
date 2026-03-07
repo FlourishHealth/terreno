@@ -392,13 +392,14 @@ export const GPTChat = ({
     setEditingTitle(currentTitle || "");
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: onUpdateTitle is a stable callback prop
   const handleFinishRename = useCallback(() => {
     if (editingHistoryId && editingTitle.trim()) {
       onUpdateTitle?.(editingHistoryId, editingTitle.trim());
     }
     setEditingHistoryId(null);
     setEditingTitle("");
-  }, [editingHistoryId, editingTitle]);
+  }, [editingHistoryId, editingTitle, onUpdateTitle]);
 
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");

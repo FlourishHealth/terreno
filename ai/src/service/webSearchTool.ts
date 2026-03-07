@@ -1,6 +1,5 @@
 import type {Tool} from "ai";
-import {tool, zodSchema} from "ai";
-import {z} from "zod";
+import {jsonSchema, tool} from "ai";
 
 export interface WebSearchResult {
   snippet: string;
@@ -21,9 +20,11 @@ export const createWebSearchTool = (provider: WebSearchProvider): Tool =>
       const results = await provider.search(query);
       return {query, results: results.slice(0, 5)};
     },
-    inputSchema: zodSchema(
-      z.object({
-        query: z.string().describe("Search query"),
-      })
-    ),
+    parameters: jsonSchema({
+      properties: {
+        query: {description: "Search query", type: "string"},
+      },
+      required: ["query"],
+      type: "object",
+    }),
   });
