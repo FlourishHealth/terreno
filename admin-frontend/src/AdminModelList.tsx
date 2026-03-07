@@ -64,6 +64,8 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
     );
   }
 
+  const scripts = config.scripts ?? [];
+
   return (
     <Page maxWidth="100%" scroll title="Admin">
       <Box direction="row" gap={4} padding={4} wrap>
@@ -86,6 +88,22 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
             </Card>
           );
         })}
+        {scripts.length > 0 && (
+          <Card key="__scripts" padding={4} testID="admin-scripts-card">
+            <Box
+              accessibilityHint="Navigate to admin scripts"
+              accessibilityLabel="Scripts"
+              gap={2}
+              onClick={() => handlePress("__scripts")}
+              width={240}
+            >
+              <Heading size="md">Scripts</Heading>
+              <Text color="secondaryDark" size="sm">
+                {scripts.length} script{scripts.length !== 1 ? "s" : ""}
+              </Text>
+            </Box>
+          </Card>
+        )}
       </Box>
     </Page>
   );

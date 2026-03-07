@@ -1,10 +1,20 @@
 import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  BackgroundTask,
   getOpenApiSpecForModel,
+  logger,
   type ModelRouterOptions,
   modelRouter,
   Permissions,
+  type ScriptContext,
+  type ScriptResult,
+  type ScriptRunner,
+  TaskCancelledError,
 } from "@terreno/api";
-import type express from "express";
+import express from "express";
+import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 
 /**
@@ -31,11 +41,25 @@ export interface AdminModelConfig {
 }
 
 /**
+ * Configuration for a script that can be run from the admin panel.
+ */
+export interface AdminScriptConfig {
+  /** Unique name for this script (used as route key) */
+  name: string;
+  /** Human-readable description shown in the admin UI */
+  description: string;
+  /** The function that executes the script. Must return string[] results. */
+  runner: ScriptRunner;
+}
+
+/**
  * Configuration options for the AdminApp plugin.
  */
 export interface AdminOptions {
   /** Array of model configurations to expose in the admin panel */
   models: AdminModelConfig[];
+  /** Array of scripts that can be run from the admin panel */
+  scripts?: AdminScriptConfig[];
   /** Base path for all admin routes. Defaults to "/admin". */
   basePath?: string;
 }
@@ -59,8 +83,14 @@ interface AdminModelMeta {
   fields: Record<string, AdminFieldMeta>;
 }
 
+interface AdminScriptMeta {
+  name: string;
+  description: string;
+}
+
 interface AdminConfigResponse {
   models: AdminModelMeta[];
+  scripts: AdminScriptMeta[];
 }
 
 const extractFieldMeta = (
@@ -197,7 +227,14 @@ export class AdminApp {
       };
     });
 
-    const configResponse: AdminConfigResponse = {models: configModels};
+    // Build script metadata for config response
+    const scriptConfigs = this.options.scripts ?? [];
+    const configScripts: AdminScriptMeta[] = scriptConfigs.map((script) => ({
+      description: script.description,
+      name: script.name,
+    }));
+
+    const configResponse: AdminConfigResponse = {models: configModels, scripts: configScripts};
 
     // GET /admin/config
     app.get(`${basePath}/config`, (_req, res) => {
@@ -219,5 +256,154 @@ export class AdminApp {
 
       app.use(`${basePath}${config.routePath}`, modelRouter(config.model, routerOptions));
     }
+
+    // Mount script routes
+    if (scriptConfigs.length > 0) {
+      const scriptsRouter = express.Router();
+      scriptsRouter.use(authenticateMiddleware());
+
+      this.mountScriptRoutes(scriptsRouter, scriptConfigs);
+
+      app.use(`${basePath}/scripts`, scriptsRouter);
+    }
+  }
+
+  private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
+    const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
+
+    // POST /admin/scripts/:name/run — Execute a script
+    router.post(
+      "/:name/run",
+      asyncHandler(async (req: express.Request<{name: string}>, res: express.Response) => {
+        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
+        if (!user?.admin) {
+          throw new APIError({status: 403, title: "Only admins can run scripts"});
+        }
+
+        const script = scriptsByName.get(req.params.name);
+        if (!script) {
+          throw new APIError({status: 404, title: `Script not found: ${req.params.name}`});
+        }
+
+        const isWetRun = req.query.wetRun === "true";
+        const now = DateTime.now().toJSDate();
+
+        const task = await BackgroundTask.create({
+          createdBy: user._id,
+          isDryRun: !isWetRun,
+          logs: [
+            {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
+          ],
+          progress: {message: "Starting...", percentage: 0, stage: "Queued"},
+          startedAt: now,
+          status: "running",
+          taskType: script.name,
+        });
+
+        // Build context for cancellation and progress reporting
+        const ctx: ScriptContext = {
+          addLog: async (level, message) => {
+            const current = await BackgroundTask.findById(task._id);
+            if (current) {
+              await current.addLog(level, message);
+            }
+          },
+          checkCancellation: async () => {
+            await BackgroundTask.checkCancellation(task._id.toString());
+          },
+          updateProgress: async (percentage, stage, message) => {
+            const current = await BackgroundTask.findById(task._id);
+            if (current) {
+              await current.updateProgress(percentage, stage, message);
+            }
+          },
+        };
+
+        // Run the script asynchronously
+        void (async () => {
+          try {
+            const result: ScriptResult = await script.runner(isWetRun, ctx);
+
+            // Check cancellation before saving result
+            const current = await BackgroundTask.findById(task._id).select("status").lean();
+            if (current?.status === "cancelled") {
+              return;
+            }
+
+            task.status = result.success ? "completed" : "failed";
+            task.result = result.results;
+            task.completedAt = DateTime.now().toJSDate();
+            task.progress = {message: "Done", percentage: 100, stage: "Complete"};
+            await task.save();
+          } catch (err: unknown) {
+            if (err instanceof TaskCancelledError) {
+              return;
+            }
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error(`Script ${script.name} failed: ${message}`);
+
+            task.status = "failed";
+            task.error = message;
+            task.result = [message];
+            task.completedAt = DateTime.now().toJSDate();
+            await task.save();
+          }
+        })();
+
+        return res.status(201).json({taskId: task._id.toString()});
+      })
+    );
+
+    // GET /admin/scripts/tasks/:id — Poll task status
+    router.get(
+      "/tasks/:id",
+      asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
+        const user = req.user as {_id: unknown; admin?: boolean} | undefined;
+        if (!user?.admin) {
+          throw new APIError({status: 403, title: "Only admins can view tasks"});
+        }
+
+        const task = await BackgroundTask.findById(req.params.id);
+        if (!task) {
+          throw new APIError({status: 404, title: "Task not found"});
+        }
+
+        return res.json({task: task.toObject()});
+      })
+    );
+
+    // DELETE /admin/scripts/tasks/:id — Cancel a running task
+    router.delete(
+      "/tasks/:id",
+      asyncHandler(async (req: express.Request<{id: string}>, res: express.Response) => {
+        const user = req.user as {_id: unknown; admin?: boolean; name?: string} | undefined;
+        if (!user?.admin) {
+          throw new APIError({status: 403, title: "Only admins can cancel tasks"});
+        }
+
+        const task = await BackgroundTask.findById(req.params.id);
+        if (!task) {
+          throw new APIError({status: 404, title: "Task not found"});
+        }
+
+        if (task.status !== "pending" && task.status !== "running") {
+          throw new APIError({
+            status: 400,
+            title: `Cannot cancel task with status: ${task.status}`,
+          });
+        }
+
+        task.status = "cancelled";
+        task.completedAt = DateTime.now().toJSDate();
+        task.logs.push({
+          level: "info",
+          message: `Task cancelled by ${user.name ?? "admin"}`,
+          timestamp: DateTime.now().toJSDate(),
+        });
+        await task.save();
+
+        return res.json({message: "Task cancelled", task: task.toObject()});
+      })
+    );
   }
 }
