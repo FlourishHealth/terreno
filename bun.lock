@@ -15,12 +15,14 @@
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "^4.21.2",
+        "luxon": "catalog:",
         "mongoose": "^9.2.1",
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@types/bun": "^1.2.4",
         "@types/express": "^5.0.6",
+        "@types/luxon": "catalog:",
         "typescript": "catalog:",
       },
     },
