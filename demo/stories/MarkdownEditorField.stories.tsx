@@ -1,4 +1,4 @@
-import {Box, MarkdownEditorField} from "@terreno/ui";
+import {Box, Icon, MarkdownEditorField, Text} from "@terreno/ui";
 import React, {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -19,6 +19,37 @@ This is **bold** and *italic* text.
 
     const x = 42;
 `;
+
+export const MarkdownEditorFieldPreview = (): React.ReactElement => (
+  <Box alignItems="center" direction="row" gap={3} justifyContent="center" width="100%">
+    <Box
+      alignItems="center"
+      border="default"
+      flex="grow"
+      justifyContent="center"
+      padding={3}
+      rounding="md"
+    >
+      <Icon color="secondaryDark" iconName="pen-to-square" size="lg" />
+      <Text color="secondaryDark" size="sm">
+        Editor
+      </Text>
+    </Box>
+    <Box
+      alignItems="center"
+      border="default"
+      flex="grow"
+      justifyContent="center"
+      padding={3}
+      rounding="md"
+    >
+      <Icon color="secondaryDark" iconName="eye" size="lg" />
+      <Text color="secondaryDark" size="sm">
+        Preview
+      </Text>
+    </Box>
+  </Box>
+);
 
 export const MarkdownEditorFieldDemo = (): React.ReactElement => {
   const [value, setValue] = useState(defaultMarkdown);
