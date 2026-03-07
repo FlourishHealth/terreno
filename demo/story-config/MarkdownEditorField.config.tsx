@@ -2,7 +2,6 @@ import {DemoConfiguration} from "@config";
 import {
   MarkdownEditorFieldDemo,
   MarkdownEditorFieldDisabled,
-  MarkdownEditorFieldPreview,
   MarkdownEditorFieldWithError,
   MarkdownEditorFieldWithHelper,
 } from "@stories";
@@ -38,7 +37,7 @@ export const MarkdownEditorFieldConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: MarkdownEditorFieldPreview,
+  demo: MarkdownEditorFieldDemo,
   demoOptions: {
     size: "lg",
   },

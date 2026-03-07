@@ -1,4 +1,4 @@
-import {Box, Icon, MarkdownEditorField, Text} from "@terreno/ui";
+import {Box, Heading, MarkdownEditorField, Text} from "@terreno/ui";
 import React, {useState} from "react";
 
 import {StorybookContainer} from "./StorybookContainer";
@@ -20,38 +20,44 @@ This is **bold** and *italic* text.
     const x = 42;
 `;
 
-export const MarkdownEditorFieldPreview = (): React.ReactElement => (
-  <Box alignItems="center" direction="row" gap={3} justifyContent="center" width="100%">
-    <Box
-      alignItems="center"
-      border="default"
-      flex="grow"
-      justifyContent="center"
-      padding={3}
-      rounding="md"
-    >
-      <Icon color="secondaryDark" iconName="pen-to-square" size="lg" />
-      <Text color="secondaryDark" size="sm">
-        Editor
-      </Text>
-    </Box>
-    <Box
-      alignItems="center"
-      border="default"
-      flex="grow"
-      justifyContent="center"
-      padding={3}
-      rounding="md"
-    >
-      <Icon color="secondaryDark" iconName="eye" size="lg" />
-      <Text color="secondaryDark" size="sm">
-        Preview
-      </Text>
-    </Box>
-  </Box>
-);
+export const MarkdownEditorFieldDemo = (props: {preview?: boolean}): React.ReactElement => {
+  if (props.preview) {
+    return (
+      <Box alignItems="center" direction="row" gap={3} justifyContent="center" width="100%">
+        <Box
+          alignItems="center"
+          border="default"
+          flex="grow"
+          justifyContent="center"
+          padding={3}
+          rounding="md"
+        >
+          <Heading size="sm">Aa</Heading>
+          <Text color="secondaryDark" size="sm">
+            Editor
+          </Text>
+        </Box>
+        <Box
+          alignItems="center"
+          border="default"
+          flex="grow"
+          justifyContent="center"
+          padding={3}
+          rounding="md"
+        >
+          <Heading size="sm">Md</Heading>
+          <Text color="secondaryDark" size="sm">
+            Preview
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
 
-export const MarkdownEditorFieldDemo = (): React.ReactElement => {
+  return <MarkdownEditorFieldFull />;
+};
+
+const MarkdownEditorFieldFull = (): React.ReactElement => {
   const [value, setValue] = useState(defaultMarkdown);
   return (
     <StorybookContainer>
