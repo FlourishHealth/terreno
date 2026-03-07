@@ -9,4 +9,3 @@ export {
   TRANSLATION_PROMPT,
 } from "./prompts";
 export type {WebSearchProvider, WebSearchResult} from "./webSearchTool";
-export {createWebSearchTool} from "./webSearchTool";
