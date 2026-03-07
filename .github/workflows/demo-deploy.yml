@@ -37,6 +37,9 @@ jobs:
         run: bun run export
         working-directory: demo
 
+      - name: Fix asset paths for Netlify
+        run: bash demo/scripts/fix-netlify-assets.sh demo/dist
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
