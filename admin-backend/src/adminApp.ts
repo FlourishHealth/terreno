@@ -16,7 +16,7 @@ import {
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
-import type {Model} from "mongoose";
+import mongoose, {type Model} from "mongoose";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -290,7 +290,7 @@ export class AdminApp {
         const now = DateTime.now().toJSDate();
 
         const task = (await BackgroundTask.create({
-          createdBy: user._id,
+          createdBy: user._id as mongoose.Types.ObjectId,
           isDryRun: !isWetRun,
           logs: [
             {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
