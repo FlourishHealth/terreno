@@ -14,6 +14,7 @@ import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
+import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
@@ -123,6 +124,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       userModel: User as any,
     })
       .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
       .register(
