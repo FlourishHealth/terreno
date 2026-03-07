@@ -305,6 +305,7 @@ export const GPTChat = ({
   onRemoveAttachment,
   onSelectHistory,
   onSubmit,
+  onUpdateTitle,
   selectedModel,
   systemMemory,
   testID,
