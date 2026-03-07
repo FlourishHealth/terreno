@@ -23,7 +23,7 @@ export const addGptHistoryRoutes = (
           userId: (req.user as {_id: unknown})?._id,
         } as GptHistoryDocument;
       },
-      queryFields: ["userId"],
+      queryFields: ["userId", "projectId"],
       queryFilter: (user) => ({userId: user?.id}),
       sort: "-updated",
     })

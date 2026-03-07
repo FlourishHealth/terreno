@@ -335,6 +335,10 @@ const AiScreen: React.FC = () => {
                 if (data.historyId) {
                   setCurrentHistoryId(data.historyId);
                 }
+                // Update sidebar title if the backend generated one
+                if (data.title && data.historyId) {
+                  void patchHistory({body: {title: data.title}, id: data.historyId});
+                }
               } else if (data.error) {
                 console.error("SSE error:", data.error);
                 setCurrentMessages((prev) => [

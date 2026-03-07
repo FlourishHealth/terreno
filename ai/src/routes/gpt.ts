@@ -12,7 +12,9 @@ import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
+import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
+import {TITLE_GENERATION_PROMPT} from "../service/prompts";
 import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
 
 const DEMO_RESPONSE =
@@ -46,6 +48,33 @@ const resolveAiService = (
   return options.aiService;
 };
 
+/** Generate a short title for a conversation using a cheap model call. */
+const generateTitle = async (
+  prompt: string,
+  response: string,
+  aiService: AIService,
+  options: GptRouteOptions,
+  perRequestApiKey?: string
+): Promise<string | undefined> => {
+  try {
+    let titleService = aiService;
+    if (options.titleModelId && options.createModelFn && perRequestApiKey) {
+      titleService = new AIService({
+        model: options.createModelFn(perRequestApiKey, options.titleModelId),
+      });
+    }
+    const conversationSnippet = `User: ${prompt}\nAssistant: ${response.substring(0, 500)}`;
+    const title = await titleService.generateText({
+      prompt: conversationSnippet,
+      systemPrompt: TITLE_GENERATION_PROMPT,
+      temperature: 0.3,
+    });
+    return title.trim().replace(/^["']|["']$/g, "");
+  } catch {
+    return undefined;
+  }
+};
+
 export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
   const {mcpService, tools: routeTools, createRequestTools, toolChoice, maxSteps} = options;
 
@@ -71,6 +100,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           },
           historyId: {type: "string"},
           model: {type: "string"},
+          projectId: {type: "string"},
           prompt: {type: "string"},
           systemPrompt: {type: "string"},
         })
@@ -78,7 +108,14 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {prompt, historyId, systemPrompt, attachments, model: requestModel} = req.body;
+      const {
+        prompt,
+        historyId,
+        systemPrompt,
+        attachments,
+        model: requestModel,
+        projectId,
+      } = req.body;
       const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
 
       if (!prompt || typeof prompt !== "string") {
@@ -112,7 +149,34 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           throw new APIError({status: 403, title: "Not authorized to access this history"});
         }
       } else {
-        history = new GptHistory({prompts: [], userId});
+        history = new GptHistory({prompts: [], userId, ...(projectId ? {projectId} : {})});
+      }
+
+      // Load project context if a projectId is provided
+      let effectiveSystemPrompt = systemPrompt;
+      if (projectId) {
+        try {
+          const project = await Project.findById(projectId);
+          if (project && project.userId.toString() === userId?.toString()) {
+            const parts: string[] = [];
+            if (project.systemContext) {
+              parts.push(project.systemContext);
+            }
+            if (project.memories.length > 0) {
+              parts.push(
+                "## Relevant Memories\n" + project.memories.map((m) => `- ${m.text}`).join("\n")
+              );
+            }
+            if (parts.length > 0) {
+              const projectContext = parts.join("\n\n");
+              effectiveSystemPrompt = effectiveSystemPrompt
+                ? `${projectContext}\n\n${effectiveSystemPrompt}`
+                : projectContext;
+            }
+          }
+        } catch {
+          // Project loading failure should not block the request
+        }
       }
 
       // Build content parts from attachments
@@ -184,7 +248,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             ? {google: {responseModalities: ["TEXT", "IMAGE"]}}
             : undefined,
           stopWhen: allTools ? stepCountIs(maxSteps ?? 5) : stepCountIs(1),
-          system: systemPrompt ?? undefined,
+          system: effectiveSystemPrompt ?? undefined,
           temperature: (aiService as any).defaultTemperature,
           toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
           tools: allTools,
@@ -386,11 +450,33 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           });
         }
 
+        // Generate a title for new conversations using a cheap model call
+        if (!history.title && fullResponse) {
+          const perRequestApiKey = req.headers["x-ai-api-key"] as string | undefined;
+          const title = await generateTitle(
+            prompt,
+            fullResponse,
+            aiService,
+            options,
+            perRequestApiKey
+          );
+          if (title) {
+            history.title = title;
+            await history.save();
+          }
+        }
+
         logger.debug("Sending done event", {
           fullResponseLength: fullResponse.length,
           historyId: history._id.toString(),
         });
-        res.write(`data: ${JSON.stringify({done: true, historyId: history._id.toString()})}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({
+            done: true,
+            historyId: history._id.toString(),
+            ...(history.title ? {title: history.title} : {}),
+          })}\n\n`
+        );
         res.end();
       } catch (error) {
         logger.error("Error in GPT stream", {
@@ -498,6 +584,66 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
       const result = await aiService.generateRemix({text, userId});
       return res.json({data: result});
+    })
+  );
+
+  router.get(
+    "/gpt/tools",
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(options.openApiOptions ?? {})
+        .withTags(["gpt"])
+        .withSummary("List available AI tools")
+        .withArrayResponse(200, {
+          description: {type: "string"},
+          name: {type: "string"},
+          source: {type: "string"},
+        })
+        .build(),
+    ],
+    asyncHandler(async (req: express.Request, res: express.Response) => {
+      const tools: Array<{name: string; description: string; source: string}> = [];
+
+      // Static tools from route config
+      if (routeTools) {
+        for (const [name, t] of Object.entries(routeTools)) {
+          tools.push({
+            description: (t as {description?: string}).description ?? "",
+            name,
+            source: "builtin",
+          });
+        }
+      }
+
+      // Per-request tools
+      if (createRequestTools) {
+        const requestTools = createRequestTools(req);
+        for (const [name, t] of Object.entries(requestTools)) {
+          tools.push({
+            description: (t as {description?: string}).description ?? "",
+            name,
+            source: "builtin",
+          });
+        }
+      }
+
+      // MCP tools
+      if (mcpService) {
+        try {
+          const mcpTools = await mcpService.getTools();
+          for (const [name, t] of Object.entries(mcpTools)) {
+            tools.push({
+              description: (t as {description?: string}).description ?? "",
+              name,
+              source: "mcp",
+            });
+          }
+        } catch {
+          // MCP tool discovery failure should not break the request
+        }
+      }
+
+      return res.json({data: tools});
     })
   );
 };

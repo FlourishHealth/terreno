@@ -310,6 +310,8 @@ export const GPTChat = ({
   testID,
 }: GPTChatProps): React.ReactElement => {
   const [inputValue, setInputValue] = useState("");
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const scrollViewRef = useRef<RNScrollView>(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
   const contentHeightRef = useRef(0);
@@ -385,6 +387,19 @@ export const GPTChat = ({
     }
   }, [scrollTrigger, isScrolledUp, scrollToBottom]);
 
+  const handleStartRename = useCallback((id: string, currentTitle: string) => {
+    setEditingHistoryId(id);
+    setEditingTitle(currentTitle || "");
+  }, []);
+
+  const handleFinishRename = useCallback(() => {
+    if (editingHistoryId && editingTitle.trim()) {
+      onUpdateTitle?.(editingHistoryId, editingTitle.trim());
+    }
+    setEditingHistoryId(null);
+    setEditingTitle("");
+  }, [editingHistoryId, editingTitle]);
+
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");
     setIsApiKeyModalVisible(true);
@@ -455,20 +470,49 @@ export const GPTChat = ({
             padding={2}
             rounding="md"
           >
-            <Text
-              color={history.id === currentHistoryId ? "inverted" : "primary"}
-              size="sm"
-              truncate
-            >
-              {history.title ?? "New Chat"}
-            </Text>
-            <IconButton
-              accessibilityLabel={`Delete chat: ${history.title ?? "New Chat"}`}
-              iconName="trash"
-              onClick={() => onDeleteHistory(history.id)}
-              testID={`gpt-delete-history-${history.id}`}
-              variant="destructive"
-            />
+            {editingHistoryId === history.id ? (
+              <Box flex="grow" marginRight={1}>
+                <TextField
+                  onBlur={handleFinishRename}
+                  onChange={setEditingTitle}
+                  onEnter={handleFinishRename}
+                  testID={`gpt-rename-input-${history.id}`}
+                  value={editingTitle}
+                />
+              </Box>
+            ) : (
+              <Text
+                color={history.id === currentHistoryId ? "inverted" : "primary"}
+                size="sm"
+                truncate
+              >
+                {history.title ?? "New Chat"}
+              </Text>
+            )}
+            <Box direction="row" gap={1}>
+              {editingHistoryId === history.id ? (
+                <IconButton
+                  accessibilityLabel="Save title"
+                  iconName="check"
+                  onClick={handleFinishRename}
+                  testID={`gpt-rename-save-${history.id}`}
+                />
+              ) : onUpdateTitle ? (
+                <IconButton
+                  accessibilityLabel={`Rename chat: ${history.title ?? "New Chat"}`}
+                  iconName="pencil"
+                  onClick={() => handleStartRename(history.id, history.title ?? "")}
+                  testID={`gpt-rename-history-${history.id}`}
+                />
+              ) : null}
+              <IconButton
+                accessibilityLabel={`Delete chat: ${history.title ?? "New Chat"}`}
+                iconName="trash"
+                onClick={() => onDeleteHistory(history.id)}
+                testID={`gpt-delete-history-${history.id}`}
+                variant="destructive"
+              />
+            </Box>
           </Box>
         ))}
       </Box>
