@@ -7,6 +7,7 @@ export interface AdminFieldConfig {
   enum?: string[];
   default?: any;
   ref?: string;
+  widget?: string;
 }
 
 export interface AdminModelConfig {

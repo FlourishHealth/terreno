@@ -1,4 +1,4 @@
-import {BooleanField, DateTimeField, SelectField, TextField} from "@terreno/ui";
+import {BooleanField, DateTimeField, MarkdownEditorField, SelectField, TextField} from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";
@@ -142,6 +142,20 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  // Markdown widget
+  if (fieldConfig.widget === "markdown") {
+    return (
+      <MarkdownEditorField
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={value ?? ""}
       />
     );
   }

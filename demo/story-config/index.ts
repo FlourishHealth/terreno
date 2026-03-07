@@ -18,7 +18,7 @@ export * from "./Heading.config";
 export * from "./Icon.config";
 export * from "./IconButton.config";
 export * from "./Link.config";
-export * from "./MarkdownView.config";
+export * from "./MarkdownEditorField.config";
 export * from "./MarkdownView.config";
 export * from "./Modal.config";
 export * from "./MultiselectField.config";
