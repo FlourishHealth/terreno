@@ -1,6 +1,12 @@
 import {FileStorageService} from "@terreno/ai";
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder, logger} from "@terreno/api";
 import type {ModelRouterOptions} from "@terreno/api";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  logger,
+} from "@terreno/api";
 import type express from "express";
 
 import {getFileStorageService, setFileStorageService} from "./ai";
@@ -18,8 +24,12 @@ interface GcsConfigResponse {
   projectId: string | null;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-export const addSettingsRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
+export const addSettingsRoutes = (
+  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
+  router: any,
+  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
+  options?: Partial<ModelRouterOptions<any>>
+): void => {
   router.get(
     "/settings/gcs",
     [
