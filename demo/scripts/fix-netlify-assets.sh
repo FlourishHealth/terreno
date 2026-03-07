@@ -1,7 +1,12 @@
 #!/bin/bash
-# Netlify does not deploy files in dot-prefixed directories (e.g. .bun).
-# Expo export generates asset paths through bun's symlink-resolved .bun cache.
-# This script renames .bun to _bun in both the filesystem and JS bundle references.
+# Expo export generates asset paths through bun's symlink-resolved .bun cache,
+# creating deeply nested paths with special characters (@, +) under
+# assets/_node_modules/.bun/. These paths break on Netlify because:
+# 1. Netlify skips dot-prefixed directories (.bun)
+# 2. Special characters in paths may cause issues with artifact upload
+#
+# This script flattens all assets into assets/_flat/ using their hash filenames
+# and updates all references in the JS bundle.
 
 set -euo pipefail
 
@@ -12,27 +17,47 @@ if [ ! -d "$DIST_DIR" ]; then
   exit 1
 fi
 
-# Check if .bun directories exist in assets
-if ! find "$DIST_DIR/assets" -type d -name ".bun" 2>/dev/null | grep -q .; then
-  echo "No .bun directories found in assets, skipping"
+ASSETS_DIR="$DIST_DIR/assets"
+if [ ! -d "$ASSETS_DIR/_node_modules" ]; then
+  echo "No _node_modules assets found, skipping"
   exit 0
 fi
 
-echo "Fixing .bun asset paths for Netlify deployment..."
+FLAT_DIR="$ASSETS_DIR/_flat"
+mkdir -p "$FLAT_DIR"
 
-# Rename .bun directories to _bun in the filesystem
-find "$DIST_DIR/assets" -type d -name ".bun" | while read -r dir; do
-  new_dir="${dir/.bun/_bun}"
-  echo "  Renaming: $dir -> $new_dir"
-  mv "$dir" "$new_dir"
+echo "Flattening asset paths for Netlify deployment..."
+
+# Build a sed script to do all replacements at once
+SED_SCRIPT=""
+
+find "$ASSETS_DIR/_node_modules" -type f | while read -r filepath; do
+  filename="$(basename "$filepath")"
+  cp "$filepath" "$FLAT_DIR/$filename"
+
+  # Build the old path as it appears in the JS bundle (relative from root)
+  old_path="${filepath#"$DIST_DIR"/}"
+  new_path="assets/_flat/$filename"
+
+  echo "  $filename"
 done
 
-# Update references in JS bundles
+# Now do the replacement in JS files using node for reliable string replacement
+# since sed struggles with paths containing @, +, etc.
 find "$DIST_DIR" -name "*.js" -type f | while read -r jsfile; do
-  if grep -q '\.bun/' "$jsfile"; then
-    echo "  Updating references in: $jsfile"
-    sed -i 's/\.bun\//_bun\//g' "$jsfile"
+  if grep -q '_node_modules/' "$jsfile"; then
+    echo "  Updating references in: $(basename "$jsfile")"
+    node -e "
+      const fs = require('fs');
+      let content = fs.readFileSync('$jsfile', 'utf8');
+      // Match any path like /assets/_node_modules/.../<filename> and replace with /assets/_flat/<filename>
+      content = content.replace(/assets\/_node_modules\/[^\"']+\/([^\/\"']+)/g, 'assets/_flat/\$1');
+      fs.writeFileSync('$jsfile', content);
+    "
   fi
 done
 
-echo "Done fixing asset paths"
+# Remove the old _node_modules directory
+rm -rf "$ASSETS_DIR/_node_modules"
+
+echo "Done. Flattened $(find "$FLAT_DIR" -type f | wc -l) assets"
