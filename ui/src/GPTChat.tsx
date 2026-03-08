@@ -788,11 +788,18 @@ export const GPTChat = ({
   }, [scrollTrigger, isScrolledUp, scrollToBottom]);
 
   const handleStartRename = useCallback((id: string, currentTitle: string) => {
+    renameSavedRef.current = false;
     setEditingHistoryId(id);
     setEditingTitle(currentTitle || "");
   }, []);
 
+  const renameSavedRef = useRef(false);
+
   const handleFinishRename = useCallback(() => {
+    if (renameSavedRef.current) {
+      return;
+    }
+    renameSavedRef.current = true;
     if (editingHistoryId && editingTitle.trim()) {
       onUpdateTitle?.(editingHistoryId, editingTitle.trim());
     }

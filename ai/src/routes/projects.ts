@@ -4,7 +4,6 @@ import {
   authenticateMiddleware,
   createOpenApiBuilder,
   modelRouter,
-  OwnerQueryFilter,
   Permissions,
 } from "@terreno/api";
 import type express from "express";
@@ -32,7 +31,7 @@ export const addProjectRoutes = (
         userId: (req as any).user?._id,
       }),
       queryFields: ["userId"],
-      queryFilter: OwnerQueryFilter,
+      queryFilter: (user: any) => ({userId: user?.id}),
       sort: "-updated",
     })
   );

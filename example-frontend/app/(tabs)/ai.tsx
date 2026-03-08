@@ -11,8 +11,10 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
+import {useDispatch} from "react-redux";
 import {
   type GptHistory,
+  terrenoApi,
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   usePatchGptHistoriesByIdMutation,
@@ -76,6 +78,7 @@ const AiScreen: React.FC = () => {
   const [attachments, setAttachments] = useState<SelectedFile[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
 
+  const dispatch = useDispatch();
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
@@ -335,9 +338,20 @@ const AiScreen: React.FC = () => {
                 if (data.historyId) {
                   setCurrentHistoryId(data.historyId);
                 }
-                // Update sidebar title if the backend generated one
+                // Update sidebar title locally (backend already persisted it)
                 if (data.title && data.historyId) {
-                  void patchHistory({body: {title: data.title}, id: data.historyId});
+                  dispatch(
+                    terrenoApi.util.updateQueryData(
+                      "getGptHistories" as never,
+                      undefined as never,
+                      (draft: {data?: GptHistory[]}) => {
+                        const entry = draft.data?.find((h: GptHistory) => h.id === data.historyId);
+                        if (entry) {
+                          entry.title = data.title;
+                        }
+                      }
+                    )
+                  );
                 }
               } else if (data.error) {
                 console.error("SSE error:", data.error);

@@ -152,11 +152,17 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         history = new GptHistory({prompts: [], userId, ...(projectId ? {projectId} : {})});
       }
 
-      // Load project context if a projectId is provided
+      // If history doesn't have a projectId yet but one was provided, associate it
+      if (projectId && !history.projectId) {
+        history.projectId = projectId;
+      }
+
+      // Load project context if a projectId is provided (or inherited from history)
+      const effectiveProjectId = projectId ?? history.projectId;
       let effectiveSystemPrompt = systemPrompt;
-      if (projectId) {
+      if (effectiveProjectId) {
         try {
-          const project = await Project.findById(projectId);
+          const project = await Project.findById(effectiveProjectId);
           if (project && project.userId.toString() === userId?.toString()) {
             const parts: string[] = [];
             if (project.systemContext) {
@@ -164,7 +170,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             }
             if (project.memories.length > 0) {
               parts.push(
-                "## Relevant Memories\n" + project.memories.map((m) => `- ${m.text}`).join("\n")
+                `## Relevant Memories\n${project.memories.map((m) => `- ${m.text}`).join("\n")}`
               );
             }
             if (parts.length > 0) {
@@ -594,10 +600,18 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
       createOpenApiBuilder(options.openApiOptions ?? {})
         .withTags(["gpt"])
         .withSummary("List available AI tools")
-        .withArrayResponse(200, {
-          description: {type: "string"},
-          name: {type: "string"},
-          source: {type: "string"},
+        .withResponse(200, {
+          data: {
+            items: {
+              properties: {
+                description: {type: "string"},
+                name: {type: "string"},
+                source: {type: "string"},
+              },
+              type: "object",
+            },
+            type: "array",
+          },
         })
         .build(),
     ],

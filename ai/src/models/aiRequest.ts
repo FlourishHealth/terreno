@@ -10,22 +10,50 @@ import type {
 
 const aiRequestSchema = new mongoose.Schema<AIRequestDocument, AIRequestModel>(
   {
-    aiModel: {required: true, type: String},
-    error: {type: String},
-    metadata: {type: mongoose.Schema.Types.Mixed},
-    parentRequestId: {ref: "AIRequest", type: mongoose.Schema.Types.ObjectId},
-    prompt: {required: true, type: String},
-    requestType: {
+    aiModel: {
+      description: "The AI model identifier used for this request",
       required: true,
       type: String,
     },
-    response: {type: String},
-    responseTime: {type: Number},
-    subRequestIds: [{ref: "AIRequest", type: mongoose.Schema.Types.ObjectId}],
-    tokensUsed: {type: Number},
-    totalResponseTime: {type: Number},
-    totalTokensUsed: {type: Number},
-    userId: {ref: "User", type: mongoose.Schema.Types.ObjectId},
+    error: {description: "Error message if the request failed", type: String},
+    metadata: {
+      description: "Additional metadata associated with this request",
+      type: mongoose.Schema.Types.Mixed,
+    },
+    parentRequestId: {
+      description: "Reference to the parent request in a multi-agent workflow",
+      ref: "AIRequest",
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    prompt: {description: "The input prompt sent to the AI model", required: true, type: String},
+    requestType: {
+      description: "The type of AI request (e.g. general, translation, summarization)",
+      required: true,
+      type: String,
+    },
+    response: {description: "The AI model response text", type: String},
+    responseTime: {description: "Response time in milliseconds", type: Number},
+    subRequestIds: [
+      {
+        description: "References to child requests in a multi-agent workflow",
+        ref: "AIRequest",
+        type: mongoose.Schema.Types.ObjectId,
+      },
+    ],
+    tokensUsed: {description: "Total tokens consumed by this request", type: Number},
+    totalResponseTime: {
+      description: "Combined response time across all sub-requests in milliseconds",
+      type: Number,
+    },
+    totalTokensUsed: {
+      description: "Combined tokens consumed across all sub-requests",
+      type: Number,
+    },
+    userId: {
+      description: "The user who initiated this request",
+      ref: "User",
+      type: mongoose.Schema.Types.ObjectId,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
