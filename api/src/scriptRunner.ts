@@ -3,7 +3,7 @@ import mongoose, {type Document, type Model, Schema} from "mongoose";
 
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "./plugins";
 
-// --- Types ---
+// --- Script Runner Types & BackgroundTask Model ---
 
 export interface ScriptResult {
   success: boolean;
