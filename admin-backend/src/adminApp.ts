@@ -332,22 +332,24 @@ export class AdminApp {
           },
         };
 
-        // Run the script asynchronously
+        // Run the script asynchronously — use atomic updates to avoid overwriting
+        // cancellation or other intermediate state changes.
         void (async () => {
           try {
             const result: ScriptResult = await script.runner(isWetRun, ctx);
 
-            // Check cancellation before saving result
-            const current = await BackgroundTask.findById(task._id).select("status").lean();
-            if (current?.status === "cancelled") {
-              return;
-            }
-
-            task.status = result.success ? "completed" : "failed";
-            task.result = result.results;
-            task.completedAt = DateTime.now().toJSDate();
-            task.progress = {message: "Done", percentage: 100, stage: "Complete"};
-            await task.save();
+            // Atomically update only if still running (don't overwrite cancellation)
+            await BackgroundTask.findOneAndUpdate(
+              {_id: task._id, status: "running"},
+              {
+                $set: {
+                  completedAt: DateTime.now().toJSDate(),
+                  progress: {message: "Done", percentage: 100, stage: "Complete"},
+                  result: result.results,
+                  status: result.success ? "completed" : "failed",
+                },
+              }
+            );
           } catch (err: unknown) {
             if (err instanceof TaskCancelledError) {
               return;
@@ -355,11 +357,18 @@ export class AdminApp {
             const message = err instanceof Error ? err.message : String(err);
             logger.error(`Script ${script.name} failed: ${message}`);
 
-            task.status = "failed";
-            task.error = message;
-            task.result = [message];
-            task.completedAt = DateTime.now().toJSDate();
-            await task.save();
+            // Atomically update only if still running
+            await BackgroundTask.findOneAndUpdate(
+              {_id: task._id, status: "running"},
+              {
+                $set: {
+                  completedAt: DateTime.now().toJSDate(),
+                  error: message,
+                  result: [message],
+                  status: "failed",
+                },
+              }
+            );
           }
         })();
 
@@ -418,16 +427,33 @@ export class AdminApp {
           });
         }
 
-        task.status = "cancelled";
-        task.completedAt = DateTime.now().toJSDate();
-        task.logs.push({
-          level: "info",
-          message: `Task cancelled by ${user.name ?? "admin"}`,
-          timestamp: DateTime.now().toJSDate(),
-        });
-        await task.save();
+        // Atomically cancel only if still running/pending (avoids race with completion)
+        const cancelled = await BackgroundTask.findOneAndUpdate(
+          {_id: task._id, status: {$in: ["pending", "running"]}},
+          {
+            $push: {
+              logs: {
+                level: "info",
+                message: `Task cancelled by ${user.name ?? "admin"}`,
+                timestamp: DateTime.now().toJSDate(),
+              },
+            },
+            $set: {
+              completedAt: DateTime.now().toJSDate(),
+              status: "cancelled",
+            },
+          },
+          {new: true}
+        );
 
-        return res.json({message: "Task cancelled", task: task.toObject()});
+        if (!cancelled) {
+          throw new APIError({
+            status: 409,
+            title: "Task already completed or cancelled",
+          });
+        }
+
+        return res.json({message: "Task cancelled", task: cancelled.toObject()});
       })
     );
   }
