@@ -1,6 +1,7 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
+import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -162,6 +163,7 @@ export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
 export function getBaseServer(): Express {
   const app = express();
+  app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
 
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");

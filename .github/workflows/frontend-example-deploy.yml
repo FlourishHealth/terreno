@@ -4,19 +4,7 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "example-frontend/**"
-      - "admin-frontend/**"
-      - "ui/**"
-      - "rtk/**"
-      - ".github/workflows/frontend-example-deploy.yml"
   pull_request:
-    paths:
-      - "example-frontend/**"
-      - "admin-frontend/**"
-      - "ui/**"
-      - "rtk/**"
-      - ".github/workflows/frontend-example-deploy.yml"
 
 jobs:
   build:
