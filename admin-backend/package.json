@@ -6,14 +6,21 @@
   "dependencies": {
     "@terreno/api": "workspace:*",
     "express": "^4.21.2",
-    "mongoose": "^9.2.1"
+    "luxon": "catalog:"
   },
   "description": "Admin panel backend plugin for @terreno/api",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
+    "@types/luxon": "catalog:",
+    "@types/supertest": "^6.0.2",
+    "passport-local-mongoose": "^9.0.1",
+    "supertest": "^7.0.0",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "mongoose": ">=9.0.0"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
@@ -35,8 +42,8 @@
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
-    "test": "echo 'No tests'",
-    "test:ci": "echo 'No tests'"
+    "test": "bun test",
+    "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
   "version": "0.0.1"

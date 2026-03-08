@@ -75,6 +75,12 @@ jobs:
         run: bun run export
         working-directory: example-frontend
 
+      - name: Fix asset paths for Netlify
+        run: bash demo/scripts/fix-netlify-assets.sh example-frontend/dist
+
+      - name: Add Netlify SPA redirects
+        run: echo '/*    /index.html   200' > example-frontend/dist/_redirects
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -251,6 +257,7 @@ jobs:
         with:
           publish-dir: "./dist"
           production-deploy: false
+          alias: pr-${{ github.event.pull_request.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Preview for PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
           enable-pull-request-comment: false

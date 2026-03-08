@@ -156,6 +156,23 @@ export async function start(skipListen = false): Promise<express.Application> {
               routePath: "/users",
             },
           ],
+          scripts: [
+            {
+              description: "Count all todos and users in the database",
+              name: "countRecords",
+              runner: async (wetRun) => {
+                const todoCount = await Todo.countDocuments();
+                const userCount = await User.countDocuments();
+                const results = [`Found ${todoCount} todos`, `Found ${userCount} users`];
+                if (wetRun) {
+                  results.push("Wet run: no additional changes made by this script");
+                } else {
+                  results.push("Dry run: no changes made");
+                }
+                return {results, success: true};
+              },
+            },
+          ],
         })
       );
 

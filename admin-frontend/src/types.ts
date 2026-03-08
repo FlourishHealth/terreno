@@ -19,8 +19,41 @@ export interface AdminModelConfig {
   fields: Record<string, AdminFieldConfig>;
 }
 
+export interface AdminScriptConfig {
+  name: string;
+  description: string;
+}
+
 export interface AdminConfigResponse {
   models: AdminModelConfig[];
+  scripts: AdminScriptConfig[];
+}
+
+export interface BackgroundTaskProgress {
+  percentage: number;
+  stage?: string;
+  message?: string;
+}
+
+export interface BackgroundTaskLog {
+  timestamp: string;
+  level: "info" | "warn" | "error";
+  message: string;
+}
+
+export interface BackgroundTask {
+  _id: string;
+  taskType: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress?: BackgroundTaskProgress;
+  isDryRun: boolean;
+  result?: string[];
+  error?: string;
+  logs: BackgroundTaskLog[];
+  startedAt?: string;
+  completedAt?: string;
+  created: string;
+  updated: string;
 }
 
 export interface AdminScreenProps {

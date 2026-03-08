@@ -42,17 +42,17 @@ find "$ASSETS_DIR/_node_modules" -type f | while read -r filepath; do
   echo "  $filename"
 done
 
-# Now do the replacement in JS files using node for reliable string replacement
+# Now do the replacement in JS and HTML files using node for reliable string replacement
 # since sed struggles with paths containing @, +, etc.
-find "$DIST_DIR" -name "*.js" -type f | while read -r jsfile; do
-  if grep -q '_node_modules/' "$jsfile"; then
-    echo "  Updating references in: $(basename "$jsfile")"
+find "$DIST_DIR" \( -name "*.js" -o -name "*.html" \) -type f | while read -r file; do
+  if grep -q '_node_modules/' "$file"; then
+    echo "  Updating references in: $(basename "$file")"
     node -e "
       const fs = require('fs');
-      let content = fs.readFileSync('$jsfile', 'utf8');
-      // Match any path like /assets/_node_modules/.../<filename> and replace with /assets/_flat/<filename>
-      content = content.replace(/assets\/_node_modules\/[^\"']+\/([^\/\"']+)/g, 'assets/_flat/\$1');
-      fs.writeFileSync('$jsfile', content);
+      let content = fs.readFileSync('$file', 'utf8');
+      // Match any path like assets/_node_modules/.../<filename> and replace with assets/_flat/<filename>
+      content = content.replace(/assets\/_node_modules\/[^\"'\`]+\/([^\/\"'\`]+)/g, 'assets/_flat/\$1');
+      fs.writeFileSync('$file', content);
     "
   fi
 done

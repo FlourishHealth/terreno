@@ -1,2 +1,2 @@
-export type {AdminModelConfig, AdminOptions} from "./adminApp";
+export type {AdminModelConfig, AdminOptions, AdminScriptConfig} from "./adminApp";
 export {AdminApp} from "./adminApp";
