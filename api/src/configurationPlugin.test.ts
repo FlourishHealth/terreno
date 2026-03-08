@@ -262,9 +262,12 @@ describe("configurationPlugin", () => {
         return;
       }
       await SimpleConfigModel.getConfig();
-      await expect(SimpleConfigModel.deleteOne({})).rejects.toThrow(
-        /Cannot delete the configuration document/
-      );
+      try {
+        await SimpleConfigModel.deleteOne({}).exec();
+        expect.unreachable("Should have thrown");
+      } catch (err: any) {
+        expect(err.title).toMatch(/Cannot delete the configuration document/);
+      }
     });
 
     it("prevents findOneAndDelete", async () => {
@@ -272,9 +275,12 @@ describe("configurationPlugin", () => {
         return;
       }
       await SimpleConfigModel.getConfig();
-      await expect(SimpleConfigModel.findOneAndDelete({})).rejects.toThrow(
-        /Cannot delete the configuration document/
-      );
+      try {
+        await SimpleConfigModel.findOneAndDelete({}).exec();
+        expect.unreachable("Should have thrown");
+      } catch (err: any) {
+        expect(err.title).toMatch(/Cannot delete the configuration document/);
+      }
     });
 
     it("prevents deleteMany", async () => {
@@ -282,9 +288,12 @@ describe("configurationPlugin", () => {
         return;
       }
       await SimpleConfigModel.getConfig();
-      await expect(SimpleConfigModel.deleteMany({})).rejects.toThrow(
-        /Cannot delete the configuration document/
-      );
+      try {
+        await SimpleConfigModel.deleteMany({}).exec();
+        expect.unreachable("Should have thrown");
+      } catch (err: any) {
+        expect(err.title).toMatch(/Cannot delete the configuration document/);
+      }
     });
   });
 });
