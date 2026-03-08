@@ -102,7 +102,10 @@ export const configurationPlugin = (schema: Schema): void => {
     let config = await this.findOne({});
     if (!config) {
       try {
-        config = await this.create({});
+        // Use `new` + `save` instead of `create({})` so Mongoose initializes
+        // nested subdocument defaults (create({}) skips them).
+        config = new this();
+        await config.save();
       } catch (err: any) {
         // If another process created the document between findOne and create,
         // the pre-save hook will throw a 409. Just fetch the existing one.
