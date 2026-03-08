@@ -1,22 +1,19 @@
 import {AdminModelTable, AdminScriptList} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React from "react";
+import {useReadProfile} from "@/hooks/useReadProfile";
 import {terrenoApi} from "@/store/sdk";
 
 const ADMIN_BASE_URL = "/admin";
 
 const AdminTableScreen: React.FC = () => {
   const {model} = useLocalSearchParams<{model: string}>();
-  console.info(
-    `[AdminTableScreen] model param: ${JSON.stringify(model)}, isScripts: ${model === "__scripts"}`
-  );
+  const profile = useReadProfile();
 
   if (model === "__scripts") {
-    console.info("[AdminTableScreen] rendering AdminScriptList");
-    return <AdminScriptList api={terrenoApi} baseUrl={ADMIN_BASE_URL} />;
+    return <AdminScriptList api={terrenoApi} baseUrl={ADMIN_BASE_URL} isAdmin={!!profile?.admin} />;
   }
 
-  console.info("[AdminTableScreen] rendering AdminModelTable for:", model);
   return <AdminModelTable api={terrenoApi} baseUrl={ADMIN_BASE_URL} modelName={model} />;
 };
 

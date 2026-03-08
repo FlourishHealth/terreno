@@ -8,17 +8,12 @@ import {useAdminConfig} from "./useAdminConfig";
 interface AdminScriptListProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
+  /** When false, the Run button is disabled. Defaults to true. */
+  isAdmin?: boolean;
 }
 
-export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api}) => {
-  console.info("[AdminScriptList] rendering with baseUrl:", baseUrl, "api:", !!api);
+export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api, isAdmin = true}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
-  console.info("[AdminScriptList] config:", {
-    error,
-    hasConfig: !!config,
-    isLoading,
-    scripts: config?.scripts?.length,
-  });
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -77,9 +72,11 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api}) 
                 </Text>
               </Box>
               <Button
+                disabled={!isAdmin}
                 onClick={() => handleRunScript(script)}
                 testID={`admin-script-run-${script.name}`}
                 text="Run"
+                tooltipText={!isAdmin ? "Only admins can run scripts" : undefined}
                 variant="primary"
               />
             </Box>
