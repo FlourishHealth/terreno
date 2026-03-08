@@ -730,22 +730,28 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
-  // On web, intercept Enter key to submit (Shift+Enter for newline)
-  const inputContainerRef = useRef<any>(null);
+  // On web, intercept Enter key in the chat input to submit (Shift+Enter for newline)
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
   useEffect(() => {
-    if (Platform.OS !== "web" || !inputContainerRef.current) {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
       return;
     }
-    const el = inputContainerRef.current;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSubmit();
+      if (e.key !== "Enter" || e.shiftKey) {
+        return;
       }
+      const target = e.target as HTMLElement | null;
+      const testId = target?.getAttribute("data-testid");
+      if (testId !== "gpt-input") {
+        return;
+      }
+      e.preventDefault();
+      handleSubmitRef.current();
     };
-    el.addEventListener("keydown", handler);
-    return () => el.removeEventListener("keydown", handler);
-  }, [handleSubmit]);
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
@@ -967,7 +973,7 @@ export const GPTChat = ({
             isStreaming={isStreaming}
             onAttachFiles={onAttachFiles}
           />
-          <Box flex="grow" ref={inputContainerRef}>
+          <Box flex="grow">
             <TextArea
               blurOnSubmit={false}
               disabled={isStreaming}
