@@ -54,8 +54,12 @@ interface TestConfigDocument {
 
 const testConfigSchema = new Schema<TestConfigDocument>(
   {
-    general: {description: "General settings", type: generalSchema},
-    integrations: {description: "Integration settings", type: integrationsSchema},
+    general: {default: () => ({}), description: "General settings", type: generalSchema},
+    integrations: {
+      default: () => ({}),
+      description: "Integration settings",
+      type: integrationsSchema,
+    },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
