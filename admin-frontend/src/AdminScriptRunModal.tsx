@@ -115,12 +115,10 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
           variant="secondary"
         />
         <Button
-          confirmationText="This will make real changes. Are you sure?"
           onClick={() => handleRun(true)}
           testID="admin-script-wet-run-button"
           text="Run"
           variant="primary"
-          withConfirmation
         />
       </Box>
     </Box>
