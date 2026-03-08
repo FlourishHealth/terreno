@@ -16,7 +16,8 @@ import {
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
-import mongoose, {type Model} from "mongoose";
+import type mongoose from "mongoose";
+import type {Model} from "mongoose";
 
 /**
  * Configuration for a single model in the admin panel.
