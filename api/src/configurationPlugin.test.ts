@@ -1,8 +1,7 @@
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
-
-import {configurationPlugin} from "./configurationPlugin";
 import type {SecretProvider} from "./configurationPlugin";
+import {configurationPlugin} from "./configurationPlugin";
 
 // --- Test schema with secret fields ---
 
@@ -96,18 +95,14 @@ describe("configurationPlugin", () => {
   describe("getSecretFields", () => {
     it("discovers top-level secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const apiKeySecret = secrets.find(
-        (s: {path: string}) => s.path === "apiKey"
-      );
+      const apiKeySecret = secrets.find((s: {path: string}) => s.path === "apiKey");
       expect(apiKeySecret).toBeDefined();
       expect(apiKeySecret.secretName).toBe("ext-api-key");
     });
 
     it("discovers nested secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const nestedSecret = secrets.find(
-        (s: {path: string}) => s.path === "nested.secretToken"
-      );
+      const nestedSecret = secrets.find((s: {path: string}) => s.path === "nested.secretToken");
       expect(nestedSecret).toBeDefined();
       expect(nestedSecret.secretName).toBe("nested-token");
       expect(nestedSecret.secretProvider).toBe("vault");
@@ -115,9 +110,7 @@ describe("configurationPlugin", () => {
 
     it("does not include non-secret fields", () => {
       const secrets = TestConfigModel.getSecretFields();
-      const nonSecret = secrets.find(
-        (s: {path: string}) => s.path === "appName"
-      );
+      const nonSecret = secrets.find((s: {path: string}) => s.path === "appName");
       expect(nonSecret).toBeUndefined();
     });
 

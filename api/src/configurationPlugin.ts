@@ -1,4 +1,4 @@
-import type {Document, Model, Query, Schema} from "mongoose";
+import type {Document, Model, Schema} from "mongoose";
 
 import {APIError} from "./errors";
 import {logger} from "./logger";
