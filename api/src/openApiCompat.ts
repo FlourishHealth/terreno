@@ -26,8 +26,15 @@ const patchRouterStack = (stack: any[]): void => {
       layer.regexp = /^\/?$/;
     }
 
-    if (!layer.keys) {
-      layer.keys = [];
+    if (!layer.keys || layer.keys.length === 0) {
+      // Extract path parameter names from Express-style :param patterns
+      const pathStr = layer.route?.path ?? layer.path ?? "";
+      const paramMatches = String(pathStr).match(/:([a-zA-Z_][a-zA-Z0-9_]*)/g);
+      if (paramMatches) {
+        layer.keys = paramMatches.map((p: string) => ({name: p.slice(1), optional: false}));
+      } else {
+        layer.keys = [];
+      }
     }
 
     // Recursively patch nested stacks
