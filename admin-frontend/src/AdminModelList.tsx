@@ -8,6 +8,8 @@ import {useAdminConfig} from "./useAdminConfig";
 interface AdminModelListProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
+  /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
+  configurationPath?: string;
 }
 
 /**
@@ -34,7 +36,11 @@ interface AdminModelListProps {
  * @see AdminModelTable for the table view that this navigates to
  * @see useAdminConfig for the configuration hook
  */
-export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) => {
+export const AdminModelList: React.FC<AdminModelListProps> = ({
+  baseUrl,
+  api,
+  configurationPath,
+}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
   const handlePress = useCallback(
@@ -65,45 +71,68 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
   }
 
   const scripts = config.scripts ?? [];
+  const hasToolCards = scripts.length > 0 || !!configurationPath;
 
   return (
     <Page maxWidth="100%" scroll title="Admin">
-      <Box direction="row" gap={4} padding={4} wrap>
-        {config.models.map((model: AdminModelConfig) => {
-          const fieldCount = Object.keys(model.fields).length;
-          return (
-            <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
-              <Box
-                accessibilityHint={`Navigate to ${model.displayName} admin`}
-                accessibilityLabel={model.displayName}
-                gap={2}
-                onClick={() => handlePress(model.name)}
-                width={240}
-              >
-                <Heading size="md">{model.displayName}</Heading>
-                <Text color="secondaryDark" size="sm">
-                  {fieldCount} field{fieldCount !== 1 ? "s" : ""}
-                </Text>
-              </Box>
-            </Card>
-          );
-        })}
-        {scripts.length > 0 && (
-          <Card key="__scripts" padding={4} testID="admin-scripts-card">
-            <Box
-              accessibilityHint="Navigate to admin scripts"
-              accessibilityLabel="Scripts"
-              gap={2}
-              onClick={() => handlePress("__scripts")}
-              width={240}
-            >
-              <Heading size="md">Scripts</Heading>
-              <Text color="secondaryDark" size="sm">
-                {scripts.length} script{scripts.length !== 1 ? "s" : ""}
-              </Text>
-            </Box>
-          </Card>
+      <Box gap={4} padding={4}>
+        {hasToolCards && (
+          <Box direction="row" gap={4} wrap>
+            {scripts.length > 0 && (
+              <Card padding={4} testID="admin-scripts-card">
+                <Box
+                  accessibilityHint="Navigate to admin scripts"
+                  accessibilityLabel="Scripts"
+                  gap={2}
+                  onClick={() => handlePress("__scripts")}
+                  width={240}
+                >
+                  <Heading size="md">Scripts</Heading>
+                  <Text color="secondaryDark" size="sm">
+                    {scripts.length} script{scripts.length !== 1 ? "s" : ""}
+                  </Text>
+                </Box>
+              </Card>
+            )}
+            {configurationPath && (
+              <Card padding={4} testID="admin-configuration-card">
+                <Box
+                  accessibilityHint="Navigate to application configuration"
+                  accessibilityLabel="Configuration"
+                  gap={2}
+                  onClick={() => router.push(configurationPath as any)}
+                  width={240}
+                >
+                  <Heading size="md">Configuration</Heading>
+                  <Text color="secondaryDark" size="sm">
+                    Manage application settings
+                  </Text>
+                </Box>
+              </Card>
+            )}
+          </Box>
         )}
+        <Box direction="row" gap={4} wrap>
+          {config.models.map((model: AdminModelConfig) => {
+            const fieldCount = Object.keys(model.fields).length;
+            return (
+              <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
+                <Box
+                  accessibilityHint={`Navigate to ${model.displayName} admin`}
+                  accessibilityLabel={model.displayName}
+                  gap={2}
+                  onClick={() => handlePress(model.name)}
+                  width={240}
+                >
+                  <Heading size="md">{model.displayName}</Heading>
+                  <Text color="secondaryDark" size="sm">
+                    {fieldCount} field{fieldCount !== 1 ? "s" : ""}
+                  </Text>
+                </Box>
+              </Card>
+            );
+          })}
+        </Box>
       </Box>
     </Page>
   );

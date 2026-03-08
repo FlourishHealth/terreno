@@ -1248,43 +1248,47 @@ export default ProfileScreen;
 `;
 };
 
-const generateFrontendTabsAdmin = (): string => {
-  return `import {AdminModelList, ConfigurationScreen} from "@terreno/admin-frontend";
-import {Box, Heading, Page, SegmentedControl} from "@terreno/ui";
+const generateFrontendAdminLayout = (): string => {
+  return `import {Stack} from "expo-router";
 import type React from "react";
-import {useCallback, useState} from "react";
+
+const AdminLayout: React.FC = () => {
+  return <Stack screenOptions={{headerShown: false}} />;
+};
+
+export default AdminLayout;
+`;
+};
+
+const generateFrontendAdminIndex = (): string => {
+  return `import {AdminModelList} from "@terreno/admin-frontend";
+import type React from "react";
 import {terrenoApi} from "@/store/sdk";
 
-const AdminScreen: React.FC = () => {
-  const [tab, setTab] = useState<"models" | "configuration">("models");
-
-  const handleTabChange = useCallback((value: string) => {
-    setTab(value as "models" | "configuration");
-  }, []);
-
+const AdminListScreen: React.FC = () => {
   return (
-    <Page navigation={undefined} title="Admin">
-      <Box padding={4} gap={4}>
-        <Heading>Admin</Heading>
-        <SegmentedControl
-          options={[
-            {label: "Models", value: "models"},
-            {label: "Configuration", value: "configuration"},
-          ]}
-          value={tab}
-          onChange={handleTabChange}
-        />
-        {tab === "models" ? (
-          <AdminModelList baseUrl="/admin" api={terrenoApi} />
-        ) : (
-          <ConfigurationScreen baseUrl="/configuration" api={terrenoApi} />
-        )}
-      </Box>
-    </Page>
+    <AdminModelList
+      api={terrenoApi}
+      baseUrl="/admin"
+      configurationPath="/admin/configuration"
+    />
   );
 };
 
-export default AdminScreen;
+export default AdminListScreen;
+`;
+};
+
+const generateFrontendAdminConfiguration = (): string => {
+  return `import {ConfigurationScreen} from "@terreno/admin-frontend";
+import type React from "react";
+import {terrenoApi} from "@/store/sdk";
+
+const ConfigurationPage: React.FC = () => {
+  return <ConfigurationScreen api={terrenoApi} />;
+};
+
+export default ConfigurationPage;
 `;
 };
 
@@ -2610,7 +2614,12 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendTabsLayout(), path: `${frontendDir}/app/(tabs)/_layout.tsx`},
     {content: generateFrontendTabsIndex(args), path: `${frontendDir}/app/(tabs)/index.tsx`},
     {content: generateFrontendTabsProfile(), path: `${frontendDir}/app/(tabs)/profile.tsx`},
-    {content: generateFrontendTabsAdmin(), path: `${frontendDir}/app/(tabs)/admin.tsx`},
+    {content: generateFrontendAdminLayout(), path: `${frontendDir}/app/(tabs)/admin/_layout.tsx`},
+    {content: generateFrontendAdminIndex(), path: `${frontendDir}/app/(tabs)/admin/index.tsx`},
+    {
+      content: generateFrontendAdminConfiguration(),
+      path: `${frontendDir}/app/(tabs)/admin/configuration.tsx`,
+    },
     {content: generateFrontendStoreIndex(), path: `${frontendDir}/store/index.ts`},
     {content: generateFrontendStoreAppState(), path: `${frontendDir}/store/appState.ts`},
     {content: generateFrontendStoreErrors(), path: `${frontendDir}/store/errors.ts`},
