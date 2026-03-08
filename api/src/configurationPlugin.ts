@@ -1,5 +1,6 @@
 import type {Document, Model, Query, Schema} from "mongoose";
 
+import {APIError} from "./errors";
 import {logger} from "./logger";
 
 /**
@@ -60,9 +61,10 @@ export const configurationPlugin = (schema: Schema): void => {
   // Enforce singleton: only one document allowed
   schema.pre("save", async function () {
     if (this.isNew) {
+      // Intentional unfiltered findOne — checking if any singleton document exists
       const existing = await (this.constructor as Model<any>).findOne({});
       if (existing) {
-        throw new Error("Only one configuration document is allowed. Use updateConfig() instead.");
+        throw new APIError({status: 409, title: "Only one configuration document is allowed. Use updateConfig() instead."});
       }
     }
   });
@@ -72,12 +74,13 @@ export const configurationPlugin = (schema: Schema): void => {
     const filter = this.getFilter();
     // Only block Model.deleteOne() without specific filters, not targeted deletes
     if (!filter || Object.keys(filter).length === 0) {
-      throw new Error("Cannot delete the configuration document without a filter.");
+      throw new APIError({status: 400, title: "Cannot delete the configuration document without a filter."});
     }
   });
 
   // Static: get the singleton configuration document
   schema.statics.getConfig = async function (): Promise<any> {
+    // Intentional unfiltered findOne — singleton pattern, at most one document exists
     let config = await this.findOne({});
     if (!config) {
       config = await this.create({});
@@ -88,6 +91,7 @@ export const configurationPlugin = (schema: Schema): void => {
 
   // Static: update the singleton configuration document
   schema.statics.updateConfig = async function (updates: Record<string, any>): Promise<any> {
+    // Intentional unfiltered findOne — singleton pattern, at most one document exists
     let config = await this.findOne({});
     if (!config) {
       config = await this.create(updates);

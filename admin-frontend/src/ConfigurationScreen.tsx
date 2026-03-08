@@ -167,7 +167,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
     if (configValues && configMeta && !isInitialized) {
       const initial: Record<string, any> = {};
       for (const section of configMeta.sections) {
-        if (section.name === "general") {
+        if (section.name === "__root__") {
           // General section fields are at the top level
           for (const [key, fieldMeta] of Object.entries(section.fields)) {
             initial[key] = configValues[key] ?? fieldMeta.default ?? "";
@@ -272,7 +272,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
                   onChange={(value: any) => handleFieldChange(section.name, fieldKey, value)}
                   sectionName={section.name}
                   value={
-                    section.name === "general"
+                    section.name === "__root__"
                       ? formState[fieldKey]
                       : formState[section.name]?.[fieldKey]
                   }
