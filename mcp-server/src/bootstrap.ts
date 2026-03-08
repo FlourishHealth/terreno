@@ -207,6 +207,7 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       dependencies: {
+        "@terreno/admin-backend": "latest",
         "@terreno/api": "latest",
         dotenv: "^16.4.7",
         luxon: "^3.7.2",
@@ -347,23 +348,17 @@ const generateBackendIndex = (): string => {
 
 const generateBackendServer = (args: BootstrapArgs): string => {
   const {appDisplayName} = args;
-  return `import {type AddRoutes, checkModelsStrict, logger, setupServer} from "@terreno/api";
-import {addUserRoutes} from "./api/users";
+  return `import {AdminApp} from "@terreno/admin-backend";
+import {checkModelsStrict, logger, TerrenoApp} from "@terreno/api";
+import type express from "express";
+import {userRouter} from "./api/users";
+import {AppConfiguration} from "./models/appConfiguration";
 import {User} from "./models/user";
 import {connectToMongoDB} from "./utils/database";
 
 const isDeployed = process.env.NODE_ENV === "production";
 
-const addMiddleware: AddRoutes = (_router, _options) => {
-  // Add middleware here
-};
-
-const addRoutes: AddRoutes = (router, options): void => {
-  // Add API routes
-  addUserRoutes(router, options);
-};
-
-export async function start(skipListen = false): Promise<ReturnType<typeof setupServer>> {
+export async function start(skipListen = false): Promise<express.Application> {
   await connectToMongoDB();
 
   logger.info(\`Starting ${appDisplayName} server on port \${process.env.PORT || 4000}\`);
@@ -372,9 +367,7 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
     checkModelsStrict();
   }
 
-  const app = setupServer({
-    addMiddleware,
-    addRoutes,
+  const app = new TerrenoApp({
     loggingOptions: {
       disableConsoleColors: isDeployed,
       level: "debug",
@@ -383,7 +376,23 @@ export async function start(skipListen = false): Promise<ReturnType<typeof setup
     skipListen,
     // biome-ignore lint/suspicious/noExplicitAny: Typing User model
     userModel: User as any,
-  });
+  })
+    .configure(AppConfiguration)
+    .register(userRouter)
+    .register(
+      new AdminApp({
+        models: [
+          {
+            displayName: "Users",
+            listFields: ["email", "name", "admin", "created"],
+            // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+            model: User as any,
+            routePath: "/users",
+          },
+        ],
+      })
+    )
+    .start();
 
   return app;
 }
@@ -492,37 +501,75 @@ User.findByEmail = async function (email: string): Promise<UserDocument | null> 
 `;
 };
 
+const generateBackendAppConfiguration = (args: BootstrapArgs): string => {
+  const {appDisplayName} = args;
+  return `import {configurationPlugin, createdUpdatedPlugin} from "@terreno/api";
+import mongoose, {Schema} from "mongoose";
+
+const generalSchema = new Schema(
+  {
+    appName: {
+      default: "${appDisplayName}",
+      description: "Display name of the application",
+      type: String,
+    },
+    maintenanceMode: {
+      default: false,
+      description: "When enabled, the app returns 503 for all non-admin requests",
+      type: Boolean,
+    },
+  },
+  {_id: false}
+);
+
+export interface AppConfigDocument {
+  general: {
+    appName: string;
+    maintenanceMode: boolean;
+  };
+}
+
+const appConfigSchema = new Schema<AppConfigDocument>(
+  {
+    general: {
+      description: "General application settings",
+      type: generalSchema,
+    },
+  },
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
+
+appConfigSchema.plugin(configurationPlugin);
+appConfigSchema.plugin(createdUpdatedPlugin);
+
+export const AppConfiguration = mongoose.model<AppConfigDocument>(
+  "AppConfiguration",
+  appConfigSchema
+);
+`;
+};
+
 const generateBackendModelsIndex = (): string => {
-  return `export * from "./user";
+  return `export * from "./appConfiguration";
+export * from "./user";
 `;
 };
 
 const generateBackendUserRoutes = (): string => {
-  return `import {Permissions, type ModelRouterOptions, modelRouter} from "@terreno/api";
-import type {Router} from "express";
+  return `import {Permissions, modelRouter} from "@terreno/api";
 import {User} from "../models";
-import type {UserDocument} from "../types";
 
-export const addUserRoutes = (
-  router: Router,
-  options?: Partial<ModelRouterOptions<UserDocument>>
-): void => {
-  router.use(
-    "/users",
-    modelRouter(User, {
-      ...options,
-      permissions: {
-        create: [Permissions.IsAdmin],
-        delete: [Permissions.IsAdmin],
-        list: [Permissions.IsAuthenticated],
-        read: [Permissions.IsAuthenticated],
-        update: [Permissions.IsAdmin],
-      },
-      queryFields: ["email", "name"],
-      sort: "name",
-    })
-  );
-};
+export const userRouter = modelRouter("/users", User, {
+  permissions: {
+    create: [Permissions.IsAdmin],
+    delete: [Permissions.IsAdmin],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsAuthenticated],
+    update: [Permissions.IsAdmin],
+  },
+  queryFields: ["email", "name"],
+  sort: "name",
+});
 `;
 };
 
@@ -595,6 +642,7 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
       dependencies: {
         "@react-navigation/native": "^7.1.8",
         "@sentry/react": "^10.29.0",
+        "@terreno/admin-frontend": "latest",
         "@terreno/rtk": "latest",
         "@terreno/ui": "latest",
         expo: "~54.0.29",
@@ -1112,6 +1160,14 @@ const TabLayout: React.FC = () => {
           title: "Profile",
         }}
       />
+      <Tabs.Screen
+        name="admin"
+        options={{
+          headerShown: false,
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="cog" />,
+          title: "Admin",
+        }}
+      />
     </Tabs>
   );
 };
@@ -1189,6 +1245,46 @@ const ProfileScreen: React.FC = () => {
 };
 
 export default ProfileScreen;
+`;
+};
+
+const generateFrontendTabsAdmin = (): string => {
+  return `import {AdminModelList, ConfigurationScreen} from "@terreno/admin-frontend";
+import {Box, Heading, Page, SegmentedControl} from "@terreno/ui";
+import type React from "react";
+import {useCallback, useState} from "react";
+import {terrenoApi} from "@/store/sdk";
+
+const AdminScreen: React.FC = () => {
+  const [tab, setTab] = useState<"models" | "configuration">("models");
+
+  const handleTabChange = useCallback((value: string) => {
+    setTab(value as "models" | "configuration");
+  }, []);
+
+  return (
+    <Page navigation={undefined} title="Admin">
+      <Box padding={4} gap={4}>
+        <Heading>Admin</Heading>
+        <SegmentedControl
+          options={[
+            {label: "Models", value: "models"},
+            {label: "Configuration", value: "configuration"},
+          ]}
+          value={tab}
+          onChange={handleTabChange}
+        />
+        {tab === "models" ? (
+          <AdminModelList baseUrl="/admin" api={terrenoApi} />
+        ) : (
+          <ConfigurationScreen baseUrl="/configuration" api={terrenoApi} />
+        )}
+      </Box>
+    </Page>
+  );
+};
+
+export default AdminScreen;
 `;
 };
 
@@ -2490,6 +2586,10 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateBackendDatabase(args), path: `${backendDir}/src/utils/database.ts`},
     {content: generateBackendModelPlugins(), path: `${backendDir}/src/models/modelPlugins.ts`},
     {content: generateBackendUserModel(), path: `${backendDir}/src/models/user.ts`},
+    {
+      content: generateBackendAppConfiguration(args),
+      path: `${backendDir}/src/models/appConfiguration.ts`,
+    },
     {content: generateBackendModelsIndex(), path: `${backendDir}/src/models/index.ts`},
     {content: generateBackendUserRoutes(), path: `${backendDir}/src/api/users.ts`},
     {content: generateBackendTypes(), path: `${backendDir}/src/types/index.ts`},
@@ -2510,6 +2610,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
     {content: generateFrontendTabsLayout(), path: `${frontendDir}/app/(tabs)/_layout.tsx`},
     {content: generateFrontendTabsIndex(args), path: `${frontendDir}/app/(tabs)/index.tsx`},
     {content: generateFrontendTabsProfile(), path: `${frontendDir}/app/(tabs)/profile.tsx`},
+    {content: generateFrontendTabsAdmin(), path: `${frontendDir}/app/(tabs)/admin.tsx`},
     {content: generateFrontendStoreIndex(), path: `${frontendDir}/store/index.ts`},
     {content: generateFrontendStoreAppState(), path: `${frontendDir}/store/appState.ts`},
     {content: generateFrontendStoreErrors(), path: `${frontendDir}/store/errors.ts`},
