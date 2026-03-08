@@ -79,47 +79,45 @@ export const configurationPlugin = (schema: Schema): void => {
     }
   });
 
-  // Prevent hard deletion of the singleton
-  const hardDeleteError = (): APIError =>
+  // Prevent hard deletion of the singleton (soft deletes via isDeletedPlugin still work)
+  const createHardDeleteError = (): APIError =>
     new APIError({
       status: 400,
-      title: "Cannot delete the configuration document.",
+      title:
+        "Cannot hard-delete the configuration document. Use updateConfig() or soft delete instead.",
     });
 
-  schema.pre("deleteOne", async function (this: Query<any, any>) {
-    throw hardDeleteError();
+  schema.pre("deleteOne", {document: true, query: true}, () => {
+    throw createHardDeleteError();
+  });
+  schema.pre("deleteMany", () => {
+    throw createHardDeleteError();
+  });
+  schema.pre("findOneAndDelete", () => {
+    throw createHardDeleteError();
   });
 
-  schema.pre("findOneAndDelete", async () => {
-    throw hardDeleteError();
-  });
-
-  schema.pre("deleteMany", async () => {
-    throw hardDeleteError();
-  });
-
-  // Static: get the singleton configuration document
+  // Static: get the singleton configuration document (race-safe via upsert)
   schema.statics.getConfig = async function (): Promise<any> {
-    // Intentional unfiltered findOne — singleton pattern, at most one document exists
-    let config = await this.findOne({});
-    if (!config) {
-      config = await this.create({});
-      logger.info(`Created default ${this.modelName} configuration document`);
-    }
+    const config = await this.findOneAndUpdate(
+      {},
+      {$setOnInsert: {}},
+      {new: true, setDefaultsOnInsert: true, upsert: true}
+    );
     return config;
   };
 
-  // Static: update the singleton configuration document
+  // Static: update the singleton configuration document (race-safe via upsert)
   schema.statics.updateConfig = async function (updates: Record<string, any>): Promise<any> {
-    // Intentional unfiltered findOne — singleton pattern, at most one document exists
-    let config = await this.findOne({});
-    if (!config) {
-      config = await this.create(updates);
-      logger.info(`Created ${this.modelName} configuration document with initial values`);
-      return config;
-    }
-    Object.assign(config, updates);
-    await config.save();
+    const config = await this.findOneAndUpdate(
+      {},
+      {$set: updates},
+      {
+        new: true,
+        setDefaultsOnInsert: true,
+        upsert: true,
+      }
+    );
     return config;
   };
 

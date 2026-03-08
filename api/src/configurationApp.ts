@@ -236,9 +236,9 @@ export class ConfigurationApp implements TerrenoPlugin {
       })
     );
 
-    // POST /configuration/refresh-secrets — resolve secrets from provider and update config
+    // POST /configuration/list-secrets — list secret fields and optionally resolve from provider
     app.post(
-      `${basePath}/refresh-secrets`,
+      `${basePath}/list-secrets`,
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {

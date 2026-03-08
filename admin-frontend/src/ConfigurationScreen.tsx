@@ -147,7 +147,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   api,
   title = "Configuration",
 }) => {
-  const {useMetaQuery, useValuesQuery, useUpdateMutation} = useConfigurationApi(api, basePath);
+  const {useMetaQuery, useValuesQuery, useUpdateMutation} = useConfigurationApi({api, basePath});
 
   const {data: meta, isLoading: isMetaLoading} = useMetaQuery();
   const {data: valuesResponse, isLoading: isValuesLoading} = useValuesQuery();

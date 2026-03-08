@@ -1,6 +1,18 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
 
+interface UseConfigurationApiOptions {
+  api: Api<any, any, any, any>;
+  basePath: string;
+}
+
+interface UseConfigurationApiResult {
+  useMetaQuery: () => {data: any; isLoading: boolean; error: any};
+  useRefreshSecretsMutation: () => [any, {isLoading: boolean}];
+  useUpdateMutation: () => [any, {isLoading: boolean}];
+  useValuesQuery: () => {data: any; isLoading: boolean; error: any};
+}
+
 /**
  * Hook that generates RTK Query hooks for configuration management.
  *
@@ -10,11 +22,12 @@ import {useMemo} from "react";
  * - `update` — PATCH `{basePath}` (update configuration)
  * - `refreshSecrets` — POST `{basePath}/refresh-secrets` (trigger secret refresh)
  *
- * @param api - RTK Query API instance
- * @param basePath - Base path for configuration routes (e.g., "/configuration")
  * @returns Object with hooks: useMetaQuery, useValuesQuery, useUpdateMutation, useRefreshSecretsMutation
  */
-export const useConfigurationApi = (api: Api<any, any, any, any>, basePath: string) => {
+export const useConfigurationApi = ({
+  api,
+  basePath,
+}: UseConfigurationApiOptions): UseConfigurationApiResult => {
   const enhancedApi = useMemo(() => {
     return api.enhanceEndpoints({addTagTypes: ["configuration"]}).injectEndpoints({
       endpoints: (build: any) => ({
@@ -31,7 +44,6 @@ export const useConfigurationApi = (api: Api<any, any, any, any>, basePath: stri
           }),
         }),
         configUpdate: build.mutation({
-          invalidatesTags: ["configuration"],
           query: (body: any) => ({
             body,
             method: "PATCH",
@@ -39,7 +51,6 @@ export const useConfigurationApi = (api: Api<any, any, any, any>, basePath: stri
           }),
         }),
         configValues: build.query({
-          providesTags: ["configuration"],
           query: () => ({
             method: "GET",
             url: basePath,
