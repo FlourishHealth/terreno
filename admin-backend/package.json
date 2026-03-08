@@ -30,9 +30,6 @@
     "terreno"
   ],
   "license": "Apache-2.0",
-  "peerDependencies": {
-    "mongoose": ">=9.0.0"
-  },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
   "repository": {

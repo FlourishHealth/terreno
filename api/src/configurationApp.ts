@@ -11,9 +11,14 @@ import type {TerrenoPlugin} from "./terrenoPlugin";
 /**
  * Middleware that requires the user to be an admin.
  */
-const requireAdmin = (req: express.Request, _res: express.Response, next: express.NextFunction): void => {
+const requireAdmin = (
+  req: express.Request,
+  _res: express.Response,
+  next: express.NextFunction
+): void => {
   if (!(req as any).user?.admin) {
-    return next(new APIError({status: 403, title: "Admin access required"}));
+    next(new APIError({status: 403, title: "Admin access required"}));
+    return;
   }
   next();
 };

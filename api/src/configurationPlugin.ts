@@ -64,7 +64,10 @@ export const configurationPlugin = (schema: Schema): void => {
       // Intentional unfiltered findOne — checking if any singleton document exists
       const existing = await (this.constructor as Model<any>).findOne({});
       if (existing) {
-        throw new APIError({status: 409, title: "Only one configuration document is allowed. Use updateConfig() instead."});
+        throw new APIError({
+          status: 409,
+          title: "Only one configuration document is allowed. Use updateConfig() instead.",
+        });
       }
     }
   });
@@ -74,7 +77,10 @@ export const configurationPlugin = (schema: Schema): void => {
     const filter = this.getFilter();
     // Only block Model.deleteOne() without specific filters, not targeted deletes
     if (!filter || Object.keys(filter).length === 0) {
-      throw new APIError({status: 400, title: "Cannot delete the configuration document without a filter."});
+      throw new APIError({
+        status: 400,
+        title: "Cannot delete the configuration document without a filter.",
+      });
     }
   });
 
