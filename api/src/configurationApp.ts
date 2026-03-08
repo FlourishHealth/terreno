@@ -131,7 +131,7 @@ const redactSecrets = (
       }
     }
     const lastKey = parts[parts.length - 1];
-    if (current != null && current[lastKey] != null) {
+    if (current != null && current[lastKey] != null && current[lastKey] !== "") {
       current[lastKey] = SECRET_REDACTED;
     }
   }
