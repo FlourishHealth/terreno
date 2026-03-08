@@ -266,7 +266,7 @@ describe("configurationPlugin", () => {
         await SimpleConfigModel.deleteOne({}).exec();
         expect.unreachable("Should have thrown");
       } catch (err: any) {
-        expect(err.title).toMatch(/Cannot delete the configuration document/);
+        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
 
@@ -279,7 +279,7 @@ describe("configurationPlugin", () => {
         await SimpleConfigModel.findOneAndDelete({}).exec();
         expect.unreachable("Should have thrown");
       } catch (err: any) {
-        expect(err.title).toMatch(/Cannot delete the configuration document/);
+        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
 
@@ -292,7 +292,7 @@ describe("configurationPlugin", () => {
         await SimpleConfigModel.deleteMany({}).exec();
         expect.unreachable("Should have thrown");
       } catch (err: any) {
-        expect(err.title).toMatch(/Cannot delete the configuration document/);
+        expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
       }
     });
   });
