@@ -289,17 +289,28 @@ export class AdminApp {
         const isWetRun = req.query.wetRun === "true";
         const now = DateTime.now().toJSDate();
 
-        const task = (await BackgroundTask.create({
-          createdBy: user._id as mongoose.Types.ObjectId,
-          isDryRun: !isWetRun,
-          logs: [
-            {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
-          ],
-          progress: {message: "Starting...", percentage: 0, stage: "Queued"},
-          startedAt: now,
-          status: "running",
-          taskType: script.name,
-        })) as BackgroundTaskDocument;
+        let task: BackgroundTaskDocument;
+        try {
+          task = (await BackgroundTask.create({
+            createdBy: user._id as mongoose.Types.ObjectId,
+            isDryRun: !isWetRun,
+            logs: [
+              {level: "info", message: `Script started by ${user.name ?? "admin"}`, timestamp: now},
+            ],
+            progress: {message: "Starting...", percentage: 0, stage: "Queued"},
+            startedAt: now,
+            status: "running",
+            taskType: script.name,
+          })) as BackgroundTaskDocument;
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to create background task for ${script.name}: ${detail}`);
+          throw new APIError({
+            detail,
+            status: 500,
+            title: `Failed to create background task for script: ${script.name}`,
+          });
+        }
 
         // Build context for cancellation and progress reporting
         const ctx: ScriptContext = {
@@ -364,7 +375,13 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Only admins can view tasks"});
         }
 
-        const task = await BackgroundTask.findById(req.params.id);
+        let task;
+        try {
+          task = await BackgroundTask.findById(req.params.id);
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          throw new APIError({detail, status: 400, title: "Invalid task ID"});
+        }
         if (!task) {
           throw new APIError({status: 404, title: "Task not found"});
         }
@@ -382,7 +399,13 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Only admins can cancel tasks"});
         }
 
-        const task = await BackgroundTask.findById(req.params.id);
+        let task;
+        try {
+          task = await BackgroundTask.findById(req.params.id);
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          throw new APIError({detail, status: 400, title: "Invalid task ID"});
+        }
         if (!task) {
           throw new APIError({status: 404, title: "Task not found"});
         }
