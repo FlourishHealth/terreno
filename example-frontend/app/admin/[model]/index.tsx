@@ -7,11 +7,16 @@ const ADMIN_BASE_URL = "/admin";
 
 const AdminTableScreen: React.FC = () => {
   const {model} = useLocalSearchParams<{model: string}>();
+  console.info(
+    `[AdminTableScreen] model param: ${JSON.stringify(model)}, isScripts: ${model === "__scripts"}`
+  );
 
   if (model === "__scripts") {
+    console.info("[AdminTableScreen] rendering AdminScriptList");
     return <AdminScriptList api={terrenoApi} baseUrl={ADMIN_BASE_URL} />;
   }
 
+  console.info("[AdminTableScreen] rendering AdminModelTable for:", model);
   return <AdminModelTable api={terrenoApi} baseUrl={ADMIN_BASE_URL} modelName={model} />;
 };
 

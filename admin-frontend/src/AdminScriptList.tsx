@@ -11,7 +11,14 @@ interface AdminScriptListProps {
 }
 
 export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api}) => {
+  console.info("[AdminScriptList] rendering with baseUrl:", baseUrl, "api:", !!api);
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
+  console.info("[AdminScriptList] config:", {
+    error,
+    hasConfig: !!config,
+    isLoading,
+    scripts: config?.scripts?.length,
+  });
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 

@@ -34,7 +34,10 @@ const ENDPOINT_NAME = "adminConfig";
  * @see AdminModelList for usage in the model list screen
  */
 export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) => {
+  console.info("[useAdminConfig] called with baseUrl:", baseUrl);
+
   const enhancedApi = useMemo(() => {
+    console.info("[useAdminConfig] injecting endpoint for", `${baseUrl}/config`);
     return api.injectEndpoints({
       endpoints: (build: any) => ({
         [ENDPOINT_NAME]: build.query({
@@ -49,8 +52,10 @@ export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) =>
   }, [api, baseUrl]);
 
   const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
+  console.info("[useAdminConfig] useConfigQuery hook exists:", !!useConfigQuery);
 
   const {data, isLoading, error} = useConfigQuery();
+  console.info("[useAdminConfig] state:", {error, hasData: !!data, hasError: !!error, isLoading});
 
   return {config: data as AdminConfigResponse | null, error, isLoading};
 };
