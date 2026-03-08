@@ -257,6 +257,7 @@ jobs:
         with:
           publish-dir: "./dist"
           production-deploy: false
+          alias: pr-${{ github.event.pull_request.number }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           deploy-message: "Preview for PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.title }}"
           enable-pull-request-comment: false
