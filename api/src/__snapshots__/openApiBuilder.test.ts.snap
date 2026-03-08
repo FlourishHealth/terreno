@@ -72,7 +72,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
   },
   "openapi": "3.0.0",
   "paths": {
-    "/food/": {
+    "/": {
       "get": {
         "parameters": [
           {
@@ -992,7 +992,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
         ],
       },
     },
-    "/food/{id}": {
+    "/{id}": {
       "delete": {
         "parameters": [
           {

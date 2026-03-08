@@ -85,7 +85,7 @@ export const addFileRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {gcsKey} = req.params;
+      const gcsKey = req.params.gcsKey as string;
 
       const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
       if (!attachment) {
@@ -109,7 +109,7 @@ export const addFileRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const {gcsKey} = req.params;
+      const gcsKey = req.params.gcsKey as string;
       const userId = (req as any).user?._id as mongoose.Types.ObjectId;
 
       const attachment = await FileAttachment.findOne({deleted: false, gcsKey});

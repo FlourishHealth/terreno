@@ -15,6 +15,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
+import {openApiCompatMiddleware} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 
 const SLOW_READ_MAX = 200;
@@ -210,7 +211,7 @@ function initializeRoutes(
   });
 
   // Add Sentry scopes for session, transaction, and userId if any are set
-  app.all("*", (req: any, _res: any, next: any) => {
+  app.use((req: any, _res: any, next: any) => {
     const transactionId = req.header("X-Transaction-ID");
     const sessionId = req.header("X-Session-ID");
     if (transactionId) {
@@ -226,6 +227,7 @@ function initializeRoutes(
   });
 
   // Add ETag middleware for OpenAPI JSON endpoint before the openapi middleware
+  app.use(openApiCompatMiddleware);
   app.use(openApiEtagMiddleware);
 
   const oapi = openapi({

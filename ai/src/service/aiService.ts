@@ -1,4 +1,5 @@
-import type {LanguageModel, ModelMessage} from "ai";
+import {logger} from "@terreno/api";
+import type {DataContent, LanguageModel, ModelMessage} from "ai";
 import {generateText as aiGenerateText, stepCountIs, streamText} from "ai";
 import type mongoose from "mongoose";
 
@@ -197,17 +198,32 @@ export class AIService {
         const parts: Array<{
           type: string;
           text?: string;
-          image?: URL;
-          data?: URL;
-          mimeType?: string;
+          image?: DataContent | URL;
+          data?: DataContent | URL;
+          filename?: string;
+          mediaType?: string;
         }> = [];
         for (const part of prompt.content) {
           if (part.type === "text") {
             parts.push({text: part.text, type: "text"});
           } else if (part.type === "image") {
-            parts.push({image: new URL(part.url), mimeType: part.mimeType, type: "image"});
+            logger.debug("Building image message part", {
+              mediaType: part.mimeType,
+              urlPrefix: part.url?.substring(0, 50),
+            });
+            parts.push({image: new URL(part.url), mediaType: part.mimeType, type: "image"});
           } else if (part.type === "file") {
-            parts.push({data: new URL(part.url), mimeType: part.mimeType, type: "file"});
+            logger.debug("Building file message part", {
+              filename: (part as any).filename,
+              mediaType: part.mimeType,
+              urlPrefix: part.url?.substring(0, 50),
+            });
+            parts.push({
+              data: new URL(part.url),
+              filename: (part as any).filename,
+              mediaType: part.mimeType,
+              type: "file",
+            });
           }
         }
         messages.push({content: parts, role: "user"} as ModelMessage);

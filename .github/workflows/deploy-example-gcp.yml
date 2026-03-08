@@ -4,21 +4,7 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "ai/**"
-      - "example-backend/**"
-      - "admin-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - ".github/workflows/deploy-example-gcp.yml"
   pull_request:
-    paths:
-      - "ai/**"
-      - "example-backend/**"
-      - "admin-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - ".github/workflows/deploy-example-gcp.yml"
 
 env:
   GCP_PROJECT_ID: flourish-terreno

@@ -72,7 +72,7 @@ exports[`openApi gets the openapi.json 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/food/": {
+    "/": {
       "get": {
         "parameters": [
           {
@@ -1006,7 +1006,7 @@ exports[`openApi gets the openapi.json 1`] = `
         ],
       },
     },
-    "/food/{id}": {
+    "/{id}": {
       "delete": {
         "parameters": [
           {
@@ -2008,7 +2008,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/food/": {
+    "/": {
       "get": {
         "parameters": [
           {
@@ -2942,7 +2942,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
         ],
       },
     },
-    "/food/{id}": {
+    "/{id}": {
       "delete": {
         "parameters": [
           {
@@ -3993,7 +3993,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
   },
   "openapi": "3.0.0",
   "paths": {
-    "/food/": {
+    "/": {
       "get": {
         "parameters": [
           {
@@ -4588,7 +4588,7 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
         ],
       },
     },
-    "/food/{id}": {
+    "/{id}": {
       "delete": {
         "parameters": [
           {

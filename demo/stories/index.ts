@@ -20,6 +20,7 @@ export * from "./HeightField.stories";
 export * from "./Icon.stories";
 export * from "./IconButton.stories";
 export * from "./Link.stories";
+export * from "./MarkdownEditorField.stories";
 export * from "./MarkdownView.stories";
 export * from "./Modal.stories";
 export * from "./MultiselectField.stories";

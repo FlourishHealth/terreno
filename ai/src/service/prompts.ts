@@ -16,3 +16,7 @@ export const TRANSLATION_PROMPT =
   "Translate the following text from {sourceLanguage} to {targetLanguage}. " +
   "Maintain the original tone and meaning as closely as possible. " +
   "Return only the translated text with no additional commentary.";
+
+export const TITLE_GENERATION_PROMPT =
+  "Generate a short title (3-6 words) that summarizes this conversation for a sidebar label. " +
+  "Return only the title text with no quotes, punctuation, or additional commentary.";

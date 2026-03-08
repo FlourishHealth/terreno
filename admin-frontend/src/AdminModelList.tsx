@@ -10,6 +10,30 @@ interface AdminModelListProps {
   api: Api<any, any, any, any>;
 }
 
+/**
+ * Admin panel entry screen that displays all available models as clickable cards.
+ *
+ * Fetches the admin configuration from the backend and renders a grid of model cards.
+ * Each card shows the model's display name and field count. Clicking a card navigates
+ * to the model's table view.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelList} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ *
+ * function AdminIndexScreen() {
+ *   return <AdminModelList baseUrl="/admin" api={api} />;
+ * }
+ * ```
+ *
+ * @see AdminModelTable for the table view that this navigates to
+ * @see useAdminConfig for the configuration hook
+ */
 export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
@@ -40,6 +64,8 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
     );
   }
 
+  const scripts = config.scripts ?? [];
+
   return (
     <Page maxWidth="100%" scroll title="Admin">
       <Box direction="row" gap={4} padding={4} wrap>
@@ -62,6 +88,22 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
             </Card>
           );
         })}
+        {scripts.length > 0 && (
+          <Card key="__scripts" padding={4} testID="admin-scripts-card">
+            <Box
+              accessibilityHint="Navigate to admin scripts"
+              accessibilityLabel="Scripts"
+              gap={2}
+              onClick={() => handlePress("__scripts")}
+              width={240}
+            >
+              <Heading size="md">Scripts</Heading>
+              <Text color="secondaryDark" size="sm">
+                {scripts.length} script{scripts.length !== 1 ? "s" : ""}
+              </Text>
+            </Box>
+          </Card>
+        )}
       </Box>
     </Page>
   );

@@ -69,7 +69,6 @@
     "react-native-swiper-flatlist": "catalog:",
     "react-native-web": "catalog:",
     "react-native-webview": "catalog:",
-    "react-native-worklets": "catalog:",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "react-time-picker": "^8.0.2"
   },
@@ -131,5 +130,5 @@
     "test:ci": "TZ=America/New_York bun test",
     "types": "bunx typedoc"
   },
-  "version": "0.3.0"
+  "version": "0.3.1"
 }
