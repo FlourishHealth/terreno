@@ -338,8 +338,8 @@ const AiScreen: React.FC = () => {
                 if (data.historyId) {
                   setCurrentHistoryId(data.historyId);
                 }
-                // Update sidebar title locally (backend already persisted it)
-                if (data.title && data.historyId) {
+                // Update sidebar locally (backend already persisted it)
+                if (data.historyId) {
                   dispatch(
                     terrenoApi.util.updateQueryData(
                       "getGptHistories" as never,
@@ -347,7 +347,20 @@ const AiScreen: React.FC = () => {
                       (draft: {data?: GptHistory[]}) => {
                         const entry = draft.data?.find((h: GptHistory) => h.id === data.historyId);
                         if (entry) {
-                          entry.title = data.title;
+                          if (data.title) {
+                            entry.title = data.title;
+                          }
+                        } else if (draft.data) {
+                          // New conversation — add it to the sidebar immediately
+                          draft.data.unshift({
+                            _id: data.historyId,
+                            created: new Date().toISOString(),
+                            id: data.historyId,
+                            prompts: [],
+                            title: data.title ?? "New Chat",
+                            updated: new Date().toISOString(),
+                            userId: "",
+                          });
                         }
                       }
                     )
