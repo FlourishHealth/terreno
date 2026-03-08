@@ -29,6 +29,7 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   const [taskId, setTaskId] = useState<string | null>(null);
   const [wetRun, setWetRun] = useState(false);
   const [phase, setPhase] = useState<"confirm" | "running" | "done">("confirm");
+  const [startError, setStartError] = useState<string | null>(null);
   const hasStartedRef = useRef(false);
 
   const {useRunScriptMutation, useGetScriptTaskQuery, useCancelScriptTaskMutation} =
@@ -51,6 +52,7 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
       setTaskId(null);
       setWetRun(false);
       setPhase("confirm");
+      setStartError(null);
       hasStartedRef.current = false;
     }
   }, [visible, scriptName]);
@@ -73,7 +75,10 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
       try {
         const result = await runScript({name: scriptName, wetRun: isWetRun}).unwrap();
         setTaskId(result.taskId);
-      } catch {
+      } catch (err: unknown) {
+        const errData = (err as {data?: {title?: string; detail?: string}})?.data;
+        const message = errData?.detail ?? errData?.title ?? "Failed to start script";
+        setStartError(message);
         setPhase("done");
         hasStartedRef.current = false;
       }
@@ -180,10 +185,10 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
           </Text>
         </Box>
 
-        {task?.error && (
+        {(task?.error ?? startError) && (
           <Box color="error" padding={3} rounding="md">
             <Text color="inverted" size="sm">
-              {task.error}
+              {task?.error ?? startError}
             </Text>
           </Box>
         )}
