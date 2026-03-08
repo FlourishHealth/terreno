@@ -1,3 +1,4 @@
+import {logger} from "@terreno/api";
 import type {LanguageModel, ModelMessage} from "ai";
 import {generateText as aiGenerateText, stepCountIs, streamText} from "ai";
 import type mongoose from "mongoose";
@@ -205,8 +206,17 @@ export class AIService {
           if (part.type === "text") {
             parts.push({text: part.text, type: "text"});
           } else if (part.type === "image") {
+            logger.debug("Building image message part", {
+              mimeType: part.mimeType,
+              urlPrefix: part.url?.substring(0, 50),
+            });
             parts.push({image: new URL(part.url), mimeType: part.mimeType, type: "image"});
           } else if (part.type === "file") {
+            logger.debug("Building file message part", {
+              filename: (part as any).filename,
+              mimeType: part.mimeType,
+              urlPrefix: part.url?.substring(0, 50),
+            });
             parts.push({data: new URL(part.url), mimeType: part.mimeType, type: "file"});
           }
         }
