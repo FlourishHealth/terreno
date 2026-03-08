@@ -21,8 +21,6 @@ interface UseConfigurationApiResult {
  * - `values` — GET `{basePath}` (current configuration values)
  * - `update` — PATCH `{basePath}` (update configuration)
  * - `refreshSecrets` — POST `{basePath}/refresh-secrets` (trigger secret refresh)
- *
- * @returns Object with hooks: useMetaQuery, useValuesQuery, useUpdateMutation, useRefreshSecretsMutation
  */
 export const useConfigurationApi = ({
   api,
