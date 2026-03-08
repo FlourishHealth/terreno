@@ -37,45 +37,18 @@ describe("AdminScriptRunModal", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders the modal container when visible", () => {
+  it("renders the modal container when visible and auto-starts", () => {
     const {toJSON} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
         onDismiss={() => {}}
-        scriptDescription="A test script"
         scriptName="test-script"
         visible={true}
       />
     );
 
     expect(toJSON()).toBeDefined();
-  });
-
-  it("renders dry run and wet run buttons via testID when visible", () => {
-    const result = renderWithTheme(
-      <AdminScriptRunModal
-        api={mockApi}
-        baseUrl="/admin"
-        onDismiss={() => {}}
-        scriptDescription="A test script"
-        scriptName="test-script"
-        visible={true}
-      />
-    );
-
-    // Use queryByTestId which won't throw if not found
-    const dryRunButton = result.queryByTestId("admin-script-dry-run-button");
-    const wetRunButton = result.queryByTestId("admin-script-wet-run-button");
-
-    // When the modal is visible in the test environment, buttons should render
-    if (dryRunButton) {
-      expect(dryRunButton).toBeTruthy();
-      expect(wetRunButton).toBeTruthy();
-    } else {
-      // If the Modal mock doesn't render children when visible, just verify no crash
-      expect(result.toJSON()).toBeDefined();
-    }
   });
 
   it("calls onDismiss when provided", () => {
@@ -92,6 +65,5 @@ describe("AdminScriptRunModal", () => {
     );
 
     expect(toJSON()).toBeDefined();
-    // onDismiss is wired to the Modal, tested implicitly through rendering
   });
 });

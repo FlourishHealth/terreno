@@ -8,7 +8,6 @@ interface AdminScriptRunModalProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
   scriptName: string | null;
-  scriptDescription?: string;
   visible: boolean;
   onDismiss: () => void;
 }
@@ -22,13 +21,11 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   baseUrl,
   api,
   scriptName,
-  scriptDescription,
   visible,
   onDismiss,
 }) => {
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [wetRun, setWetRun] = useState(false);
-  const [phase, setPhase] = useState<"confirm" | "running" | "done">("confirm");
+  const [phase, setPhase] = useState<"running" | "done">("running");
   const [startError, setStartError] = useState<string | null>(null);
   const hasStartedRef = useRef(false);
 
@@ -46,34 +43,19 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
 
   const task: BackgroundTask | undefined = taskData?.task;
 
-  // Reset state when modal opens
+  // Auto-start wet run when modal opens
   useEffect(() => {
-    if (visible && scriptName) {
-      setTaskId(null);
-      setWetRun(false);
-      setPhase("confirm");
-      setStartError(null);
-      hasStartedRef.current = false;
+    if (!visible || !scriptName || hasStartedRef.current) {
+      return;
     }
-  }, [visible, scriptName]);
+    hasStartedRef.current = true;
+    setTaskId(null);
+    setPhase("running");
+    setStartError(null);
 
-  // Transition to done when task reaches terminal status
-  useEffect(() => {
-    if (task && isTerminalStatus(task.status)) {
-      setPhase("done");
-    }
-  }, [task?.status]);
-
-  const handleRun = useCallback(
-    async (isWetRun: boolean) => {
-      if (!scriptName || hasStartedRef.current) {
-        return;
-      }
-      hasStartedRef.current = true;
-      setWetRun(isWetRun);
-      setPhase("running");
+    void (async () => {
       try {
-        const result = await runScript({name: scriptName, wetRun: isWetRun}).unwrap();
+        const result = await runScript({name: scriptName, wetRun: true}).unwrap();
         setTaskId(result.taskId);
       } catch (err: unknown) {
         const errData = (err as {data?: {title?: string; detail?: string}})?.data;
@@ -82,9 +64,22 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
         setPhase("done");
         hasStartedRef.current = false;
       }
-    },
-    [scriptName, runScript]
-  );
+    })();
+  }, [visible, scriptName, runScript]);
+
+  // Reset when modal closes
+  useEffect(() => {
+    if (!visible) {
+      hasStartedRef.current = false;
+    }
+  }, [visible]);
+
+  // Transition to done when task reaches terminal status
+  useEffect(() => {
+    if (task && isTerminalStatus(task.status)) {
+      setPhase("done");
+    }
+  }, [task?.status]);
 
   const handleCancel = useCallback(async () => {
     if (!taskId) {
@@ -97,41 +92,11 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
     }
   }, [taskId, cancelTask]);
 
-  const renderConfirm = (): React.ReactElement => (
-    <Box gap={4} paddingY={4}>
-      <Heading align="center" size="md">
-        {scriptName}
-      </Heading>
-      {scriptDescription && (
-        <Text align="center" color="secondaryDark">
-          {scriptDescription}
-        </Text>
-      )}
-      <Box direction="row" gap={2} justifyContent="center" paddingY={2}>
-        <Button
-          onClick={() => handleRun(false)}
-          testID="admin-script-dry-run-button"
-          text="Dry Run"
-          variant="secondary"
-        />
-        <Button
-          onClick={() => handleRun(true)}
-          testID="admin-script-wet-run-button"
-          text="Run"
-          variant="primary"
-        />
-      </Box>
-    </Box>
-  );
-
   const renderRunning = (): React.ReactElement => (
     <Box alignItems="center" gap={4} paddingY={4}>
       <Heading align="center" size="md">
         {scriptName}
       </Heading>
-      <Text align="center" color="secondaryDark" size="sm">
-        {wetRun ? "Wet Run" : "Dry Run"}
-      </Text>
       <Spinner size="md" />
       {task?.progress?.message && <Text align="center">{task.progress.message}</Text>}
       {task?.progress?.stage && (
@@ -178,9 +143,6 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
           <Text align="center" bold>
             {statusLabel}
           </Text>
-          <Text align="center" color="secondaryDark" size="sm">
-            {wetRun ? "Wet Run" : "Dry Run"}
-          </Text>
         </Box>
 
         {(task?.error ?? startError) && (
@@ -218,7 +180,6 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
       visible={visible}
     >
       <Box minHeight={200} padding={2}>
-        {phase === "confirm" && renderConfirm()}
         {phase === "running" && renderRunning()}
         {phase === "done" && renderDone()}
       </Box>
