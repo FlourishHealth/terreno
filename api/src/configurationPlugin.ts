@@ -99,25 +99,28 @@ export const configurationPlugin = (schema: Schema): void => {
 
   // Static: get the singleton configuration document (race-safe via upsert)
   schema.statics.getConfig = async function (): Promise<any> {
-    const config = await this.findOneAndUpdate(
-      {},
-      {$setOnInsert: {}},
-      {new: true, setDefaultsOnInsert: true, upsert: true}
-    );
+    let config = await this.findOne({});
+    if (!config) {
+      try {
+        config = await this.create({});
+      } catch (err: any) {
+        // If another process created the document between findOne and create,
+        // the pre-save hook will throw a 409. Just fetch the existing one.
+        if (err?.status === 409) {
+          config = await this.findOne({});
+        } else {
+          throw err;
+        }
+      }
+    }
     return config;
   };
 
-  // Static: update the singleton configuration document (race-safe via upsert)
+  // Static: update the singleton configuration document (race-safe)
   schema.statics.updateConfig = async function (updates: Record<string, any>): Promise<any> {
-    const config = await this.findOneAndUpdate(
-      {},
-      {$set: updates},
-      {
-        new: true,
-        setDefaultsOnInsert: true,
-        upsert: true,
-      }
-    );
+    const config = await (this as any).getConfig();
+    Object.assign(config, updates);
+    await config.save();
     return config;
   };
 

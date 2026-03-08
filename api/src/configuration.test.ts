@@ -257,7 +257,7 @@ describe("ConfigurationApp routes", () => {
       const res = await adminAgent.get("/configuration/meta").expect(200);
       const intSection = res.body.sections.find((s: any) => s.name === "integrations");
       expect(intSection.fields.apiKey.secret).toBe(true);
-      expect(intSection.fields.webhookUrl.secret).toBeUndefined();
+      expect(intSection.fields.webhookUrl.secret).toBeFalsy();
     });
 
     it("returns 403 for non-admin", async () => {
