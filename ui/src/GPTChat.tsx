@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {Image as RNImage, type ScrollView as RNScrollView} from "react-native";
+import {Platform, Image as RNImage, type ScrollView as RNScrollView} from "react-native";
 
 import {AttachmentPreview} from "./AttachmentPreview";
 import {Box} from "./Box";
@@ -730,6 +730,23 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
+  // On web, intercept Enter key to submit (Shift+Enter for newline)
+  const inputContainerRef = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== "web" || !inputContainerRef.current) {
+      return;
+    }
+    const el = inputContainerRef.current;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+    el.addEventListener("keydown", handler);
+    return () => el.removeEventListener("keydown", handler);
+  }, [handleSubmit]);
+
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
     await Clipboard.setStringAsync(text);
@@ -950,10 +967,12 @@ export const GPTChat = ({
             isStreaming={isStreaming}
             onAttachFiles={onAttachFiles}
           />
-          <Box flex="grow">
+          <Box flex="grow" ref={inputContainerRef}>
             <TextArea
+              blurOnSubmit={false}
               disabled={isStreaming}
               onChange={setInputValue}
+              onEnter={handleSubmit}
               placeholder="Type a message..."
               testID="gpt-input"
               value={inputValue}
