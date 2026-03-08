@@ -188,7 +188,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
 
   const handleFieldChange = useCallback((sectionName: string, fieldKey: string, value: any) => {
     setFormState((prev) => {
-      if (sectionName === "general") {
+      if (sectionName === "__root__") {
         return {...prev, [fieldKey]: value};
       }
       return {

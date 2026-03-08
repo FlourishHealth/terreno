@@ -3,6 +3,7 @@ import type {Model, Schema} from "mongoose";
 
 import {asyncHandler} from "./api";
 import {authenticateMiddleware} from "./auth";
+import type {SecretFieldMeta, SecretProvider} from "./configurationPlugin";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
@@ -63,6 +64,8 @@ export interface ConfigurationAppOptions {
   basePath?: string;
   /** Per-field widget overrides (e.g., {"ai.systemPrompt": "markdown"}). */
   fieldOverrides?: Record<string, {widget?: string}>;
+  /** Secret provider for resolving secret field values. */
+  secretProvider?: SecretProvider;
 }
 
 /**
@@ -103,6 +106,37 @@ const extractFieldMeta = (
  * System fields to skip in configuration sections.
  */
 const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
+
+const SECRET_REDACTED = "********";
+
+/**
+ * Redacts secret field values in a configuration object.
+ * Replaces values at secret paths with a placeholder string.
+ */
+const redactSecrets = (
+  obj: Record<string, any>,
+  secretFields: SecretFieldMeta[]
+): Record<string, any> => {
+  const redacted = {...obj};
+  for (const field of secretFields) {
+    const parts = field.path.split(".");
+    let current: any = redacted;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (current[parts[i]] != null && typeof current[parts[i]] === "object") {
+        current[parts[i]] = {...current[parts[i]]};
+        current = current[parts[i]];
+      } else {
+        current = null;
+        break;
+      }
+    }
+    const lastKey = parts[parts.length - 1];
+    if (current != null && current[lastKey] != null) {
+      current[lastKey] = SECRET_REDACTED;
+    }
+  }
+  return redacted;
+};
 
 /**
  * Converts a camelCase or PascalCase string into a display-friendly title.
@@ -174,18 +208,22 @@ export class ConfigurationApp implements TerrenoPlugin {
       }
     );
 
-    // GET /configuration — current values
+    // Discover secret fields once at registration time
+    const secretFields: SecretFieldMeta[] = (ConfigModel as any).getSecretFields?.() ?? [];
+
+    // GET /configuration — current values (secrets redacted)
     app.get(
       `${basePath}`,
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {
         const config = await (ConfigModel as any).getConfig();
-        return res.json({data: config.toJSON()});
+        const data = redactSecrets(config.toJSON(), secretFields);
+        return res.json({data});
       })
     );
 
-    // PATCH /configuration — update values
+    // PATCH /configuration — update values (secrets redacted in response)
     app.patch(
       `${basePath}`,
       authenticateMiddleware(),
@@ -193,20 +231,44 @@ export class ConfigurationApp implements TerrenoPlugin {
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const config = await (ConfigModel as any).updateConfig(req.body);
         logger.info(`Configuration updated by ${(req as any).user?.email ?? "unknown"}`);
-        return res.json({data: config.toJSON()});
+        const data = redactSecrets(config.toJSON(), secretFields);
+        return res.json({data});
       })
     );
 
-    // POST /configuration/refresh-secrets — trigger secret refresh
+    // POST /configuration/refresh-secrets — resolve secrets from provider and update config
     app.post(
       `${basePath}/refresh-secrets`,
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {
-        const secretFields = (ConfigModel as any).getSecretFields?.() ?? [];
+        const provider = this.options.secretProvider;
+        if (!provider) {
+          return res.json({
+            message: "No secret provider configured.",
+            secretFields: secretFields.map((s) => ({
+              path: s.path,
+              secretName: s.secretName,
+            })),
+          });
+        }
+
+        const resolved = await (ConfigModel as any).resolveSecrets(provider);
+        if (resolved.size > 0) {
+          const updates: Record<string, any> = {};
+          for (const [path, value] of resolved) {
+            updates[path] = value;
+          }
+          await (ConfigModel as any).updateConfig(updates);
+          logger.info(
+            `Refreshed ${resolved.size}/${secretFields.length} secrets from ${provider.name}`
+          );
+        }
+
         return res.json({
-          message: `Found ${secretFields.length} secret fields. Use a SecretProvider to resolve them.`,
-          secretFields: secretFields.map((s: any) => ({path: s.path, secretName: s.secretName})),
+          message: `Resolved ${resolved.size}/${secretFields.length} secrets from ${provider.name}.`,
+          resolved: resolved.size,
+          total: secretFields.length,
         });
       })
     );

@@ -58,7 +58,14 @@ export interface ConfigurationStatics<T> {
  * ```
  */
 export const configurationPlugin = (schema: Schema): void => {
-  // Enforce singleton: only one document allowed
+  // Add a sentinel field with a unique index to enforce singleton at the DB level.
+  // All config documents get _singleton: "config", and the unique index prevents duplicates.
+  schema.add({
+    _singleton: {default: "config", immutable: true, select: false, type: String},
+  });
+  schema.index({_singleton: 1}, {unique: true});
+
+  // Enforce singleton: only one document allowed (application-level guard)
   schema.pre("save", async function () {
     if (this.isNew) {
       // Intentional unfiltered findOne — checking if any singleton document exists
@@ -72,16 +79,23 @@ export const configurationPlugin = (schema: Schema): void => {
     }
   });
 
-  // Prevent deletion of the singleton (soft deletes via isDeletedPlugin still work)
+  // Prevent hard deletion of the singleton
+  const hardDeleteError = (): APIError =>
+    new APIError({
+      status: 400,
+      title: "Cannot delete the configuration document.",
+    });
+
   schema.pre("deleteOne", async function (this: Query<any, any>) {
-    const filter = this.getFilter();
-    // Only block Model.deleteOne() without specific filters, not targeted deletes
-    if (!filter || Object.keys(filter).length === 0) {
-      throw new APIError({
-        status: 400,
-        title: "Cannot delete the configuration document without a filter.",
-      });
-    }
+    throw hardDeleteError();
+  });
+
+  schema.pre("findOneAndDelete", async () => {
+    throw hardDeleteError();
+  });
+
+  schema.pre("deleteMany", async () => {
+    throw hardDeleteError();
   });
 
   // Static: get the singleton configuration document

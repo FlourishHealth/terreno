@@ -16,7 +16,7 @@ import {useMemo} from "react";
  */
 export const useConfigurationApi = (api: Api<any, any, any, any>, basePath: string) => {
   const enhancedApi = useMemo(() => {
-    return api.injectEndpoints({
+    return api.enhanceEndpoints({addTagTypes: ["configuration"]}).injectEndpoints({
       endpoints: (build: any) => ({
         configMeta: build.query({
           query: () => ({
