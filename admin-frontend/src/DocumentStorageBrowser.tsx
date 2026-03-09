@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   Box,
   Button,
@@ -16,17 +15,8 @@ import {DateTime} from "luxon";
 import React, {useCallback, useMemo, useRef, useState} from "react";
 import {Platform} from "react-native";
 
-import type {DocumentFile, DocumentListResponse} from "./types";
+import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
 import {useDocumentStorageApi} from "./useDocumentStorageApi";
-
-interface DocumentStorageBrowserProps {
-  api: Api<any, any, any, any>;
-  basePath: string;
-  title?: string;
-  allowDelete?: boolean;
-  allowUpload?: boolean;
-  onFileSelect?: (file: DocumentFile) => void;
-}
 
 const ACTIONS_COLUMN_TYPE = "documentActions";
 const NAME_COLUMN_TYPE = "documentName";
@@ -60,9 +50,14 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const {useListQuery, useUploadMutation, useDeleteMutation, useLazyGetUrlQuery} =
     useDocumentStorageApi(api, basePath);
 
-  const {data: listData, isLoading} = useListQuery(currentPrefix || undefined) as {
+  const {
+    data: listData,
+    isLoading,
+    isError,
+  } = useListQuery(currentPrefix || undefined) as {
     data: DocumentListResponse | undefined;
     isLoading: boolean;
+    isError: boolean;
   };
   const [uploadFile, {isLoading: isUploading}] = useUploadMutation();
   const [deleteFile] = useDeleteMutation();
@@ -313,6 +308,10 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       {isLoading ? (
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
+        </Box>
+      ) : isError ? (
+        <Box alignItems="center" padding={6}>
+          <Text color="error">Failed to load files. Please try again.</Text>
         </Box>
       ) : tableData.length === 0 ? (
         <Box alignItems="center" padding={6}>

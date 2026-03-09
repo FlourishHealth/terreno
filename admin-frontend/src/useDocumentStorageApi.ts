@@ -9,13 +9,13 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
           invalidatesTags: ["documentStorage"],
           query: (filePath: string) => ({
             method: "DELETE",
-            url: `${basePath}/${filePath}`,
+            url: `${basePath}/${encodeURIComponent(filePath)}`,
           }),
         }),
         documentStorageGetUrl: build.query({
           query: (filePath: string) => ({
             method: "GET",
-            url: `${basePath}/url/${filePath}`,
+            url: `${basePath}/url/${encodeURIComponent(filePath)}`,
           }),
         }),
         documentStorageList: build.query({

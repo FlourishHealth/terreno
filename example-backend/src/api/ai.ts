@@ -19,7 +19,8 @@ let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
 
-export const getFileStorageService = (): FileStorageService | undefined => fileStorageServiceInstance;
+export const getFileStorageService = (): FileStorageService | undefined =>
+  fileStorageServiceInstance;
 
 export const setFileStorageService = (service: FileStorageService | undefined): void => {
   fileStorageServiceInstance = service;

@@ -1,6 +1,7 @@
 import {Storage} from "@google-cloud/storage";
 import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
+import {DateTime} from "luxon";
 import multer from "multer";
 
 export interface DocumentStorageOptions {
@@ -87,7 +88,14 @@ export class DocumentStorageApp {
         if (allowedMimeTypes.has(file.mimetype)) {
           cb(null, true);
         } else {
-          cb(new Error(`File type ${file.mimetype} is not allowed`));
+          cb(
+            new APIError({
+              detail: `File type ${file.mimetype} is not allowed`,
+              disableExternalErrorTracking: true,
+              status: 400,
+              title: "File type not allowed",
+            })
+          );
         }
       },
       limits: {fileSize: maxFileSize},
@@ -170,7 +178,7 @@ export class DocumentStorageApp {
           isFolder: false,
           name: sanitizedFilename,
           size: file.buffer.length,
-          updated: new Date().toISOString(),
+          updated: DateTime.now().toISO(),
         };
 
         return res.json(documentFile);
@@ -179,7 +187,7 @@ export class DocumentStorageApp {
 
     // GET basePath/url/* — Get signed download URL
     app.get(
-      `${basePath}/url/{*filepath}`,
+      `${basePath}/url/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const filePath = req.params.filepath as string;
@@ -197,7 +205,7 @@ export class DocumentStorageApp {
 
         const [url] = await gcsFile.getSignedUrl({
           action: "read",
-          expires: Date.now() + signedUrlExpiration,
+          expires: DateTime.now().plus({milliseconds: signedUrlExpiration}).toMillis(),
           version: "v4",
         });
 
@@ -207,7 +215,7 @@ export class DocumentStorageApp {
 
     // DELETE basePath/* — Delete a file
     app.delete(
-      `${basePath}/{*filepath}`,
+      `${basePath}/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const filePath = req.params.filepath as string;

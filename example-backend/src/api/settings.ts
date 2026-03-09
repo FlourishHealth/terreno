@@ -1,9 +1,24 @@
 import {FileStorageService} from "@terreno/ai";
-import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder, logger} from "@terreno/api";
 import type {ModelRouterOptions} from "@terreno/api";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  logger,
+} from "@terreno/api";
 import type express from "express";
 
 import {getFileStorageService, setFileStorageService} from "./ai";
+
+const adminGuard = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+  // biome-ignore lint/suspicious/noExplicitAny: Express user casting
+  const user = (req as any).user;
+  if (!user?.admin) {
+    throw new APIError({status: 403, title: "Admin access required"});
+  }
+  next();
+};
 
 interface GcsConfigRequest {
   bucketName: string;
@@ -18,20 +33,30 @@ interface GcsConfigResponse {
   projectId: string | null;
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
-export const addSettingsRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
+export const addSettingsRoutes = (
+  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
+  router: any,
+  // biome-ignore lint/suspicious/noExplicitAny: Router type flexibility
+  options?: Partial<ModelRouterOptions<any>>
+): void => {
   router.get(
     "/settings/gcs",
     [
       authenticateMiddleware(),
+      adminGuard,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Get GCS configuration status")
         .withResponse(200, {
-          bucketName: {type: "string"},
-          configured: {type: "boolean"},
-          hasCredentials: {type: "boolean"},
-          projectId: {type: "string"},
+          data: {
+            properties: {
+              bucketName: {type: "string"},
+              configured: {type: "boolean"},
+              hasCredentials: {type: "boolean"},
+              projectId: {type: "string"},
+            },
+            type: "object",
+          },
         })
         .build(),
     ],
@@ -58,6 +83,7 @@ export const addSettingsRoutes = (router: any, options?: Partial<ModelRouterOpti
     "/settings/gcs",
     [
       authenticateMiddleware(),
+      adminGuard,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Configure GCS settings")
@@ -67,8 +93,13 @@ export const addSettingsRoutes = (router: any, options?: Partial<ModelRouterOpti
           serviceAccountKey: {type: "string"},
         })
         .withResponse(200, {
-          configured: {type: "boolean"},
-          message: {type: "string"},
+          data: {
+            properties: {
+              configured: {type: "boolean"},
+              message: {type: "string"},
+            },
+            type: "object",
+          },
         })
         .build(),
     ],
@@ -122,12 +153,18 @@ export const addSettingsRoutes = (router: any, options?: Partial<ModelRouterOpti
     "/settings/gcs",
     [
       authenticateMiddleware(),
+      adminGuard,
       createOpenApiBuilder(options ?? {})
         .withTags(["settings"])
         .withSummary("Clear GCS configuration")
         .withResponse(200, {
-          configured: {type: "boolean"},
-          message: {type: "string"},
+          data: {
+            properties: {
+              configured: {type: "boolean"},
+              message: {type: "string"},
+            },
+            type: "object",
+          },
         })
         .build(),
     ],
