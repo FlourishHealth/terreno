@@ -155,7 +155,7 @@ describe("openApi", () => {
   it("gets the openapi.json and has correct Number query fields", async () => {
     server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
-    const foodQuery = res.body.paths["/"].get.parameters.find((p) => p.name === "calories");
+    const foodQuery = res.body.paths["/food/"].get.parameters.find((p) => p.name === "calories");
 
     // Ensure that a Number query field supports gt/gte/lt/lte and just a Number
     expect(foodQuery.schema).toEqual({
@@ -268,7 +268,7 @@ describe("openApi populate", () => {
     server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
     const properties =
-      res.body.paths["/{id}"].get.responses["200"].content["application/json"].schema.properties;
+      res.body.paths["/food/{id}"].get.responses["200"].content["application/json"].schema.properties;
 
     // There's no component here, so we automatically generate the limited properties.
     expect(properties.ownerId).toEqual({
