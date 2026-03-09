@@ -222,6 +222,45 @@ export class DocumentStorageApp {
       })
     );
 
+    // POST basePath/folder — Create a folder
+    app.post(
+      `${basePath}/folder`,
+      ...adminGuard,
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        const {folderName, prefix} = req.body as {folderName?: string; prefix?: string};
+        if (!folderName) {
+          throw new APIError({status: 400, title: "Folder name is required"});
+        }
+
+        const sanitizedName = folderName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const targetPrefix = prefix ?? "";
+        const gcsPath = `${this.prefix}${targetPrefix}${sanitizedName}/`;
+
+        const gcsFile = this.bucket.file(gcsPath);
+        await gcsFile.save(Buffer.alloc(0), {contentType: "application/x-directory"});
+
+        return res.json({folder: `${targetPrefix}${sanitizedName}/`});
+      })
+    );
+
+    // DELETE basePath/folder/* — Delete a folder and all its contents
+    app.delete(
+      `${basePath}/folder/*folderpath`,
+      ...adminGuard,
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        const folderPath = req.params.folderpath as string;
+        if (!folderPath) {
+          throw new APIError({status: 400, title: "Folder path is required"});
+        }
+
+        const gcsPrefix = `${this.prefix}${folderPath}`;
+        const [files] = await this.bucket.getFiles({prefix: gcsPrefix});
+        await Promise.all(files.map((f) => f.delete({ignoreNotFound: true})));
+
+        return res.json({success: true});
+      })
+    );
+
     // DELETE basePath/* — Delete a file
     app.delete(
       `${basePath}/*filepath`,

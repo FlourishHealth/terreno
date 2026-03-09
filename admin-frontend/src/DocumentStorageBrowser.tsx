@@ -7,12 +7,14 @@ import {
   type DataTableCustomComponentMap,
   IconButton,
   Link,
+  Modal,
   Page,
   Spinner,
   Text,
+  TextField,
 } from "@terreno/ui";
 import {DateTime} from "luxon";
-import React, {useCallback, useMemo, useRef, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform} from "react-native";
 
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
@@ -46,23 +48,61 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   onSettingsPress,
 }) => {
   const [currentPrefix, setCurrentPrefix] = useState("");
+  const [isNotConfigured, setIsNotConfigured] = useState(false);
+  const [skipFetch, setSkipFetch] = useState(false);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const {useListQuery, useUploadMutation, useDeleteMutation, useLazyGetUrlQuery} =
-    useDocumentStorageApi(api, basePath);
+  const {
+    useListQuery,
+    useUploadMutation,
+    useDeleteMutation,
+    useDeleteFolderMutation,
+    useCreateFolderMutation,
+    useLazyGetUrlQuery,
+  } = useDocumentStorageApi(api, basePath);
 
   const {
     data: listData,
     isLoading,
     isError,
-  } = useListQuery(currentPrefix || undefined) as {
+    error,
+    refetch,
+  } = useListQuery(currentPrefix || undefined, {skip: skipFetch}) as {
     data: DocumentListResponse | undefined;
     isLoading: boolean;
     isError: boolean;
+    error: any;
+    refetch: () => void;
   };
   const [uploadFile, {isLoading: isUploading}] = useUploadMutation();
   const [deleteFile] = useDeleteMutation();
+  const [deleteFolder] = useDeleteFolderMutation();
+  const [createFolder] = useCreateFolderMutation();
   const [getUrl] = useLazyGetUrlQuery();
+
+  // Detect 503 "not configured" responses
+  useEffect(() => {
+    if (isError && error) {
+      const status = error?.status ?? error?.originalStatus;
+      if (status === 503) {
+        setIsNotConfigured(true);
+        setSkipFetch(true);
+      }
+    }
+  }, [isError, error]);
+
+  const handleRefresh = useCallback(() => {
+    if (skipFetch) {
+      // Recovering from 503 — clearing skip triggers RTK Query to fetch automatically
+      setIsNotConfigured(false);
+      setSkipFetch(false);
+    } else {
+      refetch();
+    }
+  }, [skipFetch, refetch]);
 
   const handleFolderClick = useCallback((folder: string) => {
     setCurrentPrefix(folder);
@@ -97,6 +137,17 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     [deleteFile]
   );
 
+  const handleDeleteFolder = useCallback(
+    async (folderPath: string) => {
+      try {
+        await deleteFolder(folderPath).unwrap();
+      } catch (err) {
+        console.error("Failed to delete folder:", err);
+      }
+    },
+    [deleteFolder]
+  );
+
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
@@ -117,7 +168,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
         console.error("Failed to upload file:", err);
       }
 
-      // Reset the input so the same file can be re-uploaded
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -135,6 +185,28 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     },
     [onFileSelect, handleDownload]
   );
+
+  const handleCreateFolder = useCallback(async () => {
+    const name = newFolderName.trim();
+    if (!name) {
+      return;
+    }
+    setIsCreatingFolder(true);
+    try {
+      await createFolder({folderName: name, prefix: currentPrefix || undefined}).unwrap();
+      setNewFolderName("");
+      setShowNewFolderModal(false);
+    } catch (err) {
+      console.error("Failed to create folder:", err);
+    } finally {
+      setIsCreatingFolder(false);
+    }
+  }, [createFolder, newFolderName, currentPrefix]);
+
+  const handleNewFolderModalDismiss = useCallback(() => {
+    setShowNewFolderModal(false);
+    setNewFolderName("");
+  }, []);
 
   // Build breadcrumb segments
   const breadcrumbs = useMemo(() => {
@@ -187,7 +259,22 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
         isFolder: boolean;
       };
       if (isFolderItem) {
-        return null;
+        if (!allowDelete) {
+          return null;
+        }
+        return (
+          <Box alignItems="center" direction="row" gap={1} justifyContent="end">
+            <IconButton
+              accessibilityLabel="Delete folder"
+              confirmationText="Delete this folder and all its contents?"
+              iconName="trash"
+              onClick={() => handleDeleteFolder(filePath)}
+              tooltipText="Delete folder"
+              variant="destructive"
+              withConfirmation
+            />
+          </Box>
+        );
       }
       return (
         <Box alignItems="center" direction="row" gap={1} justifyContent="end">
@@ -212,7 +299,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
         </Box>
       );
     },
-    [handleDownload, handleDelete, allowDelete]
+    [handleDownload, handleDelete, handleDeleteFolder, allowDelete]
   );
 
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
@@ -223,7 +310,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     [DocumentActionsCell, DocumentNameCell]
   );
 
-  // Build table data from folders + files
   const columns: DataTableColumn[] = useMemo(
     () => [
       {columnType: NAME_COLUMN_TYPE, sortable: false, title: "Name", width: 300},
@@ -238,7 +324,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const tableData = useMemo(() => {
     const rows: any[][] = [];
 
-    // Add folders first
     for (const folder of listData?.folders ?? []) {
       const folderName = folder.split("/").filter(Boolean).pop() ?? folder;
       rows.push([
@@ -250,7 +335,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       ]);
     }
 
-    // Add files
     for (const file of listData?.files ?? []) {
       rows.push([
         {value: {file, isFolder: false, name: file.name}},
@@ -264,47 +348,62 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     return rows;
   }, [listData]);
 
-  return (
-    <Page
-      footer={
-        allowUpload ? (
-          <Box direction="row" justifyContent="end" padding={2}>
-            {Platform.OS === "web" && (
-              <input
-                accept="*/*"
-                onChange={handleFileChange as any}
-                ref={fileInputRef as any}
-                style={{display: "none"}}
-                type="file"
-              />
+  const headerRow = (
+    <Box alignItems="center" direction="row" padding={2}>
+      {/* Breadcrumbs */}
+      <Box alignItems="center" direction="row" flex="grow" gap={1} wrap>
+        {breadcrumbs.map((crumb, index) => (
+          <Box direction="row" gap={1} key={crumb.prefix || "root"}>
+            {index > 0 && <Text color="secondaryDark">/</Text>}
+            {index === breadcrumbs.length - 1 ? (
+              <Text bold>{crumb.label}</Text>
+            ) : (
+              <Link onClick={() => handleBreadcrumbClick(crumb.prefix)} text={crumb.label} />
             )}
-            <Button
+          </Box>
+        ))}
+      </Box>
+
+      {/* Action buttons */}
+      <Box alignItems="center" direction="row" gap={1}>
+        {Platform.OS === "web" && allowUpload && (
+          <>
+            <input
+              accept="*/*"
+              onChange={handleFileChange as any}
+              ref={fileInputRef as any}
+              style={{display: "none"}}
+              type="file"
+            />
+            <IconButton
+              accessibilityLabel="Upload file"
+              iconName="cloud-arrow-up"
               loading={isUploading}
               onClick={handleUploadClick}
               testID="document-upload-button"
-              text="Upload"
-              variant="primary"
+              tooltipText="Upload file"
+              variant="muted"
             />
-          </Box>
-        ) : undefined
-      }
-      maxWidth="100%"
-      title={title}
-    >
-      {/* Breadcrumbs */}
-      <Box alignItems="center" direction="row" padding={2}>
-        <Box alignItems="center" direction="row" flex="grow" gap={1} wrap>
-          {breadcrumbs.map((crumb, index) => (
-            <Box direction="row" gap={1} key={crumb.prefix || "root"}>
-              {index > 0 && <Text color="secondaryDark">/</Text>}
-              {index === breadcrumbs.length - 1 ? (
-                <Text bold>{crumb.label}</Text>
-              ) : (
-                <Link onClick={() => handleBreadcrumbClick(crumb.prefix)} text={crumb.label} />
-              )}
-            </Box>
-          ))}
-        </Box>
+          </>
+        )}
+        {allowUpload && (
+          <IconButton
+            accessibilityLabel="New folder"
+            iconName="folder-plus"
+            onClick={() => setShowNewFolderModal(true)}
+            testID="document-new-folder-button"
+            tooltipText="New folder"
+            variant="muted"
+          />
+        )}
+        <IconButton
+          accessibilityLabel="Refresh"
+          iconName="rotate"
+          onClick={handleRefresh}
+          testID="document-refresh-button"
+          tooltipText="Refresh"
+          variant="muted"
+        />
         {onSettingsPress && (
           <IconButton
             accessibilityLabel="Storage settings"
@@ -314,27 +413,81 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
           />
         )}
       </Box>
+    </Box>
+  );
 
-      {/* Content */}
-      {isLoading ? (
+  const renderContent = () => {
+    if (isNotConfigured) {
+      return (
+        <Box alignItems="center" gap={3} padding={6}>
+          <Text color="error">Storage is not configured.</Text>
+          {onSettingsPress && (
+            <Button
+              iconName="gear"
+              onClick={onSettingsPress}
+              text="Open Settings"
+              variant="secondary"
+            />
+          )}
+        </Box>
+      );
+    }
+    if (isLoading) {
+      return (
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
-      ) : isError ? (
+      );
+    }
+    if (isError) {
+      return (
         <Box alignItems="center" padding={6}>
           <Text color="error">Failed to load files. Please try again.</Text>
         </Box>
-      ) : tableData.length === 0 ? (
+      );
+    }
+    if (tableData.length === 0) {
+      return (
         <Box alignItems="center" padding={6}>
           <Text color="secondaryDark">No files found.</Text>
         </Box>
-      ) : (
-        <DataTable
-          columns={columns}
-          customColumnComponentMap={customColumnComponentMap}
-          data={tableData}
-        />
-      )}
+      );
+    }
+    return (
+      <DataTable
+        columns={columns}
+        customColumnComponentMap={customColumnComponentMap}
+        data={tableData}
+      />
+    );
+  };
+
+  return (
+    <Page maxWidth="100%" title={title}>
+      {headerRow}
+      {renderContent()}
+
+      <Modal
+        onDismiss={handleNewFolderModalDismiss}
+        primaryButtonOnClick={handleCreateFolder}
+        primaryButtonText="Create"
+        secondaryButtonOnClick={handleNewFolderModalDismiss}
+        secondaryButtonText="Cancel"
+        size="sm"
+        title="New Folder"
+        visible={showNewFolderModal}
+      >
+        <Box gap={3}>
+          <TextField
+            disabled={isCreatingFolder}
+            onChange={setNewFolderName}
+            placeholder="folder-name"
+            testID="new-folder-name-input"
+            title="Folder Name"
+            value={newFolderName}
+          />
+        </Box>
+      </Modal>
     </Page>
   );
 };
