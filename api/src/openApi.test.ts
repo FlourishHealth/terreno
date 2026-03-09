@@ -268,7 +268,7 @@ describe("openApi populate", () => {
     server = supertest(app);
     const res = await server.get("/openapi.json").expect(200);
     const properties =
-      res.body.paths["/:id"].get.responses["200"].content["application/json"].schema.properties;
+      res.body.paths["/{id}"].get.responses["200"].content["application/json"].schema.properties;
 
     // There's no component here, so we automatically generate the limited properties.
     expect(properties.ownerId).toEqual({

@@ -1006,8 +1006,18 @@ exports[`openApi gets the openapi.json 1`] = `
         ],
       },
     },
-    "/:id": {
+    "/{id}": {
       "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "204": {
             "description": "Successful delete",
@@ -1061,6 +1071,16 @@ exports[`openApi gets the openapi.json 1`] = `
         ],
       },
       "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1360,6 +1380,16 @@ exports[`openApi gets the openapi.json 1`] = `
         ],
       },
       "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -2912,8 +2942,18 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
         ],
       },
     },
-    "/:id": {
+    "/{id}": {
       "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "204": {
             "description": "Successful delete",
@@ -2967,6 +3007,16 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
         ],
       },
       "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3266,6 +3316,16 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
         ],
       },
       "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -4528,8 +4588,18 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
         ],
       },
     },
-    "/:id": {
+    "/{id}": {
       "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "204": {
             "description": "Successful delete",
@@ -4583,6 +4653,16 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
         ],
       },
       "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "responses": {
           "200": {
             "content": {
@@ -4780,6 +4860,16 @@ exports[`openApi populate gets the openapi.json with populate 1`] = `
         ],
       },
       "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
         "requestBody": {
           "content": {
             "application/json": {
