@@ -3,7 +3,7 @@ import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 import multer from "multer";
-import {pipeline} from "stream/promises";
+import {pipeline} from "node:stream/promises";
 
 export interface DocumentStorageOptions {
   bucketName: string;
@@ -206,12 +206,26 @@ export class DocumentStorageApp {
         const gcsPath = `${this.prefix}${filePath}`;
         const gcsFile = this.bucket.file(gcsPath);
 
-        const [exists] = await gcsFile.exists();
-        if (!exists) {
-          throw new APIError({status: 404, title: "File not found"});
+        let metadata: Record<string, unknown>;
+        try {
+          const [meta] = await gcsFile.getMetadata();
+          metadata = meta as Record<string, unknown>;
+        } catch (err: any) {
+          if (err?.code === 404) {
+            throw new APIError({
+              detail: filePath,
+              disableExternalErrorTracking: true,
+              status: 404,
+              title: "File not found",
+            });
+          }
+          throw new APIError({
+            detail: err?.message ?? String(err),
+            status: 500,
+            title: "Failed to access file",
+          });
         }
 
-        const [metadata] = await gcsFile.getMetadata();
         const contentType =
           (metadata.contentType as string | undefined) ?? "application/octet-stream";
         const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
@@ -222,7 +236,17 @@ export class DocumentStorageApp {
           res.setHeader("Content-Length", String(metadata.size));
         }
 
-        await pipeline(gcsFile.createReadStream(), res);
+        try {
+          await pipeline(gcsFile.createReadStream(), res);
+        } catch (err: any) {
+          if (!res.headersSent) {
+            throw new APIError({
+              detail: err?.message ?? String(err),
+              status: 500,
+              title: "Failed to stream file",
+            });
+          }
+        }
       })
     );
 
