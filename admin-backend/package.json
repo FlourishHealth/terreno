@@ -13,6 +13,7 @@
     "@biomejs/biome": "catalog:",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
+    "@types/mongoose": "^5.11.97",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",

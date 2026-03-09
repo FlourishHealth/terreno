@@ -156,6 +156,7 @@ export async function start(skipListen = false): Promise<express.Application> {
               routePath: "/users",
             },
           ],
+          versionConfig: true,
         })
       );
 

@@ -13,6 +13,7 @@ import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiCompatMiddleware} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
+import {VersionCheckPlugin} from "./versionCheck";
 
 type CorsOrigin =
   | string
@@ -268,6 +269,8 @@ export class TerrenoApp {
     }
 
     addMeRoutes(app, options.userModel as any, options.authOptions);
+
+    new VersionCheckPlugin().register(app);
 
     // GitHub OAuth
     if (options.githubAuth) {

@@ -21,6 +21,7 @@
         "@biomejs/biome": "catalog:",
         "@types/bun": "^1.2.4",
         "@types/express": "^5.0.6",
+        "@types/mongoose": "^5.11.97",
         "typescript": "catalog:",
       },
     },
@@ -79,7 +80,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@sentry/bun": "^10.25.0",
         "@sentry/profiling-node": "^10.25.0",
@@ -288,6 +289,7 @@
         "@react-navigation/native": "catalog:",
         "@reduxjs/toolkit": "catalog:",
         "@sentry/react": "catalog:",
+        "@terreno/admin-frontend": "workspace:*",
         "@terreno/rtk": "workspace:*",
         "@terreno/ui": "workspace:*",
         "expo": "catalog:",
@@ -336,7 +338,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@better-auth/expo": "^1.2.8",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -373,7 +375,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@expo-google-fonts/nunito": "^0.4.2",
         "@expo-google-fonts/titillium-web": "^0.4.1",
@@ -1598,6 +1600,8 @@
     "@types/minimatch": ["@types/minimatch@6.0.0", "", { "dependencies": { "minimatch": "*" } }, "sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA=="],
 
     "@types/mongodb": ["@types/mongodb@4.0.7", "", { "dependencies": { "mongodb": "*" } }, "sha512-lPUYPpzA43baXqnd36cZ9xxorprybxXDzteVKCPAdp14ppHtFJHnXYvNpmBvtMUTb5fKXVv6sVbzo1LHkWhJlw=="],
+
+    "@types/mongoose": ["@types/mongoose@5.11.97", "", { "dependencies": { "mongoose": "*" } }, "sha512-cqwOVYT3qXyLiGw7ueU2kX9noE8DPGRY6z8eUxudhXY8NZ7DMKYAxyZkLSevGfhCX3dO/AoX5/SO9lAzfjon0Q=="],
 
     "@types/ms": ["@types/ms@2.1.0", "", {}, "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA=="],
 
