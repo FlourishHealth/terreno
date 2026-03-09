@@ -1,4 +1,4 @@
-import {configurationPlugin, createdUpdatedPlugin} from "@terreno/api";
+import {type ConfigurationModel, configurationPlugin, createdUpdatedPlugin} from "@terreno/api";
 import mongoose, {Schema} from "mongoose";
 
 /**
@@ -119,4 +119,4 @@ appConfigSchema.plugin(createdUpdatedPlugin);
 export const AppConfiguration = mongoose.model<AppConfigDocument>(
   "AppConfiguration",
   appConfigSchema
-);
+) as ConfigurationModel<AppConfigDocument>;

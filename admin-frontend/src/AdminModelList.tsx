@@ -12,6 +12,63 @@ interface AdminModelListProps {
   configurationPath?: string;
 }
 
+const ScriptsCard: React.FC<{count: number; onPress: () => void}> = ({count, onPress}) => (
+  <Card padding={4} testID="admin-scripts-card">
+    <Box
+      accessibilityHint="Navigate to admin scripts"
+      accessibilityLabel="Scripts"
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">Scripts</Heading>
+      <Text color="secondaryDark" size="sm">
+        {count} script{count !== 1 ? "s" : ""}
+      </Text>
+    </Box>
+  </Card>
+);
+
+const ConfigurationCard: React.FC<{onPress: () => void}> = ({onPress}) => (
+  <Card padding={4} testID="admin-configuration-card">
+    <Box
+      accessibilityHint="Navigate to application configuration"
+      accessibilityLabel="Configuration"
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">Configuration</Heading>
+      <Text color="secondaryDark" size="sm">
+        Manage application settings
+      </Text>
+    </Box>
+  </Card>
+);
+
+const ModelCard: React.FC<{model: AdminModelConfig; onPress: (name: string) => void}> = ({
+  model,
+  onPress,
+}) => {
+  const fieldCount = Object.keys(model.fields).length;
+  return (
+    <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
+      <Box
+        accessibilityHint={`Navigate to ${model.displayName} admin`}
+        accessibilityLabel={model.displayName}
+        gap={2}
+        onClick={() => onPress(model.name)}
+        width={240}
+      >
+        <Heading size="md">{model.displayName}</Heading>
+        <Text color="secondaryDark" size="sm">
+          {fieldCount} field{fieldCount !== 1 ? "s" : ""}
+        </Text>
+      </Box>
+    </Card>
+  );
+};
+
 /**
  * Admin panel entry screen that displays all available models as clickable cards.
  *
@@ -79,59 +136,17 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
         {hasToolCards && (
           <Box direction="row" gap={4} wrap>
             {scripts.length > 0 && (
-              <Card padding={4} testID="admin-scripts-card">
-                <Box
-                  accessibilityHint="Navigate to admin scripts"
-                  accessibilityLabel="Scripts"
-                  gap={2}
-                  onClick={() => handlePress("__scripts")}
-                  width={240}
-                >
-                  <Heading size="md">Scripts</Heading>
-                  <Text color="secondaryDark" size="sm">
-                    {scripts.length} script{scripts.length !== 1 ? "s" : ""}
-                  </Text>
-                </Box>
-              </Card>
+              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
             )}
             {configurationPath && (
-              <Card padding={4} testID="admin-configuration-card">
-                <Box
-                  accessibilityHint="Navigate to application configuration"
-                  accessibilityLabel="Configuration"
-                  gap={2}
-                  onClick={() => router.push(configurationPath as any)}
-                  width={240}
-                >
-                  <Heading size="md">Configuration</Heading>
-                  <Text color="secondaryDark" size="sm">
-                    Manage application settings
-                  </Text>
-                </Box>
-              </Card>
+              <ConfigurationCard onPress={() => router.push(configurationPath as any)} />
             )}
           </Box>
         )}
         <Box direction="row" gap={4} wrap>
-          {config.models.map((model: AdminModelConfig) => {
-            const fieldCount = Object.keys(model.fields).length;
-            return (
-              <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
-                <Box
-                  accessibilityHint={`Navigate to ${model.displayName} admin`}
-                  accessibilityLabel={model.displayName}
-                  gap={2}
-                  onClick={() => handlePress(model.name)}
-                  width={240}
-                >
-                  <Heading size="md">{model.displayName}</Heading>
-                  <Text color="secondaryDark" size="sm">
-                    {fieldCount} field{fieldCount !== 1 ? "s" : ""}
-                  </Text>
-                </Box>
-              </Card>
-            );
-          })}
+          {config.models.map((model: AdminModelConfig) => (
+            <ModelCard key={model.name} model={model} onPress={handlePress} />
+          ))}
         </Box>
       </Box>
     </Page>

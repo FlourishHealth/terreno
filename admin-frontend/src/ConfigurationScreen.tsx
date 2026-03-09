@@ -98,7 +98,6 @@ const ConfigField: React.FC<{
     );
   }
 
-  // Secret fields show as password inputs
   if (fieldMeta.secret) {
     return (
       <TextField
@@ -112,7 +111,6 @@ const ConfigField: React.FC<{
     );
   }
 
-  // Default: string
   return (
     <TextField
       helperText={helperText}
@@ -123,6 +121,44 @@ const ConfigField: React.FC<{
     />
   );
 };
+
+const SectionDescription: React.FC<{description: string}> = ({description}) => (
+  <Text color="secondaryDark" size="sm">
+    {description}
+  </Text>
+);
+
+const SectionCard: React.FC<{
+  section: ConfigSectionMeta;
+  formState: Record<string, any>;
+  onFieldChange: (sectionName: string, fieldKey: string, value: any) => void;
+}> = ({section, formState, onFieldChange}) => {
+  const sectionValues = section.name === "__root__" ? formState : (formState[section.name] ?? {});
+  return (
+    <Card padding={4}>
+      <Box gap={3}>
+        <Box gap={1}>
+          <Heading size="md">{section.displayName}</Heading>
+          {section.description && <SectionDescription description={section.description} />}
+        </Box>
+        {Object.entries(section.fields).map(([fieldKey, fieldMeta]) => (
+          <ConfigField
+            fieldKey={fieldKey}
+            fieldMeta={fieldMeta}
+            key={fieldKey}
+            onChange={(value: any) => onFieldChange(section.name, fieldKey, value)}
+            sectionName={section.name}
+            value={sectionValues[fieldKey]}
+          />
+        ))}
+      </Box>
+    </Card>
+  );
+};
+
+const EmptySections: React.FC = () => (
+  <Text color="secondaryDark">No configuration sections defined.</Text>
+);
 
 /**
  * Configuration management screen that auto-generates a form from the backend
@@ -162,18 +198,15 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const configMeta = meta as ConfigurationMetaResponse | undefined;
   const configValues = valuesResponse?.data;
 
-  // Initialize form state from fetched values
   useEffect(() => {
     if (configValues && configMeta && !isInitialized) {
       const initial: Record<string, any> = {};
       for (const section of configMeta.sections) {
         if (section.name === "__root__") {
-          // General section fields are at the top level
           for (const [key, fieldMeta] of Object.entries(section.fields)) {
             initial[key] = configValues[key] ?? fieldMeta.default ?? "";
           }
         } else {
-          // Nested section
           initial[section.name] = {};
           const sectionValues = configValues[section.name] ?? {};
           for (const [key, fieldMeta] of Object.entries(section.fields)) {
@@ -253,36 +286,17 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
       title={title}
     >
       <Box gap={4} padding={4}>
-        {sections.map((section) => (
-          <Card key={section.name} padding={4}>
-            <Box gap={3}>
-              <Box gap={1}>
-                <Heading size="md">{section.displayName}</Heading>
-                {section.description && (
-                  <Text color="secondaryDark" size="sm">
-                    {section.description}
-                  </Text>
-                )}
-              </Box>
-              {Object.entries(section.fields).map(([fieldKey, fieldMeta]) => (
-                <ConfigField
-                  fieldKey={fieldKey}
-                  fieldMeta={fieldMeta}
-                  key={fieldKey}
-                  onChange={(value: any) => handleFieldChange(section.name, fieldKey, value)}
-                  sectionName={section.name}
-                  value={
-                    section.name === "__root__"
-                      ? formState[fieldKey]
-                      : formState[section.name]?.[fieldKey]
-                  }
-                />
-              ))}
-            </Box>
-          </Card>
-        ))}
-        {sections.length === 0 && (
-          <Text color="secondaryDark">No configuration sections defined.</Text>
+        {sections.length === 0 ? (
+          <EmptySections />
+        ) : (
+          sections.map((section) => (
+            <SectionCard
+              formState={formState}
+              key={section.name}
+              onFieldChange={handleFieldChange}
+              section={section}
+            />
+          ))
         )}
       </Box>
     </Page>

@@ -6,7 +6,7 @@ import type TestAgent from "supertest/lib/agent";
 
 import {addAuthRoutes, setupAuth} from "./auth";
 import {ConfigurationApp} from "./configurationApp";
-import {type ConfigurationStatics, configurationPlugin} from "./configurationPlugin";
+import {type ConfigurationModel, configurationPlugin} from "./configurationPlugin";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {createdUpdatedPlugin} from "./plugins";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "./tests";
@@ -68,8 +68,7 @@ testConfigSchema.plugin(configurationPlugin);
 testConfigSchema.plugin(createdUpdatedPlugin);
 
 const TestConfig = (mongoose.models.TestConfig ||
-  mongoose.model("TestConfig", testConfigSchema)) as mongoose.Model<any> &
-  ConfigurationStatics<TestConfigDocument>;
+  mongoose.model("TestConfig", testConfigSchema)) as ConfigurationModel<TestConfigDocument>;
 
 // -- Test model with top-level scalar fields --
 
@@ -84,8 +83,10 @@ scalarConfigSchema.plugin(configurationPlugin);
 scalarConfigSchema.plugin(createdUpdatedPlugin);
 
 const ScalarConfig = (mongoose.models.ScalarConfig ||
-  mongoose.model("ScalarConfig", scalarConfigSchema)) as mongoose.Model<any> &
-  ConfigurationStatics<any>;
+  mongoose.model("ScalarConfig", scalarConfigSchema)) as ConfigurationModel<{
+  siteName: string;
+  debugMode: boolean;
+}>;
 
 // -- Helpers --
 
@@ -130,6 +131,23 @@ describe("configurationPlugin", () => {
       const first = await TestConfig.getConfig();
       const second = await TestConfig.getConfig();
       expect(first._id.toString()).toBe(second._id.toString());
+    });
+
+    it("returns a top-level section by key", async () => {
+      const general = await TestConfig.getConfig("general");
+      expect(general.appName).toBe("Test App");
+      expect(general.maintenanceMode).toBe(false);
+    });
+
+    it("returns a nested value by dot-notation key", async () => {
+      const appName = await TestConfig.getConfig("general.appName");
+      expect(appName).toBe("Test App");
+    });
+
+    it("returns updated value after updateConfig", async () => {
+      await TestConfig.updateConfig({general: {appName: "Updated", maintenanceMode: false}});
+      const appName = await TestConfig.getConfig("general.appName");
+      expect(appName).toBe("Updated");
     });
   });
 

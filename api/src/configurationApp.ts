@@ -3,7 +3,7 @@ import type {Model, Schema} from "mongoose";
 
 import {asyncHandler} from "./api";
 import {authenticateMiddleware} from "./auth";
-import type {SecretFieldMeta, SecretProvider} from "./configurationPlugin";
+import type {SecretFieldMeta} from "./configurationPlugin";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
@@ -64,8 +64,6 @@ export interface ConfigurationAppOptions {
   basePath?: string;
   /** Per-field widget overrides (e.g., {"ai.systemPrompt": "markdown"}). */
   fieldOverrides?: Record<string, {widget?: string}>;
-  /** Secret provider for resolving secret field values. */
-  secretProvider?: SecretProvider;
 }
 
 /**
@@ -242,32 +240,20 @@ export class ConfigurationApp implements TerrenoPlugin {
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {
-        const provider = this.options.secretProvider;
-        if (!provider) {
-          return res.json({
-            message: "No secret provider configured.",
-            secretFields: secretFields.map((s) => ({
-              path: s.path,
-              secretName: s.secretName,
-            })),
-          });
-        }
-
-        const resolved = await (ConfigModel as any).resolveSecrets(provider);
+        const resolved: Map<string, string> = await (ConfigModel as any).resolveSecrets();
         if (resolved.size > 0) {
-          const updates: Record<string, any> = {};
+          const updates: Record<string, unknown> = {};
           for (const [path, value] of resolved) {
             updates[path] = value;
           }
           await (ConfigModel as any).updateConfig(updates);
-          logger.info(
-            `Refreshed ${resolved.size}/${secretFields.length} secrets from ${provider.name}`
-          );
+          logger.info(`Refreshed ${resolved.size}/${secretFields.length} secrets`);
         }
 
         return res.json({
-          message: `Resolved ${resolved.size}/${secretFields.length} secrets from ${provider.name}.`,
+          message: `Resolved ${resolved.size}/${secretFields.length} secrets.`,
           resolved: resolved.size,
+          secretFields: secretFields.map((s) => ({path: s.path, secretName: s.secretName})),
           total: secretFields.length,
         });
       })

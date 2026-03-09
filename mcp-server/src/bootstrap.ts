@@ -2275,6 +2275,17 @@ bun run lint     # Lint code
 - All model types live in \`src/types/models/\`
 - In routes: \`req.user\` is \`UserDocument | undefined\`
 
+## Admin Panel
+
+The backend uses \`@terreno/admin-backend\`'s \`AdminApp\` for auto-generated admin CRUD endpoints.
+All admin routes require \`IsAdmin\` permission and are mounted at \`/admin\`.
+Add models to \`AdminApp\` in \`src/server.ts\` to expose them in the admin panel.
+
+## Runtime Configuration
+
+Use \`AppConfig.getConfig()\` or \`AppConfig.getConfig("section.field")\` to read config values.
+Use \`AppConfig.updateConfig(updates)\` to write. All values are persisted in MongoDB.
+
 ## Adding a New Model
 
 1. Create model in \`src/models/yourModel.ts\`
@@ -2282,6 +2293,7 @@ bun run lint     # Lint code
 3. Export from \`src/models/index.ts\` and \`src/types/models/index.ts\`
 4. Create route in \`src/api/yourModel.ts\`
 5. Register route in \`src/server.ts\`
+6. Optionally add to \`AdminApp\` in \`src/server.ts\` for admin panel access
 `;
 };
 
@@ -2353,6 +2365,16 @@ bun run lint     # Lint code
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 - Use Luxon for date operations
 - Use Redux Toolkit for state management
+
+## Admin Panel Frontend
+
+The frontend uses \`@terreno/admin-frontend\` components for the admin panel:
+- \`AdminModelList\` — entry screen listing all admin models
+- \`AdminModelTable\` — table view for a model with pagination
+- \`AdminModelForm\` — create/edit form (auto-generated from schema)
+- \`ConfigurationScreen\` — admin configuration editor
+
+Admin screens live in \`app/(tabs)/admin/\`. The panel reads metadata from \`GET /admin/config\`.
 
 ## Adding a New Screen
 
