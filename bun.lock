@@ -30,9 +30,6 @@
         "supertest": "^7.0.0",
         "typescript": "catalog:",
       },
-      "peerDependencies": {
-        "mongoose": ">=9.0.0",
-      },
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
