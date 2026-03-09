@@ -13,7 +13,7 @@ export const HeightFieldConfiguration: DemoConfiguration = {
   component: HeightField,
   related: ["Number field", "Text field"],
   description:
-    "Use the Height field to allow users to input their height. The field stores the value as total inches and displays it as feet and inches. On mobile, tapping the field opens an action sheet for selection. Supports optional min/max props to constrain the allowed height range.",
+    "Use the Height field to allow users to input their height. The field stores the value as total inches and displays it as feet and inches. On web, two text inputs accept feet and inches separately. On iOS, tapping the field opens an action sheet for selection. On Android, two dropdowns allow selection of feet and inches. Supports optional min/max props to constrain the allowed height range.",
   a11yNotes: [
     "Users should be able to use tab to navigate between the feet and inches inputs.",
     "The field should announce the current value to screen readers.",
