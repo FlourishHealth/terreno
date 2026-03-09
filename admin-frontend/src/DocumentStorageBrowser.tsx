@@ -61,6 +61,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     useDeleteMutation,
     useDeleteFolderMutation,
     useCreateFolderMutation,
+    useLazyDownloadQuery,
   } = useDocumentStorageApi(api, basePath);
 
   const {
@@ -80,6 +81,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [deleteFile] = useDeleteMutation();
   const [deleteFolder] = useDeleteFolderMutation();
   const [createFolder] = useCreateFolderMutation();
+  const [downloadFile] = useLazyDownloadQuery();
 
   // Detect 503 "not configured" responses
   useEffect(() => {
@@ -109,6 +111,28 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const handleBreadcrumbClick = useCallback((prefix: string) => {
     setCurrentPrefix(prefix);
   }, []);
+
+  const handleDownload = useCallback(
+    async (filePath: string) => {
+      try {
+        const blob = await downloadFile(filePath).unwrap();
+        if (Platform.OS === "web" && blob) {
+          const url = URL.createObjectURL(blob as Blob);
+          const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error("Failed to download file:", err);
+      }
+    },
+    [downloadFile]
+  );
 
   const handleDelete = useCallback(
     async (filePath: string) => {
@@ -256,24 +280,32 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
           </Box>
         );
       }
-      if (!allowDelete) {
-        return null;
-      }
       return (
         <Box alignItems="center" direction="row" gap={1} justifyContent="end">
-          <IconButton
-            accessibilityLabel="Delete"
-            confirmationText="Are you sure you want to delete this file?"
-            iconName="trash"
-            onClick={() => handleDelete(filePath)}
-            tooltipText="Delete"
-            variant="destructive"
-            withConfirmation
-          />
+          {Platform.OS === "web" && (
+            <IconButton
+              accessibilityLabel="Download"
+              iconName="download"
+              onClick={() => handleDownload(filePath)}
+              tooltipText="Download"
+              variant="muted"
+            />
+          )}
+          {allowDelete && (
+            <IconButton
+              accessibilityLabel="Delete"
+              confirmationText="Are you sure you want to delete this file?"
+              iconName="trash"
+              onClick={() => handleDelete(filePath)}
+              tooltipText="Delete"
+              variant="destructive"
+              withConfirmation
+            />
+          )}
         </Box>
       );
     },
-    [handleDelete, handleDeleteFolder, allowDelete]
+    [handleDownload, handleDelete, handleDeleteFolder, allowDelete]
   );
 
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
