@@ -27,7 +27,13 @@
   "peerDependencies": {
     "@reduxjs/toolkit": "catalog:",
     "react": "catalog:",
+    "react-native-webview": "catalog:",
     "react-redux": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-native-webview": {
+      "optional": true
+    }
   },
   "scripts": {
     "compile": "tsc",

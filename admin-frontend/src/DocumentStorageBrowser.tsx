@@ -15,7 +15,8 @@ import {
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Platform} from "react-native";
+import {Platform, Image as RNImage, useWindowDimensions} from "react-native";
+import {WebView} from "react-native-webview";
 
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
 import {useDocumentStorageApi} from "./useDocumentStorageApi";
@@ -143,9 +144,20 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       setIsViewLoading(true);
       try {
         const blob = await downloadFile(file.fullPath).unwrap();
-        const url = URL.createObjectURL(blob as Blob);
-        viewerBlobUrlRef.current = url;
-        setViewerBlobUrl(url);
+        if (Platform.OS === "web") {
+          const url = URL.createObjectURL(blob as Blob);
+          viewerBlobUrlRef.current = url;
+          setViewerBlobUrl(url);
+        } else {
+          // Convert to base64 data URI for React Native
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob as Blob);
+          });
+          setViewerBlobUrl(dataUri);
+        }
       } catch (err) {
         console.error("Failed to load file preview:", err);
       } finally {
@@ -156,7 +168,8 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   );
 
   const handleViewerClose = useCallback(() => {
-    if (viewerBlobUrlRef.current) {
+    // Only blob: URLs need revocation; base64 data URIs do not
+    if (Platform.OS === "web" && viewerBlobUrlRef.current) {
       URL.revokeObjectURL(viewerBlobUrlRef.current);
       viewerBlobUrlRef.current = null;
     }
@@ -402,6 +415,9 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     return rows;
   }, [listData]);
 
+  const {height: windowHeight} = useWindowDimensions();
+  const nativeViewerHeight = Math.floor(windowHeight * 0.6);
+
   const renderViewerContent = () => {
     if (isViewLoading) {
       return (
@@ -417,34 +433,53 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
         </Box>
       );
     }
+
     const contentType = viewerFile?.contentType ?? "";
+
+    if (Platform.OS === "web") {
+      if (contentType.startsWith("image/")) {
+        return (
+          <Box alignItems="center">
+            <img
+              alt={viewerFile?.name}
+              src={viewerBlobUrl}
+              style={{maxHeight: "70vh", maxWidth: "100%", objectFit: "contain"}}
+            />
+          </Box>
+        );
+      }
+      if (contentType.startsWith("video/")) {
+        return (
+          <Box alignItems="center">
+            <video controls src={viewerBlobUrl} style={{maxHeight: "70vh", maxWidth: "100%"}}>
+              <track kind="captions" />
+            </video>
+          </Box>
+        );
+      }
+      // PDF and text/plain — render in iframe
+      return (
+        <iframe
+          src={viewerBlobUrl}
+          style={{border: "none", height: "70vh", width: "100%"}}
+          title={viewerFile?.name}
+        />
+      );
+    }
+
+    // React Native
     if (contentType.startsWith("image/")) {
       return (
-        <Box alignItems="center">
-          <img
-            alt={viewerFile?.name}
-            src={viewerBlobUrl}
-            style={{maxHeight: "70vh", maxWidth: "100%", objectFit: "contain"}}
-          />
-        </Box>
+        <RNImage
+          resizeMode="contain"
+          source={{uri: viewerBlobUrl}}
+          style={{height: nativeViewerHeight, width: "100%"}}
+        />
       );
     }
-    if (contentType.startsWith("video/")) {
-      return (
-        <Box alignItems="center">
-          <video controls src={viewerBlobUrl} style={{maxHeight: "70vh", maxWidth: "100%"}}>
-            <track kind="captions" />
-          </video>
-        </Box>
-      );
-    }
-    // PDF and text/plain — render in iframe
+    // PDFs, videos, and text — use WebView with the data URI
     return (
-      <iframe
-        src={viewerBlobUrl}
-        style={{border: "none", height: "70vh", width: "100%"}}
-        title={viewerFile?.name}
-      />
+      <WebView source={{uri: viewerBlobUrl}} style={{height: nativeViewerHeight, width: "100%"}} />
     );
   };
 

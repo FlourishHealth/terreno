@@ -21,7 +21,8 @@
     "react-native": "catalog:",
     "react-native-web": "catalog:",
     "react-redux": "catalog:",
-    "redux-persist": "catalog:"
+    "redux-persist": "catalog:",
+    "react-native-webview": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
