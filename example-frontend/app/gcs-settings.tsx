@@ -21,7 +21,7 @@ interface GcsConfigStatus {
   projectId: string | null;
 }
 
-const SettingsScreen: React.FC = () => {
+const GcsSettingsScreen: React.FC = () => {
   const [bucketName, setBucketName] = useStoredState<string>("gcsBucketName", "");
   const [projectId, setProjectId] = useStoredState<string>("gcsProjectId", "");
   const [serviceAccountKey, setServiceAccountKey] = useStoredState<string>(
@@ -183,7 +183,7 @@ const SettingsScreen: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Page navigation={undefined}>
+      <Page backButton navigation={undefined}>
         <Box alignItems="center" flex="grow" justifyContent="center">
           <Spinner />
         </Box>
@@ -192,12 +192,14 @@ const SettingsScreen: React.FC = () => {
   }
 
   return (
-    <Page navigation={undefined} scroll testID="settings-screen">
+    <Page
+      backButton
+      navigation={undefined}
+      scroll
+      testID="gcs-settings-screen"
+      title="Storage Settings"
+    >
       <Box padding={4}>
-        <Box marginBottom={6}>
-          <Heading size="xl">Settings</Heading>
-        </Box>
-
         <Card marginBottom={6}>
           <Box gap={4}>
             <Heading size="lg">Google Cloud Storage</Heading>
@@ -229,7 +231,7 @@ const SettingsScreen: React.FC = () => {
               disabled={isSaving}
               onChange={setBucketInput}
               placeholder="my-app-uploads"
-              testID="settings-gcs-bucket-input"
+              testID="gcs-settings-bucket-input"
               title="Bucket Name"
               value={bucketInput}
             />
@@ -238,7 +240,7 @@ const SettingsScreen: React.FC = () => {
               disabled={isSaving}
               onChange={setProjectIdInput}
               placeholder="my-gcp-project"
-              testID="settings-gcs-project-input"
+              testID="gcs-settings-project-input"
               title="Project ID (optional)"
               value={projectIdInput}
             />
@@ -248,7 +250,7 @@ const SettingsScreen: React.FC = () => {
               onChange={setKeyInput}
               placeholder='{"type": "service_account", "project_id": "...", ...}'
               rows={6}
-              testID="settings-gcs-key-input"
+              testID="gcs-settings-key-input"
               title="Service Account Key JSON (optional)"
               value={keyInput}
             />
@@ -259,7 +261,7 @@ const SettingsScreen: React.FC = () => {
 
             {saveMessage && (
               <Box>
-                <Text color="success" testID="settings-gcs-success">
+                <Text color="success" testID="gcs-settings-success">
                   {saveMessage}
                 </Text>
               </Box>
@@ -267,7 +269,7 @@ const SettingsScreen: React.FC = () => {
 
             {saveError && (
               <Box>
-                <Text color="error" testID="settings-gcs-error">
+                <Text color="error" testID="gcs-settings-error">
                   {saveError}
                 </Text>
               </Box>
@@ -279,14 +281,14 @@ const SettingsScreen: React.FC = () => {
                 iconName="cloud-arrow-up"
                 loading={isSaving}
                 onClick={handleSave}
-                testID="settings-gcs-save-button"
+                testID="gcs-settings-save-button"
                 text="Save & Connect"
               />
               <Button
                 disabled={!status?.configured || isSaving}
                 iconName="trash"
                 onClick={handleClear}
-                testID="settings-gcs-clear-button"
+                testID="gcs-settings-clear-button"
                 text="Clear"
                 variant="destructive"
               />
@@ -298,4 +300,4 @@ const SettingsScreen: React.FC = () => {
   );
 };
 
-export default SettingsScreen;
+export default GcsSettingsScreen;

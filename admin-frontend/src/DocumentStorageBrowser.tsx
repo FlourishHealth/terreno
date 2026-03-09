@@ -43,6 +43,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   allowDelete = true,
   allowUpload = true,
   onFileSelect,
+  onSettingsPress,
 }) => {
   const [currentPrefix, setCurrentPrefix] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -291,17 +292,27 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       title={title}
     >
       {/* Breadcrumbs */}
-      <Box direction="row" gap={1} padding={2} wrap>
-        {breadcrumbs.map((crumb, index) => (
-          <Box direction="row" gap={1} key={crumb.prefix || "root"}>
-            {index > 0 && <Text color="secondaryDark">/</Text>}
-            {index === breadcrumbs.length - 1 ? (
-              <Text bold>{crumb.label}</Text>
-            ) : (
-              <Link onClick={() => handleBreadcrumbClick(crumb.prefix)} text={crumb.label} />
-            )}
-          </Box>
-        ))}
+      <Box alignItems="center" direction="row" padding={2}>
+        <Box alignItems="center" direction="row" flex="grow" gap={1} wrap>
+          {breadcrumbs.map((crumb, index) => (
+            <Box direction="row" gap={1} key={crumb.prefix || "root"}>
+              {index > 0 && <Text color="secondaryDark">/</Text>}
+              {index === breadcrumbs.length - 1 ? (
+                <Text bold>{crumb.label}</Text>
+              ) : (
+                <Link onClick={() => handleBreadcrumbClick(crumb.prefix)} text={crumb.label} />
+              )}
+            </Box>
+          ))}
+        </Box>
+        {onSettingsPress && (
+          <IconButton
+            accessibilityLabel="Storage settings"
+            iconName="gear"
+            onClick={onSettingsPress}
+            variant="muted"
+          />
+        )}
       </Box>
 
       {/* Content */}

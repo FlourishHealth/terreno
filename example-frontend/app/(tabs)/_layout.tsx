@@ -36,10 +36,10 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="files"
         options={{
-          tabBarIcon: ({color}) => <TabBarIcon color={color} name="cog" />,
-          title: "Settings",
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="folder-open" />,
+          title: "Files",
         }}
       />
       <Tabs.Screen

@@ -86,4 +86,5 @@ export interface DocumentStorageBrowserProps {
   allowDelete?: boolean;
   allowUpload?: boolean;
   onFileSelect?: (file: DocumentFile) => void;
+  onSettingsPress?: () => void;
 }

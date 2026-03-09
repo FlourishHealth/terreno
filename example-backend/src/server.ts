@@ -1,6 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -139,6 +139,12 @@ export async function start(skipListen = false): Promise<express.Application> {
               healthy: mongoConnected,
             };
           },
+        })
+      )
+      .register(
+        new DocumentStorageApp({
+          basePath: "/admin/documents",
+          bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
       .register(
