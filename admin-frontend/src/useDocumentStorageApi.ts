@@ -28,9 +28,11 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
           }),
         }),
         documentStorageDownload: build.query({
+          extraOptions: {maxRetries: 0},
           query: (filePath: string) => ({
             method: "GET",
-            responseHandler: (response: Response) => response.blob(),
+            responseHandler: (response: Response) =>
+              response.ok ? response.blob() : response.json(),
             url: `${basePath}/download/${encodeURIComponent(filePath)}`,
           }),
         }),
