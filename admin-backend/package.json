@@ -22,9 +22,6 @@
     "supertest": "^7.0.0",
     "typescript": "catalog:"
   },
-  "peerDependencies": {
-    "mongoose": ">=9.0.0"
-  },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
     "admin",
@@ -33,6 +30,9 @@
     "terreno"
   ],
   "license": "Apache-2.0",
+  "peerDependencies": {
+    "mongoose": ">=9.0.0"
+  },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
   "repository": {

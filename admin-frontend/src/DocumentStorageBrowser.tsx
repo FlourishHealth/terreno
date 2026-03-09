@@ -18,6 +18,7 @@ import {Platform} from "react-native";
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
 import {useDocumentStorageApi} from "./useDocumentStorageApi";
 
+
 const ACTIONS_COLUMN_TYPE = "documentActions";
 const NAME_COLUMN_TYPE = "documentName";
 
