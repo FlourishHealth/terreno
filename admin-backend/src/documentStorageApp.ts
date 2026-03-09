@@ -62,6 +62,14 @@ export class DocumentStorageApp {
   }
 
   private get bucket() {
+    if (!this.options.bucketName) {
+      throw new APIError({
+        detail: "Configure storage settings before accessing files.",
+        disableExternalErrorTracking: true,
+        status: 503,
+        title: "Storage not configured",
+      });
+    }
     return this.storage.bucket(this.options.bucketName);
   }
 
