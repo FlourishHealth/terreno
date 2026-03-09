@@ -62,7 +62,8 @@ export class DocumentStorageApp {
   }
 
   private get bucket() {
-    if (!this.options.bucketName) {
+    const bucketName = this.options.bucketName || process.env.GCS_BUCKET;
+    if (!bucketName) {
       throw new APIError({
         detail: "Configure storage settings before accessing files.",
         disableExternalErrorTracking: true,
@@ -70,7 +71,7 @@ export class DocumentStorageApp {
         title: "Storage not configured",
       });
     }
-    return this.storage.bucket(this.options.bucketName);
+    return this.storage.bucket(bucketName);
   }
 
   private get prefix() {
