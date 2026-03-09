@@ -61,7 +61,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     useDeleteMutation,
     useDeleteFolderMutation,
     useCreateFolderMutation,
-    useLazyDownloadQuery,
   } = useDocumentStorageApi(api, basePath);
 
   const {
@@ -81,7 +80,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [deleteFile] = useDeleteMutation();
   const [deleteFolder] = useDeleteFolderMutation();
   const [createFolder] = useCreateFolderMutation();
-  const [downloadFile] = useLazyDownloadQuery();
 
   // Detect 503 "not configured" responses
   useEffect(() => {
@@ -111,28 +109,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const handleBreadcrumbClick = useCallback((prefix: string) => {
     setCurrentPrefix(prefix);
   }, []);
-
-  const handleDownload = useCallback(
-    async (filePath: string) => {
-      try {
-        const blob = await downloadFile(filePath).unwrap();
-        if (Platform.OS === "web" && blob) {
-          const url = URL.createObjectURL(blob as Blob);
-          const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
-      } catch (err) {
-        console.error("Failed to download file:", err);
-      }
-    },
-    [downloadFile]
-  );
 
   const handleDelete = useCallback(
     async (filePath: string) => {
@@ -185,13 +161,9 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
 
   const handleFileClick = useCallback(
     (file: DocumentFile) => {
-      if (onFileSelect) {
-        onFileSelect(file);
-      } else {
-        handleDownload(file.fullPath);
-      }
+      onFileSelect?.(file);
     },
-    [onFileSelect, handleDownload]
+    [onFileSelect]
   );
 
   const handleCreateFolder = useCallback(async () => {
@@ -249,12 +221,12 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       if (isFolderItem && folder) {
         return <Link onClick={() => handleFolderClick(folder)} text={name} />;
       }
-      if (file) {
+      if (file && onFileSelect) {
         return <Link onClick={() => handleFileClick(file)} text={name} />;
       }
       return <Text>{name}</Text>;
     },
-    [handleFolderClick, handleFileClick]
+    [handleFolderClick, handleFileClick, onFileSelect]
   );
 
   const DocumentActionsCell: React.FC<{
@@ -284,30 +256,24 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
           </Box>
         );
       }
+      if (!allowDelete) {
+        return null;
+      }
       return (
         <Box alignItems="center" direction="row" gap={1} justifyContent="end">
           <IconButton
-            accessibilityLabel="Download"
-            iconName="download"
-            onClick={() => handleDownload(filePath)}
-            tooltipText="Download"
-            variant="muted"
+            accessibilityLabel="Delete"
+            confirmationText="Are you sure you want to delete this file?"
+            iconName="trash"
+            onClick={() => handleDelete(filePath)}
+            tooltipText="Delete"
+            variant="destructive"
+            withConfirmation
           />
-          {allowDelete && (
-            <IconButton
-              accessibilityLabel="Delete"
-              confirmationText="Are you sure you want to delete this file?"
-              iconName="trash"
-              onClick={() => handleDelete(filePath)}
-              tooltipText="Delete"
-              variant="destructive"
-              withConfirmation
-            />
-          )}
         </Box>
       );
     },
-    [handleDownload, handleDelete, handleDeleteFolder, allowDelete]
+    [handleDelete, handleDeleteFolder, allowDelete]
   );
 
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(

@@ -3,6 +3,7 @@ import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 import multer from "multer";
+import {pipeline} from "stream/promises";
 
 export interface DocumentStorageOptions {
   bucketName: string;
@@ -221,7 +222,7 @@ export class DocumentStorageApp {
           res.setHeader("Content-Length", String(metadata.size));
         }
 
-        gcsFile.createReadStream().pipe(res);
+        await pipeline(gcsFile.createReadStream(), res);
       })
     );
 
