@@ -45,7 +45,6 @@ const DEFAULT_ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const DEFAULT_SIGNED_URL_EXPIRATION = 60 * 60 * 1000; // 1 hour
 
 const isAdmin = (req: express.Request): boolean => {
   const user = (req as any).user;
@@ -88,7 +87,6 @@ export class DocumentStorageApp {
   register(app: express.Application): void {
     const basePath = this.options.basePath ?? "/documents";
     const maxFileSize = this.options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
-    const signedUrlExpiration = this.options.signedUrlExpiration ?? DEFAULT_SIGNED_URL_EXPIRATION;
 
     const allowedMimeTypes = this.allowedMimeTypes;
 
@@ -194,9 +192,9 @@ export class DocumentStorageApp {
       })
     );
 
-    // GET basePath/url/* — Get signed download URL
+    // GET basePath/download/* — Stream file download
     app.get(
-      `${basePath}/url/*filepath`,
+      `${basePath}/download/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const filePath = req.params.filepath as string;
@@ -212,13 +210,18 @@ export class DocumentStorageApp {
           throw new APIError({status: 404, title: "File not found"});
         }
 
-        const [url] = await gcsFile.getSignedUrl({
-          action: "read",
-          expires: DateTime.now().plus({milliseconds: signedUrlExpiration}).toMillis(),
-          version: "v4",
-        });
+        const [metadata] = await gcsFile.getMetadata();
+        const contentType =
+          (metadata.contentType as string | undefined) ?? "application/octet-stream";
+        const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
 
-        return res.json({url});
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        if (metadata.size) {
+          res.setHeader("Content-Length", String(metadata.size));
+        }
+
+        gcsFile.createReadStream().pipe(res);
       })
     );
 

@@ -61,7 +61,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     useDeleteMutation,
     useDeleteFolderMutation,
     useCreateFolderMutation,
-    useLazyGetUrlQuery,
+    useLazyDownloadQuery,
   } = useDocumentStorageApi(api, basePath);
 
   const {
@@ -81,7 +81,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [deleteFile] = useDeleteMutation();
   const [deleteFolder] = useDeleteFolderMutation();
   const [createFolder] = useCreateFolderMutation();
-  const [getUrl] = useLazyGetUrlQuery();
+  const [downloadFile] = useLazyDownloadQuery();
 
   // Detect 503 "not configured" responses
   useEffect(() => {
@@ -115,15 +115,23 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const handleDownload = useCallback(
     async (filePath: string) => {
       try {
-        const result = await getUrl(filePath).unwrap();
-        if (Platform.OS === "web" && result?.url) {
-          window.open(result.url, "_blank");
+        const blob = await downloadFile(filePath).unwrap();
+        if (Platform.OS === "web" && blob) {
+          const url = URL.createObjectURL(blob as Blob);
+          const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
       } catch (err) {
-        console.error("Failed to get download URL:", err);
+        console.error("Failed to download file:", err);
       }
     },
-    [getUrl]
+    [downloadFile]
   );
 
   const handleDelete = useCallback(

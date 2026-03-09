@@ -27,10 +27,11 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
             url: `${basePath}/folder/${encodeURIComponent(folderPath)}`,
           }),
         }),
-        documentStorageGetUrl: build.query({
+        documentStorageDownload: build.query({
           query: (filePath: string) => ({
             method: "GET",
-            url: `${basePath}/url/${encodeURIComponent(filePath)}`,
+            responseHandler: (response: Response) => response.blob(),
+            url: `${basePath}/download/${encodeURIComponent(filePath)}`,
           }),
         }),
         documentStorageList: build.query({
@@ -63,8 +64,7 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
     useCreateFolderMutation: (enhancedApi as any).useDocumentStorageCreateFolderMutation,
     useDeleteFolderMutation: (enhancedApi as any).useDocumentStorageDeleteFolderMutation,
     useDeleteMutation: (enhancedApi as any).useDocumentStorageDeleteMutation,
-    useGetUrlQuery: (enhancedApi as any).useDocumentStorageGetUrlQuery,
-    useLazyGetUrlQuery: (enhancedApi as any).useLazyDocumentStorageGetUrlQuery,
+    useLazyDownloadQuery: (enhancedApi as any).useLazyDocumentStorageDownloadQuery,
     useListQuery: (enhancedApi as any).useDocumentStorageListQuery,
     useUploadMutation: (enhancedApi as any).useDocumentStorageUploadMutation,
   };
