@@ -4,6 +4,7 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
+import {LangfuseProvider} from "@terreno/langfuse";
 import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
 import {TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
@@ -59,7 +60,9 @@ export default function RootLayout(): React.ReactElement | null {
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
-          <RootLayoutNav />
+          <LangfuseProvider apiBaseUrl="/admin/langfuse">
+            <RootLayoutNav />
+          </LangfuseProvider>
         </TerrenoProvider>
       </PersistGate>
     </Provider>

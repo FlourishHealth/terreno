@@ -11,6 +11,7 @@ import {
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import {LangfuseApp} from "@terreno/langfuse";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
@@ -180,6 +181,16 @@ export async function start(skipListen = false): Promise<express.Application> {
     if (betterAuthConfig) {
       // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
       terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    // Register Langfuse plugin if configured
+    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+      terraApp.register(
+        new LangfuseApp({
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY,
+        })
+      );
     }
 
     const app = terraApp.start();
