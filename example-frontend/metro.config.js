@@ -94,12 +94,31 @@ const findLayoutFiles = (dir) => {
 
 const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
 
+// Backend-only modules that should not be bundled in web/native builds
+const backendOnlyModules = [
+  "@terreno/api",
+  "express",
+  "mongoose",
+  "langfuse",
+  "langfuse-core",
+  "@langfuse/otel",
+];
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
   if (platform === "web" && (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/"))) {
     return {
       type: "empty",
     };
+  }
+
+  // Exclude backend-only modules from frontend builds
+  if (
+    backendOnlyModules.some(
+      (mod) => moduleName === mod || moduleName.startsWith(mod + "/")
+    )
+  ) {
+    return {type: "empty"};
   }
 
   // Fix relative imports when HMR incorrectly uses monorepo root as origin.
