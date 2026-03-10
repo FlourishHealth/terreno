@@ -62,6 +62,10 @@ jobs:
         run: bun run compile
         working-directory: admin-backend
 
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
       - name: Build Langfuse dependency
         run: bun run compile
         working-directory: langfuse
