@@ -1,6 +1,6 @@
 import {pipeline} from "node:stream/promises";
 import {Storage} from "@google-cloud/storage";
-import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, logger} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 import multer from "multer";
@@ -219,6 +219,14 @@ export class DocumentStorageApp {
               title: "File not found",
             });
           }
+          logger.error("[documentStorage] getMetadata error", {
+            code: err?.code,
+            errors: err?.errors,
+            message: err?.message,
+            response: err?.response,
+            stack: err?.stack,
+            status: err?.status,
+          });
           throw new APIError({
             detail: err?.message ?? String(err),
             status: 500,
@@ -239,6 +247,11 @@ export class DocumentStorageApp {
         try {
           await pipeline(gcsFile.createReadStream(), res);
         } catch (err: any) {
+          logger.error("[documentStorage] pipeline error", {
+            code: err?.code,
+            message: err?.message,
+            stack: err?.stack,
+          });
           if (!res.headersSent) {
             throw new APIError({
               detail: err?.message ?? String(err),
