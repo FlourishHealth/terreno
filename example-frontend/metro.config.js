@@ -94,14 +94,13 @@ const findLayoutFiles = (dir) => {
 
 const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
 
-// Backend-only modules that should not be bundled in web/native builds
+// Backend-only modules that should not be bundled in web/native builds.
+// @terreno/api pulls in @wesleytodd/openapi -> merge-deep -> clone-deep@0.2.4
+// which uses lazy-cache syntax that Metro cannot parse.
 const backendOnlyModules = [
   "@terreno/api",
   "express",
-  "mongoose",
-  "langfuse",
-  "langfuse-core",
-  "@langfuse/otel",
+  "@wesleytodd/openapi",
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
