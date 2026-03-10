@@ -20,9 +20,7 @@ describe("HeightField (desktop/web path)", () => {
 
   describe("rendering", () => {
     it("renders two text inputs for feet and inches", () => {
-      const {getAllByLabelText} = renderWithTheme(
-        <HeightField onChange={mockOnChange} value="" />
-      );
+      const {getAllByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
       expect(getAllByLabelText("ft input").length).toBe(1);
       expect(getAllByLabelText("in input").length).toBe(1);
     });
