@@ -11,7 +11,7 @@ import {
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
-import {LangfuseApp} from "@terreno/langfuse";
+import {LangfuseApp} from "@terreno/langfuse/backend";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";

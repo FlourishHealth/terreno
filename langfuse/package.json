@@ -37,6 +37,16 @@
     "terreno"
   ],
   "license": "Apache-2.0",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./backend": {
+      "types": "./dist/backend.d.ts",
+      "default": "./dist/backend.js"
+    }
+  },
   "main": "dist/index.js",
   "name": "@terreno/langfuse",
   "peerDependencies": {
