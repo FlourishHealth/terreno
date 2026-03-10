@@ -306,9 +306,10 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       if (file && onFileSelect) {
         return <Link onClick={() => onFileSelect(file)} text={name} />;
       }
-      if (file && Platform.OS === "web" && isViewable(file.contentType)) {
-        return <Link onClick={() => handleViewFile(file)} text={name} />;
-      }
+      // TODO: re-enable file preview in a follow-up PR
+      // if (file && Platform.OS === "web" && isViewable(file.contentType)) {
+      //   return <Link onClick={() => handleViewFile(file)} text={name} />;
+      // }
       return <Text>{name}</Text>;
     },
     [handleFolderClick, handleViewFile, onFileSelect]
