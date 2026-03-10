@@ -91,7 +91,7 @@ exports[`TextArea snapshots should match snapshot with all props 1`] = `
       "props": {
         "style": {
           "color": "#1C1C1C",
-          "fontSize": 16,
+          "fontSize": 14,
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
@@ -211,7 +211,7 @@ exports[`TextArea snapshots should match snapshot when disabled 1`] = `
       "props": {
         "style": {
           "color": "#1C1C1C",
-          "fontSize": 16,
+          "fontSize": 14,
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
@@ -305,7 +305,7 @@ exports[`TextArea snapshots should match snapshot with error state 1`] = `
       "props": {
         "style": {
           "color": "#1C1C1C",
-          "fontSize": 16,
+          "fontSize": 14,
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
@@ -438,7 +438,7 @@ exports[`TextArea snapshots should match snapshot with multiline content 1`] = `
       "props": {
         "style": {
           "color": "#1C1C1C",
-          "fontSize": 16,
+          "fontSize": 14,
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
