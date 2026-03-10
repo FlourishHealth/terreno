@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 
 // Mock isNative to return false so the desktop/web path is rendered
@@ -17,6 +17,13 @@ describe("HeightField (desktop/web path)", () => {
   });
 
   afterEach(() => {});
+
+  afterAll(() => {
+    // Restore isNative to default native behavior so the mock doesn't leak to other test files
+    mock.module("./Utilities", () => ({
+      isNative: () => true,
+    }));
+  });
 
   describe("rendering", () => {
     it("renders two text inputs for feet and inches", () => {
