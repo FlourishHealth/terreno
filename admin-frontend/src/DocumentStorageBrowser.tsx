@@ -179,11 +179,24 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
 
   const handleDownload = useCallback(
     async (filePath: string) => {
+      console.info("[DocumentStorageBrowser] handleDownload filePath:", filePath);
       try {
         const blob = await downloadFile(filePath).unwrap();
+        console.info("[DocumentStorageBrowser] got blob:", blob);
         if (Platform.OS === "web" && blob) {
-          const url = URL.createObjectURL(blob as Blob);
+          const blobObj = blob as Blob;
+          const url = URL.createObjectURL(blobObj);
           const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
+          console.info(
+            "[DocumentStorageBrowser] creating download link, filename:",
+            filename,
+            "blobSize:",
+            blobObj.size,
+            "blobType:",
+            blobObj.type,
+            "url:",
+            url
+          );
           const a = document.createElement("a");
           a.href = url;
           a.download = filename;

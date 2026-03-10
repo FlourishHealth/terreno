@@ -29,12 +29,35 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
         }),
         documentStorageDownload: build.query({
           extraOptions: {maxRetries: 0},
-          query: (filePath: string) => ({
-            method: "GET",
-            responseHandler: (response: Response) =>
-              response.ok ? response.blob() : response.json(),
-            url: `${basePath}/download/${encodeURIComponent(filePath)}`,
-          }),
+          query: (filePath: string) => {
+            const url = `${basePath}/download/${encodeURIComponent(filePath)}`;
+            console.info("[documentStorage] download url:", url, "filePath:", filePath);
+            return {
+              method: "GET",
+              responseHandler: async (response: Response) => {
+                console.info(
+                  "[documentStorage] download response:",
+                  response.status,
+                  response.statusText,
+                  "content-type:",
+                  response.headers.get("content-type")
+                );
+                if (response.ok) {
+                  const blob = await response.blob();
+                  console.info("[documentStorage] blob size:", blob.size, "type:", blob.type);
+                  return blob;
+                }
+                const text = await response.text();
+                console.error("[documentStorage] error response body:", text);
+                try {
+                  return JSON.parse(text);
+                } catch {
+                  return {detail: text, status: response.status};
+                }
+              },
+              url,
+            };
+          },
         }),
         documentStorageList: build.query({
           providesTags: ["documentStorage"],
