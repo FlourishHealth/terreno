@@ -1,15 +1,13 @@
-# Stage 1: Install dependencies and compile @terreno/api
+# Stage 1: Install dependencies and build
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-COPY package.json bun.lock ./
-COPY api ./api
-COPY mcp-server ./mcp-server
+COPY . .
 
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run --filter "@terreno/api" compile
 
-# Stage 2: Runtime
+# Stage 2: Runtime - use oven/bun:1 so Sentry/OpenTelemetry instrumentation works
 FROM oven/bun:1
 WORKDIR /app
 
