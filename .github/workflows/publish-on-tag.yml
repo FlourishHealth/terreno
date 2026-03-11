@@ -562,6 +562,9 @@ jobs:
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
 
+      - name: Install dependencies after replacement
+        run: bun install
+
       - name: Compile workspace dependencies
         run: node ../.github/scripts/compile-workspace-deps.js
 
@@ -657,6 +660,9 @@ jobs:
           VERSION: ${{ needs.check-changes.outputs.version }}
           UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
 
+      - name: Install dependencies after replacement
+        run: bun install
+
       - name: Compile workspace dependencies
         run: node ../.github/scripts/compile-workspace-deps.js
 
@@ -744,6 +750,9 @@ jobs:
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
 
+      - name: Install dependencies after replacement
+        run: bun install
+
       - name: Compile workspace dependencies
         run: node ../.github/scripts/compile-workspace-deps.js
 
@@ -827,6 +836,9 @@ jobs:
           "
         env:
           VERSION: ${{ needs.check-changes.outputs.version }}
+
+      - name: Install dependencies after replacement
+        run: bun install
 
       - name: Compile workspace dependencies
         run: node ../.github/scripts/compile-workspace-deps.js
