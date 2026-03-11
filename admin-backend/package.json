@@ -4,9 +4,11 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.15.0",
     "@terreno/api": "workspace:*",
-    "express": "^4.21.2",
-    "luxon": "catalog:"
+    "express": "^5.2.1",
+    "luxon": "catalog:",
+    "multer": "^1.4.5-lts.1"
   },
   "description": "Admin panel backend plugin for @terreno/api",
   "devDependencies": {
@@ -14,13 +16,11 @@
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
     "@types/luxon": "catalog:",
+    "@types/multer": "^1.4.12",
     "@types/supertest": "^6.0.2",
     "passport-local-mongoose": "^9.0.1",
     "supertest": "^7.0.0",
     "typescript": "catalog:"
-  },
-  "peerDependencies": {
-    "mongoose": ">=9.0.0"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
@@ -30,6 +30,9 @@
     "terreno"
   ],
   "license": "Apache-2.0",
+  "peerDependencies": {
+    "mongoose": ">=9.0.0"
+  },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
   "repository": {

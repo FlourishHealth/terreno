@@ -1,4 +1,4 @@
-import {Storage} from "@google-cloud/storage";
+import {Storage, type StorageOptions} from "@google-cloud/storage";
 
 import {FileAttachment} from "../models/fileAttachment";
 
@@ -21,8 +21,8 @@ export class FileStorageService {
   private storage: Storage;
   private bucketName: string;
 
-  constructor({bucketName}: {bucketName: string}) {
-    this.storage = new Storage();
+  constructor({bucketName, storageOptions}: {bucketName: string; storageOptions?: StorageOptions}) {
+    this.storage = new Storage(storageOptions);
     this.bucketName = bucketName;
   }
 
