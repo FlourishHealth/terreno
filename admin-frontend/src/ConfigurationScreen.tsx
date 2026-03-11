@@ -189,8 +189,9 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const {data: valuesResponse, isLoading: isValuesLoading} = useValuesQuery();
   const [updateConfig, {isLoading: isSaving}] = useUpdateMutation();
 
-  // Tracks only the fields the user has explicitly edited. null = no unsaved changes.
+  // Tracks only the fields the user has explicitly edited. null = no edits yet.
   const [userEdits, setUserEdits] = useState<Record<string, any> | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
   const toast = useToast();
 
@@ -217,11 +218,11 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
     return initial;
   }, [configValues, configMeta]);
 
-  const isDirty = userEdits !== null;
   const formState = userEdits ?? serverValues;
 
   const handleFieldChange = useCallback(
     (sectionName: string, fieldKey: string, value: any) => {
+      setIsDirty(true);
       setUserEdits((prev) => {
         const base = prev ?? serverValues;
         if (sectionName === "__root__") {
@@ -242,7 +243,9 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const handleSave = useCallback(async () => {
     try {
       await updateConfig(formState).unwrap();
-      setUserEdits(null);
+      // Keep userEdits so the form continues to show the saved values while
+      // the cache invalidation refetch runs in the background.
+      setIsDirty(false);
       toast.success("Configuration saved");
     } catch (err) {
       toast.catch(err, "Failed to save configuration");
@@ -251,7 +254,10 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
 
   const sections = useMemo(() => configMeta?.sections ?? [], [configMeta]);
 
-  if (isMetaLoading || isValuesLoading) {
+  // Only block rendering on the very first load (no cached data yet).
+  // Background refetches (e.g. after a save) should not show a spinner.
+  const isInitialLoading = (isMetaLoading && !configMeta) || (isValuesLoading && !configValues);
+  if (isInitialLoading) {
     return (
       <Page maxWidth="100%" title={title}>
         <Box alignItems="center" justifyContent="center" padding={6}>
