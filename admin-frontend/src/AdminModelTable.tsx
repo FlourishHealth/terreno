@@ -99,6 +99,57 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   return <Link onClick={() => router.push(href as any)} text={text} />;
 };
 
+const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
+  cellData,
+}) => {
+  const {id, baseUrl, modelName, onDelete} = cellData.value as {
+    id: string;
+    baseUrl: string;
+    modelName: string;
+    onDelete: (id: string) => void;
+  };
+  const href = `${baseUrl}/${modelName}/${id}`;
+  return (
+    <Box alignItems="center" direction="row" gap={1} justifyContent="end">
+      <IconButton
+        accessibilityLabel="View"
+        iconName="eye"
+        onClick={() => router.push(href as any)}
+        tooltipText="View"
+        variant="muted"
+      />
+      <IconButton
+        accessibilityLabel="Edit"
+        iconName="pen-to-square"
+        onClick={() => router.push(href as any)}
+        tooltipText="Edit"
+        variant="muted"
+      />
+      <IconButton
+        accessibilityLabel="Delete"
+        confirmationText="Are you sure you want to delete this item?"
+        iconName="trash"
+        onClick={() => onDelete(id)}
+        tooltipText="Delete"
+        variant="destructive"
+        withConfirmation
+      />
+    </Box>
+  );
+};
+
+const LoadingContent: React.FC = () => (
+  <Box alignItems="center" justifyContent="center" padding={6}>
+    <Spinner />
+  </Box>
+);
+
+const EmptyContent: React.FC = () => (
+  <Box alignItems="center" padding={6}>
+    <Text color="secondaryDark">No items found.</Text>
+  </Box>
+);
+
 /**
  * Table view for a specific admin model with pagination, sorting, and CRUD actions.
  *
@@ -144,7 +195,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [config, modelName]
   );
 
-  // Set the navigation header title and create button
   useEffect(() => {
     if (!modelConfig) {
       return;
@@ -194,57 +244,18 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [deleteItem]
   );
 
-  const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> =
-    useCallback(
-      ({cellData}: {column: DataTableColumn; cellData: DataTableCellData}) => {
-        const {id} = cellData.value as {id: string};
-        const viewHref = `${baseUrl}/${modelName}/${id}`;
-        const editHref = `${baseUrl}/${modelName}/${id}`;
-        return (
-          <Box alignItems="center" direction="row" gap={1} justifyContent="end">
-            <IconButton
-              accessibilityLabel="View"
-              iconName="eye"
-              onClick={() => router.push(viewHref as any)}
-              tooltipText="View"
-              variant="muted"
-            />
-            <IconButton
-              accessibilityLabel="Edit"
-              iconName="pen-to-square"
-              onClick={() => router.push(editHref as any)}
-              tooltipText="Edit"
-              variant="muted"
-            />
-            <IconButton
-              accessibilityLabel="Delete"
-              confirmationText="Are you sure you want to delete this item?"
-              iconName="trash"
-              onClick={() => handleDelete(id)}
-              tooltipText="Delete"
-              variant="destructive"
-              withConfirmation
-            />
-          </Box>
-        );
-      },
-      [baseUrl, modelName, handleDelete]
-    );
-
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
     () => ({
       [ACTIONS_COLUMN_TYPE]: AdminActionsCell,
       [LINK_COLUMN_TYPE]: AdminLinkCell,
     }),
-    [AdminActionsCell]
+    []
   );
 
   if (isConfigLoading || !modelConfig) {
     return (
       <Page maxWidth="100%">
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+        <LoadingContent />
       </Page>
     );
   }
@@ -298,7 +309,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       };
     });
 
-    const actionsCell = {value: {id: item._id}};
+    const actionsCell = {value: {baseUrl, id: item._id, modelName, onDelete: handleDelete}};
     return [...fieldCells, actionsCell];
   });
 
@@ -307,13 +318,9 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   return (
     <Page maxWidth="100%">
       {isListLoading ? (
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+        <LoadingContent />
       ) : data.length === 0 ? (
-        <Box alignItems="center" padding={6}>
-          <Text color="secondaryDark">No items found.</Text>
-        </Box>
+        <EmptyContent />
       ) : (
         <DataTable
           columns={columns}

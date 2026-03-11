@@ -1,6 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -17,9 +17,11 @@ import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
+import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
+import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
@@ -125,7 +127,9 @@ export async function start(skipListen = false): Promise<express.Application> {
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     })
+      .configure(AppConfiguration)
       .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
       .register(
@@ -140,6 +144,12 @@ export async function start(skipListen = false): Promise<express.Application> {
               healthy: mongoConnected,
             };
           },
+        })
+      )
+      .register(
+        new DocumentStorageApp({
+          basePath: "/admin/documents",
+          bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
       .register(
@@ -169,6 +179,23 @@ export async function start(skipListen = false): Promise<express.Application> {
               listFields: ["userId", "agreed", "locale", "agreedAt"],
               model: ConsentResponse,
               routePath: "/consent-responses",
+            },
+          ],
+          scripts: [
+            {
+              description: "Count all todos and users in the database",
+              name: "countRecords",
+              runner: async (wetRun) => {
+                const todoCount = await Todo.countDocuments();
+                const userCount = await User.countDocuments();
+                const results = [`Found ${todoCount} todos`, `Found ${userCount} users`];
+                if (wetRun) {
+                  results.push("Wet run: no additional changes made by this script");
+                } else {
+                  results.push("Dry run: no changes made");
+                }
+                return {results, success: true};
+              },
             },
           ],
         })

@@ -39,6 +39,12 @@ const gptHistoryPromptSchema = new mongoose.Schema(
 
 const gptHistorySchema = new mongoose.Schema<GptHistoryDocument, GptHistoryModel>(
   {
+    projectId: {
+      description: "Project this conversation belongs to",
+      index: true,
+      ref: "Project",
+      type: mongoose.Schema.Types.ObjectId,
+    },
     prompts: {default: [], type: [gptHistoryPromptSchema]},
     title: {type: String},
     userId: {index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId},
@@ -54,15 +60,6 @@ gptHistorySchema.plugin(findExactlyOne);
 // Virtual ownerId alias so Permissions.IsOwner works with userId field
 gptHistorySchema.virtual("ownerId").get(function () {
   return this.userId;
-});
-
-gptHistorySchema.pre("save", function () {
-  if (!this.title && this.prompts && this.prompts.length > 0) {
-    const firstAssistant = this.prompts.find((p) => p.type === "assistant");
-    if (firstAssistant) {
-      this.title = firstAssistant.text.substring(0, 50);
-    }
-  }
 });
 
 export const GptHistory = mongoose.model<GptHistoryDocument, GptHistoryModel>(

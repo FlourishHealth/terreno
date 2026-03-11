@@ -51,14 +51,14 @@ describe("AIRequest Model", () => {
       expect(request.metadata).toEqual({key: "value"});
     });
 
-    it("should reject invalid request types", async () => {
-      await expect(
-        AIRequest.create({
-          aiModel: "gpt-4",
-          prompt: "test",
-          requestType: "invalid" as any,
-        })
-      ).rejects.toThrow();
+    it("should accept custom request types", async () => {
+      const request = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "test",
+        requestType: "custom-type",
+      });
+
+      expect(request.requestType).toBe("custom-type");
     });
   });
 

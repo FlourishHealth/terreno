@@ -24,7 +24,7 @@
     "ioredis": "^5.9.3",
     "lodash": "^4.17.23",
     "luxon": "^3.4.0",
-    "mongoose": "^9.2.1",
+    "mongoose": "catalog:",
     "passport-local-mongoose": "^9.0.1",
     "path-to-regexp": "^8.3.0",
     "pdf-lib": "^1.17.1",

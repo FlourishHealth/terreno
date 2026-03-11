@@ -5,6 +5,7 @@ const AdminLayout: React.FC = () => {
   return (
     <Stack>
       <Stack.Screen name="index" options={{title: "Admin"}} />
+      <Stack.Screen name="configuration" options={{title: "Configuration"}} />
       <Stack.Screen name="[model]" options={{headerShown: false}} />
     </Stack>
   );
