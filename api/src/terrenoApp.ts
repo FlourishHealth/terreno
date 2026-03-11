@@ -6,11 +6,12 @@ import qs from "qs";
 
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
-import {openApiCompatMiddleware} from "./openApiCompat";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 
@@ -115,6 +116,7 @@ export class TerrenoApp {
   private options: TerrenoAppOptions;
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
+  private configurationApp: ConfigurationApp | null = null;
 
   /**
    * Create a new TerrenoApp builder.
@@ -173,6 +175,36 @@ export class TerrenoApp {
   }
 
   /**
+   * Register a configuration model with the application.
+   *
+   * Adds configuration management endpoints that expose the model's schema
+   * as metadata, and provide GET/PATCH endpoints for reading and updating
+   * the singleton configuration document. Nested subschemas become separate
+   * sections in the admin UI.
+   *
+   * All configuration endpoints require admin authentication.
+   *
+   * @param model - Mongoose model with configurationPlugin applied
+   * @param options - Optional configuration (basePath, fieldOverrides)
+   * @returns This TerrenoApp instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * const app = new TerrenoApp({ userModel: User })
+   *   .configure(AppConfig)
+   *   .register(todoRouter)
+   *   .start();
+   * ```
+   */
+  configure(
+    model: import("mongoose").Model<any>,
+    options?: Omit<ConfigurationAppOptions, "model">
+  ): this {
+    this.configurationApp = new ConfigurationApp({model, ...options});
+    return this;
+  }
+
+  /**
    * Build the Express application without starting the server.
    *
    * Configures the complete middleware stack including:
@@ -200,6 +232,9 @@ export class TerrenoApp {
 
     const app = express();
     const options = this.options;
+
+    // Record mount paths on layers for Express 5 → OpenAPI compat
+    patchAppUse(app);
 
     app.set("query parser", (str: string) =>
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
@@ -273,6 +308,11 @@ export class TerrenoApp {
     if (options.githubAuth) {
       setupGitHubAuth(app, options.userModel as any, options.githubAuth);
       addGitHubAuthRoutes(app, options.userModel as any, options.githubAuth, options.authOptions);
+    }
+
+    // Mount configuration app if configured
+    if (this.configurationApp) {
+      this.configurationApp.register(app);
     }
 
     // Mount registered model routers and plugins

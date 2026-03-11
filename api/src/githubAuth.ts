@@ -87,8 +87,8 @@ export function setupGitHubAuth(
         passReqToCallback: true,
         scope,
       },
-      async (
-        req: express.Request,
+      (async (
+        req: any,
         accessToken: string,
         refreshToken: string,
         profile: Profile,
@@ -192,7 +192,7 @@ export function setupGitHubAuth(
           logger.error(`GitHub auth error: ${error}`);
           return done(error);
         }
-      }
+      }) as any
     ) as passport.Strategy
   );
 }

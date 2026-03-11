@@ -20,6 +20,13 @@ let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
 
+export const getFileStorageService = (): FileStorageService | undefined =>
+  fileStorageServiceInstance;
+
+export const setFileStorageService = (service: FileStorageService | undefined): void => {
+  fileStorageServiceInstance = service;
+};
+
 // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
 const getGoogleModule = (): any => {
   try {
@@ -81,7 +88,7 @@ const getMcpService = (): MCPService | undefined => {
   return mcpServiceInstance;
 };
 
-const getFileStorageService = (): FileStorageService | undefined => {
+const initFileStorageService = (): FileStorageService | undefined => {
   if (fileStorageServiceInstance) {
     return fileStorageServiceInstance;
   }
@@ -424,7 +431,7 @@ const demoTools = {
 export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
-  const fileStorageService = getFileStorageService();
+  const fileStorageService = initFileStorageService();
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
