@@ -1,5 +1,5 @@
 // Defaults closed
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {NextFunction} from "express";
 import mongoose, {type Model} from "mongoose";
@@ -160,7 +160,7 @@ export function permissionMiddleware<T>(
       if (!data) {
         // Check if document exists but is hidden. Completely skip plugins.
         const hiddenDoc = await model.collection.findOne({
-          _id: new mongoose.Types.ObjectId(req.params.id),
+          _id: new mongoose.Types.ObjectId(req.params.id as string),
         });
 
         if (!hiddenDoc) {

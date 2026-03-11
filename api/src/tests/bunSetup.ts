@@ -93,8 +93,8 @@ afterEach(() => {
   logs = [];
 });
 
-// Mock @sentry/node module
-mock.module("@sentry/node", () => {
+// Mock @sentry/bun module
+mock.module("@sentry/bun", () => {
   const mockFn = (): ReturnType<typeof mock> => mock(() => {});
 
   // Mock Scope

@@ -1,0 +1,272 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`OAuthButtons renders correctly with all props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Or continue with",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#686868",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "alignItems": "center",
+          "marginTop": 32,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "marginRight": 12,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Continue with Google",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#686868",
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sign in with Google",
+            "aria-label": "Continue with Google",
+            "aria-role": "button",
+            "disabled": true,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#9A9A9A",
+              "borderColor": "#dadce0",
+              "borderRadius": 360,
+              "borderWidth": 1,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "opacity": 0.6,
+              "paddingHorizontal": 20,
+              "paddingVertical": 12,
+              "width": "100%",
+            },
+            "testID": "oauth-google",
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "marginRight": 12,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Continue with GitHub",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#686868",
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sign in with GitHub",
+            "aria-label": "Continue with GitHub",
+            "aria-role": "button",
+            "disabled": true,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#9A9A9A",
+              "borderColor": "#24292e",
+              "borderRadius": 360,
+              "borderWidth": 1,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "opacity": 0.6,
+              "paddingHorizontal": 20,
+              "paddingVertical": 12,
+              "width": "100%",
+            },
+            "testID": "oauth-github",
+          },
+          "type": "Pressable",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": {
+                      "marginRight": 12,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Continue with Apple",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#686868",
+                      "fontSize": 16,
+                      "fontWeight": "600",
+                    },
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "accessibilityHint": "Sign in with Apple",
+            "aria-label": "Continue with Apple",
+            "aria-role": "button",
+            "disabled": true,
+            "onPress": [Function: debounced],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "stretch",
+              "backgroundColor": "#9A9A9A",
+              "borderColor": "#000000",
+              "borderRadius": 360,
+              "borderWidth": 1,
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "opacity": 0.6,
+              "paddingHorizontal": 20,
+              "paddingVertical": 12,
+              "width": "100%",
+            },
+            "testID": "oauth-apple",
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "gap": 12,
+          "marginTop": 16,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "testID": "oauth",
+      "width": "100%",
+    },
+    "testID": "oauth",
+  },
+  "type": "View",
+}
+`;

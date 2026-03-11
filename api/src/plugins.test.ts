@@ -39,9 +39,9 @@ interface StuffModelType extends Model<Stuff> {
 }
 
 const stuffSchema = new Schema<Stuff>({
-  date: DateOnly,
-  name: String,
-  ownerId: String,
+  date: {description: "The date associated with this item", type: DateOnly as any},
+  name: {description: "The name of the item", type: String},
+  ownerId: {description: "The user who owns this item", type: String},
 });
 
 stuffSchema.plugin(isDeletedPlugin);

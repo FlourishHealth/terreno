@@ -27,6 +27,8 @@ import type React from "react";
 import {type FC, useEffect, useState} from "react";
 import MarkdownView from "react-native-markdown-display";
 
+export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
+
 const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
   // TODO: setup these widths for mobile too.
 

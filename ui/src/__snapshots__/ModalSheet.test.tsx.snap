@@ -1,0 +1,37 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`ModalSheet renders correctly with children 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Test Content",
+          ],
+          "props": {
+            "style": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": undefined,
+        "testID": "modalize",
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": undefined,
+    "testID": "portal",
+  },
+  "type": "View",
+}
+`;

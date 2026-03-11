@@ -44,11 +44,17 @@ export function authenticateMiddleware(anonymous = false) {
   if (anonymous) {
     strategies.push("anonymous");
   }
-  return passport.authenticate(strategies, {
+  const passportAuth = passport.authenticate(strategies, {
     failureMessage: false, // this is just avoiding storing the message in the session
     failWithError: true,
     session: false,
   });
+  return (req: any, res: any, next: any) => {
+    if (req.user) {
+      return next();
+    }
+    return passportAuth(req, res, next);
+  };
 }
 
 export async function signupUser(
@@ -299,7 +305,9 @@ export function addAuthRoutes(
         logger.warn(`Invalid login: ${info}`);
         return res.status(401).json({message: info?.message});
       }
-      logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
+      if (process.env.NODE_ENV !== "test") {
+        logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
+      }
       const tokens = await generateTokens(user, authOptions);
       return res.json({
         data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},

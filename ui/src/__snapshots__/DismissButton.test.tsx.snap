@@ -1,0 +1,91 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`DismissButton renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": undefined,
+    "aria-label": "Dismiss",
+    "aria-role": "button",
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "height": 24.5,
+      "justifyContent": "center",
+      "width": 24.5,
+    },
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`DismissButton renders with primary color (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": undefined,
+    "aria-label": "Dismiss",
+    "aria-role": "button",
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "height": 24.5,
+      "justifyContent": "center",
+      "width": 24.5,
+    },
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`DismissButton renders with inverted color 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": undefined,
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": undefined,
+    "aria-label": "Dismiss",
+    "aria-role": "button",
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "height": 24.5,
+      "justifyContent": "center",
+      "width": 24.5,
+    },
+  },
+  "type": "Pressable",
+}
+`;

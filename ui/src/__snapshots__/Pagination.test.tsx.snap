@@ -1,0 +1,1913 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Pagination renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": true,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 2",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 3",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "4",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 4",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "5",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 5",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination renders with ellipsis for large page count 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to more page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "5",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 5",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to more page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "20",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 20",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination highlights current page 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 2",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 3",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "4",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 4",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "5",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 5",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination disables prev button on first page 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": true,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 2",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 3",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "4",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 4",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "5",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 5",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination disables next button on last page 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 2",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 3",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "4",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 4",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "5",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 5",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": true,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination renders correctly with single page 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": true,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": true,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination renders correctly when on last pages 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to more page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "18",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 18",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "19",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 19",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "20",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 20",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Pagination renders correctly when on first pages 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to prev page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "1",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 1",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "2",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#956A00",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 2",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "3",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 3",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to more page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "20",
+              ],
+              "props": {
+                "numberOfLines": 0,
+                "selectable": undefined,
+                "style": {
+                  "color": "#1C1C1C",
+                  "fontFamily": "text-regular",
+                  "fontSize": 14,
+                  "textAlign": "left",
+                },
+                "testID": undefined,
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {},
+          "type": "View",
+        },
+      ],
+      "props": {
+        "accessibilityHint": "Click to go to page 20",
+        "accessibilityLabel": "Pagination Number",
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "borderRadius": 4,
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Click to go to next page",
+        "aria-label": "Pagination Button",
+        "disabled": false,
+        "onPress": [Function],
+        "style": {
+          "alignItems": "center",
+          "display": "flex",
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+      },
+      "type": "Pressable",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 4,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

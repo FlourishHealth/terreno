@@ -19,6 +19,7 @@ import {
   IconButtonConfiguration,
   IconConfiguration,
   LinkConfiguration,
+  MarkdownEditorFieldConfiguration,
   MarkdownViewConfiguration,
   ModalConfiguration,
   MultiselectFieldConfiguration,
@@ -50,6 +51,7 @@ import {
   ThemeConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  UserInactivityConfiguration,
 } from "@story-config";
 import type {FieldProps} from "@terreno/ui";
 import type React from "react";
@@ -189,6 +191,7 @@ const Config: DemoConfigurationBase[] = [
   IconConfiguration,
   IconButtonConfiguration,
   LinkConfiguration,
+  MarkdownEditorFieldConfiguration,
   MarkdownViewConfiguration,
   // FilteredItemConfiguration,
   // MessageConfiguration,
@@ -222,6 +225,7 @@ const Config: DemoConfigurationBase[] = [
   ThemeConfiguration,
   ToastConfiguration,
   TooltipConfiguration,
+  UserInactivityConfiguration,
 ];
 
 // Ensure consistent alphabetical sorting

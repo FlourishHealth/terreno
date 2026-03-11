@@ -1,0 +1,1857 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SideDrawer renders correctly when closed 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Drawer content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Main content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "none",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 0,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 0,
+                "pointerEvents": "none",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders correctly when open 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Drawer content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Main content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with left position (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Left drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with right position 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Right drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "right": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(-100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with front drawer type (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Front drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with back drawer type 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Back drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": -1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(calc(95% * 1))",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with slide drawer type 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Slide drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(calc(95% * 1))",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer renders with custom drawer styles 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Styled drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "50%",
+          },
+          {
+            "left": "calc(50% * -1)",
+          },
+          {
+            "transform": "translateX(100%)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {
+              "width": "50%",
+            },
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "auto",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 1,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 1,
+                "pointerEvents": "auto",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SideDrawer accepts onOpen and onClose callbacks 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Drawer",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {},
+          "type": "SafeAreaView",
+        },
+      ],
+      "props": {
+        "ref": {
+          "current": null,
+        },
+        "style": [
+          {
+            "backgroundColor": "white",
+            "bottom": 0,
+            "maxWidth": "100%",
+            "top": 0,
+          },
+          {
+            "position": "absolute",
+            "zIndex": 1,
+          },
+          {
+            "width": "95%",
+          },
+          {
+            "left": "calc(95% * -1)",
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+          [
+            {
+              "borderColor": "gray",
+              "borderWidth": 1,
+              "height": "100%",
+              "width": "95%",
+            },
+            {
+              "backgroundColor": "#D9D9D9",
+            },
+            {},
+            {},
+          ],
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Content",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "selectable": undefined,
+                    "style": {
+                      "color": "#1C1C1C",
+                      "fontFamily": "text-regular",
+                      "fontSize": 14,
+                      "textAlign": "left",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {},
+              "type": "View",
+            },
+          ],
+          "props": {
+            "aria-hidden": false,
+            "style": {
+              "flex": 1,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "aria-label": "Close drawer",
+                "onPress": [Function],
+                "role": "button",
+                "style": [
+                  {
+                    "flex": 1,
+                  },
+                  {
+                    "pointerEvents": "none",
+                  },
+                ],
+              },
+              "type": "Pressable",
+            },
+          ],
+          "props": {
+            "aria-hidden": true,
+            "progress": FakeSharedValue {
+              "_isReanimatedSharedValue": true,
+              "_listeners": Map {},
+              "_value": 0,
+            },
+            "style": [
+              {
+                "bottom": 0,
+                "left": 0,
+                "position": "absolute",
+                "right": 0,
+                "top": 0,
+              },
+              {
+                "WebkitTapHighlightColor": "transparent",
+                "backgroundColor": "rgba(0, 0, 0, 0.5)",
+                "transition": "opacity 0.3s",
+              },
+              {
+                "opacity": 0,
+                "pointerEvents": "none",
+              },
+              undefined,
+            ],
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": [
+          {
+            "flex": 1,
+          },
+          {
+            "transform": "translateX(0)",
+            "transition": "transform 0.3s",
+          },
+        ],
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": [
+      {
+        "flex": 1,
+        "flexDirection": "row",
+      },
+      undefined,
+    ],
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

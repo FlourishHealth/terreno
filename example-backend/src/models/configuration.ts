@@ -1,4 +1,5 @@
-import * as Sentry from "@sentry/node";
+import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
+import * as Sentry from "@sentry/bun";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types";
@@ -10,7 +11,7 @@ import {addDefaultPlugins} from "./modelPlugins";
 interface ConfigDefinition {
   envVar?: string; // Environment variable name
   defaultValue?: ConfigValueType; // Default value if not set
-  type?: "string" | "number" | "boolean"; // Type for conversion
+  type?: "string" | "number" | "boolean" | "secret"; // Type for conversion
   validator?: (value: ConfigValueType) => boolean; // Optional validator function
   description?: string; // Documentation
 }
@@ -30,6 +31,24 @@ const runtimeOverrides = new Map<string, ConfigValueType>();
  * Maintains an always-available cached version of database config values
  */
 const dbCache = new Map<string, ConfigValueType>();
+
+/**
+ * Secrets cache for Google Secret Manager values
+ * Stores resolved secret values keyed by configuration key
+ */
+const secretsCache = new Map<string, string>();
+
+/**
+ * Lazily-initialized Google Secret Manager client
+ */
+let gsmClient: SecretManagerServiceClient | null = null;
+
+const getGsmClient = (): SecretManagerServiceClient => {
+  if (!gsmClient) {
+    gsmClient = new SecretManagerServiceClient();
+  }
+  return gsmClient;
+};
 
 /**
  * Change stream for watching configuration changes
@@ -74,7 +93,12 @@ export class Configuration {
       return runtimeOverrides.get(key) as T;
     }
 
-    // Check database cache (second priority)
+    // Check secrets cache (second priority, for secret-type configs)
+    if (secretsCache.has(key)) {
+      return secretsCache.get(key) as T;
+    }
+
+    // Check database cache (third priority)
     if (dbCache.has(key)) {
       const cachedValue = dbCache.get(key);
       // Convert null to undefined for consistency
@@ -195,7 +219,7 @@ export class Configuration {
    */
   private static convertValue(
     value: string | undefined,
-    type: "string" | "number" | "boolean"
+    type: "string" | "number" | "boolean" | "secret"
   ): ConfigValueType {
     if (value === undefined) {
       return null;
@@ -211,6 +235,98 @@ export class Configuration {
       default:
         return value;
     }
+  }
+
+  /**
+   * Fetch a single secret from Google Secret Manager
+   * Supports both short names (resolved via GCP_PROJECT_ID) and full resource paths
+   */
+  static async fetchSecret(secretName: string): Promise<string> {
+    const client = getGsmClient();
+
+    let resourceName: string;
+    if (secretName.startsWith("projects/")) {
+      resourceName = secretName.endsWith("/versions/latest")
+        ? secretName
+        : `${secretName}/versions/latest`;
+    } else {
+      const projectId = Configuration.get<string>("GCP_PROJECT_ID");
+      if (!projectId) {
+        throw new Error("GCP_PROJECT_ID is required to resolve secret names");
+      }
+      resourceName = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+    }
+
+    const [version] = await client.accessSecretVersion({name: resourceName});
+    const payload = version.payload?.data;
+    if (!payload) {
+      throw new Error(`Secret ${secretName} has no payload data`);
+    }
+    return typeof payload === "string" ? payload : new TextDecoder().decode(payload);
+  }
+
+  /**
+   * Load all secret-type configurations from Google Secret Manager into cache
+   */
+  static async loadSecrets(): Promise<void> {
+    const secretConfigs = await ConfigurationDB.find({type: "secret"});
+    if (secretConfigs.length === 0) {
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      secretConfigs.map(async (config) => {
+        const secretValue = await Configuration.fetchSecret(String(config.value));
+        secretsCache.set(config.key, secretValue);
+      })
+    );
+
+    let successCount = 0;
+    for (const result of results) {
+      if (result.status === "fulfilled") {
+        successCount++;
+      } else {
+        logger.error(`Failed to load secret: ${result.reason}`);
+      }
+    }
+
+    logger.info(
+      `Loaded ${successCount}/${secretConfigs.length} secrets from Google Secret Manager`
+    );
+  }
+
+  /**
+   * Refresh all cached secrets from Google Secret Manager
+   */
+  static async refreshSecrets(): Promise<void> {
+    secretsCache.clear();
+    await Configuration.loadSecrets();
+  }
+
+  /**
+   * Refresh a single secret by configuration key
+   */
+  static async refreshSecret(key: string): Promise<void> {
+    const config = await ConfigurationDB.findOne({key, type: "secret"});
+    if (!config) {
+      logger.warn(`No secret-type configuration found for key: ${key}`);
+      return;
+    }
+
+    try {
+      const secretValue = await Configuration.fetchSecret(String(config.value));
+      secretsCache.set(key, secretValue);
+      logger.debug(`Refreshed secret: ${key}`);
+    } catch (error: unknown) {
+      logger.error(`Failed to refresh secret ${key}: ${error}`);
+    }
+  }
+
+  /**
+   * Get all cached secret keys (for debugging — does not expose values)
+   */
+  static getSecretKeys(): string[] {
+    return Array.from(secretsCache.keys());
   }
 
   /**
@@ -273,6 +389,11 @@ export class Configuration {
             if (doc) {
               dbCache.set(doc.key, doc.value);
               logger.debug(`Configuration cache updated: ${doc.key} = ${doc.value}`);
+              if (doc.type === "secret") {
+                Configuration.refreshSecret(doc.key).catch((error: unknown) => {
+                  logger.error(`Failed to refresh secret ${doc.key}: ${error}`);
+                });
+              }
             }
           } else if (change.operationType === "delete") {
             // Reload all configs on delete since we don't have the key directly
@@ -284,6 +405,11 @@ export class Configuration {
             if (doc) {
               dbCache.set(doc.key, doc.value);
               logger.debug(`Configuration cache replaced: ${doc.key} = ${doc.value}`);
+              if (doc.type === "secret") {
+                Configuration.refreshSecret(doc.key).catch((error: unknown) => {
+                  logger.error(`Failed to refresh secret ${doc.key}: ${error}`);
+                });
+              }
             }
           }
         } catch (error: unknown) {
@@ -360,6 +486,13 @@ export class Configuration {
       // Load existing configuration from database
       await Configuration.loadFromDB();
 
+      // Load secrets from Google Secret Manager (non-fatal on failure)
+      try {
+        await Configuration.loadSecrets();
+      } catch (error: unknown) {
+        logger.warn(`Failed to load secrets from Google Secret Manager: ${error}`);
+      }
+
       // Start watching for changes (may fail if replica set not available)
       const changeStreamAvailable = await Configuration.startWatching();
       if (!changeStreamAvailable) {
@@ -381,6 +514,8 @@ export class Configuration {
   static async shutdown(): Promise<void> {
     Configuration.stopWatching();
     dbCache.clear();
+    secretsCache.clear();
+    gsmClient = null;
     isInitialized = false;
     logger.info("Configuration system shutdown");
   }
@@ -414,20 +549,24 @@ export const getConfiguration = async (): Promise<string> => {
 const configurationSchema = new mongoose.Schema<ConfigurationDocument, ConfigurationModel>(
   {
     description: {
+      description: "Human-readable description of the configuration key",
       type: String,
     },
     key: {
+      description: "Unique identifier for the configuration entry",
       index: true,
       required: true,
       type: String,
       unique: true,
     },
     type: {
-      enum: ["string", "number", "boolean"],
+      description: "Data type of the configuration value",
+      enum: ["string", "number", "boolean", "secret"],
       required: true,
       type: String,
     },
     value: {
+      description: "The configuration value",
       required: true,
       type: mongoose.Schema.Types.Mixed,
     },

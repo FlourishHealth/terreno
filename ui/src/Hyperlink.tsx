@@ -63,11 +63,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     const elements = [];
     let _lastIndex = 0;
 
-    const componentProps = {
-      ...component.props,
-      key: undefined,
-      ref: undefined,
-    };
+    const {key: _key, ref: _ref, ...componentProps} = component.props;
 
     try {
       linkifyIt.match(component.props.children).forEach(({index, lastIndex, text, url}: any) => {
@@ -120,11 +116,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     const {props: {children} = {} as any} = component || {};
     if (!children) return component;
 
-    const componentProps = {
-      ...component.props,
-      key: undefined,
-      ref: undefined,
-    };
+    const {key: _key, ref: _ref, ...componentProps} = component.props;
 
     const linkifyIt = this.props.linkify || linkifyLib;
 

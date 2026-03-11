@@ -30,7 +30,8 @@
       "eas": {
         "projectId": "ddbe68d9-1142-4991-a02e-4ebb9fd83530"
       },
-      "router": {}
+      "router": {},
+      "BASE_URL": "http://localhost:4000"
     },
     "web": {
       "bundler": "metro",

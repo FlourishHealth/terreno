@@ -64,6 +64,7 @@ const TodoItem: React.FC<{
           </Box>
         </Pressable>
         <IconButton
+          accessibilityLabel="Delete todo"
           disabled={isUpdating}
           iconName="trash"
           onClick={handleDelete}

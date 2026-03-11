@@ -1,0 +1,30 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`FieldHelperText renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "This is helper text",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 12,
+          "lineHeight": 16,
+        },
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "style": {
+      "marginTop": 2,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

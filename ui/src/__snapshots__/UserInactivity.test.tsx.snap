@@ -1,0 +1,108 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`UserInactivity renders with custom style 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Test Content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "collapsable": false,
+    "onMoveShouldSetResponder": [class Function],
+    "onMoveShouldSetResponderCapture": [class Function],
+    "onResponderEnd": [class Function],
+    "onResponderGrant": [class Function],
+    "onResponderMove": [class Function],
+    "onResponderReject": [class Function],
+    "onResponderRelease": [class Function],
+    "onResponderStart": [class Function],
+    "onResponderTerminate": [class Function],
+    "onResponderTerminationRequest": [class Function],
+    "onStartShouldSetResponder": [class Function],
+    "onStartShouldSetResponderCapture": [class Function],
+    "style": {
+      "backgroundColor": "red",
+      "flex": 2,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`UserInactivity renders with default style when no style provided 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Test Content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "collapsable": false,
+    "onMoveShouldSetResponder": [class Function],
+    "onMoveShouldSetResponderCapture": [class Function],
+    "onResponderEnd": [class Function],
+    "onResponderGrant": [class Function],
+    "onResponderMove": [class Function],
+    "onResponderReject": [class Function],
+    "onResponderRelease": [class Function],
+    "onResponderStart": [class Function],
+    "onResponderTerminate": [class Function],
+    "onResponderTerminationRequest": [class Function],
+    "onStartShouldSetResponder": [class Function],
+    "onStartShouldSetResponderCapture": [class Function],
+    "style": {
+      "flex": 1,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

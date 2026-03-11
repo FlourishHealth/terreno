@@ -1540,6 +1540,58 @@ export interface ButtonProps {
   onClick: () => void | Promise<void>;
 }
 
+/**
+ * Props for the SocialLoginButton component.
+ * Used for OAuth social login buttons (Google, GitHub, Apple).
+ */
+export interface SocialLoginButtonProps {
+  /**
+   * The OAuth provider for the social login.
+   */
+  provider: "google" | "github" | "apple";
+
+  /**
+   * The function to call when the button is pressed.
+   * Should initiate the OAuth flow.
+   */
+  onPress: () => Promise<void>;
+
+  /**
+   * If true, a loading spinner will be shown in the button.
+   */
+  loading?: boolean;
+
+  /**
+   * The visual variant of the button.
+   * - "primary": Uses the provider's brand colors
+   * - "outline": Uses an outline style with neutral colors
+   * @default "primary"
+   */
+  variant?: "primary" | "outline";
+
+  /**
+   * If true, the button will be disabled.
+   * @default false
+   */
+  disabled?: boolean;
+
+  /**
+   * If true, the button will take the full width of its container.
+   * @default true
+   */
+  fullWidth?: boolean;
+
+  /**
+   * Custom text for the button. Defaults to "Continue with {Provider}".
+   */
+  text?: string;
+
+  /**
+   * Test ID for testing purposes.
+   */
+  testID?: string;
+}
+
 export interface CustomSelectFieldProps {
   /**
    * The current value of the custom select field.
@@ -1836,8 +1888,7 @@ export interface NumberPickerActionSheetProps {
 }
 
 export interface PageProps {
-  // TODO: figure out navigation
-  navigation: any;
+  navigation?: any;
   scroll?: boolean;
   loading?: boolean;
   display?: "flex" | "none" | "block" | "inlineBlock";
@@ -2784,4 +2835,49 @@ export interface SliderProps extends HelperTextProps, ErrorTextProps {
    * Maps slider values to icon names or any string.
    */
   valueMapping?: ValueMappingItem[];
+}
+
+export interface UserInactivityProps {
+  /**
+   * Children components to embed inside UserInactivity's View.
+   * If any children component is pressed, `onAction` is called after
+   * `timeForInactivity` milliseconds.
+   */
+  children: React.ReactNode;
+
+  /**
+   * If it's explicitly set to `true` after the component has already been initialized,
+   * the timer restarts and the view is considered active until the new timer expires.
+   * @default true
+   */
+  isActive?: boolean;
+
+  /**
+   * Callback triggered anytime UserInactivity's View isn't touched for more than
+   * `timeForInactivity` milliseconds.
+   * The `active` argument is true if and only if the View wasn't touched for more
+   * than `timeForInactivity` milliseconds.
+   */
+  onAction: (active: boolean) => void;
+
+  /**
+   * If set to true, the timer is not reset when the keyboard appears
+   * or disappears.
+   * @default false
+   */
+  skipKeyboard?: boolean;
+
+  /**
+   * Optional custom style for UserInactivity's View.
+   * @default { flex: 1 }
+   */
+  style?: StyleProp<ViewStyle>;
+
+  /**
+   * Number of milliseconds after which the view is considered inactive.
+   * If it changed, the timer restarts and the view is considered active until
+   * the new timer expires.
+   * @default 10000
+   */
+  timeForInactivity?: number;
 }

@@ -29,6 +29,6 @@ export type ConfigurationDocument = DefaultDoc &
   ConfigurationMethods & {
     key: string;
     value: ConfigValueType;
-    type: "string" | "number" | "boolean";
+    type: "string" | "number" | "boolean" | "secret";
     description?: string;
   };

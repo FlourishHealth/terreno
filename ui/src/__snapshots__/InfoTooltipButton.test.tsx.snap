@@ -1,0 +1,7 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`InfoTooltipButton renders correctly with text 1`] = `null`;
+
+exports[`InfoTooltipButton renders with different tooltip text 1`] = `null`;
+
+exports[`InfoTooltipButton renders info icon 1`] = `null`;

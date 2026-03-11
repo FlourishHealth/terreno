@@ -1,0 +1,231 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`TableBoolean renders correctly with true value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Checked icon",
+        "aria-label": "The checkbox is checked",
+        "aria-role": "image",
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#DCF2E2",
+          "borderRadius": 16,
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableBoolean renders correctly with false value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Unchecked icon",
+        "aria-label": "The checkbox is unchecked",
+        "aria-role": "image",
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "transparent",
+          "borderRadius": 16,
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableBoolean renders check icon for true value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Checked icon",
+        "aria-label": "The checkbox is checked",
+        "aria-role": "image",
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#DCF2E2",
+          "borderRadius": 16,
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableBoolean renders x icon for false value 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "accessibilityHint": "Unchecked icon",
+        "aria-label": "The checkbox is unchecked",
+        "aria-role": "image",
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "transparent",
+          "borderRadius": 16,
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`TableBoolean renders editable checkbox when isEditing is true 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#0A7092",
+          "borderColor": "#0A7092",
+          "borderRadius": 3,
+          "borderWidth": 1,
+          "height": 24,
+          "justifyContent": "center",
+          "width": 24,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Tap to change the checkbox from unchecked to checked",
+    "aria-label": "Checkbox is currently checked",
+    "aria-role": "checkbox",
+    "hitSlop": {
+      "bottom": 10,
+      "left": 10,
+      "right": 10,
+      "top": 10,
+    },
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+    },
+  },
+  "type": "TouchableOpacity",
+}
+`;
+
+exports[`TableBoolean toggles checkbox when pressed in editing mode 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "backgroundColor": "#0A7092",
+          "borderColor": "#0A7092",
+          "borderRadius": 3,
+          "borderWidth": 1,
+          "height": 24,
+          "justifyContent": "center",
+          "width": 24,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Tap to change the checkbox from unchecked to checked",
+    "aria-label": "Checkbox is currently checked",
+    "aria-role": "checkbox",
+    "hitSlop": {
+      "bottom": 10,
+      "left": 10,
+      "right": 10,
+      "top": 10,
+    },
+    "onPress": [Function],
+    "style": {
+      "alignItems": "center",
+      "justifyContent": "center",
+    },
+  },
+  "type": "TouchableOpacity",
+}
+`;

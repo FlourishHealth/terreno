@@ -1,0 +1,57 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`ErrorBoundary renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Content",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`ErrorBoundary accepts onError callback prop 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Content",
+      ],
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#1C1C1C",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;

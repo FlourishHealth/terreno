@@ -1,4 +1,7 @@
 export * from "./authSlice";
+export * from "./betterAuthClient";
+export * from "./betterAuthSlice";
+export * from "./betterAuthTypes";
 export * from "./constants";
 export * from "./emptyApi";
 export * from "./mongooseSlice";

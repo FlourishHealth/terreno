@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: tests
 import {beforeEach, describe, expect, it} from "bun:test";
-import {createTestUser, generateTestEmail} from "../test/helpers";
+import {createTestUser, generateTestEmail} from "../tests/helpers";
 import {User} from "./user";
 
 describe("User Model", () => {

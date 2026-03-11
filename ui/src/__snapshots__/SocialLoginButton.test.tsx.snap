@@ -1,0 +1,277 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SocialLoginButton renders correctly with Google provider 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "marginRight": 12,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Continue with Google",
+          ],
+          "props": {
+            "style": {
+              "color": "#1f1f1f",
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Sign in with Google",
+    "aria-label": "Continue with Google",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "stretch",
+      "backgroundColor": "#ffffff",
+      "borderColor": "#dadce0",
+      "borderRadius": 360,
+      "borderWidth": 1,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 20,
+      "paddingVertical": 12,
+      "width": "100%",
+    },
+    "testID": "social-login-google",
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`SocialLoginButton renders correctly with GitHub provider 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "marginRight": 12,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Continue with GitHub",
+          ],
+          "props": {
+            "style": {
+              "color": "#ffffff",
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Sign in with GitHub",
+    "aria-label": "Continue with GitHub",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "stretch",
+      "backgroundColor": "#24292e",
+      "borderColor": "#24292e",
+      "borderRadius": 360,
+      "borderWidth": 1,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 20,
+      "paddingVertical": 12,
+      "width": "100%",
+    },
+    "testID": "social-login-github",
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`SocialLoginButton renders correctly with Apple provider 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "marginRight": 12,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Continue with Apple",
+          ],
+          "props": {
+            "style": {
+              "color": "#ffffff",
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Sign in with Apple",
+    "aria-label": "Continue with Apple",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "stretch",
+      "backgroundColor": "#000000",
+      "borderColor": "#000000",
+      "borderRadius": 360,
+      "borderWidth": 1,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 20,
+      "paddingVertical": 12,
+      "width": "100%",
+    },
+    "testID": "social-login-apple",
+  },
+  "type": "Pressable",
+}
+`;
+
+exports[`SocialLoginButton renders with outline variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "style": {
+              "marginRight": 12,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Continue with Google",
+          ],
+          "props": {
+            "style": {
+              "color": "#1C1C1C",
+              "fontSize": 16,
+              "fontWeight": "600",
+            },
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Sign in with Google",
+    "aria-label": "Continue with Google",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "stretch",
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "#dadce0",
+      "borderRadius": 360,
+      "borderWidth": 1,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 20,
+      "paddingVertical": 12,
+      "width": "100%",
+    },
+    "testID": "social-login-google",
+  },
+  "type": "Pressable",
+}
+`;

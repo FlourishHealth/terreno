@@ -49,19 +49,10 @@ export let baseUrl: string;
 export let baseWebsocketsUrl: string;
 export let baseTasksUrl: string;
 
-if (Constants.expoConfig?.extra?.BASE_URL) {
-  // For prod/staging
-  baseUrl = Constants.expoConfig?.extra?.BASE_URL;
-  baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
-  baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
+const isDev = typeof __DEV__ !== "undefined" && __DEV__;
 
-  console.debug(
-    `Base URL set to apiUrl ${baseUrl} for env ${
-      Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
-    }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
-  );
-} else if (process.env.EXPO_PUBLIC_API_URL) {
-  // For dev web
+if (process.env.EXPO_PUBLIC_API_URL) {
+  // Explicit override (e.g. .env)
   baseUrl = process.env.EXPO_PUBLIC_API_URL;
   baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
   baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
@@ -71,35 +62,60 @@ if (Constants.expoConfig?.extra?.BASE_URL) {
       Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
     }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
   );
+} else if (isDev && Constants.expoConfig?.hostUri) {
+  // Dev simulator/device
+  baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}`;
+  baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/`;
+  baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/tasks`;
+  console.debug(
+    `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
+    Constants.expoConfig?.hostUri
+  );
+} else if (isDev && Constants.experienceUrl) {
+  // Dev web (experienceUrl)
+  baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}`;
+  baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/`;
+  baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/tasks`;
+  console.debug(
+    `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
+    Constants.expoConfig?.hostUri
+  );
+} else if (isDev) {
+  // Dev web fallback
+  baseUrl = `http://localhost:4000`;
+  baseWebsocketsUrl = `ws://localhost:4000/`;
+  baseTasksUrl = `http://localhost:4000/tasks`;
+  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
+} else if (Constants.expoConfig?.extra?.BASE_URL) {
+  // Prod/staging
+  baseUrl = Constants.expoConfig?.extra?.BASE_URL;
+  baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
+  baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
+
+  console.debug(
+    `Base URL set to apiUrl ${baseUrl} for env ${
+      Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
+    }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
+  );
 } else if (Constants.expoConfig?.hostUri) {
-  // For dev simulator/device
-  baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}`;
-  baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/`;
-  baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":3000")}/tasks`;
+  baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}`;
+  baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/`;
+  baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/tasks`;
   console.debug(
     `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
 } else if (Constants.experienceUrl) {
-  // For dev web
-  baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}`;
-  baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/`;
-  baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":3000")}/tasks`;
+  baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}`;
+  baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/`;
+  baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/tasks`;
   console.debug(
     `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
     Constants.expoConfig?.hostUri
   );
-} else if (
-  !Constants.expoConfig?.extra?.BASE_URL &&
-  !Constants.expoConfig?.hostUri &&
-  !Constants.experienceUrl
-) {
-  // For dev web, which doesn't have experienceUrl for some reason?
-  baseUrl = `http://localhost:3000`;
-  baseWebsocketsUrl = `ws://localhost:3000/`;
-  baseTasksUrl = `http://localhost:3000/tasks`;
-  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
 } else {
-  console.error("No base URL found", Constants.expoConfig, Constants.experienceUrl);
-  throw new Error("No base URL found");
+  baseUrl = `http://localhost:4000`;
+  baseWebsocketsUrl = `ws://localhost:4000/`;
+  baseTasksUrl = `http://localhost:4000/tasks`;
+  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
 }

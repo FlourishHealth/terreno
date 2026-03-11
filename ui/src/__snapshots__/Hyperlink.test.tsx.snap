@@ -1,0 +1,81 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Hyperlink renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Hello world",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Hyperlink renders text with URLs 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Check out https://example.com for more info",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Hyperlink renders with custom link style 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Visit https://example.com",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;
+
+exports[`Hyperlink renders plain text without linkDefault 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "No links here https://example.com",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {},
+  "type": "View",
+}
+`;

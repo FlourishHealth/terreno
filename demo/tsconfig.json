@@ -10,6 +10,7 @@
       "@story-config": ["story-config"]
     },
     "jsx": "react-jsx"
-  }
+  },
+  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }
 

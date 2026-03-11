@@ -1,0 +1,1982 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Toast renders correctly with default props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Test message",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders info variant (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Info message",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders success variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Success!",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#1A7F36",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders warning variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Warning!",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#F36719",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders error variant 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Error!",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#BD1111",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders with small size (default) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Small toast",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders with large size 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Large toast",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders with subtitle when size is large 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Main message",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Additional details here",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-regular",
+                          "fontSize": 10,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders persistent toast with dismiss button 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Persistent toast",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "aria-role": "button",
+            "onPress": [class Function],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "center",
+              "display": "flex",
+              "gap": 12,
+              "marginLeft": 10,
+              "padding": 0,
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders dismiss button when persistent with onDismiss 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": undefined,
+                  "alignSelf": undefined,
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 0,
+                  "paddingLeft": 0,
+                  "paddingRight": 0,
+                  "paddingTop": 0,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Dismissible",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-bold",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": null,
+          "props": {
+            "aria-role": "button",
+            "onPress": [class Function],
+            "style": {
+              "alignItems": "center",
+              "alignSelf": "center",
+              "display": "flex",
+              "gap": 12,
+              "marginLeft": 10,
+              "padding": 0,
+            },
+          },
+          "type": "Pressable",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": undefined,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders all variants with large size correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "info toast",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Details",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-regular",
+                          "fontSize": 10,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#353535",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders all variants with large size correctly 2`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "success toast",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Details",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-regular",
+                          "fontSize": 10,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#1A7F36",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders all variants with large size correctly 3`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "warning toast",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Details",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-regular",
+                          "fontSize": 10,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#F36719",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Toast renders all variants with large size correctly 4`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "alignSelf": "stretch",
+                  "borderBottomLeftRadius": 4,
+                  "borderTopLeftRadius": 4,
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "paddingBottom": 8,
+                  "paddingLeft": 4,
+                  "paddingRight": 4,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "error toast",
+                  ],
+                  "props": {
+                    "numberOfLines": 0,
+                    "style": {
+                      "color": "#FFFFFF",
+                      "fontFamily": "heading-semibold",
+                      "fontSize": 14,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "Text",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Details",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#FFFFFF",
+                          "fontFamily": "text-regular",
+                          "fontSize": 10,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "flex-start",
+                  "alignSelf": "stretch",
+                  "display": "flex",
+                  "flexDirection": "column",
+                  "flexShrink": 1,
+                  "flexWrap": "wrap",
+                  "gap": 2,
+                  "justifyContent": "center",
+                  "paddingBottom": 8,
+                  "paddingTop": 8,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "display": "flex",
+              "flexDirection": "row",
+              "flexGrow": 1,
+              "flexShrink": 1,
+              "gap": 12,
+              "maxWidth": "100%",
+              "paddingLeft": 8,
+              "paddingRight": 8,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "alignItems": "center",
+          "alignSelf": "flex-start",
+          "backgroundColor": "#BD1111",
+          "borderRadius": 4,
+          "display": "flex",
+          "flexDirection": "row",
+          "flexShrink": 1,
+          "gap": 10,
+          "maxWidth": "100%",
+          "minHeight": 32,
+          "minWidth": 150,
+          "paddingBottom": 4,
+          "paddingRight": 8,
+          "paddingTop": 4,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "row",
+      "flexGrow": 1,
+      "justifyContent": "center",
+      "marginTop": 8,
+      "maxWidth": "100%",
+      "paddingLeft": 8,
+      "paddingRight": 8,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

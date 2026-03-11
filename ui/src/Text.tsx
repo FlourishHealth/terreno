@@ -85,6 +85,9 @@ export const Text = ({
   if (align) {
     style.textAlign = align;
   }
+  if (!theme?.text) {
+    throw new Error("Text component must be used within TerrenoProvider");
+  }
   if (color) {
     style.color = theme.text[color];
   } else {

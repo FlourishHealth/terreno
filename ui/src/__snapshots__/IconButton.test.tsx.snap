@@ -1,0 +1,29 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`IconButton renders correctly with default props 1`] = `null`;
+
+exports[`IconButton renders with testID 1`] = `null`;
+
+exports[`IconButton renders primary variant (default) 1`] = `null`;
+
+exports[`IconButton renders secondary variant 1`] = `null`;
+
+exports[`IconButton renders muted variant 1`] = `null`;
+
+exports[`IconButton renders navigation variant 1`] = `null`;
+
+exports[`IconButton renders destructive variant 1`] = `null`;
+
+exports[`IconButton renders disabled state 1`] = `null`;
+
+exports[`IconButton renders loading state 1`] = `null`;
+
+exports[`IconButton renders with indicator 1`] = `null`;
+
+exports[`IconButton renders with indicator and text 1`] = `null`;
+
+exports[`IconButton calls onClick when pressed 1`] = `null`;
+
+exports[`IconButton has correct accessibility props 1`] = `null`;
+
+exports[`IconButton renders with confirmation props 1`] = `null`;

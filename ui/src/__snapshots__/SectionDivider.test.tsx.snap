@@ -1,0 +1,37 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`SectionDivider renders correctly 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "accessibilityRole": "none",
+    "aria-hidden": true,
+    "style": {
+      "backgroundColor": "#9A9A9A",
+      "height": 1,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`SectionDivider is hidden from accessibility 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": null,
+  "props": {
+    "accessibilityRole": "none",
+    "aria-hidden": true,
+    "style": {
+      "backgroundColor": "#9A9A9A",
+      "height": 1,
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

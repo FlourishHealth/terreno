@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import qs from "qs";
 import supertest from "supertest";

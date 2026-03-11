@@ -125,9 +125,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "string",
                           },
                           "calories": {
+                            "description": "Number of calories in the food",
                             "type": "number",
                           },
                           "categories": {
+                            "description": "Categories this food belongs to",
                             "items": {
                               "properties": {
                                 "_id": {
@@ -138,9 +140,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                                   "type": "string",
                                 },
                                 "name": {
+                                  "description": "The name of the food category",
                                   "type": "string",
                                 },
                                 "show": {
+                                  "description": "Whether this category is visible",
                                   "type": "boolean",
                                 },
                                 "updated": {
@@ -154,6 +158,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "array",
                           },
                           "created": {
+                            "description": "When this food was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -162,15 +167,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           },
                           "eatenBy": {
                             "items": {
+                              "description": "Users who have eaten this food",
                               "required": true,
                               "type": "schemaobjectid",
                             },
                             "type": "array",
                           },
                           "expiration": {
+                            "description": "Expiration date of the food",
                             "type": "dateonly",
                           },
                           "hidden": {
+                            "description": "Whether this food is hidden from listings",
                             "type": "boolean",
                           },
                           "lastEatenWith": {
@@ -178,18 +186,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                               "format": "date-time",
                               "type": "string",
                             },
+                            "description": "Map of user names to dates they last ate this food with",
                             "type": "object",
                           },
                           "likesIds": {
+                            "description": "User likes for this food",
                             "items": {
                               "properties": {
                                 "_id": {
                                   "type": "string",
                                 },
                                 "likes": {
+                                  "description": "Whether the user liked the item",
                                   "type": "boolean",
                                 },
                                 "userId": {
+                                  "description": "The user who liked the item",
                                   "type": "string",
                                 },
                               },
@@ -199,26 +211,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "array",
                           },
                           "name": {
+                            "description": "The name of the food",
                             "type": "string",
                           },
                           "ownerId": {
+                            "description": "The user who owns this food entry",
                             "type": "string",
                           },
                           "source": {
                             "properties": {
                               "dateAdded": {
+                                "description": "When the source was added",
                                 "type": "string",
                               },
                               "href": {
+                                "description": "URL of the source",
                                 "type": "string",
                               },
                               "name": {
+                                "description": "Name of the source",
                                 "type": "string",
                               },
                             },
                             "type": "object",
                           },
                           "tags": {
+                            "description": "Tags associated with this food",
                             "items": {
                               "type": "string",
                             },
@@ -312,9 +330,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "string",
                   },
                   "calories": {
+                    "description": "Number of calories in the food",
                     "type": "number",
                   },
                   "categories": {
+                    "description": "Categories this food belongs to",
                     "items": {
                       "properties": {
                         "_id": {
@@ -325,9 +345,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "type": "string",
                         },
                         "name": {
+                          "description": "The name of the food category",
                           "type": "string",
                         },
                         "show": {
+                          "description": "Whether this category is visible",
                           "type": "boolean",
                         },
                         "updated": {
@@ -341,6 +363,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "array",
                   },
                   "created": {
+                    "description": "When this food was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -349,15 +372,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   },
                   "eatenBy": {
                     "items": {
+                      "description": "Users who have eaten this food",
                       "required": true,
                       "type": "schemaobjectid",
                     },
                     "type": "array",
                   },
                   "expiration": {
+                    "description": "Expiration date of the food",
                     "type": "dateonly",
                   },
                   "hidden": {
+                    "description": "Whether this food is hidden from listings",
                     "type": "boolean",
                   },
                   "lastEatenWith": {
@@ -365,18 +391,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "format": "date-time",
                       "type": "string",
                     },
+                    "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
                   "likesIds": {
+                    "description": "User likes for this food",
                     "items": {
                       "properties": {
                         "_id": {
                           "type": "string",
                         },
                         "likes": {
+                          "description": "Whether the user liked the item",
                           "type": "boolean",
                         },
                         "userId": {
+                          "description": "The user who liked the item",
                           "type": "string",
                         },
                       },
@@ -386,26 +416,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "array",
                   },
                   "name": {
+                    "description": "The name of the food",
                     "type": "string",
                   },
                   "ownerId": {
+                    "description": "The user who owns this food entry",
                     "type": "string",
                   },
                   "source": {
                     "properties": {
                       "dateAdded": {
+                        "description": "When the source was added",
                         "type": "string",
                       },
                       "href": {
+                        "description": "URL of the source",
                         "type": "string",
                       },
                       "name": {
+                        "description": "Name of the source",
                         "type": "string",
                       },
                     },
                     "type": "object",
                   },
                   "tags": {
+                    "description": "Tags associated with this food",
                     "items": {
                       "type": "string",
                     },
@@ -428,9 +464,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "string",
                     },
                     "calories": {
+                      "description": "Number of calories in the food",
                       "type": "number",
                     },
                     "categories": {
+                      "description": "Categories this food belongs to",
                       "items": {
                         "properties": {
                           "_id": {
@@ -441,9 +479,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "string",
                           },
                           "name": {
+                            "description": "The name of the food category",
                             "type": "string",
                           },
                           "show": {
+                            "description": "Whether this category is visible",
                             "type": "boolean",
                           },
                           "updated": {
@@ -457,6 +497,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "created": {
+                      "description": "When this food was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -465,15 +506,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "eatenBy": {
                       "items": {
+                        "description": "Users who have eaten this food",
                         "required": true,
                         "type": "schemaobjectid",
                       },
                       "type": "array",
                     },
                     "expiration": {
+                      "description": "Expiration date of the food",
                       "type": "dateonly",
                     },
                     "hidden": {
+                      "description": "Whether this food is hidden from listings",
                       "type": "boolean",
                     },
                     "lastEatenWith": {
@@ -481,18 +525,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         "format": "date-time",
                         "type": "string",
                       },
+                      "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
                     "likesIds": {
+                      "description": "User likes for this food",
                       "items": {
                         "properties": {
                           "_id": {
                             "type": "string",
                           },
                           "likes": {
+                            "description": "Whether the user liked the item",
                             "type": "boolean",
                           },
                           "userId": {
+                            "description": "The user who liked the item",
                             "type": "string",
                           },
                         },
@@ -502,26 +550,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "name": {
+                      "description": "The name of the food",
                       "type": "string",
                     },
                     "ownerId": {
+                      "description": "The user who owns this food entry",
                       "type": "string",
                     },
                     "source": {
                       "properties": {
                         "dateAdded": {
+                          "description": "When the source was added",
                           "type": "string",
                         },
                         "href": {
+                          "description": "URL of the source",
                           "type": "string",
                         },
                         "name": {
+                          "description": "Name of the source",
                           "type": "string",
                         },
                       },
                       "type": "object",
                     },
                     "tags": {
+                      "description": "Tags associated with this food",
                       "items": {
                         "type": "string",
                       },
@@ -1023,9 +1077,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "string",
                     },
                     "calories": {
+                      "description": "Number of calories in the food",
                       "type": "number",
                     },
                     "categories": {
+                      "description": "Categories this food belongs to",
                       "items": {
                         "properties": {
                           "_id": {
@@ -1036,9 +1092,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "string",
                           },
                           "name": {
+                            "description": "The name of the food category",
                             "type": "string",
                           },
                           "show": {
+                            "description": "Whether this category is visible",
                             "type": "boolean",
                           },
                           "updated": {
@@ -1052,6 +1110,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "created": {
+                      "description": "When this food was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1060,15 +1119,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "eatenBy": {
                       "items": {
+                        "description": "Users who have eaten this food",
                         "required": true,
                         "type": "schemaobjectid",
                       },
                       "type": "array",
                     },
                     "expiration": {
+                      "description": "Expiration date of the food",
                       "type": "dateonly",
                     },
                     "hidden": {
+                      "description": "Whether this food is hidden from listings",
                       "type": "boolean",
                     },
                     "lastEatenWith": {
@@ -1076,18 +1138,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         "format": "date-time",
                         "type": "string",
                       },
+                      "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
                     "likesIds": {
+                      "description": "User likes for this food",
                       "items": {
                         "properties": {
                           "_id": {
                             "type": "string",
                           },
                           "likes": {
+                            "description": "Whether the user liked the item",
                             "type": "boolean",
                           },
                           "userId": {
+                            "description": "The user who liked the item",
                             "type": "string",
                           },
                         },
@@ -1097,26 +1163,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "name": {
+                      "description": "The name of the food",
                       "type": "string",
                     },
                     "ownerId": {
+                      "description": "The user who owns this food entry",
                       "type": "string",
                     },
                     "source": {
                       "properties": {
                         "dateAdded": {
+                          "description": "When the source was added",
                           "type": "string",
                         },
                         "href": {
+                          "description": "URL of the source",
                           "type": "string",
                         },
                         "name": {
+                          "description": "Name of the source",
                           "type": "string",
                         },
                       },
                       "type": "object",
                     },
                     "tags": {
+                      "description": "Tags associated with this food",
                       "items": {
                         "type": "string",
                       },
@@ -1203,9 +1275,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "string",
                   },
                   "calories": {
+                    "description": "Number of calories in the food",
                     "type": "number",
                   },
                   "categories": {
+                    "description": "Categories this food belongs to",
                     "items": {
                       "properties": {
                         "_id": {
@@ -1216,9 +1290,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                           "type": "string",
                         },
                         "name": {
+                          "description": "The name of the food category",
                           "type": "string",
                         },
                         "show": {
+                          "description": "Whether this category is visible",
                           "type": "boolean",
                         },
                         "updated": {
@@ -1232,6 +1308,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "array",
                   },
                   "created": {
+                    "description": "When this food was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -1240,15 +1317,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                   },
                   "eatenBy": {
                     "items": {
+                      "description": "Users who have eaten this food",
                       "required": true,
                       "type": "schemaobjectid",
                     },
                     "type": "array",
                   },
                   "expiration": {
+                    "description": "Expiration date of the food",
                     "type": "dateonly",
                   },
                   "hidden": {
+                    "description": "Whether this food is hidden from listings",
                     "type": "boolean",
                   },
                   "lastEatenWith": {
@@ -1256,18 +1336,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "format": "date-time",
                       "type": "string",
                     },
+                    "description": "Map of user names to dates they last ate this food with",
                     "type": "object",
                   },
                   "likesIds": {
+                    "description": "User likes for this food",
                     "items": {
                       "properties": {
                         "_id": {
                           "type": "string",
                         },
                         "likes": {
+                          "description": "Whether the user liked the item",
                           "type": "boolean",
                         },
                         "userId": {
+                          "description": "The user who liked the item",
                           "type": "string",
                         },
                       },
@@ -1277,26 +1361,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     "type": "array",
                   },
                   "name": {
+                    "description": "The name of the food",
                     "type": "string",
                   },
                   "ownerId": {
+                    "description": "The user who owns this food entry",
                     "type": "string",
                   },
                   "source": {
                     "properties": {
                       "dateAdded": {
+                        "description": "When the source was added",
                         "type": "string",
                       },
                       "href": {
+                        "description": "URL of the source",
                         "type": "string",
                       },
                       "name": {
+                        "description": "Name of the source",
                         "type": "string",
                       },
                     },
                     "type": "object",
                   },
                   "tags": {
+                    "description": "Tags associated with this food",
                     "items": {
                       "type": "string",
                     },
@@ -1319,9 +1409,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "string",
                     },
                     "calories": {
+                      "description": "Number of calories in the food",
                       "type": "number",
                     },
                     "categories": {
+                      "description": "Categories this food belongs to",
                       "items": {
                         "properties": {
                           "_id": {
@@ -1332,9 +1424,11 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                             "type": "string",
                           },
                           "name": {
+                            "description": "The name of the food category",
                             "type": "string",
                           },
                           "show": {
+                            "description": "Whether this category is visible",
                             "type": "boolean",
                           },
                           "updated": {
@@ -1348,6 +1442,7 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "created": {
+                      "description": "When this food was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1356,15 +1451,18 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                     },
                     "eatenBy": {
                       "items": {
+                        "description": "Users who have eaten this food",
                         "required": true,
                         "type": "schemaobjectid",
                       },
                       "type": "array",
                     },
                     "expiration": {
+                      "description": "Expiration date of the food",
                       "type": "dateonly",
                     },
                     "hidden": {
+                      "description": "Whether this food is hidden from listings",
                       "type": "boolean",
                     },
                     "lastEatenWith": {
@@ -1372,18 +1470,22 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                         "format": "date-time",
                         "type": "string",
                       },
+                      "description": "Map of user names to dates they last ate this food with",
                       "type": "object",
                     },
                     "likesIds": {
+                      "description": "User likes for this food",
                       "items": {
                         "properties": {
                           "_id": {
                             "type": "string",
                           },
                           "likes": {
+                            "description": "Whether the user liked the item",
                             "type": "boolean",
                           },
                           "userId": {
+                            "description": "The user who liked the item",
                             "type": "string",
                           },
                         },
@@ -1393,26 +1495,32 @@ exports[`OpenApiMiddlewareBuilder snapshot tests matches OpenAPI spec snapshot 1
                       "type": "array",
                     },
                     "name": {
+                      "description": "The name of the food",
                       "type": "string",
                     },
                     "ownerId": {
+                      "description": "The user who owns this food entry",
                       "type": "string",
                     },
                     "source": {
                       "properties": {
                         "dateAdded": {
+                          "description": "When the source was added",
                           "type": "string",
                         },
                         "href": {
+                          "description": "URL of the source",
                           "type": "string",
                         },
                         "name": {
+                          "description": "Name of the source",
                           "type": "string",
                         },
                       },
                       "type": "object",
                     },
                     "tags": {
+                      "description": "Tags associated with this food",
                       "items": {
                         "type": "string",
                       },

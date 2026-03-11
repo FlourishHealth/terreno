@@ -1,5 +1,5 @@
 import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
 import {sendToSlack} from "./slackNotifier";

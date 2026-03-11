@@ -48,10 +48,43 @@ export const MarkdownView: React.FC<{children: React.ReactNode; inverted?: boole
     "text-regular": Nunito_400Regular,
   });
 
+  const monoFont = isWeb ? "monospace" : Platform.select({android: "monospace", ios: "Menlo"});
+
   return (
     <Markdown
       style={{
         body: {fontFamily: "text", ...color},
+        code_block: {
+          backgroundColor: theme.surface.neutralLight,
+          borderColor: theme.border.default,
+          borderRadius: 4,
+          borderWidth: 1,
+          fontFamily: monoFont,
+          fontSize: 13,
+          padding: 8,
+          ...color,
+        },
+        code_inline: {
+          backgroundColor: theme.surface.neutralLight,
+          borderColor: theme.border.default,
+          borderRadius: 3,
+          borderWidth: 1,
+          fontFamily: monoFont,
+          fontSize: 13,
+          paddingHorizontal: 4,
+          paddingVertical: 1,
+          ...color,
+        },
+        fence: {
+          backgroundColor: theme.surface.neutralLight,
+          borderColor: theme.border.default,
+          borderRadius: 4,
+          borderWidth: 1,
+          fontFamily: monoFont,
+          fontSize: 13,
+          padding: 8,
+          ...color,
+        },
         heading1: {fontFamily: "heading-bold", fontSize: sizes.xl, ...color},
         heading2: {fontFamily: "heading-bold", fontSize: sizes.lg, ...color},
         heading3: {fontFamily: "heading-bold", fontSize: sizes.md, ...color},

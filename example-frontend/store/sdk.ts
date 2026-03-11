@@ -18,7 +18,39 @@ export interface ProfileResponse {
     id: string;
     email: string;
     name: string;
+    admin?: boolean;
   };
+}
+
+// AI Request Explorer types
+export interface AIRequestExplorerItem {
+  _id: string;
+  aiModel: string;
+  created: string;
+  error?: string;
+  prompt: string;
+  requestType: string;
+  response?: string;
+  responseTime?: number;
+  tokensUsed?: number;
+  user?: {email?: string; name?: string};
+  userId?: string;
+}
+
+export interface AIRequestExplorerResponse {
+  data: AIRequestExplorerItem[];
+  limit: number;
+  more: boolean;
+  page: number;
+  total: number;
+}
+
+export interface AIRequestExplorerParams {
+  endDate?: string;
+  limit?: number;
+  page?: number;
+  requestType?: string;
+  startDate?: string;
 }
 
 // Profile update request type
@@ -31,6 +63,17 @@ export interface UpdateProfileRequest {
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
+      // AI Request Explorer (admin only)
+      getAiRequestsExplorer: builder.query<
+        AIRequestExplorerResponse,
+        AIRequestExplorerParams | undefined
+      >({
+        query: (params) => ({
+          method: "GET",
+          params: params ?? {},
+          url: "/aiRequestsExplorer",
+        }),
+      }),
       // Get current user profile
       getMe: builder.query<ProfileResponse, void>({
         providesTags: ["profile"],
@@ -53,10 +96,10 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "profile"],
+    addTagTypes: ["consentForms", "gptHistories", "profile"],
     endpoints: {
       ...generateTags(openapi, [...addTagTypes]),
-      // Add any additional endpoints here.
+      postTodos: {invalidatesTags: ["todos"]},
     },
   });
 
@@ -68,6 +111,7 @@ export const {
   useResetPasswordMutation,
   useGetMeQuery,
   usePatchMeMutation,
+  useGetAiRequestsExplorerQuery,
 } = terrenoApi;
 export * from "./openApiSdk";
 

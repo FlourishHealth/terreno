@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import {inspect} from "node:util";
-import * as Sentry from "@sentry/node";
+import * as Sentry from "@sentry/bun";
 import winston from "winston";
 
 function isPrimitive(val: any) {

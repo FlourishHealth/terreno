@@ -1,0 +1,120 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`ImageBackground renders correctly with source 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Content over image",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "source": {
+      "uri": "https://example.com/image.jpg",
+    },
+  },
+  "type": "ImageBackground",
+}
+`;
+
+exports[`ImageBackground renders with custom style 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Styled content",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "source": {
+      "uri": "https://example.com/image.jpg",
+    },
+    "style": {
+      "height": 200,
+      "width": "100%",
+    },
+  },
+  "type": "ImageBackground",
+}
+`;
+
+exports[`ImageBackground renders with local image source 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Local image",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "selectable": undefined,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "text-regular",
+              "fontSize": 14,
+              "textAlign": "left",
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {},
+      "type": "View",
+    },
+  ],
+  "props": {
+    "source": Module {},
+  },
+  "type": "ImageBackground",
+}
+`;
