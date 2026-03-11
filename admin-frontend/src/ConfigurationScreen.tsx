@@ -134,6 +134,7 @@ const SectionCard: React.FC<{
   onFieldChange: (sectionName: string, fieldKey: string, value: any) => void;
 }> = ({section, formState, onFieldChange}) => {
   const sectionValues = section.name === "__root__" ? formState : (formState[section.name] ?? {});
+  console.log("[SectionCard]", section.name, "sectionValues:", sectionValues, "formState[section.name]:", formState[section.name]);
   return (
     <Card padding={4}>
       <Box gap={3}>
@@ -198,8 +199,19 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const configMeta = meta as ConfigurationMetaResponse | undefined;
   const configValues = valuesResponse?.data;
 
+  console.log("[ConfigurationScreen] render", {
+    isMetaLoading,
+    isValuesLoading,
+    hasMeta: !!configMeta,
+    sectionCount: configMeta?.sections?.length,
+    hasValues: !!configValues,
+    valuesKeys: configValues ? Object.keys(configValues) : null,
+    userEdits: userEdits ? "set" : "null",
+  });
+
   // Derived synchronously so the form is never blank when data is already cached.
   const serverValues = useMemo((): Record<string, any> => {
+    console.log("[ConfigurationScreen] serverValues memo", {configValues: !!configValues, configMeta: !!configMeta});
     if (!configValues || !configMeta) return {};
     const initial: Record<string, any> = {};
     for (const section of configMeta.sections) {
@@ -219,6 +231,8 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   }, [configValues, configMeta]);
 
   const formState = userEdits ?? serverValues;
+
+  console.log("[ConfigurationScreen] formState keys:", Object.keys(formState), "serverValues keys:", Object.keys(serverValues));
 
   const handleFieldChange = useCallback(
     (sectionName: string, fieldKey: string, value: any) => {
