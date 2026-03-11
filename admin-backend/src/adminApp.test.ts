@@ -160,7 +160,7 @@ describe("AdminApp script routes", () => {
 
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task!.status).toBe("failed");
-      expect(task!.error).toBe("Script exploded");
+      expect(task?.error).toBe("Script exploded");
       expect(task!.result).toContain("Script exploded");
     });
   });

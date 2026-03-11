@@ -18,6 +18,7 @@ import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
+import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
@@ -123,6 +124,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     })
+      .configure(AppConfiguration)
       .register({register: (app: express.Application) => addAiRoutes(app)})
       .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
