@@ -11,6 +11,7 @@ import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {isNative} from "./Utilities";
 
+// Height bounds in inches. Default range covers typical human heights (0–7ft 11in).
 const DEFAULT_MIN_INCHES = 0;
 const DEFAULT_MAX_INCHES = 95; // 7ft 11in
 
