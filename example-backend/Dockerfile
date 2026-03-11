@@ -11,7 +11,6 @@ RUN bun run --filter "@terreno/api-health" compile
 RUN bun run --filter "@terreno/ai" compile
 RUN bun run --filter "@terreno/admin-backend" compile
 RUN bun run --filter "@terreno/ui" compile
-RUN bun run --filter "@terreno/langfuse" compile
 
 WORKDIR /app/example-backend
 RUN bun build --compile src/index.ts --outfile dist/backend

@@ -98,9 +98,6 @@
     "demo:lint": "bun run --filter 'terreno-demo' lint",
     "demo:start": "bun run --filter 'terreno-demo' start",
     "demo:web": "bun run --filter 'terreno-demo' web",
-    "langfuse:compile": "bun run --filter '@terreno/langfuse' compile",
-    "langfuse:lint": "bun run --filter '@terreno/langfuse' lint",
-    "langfuse:test": "bun run --filter '@terreno/langfuse' test",
     "frontend:android": "bun run --filter '@terreno/example-frontend' android",
     "frontend:ios": "bun run --filter '@terreno/example-frontend' ios",
     "frontend:lint": "bun run --filter '@terreno/example-frontend' lint",
@@ -136,7 +133,6 @@
     "demo",
     "example-backend",
     "example-frontend",
-    "langfuse",
     "mcp-server",
     "rtk",
     "ui"

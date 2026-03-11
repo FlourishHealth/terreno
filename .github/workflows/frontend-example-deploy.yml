@@ -37,9 +37,9 @@ jobs:
         run: bun run compile
         working-directory: api
 
-      - name: Build Langfuse dependency
+      - name: Build AI dependency
         run: bun run compile
-        working-directory: langfuse
+        working-directory: ai
 
       - name: Check for backend changes in PR
         id: backend-changes

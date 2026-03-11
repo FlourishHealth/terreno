@@ -5,7 +5,6 @@
     "@react-navigation/native": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@sentry/react": "catalog:",
-    "@terreno/langfuse": "workspace:*",
     "@terreno/rtk": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",

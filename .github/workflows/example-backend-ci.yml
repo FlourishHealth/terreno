@@ -7,7 +7,6 @@ on:
       - "admin-backend/**"
       - "example-backend/**"
       - "api-health/**"
-      - "langfuse/**"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:
@@ -65,10 +64,6 @@ jobs:
       - name: Build UI dependency
         run: bun run compile
         working-directory: ui
-
-      - name: Build Langfuse dependency
-        run: bun run compile
-        working-directory: langfuse
 
       - name: Lint
         run: bun run lint

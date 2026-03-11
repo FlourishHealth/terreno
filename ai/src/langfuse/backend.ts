@@ -1,4 +1,4 @@
-export {getCached, invalidateCache, setCached} from "./backend/cache";
+export {getCached, invalidateCache, LangfuseCache, setCached} from "./backend/cache";
 export {getLangfuseClient, initLangfuseClient, shutdownLangfuseClient} from "./backend/client";
 export {LangfuseApp} from "./backend/LangfuseApp";
 export {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} from "./backend/prompts";
