@@ -87,7 +87,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     trustedOrigins: config.trustedOrigins ?? [],
   });
 
-  return auth;
+  return auth as any;
 };
 
 /**

@@ -1,6 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -14,6 +14,7 @@ import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
+import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
@@ -123,6 +124,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       userModel: User as any,
     })
       .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
       .register(
@@ -137,6 +139,12 @@ export async function start(skipListen = false): Promise<express.Application> {
               healthy: mongoConnected,
             };
           },
+        })
+      )
+      .register(
+        new DocumentStorageApp({
+          basePath: "/admin/documents",
+          bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
       .register(

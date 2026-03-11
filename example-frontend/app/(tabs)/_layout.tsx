@@ -36,6 +36,13 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
+        name="files"
+        options={{
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="folder-open" />,
+          title: "Files",
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,

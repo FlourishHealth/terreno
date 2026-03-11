@@ -10,7 +10,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
-import {openApiCompatMiddleware} from "./openApiCompat";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 
@@ -200,6 +200,9 @@ export class TerrenoApp {
 
     const app = express();
     const options = this.options;
+
+    // Record mount paths on layers for Express 5 → OpenAPI compat
+    patchAppUse(app);
 
     app.set("query parser", (str: string) =>
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
