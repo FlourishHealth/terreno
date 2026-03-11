@@ -13,7 +13,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import startCase from "lodash/startCase";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useMemo, useState} from "react";
 import {useConfigurationApi} from "./useConfigurationApi";
 
 interface ConfigFieldMeta {
@@ -189,56 +189,60 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const {data: valuesResponse, isLoading: isValuesLoading} = useValuesQuery();
   const [updateConfig, {isLoading: isSaving}] = useUpdateMutation();
 
-  const [formState, setFormState] = useState<Record<string, any>>({});
-  const [isDirty, setIsDirty] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
+  // Tracks only the fields the user has explicitly edited. null = no unsaved changes.
+  const [userEdits, setUserEdits] = useState<Record<string, any> | null>(null);
 
   const toast = useToast();
 
   const configMeta = meta as ConfigurationMetaResponse | undefined;
   const configValues = valuesResponse?.data;
 
-  useEffect(() => {
-    if (configValues && configMeta && !isInitialized) {
-      const initial: Record<string, any> = {};
-      for (const section of configMeta.sections) {
-        if (section.name === "__root__") {
-          for (const [key, fieldMeta] of Object.entries(section.fields)) {
-            initial[key] = configValues[key] ?? fieldMeta.default ?? "";
-          }
-        } else {
-          initial[section.name] = {};
-          const sectionValues = configValues[section.name] ?? {};
-          for (const [key, fieldMeta] of Object.entries(section.fields)) {
-            initial[section.name][key] = sectionValues[key] ?? fieldMeta.default ?? "";
-          }
+  // Derived synchronously so the form is never blank when data is already cached.
+  const serverValues = useMemo((): Record<string, any> => {
+    if (!configValues || !configMeta) return {};
+    const initial: Record<string, any> = {};
+    for (const section of configMeta.sections) {
+      if (section.name === "__root__") {
+        for (const [key, fieldMeta] of Object.entries(section.fields)) {
+          initial[key] = configValues[key] ?? fieldMeta.default ?? "";
+        }
+      } else {
+        initial[section.name] = {};
+        const sectionValues = (configValues[section.name] as Record<string, any>) ?? {};
+        for (const [key, fieldMeta] of Object.entries(section.fields)) {
+          initial[section.name][key] = sectionValues[key] ?? fieldMeta.default ?? "";
         }
       }
-      setFormState(initial);
-      setIsInitialized(true);
     }
-  }, [configValues, configMeta, isInitialized]);
+    return initial;
+  }, [configValues, configMeta]);
 
-  const handleFieldChange = useCallback((sectionName: string, fieldKey: string, value: any) => {
-    setFormState((prev) => {
-      if (sectionName === "__root__") {
-        return {...prev, [fieldKey]: value};
-      }
-      return {
-        ...prev,
-        [sectionName]: {
-          ...prev[sectionName],
-          [fieldKey]: value,
-        },
-      };
-    });
-    setIsDirty(true);
-  }, []);
+  const isDirty = userEdits !== null;
+  const formState = userEdits ?? serverValues;
+
+  const handleFieldChange = useCallback(
+    (sectionName: string, fieldKey: string, value: any) => {
+      setUserEdits((prev) => {
+        const base = prev ?? serverValues;
+        if (sectionName === "__root__") {
+          return {...base, [fieldKey]: value};
+        }
+        return {
+          ...base,
+          [sectionName]: {
+            ...(base[sectionName] as Record<string, any>),
+            [fieldKey]: value,
+          },
+        };
+      });
+    },
+    [serverValues]
+  );
 
   const handleSave = useCallback(async () => {
     try {
       await updateConfig(formState).unwrap();
-      setIsDirty(false);
+      setUserEdits(null);
       toast.success("Configuration saved");
     } catch (err) {
       toast.catch(err, "Failed to save configuration");

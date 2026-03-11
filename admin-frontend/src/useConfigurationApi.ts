@@ -42,6 +42,7 @@ export const useConfigurationApi = ({
           }),
         }),
         configUpdate: build.mutation({
+          invalidatesTags: ["configuration"],
           query: (body: any) => ({
             body,
             method: "PATCH",
@@ -49,6 +50,7 @@ export const useConfigurationApi = ({
           }),
         }),
         configValues: build.query({
+          providesTags: ["configuration"],
           query: () => ({
             method: "GET",
             url: basePath,
