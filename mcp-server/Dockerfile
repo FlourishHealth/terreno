@@ -1,24 +1,24 @@
-# Stage 1: Build
+# Stage 1: Install dependencies and compile @terreno/api
 FROM oven/bun:1 AS builder
 WORKDIR /app
 
-COPY . .
+COPY package.json bun.lock ./
+COPY api ./api
+COPY mcp-server ./mcp-server
 
 RUN bun install --frozen-lockfile --ignore-scripts
 RUN bun run --filter "@terreno/api" compile
 
-WORKDIR /app/mcp-server
-RUN bun build --compile src/index.ts --outfile dist/terreno-mcp
-RUN mkdir -p dist/docs && cp -r src/docs/* dist/docs/
-
 # Stage 2: Runtime
-FROM debian:bookworm-slim
+FROM oven/bun:1
 WORKDIR /app
 
-COPY --from=builder /app/mcp-server/dist/terreno-mcp ./terreno-mcp
-COPY --from=builder /app/mcp-server/dist/docs ./docs
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/api ./api
+COPY --from=builder /app/mcp-server ./mcp-server
+COPY --from=builder /app/package.json ./package.json
 
 ENV NODE_ENV=production
+WORKDIR /app/mcp-server
 
-CMD ["./terreno-mcp"]
-
+CMD ["bun", "run", "src/index.ts"]
