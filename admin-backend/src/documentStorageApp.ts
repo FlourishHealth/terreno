@@ -206,10 +206,17 @@ export class DocumentStorageApp {
         const gcsPath = `${this.prefix}${filePath}`;
         const gcsFile = this.bucket.file(gcsPath);
 
+        console.info("[documentStorage] download attempt", {filePath, gcsPath});
+
         let metadata: Record<string, unknown>;
         try {
           const [meta] = await gcsFile.getMetadata();
           metadata = meta as Record<string, unknown>;
+          console.info("[documentStorage] getMetadata success", {
+            contentType: (meta as any)?.contentType,
+            etag: (meta as any)?.etag,
+            size: (meta as any)?.size,
+          });
         } catch (err: any) {
           if (err?.code === 404) {
             throw new APIError({
@@ -219,12 +226,18 @@ export class DocumentStorageApp {
               title: "File not found",
             });
           }
-          logger.error("[documentStorage] getMetadata error", {
+          console.error("[documentStorage] getMetadata error", {
             code: err?.code,
             errors: err?.errors,
             message: err?.message,
             response: err?.response,
             stack: err?.stack,
+            status: err?.status,
+          });
+          logger.error("[documentStorage] getMetadata error", {
+            code: err?.code,
+            errors: err?.errors,
+            message: err?.message,
             status: err?.status,
           });
           throw new APIError({
@@ -247,6 +260,11 @@ export class DocumentStorageApp {
         try {
           await pipeline(gcsFile.createReadStream(), res);
         } catch (err: any) {
+          console.error("[documentStorage] pipeline error", {
+            code: err?.code,
+            message: err?.message,
+            stack: err?.stack,
+          });
           logger.error("[documentStorage] pipeline error", {
             code: err?.code,
             message: err?.message,
