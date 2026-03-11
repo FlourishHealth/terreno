@@ -8,6 +8,7 @@ import {
   FileStorageService,
   MCPService,
 } from "@terreno/ai";
+import {preparePromptForAI} from "@terreno/ai/langfuse";
 import type {ModelRouterOptions} from "@terreno/api";
 import type {Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
@@ -355,8 +356,52 @@ const pdfTool = tool({
   {text: output.description ?? "PDF generated.", type: "text"},
 ];
 
+const JOKE_FALLBACK_SYSTEM_PROMPT =
+  "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
+
+const jokeGeneratorTool = tool({
+  description:
+    "Generate a joke about any topic. Uses a Langfuse prompt template when configured, otherwise uses a built-in prompt.",
+  execute: async ({topic, style}: {topic: string; style?: string}) => {
+    const svc = getAiService();
+    if (!svc) {
+      return {joke: `Why did the developer quit? Because they couldn't find their ${topic}!`};
+    }
+
+    let systemPrompt = JOKE_FALLBACK_SYSTEM_PROMPT;
+    try {
+      const prepared = await preparePromptForAI({
+        promptName: "joke-generator",
+        variables: {style: style ?? "witty", topic},
+      });
+      if (typeof prepared.prompt === "string") {
+        systemPrompt = prepared.prompt;
+      }
+    } catch {
+      // Langfuse unavailable — use fallback
+    }
+
+    const joke = await svc.generateText({
+      prompt: `Tell me a ${style ?? "witty"} joke about: ${topic}`,
+      systemPrompt,
+      temperature: 1.2,
+    });
+    return {joke: joke.trim()};
+  },
+  inputSchema: zodSchema(
+    z.object({
+      style: z
+        .string()
+        .optional()
+        .describe("Style of joke: witty, pun, dad joke, dark, absurdist, etc."),
+      topic: z.string().describe("What the joke should be about"),
+    })
+  ),
+});
+
 // Sample tools for demo purposes
 const demoTools = {
+  generate_joke: jokeGeneratorTool,
   generate_pdf: pdfTool,
   get_current_time: tool({
     description: "Get the current date and time",

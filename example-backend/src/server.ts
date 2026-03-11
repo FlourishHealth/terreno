@@ -1,6 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp} from "@terreno/admin-backend";
+import {LangfuseApp} from "@terreno/ai/langfuse";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -11,7 +12,6 @@ import {
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
-import {LangfuseApp} from "@terreno/ai/langfuse";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
