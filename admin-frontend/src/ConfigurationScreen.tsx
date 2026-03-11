@@ -203,17 +203,20 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   // Derived synchronously so the form is never blank when data is already cached.
   const serverValues = useMemo((): Record<string, any> => {
     if (!configValues || !configMeta) return {};
+    const emptyDefault = (fieldMeta: ConfigFieldMeta) =>
+      fieldMeta.type === "boolean" ? false : "";
     const initial: Record<string, any> = {};
     for (const section of configMeta.sections) {
       if (section.name === "__root__") {
         for (const [key, fieldMeta] of Object.entries(section.fields)) {
-          initial[key] = configValues[key] ?? fieldMeta.default ?? "";
+          initial[key] = configValues[key] ?? fieldMeta.default ?? emptyDefault(fieldMeta);
         }
       } else {
         initial[section.name] = {};
         const sectionValues = (configValues[section.name] as Record<string, any>) ?? {};
         for (const [key, fieldMeta] of Object.entries(section.fields)) {
-          initial[section.name][key] = sectionValues[key] ?? fieldMeta.default ?? "";
+          initial[section.name][key] =
+            sectionValues[key] ?? fieldMeta.default ?? emptyDefault(fieldMeta);
         }
       }
     }
