@@ -54,8 +54,12 @@
       "peerDependencies": {
         "@reduxjs/toolkit": "catalog:",
         "react": "catalog:",
+        "react-native-webview": "catalog:",
         "react-redux": "catalog:",
       },
+      "optionalPeers": [
+        "react-native-webview",
+      ],
     },
     "ai": {
       "name": "@terreno/ai",
@@ -310,6 +314,7 @@
         "react-dom": "catalog:",
         "react-native": "catalog:",
         "react-native-web": "catalog:",
+        "react-native-webview": "catalog:",
         "react-redux": "catalog:",
         "redux-persist": "catalog:",
       },

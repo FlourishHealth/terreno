@@ -15,7 +15,8 @@ import {
 } from "@terreno/ui";
 import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {Platform} from "react-native";
+import {Platform, Image as RNImage, useWindowDimensions} from "react-native";
+import {WebView} from "react-native-webview";
 
 import type {DocumentFile, DocumentListResponse, DocumentStorageBrowserProps} from "./types";
 import {useDocumentStorageApi} from "./useDocumentStorageApi";
@@ -38,141 +39,18 @@ const formatDate = (isoDate: string): string => {
   return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_SHORT) : isoDate;
 };
 
-// ---------------------------------------------------------------------------
-// Module-level cell components (callbacks passed through cellData.value)
-// ---------------------------------------------------------------------------
-
-const DocumentNameCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
-  cellData,
-}) => {
-  const {name, isFolder, folder, file, onFolderClick, onFileClick} = cellData.value as {
-    name: string;
-    isFolder: boolean;
-    folder?: string;
-    file?: DocumentFile;
-    onFolderClick: (folder: string) => void;
-    onFileClick: (file: DocumentFile) => void;
-  };
-  if (isFolder && folder) {
-    return <Link onClick={() => onFolderClick(folder)} text={name} />;
+const isViewable = (contentType: string | undefined): boolean => {
+  if (!contentType) {
+    return false;
   }
-  if (file) {
-    return <Link onClick={() => onFileClick(file)} text={name} />;
-  }
-  return <Text>{name}</Text>;
-};
-
-const DocumentActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
-  cellData,
-}) => {
-  const {filePath, isFolder, allowDelete, onDownload, onDelete, onDeleteFolder} =
-    cellData.value as {
-      filePath: string;
-      isFolder: boolean;
-      allowDelete: boolean;
-      onDownload: (path: string) => void;
-      onDelete: (path: string) => void;
-      onDeleteFolder: (path: string) => void;
-    };
-
-  if (isFolder) {
-    if (!allowDelete) {
-      return null;
-    }
-    return (
-      <Box alignItems="center" direction="row" gap={1} justifyContent="end">
-        <IconButton
-          accessibilityLabel="Delete folder"
-          confirmationText="Delete this folder and all its contents?"
-          iconName="trash"
-          onClick={() => onDeleteFolder(filePath)}
-          tooltipText="Delete folder"
-          variant="destructive"
-          withConfirmation
-        />
-      </Box>
-    );
-  }
-
   return (
-    <Box alignItems="center" direction="row" gap={1} justifyContent="end">
-      <IconButton
-        accessibilityLabel="Download"
-        iconName="download"
-        onClick={() => onDownload(filePath)}
-        tooltipText="Download"
-        variant="muted"
-      />
-      {allowDelete && (
-        <IconButton
-          accessibilityLabel="Delete"
-          confirmationText="Are you sure you want to delete this file?"
-          iconName="trash"
-          onClick={() => onDelete(filePath)}
-          tooltipText="Delete"
-          variant="destructive"
-          withConfirmation
-        />
-      )}
-    </Box>
+    contentType.startsWith("image/") ||
+    contentType.startsWith("video/") ||
+    contentType === "application/pdf" ||
+    contentType === "text/plain"
   );
 };
 
-// ---------------------------------------------------------------------------
-// Sub-components for the header bar
-// ---------------------------------------------------------------------------
-
-const BreadcrumbItem: React.FC<{
-  label: string;
-  prefix: string;
-  isLast: boolean;
-  showSeparator: boolean;
-  onPress: (prefix: string) => void;
-}> = ({label, prefix, isLast, showSeparator, onPress}) => (
-  <Box direction="row" gap={1}>
-    {showSeparator && <Text color="secondaryDark">/</Text>}
-    {isLast ? <Text bold>{label}</Text> : <Link onClick={() => onPress(prefix)} text={label} />}
-  </Box>
-);
-
-const UploadButton: React.FC<{
-  isUploading: boolean;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onUploadClick: () => void;
-}> = ({isUploading, fileInputRef, onFileChange, onUploadClick}) => (
-  <>
-    <input
-      accept="*/*"
-      onChange={onFileChange as any}
-      ref={fileInputRef as any}
-      style={{display: "none"}}
-      type="file"
-    />
-    <IconButton
-      accessibilityLabel="Upload file"
-      iconName="cloud-arrow-up"
-      loading={isUploading}
-      onClick={onUploadClick}
-      testID="document-upload-button"
-      tooltipText="Upload file"
-      variant="muted"
-    />
-  </>
-);
-
-const SettingsButton: React.FC<{onPress: () => void}> = ({onPress}) => (
-  <IconButton
-    accessibilityLabel="Storage settings"
-    iconName="gear"
-    onClick={onPress}
-    variant="muted"
-  />
-);
-
-// ---------------------------------------------------------------------------
-// Main component
-// ---------------------------------------------------------------------------
 
 export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   api,
@@ -189,7 +67,11 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [viewerFile, setViewerFile] = useState<DocumentFile | null>(null);
+  const [viewerBlobUrl, setViewerBlobUrl] = useState<string | null>(null);
+  const [isViewLoading, setIsViewLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const viewerBlobUrlRef = useRef<string | null>(null);
 
   const {
     useListQuery,
@@ -219,6 +101,16 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   const [createFolder] = useCreateFolderMutation();
   const [downloadFile] = useLazyDownloadQuery();
 
+  // Revoke blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (viewerBlobUrlRef.current) {
+        URL.revokeObjectURL(viewerBlobUrlRef.current);
+      }
+    };
+  }, []);
+
+  // Detect 503 "not configured" responses
   useEffect(() => {
     if (isError && error) {
       const status = error?.status ?? error?.originalStatus;
@@ -246,13 +138,66 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     setCurrentPrefix(prefix);
   }, []);
 
+  const handleViewFile = useCallback(
+    async (file: DocumentFile) => {
+      setViewerFile(file);
+      setViewerBlobUrl(null);
+      setIsViewLoading(true);
+      try {
+        const blob = await downloadFile(file.fullPath).unwrap();
+        if (Platform.OS === "web") {
+          const url = URL.createObjectURL(blob as Blob);
+          viewerBlobUrlRef.current = url;
+          setViewerBlobUrl(url);
+        } else {
+          // Convert to base64 data URI for React Native
+          const dataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob as Blob);
+          });
+          setViewerBlobUrl(dataUri);
+        }
+      } catch (err) {
+        console.error("Failed to load file preview:", err);
+      } finally {
+        setIsViewLoading(false);
+      }
+    },
+    [downloadFile]
+  );
+
+  const handleViewerClose = useCallback(() => {
+    // Only blob: URLs need revocation; base64 data URIs do not
+    if (Platform.OS === "web" && viewerBlobUrlRef.current) {
+      URL.revokeObjectURL(viewerBlobUrlRef.current);
+      viewerBlobUrlRef.current = null;
+    }
+    setViewerFile(null);
+    setViewerBlobUrl(null);
+  }, []);
+
   const handleDownload = useCallback(
     async (filePath: string) => {
+      console.info("[DocumentStorageBrowser] handleDownload filePath:", filePath);
       try {
         const blob = await downloadFile(filePath).unwrap();
+        console.info("[DocumentStorageBrowser] got blob:", blob);
         if (Platform.OS === "web" && blob) {
-          const url = URL.createObjectURL(blob as Blob);
+          const blobObj = blob as Blob;
+          const url = URL.createObjectURL(blobObj);
           const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
+          console.info(
+            "[DocumentStorageBrowser] creating download link, filename:",
+            filename,
+            "blobSize:",
+            blobObj.size,
+            "blobType:",
+            blobObj.type,
+            "url:",
+            url
+          );
           const a = document.createElement("a");
           a.href = url;
           a.download = filename;
@@ -300,29 +245,21 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
       if (!file) {
         return;
       }
+
       const formData = new FormData();
       formData.append("file", file);
+
       try {
         await uploadFile({formData, prefix: currentPrefix || undefined}).unwrap();
       } catch (err) {
         console.error("Failed to upload file:", err);
       }
+
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     },
     [uploadFile, currentPrefix]
-  );
-
-  const handleFileClick = useCallback(
-    (file: DocumentFile) => {
-      if (onFileSelect) {
-        onFileSelect(file);
-      } else {
-        handleDownload(file.fullPath);
-      }
-    },
-    [onFileSelect, handleDownload]
   );
 
   const handleCreateFolder = useCallback(async () => {
@@ -347,6 +284,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     setNewFolderName("");
   }, []);
 
+  // Build breadcrumb segments
   const breadcrumbs = useMemo(() => {
     const segments: {label: string; prefix: string}[] = [{label: "Root", prefix: ""}];
     if (currentPrefix) {
@@ -360,12 +298,99 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     return segments;
   }, [currentPrefix]);
 
+  const DocumentNameCell: React.FC<{
+    column: DataTableColumn;
+    cellData: DataTableCellData;
+  }> = useCallback(
+    ({cellData}: {column: DataTableColumn; cellData: DataTableCellData}) => {
+      const {
+        name,
+        isFolder: isFolderItem,
+        folder,
+        file,
+      } = cellData.value as {
+        name: string;
+        isFolder: boolean;
+        folder?: string;
+        file?: DocumentFile;
+      };
+      if (isFolderItem && folder) {
+        return <Link onClick={() => handleFolderClick(folder)} text={name} />;
+      }
+      if (file && onFileSelect) {
+        return <Link onClick={() => onFileSelect(file)} text={name} />;
+      }
+      // TODO: re-enable file preview in a follow-up PR
+      // if (file && Platform.OS === "web" && isViewable(file.contentType)) {
+      //   return <Link onClick={() => handleViewFile(file)} text={name} />;
+      // }
+      return <Text>{name}</Text>;
+    },
+    [handleFolderClick, handleViewFile, onFileSelect]
+  );
+
+  const DocumentActionsCell: React.FC<{
+    column: DataTableColumn;
+    cellData: DataTableCellData;
+  }> = useCallback(
+    ({cellData}: {column: DataTableColumn; cellData: DataTableCellData}) => {
+      const {filePath, isFolder: isFolderItem} = cellData.value as {
+        filePath: string;
+        isFolder: boolean;
+      };
+      if (isFolderItem) {
+        if (!allowDelete) {
+          return null;
+        }
+        return (
+          <Box alignItems="center" direction="row" gap={1} justifyContent="end">
+            <IconButton
+              accessibilityLabel="Delete folder"
+              confirmationText="Delete this folder and all its contents?"
+              iconName="trash"
+              onClick={() => handleDeleteFolder(filePath)}
+              tooltipText="Delete folder"
+              variant="destructive"
+              withConfirmation
+            />
+          </Box>
+        );
+      }
+      return (
+        <Box alignItems="center" direction="row" gap={1} justifyContent="end">
+          {Platform.OS === "web" && (
+            <IconButton
+              accessibilityLabel="Download"
+              iconName="download"
+              onClick={() => handleDownload(filePath)}
+              tooltipText="Download"
+              variant="muted"
+            />
+          )}
+          {allowDelete && (
+            <IconButton
+              accessibilityLabel="Delete"
+              confirmationText="Are you sure you want to delete this file?"
+              iconName="trash"
+              onClick={() => handleDelete(filePath)}
+              tooltipText="Delete"
+              variant="destructive"
+              withConfirmation
+            />
+          )}
+        </Box>
+      );
+    },
+    [handleDownload, handleDelete, handleDeleteFolder, allowDelete]
+  );
+
+
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
     () => ({
       [ACTIONS_COLUMN_TYPE]: DocumentActionsCell,
       [NAME_COLUMN_TYPE]: DocumentNameCell,
     }),
-    []
+    [DocumentActionsCell, DocumentNameCell]
   );
 
   const columns: DataTableColumn[] = useMemo(
@@ -385,68 +410,162 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     for (const folder of listData?.folders ?? []) {
       const folderName = folder.split("/").filter(Boolean).pop() ?? folder;
       rows.push([
-        {
-          value: {
-            folder,
-            isFolder: true,
-            name: `${folderName}/`,
-            onFileClick: handleFileClick,
-            onFolderClick: handleFolderClick,
-          },
-        },
+        {value: {folder, isFolder: true, name: `${folderName}/`}},
         {value: "\u2014"},
         {value: "Folder"},
         {value: ""},
-        {
-          value: {
-            allowDelete,
-            filePath: folder,
-            isFolder: true,
-            onDelete: handleDelete,
-            onDeleteFolder: handleDeleteFolder,
-            onDownload: handleDownload,
-          },
-        },
+        {value: {filePath: folder, isFolder: true}},
       ]);
     }
 
     for (const file of listData?.files ?? []) {
       rows.push([
-        {
-          value: {
-            file,
-            isFolder: false,
-            name: file.name,
-            onFileClick: handleFileClick,
-            onFolderClick: handleFolderClick,
-          },
-        },
+        {value: {file, isFolder: false, name: file.name}},
         {value: formatFileSize(file.size)},
         {value: file.contentType ?? "Unknown"},
         {value: file.updated ? formatDate(file.updated) : ""},
-        {
-          value: {
-            allowDelete,
-            filePath: file.fullPath,
-            isFolder: false,
-            onDelete: handleDelete,
-            onDeleteFolder: handleDeleteFolder,
-            onDownload: handleDownload,
-          },
-        },
+        {value: {filePath: file.fullPath, isFolder: false}},
       ]);
     }
 
     return rows;
-  }, [
-    listData,
-    allowDelete,
-    handleDelete,
-    handleDeleteFolder,
-    handleDownload,
-    handleFileClick,
-    handleFolderClick,
-  ]);
+  }, [listData]);
+
+  const {height: windowHeight} = useWindowDimensions();
+  const nativeViewerHeight = Math.floor(windowHeight * 0.6);
+
+  const renderViewerContent = () => {
+    if (isViewLoading) {
+      return (
+        <Box alignItems="center" justifyContent="center" padding={6}>
+          <Spinner />
+        </Box>
+      );
+    }
+    if (!viewerBlobUrl) {
+      return (
+        <Box alignItems="center" padding={4}>
+          <Text color="error">Failed to load preview.</Text>
+        </Box>
+      );
+    }
+
+    const contentType = viewerFile?.contentType ?? "";
+
+    if (Platform.OS === "web") {
+      if (contentType.startsWith("image/")) {
+        return (
+          <Box alignItems="center">
+            <img
+              alt={viewerFile?.name}
+              src={viewerBlobUrl}
+              style={{maxHeight: "70vh", maxWidth: "100%", objectFit: "contain"}}
+            />
+          </Box>
+        );
+      }
+      if (contentType.startsWith("video/")) {
+        return (
+          <Box alignItems="center">
+            <video controls src={viewerBlobUrl} style={{maxHeight: "70vh", maxWidth: "100%"}}>
+              <track kind="captions" />
+            </video>
+          </Box>
+        );
+      }
+      // PDF and text/plain — render in iframe
+      return (
+        <iframe
+          src={viewerBlobUrl}
+          style={{border: "none", height: "70vh", width: "100%"}}
+          title={viewerFile?.name}
+        />
+      );
+    }
+
+    // React Native
+    if (contentType.startsWith("image/")) {
+      return (
+        <RNImage
+          resizeMode="contain"
+          source={{uri: viewerBlobUrl}}
+          style={{height: nativeViewerHeight, width: "100%"}}
+        />
+      );
+    }
+    // PDFs, videos, and text — use WebView with the data URI
+    return (
+      <WebView source={{uri: viewerBlobUrl}} style={{height: nativeViewerHeight, width: "100%"}} />
+    );
+  };
+
+  const headerRow = (
+    <Box alignItems="center" direction="row" padding={2}>
+      {/* Breadcrumbs */}
+      <Box alignItems="center" direction="row" flex="grow" gap={1} wrap>
+        {breadcrumbs.map((crumb, index) => (
+          <Box direction="row" gap={1} key={crumb.prefix || "root"}>
+            {index > 0 && <Text color="secondaryDark">/</Text>}
+            {index === breadcrumbs.length - 1 ? (
+              <Text bold>{crumb.label}</Text>
+            ) : (
+              <Link onClick={() => handleBreadcrumbClick(crumb.prefix)} text={crumb.label} />
+            )}
+          </Box>
+        ))}
+      </Box>
+
+      {/* Action buttons */}
+      <Box alignItems="center" direction="row" gap={1}>
+        {Platform.OS === "web" && allowUpload && (
+          <>
+            <input
+              accept="*/*"
+              onChange={handleFileChange as any}
+              ref={fileInputRef as any}
+              style={{display: "none"}}
+              type="file"
+            />
+            <IconButton
+              accessibilityLabel="Upload file"
+              iconName="cloud-arrow-up"
+              loading={isUploading}
+              onClick={handleUploadClick}
+              testID="document-upload-button"
+              tooltipText="Upload file"
+              variant="muted"
+            />
+          </>
+        )}
+        {allowUpload && (
+          <IconButton
+            accessibilityLabel="New folder"
+            iconName="folder-plus"
+            onClick={() => setShowNewFolderModal(true)}
+            testID="document-new-folder-button"
+            tooltipText="New folder"
+            variant="muted"
+          />
+        )}
+        <IconButton
+          accessibilityLabel="Refresh"
+          iconName="rotate"
+          onClick={handleRefresh}
+          testID="document-refresh-button"
+          tooltipText="Refresh"
+          variant="muted"
+        />
+        {onSettingsPress && (
+          <IconButton
+            accessibilityLabel="Storage settings"
+            iconName="gear"
+            onClick={onSettingsPress}
+            variant="muted"
+          />
+        )}
+      </Box>
+    </Box>
+  );
 
   const renderContent = () => {
     if (isNotConfigured) {
@@ -494,56 +613,21 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     );
   };
 
-  const headerRow = (
-    <Box alignItems="center" direction="row" padding={2}>
-      <Box alignItems="center" direction="row" flex="grow" gap={1} wrap>
-        {breadcrumbs.map((crumb, index) => (
-          <BreadcrumbItem
-            isLast={index === breadcrumbs.length - 1}
-            key={crumb.prefix || "root"}
-            label={crumb.label}
-            onPress={handleBreadcrumbClick}
-            prefix={crumb.prefix}
-            showSeparator={index > 0}
-          />
-        ))}
-      </Box>
-      <Box alignItems="center" direction="row" gap={1}>
-        {Platform.OS === "web" && allowUpload && (
-          <UploadButton
-            fileInputRef={fileInputRef}
-            isUploading={isUploading}
-            onFileChange={handleFileChange}
-            onUploadClick={handleUploadClick}
-          />
-        )}
-        {allowUpload && (
-          <IconButton
-            accessibilityLabel="New folder"
-            iconName="folder-plus"
-            onClick={() => setShowNewFolderModal(true)}
-            testID="document-new-folder-button"
-            tooltipText="New folder"
-            variant="muted"
-          />
-        )}
-        <IconButton
-          accessibilityLabel="Refresh"
-          iconName="rotate"
-          onClick={handleRefresh}
-          testID="document-refresh-button"
-          tooltipText="Refresh"
-          variant="muted"
-        />
-        {onSettingsPress && <SettingsButton onPress={onSettingsPress} />}
-      </Box>
-    </Box>
-  );
-
   return (
     <Page maxWidth="100%" title={title}>
       {headerRow}
       {renderContent()}
+
+      <Modal
+        onDismiss={handleViewerClose}
+        primaryButtonOnClick={handleViewerClose}
+        primaryButtonText="Close"
+        size="lg"
+        title={viewerFile?.name ?? "Preview"}
+        visible={viewerFile !== null}
+      >
+        {renderViewerContent()}
+      </Modal>
 
       <Modal
         onDismiss={handleNewFolderModalDismiss}

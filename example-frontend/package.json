@@ -20,6 +20,7 @@
     "react-dom": "catalog:",
     "react-native": "catalog:",
     "react-native-web": "catalog:",
+    "react-native-webview": "catalog:",
     "react-redux": "catalog:",
     "redux-persist": "catalog:"
   },

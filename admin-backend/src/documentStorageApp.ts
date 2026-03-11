@@ -1,5 +1,6 @@
+import {pipeline} from "node:stream/promises";
 import {Storage} from "@google-cloud/storage";
-import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, logger} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 import multer from "multer";
@@ -45,7 +46,6 @@ const DEFAULT_ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const DEFAULT_SIGNED_URL_EXPIRATION = 60 * 60 * 1000; // 1 hour
 
 const isAdmin = (req: express.Request): boolean => {
   const user = (req as any).user;
@@ -88,7 +88,6 @@ export class DocumentStorageApp {
   register(app: express.Application): void {
     const basePath = this.options.basePath ?? "/documents";
     const maxFileSize = this.options.maxFileSize ?? DEFAULT_MAX_FILE_SIZE;
-    const signedUrlExpiration = this.options.signedUrlExpiration ?? DEFAULT_SIGNED_URL_EXPIRATION;
 
     const allowedMimeTypes = this.allowedMimeTypes;
 
@@ -194,9 +193,9 @@ export class DocumentStorageApp {
       })
     );
 
-    // GET basePath/url/* — Get signed download URL
+    // GET basePath/download/* — Stream file download
     app.get(
-      `${basePath}/url/*filepath`,
+      `${basePath}/download/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
         const filePath = req.params.filepath as string;
@@ -207,18 +206,78 @@ export class DocumentStorageApp {
         const gcsPath = `${this.prefix}${filePath}`;
         const gcsFile = this.bucket.file(gcsPath);
 
-        const [exists] = await gcsFile.exists();
-        if (!exists) {
-          throw new APIError({status: 404, title: "File not found"});
+        console.info("[documentStorage] download attempt", {filePath, gcsPath});
+
+        let metadata: Record<string, unknown>;
+        try {
+          const [meta] = await gcsFile.getMetadata();
+          metadata = meta as Record<string, unknown>;
+          console.info("[documentStorage] getMetadata success", {
+            contentType: (meta as any)?.contentType,
+            etag: (meta as any)?.etag,
+            size: (meta as any)?.size,
+          });
+        } catch (err: any) {
+          if (err?.code === 404) {
+            throw new APIError({
+              detail: filePath,
+              disableExternalErrorTracking: true,
+              status: 404,
+              title: "File not found",
+            });
+          }
+          console.error("[documentStorage] getMetadata error", {
+            code: err?.code,
+            errors: err?.errors,
+            message: err?.message,
+            response: err?.response,
+            stack: err?.stack,
+            status: err?.status,
+          });
+          logger.error("[documentStorage] getMetadata error", {
+            code: err?.code,
+            errors: err?.errors,
+            message: err?.message,
+            status: err?.status,
+          });
+          throw new APIError({
+            detail: err?.message ?? String(err),
+            status: 500,
+            title: "Failed to access file",
+          });
         }
 
-        const [url] = await gcsFile.getSignedUrl({
-          action: "read",
-          expires: DateTime.now().plus({milliseconds: signedUrlExpiration}).toMillis(),
-          version: "v4",
-        });
+        const contentType =
+          (metadata.contentType as string | undefined) ?? "application/octet-stream";
+        const filename = filePath.split("/").filter(Boolean).pop() ?? "download";
 
-        return res.json({url});
+        res.setHeader("Content-Type", contentType);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        if (metadata.size) {
+          res.setHeader("Content-Length", String(metadata.size));
+        }
+
+        try {
+          await pipeline(gcsFile.createReadStream(), res);
+        } catch (err: any) {
+          console.error("[documentStorage] pipeline error", {
+            code: err?.code,
+            message: err?.message,
+            stack: err?.stack,
+          });
+          logger.error("[documentStorage] pipeline error", {
+            code: err?.code,
+            message: err?.message,
+            stack: err?.stack,
+          });
+          if (!res.headersSent) {
+            throw new APIError({
+              detail: err?.message ?? String(err),
+              status: 500,
+              title: "Failed to stream file",
+            });
+          }
+        }
       })
     );
 
