@@ -103,7 +103,7 @@ const extractFieldMeta = (
 /**
  * System fields to skip in configuration sections.
  */
-const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
+const SYSTEM_FIELDS = new Set(["_id", "_singleton", "id", "__v", "created", "updated", "deleted"]);
 
 const SECRET_REDACTED = "********";
 
@@ -227,7 +227,9 @@ export class ConfigurationApp implements TerrenoPlugin {
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const config = await (ConfigModel as any).updateConfig(req.body);
+        // Strip internal system fields that should never be updated via the API
+        const {_singleton: _s, _id: _i, __v: _v, ...safeBody} = req.body;
+        const config = await (ConfigModel as any).updateConfig(safeBody);
         logger.info(`Configuration updated by ${(req as any).user?.email ?? "unknown"}`);
         const data = redactSecrets(config.toJSON(), secretFields);
         return res.json({data});
