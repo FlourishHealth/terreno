@@ -39,19 +39,6 @@ const formatDate = (isoDate: string): string => {
   return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_SHORT) : isoDate;
 };
 
-const isViewable = (contentType: string | undefined): boolean => {
-  if (!contentType) {
-    return false;
-  }
-  return (
-    contentType.startsWith("image/") ||
-    contentType.startsWith("video/") ||
-    contentType === "application/pdf" ||
-    contentType === "text/plain"
-  );
-};
-
-
 export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   api,
   basePath,
@@ -383,7 +370,6 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     },
     [handleDownload, handleDelete, handleDeleteFolder, allowDelete]
   );
-
 
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
     () => ({
