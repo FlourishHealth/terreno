@@ -23,6 +23,7 @@ export * from "./MarkdownView.config";
 export * from "./Modal.config";
 export * from "./MultiselectField.config";
 export * from "./NumberField.config";
+export * from "./Page.config";
 export * from "./Pagination.config";
 export * from "./PasswordField.config";
 export * from "./PhoneNumberField.config";
