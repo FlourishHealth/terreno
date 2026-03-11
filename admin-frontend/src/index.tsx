@@ -3,6 +3,9 @@ export {AdminModelForm} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";
 export {AdminRefField} from "./AdminRefField";
+export {ConsentFormEditor} from "./ConsentFormEditor";
+export {ConsentFormList} from "./ConsentFormList";
+export {ConsentResponseViewer} from "./ConsentResponseViewer";
 export type {
   AdminConfigResponse,
   AdminFieldConfig,

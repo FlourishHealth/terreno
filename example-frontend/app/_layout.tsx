@@ -5,10 +5,11 @@ import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
 import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
-import {TerrenoProvider} from "@terreno/ui";
+import {ConsentNavigator, TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import store, {logout, persistor, useAppDispatch} from "@/store";
+import {terrenoApi} from "@/store/sdk";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -97,7 +98,7 @@ function RootLayoutNav(): React.ReactElement {
     }
   }, [userId, segments, router]);
 
-  return (
+  const stack = (
     <Stack screenOptions={{headerShown: false}}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin" />
@@ -105,4 +106,10 @@ function RootLayoutNav(): React.ReactElement {
       <Stack.Screen name="signup" />
     </Stack>
   );
+
+  if (userId) {
+    return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
+  }
+
+  return stack;
 }

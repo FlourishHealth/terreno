@@ -5,6 +5,9 @@ import {
   type AuthProvider,
   BetterAuthApp,
   type BetterAuthConfig,
+  ConsentApp,
+  ConsentForm,
+  ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
@@ -155,7 +158,26 @@ export async function start(skipListen = false): Promise<express.Application> {
               model: User as any,
               routePath: "/users",
             },
+            {
+              displayName: "Consent Forms",
+              listFields: ["title", "type", "version", "active", "order"],
+              model: ConsentForm,
+              routePath: "/consent-forms",
+            },
+            {
+              displayName: "Consent Responses",
+              listFields: ["userId", "agreed", "locale", "agreedAt"],
+              model: ConsentResponse,
+              routePath: "/consent-responses",
+            },
           ],
+        })
+      )
+      .register(
+        new ConsentApp({
+          auditTrail: true,
+          resolveConsentForms: (_user, forms) => forms,
+          supportedLocales: ["en", "es"],
         })
       );
 
