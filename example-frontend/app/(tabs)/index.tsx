@@ -145,6 +145,7 @@ const TodosScreen: React.FC = () => {
     <ScrollView
       refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={isFetching} />}
       style={{flex: 1}}
+      testID="todos-screen"
     >
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>

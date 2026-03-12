@@ -1,0 +1,110 @@
+name: E2E Tests
+
+on:
+  push:
+    paths:
+      - "example-frontend/**"
+      - "example-backend/**"
+      - "ui/**"
+      - "rtk/**"
+      - "api/**"
+      - ".github/workflows/e2e-ci.yml"
+
+jobs:
+  e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mongodb-version: ["6.0"]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build API dependency
+        run: bun run compile
+        working-directory: api
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Build AI dependency
+        run: bun run compile
+        working-directory: ai
+
+      - name: Build API Health dependency
+        run: bun run compile
+        working-directory: api-health
+
+      - name: Build Admin Backend dependency
+        run: bun run compile
+        working-directory: admin-backend
+
+      - name: Build Admin Frontend dependency
+        run: bun run compile
+        working-directory: admin-frontend
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "$TOKEN_SECRET" ]; then missing+=("TOKEN_SECRET"); fi
+          if [ -z "$REFRESH_TOKEN_SECRET" ]; then missing+=("REFRESH_TOKEN_SECRET"); fi
+          if [ -z "$SESSION_SECRET" ]; then missing+=("SESSION_SECRET"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+        working-directory: example-frontend
+
+      - name: Run Playwright tests
+        run: bun run test:e2e
+        working-directory: example-frontend
+        env:
+          CI: true
+          MONGODB_URI: mongodb://127.0.0.1/terreno-e2e
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-e2e
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: example-frontend/playwright-report/
+          retention-days: 30
