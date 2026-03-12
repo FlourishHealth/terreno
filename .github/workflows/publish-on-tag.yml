@@ -9,18 +9,9 @@ jobs:
   check-changes:
     runs-on: ubuntu-latest
     outputs:
-      api_changed: ${{ steps.check.outputs.api_changed }}
-      ui_changed: ${{ steps.check.outputs.ui_changed }}
-      rtk_changed: ${{ steps.check.outputs.rtk_changed }}
-      admin_backend_changed: ${{ steps.check.outputs.admin_backend_changed }}
-      admin_frontend_changed: ${{ steps.check.outputs.admin_frontend_changed }}
-      ai_changed: ${{ steps.check.outputs.ai_changed }}
-      api_health_changed: ${{ steps.check.outputs.api_health_changed }}
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0  # Fetch all history for comparing tags
 
       - name: Get version from tag
         id: version
@@ -30,63 +21,8 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Get previous tag
-        id: prev_tag
-        run: |
-          # Get the previous tag (excluding the current one)
-          CURRENT_TAG=${GITHUB_REF#refs/tags/}
-          PREV_TAG=$(git tag --sort=-version:refname | grep -v "^$CURRENT_TAG$" | head -n 1)
-          
-          if [ -z "$PREV_TAG" ]; then
-            echo "No previous tag found, will publish all packages"
-            echo "prev_tag=" >> $GITHUB_OUTPUT
-          else
-            echo "Previous tag: $PREV_TAG"
-            echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Check for changes in each package
-        id: check
-        run: |
-          PREV_TAG="${{ steps.prev_tag.outputs.prev_tag }}"
-          
-          if [ -z "$PREV_TAG" ]; then
-            # No previous tag - publish all packages
-            echo "api_changed=true" >> $GITHUB_OUTPUT
-            echo "ui_changed=true" >> $GITHUB_OUTPUT
-            echo "rtk_changed=true" >> $GITHUB_OUTPUT
-            echo "admin_backend_changed=true" >> $GITHUB_OUTPUT
-            echo "admin_frontend_changed=true" >> $GITHUB_OUTPUT
-            echo "ai_changed=true" >> $GITHUB_OUTPUT
-            echo "api_health_changed=true" >> $GITHUB_OUTPUT
-          else
-            # Check each package for changes since previous tag
-            echo "Comparing $PREV_TAG to HEAD..."
-
-            check_package() {
-              local dir=$1
-              local key=$2
-              if git diff --quiet "$PREV_TAG" HEAD -- "$dir/"; then
-                echo "${key}_changed=false" >> $GITHUB_OUTPUT
-                echo "$dir: No changes"
-              else
-                echo "${key}_changed=true" >> $GITHUB_OUTPUT
-                echo "$dir: Has changes"
-              fi
-            }
-
-            check_package api api
-            check_package ui ui
-            check_package rtk rtk
-            check_package admin-backend admin_backend
-            check_package admin-frontend admin_frontend
-            check_package ai ai
-            check_package api-health api_health
-          fi
-
   publish-api:
     needs: check-changes
-    if: needs.check-changes.outputs.api_changed == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -201,7 +137,6 @@ jobs:
 
   publish-ui:
     needs: check-changes
-    if: needs.check-changes.outputs.ui_changed == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -346,10 +281,6 @@ jobs:
 
   publish-rtk:
     needs: [check-changes, publish-ui]
-    if: |
-      always() &&
-      needs.check-changes.outputs.rtk_changed == 'true' &&
-      (needs.check-changes.outputs.ui_changed != 'true' || needs.publish-ui.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -497,10 +428,6 @@ jobs:
 
   publish-admin-backend:
     needs: [check-changes, publish-api]
-    if: |
-      always() &&
-      needs.check-changes.outputs.admin_backend_changed == 'true' &&
-      (needs.check-changes.outputs.api_changed != 'true' || needs.publish-api.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -581,10 +508,6 @@ jobs:
 
   publish-admin-frontend:
     needs: [check-changes, publish-ui]
-    if: |
-      always() &&
-      needs.check-changes.outputs.admin_frontend_changed == 'true' &&
-      (needs.check-changes.outputs.ui_changed != 'true' || needs.publish-ui.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -679,10 +602,6 @@ jobs:
 
   publish-ai:
     needs: [check-changes, publish-api]
-    if: |
-      always() &&
-      needs.check-changes.outputs.ai_changed == 'true' &&
-      (needs.check-changes.outputs.api_changed != 'true' || needs.publish-api.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -772,10 +691,6 @@ jobs:
 
   publish-api-health:
     needs: [check-changes, publish-api]
-    if: |
-      always() &&
-      needs.check-changes.outputs.api_health_changed == 'true' &&
-      (needs.check-changes.outputs.api_changed != 'true' || needs.publish-api.result == 'success')
     runs-on: ubuntu-latest
     defaults:
       run:
