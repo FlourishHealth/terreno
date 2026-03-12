@@ -1890,7 +1890,8 @@ export interface NumberPickerActionSheetProps {
 export interface PageProps {
   navigation?: any;
   scroll?: boolean;
-  loading?: boolean | string;
+  loading?: boolean;
+  loadingText?: string;
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;

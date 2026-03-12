@@ -1,5 +1,5 @@
 import {Page, type PageProps} from "@terreno/ui";
-import type React from "react";
+import React from "react";
 
 export const PageDemo = (props: Partial<PageProps>): React.ReactElement => {
   return <Page title="Page Title" {...props} />;
@@ -10,5 +10,5 @@ export const PageLoadingBoolean = (): React.ReactElement => {
 };
 
 export const PageLoadingText = (): React.ReactElement => {
-  return <Page loading="Fetching your data..." title="Loading with Text" />;
+  return <Page loading={true} loadingText="Fetching your data..." title="Loading with Text" />;
 };

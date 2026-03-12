@@ -23,7 +23,7 @@ export const PageConfiguration: DemoConfiguration = {
     do: [
       "Use as the root layout for every screen.",
       "Pass loading={true} to show a centered spinner while data is fetching.",
-      "Pass a string to loading (e.g. loading=\"Saving…\") to display a message beneath the spinner.",
+      "Pass loadingText (e.g. loadingText=\"Saving…\") to display a message beneath the spinner.",
     ],
     doNot: [
       "Do not nest Page components.",
@@ -40,8 +40,8 @@ export const PageConfiguration: DemoConfiguration = {
         defaultValue: "Page Title",
       },
       loading: {
-        type: "text",
-        defaultValue: "",
+        type: "boolean",
+        defaultValue: false,
       },
     },
   },
@@ -51,7 +51,7 @@ export const PageConfiguration: DemoConfiguration = {
       render: PageLoadingBoolean,
     },
     LoadingText: {
-      description: "Shows a centered spinner with a message beneath it when loading is a string.",
+      description: "Shows a centered spinner with a message beneath it when loadingText is provided.",
       render: PageLoadingText,
     },
   },

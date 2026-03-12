@@ -84,9 +84,9 @@ export class Page extends React.Component<PageProps, {}> {
               justifyContent="center"
             >
               <Spinner />
-              {typeof this.props.loading === "string" && (
+              {Boolean(this.props.loadingText) && (
                 <Box marginTop={2}>
-                  <Text color="secondaryDark">{this.props.loading}</Text>
+                  <Text color="secondaryDark">{this.props.loadingText}</Text>
                 </Box>
               )}
             </Box>
