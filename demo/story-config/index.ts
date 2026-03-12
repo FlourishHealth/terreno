@@ -15,6 +15,7 @@ export * from "./EmailField.config";
 export * from "./EmojiSelector.config";
 export * from "./Field.config";
 export * from "./Heading.config";
+export * from "./HeightField.config";
 export * from "./Icon.config";
 export * from "./IconButton.config";
 export * from "./Link.config";

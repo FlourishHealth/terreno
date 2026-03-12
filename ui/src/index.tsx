@@ -34,6 +34,7 @@ export * from "./GPTChat";
 export * from "./GPTMemoryModal";
 export * from "./Heading";
 export * from "./HeightActionSheet";
+export * from "./HeightField";
 export * from "./Icon";
 export * from "./IconButton";
 export * from "./Image";
