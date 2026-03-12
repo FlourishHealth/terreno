@@ -12,17 +12,16 @@ url: http://localhost:8082/login
 
 # Fill in email
 - tapOn:
-    id: "login-email-input"
+    id: "login-screen-email-input"
 - inputText: "test@example.com"
 
 # Fill in password
 - tapOn:
-    id: "login-password-input"
+    id: "login-screen-password-input"
 - inputText: "testpassword123"
 
-# Submit login (use id to avoid matching the "login" header text)
-- tapOn:
-    id: "Login"
+# Submit login
+- tapOn: "Log In"
 
 # Assert navigation to Todos screen
 - extendedWaitUntil:

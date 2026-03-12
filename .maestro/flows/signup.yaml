@@ -10,25 +10,27 @@ url: http://localhost:8082/login
     visible: "Welcome Back"
     timeout: 30000
 
-# Toggle to signup mode
+# Navigate to signup page
 - tapOn: "Need an account? Sign Up"
 
-# Assert signup mode
-- assertVisible: "Create Account"
+# Assert signup screen loaded
+- extendedWaitUntil:
+    visible: "Create Account"
+    timeout: 10000
 
 # Fill in name
 - tapOn:
-    id: "login-name-input"
+    id: "signup-screen-name-input"
 - inputText: "New User"
 
 # Fill in email
 - tapOn:
-    id: "login-email-input"
+    id: "signup-screen-email-input"
 - inputText: "newuser-${Date.now()}@example.com"
 
 # Fill in password
 - tapOn:
-    id: "login-password-input"
+    id: "signup-screen-password-input"
 - inputText: "testpassword123"
 
 # Submit signup

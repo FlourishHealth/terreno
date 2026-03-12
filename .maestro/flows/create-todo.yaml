@@ -12,15 +12,14 @@ url: http://localhost:8082/login
 
 # Login first
 - tapOn:
-    id: "login-email-input"
+    id: "login-screen-email-input"
 - inputText: "test@example.com"
 
 - tapOn:
-    id: "login-password-input"
+    id: "login-screen-password-input"
 - inputText: "testpassword123"
 
-- tapOn:
-    id: "Login"
+- tapOn: "Log In"
 
 # Wait for Todos screen
 - extendedWaitUntil:

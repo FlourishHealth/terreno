@@ -5,6 +5,9 @@ on:
     paths:
       - "example-frontend/**"
       - "example-backend/**"
+      - "ui/**"
+      - "api/**"
+      - "rtk/**"
       - ".maestro/**"
       - ".github/workflows/maestro-e2e.yml"
 
