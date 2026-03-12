@@ -24,9 +24,11 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: "bun --cwd ../example-backend run start",
+      // In CI the backend is started explicitly by the workflow before playwright runs.
+      // reuseExistingServer: true lets playwright use it instead of starting a second instance.
+      command: "bun --cwd ../example-backend run src/index.ts",
       env: {
-        MONGODB_URI: process.env.MONGODB_URI ?? "mongodb://127.0.0.1/terreno-e2e",
+        MONGO_URI: process.env.MONGO_URI ?? "mongodb://127.0.0.1/terreno-e2e",
         PORT: "4000",
         REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET ?? "e2e-refresh-secret-dev",
         SESSION_SECRET: process.env.SESSION_SECRET ?? "e2e-session-secret-dev",
@@ -34,7 +36,7 @@ export default defineConfig({
         TOKEN_SECRET: process.env.TOKEN_SECRET ?? "e2e-token-secret-dev",
       },
       port: 4000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
     },
     {
       command: "bun run web",

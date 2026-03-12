@@ -86,6 +86,34 @@ jobs:
           REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
           SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
+      - name: Start backend
+        run: |
+          bun run src/index.ts &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+          # Wait up to 60s for the health endpoint to respond
+          for i in $(seq 1 30); do
+            if curl -s http://localhost:4000/health > /dev/null 2>&1; then
+              echo "Backend ready after ${i}×2s"
+              exit 0
+            fi
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "::error::Backend process exited unexpectedly"
+              exit 1
+            fi
+            sleep 2
+          done
+          echo "::error::Backend did not become ready within 60s"
+          exit 1
+        working-directory: example-backend
+        env:
+          PORT: "4000"
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e
+          TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
+          TOKEN_ISSUER: terreno-e2e
+          REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
+          SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
         working-directory: example-frontend
@@ -95,7 +123,7 @@ jobs:
         working-directory: example-frontend
         env:
           CI: true
-          MONGODB_URI: mongodb://127.0.0.1/terreno-e2e
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e
           TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
           TOKEN_ISSUER: terreno-e2e
           REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
