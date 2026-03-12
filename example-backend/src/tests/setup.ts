@@ -1,6 +1,16 @@
-import {afterAll, afterEach, beforeAll} from "bun:test";
+import {afterAll, afterEach, beforeAll, mock} from "bun:test";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+
+// Mock @google-cloud/secret-manager globally to prevent real GCP credential lookups
+// that cause unhandled async errors in test environments without GCP credentials
+mock.module("@google-cloud/secret-manager", () => ({
+  SecretManagerServiceClient: class MockSecretManagerServiceClient {
+    async accessSecretVersion() {
+      throw new Error("Mock GSM client: no credentials available");
+    }
+  },
+}));
 
 // Test database URI
 const TEST_MONGO_URI =
