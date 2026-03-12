@@ -47,9 +47,7 @@ export const generateTags = (api: any, tagTypes: string[]): any => {
       if (!endpoint.toLowerCase().includes("byid")) {
         const tag = tagTypes.find((t: string) =>
           // remove "get" from the endpoint name and "ById" from the endpoint name
-          t
-            .toLowerCase()
-            .includes(cleanEndpointStringToGenerateTag(endpoint))
+          t.toLowerCase().includes(cleanEndpointStringToGenerateTag(endpoint))
         );
         if (tag) {
           tags[endpoint] = {providesTags: providesIdTags(tag)};
