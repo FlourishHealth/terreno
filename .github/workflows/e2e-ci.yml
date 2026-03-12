@@ -136,3 +136,11 @@ jobs:
           name: playwright-report
           path: example-frontend/playwright-report/
           retention-days: 30
+
+      - name: Upload Playwright test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-test-results
+          path: example-frontend/test-results/
+          retention-days: 30

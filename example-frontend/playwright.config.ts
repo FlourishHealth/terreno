@@ -20,7 +20,9 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:8082",
     navigationTimeout: 60000,
+    screenshot: "only-on-failure",
     trace: "on-first-retry",
+    video: "on-first-retry",
   },
   webServer: [
     {
