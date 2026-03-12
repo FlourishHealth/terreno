@@ -48,6 +48,51 @@ jobs:
         run: bun run compile
         working-directory: ui
 
+      - name: Create GitHub Deployments
+        id: create-deployments
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const isProduction = context.eventName === 'push' && context.ref === 'refs/heads/master';
+            const profile = isProduction ? 'Production' : 'Development';
+
+            const [iosDeployment, androidDeployment] = await Promise.all([
+              github.rest.repos.createDeployment({
+                ...context.repo,
+                ref: context.sha,
+                environment: `Demo iOS (${profile})`,
+                auto_merge: false,
+                required_contexts: [],
+                transient_environment: !isProduction,
+                production_environment: isProduction,
+              }),
+              github.rest.repos.createDeployment({
+                ...context.repo,
+                ref: context.sha,
+                environment: `Demo Android (${profile})`,
+                auto_merge: false,
+                required_contexts: [],
+                transient_environment: !isProduction,
+                production_environment: isProduction,
+              }),
+            ]);
+
+            core.setOutput('ios_id', iosDeployment.data.id);
+            core.setOutput('android_id', androidDeployment.data.id);
+
+            await Promise.all([
+              github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: iosDeployment.data.id,
+                state: 'in_progress',
+              }),
+              github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: androidDeployment.data.id,
+                state: 'in_progress',
+              }),
+            ]);
+
       - name: Build (development)
         if: github.event_name == 'pull_request'
         id: build-dev
@@ -68,39 +113,46 @@ jobs:
           echo "android_url=$(echo "$json" | jq -r '[.[] | select(.platform == "ANDROID")][0].buildDetailsPageUrl // empty')" >> "$GITHUB_OUTPUT"
         working-directory: demo
 
-      - name: Create GitHub deployments
-        uses: actions/github-script@v7
+      - name: Set deployment status to success
+        if: success()
+        uses: actions/github-script@v8
         env:
+          IOS_ID: ${{ steps.create-deployments.outputs.ios_id }}
+          ANDROID_ID: ${{ steps.create-deployments.outputs.android_id }}
           IOS_URL: ${{ steps.build-dev.outputs.ios_url || steps.build-prod.outputs.ios_url }}
           ANDROID_URL: ${{ steps.build-dev.outputs.android_url || steps.build-prod.outputs.android_url }}
-          IS_PRODUCTION: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         with:
           script: |
-            const profile = process.env.IS_PRODUCTION === 'true' ? 'Production' : 'Development';
-            const isProduction = process.env.IS_PRODUCTION === 'true';
-            const builds = [
-              { platform: 'iOS', url: process.env.IOS_URL },
-              { platform: 'Android', url: process.env.ANDROID_URL },
-            ].filter(b => b.url);
-
-            for (const build of builds) {
-              const deployment = await github.rest.repos.createDeployment({
+            await Promise.all([
+              github.rest.repos.createDeploymentStatus({
                 ...context.repo,
-                ref: context.sha,
-                environment: `Demo ${build.platform} (${profile})`,
-                auto_merge: false,
-                required_contexts: [],
-                transient_environment: !isProduction,
-                production_environment: isProduction,
-              });
+                deployment_id: parseInt(process.env.IOS_ID),
+                state: 'success',
+                environment_url: process.env.IOS_URL,
+                log_url: process.env.IOS_URL,
+              }),
+              github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: parseInt(process.env.ANDROID_ID),
+                state: 'success',
+                environment_url: process.env.ANDROID_URL,
+                log_url: process.env.ANDROID_URL,
+              }),
+            ]);
 
-              if (deployment.data.id) {
-                await github.rest.repos.createDeploymentStatus({
-                  ...context.repo,
-                  deployment_id: deployment.data.id,
-                  state: 'in_progress',
-                  log_url: build.url,
-                  environment_url: build.url,
-                });
-              }
-            }
+      - name: Set deployment status to failure
+        if: failure()
+        uses: actions/github-script@v8
+        env:
+          IOS_ID: ${{ steps.create-deployments.outputs.ios_id }}
+          ANDROID_ID: ${{ steps.create-deployments.outputs.android_id }}
+        with:
+          script: |
+            const ids = [process.env.IOS_ID, process.env.ANDROID_ID].filter(Boolean);
+            await Promise.all(ids.map(id =>
+              github.rest.repos.createDeploymentStatus({
+                ...context.repo,
+                deployment_id: parseInt(id),
+                state: 'failure',
+              })
+            ));
