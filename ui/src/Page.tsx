@@ -75,7 +75,7 @@ export class Page extends React.Component<PageProps, {}> {
           width="100%"
         >
           {this.renderHeader()}
-          {this.props.loading && (
+          {this.props.loading ? (
             <Box
               alignItems="center"
               direction="column"
@@ -90,15 +90,9 @@ export class Page extends React.Component<PageProps, {}> {
                 </Box>
               )}
             </Box>
+          ) : (
+            this.props.children
           )}
-          {/* <KeyboardAccessoryNavigation
-          avoidKeyboard
-          doneButton={true}
-          nextButton={true}
-          previousButton={true}
-        /> */}
-
-          {this.props.children}
         </Box>
         {Boolean(this.props.footer) && (
           <Box
