@@ -7,6 +7,7 @@
  */
 
 import type express from "express";
+import {DateTime} from "luxon";
 import {asyncHandler, modelRouter} from "./api";
 import type {User} from "./auth";
 import {authenticateMiddleware} from "./auth";
@@ -301,7 +302,7 @@ export class ConsentApp implements TerrenoPlugin {
 
         const responseData: Record<string, unknown> = {
           agreed,
-          agreedAt: new Date(),
+          agreedAt: DateTime.now().toJSDate(),
           consentFormId: form._id,
           locale,
           userId: user.id,
@@ -313,7 +314,7 @@ export class ConsentApp implements TerrenoPlugin {
 
         if (signature) {
           responseData.signature = signature;
-          responseData.signedAt = new Date();
+          responseData.signedAt = DateTime.now().toJSDate();
         }
 
         if (auditTrail) {

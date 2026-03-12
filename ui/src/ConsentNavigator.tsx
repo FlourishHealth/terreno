@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -22,7 +22,7 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   children,
   onError,
 }) => {
-  const [currentIndex, setCurrentIndex] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const {forms, isLoading, error, refetch} = useConsentForms(api, baseUrl);
   const {submit, isSubmitting} = useSubmitConsent(api, baseUrl);
   const locale = detectLocale();
@@ -91,8 +91,22 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
     }
   };
 
-  const handleDecline = () => {
-    setCurrentIndex(currentIndex + 1);
+  const handleDecline = async () => {
+    try {
+      await submit({
+        agreed: false,
+        consentFormId: currentForm.id,
+        locale,
+      });
+    } catch (err) {
+      onError?.(err);
+    }
+    if (currentIndex + 1 >= forms.length) {
+      await refetch();
+      setCurrentIndex(0);
+    } else {
+      setCurrentIndex(currentIndex + 1);
+    }
   };
 
   return (

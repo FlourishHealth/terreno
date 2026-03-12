@@ -1,11 +1,11 @@
 import type mongoose from "mongoose";
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "../plugins";
 
-export type ConsentFormCheckbox = {
+export interface ConsentFormCheckbox {
   label: string;
   required: boolean;
   confirmationPrompt?: string;
-};
+}
 
 export type ConsentFormType = "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
 

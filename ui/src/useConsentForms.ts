@@ -17,18 +17,17 @@ export interface ConsentFormPublic {
   required: boolean;
 }
 
+import {getLocales} from "expo-localization";
+
 export const detectLocale = (): string => {
   // Web
   if (typeof navigator !== "undefined" && navigator.language) {
     return navigator.language;
   }
 
-  // expo-localization (native), guarded with try/catch in case it's unavailable
+  // Native — expo-localization
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const Localization = require("expo-localization");
-    const locale: string | undefined =
-      Localization?.getLocales?.()[0]?.languageTag ?? Localization?.locale;
+    const locale = getLocales()[0]?.languageTag;
     if (locale) {
       return locale;
     }

@@ -57,11 +57,16 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({bas
       ? (response.userId?._id ?? String(response.userId))
       : String(response.userId ?? "");
 
-  const checkboxValues: Array<{label: string; checked: boolean}> = Array.isArray(
-    response.checkboxValues
-  )
-    ? response.checkboxValues
-    : [];
+  // checkboxValues is stored as a Map serialized to {index: boolean} by the backend
+  const checkboxEntries: Array<{index: string; checked: boolean}> =
+    response.checkboxValues && typeof response.checkboxValues === "object"
+      ? Object.entries(response.checkboxValues as Record<string, boolean>).map(
+          ([index, checked]) => ({
+            checked,
+            index,
+          })
+        )
+      : [];
 
   const hasAuditTrail =
     response.ipAddress ||
@@ -114,23 +119,23 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({bas
         </Card>
 
         {/* Checkbox Values */}
-        {checkboxValues.length > 0 && (
+        {checkboxEntries.length > 0 && (
           <Card padding={4}>
             <Box gap={3}>
               <Heading size="sm">Checkbox Responses</Heading>
-              {checkboxValues.map((cb, index) => (
+              {checkboxEntries.map((cb) => (
                 <Box
                   alignItems="center"
                   direction="row"
                   gap={2}
-                  key={index}
-                  testID={`consent-response-checkbox-${index}`}
+                  key={cb.index}
+                  testID={`consent-response-checkbox-${cb.index}`}
                 >
                   <Badge
                     status={cb.checked ? "success" : "neutral"}
                     value={cb.checked ? "Checked" : "Unchecked"}
                   />
-                  <Text>{cb.label}</Text>
+                  <Text>Checkbox {cb.index}</Text>
                 </Box>
               ))}
             </Box>

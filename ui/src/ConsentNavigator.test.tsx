@@ -1,5 +1,4 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act} from "@testing-library/react-native";
 import React from "react";
 import {ConsentNavigator} from "./ConsentNavigator";
 import {Text} from "./Text";

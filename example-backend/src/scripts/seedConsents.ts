@@ -1,4 +1,4 @@
-import {ConsentForm} from "@terreno/api";
+import {ConsentForm, logger} from "@terreno/api";
 import mongoose from "mongoose";
 
 const TERMS_CONTENT_EN = `# Terms of Service
@@ -73,15 +73,15 @@ const seed = async (): Promise<void> => {
         version: 1,
       },
     ]);
-    console.info("Seeded 2 consent forms");
+    logger.info("Seeded 2 consent forms");
   } else {
-    console.info(`Skipping seed — ${existing.length} consent form(s) already exist`);
+    logger.info(`Skipping seed — ${existing.length} consent form(s) already exist`);
   }
 
   await mongoose.disconnect();
 };
 
 seed().catch((err) => {
-  console.error("Seed failed:", err);
+  logger.error("Seed failed:", err);
   process.exit(1);
 });

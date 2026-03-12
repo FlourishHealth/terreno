@@ -101,6 +101,8 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [generateType, setGenerateType] = useState(type);
 
   const routePath = `${baseUrl}${CONSENT_FORM_ROUTE}`;
+  // publish/generate/translate are registered directly under /consent-forms, not the admin base path
+  const consentApiPath = CONSENT_FORM_ROUTE;
 
   const {useReadQuery, useCreateMutation, useUpdateMutation} = useAdminApi(
     api,
@@ -116,26 +118,26 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
             query: (body: {type: string; description: string; locale: string}) => ({
               body,
               method: "POST",
-              url: `${routePath}/generate`,
+              url: `${consentApiPath}/generate`,
             }),
           }),
           publishConsentForm: build.mutation({
             query: (formId: string) => ({
               method: "POST",
-              url: `${routePath}/${formId}/publish`,
+              url: `${consentApiPath}/${formId}/publish`,
             }),
           }),
           translateConsentContent: build.mutation({
             query: (body: {content: string; fromLocale: string; toLocale: string}) => ({
               body,
               method: "POST",
-              url: `${routePath}/translate`,
+              url: `${consentApiPath}/translate`,
             }),
           }),
         }),
         overrideExisting: true,
       }),
-    [api, routePath]
+    [api, consentApiPath]
   );
 
   const [publishConsentForm, {isLoading: isPublishing}] = (

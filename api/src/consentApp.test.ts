@@ -8,14 +8,13 @@ import {ConsentResponse} from "./models/consentResponse";
 import {TerrenoApp} from "./terrenoApp";
 import {authAsUser, setupDb, UserModel} from "./tests";
 
-function buildApp(consentAppOptions = {}): express.Application {
-  return new TerrenoApp({
+const buildApp = (consentAppOptions = {}): express.Application =>
+  new TerrenoApp({
     skipListen: true,
     userModel: UserModel as any,
   })
     .register(new ConsentApp(consentAppOptions))
     .build();
-}
 
 describe("ConsentApp", () => {
   let admin: any;

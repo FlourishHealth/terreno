@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useState} from "react";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -26,14 +26,12 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   onAgree,
   onDecline,
 }) => {
-  const [checkboxValues, setCheckboxValues] = React.useState<Record<string, boolean>>({});
-  const [hasScrolledToBottom, setHasScrolledToBottom] = React.useState(!form.requireScrollToBottom);
-  const [signatureValue, setSignatureValue] = React.useState<string | undefined>(undefined);
-  const [confirmModalVisible, setConfirmModalVisible] = React.useState(false);
-  const [confirmModalCheckboxIndex, setConfirmModalCheckboxIndex] = React.useState<number | null>(
-    null
-  );
-  const [scrollEnabled, setScrollEnabled] = React.useState(true);
+  const [checkboxValues, setCheckboxValues] = useState<Record<string, boolean>>({});
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(!form.requireScrollToBottom);
+  const [signatureValue, setSignatureValue] = useState<string | undefined>(undefined);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmModalCheckboxIndex, setConfirmModalCheckboxIndex] = useState<number | null>(null);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
 
   const content = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
 

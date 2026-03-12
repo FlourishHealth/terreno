@@ -60,7 +60,11 @@ export const ConsentFormList: React.FC<ConsentFormListProps> = ({
 
   const sortString = buildSortString(sortColumn) ?? "-created";
 
-  const {data: listData, isLoading} = useListQuery({
+  const {
+    data: listData,
+    isLoading,
+    error,
+  } = useListQuery({
     limit: DEFAULT_LIMIT,
     page,
     sort: sortString,
@@ -134,6 +138,10 @@ export const ConsentFormList: React.FC<ConsentFormListProps> = ({
       {isLoading ? (
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
+        </Box>
+      ) : error ? (
+        <Box alignItems="center" padding={6}>
+          <Text color="error">Failed to load consent forms.</Text>
         </Box>
       ) : rows.length === 0 ? (
         <Box alignItems="center" padding={6}>
