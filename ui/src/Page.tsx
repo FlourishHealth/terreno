@@ -82,6 +82,7 @@ export class Page extends React.Component<PageProps, {}> {
               display="flex"
               flex="grow"
               justifyContent="center"
+              marginTop={8}
             >
               <Spinner />
               {Boolean(this.props.loadingText) && (

@@ -949,6 +949,7 @@ exports[`Page renders loading state 1`] = `
                       "flexGrow": 1,
                       "flexShrink": 1,
                       "justifyContent": "center",
+                      "marginTop": 48,
                     },
                     "testID": undefined,
                   },
