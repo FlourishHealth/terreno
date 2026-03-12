@@ -455,6 +455,9 @@ export function modelRouter<T>(
         const serialized = await responseHandler(data, "create", req, options);
         return res.status(201).json({data: serialized});
       } catch (error: any) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
@@ -576,6 +579,9 @@ export function modelRouter<T>(
       try {
         serialized = await responseHandler(data, "list", req, options);
       } catch (error: any) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
@@ -634,6 +640,9 @@ export function modelRouter<T>(
         const serialized = await responseHandler(data, "read", req, options);
         return res.json({data: serialized});
       } catch (error: any) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
@@ -753,6 +762,9 @@ export function modelRouter<T>(
         const serialized = await responseHandler(doc, "update", req, options);
         return res.json({data: serialized});
       } catch (error: any) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
