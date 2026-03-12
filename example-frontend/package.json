@@ -30,7 +30,7 @@
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
-    "babel-preset-expo": "~55.0.6",
+    "babel-preset-expo": "~54.0.10",
     "typescript": "catalog:"
   },
   "main": "index.js",
