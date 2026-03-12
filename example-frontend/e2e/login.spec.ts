@@ -19,7 +19,8 @@ test.describe("Login", () => {
     await page.getByTestId("login-screen-password-input").fill(TEST_USER.password);
     await page.getByTestId("login-screen-submit-button").click();
 
-    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
+    // After login the login screen is replaced — wait for it to be hidden
+    await page.getByTestId("login-screen").first().waitFor({state: "hidden"});
   });
 
   test("shows error with invalid credentials", async ({page}) => {
