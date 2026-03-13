@@ -36,7 +36,7 @@ export default function App() {
         <View style={styles.body}>
           <DemoHomePage
             onPress={(component: string) => {
-              router.push(`demo/${component}`);
+              router.push(`demo/${encodeURIComponent(component)}`);
             }}
           />
         </View>

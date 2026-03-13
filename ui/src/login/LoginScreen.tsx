@@ -91,6 +91,7 @@ export const LoginScreen: FC<LoginScreenProps> = ({
             <TextField
               autoComplete={field.autoComplete}
               disabled={loading}
+              id={`${testID}-${field.name}-input`}
               key={field.name}
               onChange={(value: string) => handleFieldChange(field.name, value)}
               placeholder={field.placeholder ?? field.label}

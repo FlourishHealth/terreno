@@ -22,6 +22,7 @@ exports[`NumberField renders correctly with default props 1`] = `
             "enterKeyHint": undefined,
             "keyboardType": "default",
             "multiline": undefined,
+            "nativeID": undefined,
             "numberOfLines": 1,
             "onBlur": [Function],
             "onChangeText": [Function],
