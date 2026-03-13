@@ -47,7 +47,10 @@ test.describe("Todos", () => {
     const itemId = todoTestId.replace("todos-item-", "");
 
     // Click the toggle for this specific item
-    const toggle = page.getByTestId(`todos-toggle-${itemId}-clickable`).filter({visible: true}).first();
+    const toggle = page
+      .getByTestId(`todos-toggle-${itemId}-clickable`)
+      .filter({visible: true})
+      .first();
     await toggle.waitFor({state: "visible"});
     await toggle.click();
 
@@ -92,7 +95,10 @@ test.describe("Todos", () => {
     const itemId = todoTestId.replace("todos-item-", "");
 
     // Complete the todo so the completed section appears
-    const toggle = page.getByTestId(`todos-toggle-${itemId}-clickable`).filter({visible: true}).first();
+    const toggle = page
+      .getByTestId(`todos-toggle-${itemId}-clickable`)
+      .filter({visible: true})
+      .first();
     await toggle.waitFor({state: "visible"});
     await toggle.click();
     await page.getByTestId("todos-completed-section-toggle-clickable").waitFor({state: "visible"});
