@@ -12,8 +12,9 @@ setup("create test user", async ({request}) => {
     },
   });
 
-  // 201 = created successfully; 4xx = already exists or validation error (acceptable on reruns)
-  if (response.status() >= 500) {
-    throw new Error(`Failed to create test user: ${response.status()} ${await response.text()}`);
+  // 201 = created successfully; 409 = user already exists (acceptable on reruns)
+  const status = response.status();
+  if (status !== 201 && status !== 409) {
+    throw new Error(`Failed to create test user: ${status} ${await response.text()}`);
   }
 });

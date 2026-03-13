@@ -21,6 +21,8 @@ test.describe("Login", () => {
 
     // After login the login screen is replaced — wait for it to be hidden
     await page.getByTestId("login-screen").first().waitFor({state: "hidden"});
+    // Verify navigation to the todos screen completed successfully
+    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
   });
 
   test("shows error with invalid credentials", async ({page}) => {
