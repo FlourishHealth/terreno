@@ -50,6 +50,7 @@ const TodoItem: React.FC<{
     <Card marginBottom={2} testID={`todos-item-${todo.id}`}>
       <Box alignItems="center" direction="row" justifyContent="between">
         <Pressable
+          accessibilityRole="button"
           disabled={isUpdating}
           onPress={handleToggle}
           style={{alignItems: "center", flex: 1, flexDirection: "row"}}
@@ -203,7 +204,11 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Pressable onPress={toggleShowCompleted} testID="todos-completed-section-toggle">
+              <Pressable
+                accessibilityRole="button"
+                onPress={toggleShowCompleted}
+                testID="todos-completed-section-toggle"
+              >
                 <Box alignItems="center" direction="row" marginBottom={3}>
                   <Heading size="lg">Completed ({completedTodos.length})</Heading>
                   <Box marginLeft={2}>
