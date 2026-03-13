@@ -12,9 +12,14 @@ setup("create test user", async ({request}) => {
     },
   });
 
-  // 201 = created successfully; 409 = user already exists (acceptable on reruns)
   const status = response.status();
-  if (status !== 201 && status !== 409) {
-    throw new Error(`Failed to create test user: ${status} ${await response.text()}`);
+  if (status >= 200 && status < 300) {
+    return; // Created successfully
   }
+  const body = await response.text();
+  // Backend returns 500 for duplicate user — acceptable on reruns
+  if (body.includes("already registered")) {
+    return;
+  }
+  throw new Error(`Failed to create test user: ${status} ${body}`);
 });
