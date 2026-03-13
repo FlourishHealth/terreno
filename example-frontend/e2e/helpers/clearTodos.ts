@@ -14,7 +14,7 @@ export const clearTodos = async (): Promise<void> => {
     throw new Error(`clearTodos: login failed with status ${loginRes.status()}`);
   }
   const loginData = await loginRes.json();
-  const token = loginData.token as string;
+  const token = (loginData.data?.token ?? loginData.token) as string;
   if (!token) {
     await apiContext.dispose();
     throw new Error("clearTodos: no token in login response");
