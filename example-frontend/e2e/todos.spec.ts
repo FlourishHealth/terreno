@@ -42,8 +42,10 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    // Click the toggle inside the visible todo item
-    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
+    // Focus and press Enter on the toggle (raw Pressable responds to keyboard events)
+    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    await toggle.focus();
+    await page.keyboard.press("Enter");
 
     // Completed section appears
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
@@ -61,8 +63,10 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    // Click the delete button inside the visible todo item
-    await todoItem.locator('[data-testid^="todos-delete-"]').click();
+    // Focus and press Enter on the delete button (raw Pressable responds to keyboard events)
+    const deleteBtn = todoItem.locator('[data-testid^="todos-delete-"]');
+    await deleteBtn.focus();
+    await page.keyboard.press("Enter");
 
     await page
       .locator('[data-testid^="todos-item-"]')
@@ -81,7 +85,9 @@ test.describe("Todos", () => {
 
     // Complete the todo so the completed section appears
     await page.waitForLoadState("networkidle");
-    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
+    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    await toggle.focus();
+    await page.keyboard.press("Enter");
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
 
     const completedItem = page
@@ -91,11 +97,14 @@ test.describe("Todos", () => {
     await completedItem.waitFor({state: "visible"});
 
     // Collapse the completed section
-    await page.getByTestId("todos-completed-section-toggle").click();
+    const sectionToggle = page.getByTestId("todos-completed-section-toggle");
+    await sectionToggle.focus();
+    await page.keyboard.press("Enter");
     await completedItem.waitFor({state: "hidden"});
 
     // Expand it again
-    await page.getByTestId("todos-completed-section-toggle").click();
+    await sectionToggle.focus();
+    await page.keyboard.press("Enter");
     await completedItem.waitFor({state: "visible"});
   });
 });
