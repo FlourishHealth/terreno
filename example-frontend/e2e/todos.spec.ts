@@ -7,10 +7,9 @@ test.describe("Todos", () => {
     await clearTodos();
     await loginAs(page);
     // loginAs waits for login-screen to hide and the app to navigate to /(tabs).
-    // Expo Router may keep a background (tabs) pre-render in the DOM, so use
-    // .first() on all selectors and wait for the visible add button before proceeding.
+    // Wait for the todos screen root to be visible before proceeding.
     await page.waitForLoadState("networkidle");
-    await page.getByTestId("todos-add-button").first().waitFor({state: "visible"});
+    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
   });
 
   test("todos screen renders correctly", async ({page}) => {
