@@ -1904,6 +1904,7 @@ export interface PageProps {
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
+  loadingText?: string;
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;

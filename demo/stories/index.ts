@@ -26,6 +26,7 @@ export * from "./Modal.stories";
 export * from "./MultiselectField.stories";
 export * from "./NumberField.stories";
 // export * from "./TableNumber.stories";
+export * from "./Page.stories";
 export * from "./Pagination.stories";
 export * from "./PhoneNumberField.stories";
 // export * from "./Pagination.stories";
