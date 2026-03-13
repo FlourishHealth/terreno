@@ -72,6 +72,7 @@ exports[`MobileAddressAutocomplete renders TextField fallback without Google API
             "enterKeyHint": undefined,
             "keyboardType": "default",
             "multiline": undefined,
+            "nativeID": undefined,
             "numberOfLines": 1,
             "onBlur": [Function],
             "onChangeText": [Function],

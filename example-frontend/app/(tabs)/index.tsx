@@ -12,7 +12,7 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {Pressable, RefreshControl, ScrollView} from "react-native";
+import {RefreshControl, ScrollView} from "react-native";
 import {
   type Todo,
   useDeleteTodosByIdMutation,
@@ -107,12 +107,13 @@ const TodosScreen: React.FC = () => {
   const handleToggleTodo = useCallback(
     async (id: string, completed: boolean): Promise<void> => {
       try {
-        await updateTodo({body: {completed}, id}).unwrap();
+        const todo = todos.find((t) => t.id === id);
+        await updateTodo({body: {completed, title: todo?.title ?? ""}, id}).unwrap();
       } catch (err) {
         console.error("Error updating todo:", err);
       }
     },
-    [updateTodo]
+    [updateTodo, todos]
   );
 
   const handleDeleteTodo = useCallback(
@@ -205,18 +206,18 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Pressable
-                accessibilityRole="button"
-                onPress={toggleShowCompleted}
+              <Box
+                alignItems="center"
+                direction="row"
+                marginBottom={3}
+                onClick={toggleShowCompleted}
                 testID="todos-completed-section-toggle"
               >
-                <Box alignItems="center" direction="row" marginBottom={3}>
-                  <Heading size="lg">Completed ({completedTodos.length})</Heading>
-                  <Box marginLeft={2}>
-                    <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
-                  </Box>
+                <Heading size="lg">Completed ({completedTodos.length})</Heading>
+                <Box marginLeft={2}>
+                  <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
                 </Box>
-              </Pressable>
+              </Box>
               {showCompleted &&
                 completedTodos.map((todo) => (
                   <TodoItem
