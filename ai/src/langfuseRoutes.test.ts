@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
-mock.module("../client", () => ({
+mock.module("./langfuseClient", () => ({
   getLangfuseClient: () => ({
     api: {
       promptsList: async () => ({data: [], meta: {limit: 20, page: 1, total: 0, totalPages: 0}}),
@@ -16,10 +16,10 @@ mock.module("../client", () => ({
   }),
 }));
 
-const {addPromptRoutes} = await import("./prompts");
-const {addTraceRoutes} = await import("./traces");
-const {addPlaygroundRoutes} = await import("./playground");
-const {addEvaluationRoutes} = await import("./evaluations");
+const {addPromptRoutes} = await import("./langfuseRoutesPrompts");
+const {addTraceRoutes} = await import("./langfuseRoutesTraces");
+const {addPlaygroundRoutes} = await import("./langfuseRoutesPlayground");
+const {addEvaluationRoutes} = await import("./langfuseRoutesEvaluations");
 
 const userSchema = new mongoose.Schema({
   admin: {default: false, type: Boolean},

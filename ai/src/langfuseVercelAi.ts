@@ -1,7 +1,7 @@
 import {logger} from "@terreno/api";
 
-import {compilePrompt, getPrompt} from "./prompts";
-import type {ChatMessage, GetPromptOptions, LangfuseAppOptions, PreparePromptResult} from "./types";
+import {compilePrompt, getPrompt} from "./langfusePrompts";
+import type {ChatMessage, GetPromptOptions, LangfuseAppOptions, PreparePromptResult} from "./langfuseTypes";
 
 export const preparePromptForAI = async (
   params: {

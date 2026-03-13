@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 
-import {getCached, invalidateCache, LangfuseCache, setCached} from "./cache";
-import type {LangfuseCachedPrompt} from "./types";
+import {getCached, invalidateCache, LangfuseCache, setCached} from "./langfuseCache";
+import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
 const samplePrompt: LangfuseCachedPrompt = {
   config: {},

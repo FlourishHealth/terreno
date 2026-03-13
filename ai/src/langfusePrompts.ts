@@ -5,19 +5,21 @@ import type {
   GetLangfusePromptSuccessData,
 } from "langfuse-core";
 
-import {getCached, invalidateCache, setCached} from "./cache";
-import {getLangfuseClient} from "./client";
+import {getCached, invalidateCache, setCached} from "./langfuseCache";
+import {getLangfuseClient} from "./langfuseClient";
 import type {
   ChatMessage,
   GetPromptOptions,
   LangfuseAppOptions,
   LangfuseCachedPrompt,
-} from "./types";
+} from "./langfuseTypes";
 
 const DEFAULT_PROMPT_TTL = 60;
 
+const DEFAULT_LABEL = "production";
+
 const buildPromptCacheKey = (name: string, label?: string): string => {
-  return `prompt:${name}:${label ?? "production"}`;
+  return `prompt:${name}:${label ?? DEFAULT_LABEL}`;
 };
 
 const toLatestVersion = (data: GetLangfusePromptSuccessData): LangfuseCachedPrompt => {
@@ -54,16 +56,22 @@ export const getPrompt = async (
 
   const cached = await getCached(cacheKey);
   if (cached) {
-    logger.debug(`Langfuse prompt cache hit: "${name}" v${cached.version} (label: ${options.label ?? "production"})`);
+    logger.debug(
+      `Langfuse prompt cache hit: "${name}" v${cached.version} (label: ${options.label ?? DEFAULT_LABEL})`
+    );
     return cached;
   }
 
-  logger.info(`Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? "production"})`);
+  logger.info(
+    `Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? DEFAULT_LABEL})`
+  );
   const client = getLangfuseClient();
   const result = await client.getPromptStateless(name, undefined, options.label);
 
   if (result.fetchResult !== "success") {
-    logger.warn(`Langfuse prompt fetch failed: "${name}" — ${result.data.message ?? "unknown error"}`);
+    logger.warn(
+      `Langfuse prompt fetch failed: "${name}" — ${result.data.message ?? "unknown error"}`
+    );
     throw new Error(`Failed to fetch prompt "${name}": ${result.data.message ?? "unknown error"}`);
   }
 
@@ -107,7 +115,7 @@ export const createPrompt = async (params: {
     const body: CreateTextPromptBody = {
       config: params.config,
       isActive: true,
-      labels: params.labels ?? ["production"],
+      labels: params.labels ?? [DEFAULT_LABEL],
       name: params.name,
       prompt: params.prompt as string,
       tags: params.tags ?? [],
@@ -123,7 +131,7 @@ export const createPrompt = async (params: {
     const body: CreateChatPromptBody = {
       config: params.config,
       isActive: true,
-      labels: params.labels ?? ["production"],
+      labels: params.labels ?? [DEFAULT_LABEL],
       name: params.name,
       prompt: chatMessages,
       tags: params.tags ?? [],
@@ -133,7 +141,7 @@ export const createPrompt = async (params: {
   }
 
   await invalidatePromptCache(params.name);
-  return getPrompt(params.name, {label: "production"});
+  return getPrompt(params.name, {label: DEFAULT_LABEL});
 };
 
 export const invalidatePromptCache = async (name: string): Promise<void> => {

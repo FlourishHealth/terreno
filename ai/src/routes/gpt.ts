@@ -9,7 +9,8 @@ import type {Tool} from "ai";
 import {stepCountIs, streamText} from "ai";
 import type express from "express";
 import type mongoose from "mongoose";
-import {preparePromptForAI} from "../langfuse/backend/vercel-ai";
+import {isLangfuseInitialized} from "../langfuseClient";
+import {preparePromptForAI} from "../langfuseVercelAi";
 
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
@@ -190,8 +191,8 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           }
         }
 
-        // Load system prompt from Langfuse if configured
-        if (options.langfuseSystemPromptName) {
+        // Load system prompt from Langfuse if configured and client is initialized
+        if (options.langfuseSystemPromptName && isLangfuseInitialized()) {
           try {
             const langfuseResult = await preparePromptForAI({
               promptName: options.langfuseSystemPromptName,

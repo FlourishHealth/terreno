@@ -2,7 +2,7 @@ import {LangfuseSpanProcessor} from "@langfuse/otel";
 import {NodeSDK} from "@opentelemetry/sdk-node";
 import {logger} from "@terreno/api";
 
-import type {LangfuseAppOptions} from "./types";
+import type {LangfuseAppOptions} from "./langfuseTypes";
 
 let sdkInstance: NodeSDK | null = null;
 

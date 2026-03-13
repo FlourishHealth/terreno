@@ -4,7 +4,7 @@ const fs = require("fs");
 
 // Find the project and monorepo workspace directories
 const projectRoot = __dirname;
-// This can be replaced with `find-yarn-workspace-root`
+// This can be replaced with `find-bun-workspace-root` or similar
 const monorepoRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);

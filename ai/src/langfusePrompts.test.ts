@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
-import {LangfuseCache} from "./cache";
-import type {LangfuseCachedPrompt} from "./types";
+import {LangfuseCache} from "./langfuseCache";
+import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
 const mockGetPromptStateless = mock(async (_name: string, _version?: number, _label?: string) => ({
   data: {
@@ -16,11 +16,11 @@ const mockGetPromptStateless = mock(async (_name: string, _version?: number, _la
   fetchResult: "success" as const,
 }));
 
-mock.module("./client", () => ({
+mock.module("./langfuseClient", () => ({
   getLangfuseClient: () => ({getPromptStateless: mockGetPromptStateless}),
 }));
 
-const {compilePrompt, getPrompt} = await import("./prompts");
+const {compilePrompt, getPrompt} = await import("./langfusePrompts");
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},

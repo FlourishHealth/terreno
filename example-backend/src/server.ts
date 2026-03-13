@@ -197,6 +197,10 @@ export async function start(skipListen = false): Promise<express.Application> {
     if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
       terraApp.register(
         new LangfuseApp({
+          baseUrl: process.env.LANGFUSE_BASE_URL,
+          organization: process.env.LANGFUSE_ORGANIZATION,
+          project: process.env.LANGFUSE_PROJECT,
+          projectId: process.env.LANGFUSE_PROJECT_ID,
           publicKey: process.env.LANGFUSE_PUBLIC_KEY,
           secretKey: process.env.LANGFUSE_SECRET_KEY,
         })

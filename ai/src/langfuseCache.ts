@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-import type {LangfuseCachedPrompt} from "./types";
+import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
 interface LangfuseCacheDocument extends mongoose.Document {
   key: string;
@@ -27,7 +27,7 @@ const langfuseCacheSchema = new mongoose.Schema<LangfuseCacheDocument>(
       type: mongoose.Schema.Types.Mixed,
     },
   },
-  {strict: true}
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
 langfuseCacheSchema.index({expiresAt: 1}, {expireAfterSeconds: 0});

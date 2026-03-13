@@ -1,10 +1,10 @@
 import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 
-import {getLangfuseClient} from "../client";
-import {createPrompt, invalidatePromptCache} from "../prompts";
-import type {ChatMessage} from "../types";
-import {requireAdmin} from "./middleware";
+import {getLangfuseClient} from "./langfuseClient";
+import {createPrompt, invalidatePromptCache} from "./langfusePrompts";
+import type {ChatMessage} from "./langfuseTypes";
+import {requireAdmin} from "./langfuseRoutesMiddleware";
 
 export const addPromptRoutes = (router: express.Application, basePath: string): void => {
   router.get(

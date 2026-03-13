@@ -44,7 +44,7 @@
     {
       "label": "frontend (example)",
       "type": "shell",
-      "command": "bun run frontend:web",
+      "command": "cd example-frontend && bun run web",
       "group": "build",
       "isBackground": true,
       "problemMatcher": {
@@ -64,7 +64,7 @@
     {
       "label": "backend (example)",
       "type": "shell",
-      "command": "bun run backend:dev",
+      "command": "cd example-backend && bun run dev",
       "group": "build",
       "isBackground": true,
       "problemMatcher": {

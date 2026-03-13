@@ -1,8 +1,8 @@
 import {asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 
-import {getLangfuseClient} from "../client";
-import {requireAdmin} from "./middleware";
+import {getLangfuseClient} from "./langfuseClient";
+import {requireAdmin} from "./langfuseRoutesMiddleware";
 
 export const addTraceRoutes = (router: express.Application, basePath: string): void => {
   router.get(

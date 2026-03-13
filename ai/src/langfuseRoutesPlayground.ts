@@ -1,9 +1,9 @@
 import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 
-import {compilePrompt, getPrompt} from "../prompts";
-import type {ChatMessage} from "../types";
-import {requireAdmin} from "./middleware";
+import {compilePrompt, getPrompt} from "./langfusePrompts";
+import {requireAdmin} from "./langfuseRoutesMiddleware";
+import type {ChatMessage} from "./langfuseTypes";
 
 export const addPlaygroundRoutes = (router: express.Application, basePath: string): void => {
   router.post(

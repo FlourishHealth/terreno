@@ -33,10 +33,6 @@
     ".": {
       "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
-    },
-    "./langfuse": {
-      "default": "./dist/langfuse/index.js",
-      "types": "./dist/langfuse/index.d.ts"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",

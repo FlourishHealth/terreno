@@ -2,13 +2,13 @@ import type {TerrenoPlugin} from "@terreno/api";
 import {logger} from "@terreno/api";
 import type express from "express";
 
-import {initLangfuseClient, shutdownLangfuseClient} from "./client";
-import {addEvaluationRoutes} from "./routes/evaluations";
-import {addPlaygroundRoutes} from "./routes/playground";
-import {addPromptRoutes} from "./routes/prompts";
-import {addTraceRoutes} from "./routes/traces";
-import {initTracing, shutdownTracing} from "./tracing";
-import type {LangfuseAppOptions} from "./types";
+import {initLangfuseClient, shutdownLangfuseClient} from "./langfuseClient";
+import {addEvaluationRoutes} from "./langfuseRoutesEvaluations";
+import {addPlaygroundRoutes} from "./langfuseRoutesPlayground";
+import {addPromptRoutes} from "./langfuseRoutesPrompts";
+import {addTraceRoutes} from "./langfuseRoutesTraces";
+import {initTracing, shutdownTracing} from "./langfuseTracing";
+import type {LangfuseAppOptions} from "./langfuseTypes";
 
 export class LangfuseApp implements TerrenoPlugin {
   private options: LangfuseAppOptions;
@@ -18,6 +18,8 @@ export class LangfuseApp implements TerrenoPlugin {
   }
 
   register(app: express.Application): void {
+    const organization = this.options.organization ?? "flourish-health";
+    const project = this.options.project ?? "terreno";
     initLangfuseClient(this.options);
 
     if (this.options.enableTracing !== false) {
@@ -38,7 +40,7 @@ export class LangfuseApp implements TerrenoPlugin {
         addEvaluationRoutes(app, adminPath, this.options.evaluation.scoringFunctions ?? []);
       }
 
-      logger.info(`Langfuse admin routes mounted at ${adminPath}`);
+      logger.info(`Langfuse admin routes mounted at ${adminPath} (org: ${organization}, project: ${project})`);
     }
 
     process.on("SIGTERM", () => {

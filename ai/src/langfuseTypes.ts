@@ -9,6 +9,12 @@ export interface ScoringFunction {
 export interface LangfuseAppOptions {
   secretKey: string;
   publicKey: string;
+  /** Organization slug in Langfuse (default: "flourish-health") */
+  organization?: string;
+  /** Project name/slug in Langfuse (default: "terreno") */
+  project?: string;
+  /** Langfuse project ID (UUID) for trace URLs; optional, keys usually imply project */
+  projectId?: string;
   baseUrl?: string;
   adminPath?: string;
   enableAdminUI?: boolean;

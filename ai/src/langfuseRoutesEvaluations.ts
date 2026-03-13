@@ -1,9 +1,9 @@
 import {APIError, asyncHandler, authenticateMiddleware} from "@terreno/api";
 import type express from "express";
 
-import {getLangfuseClient} from "../client";
-import type {ScoreSubmission, ScoringFunction} from "../types";
-import {requireAdmin} from "./middleware";
+import {getLangfuseClient} from "./langfuseClient";
+import type {ScoreSubmission, ScoringFunction} from "./langfuseTypes";
+import {requireAdmin} from "./langfuseRoutesMiddleware";
 
 export const addEvaluationRoutes = (
   router: express.Application,
