@@ -42,7 +42,7 @@ export default defineConfig({
     },
     {
       command: "bun run web",
-      port: 8082,
+      url: "http://localhost:8082",
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
