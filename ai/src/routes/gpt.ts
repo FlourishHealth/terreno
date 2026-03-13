@@ -204,8 +204,8 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
                 ? `${langfusePrompt}\n\n${effectiveSystemPrompt}`
                 : langfusePrompt;
             }
-          } catch {
-            // Langfuse unavailable or prompt not found — proceed without it
+          } catch (err) {
+            logger.debug(`Langfuse system prompt skipped: ${(err as Error).message}`);
           }
         }
 

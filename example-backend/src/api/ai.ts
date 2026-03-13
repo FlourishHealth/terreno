@@ -9,6 +9,7 @@ import {
   MCPService,
 } from "@terreno/ai";
 import {preparePromptForAI} from "@terreno/ai/langfuse";
+import {logger} from "@terreno/api";
 import type {ModelRouterOptions} from "@terreno/api";
 import type {Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
@@ -384,8 +385,8 @@ const jokeGeneratorTool = tool({
       if (typeof prepared.prompt === "string") {
         systemPrompt = prepared.prompt;
       }
-    } catch {
-      // Langfuse unavailable — use fallback
+    } catch (err) {
+      logger.debug(`Langfuse prompt skipped for joke-generator: ${(err as Error).message}`);
     }
 
     const joke = await svc.generateText({

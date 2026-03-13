@@ -58,7 +58,7 @@ export const getPrompt = async (
     return cached;
   }
 
-  logger.debug(`Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? "production"})`);
+  logger.info(`Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? "production"})`);
   const client = getLangfuseClient();
   const result = await client.getPromptStateless(name, undefined, options.label);
 
