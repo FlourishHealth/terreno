@@ -9,12 +9,14 @@ on:
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/example-frontend-eas.yml"
+      - "example-frontend/.eas/workflows/example-frontend-build.yml"
   pull_request:
     paths:
       - "example-frontend/**"
       - "ui/**"
       - "rtk/**"
       - ".github/workflows/example-frontend-eas.yml"
+      - "example-frontend/.eas/workflows/example-frontend-build.yml"
 
 jobs:
   build:
@@ -23,7 +25,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      deployments: write
     steps:
       - uses: actions/checkout@v6
 
@@ -54,111 +55,6 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
-      - name: Create GitHub Deployments
-        id: create-deployments
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const isProduction = context.eventName === 'push' && context.ref === 'refs/heads/master';
-            const profile = isProduction ? 'Production' : 'Development';
-
-            const [iosDeployment, androidDeployment] = await Promise.all([
-              github.rest.repos.createDeployment({
-                ...context.repo,
-                ref: context.sha,
-                environment: `Example Frontend iOS (${profile})`,
-                auto_merge: false,
-                required_contexts: [],
-                transient_environment: !isProduction,
-                production_environment: isProduction,
-              }),
-              github.rest.repos.createDeployment({
-                ...context.repo,
-                ref: context.sha,
-                environment: `Example Frontend Android (${profile})`,
-                auto_merge: false,
-                required_contexts: [],
-                transient_environment: !isProduction,
-                production_environment: isProduction,
-              }),
-            ]);
-
-            core.setOutput('ios_id', iosDeployment.data.id);
-            core.setOutput('android_id', androidDeployment.data.id);
-
-            await Promise.all([
-              github.rest.repos.createDeploymentStatus({
-                ...context.repo,
-                deployment_id: iosDeployment.data.id,
-                state: 'in_progress',
-              }),
-              github.rest.repos.createDeploymentStatus({
-                ...context.repo,
-                deployment_id: androidDeployment.data.id,
-                state: 'in_progress',
-              }),
-            ]);
-
-      - name: Build (development)
-        if: github.event_name == 'pull_request'
-        id: build-dev
-        run: |
-          json=$(eas build --platform all --profile development --non-interactive --no-wait --json)
-          echo "$json" | jq .
-          echo "ios_url=$(echo "$json" | jq -r '[.[] | select(.platform == "IOS")][0].buildDetailsPageUrl // empty')" >> "$GITHUB_OUTPUT"
-          echo "android_url=$(echo "$json" | jq -r '[.[] | select(.platform == "ANDROID")][0].buildDetailsPageUrl // empty')" >> "$GITHUB_OUTPUT"
+      - name: Run EAS Workflow
+        run: eas workflow:run example-frontend-build --non-interactive --no-wait
         working-directory: example-frontend
-
-      - name: Build and submit (production)
-        if: github.ref == 'refs/heads/master' && github.event_name == 'push'
-        id: build-prod
-        run: |
-          json=$(eas build --platform all --profile production --non-interactive --no-wait --auto-submit --json)
-          echo "$json" | jq .
-          echo "ios_url=$(echo "$json" | jq -r '[.[] | select(.platform == "IOS")][0].buildDetailsPageUrl // empty')" >> "$GITHUB_OUTPUT"
-          echo "android_url=$(echo "$json" | jq -r '[.[] | select(.platform == "ANDROID")][0].buildDetailsPageUrl // empty')" >> "$GITHUB_OUTPUT"
-        working-directory: example-frontend
-
-      - name: Set deployment status to success
-        if: success()
-        uses: actions/github-script@v8
-        env:
-          IOS_ID: ${{ steps.create-deployments.outputs.ios_id }}
-          ANDROID_ID: ${{ steps.create-deployments.outputs.android_id }}
-          IOS_URL: ${{ steps.build-dev.outputs.ios_url || steps.build-prod.outputs.ios_url }}
-          ANDROID_URL: ${{ steps.build-dev.outputs.android_url || steps.build-prod.outputs.android_url }}
-        with:
-          script: |
-            await Promise.all([
-              github.rest.repos.createDeploymentStatus({
-                ...context.repo,
-                deployment_id: parseInt(process.env.IOS_ID),
-                state: 'success',
-                environment_url: process.env.IOS_URL,
-                log_url: process.env.IOS_URL,
-              }),
-              github.rest.repos.createDeploymentStatus({
-                ...context.repo,
-                deployment_id: parseInt(process.env.ANDROID_ID),
-                state: 'success',
-                environment_url: process.env.ANDROID_URL,
-                log_url: process.env.ANDROID_URL,
-              }),
-            ]);
-
-      - name: Set deployment status to failure
-        if: failure()
-        uses: actions/github-script@v8
-        env:
-          IOS_ID: ${{ steps.create-deployments.outputs.ios_id }}
-          ANDROID_ID: ${{ steps.create-deployments.outputs.android_id }}
-        with:
-          script: |
-            const ids = [process.env.IOS_ID, process.env.ANDROID_ID].filter(Boolean);
-            await Promise.all(ids.map(id =>
-              github.rest.repos.createDeploymentStatus({
-                ...context.repo,
-                deployment_id: parseInt(id),
-                state: 'failure',
-              })
-            ));
