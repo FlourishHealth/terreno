@@ -6,7 +6,7 @@ test.describe("Todos", () => {
   test.beforeEach(async ({page}) => {
     await clearTodos();
     await loginAs(page);
-    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
+    await page.getByTestId("todos-add-button").waitFor({state: "visible"});
   });
 
   test("todos screen renders correctly", async ({page}) => {
