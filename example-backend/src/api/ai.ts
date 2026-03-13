@@ -441,6 +441,7 @@ export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<an
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
     demoMode: !aiService,
+    langfuseSystemPromptName: "chat-assistant",
     maxSteps: 5,
     mcpService,
     openApiOptions: options,
