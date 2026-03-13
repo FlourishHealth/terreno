@@ -6,7 +6,8 @@ test.describe("Todos", () => {
   test.beforeEach(async ({page}) => {
     await clearTodos();
     await loginAs(page);
-    await page.getByTestId("todos-add-button").waitFor({state: "visible"});
+    await page.goto("/");
+    await page.waitForLoadState("networkidle");
   });
 
   test("todos screen renders correctly", async ({page}) => {
