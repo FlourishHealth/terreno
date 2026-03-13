@@ -12,7 +12,7 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {RefreshControl, ScrollView} from "react-native";
+import {Pressable, RefreshControl, ScrollView} from "react-native";
 import {
   type Todo,
   useDeleteTodosByIdMutation,
@@ -161,6 +161,7 @@ const TodosScreen: React.FC = () => {
             <Box gap={3}>
               <TextField
                 disabled={isCreating}
+                id="todo-new-input"
                 onChange={setNewTodoTitle}
                 onEnter={handleCreateTodo}
                 placeholder="What needs to be done?"
@@ -204,18 +205,18 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Box
-                alignItems="center"
-                direction="row"
-                marginBottom={3}
-                onClick={toggleShowCompleted}
+              <Pressable
+                accessibilityRole="button"
+                onPress={toggleShowCompleted}
                 testID="todos-completed-section-toggle"
               >
-                <Heading size="lg">Completed ({completedTodos.length})</Heading>
-                <Box marginLeft={2}>
-                  <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
+                <Box alignItems="center" direction="row" marginBottom={3}>
+                  <Heading size="lg">Completed ({completedTodos.length})</Heading>
+                  <Box marginLeft={2}>
+                    <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
+                  </Box>
                 </Box>
-              </Box>
+              </Pressable>
               {showCompleted &&
                 completedTodos.map((todo) => (
                   <TodoItem

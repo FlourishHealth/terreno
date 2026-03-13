@@ -42,7 +42,10 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
+    // Click the toggle inside the visible todo item
+    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    await toggle.waitFor({state: "visible"});
+    await toggle.click();
 
     // Completed section appears
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
@@ -62,7 +65,9 @@ test.describe("Todos", () => {
 
     // Capture the specific item's testID so we wait for that exact item to disappear
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todos-item-deleted";
-    await todoItem.locator('[data-testid^="todos-delete-"]').click();
+    const deleteBtn = todoItem.locator('[data-testid^="todos-delete-"]');
+    await deleteBtn.waitFor({state: "visible"});
+    await deleteBtn.click();
 
     await page.getByTestId(todoTestId).waitFor({state: "hidden"});
     await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();
@@ -77,7 +82,9 @@ test.describe("Todos", () => {
 
     // Complete the todo so the completed section appears
     await page.waitForLoadState("networkidle");
-    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
+    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    await toggle.waitFor({state: "visible"});
+    await toggle.click();
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
 
     const completedItem = page
@@ -87,11 +94,12 @@ test.describe("Todos", () => {
     await completedItem.waitFor({state: "visible"});
 
     // Collapse the completed section
-    await page.getByTestId("todos-completed-section-toggle").click();
+    const sectionToggle = page.getByTestId("todos-completed-section-toggle");
+    await sectionToggle.click();
     await completedItem.waitFor({state: "hidden"});
 
     // Expand it again
-    await page.getByTestId("todos-completed-section-toggle").click();
+    await sectionToggle.click();
     await completedItem.waitFor({state: "visible"});
   });
 });
