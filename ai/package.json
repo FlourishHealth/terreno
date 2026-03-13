@@ -31,12 +31,12 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
     },
     "./langfuse": {
-      "types": "./dist/langfuse/index.d.ts",
-      "default": "./dist/langfuse/index.js"
+      "default": "./dist/langfuse/index.js",
+      "types": "./dist/langfuse/index.d.ts"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -59,6 +59,7 @@
   },
   "scripts": {
     "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",

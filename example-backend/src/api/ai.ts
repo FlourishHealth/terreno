@@ -7,10 +7,10 @@ import {
   addMcpRoutes,
   FileStorageService,
   MCPService,
+  preparePromptForAI,
 } from "@terreno/ai";
-import {preparePromptForAI} from "@terreno/ai/langfuse";
-import {logger} from "@terreno/api";
 import type {ModelRouterOptions} from "@terreno/api";
+import {logger} from "@terreno/api";
 import type {Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";

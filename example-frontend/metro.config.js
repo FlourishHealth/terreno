@@ -101,6 +101,7 @@ const backendOnlyModules = [
   "@terreno/api",
   "express",
   "@wesleytodd/openapi",
+  "expo-notifications",
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {

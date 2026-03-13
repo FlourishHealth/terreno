@@ -1,7 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
-import {LangfuseApp} from "@terreno/ai/langfuse";
+import {LangfuseApp} from "@terreno/ai";
 import {
   type AuthProvider,
   BetterAuthApp,

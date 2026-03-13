@@ -732,7 +732,7 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
-  // On web, intercept Enter key in the chat input to submit (Shift+Enter for newline)
+  // On web: Enter sends, Cmd+Enter inserts a new line
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
   useEffect(() => {
@@ -740,12 +740,16 @@ export const GPTChat = ({
       return;
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || e.shiftKey) {
+      if (e.key !== "Enter") {
         return;
       }
       const target = e.target as HTMLElement | null;
       const testId = target?.getAttribute("data-testid");
       if (testId !== "gpt-input") {
+        return;
+      }
+      if (e.metaKey) {
+        // Cmd+Enter: allow default (new line)
         return;
       }
       e.preventDefault();
