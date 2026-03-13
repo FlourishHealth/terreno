@@ -6,10 +6,11 @@ test.describe("Todos", () => {
   test.beforeEach(async ({page}) => {
     await clearTodos();
     await loginAs(page);
-    // loginAs waits for login-screen to hide and the app to navigate to /(tabs).
-    // Wait for the todos screen root to be visible before proceeding.
+    // Navigate explicitly to the todos tab root to land on the correct screen.
+    await page.goto("/");
     await page.waitForLoadState("networkidle");
-    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
+    // Wait for the new-todo input which is always visible once the screen loads.
+    await page.getByTestId("todos-new-title-input").first().waitFor({state: "visible"});
   });
 
   test("todos screen renders correctly", async ({page}) => {
