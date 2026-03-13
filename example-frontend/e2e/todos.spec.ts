@@ -42,10 +42,7 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    // Dispatch a click event on the toggle — RNW Pressable responds to DOM click events
-    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
-    await toggle.waitFor({state: "visible"});
-    await toggle.dispatchEvent("click");
+    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
 
     // Completed section appears
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
@@ -63,16 +60,11 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    // Dispatch a click event on the delete button — RNW Pressable responds to DOM click events
-    const deleteBtn = todoItem.locator('[data-testid^="todos-delete-"]');
-    await deleteBtn.waitFor({state: "visible"});
-    await deleteBtn.dispatchEvent("click");
+    // Capture the specific item's testID so we wait for that exact item to disappear
+    const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todos-item-deleted";
+    await todoItem.locator('[data-testid^="todos-delete-"]').click();
 
-    await page
-      .locator('[data-testid^="todos-item-"]')
-      .filter({visible: true})
-      .first()
-      .waitFor({state: "hidden"});
+    await page.getByTestId(todoTestId).waitFor({state: "hidden"});
     await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();
   });
 
@@ -85,9 +77,7 @@ test.describe("Todos", () => {
 
     // Complete the todo so the completed section appears
     await page.waitForLoadState("networkidle");
-    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
-    await toggle.waitFor({state: "visible"});
-    await toggle.dispatchEvent("click");
+    await todoItem.locator('[data-testid^="todos-toggle-"]').click();
     await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
 
     const completedItem = page
@@ -97,13 +87,11 @@ test.describe("Todos", () => {
     await completedItem.waitFor({state: "visible"});
 
     // Collapse the completed section
-    const sectionToggle = page.getByTestId("todos-completed-section-toggle");
-    await sectionToggle.waitFor({state: "visible"});
-    await sectionToggle.dispatchEvent("click");
+    await page.getByTestId("todos-completed-section-toggle").click();
     await completedItem.waitFor({state: "hidden"});
 
     // Expand it again
-    await sectionToggle.dispatchEvent("click");
+    await page.getByTestId("todos-completed-section-toggle").click();
     await completedItem.waitFor({state: "visible"});
   });
 });

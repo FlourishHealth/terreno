@@ -12,7 +12,7 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {Pressable, RefreshControl, ScrollView} from "react-native";
+import {RefreshControl, ScrollView} from "react-native";
 import {
   type Todo,
   useDeleteTodosByIdMutation,
@@ -49,11 +49,11 @@ const TodoItem: React.FC<{
   return (
     <Card marginBottom={2} testID={`todos-item-${todo.id}`}>
       <Box alignItems="center" direction="row" justifyContent="between">
-        <Pressable
-          accessibilityRole="button"
-          disabled={isUpdating}
-          onPress={handleToggle}
-          style={{alignItems: "center", flex: 1, flexDirection: "row"}}
+        <Box
+          alignItems="center"
+          direction="row"
+          flex="grow"
+          onClick={isUpdating ? undefined : handleToggle}
           testID={`todos-toggle-${todo.id}`}
         >
           <Box marginRight={3}>
@@ -64,7 +64,7 @@ const TodoItem: React.FC<{
               {todo.title}
             </Text>
           </Box>
-        </Pressable>
+        </Box>
         <IconButton
           accessibilityLabel="Delete todo"
           disabled={isUpdating}
@@ -204,18 +204,18 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Pressable
-                accessibilityRole="button"
-                onPress={toggleShowCompleted}
+              <Box
+                alignItems="center"
+                direction="row"
+                marginBottom={3}
+                onClick={toggleShowCompleted}
                 testID="todos-completed-section-toggle"
               >
-                <Box alignItems="center" direction="row" marginBottom={3}>
-                  <Heading size="lg">Completed ({completedTodos.length})</Heading>
-                  <Box marginLeft={2}>
-                    <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
-                  </Box>
+                <Heading size="lg">Completed ({completedTodos.length})</Heading>
+                <Box marginLeft={2}>
+                  <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
                 </Box>
-              </Pressable>
+              </Box>
               {showCompleted &&
                 completedTodos.map((todo) => (
                   <TodoItem
