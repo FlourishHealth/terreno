@@ -1,3 +1,5 @@
+import {logger} from "@terreno/api";
+
 import {compilePrompt, getPrompt} from "./prompts";
 import type {ChatMessage, GetPromptOptions, LangfuseAppOptions, PreparePromptResult} from "./types";
 
@@ -18,6 +20,11 @@ export const preparePromptForAI = async (
 
   const cached = await getPrompt(params.promptName, options, appOptions);
   const compiled = compilePrompt(cached, params.variables ?? {});
+
+  const varKeys = Object.keys(params.variables ?? {});
+  logger.debug(
+    `Langfuse prompt used: "${params.promptName}" v${cached.version}${varKeys.length ? ` (vars: ${varKeys.join(", ")})` : ""}${params.userId ? ` (user: ${params.userId})` : ""}`
+  );
 
   const telemetry: PreparePromptResult["telemetry"] = {
     functionId: `prompt:${params.promptName}`,

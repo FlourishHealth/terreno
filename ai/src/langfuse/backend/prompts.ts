@@ -54,17 +54,21 @@ export const getPrompt = async (
 
   const cached = await getCached(cacheKey);
   if (cached) {
+    logger.debug(`Langfuse prompt cache hit: "${name}" v${cached.version} (label: ${options.label ?? "production"})`);
     return cached;
   }
 
+  logger.debug(`Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? "production"})`);
   const client = getLangfuseClient();
   const result = await client.getPromptStateless(name, undefined, options.label);
 
   if (result.fetchResult !== "success") {
+    logger.warn(`Langfuse prompt fetch failed: "${name}" — ${result.data.message ?? "unknown error"}`);
     throw new Error(`Failed to fetch prompt "${name}": ${result.data.message ?? "unknown error"}`);
   }
 
   const cachedPrompt = toLatestVersion(result.data);
+  logger.info(`Langfuse prompt fetched: "${name}" v${cachedPrompt.version} (ttl: ${ttl}s)`);
   await setCached(cacheKey, cachedPrompt, ttl);
   return cachedPrompt;
 };
