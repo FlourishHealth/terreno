@@ -21,6 +21,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   sort: "-created",
   validation: {
     excludeFromCreate: ["ownerId"],
+    excludeFromUpdate: ["ownerId"],
     validateCreate: true,
     validateQuery: true,
     validateUpdate: true,
