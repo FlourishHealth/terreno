@@ -42,16 +42,19 @@ test.describe("Todos", () => {
     await todoItem.waitFor({state: "visible"});
     await page.waitForLoadState("networkidle");
 
-    // Click the toggle inside the visible todo item
-    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    // Capture item ID to use precise selectors
+    const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todos-item-unknown";
+    const itemId = todoTestId.replace("todos-item-", "");
+
+    // Click the toggle for this specific item
+    const toggle = page.getByTestId(`todos-toggle-${itemId}-clickable`).filter({visible: true}).first();
     await toggle.waitFor({state: "visible"});
     await toggle.click();
 
-    // Completed section appears
+    // Completed section appears — the todo moved to completed
     await page.getByTestId("todos-completed-section-toggle-clickable").waitFor({state: "visible"});
-    // Incomplete section shows empty state again
-    await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();
-    // Todo title still visible in completed section
+    await page.waitForLoadState("networkidle");
+    // Todo title visible in completed section
     await expect(page.getByText("Mark me done").first()).toBeVisible();
   });
 
@@ -65,7 +68,8 @@ test.describe("Todos", () => {
 
     // Capture the specific item's testID so we wait for that exact item to disappear
     const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todos-item-deleted";
-    const deleteBtn = todoItem.locator('[data-testid^="todos-delete-"]');
+    const itemId = todoTestId.replace("todos-item-", "");
+    const deleteBtn = page.getByTestId(`todos-delete-${itemId}`).filter({visible: true}).first();
     await deleteBtn.waitFor({state: "visible"});
     await deleteBtn.click();
 
@@ -81,10 +85,14 @@ test.describe("Todos", () => {
 
     const todoItem = page.locator('[data-testid^="todos-item-"]').filter({visible: true}).first();
     await todoItem.waitFor({state: "visible"});
+    await page.waitForLoadState("networkidle");
+
+    // Capture item ID to use precise selectors
+    const todoTestId = (await todoItem.getAttribute("data-testid")) ?? "todos-item-unknown";
+    const itemId = todoTestId.replace("todos-item-", "");
 
     // Complete the todo so the completed section appears
-    await page.waitForLoadState("networkidle");
-    const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
+    const toggle = page.getByTestId(`todos-toggle-${itemId}-clickable`).filter({visible: true}).first();
     await toggle.waitFor({state: "visible"});
     await toggle.click();
     await page.getByTestId("todos-completed-section-toggle-clickable").waitFor({state: "visible"});

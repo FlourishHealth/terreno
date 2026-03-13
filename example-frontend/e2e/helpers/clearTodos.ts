@@ -9,8 +9,16 @@ export const clearTodos = async (): Promise<void> => {
   const loginRes = await apiContext.post("/auth/login", {
     data: {email: TEST_USER.email, password: TEST_USER.password},
   });
+  if (!loginRes.ok()) {
+    await apiContext.dispose();
+    throw new Error(`clearTodos: login failed with status ${loginRes.status()}`);
+  }
   const loginData = await loginRes.json();
   const token = loginData.token as string;
+  if (!token) {
+    await apiContext.dispose();
+    throw new Error("clearTodos: no token in login response");
+  }
 
   const todosRes = await apiContext.get("/todos", {
     headers: {authorization: `Bearer ${token}`},
