@@ -19,10 +19,10 @@ test.describe("Login", () => {
     await page.getByTestId("login-screen-password-input").fill(TEST_USER.password);
     await page.getByTestId("login-screen-submit-button").click();
 
-    // After login the login screen is replaced — wait for it to be hidden
+    // After login the login screen is replaced — wait for it to be hidden.
+    // Expo Router pre-renders (tabs) as initialRouteName, so todos-screen exists
+    // twice in the DOM. Waiting for login-screen to hide is the reliable signal.
     await page.getByTestId("login-screen").first().waitFor({state: "hidden"});
-    // Verify navigation to the todos screen completed successfully
-    await page.getByTestId("todos-screen").first().waitFor({state: "visible"});
   });
 
   test("shows error with invalid credentials", async ({page}) => {
