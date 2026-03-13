@@ -47,12 +47,13 @@ const TodoItem: React.FC<{
   }, [todo.id, onDelete]);
 
   return (
-    <Card marginBottom={2}>
+    <Card marginBottom={2} testID={`todos-item-${todo.id}`}>
       <Box alignItems="center" direction="row" justifyContent="between">
         <Pressable
           disabled={isUpdating}
           onPress={handleToggle}
           style={{alignItems: "center", flex: 1, flexDirection: "row"}}
+          testID={`todos-toggle-${todo.id}`}
         >
           <Box marginRight={3}>
             <CheckBox selected={todo.completed} size="md" />
@@ -68,6 +69,7 @@ const TodoItem: React.FC<{
           disabled={isUpdating}
           iconName="trash"
           onClick={handleDelete}
+          testID={`todos-delete-${todo.id}`}
           variant="destructive"
         />
       </Box>
@@ -161,6 +163,7 @@ const TodosScreen: React.FC = () => {
                 onChange={setNewTodoTitle}
                 onEnter={handleCreateTodo}
                 placeholder="What needs to be done?"
+                testID="todos-new-title-input"
                 title="New Todo"
                 value={newTodoTitle}
               />
@@ -170,6 +173,7 @@ const TodosScreen: React.FC = () => {
                 iconName="plus"
                 loading={isCreating}
                 onClick={handleCreateTodo}
+                testID="todos-add-button"
                 text="Add Todo"
               />
             </Box>
@@ -181,7 +185,9 @@ const TodosScreen: React.FC = () => {
               <Heading size="lg">To Do ({incompleteTodos.length})</Heading>
             </Box>
             {incompleteTodos.length === 0 ? (
-              <Text color="secondaryLight">No todos yet. Add one above!</Text>
+              <Text color="secondaryLight" testID="todos-empty-text">
+                No todos yet. Add one above!
+              </Text>
             ) : (
               incompleteTodos.map((todo) => (
                 <TodoItem
@@ -197,7 +203,7 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Pressable onPress={toggleShowCompleted}>
+              <Pressable onPress={toggleShowCompleted} testID="todos-completed-section-toggle">
                 <Box alignItems="center" direction="row" marginBottom={3}>
                   <Heading size="lg">Completed ({completedTodos.length})</Heading>
                   <Box marginLeft={2}>
