@@ -48,7 +48,7 @@ test.describe("Todos", () => {
     await toggle.click();
 
     // Completed section appears
-    await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
+    await page.getByTestId("todos-completed-section-toggle-clickable").waitFor({state: "visible"});
     // Incomplete section shows empty state again
     await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();
     // Todo title still visible in completed section
@@ -85,7 +85,7 @@ test.describe("Todos", () => {
     const toggle = todoItem.locator('[data-testid^="todos-toggle-"]');
     await toggle.waitFor({state: "visible"});
     await toggle.click();
-    await page.getByTestId("todos-completed-section-toggle").waitFor({state: "visible"});
+    await page.getByTestId("todos-completed-section-toggle-clickable").waitFor({state: "visible"});
 
     const completedItem = page
       .locator('[data-testid^="todos-item-"]')
@@ -94,7 +94,7 @@ test.describe("Todos", () => {
     await completedItem.waitFor({state: "visible"});
 
     // Collapse the completed section
-    const sectionToggle = page.getByTestId("todos-completed-section-toggle");
+    const sectionToggle = page.getByTestId("todos-completed-section-toggle-clickable");
     await sectionToggle.click();
     await completedItem.waitFor({state: "hidden"});
 
