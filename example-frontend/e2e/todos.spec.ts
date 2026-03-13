@@ -70,7 +70,9 @@ test.describe("Todos", () => {
     await deleteBtn.click();
 
     await page.getByTestId(todoTestId).waitFor({state: "hidden"});
-    await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    // Use waitFor instead of expect to handle brief loading states after delete
+    await page.getByTestId("todos-empty-text").first().waitFor({state: "visible"});
   });
 
   test("completed section can be collapsed and expanded", async ({page}) => {
