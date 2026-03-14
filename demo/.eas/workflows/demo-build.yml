@@ -1,80 +1,30 @@
 name: Demo Build
 
 jobs:
-  build_ios_dev:
-    name: Build iOS (Development)
+  build_ios:
+    name: Build iOS
     type: build
-    if: ${{ github.event_name == 'pull_request' }}
     params:
       platform: ios
       profile: development
 
-  build_android_dev:
-    name: Build Android (Development)
+  build_android:
+    name: Build Android
     type: build
-    if: ${{ github.event_name == 'pull_request' }}
     params:
       platform: android
       profile: development
-
-  build_ios_prod:
-    name: Build iOS (Production)
-    type: build
-    if: ${{ github.event_name == 'push' && github.ref_name == 'master' }}
-    params:
-      platform: ios
-      profile: production
-
-  build_android_prod:
-    name: Build Android (Production)
-    type: build
-    if: ${{ github.event_name == 'push' && github.ref_name == 'master' }}
-    params:
-      platform: android
-      profile: production
-
-  submit_ios:
-    name: Submit iOS
-    type: submit
-    needs: [build_ios_prod]
-    params:
-      build_id: ${{ needs.build_ios_prod.outputs.build_id }}
-      platform: ios
-
-  submit_android:
-    name: Submit Android
-    type: submit
-    needs: [build_android_prod]
-    params:
-      build_id: ${{ needs.build_android_prod.outputs.build_id }}
-      platform: android
 
   report_github:
     name: Report to GitHub
-    type: build
-    after: [build_ios_dev, build_android_dev, build_ios_prod, build_android_prod]
+    after: [build_ios, build_android]
     steps:
+      - uses: eas/checkout
       - run: |
           set -e
 
-          if [ "${{ after.build_ios_prod.status }}" != "skipped" ]; then
-            IS_PROD="true"
-            PROFILE="Production"
-            TRANSIENT="false"
-            IOS_STATUS="${{ after.build_ios_prod.status }}"
-            ANDROID_STATUS="${{ after.build_android_prod.status }}"
-            IOS_BUILD_ID="${{ needs.build_ios_prod.outputs.build_id }}"
-            ANDROID_BUILD_ID="${{ needs.build_android_prod.outputs.build_id }}"
-          else
-            IS_PROD="false"
-            PROFILE="Development"
-            TRANSIENT="true"
-            IOS_STATUS="${{ after.build_ios_dev.status }}"
-            ANDROID_STATUS="${{ after.build_android_dev.status }}"
-            IOS_BUILD_ID="${{ needs.build_ios_dev.outputs.build_id }}"
-            ANDROID_BUILD_ID="${{ needs.build_android_dev.outputs.build_id }}"
-          fi
-
+          IOS_STATUS="${{ after.build_ios.status }}"
+          ANDROID_STATUS="${{ after.build_android.status }}"
           [ "$IOS_STATUS" = "success" ] && IOS_STATE="success" || IOS_STATE="failure"
           [ "$ANDROID_STATUS" = "success" ] && ANDROID_STATE="success" || ANDROID_STATE="failure"
 
@@ -85,23 +35,23 @@ jobs:
           IOS_DEP_ID=$(curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"ref\":\"$SHA\",\"environment\":\"Demo iOS ($PROFILE)\",\"auto_merge\":false,\"required_contexts\":[],\"transient_environment\":$TRANSIENT,\"production_environment\":$IS_PROD}" \
+            -d "{\"ref\":\"$SHA\",\"environment\":\"Demo iOS (Development)\",\"auto_merge\":false,\"required_contexts\":[],\"transient_environment\":true,\"production_environment\":false}" \
             "https://api.github.com/repos/$REPO/deployments" | jq -r '.id')
 
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"state\":\"$IOS_STATE\",\"environment_url\":\"$BASE_URL/$IOS_BUILD_ID\",\"log_url\":\"$BASE_URL/$IOS_BUILD_ID\"}" \
+            -d "{\"state\":\"$IOS_STATE\",\"environment_url\":\"$BASE_URL/${{ needs.build_ios.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ needs.build_ios.outputs.build_id }}\"}" \
             "https://api.github.com/repos/$REPO/deployments/$IOS_DEP_ID/statuses"
 
           ANDROID_DEP_ID=$(curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"ref\":\"$SHA\",\"environment\":\"Demo Android ($PROFILE)\",\"auto_merge\":false,\"required_contexts\":[],\"transient_environment\":$TRANSIENT,\"production_environment\":$IS_PROD}" \
+            -d "{\"ref\":\"$SHA\",\"environment\":\"Demo Android (Development)\",\"auto_merge\":false,\"required_contexts\":[],\"transient_environment\":true,\"production_environment\":false}" \
             "https://api.github.com/repos/$REPO/deployments" | jq -r '.id')
 
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"state\":\"$ANDROID_STATE\",\"environment_url\":\"$BASE_URL/$ANDROID_BUILD_ID\",\"log_url\":\"$BASE_URL/$ANDROID_BUILD_ID\"}" \
+            -d "{\"state\":\"$ANDROID_STATE\",\"environment_url\":\"$BASE_URL/${{ needs.build_android.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ needs.build_android.outputs.build_id }}\"}" \
             "https://api.github.com/repos/$REPO/deployments/$ANDROID_DEP_ID/statuses"
