@@ -8,6 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "bun": "1.3.10",
+      "installCommand": "bun install --backend=copyfile",
       "ios": {
         "simulator": true,
         "image": "latest"
