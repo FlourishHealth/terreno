@@ -6,8 +6,9 @@ import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {HeightActionSheetProps} from "./Common";
+import {Heading} from "./Heading";
 
-const PICKER_HEIGHT = 104;
+const PICKER_HEIGHT = 180;
 
 interface HeightActionSheetState {
   feet: string;
@@ -27,16 +28,24 @@ export class HeightActionSheet extends React.Component<
   }
 
   render() {
+    const minInches = this.props.min ?? 0;
+    const maxInches = this.props.max ?? 95;
+    const minFeet = Math.floor(minInches / 12);
+    const maxFeet = Math.floor(maxInches / 12);
+
     return (
       <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
-          <Box alignItems="end" display="flex" width="100%">
+          <Box alignItems="center" direction="row" justifyContent="between" width="100%">
+            <Box flex="grow">
+              {this.props.title ? <Heading size="md">{this.props.title}</Heading> : null}
+            </Box>
             <Box width="33%">
               <Button
                 onClick={() => {
                   this.props.actionSheetRef?.current?.setModalVisible(false);
                 }}
-                text="Close"
+                text="Done"
               />
             </Box>
           </Box>
@@ -44,6 +53,8 @@ export class HeightActionSheet extends React.Component<
             <Box width="50%">
               <Picker
                 itemStyle={{
+                  color: "#1a1a1a",
+                  fontSize: 20,
                   height: PICKER_HEIGHT,
                 }}
                 onValueChange={(feet) => {
@@ -56,15 +67,18 @@ export class HeightActionSheet extends React.Component<
                   height: PICKER_HEIGHT,
                 }}
               >
-                {range(4, 8).map((n) => {
-                  // console.log("FIRST", String(n));
-                  return <Picker.Item key={String(n)} label={`${String(n)}ft`} value={String(n)} />;
+                {range(minFeet, maxFeet + 1).map((n) => {
+                  return (
+                    <Picker.Item key={String(n)} label={`${String(n)} ft`} value={String(n)} />
+                  );
                 })}
               </Picker>
             </Box>
             <Box width="50%">
               <Picker
                 itemStyle={{
+                  color: "#1a1a1a",
+                  fontSize: 20,
                   height: PICKER_HEIGHT,
                 }}
                 onValueChange={(inches) => {
@@ -78,8 +92,9 @@ export class HeightActionSheet extends React.Component<
                 }}
               >
                 {range(0, 12).map((n) => {
-                  // console.log("N", n);
-                  return <Picker.Item key={String(n)} label={`${String(n)}in`} value={String(n)} />;
+                  return (
+                    <Picker.Item key={String(n)} label={`${String(n)} in`} value={String(n)} />
+                  );
                 })}
               </Picker>
             </Box>

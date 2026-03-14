@@ -78,6 +78,7 @@ export const TextField: FC<TextFieldProps> = ({
   onEnter,
   onSubmitEditing,
   testID,
+  id,
 }) => {
   const {theme} = useTheme();
 
@@ -167,6 +168,7 @@ export const TextField: FC<TextFieldProps> = ({
           enterKeyHint={returnKeyType}
           keyboardType={keyboardType as KeyboardTypeOptions}
           multiline={multiline}
+          nativeID={id}
           numberOfLines={rows || 4}
           onBlur={() => {
             if (disabled) return;
