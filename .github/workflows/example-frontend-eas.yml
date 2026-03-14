@@ -56,5 +56,5 @@ jobs:
         working-directory: rtk
 
       - name: Run EAS Workflow
-        run: eas workflow:run example-frontend-build --non-interactive --no-wait
+        run: eas workflow:run .eas/workflows/example-frontend-build.yml --non-interactive
         working-directory: example-frontend

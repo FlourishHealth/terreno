@@ -50,5 +50,5 @@ jobs:
         working-directory: ui
 
       - name: Run EAS Workflow
-        run: eas workflow:run demo-build --non-interactive --no-wait
+        run: eas workflow:run .eas/workflows/demo-build.yml --non-interactive
         working-directory: demo

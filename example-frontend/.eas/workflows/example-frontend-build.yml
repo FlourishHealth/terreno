@@ -1,8 +1,5 @@
 name: Example Frontend Build
 
-on:
-  workflow_dispatch:
-
 jobs:
   build_ios_dev:
     name: Build iOS (Development)
