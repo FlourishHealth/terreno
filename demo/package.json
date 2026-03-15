@@ -24,6 +24,7 @@
     "expo-localization": "~17.0.8",
     "expo-router": "~6.0.19",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "catalog:",
     "libphonenumber-js": "^1.12.36",
     "linkify-it": "^5.0.0",
     "lodash": "catalog:",
