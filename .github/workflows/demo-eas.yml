@@ -1,0 +1,54 @@
+name: Demo EAS Build
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "demo/**"
+      - "ui/**"
+      - ".github/workflows/demo-eas.yml"
+      - "demo/.eas/workflows/demo-build.yml"
+  pull_request:
+    paths:
+      - "demo/**"
+      - "ui/**"
+      - ".github/workflows/demo-eas.yml"
+      - "demo/.eas/workflows/demo-build.yml"
+
+jobs:
+  build:
+    name: EAS Build (Demo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
+      - name: Run EAS Workflow
+        run: eas workflow:run .eas/workflows/demo-build.yml --non-interactive
+        working-directory: demo
