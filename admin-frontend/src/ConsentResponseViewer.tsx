@@ -1,7 +1,8 @@
-import {Badge, Box, Card, Heading, MarkdownView, Page, Spinner, Text} from "@terreno/ui";
+import {Badge, Box, Button, Card, Heading, MarkdownView, Page, Spinner, Text} from "@terreno/ui";
 import {DateTime} from "luxon";
-import React from "react";
+import React, {useCallback, useState} from "react";
 import {Image} from "react-native";
+import {generateConsentPdf} from "./generateConsentPdf";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentResponseViewerProps {
@@ -74,10 +75,32 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({bas
     response.contentSnapshot ||
     response.formVersionSnapshot;
 
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPdf = useCallback(async () => {
+    setIsDownloading(true);
+    try {
+      await generateConsentPdf(response);
+    } catch (err) {
+      console.error("Failed to generate PDF", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [response]);
+
   return (
     <Page maxWidth="100%" scroll>
       <Box gap={4} padding={4}>
-        <Heading size="lg">Consent Response</Heading>
+        <Box alignItems="center" direction="row" justifyContent="between">
+          <Heading size="lg">Consent Response</Heading>
+          <Button
+            iconName="download"
+            loading={isDownloading}
+            onClick={handleDownloadPdf}
+            text="Download PDF"
+            variant="outline"
+          />
+        </Box>
 
         {/* Core Fields */}
         <Card padding={4}>

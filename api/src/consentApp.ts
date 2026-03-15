@@ -340,6 +340,53 @@ export class ConsentApp implements TerrenoPlugin {
       })
     );
 
+    // GET /consents/my - fetch the current user's consent responses with form data
+    router.get(
+      "/my",
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        const user = req.user as User | undefined;
+        if (!user) {
+          throw new APIError({status: 401, title: "Authentication required"});
+        }
+
+        const responses = await ConsentResponse.find({userId: user.id}).sort({agreedAt: -1});
+
+        const formIds = responses.map((r) => r.consentFormId);
+        const forms = await ConsentForm.find({_id: {$in: formIds}});
+        const formMap = new Map(forms.map((f) => [f._id.toString(), f]));
+
+        const data = responses.map((response) => {
+          const form = formMap.get(response.consentFormId.toString());
+          return {
+            _id: response._id,
+            agreed: response.agreed,
+            agreedAt: response.agreedAt,
+            checkboxValues: response.checkboxValues,
+            contentSnapshot: response.contentSnapshot,
+            form: form
+              ? {
+                  captureSignature: form.captureSignature,
+                  checkboxes: form.checkboxes,
+                  slug: form.slug,
+                  title: form.title,
+                  type: form.type,
+                  version: form.version,
+                }
+              : null,
+            formVersionSnapshot: response.formVersionSnapshot,
+            ipAddress: response.ipAddress,
+            locale: response.locale,
+            signature: response.signature,
+            signedAt: response.signedAt,
+            userAgent: response.userAgent,
+          };
+        });
+
+        return res.json({data});
+      })
+    );
+
     // GET /consents/audit/:userId - admin audit trail for a specific user
     if (auditTrail) {
       router.get(

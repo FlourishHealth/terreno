@@ -40,6 +40,7 @@
     "expo-splash-screen": "catalog:",
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
+    "jspdf": "^4.2.0",
     "libphonenumber-js": "^1.12.36",
     "linkify-it": "catalog:",
     "lodash": "catalog:",
