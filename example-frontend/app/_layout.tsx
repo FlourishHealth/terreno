@@ -8,6 +8,7 @@ import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
 import {ConsentNavigator, TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 import {terrenoApi} from "@/store/sdk";
 
@@ -69,6 +70,7 @@ export default function RootLayout(): React.ReactElement | null {
 
 function RootLayoutNav(): React.ReactElement {
   const userId = useSelectCurrentUserId();
+  const profile = useReadProfile();
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
@@ -107,7 +109,7 @@ function RootLayoutNav(): React.ReactElement {
     </Stack>
   );
 
-  if (userId) {
+  if (userId && !profile?.admin) {
     return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
   }
 

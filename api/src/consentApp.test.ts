@@ -325,6 +325,33 @@ describe("ConsentApp", () => {
       expect(res.body.data[0].type).toBe("privacy");
     });
 
+    it("resolveConsentForms can filter by user admin status", async () => {
+      await ConsentForm.create({
+        active: true,
+        content: new Map([["en", "# Terms"]]),
+        order: 1,
+        slug: "admin-filter-terms",
+        title: "Terms",
+        type: "terms",
+        version: 1,
+      });
+
+      // Build app with resolver that skips admin users
+      const filteredApp = buildApp({
+        resolveConsentForms: (user: any, forms: any[]) => (user.admin ? [] : forms),
+      });
+      const filteredAdmin = await authAsUser(filteredApp, "admin");
+      const filteredUser = await authAsUser(filteredApp, "notAdmin");
+
+      // Admin sees no forms
+      const adminRes = await filteredAdmin.get("/consents/pending").expect(200);
+      expect(adminRes.body.data).toHaveLength(0);
+
+      // Regular user sees forms
+      const userRes = await filteredUser.get("/consents/pending").expect(200);
+      expect(userRes.body.data).toHaveLength(1);
+    });
+
     it("requires authentication", async () => {
       const app = buildApp();
       await supertest(app).get("/consents/pending").expect(401);
@@ -487,6 +514,196 @@ describe("ConsentApp", () => {
         .post("/consents/respond")
         .send({agreed: true, consentFormId: form._id, locale: "en"})
         .expect(401);
+    });
+  });
+
+  describe("GET /consents/my", () => {
+    it("returns empty array when user has no consents", async () => {
+      const res = await userAgent.get("/consents/my").expect(200);
+      expect(res.body.data).toHaveLength(0);
+    });
+
+    it("returns user consent history with populated form data", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        checkboxes: [{label: "I agree to the terms", required: true}],
+        content: new Map([["en", "# Terms"]]),
+        order: 1,
+        slug: "my-terms",
+        title: "Terms of Service",
+        type: "terms",
+        version: 2,
+      });
+
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        checkboxValues: new Map([["0", true]]),
+        consentFormId: form._id,
+        formVersionSnapshot: 2,
+        locale: "en",
+        userId: notAdmin._id,
+      });
+
+      const res = await userAgent.get("/consents/my").expect(200);
+      expect(res.body.data).toHaveLength(1);
+
+      const item = res.body.data[0];
+      expect(item.agreed).toBe(true);
+      expect(item.locale).toBe("en");
+      expect(item.formVersionSnapshot).toBe(2);
+      expect(item.form).toBeDefined();
+      expect(item.form.title).toBe("Terms of Service");
+      expect(item.form.slug).toBe("my-terms");
+      expect(item.form.type).toBe("terms");
+      expect(item.form.version).toBe(2);
+      expect(item.form.checkboxes).toHaveLength(1);
+      expect(item.form.checkboxes[0].label).toBe("I agree to the terms");
+    });
+
+    it("returns responses sorted by agreedAt descending", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        content: new Map([["en", "# Terms"]]),
+        order: 1,
+        slug: "sorted-terms",
+        title: "Terms",
+        type: "terms",
+        version: 1,
+      });
+
+      const olderDate = new Date("2025-01-01T00:00:00Z");
+      const newerDate = new Date("2025-06-01T00:00:00Z");
+
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: olderDate,
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        userId: notAdmin._id,
+      });
+
+      await ConsentResponse.create({
+        agreed: false,
+        agreedAt: newerDate,
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        userId: notAdmin._id,
+      });
+
+      const res = await userAgent.get("/consents/my").expect(200);
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.data[0].agreed).toBe(false); // newer first
+      expect(res.body.data[1].agreed).toBe(true); // older second
+    });
+
+    it("includes audit trail fields when present", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        content: new Map([["en", "# Audit Terms"]]),
+        order: 1,
+        slug: "audit-my-terms",
+        title: "Audit Terms",
+        type: "terms",
+        version: 1,
+      });
+
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        consentFormId: form._id,
+        contentSnapshot: "# Audit Terms",
+        formVersionSnapshot: 1,
+        ipAddress: "192.168.1.1",
+        locale: "en",
+        userAgent: "Mozilla/5.0 Test Agent",
+        userId: notAdmin._id,
+      });
+
+      const res = await userAgent.get("/consents/my").expect(200);
+      expect(res.body.data).toHaveLength(1);
+
+      const item = res.body.data[0];
+      expect(item.ipAddress).toBe("192.168.1.1");
+      expect(item.userAgent).toBe("Mozilla/5.0 Test Agent");
+      expect(item.contentSnapshot).toBe("# Audit Terms");
+    });
+
+    it("includes signature when present", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        captureSignature: true,
+        content: new Map([["en", "# Signature Terms"]]),
+        order: 1,
+        slug: "sig-my-terms",
+        title: "Signature Terms",
+        type: "agreement",
+        version: 1,
+      });
+
+      const signedAt = new Date();
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        signature: "data:image/png;base64,sig123",
+        signedAt,
+        userId: notAdmin._id,
+      });
+
+      const res = await userAgent.get("/consents/my").expect(200);
+      expect(res.body.data).toHaveLength(1);
+
+      const item = res.body.data[0];
+      expect(item.signature).toBe("data:image/png;base64,sig123");
+      expect(item.signedAt).toBeDefined();
+    });
+
+    it("does not return other users' consents", async () => {
+      const form = await ConsentForm.create({
+        active: true,
+        content: new Map([["en", "# Isolation Terms"]]),
+        order: 1,
+        slug: "isolation-terms",
+        title: "Isolation Terms",
+        type: "terms",
+        version: 1,
+      });
+
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        userId: admin._id,
+      });
+
+      await ConsentResponse.create({
+        agreed: true,
+        agreedAt: new Date(),
+        consentFormId: form._id,
+        formVersionSnapshot: 1,
+        locale: "en",
+        userId: notAdmin._id,
+      });
+
+      const adminRes = await adminAgent.get("/consents/my").expect(200);
+      expect(adminRes.body.data).toHaveLength(1);
+      expect(adminRes.body.data[0].form.title).toBe("Isolation Terms");
+
+      const userRes = await userAgent.get("/consents/my").expect(200);
+      expect(userRes.body.data).toHaveLength(1);
+      expect(userRes.body.data[0].form.title).toBe("Isolation Terms");
+    });
+
+    it("requires authentication", async () => {
+      const app = buildApp();
+      await supertest(app).get("/consents/my").expect(401);
     });
   });
 

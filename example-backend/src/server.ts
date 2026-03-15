@@ -203,7 +203,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(
         new ConsentApp({
           auditTrail: true,
-          resolveConsentForms: (_user, forms) => forms,
+          resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
           supportedLocales: ["en", "es"],
         })
       );
