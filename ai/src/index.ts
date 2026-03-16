@@ -1,5 +1,6 @@
 export type {AiAppOptions} from "./aiApp";
 export {AiApp} from "./aiApp";
+export {LangfuseApp} from "./langfuseApp";
 export {getCached, invalidateCache, LangfuseCache, setCached} from "./langfuseCache";
 export {
   getLangfuseClient,
@@ -7,7 +8,6 @@ export {
   isLangfuseInitialized,
   shutdownLangfuseClient,
 } from "./langfuseClient";
-export {LangfuseApp} from "./langfuseApp";
 export {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} from "./langfusePrompts";
 export {initTracing, shutdownTracing} from "./langfuseTracing";
 export type {

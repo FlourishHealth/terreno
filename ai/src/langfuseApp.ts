@@ -40,7 +40,9 @@ export class LangfuseApp implements TerrenoPlugin {
         addEvaluationRoutes(app, adminPath, this.options.evaluation.scoringFunctions ?? []);
       }
 
-      logger.info(`Langfuse admin routes mounted at ${adminPath} (org: ${organization}, project: ${project})`);
+      logger.info(
+        `Langfuse admin routes mounted at ${adminPath} (org: ${organization}, project: ${project})`
+      );
     }
 
     process.on("SIGTERM", () => {

@@ -3,8 +3,8 @@ import type express from "express";
 
 import {getLangfuseClient} from "./langfuseClient";
 import {createPrompt, invalidatePromptCache} from "./langfusePrompts";
-import type {ChatMessage} from "./langfuseTypes";
 import {requireAdmin} from "./langfuseRoutesMiddleware";
+import type {ChatMessage} from "./langfuseTypes";
 
 export const addPromptRoutes = (router: express.Application, basePath: string): void => {
   router.get(
