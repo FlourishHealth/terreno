@@ -195,6 +195,9 @@ jobs:
     needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    environment:
+      name: example-frontend-preview-pr-${{ github.event.pull_request.number }}
+      url: ${{ steps.netlify.outputs.deploy-url }}
     permissions:
       contents: read
       deployments: write
