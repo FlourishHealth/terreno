@@ -41,7 +41,7 @@ jobs:
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"state\":\"$IOS_STATE\",\"environment_url\":\"$BASE_URL/${{ needs.build_ios.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ needs.build_ios.outputs.build_id }}\"}" \
+            -d "{\"state\":\"$IOS_STATE\",\"environment_url\":\"$BASE_URL/${{ after.build_ios.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ after.build_ios.outputs.build_id }}\"}" \
             "https://api.github.com/repos/$REPO/deployments/$IOS_DEP_ID/statuses"
 
           ANDROID_DEP_ID=$(curl -sf -X POST \
@@ -53,5 +53,5 @@ jobs:
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ env.GITHUB_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"state\":\"$ANDROID_STATE\",\"environment_url\":\"$BASE_URL/${{ needs.build_android.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ needs.build_android.outputs.build_id }}\"}" \
+            -d "{\"state\":\"$ANDROID_STATE\",\"environment_url\":\"$BASE_URL/${{ after.build_android.outputs.build_id }}\",\"log_url\":\"$BASE_URL/${{ after.build_android.outputs.build_id }}\"}" \
             "https://api.github.com/repos/$REPO/deployments/$ANDROID_DEP_ID/statuses"
