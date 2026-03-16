@@ -97,11 +97,17 @@ const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
   if (platform === "web" && moduleName === "jspdf") {
-    const jspdfDir = path.dirname(require.resolve("jspdf/package.json"));
-    return {
-      type: "sourceFile",
-      filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
-    };
+    try {
+      const uiDir = path.resolve(monorepoRoot, "ui");
+      const adminFrontendDir = path.resolve(monorepoRoot, "admin-frontend");
+      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, adminFrontendDir, monorepoRoot]}));
+      return {
+        type: "sourceFile",
+        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+      };
+    } catch {
+      // jspdf not resolvable — let Metro handle it
+    }
   }
 
   // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
