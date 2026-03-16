@@ -5,33 +5,25 @@ import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
-// Mock langfuse packages so langfuseClient can load without the real SDK
-mock.module("langfuse", () => ({
-  Langfuse: class MockLangfuse {
-    flushAsync = async () => {};
-  },
-}));
+import {AIRequest} from "../models/aiRequest";
+import {GptHistory} from "../models/gptHistory";
+import {AIService} from "../service/aiService";
+import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
+import {addGptHistoryRoutes} from "./gptHistories";
 
-// Mock langfuseClient to avoid real Langfuse initialization
+// Mock langfuse modules before dynamically importing gpt (which depends on them)
 mock.module("../langfuseClient", () => ({
   getLangfuseClient: () => {
     throw new Error("Langfuse client not initialized");
   },
   isLangfuseInitialized: () => false,
 }));
-
-// Mock langfuseVercelAi to avoid Langfuse prompt fetching
 mock.module("../langfuseVercelAi", () => ({
   createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
   preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
 }));
 
-import {AIRequest} from "../models/aiRequest";
-import {GptHistory} from "../models/gptHistory";
-import {AIService} from "../service/aiService";
-import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
-import {addGptRoutes} from "./gpt";
-import {addGptHistoryRoutes} from "./gptHistories";
+const {addGptRoutes} = await import("./gpt");
 
 // Test user schema
 const userSchema = new mongoose.Schema({
