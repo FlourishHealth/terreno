@@ -22,6 +22,7 @@ export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
 export * from "./scriptRunner";
+export * from "./syncConsents";
 export * from "./secretProviders";
 export * from "./terrenoApp";
 export * from "./terrenoPlugin";
