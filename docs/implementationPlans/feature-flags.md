@@ -108,6 +108,13 @@ userSchema.plugin(featureFlagsPlugin);
 
 Flag management routes are mounted by `AdminApp` automatically when flags are configured. Admin endpoints require `IsAdmin`, the `/flags/me` endpoint requires `IsAuthenticated`.
 
+`AdminApp.register()` becomes async to accommodate the startup flag sync. Callers must await it before starting the server:
+
+```typescript
+await admin.register(app);
+app.listen(port);
+```
+
 ### Flag Management (mounted by AdminApp)
 
 | Method | Path | Description | Permission |
@@ -133,6 +140,7 @@ Returns a simple `Record<string, boolean | string>` — just keys and resolved v
 - User override endpoints update `user.featureFlags` Map.
 - GET `/admin/flags` supports `?status=active` and `?status=archived` query params.
 - GET `/admin/flags/:key/users` returns a list of users who have overrides set, with their override values.
+- `GET /admin/flags/me` **must be registered before** `GET /admin/flags/:key` to prevent Express matching `"me"` as a key value.
 
 ### Internal Evaluation API (not HTTP — used in code)
 
@@ -257,10 +265,10 @@ Flag changes (toggle, global value, user overrides) are written to audit logs wi
   - Acceptance: Plugin can be applied to a schema, adds the `featureFlags` field
 
 - [ ] **Task 1.3**: Add flag registration and startup sync to `AdminApp`
-  - Description: Extend `AdminApp` constructor to accept an optional `flags` array of `{key, type, defaultValue, description}`. On `register()`, perform transactional sync: bulkWrite upserts for registered flags, updateMany to archive unregistered flags. Use `mongoose.startSession()` with `withTransaction()`. If no flags are configured, skip sync entirely.
+  - Description: Extend `AdminApp` constructor to accept an optional `flags` array of `{key, type, defaultValue, description}`. Make `register()` async. On `register()`, perform transactional sync: bulkWrite upserts for registered flags, updateMany to archive unregistered flags. Use `mongoose.startSession()` with `withTransaction()`. If no flags are configured, skip sync entirely. Callers must `await admin.register(app)` before calling `app.listen()`.
   - Files: `admin-backend/src/adminApp.ts`
   - Depends on: Task 1.1
-  - Acceptance: Flags sync to DB on startup, concurrent starts don't create duplicates, removed flags get archived, existing `enabled`/`globalValue` are preserved, no-op when no flags configured
+  - Acceptance: Flags sync to DB on startup, concurrent starts don't create duplicates, removed flags get archived, existing `enabled`/`globalValue` are preserved, no-op when no flags configured, `register()` returns a Promise
 
 - [ ] **Task 1.4**: Add evaluation API to `AdminApp`
   - Description: Add `variation()`, `boolVariation()`, `stringVariation()`, and `allFlags()` methods to `AdminApp`. Follow evaluation order: user override → global value → flag default → code default. Anonymous (null user) gets global default only.
