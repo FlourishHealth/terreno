@@ -141,6 +141,20 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new AdminApp({
+          flags: [
+            {
+              defaultValue: false,
+              description: "Enable the new feature for testing",
+              flagType: "boolean",
+              key: "new-feature",
+            },
+            {
+              defaultValue: false,
+              description: "Enable verbose websocket debug logging",
+              flagType: "boolean",
+              key: "ws-debug",
+            },
+          ],
           models: [
             {
               displayName: "Todos",
@@ -156,6 +170,8 @@ export async function start(skipListen = false): Promise<express.Application> {
               routePath: "/users",
             },
           ],
+          // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+          userModel: User as any,
         })
       );
 
@@ -165,7 +181,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
     }
 
-    const app = terraApp.start();
+    const app = await terraApp.start();
 
     // Log total boot time
     const totalBootTime = process.hrtime(BOOT_START_TIME);

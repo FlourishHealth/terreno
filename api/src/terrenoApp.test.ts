@@ -27,8 +27,8 @@ describe("TerrenoApp", () => {
   });
 
   describe("build", () => {
-    it("returns an express application without listening", () => {
-      const app = new TerrenoApp({
+    it("returns an express application without listening", async () => {
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       }).build();
@@ -36,8 +36,8 @@ describe("TerrenoApp", () => {
       expect(app).toBeDefined();
     });
 
-    it("creates server with custom corsOrigin", () => {
-      const app = new TerrenoApp({
+    it("creates server with custom corsOrigin", async () => {
+      const app = await new TerrenoApp({
         corsOrigin: "https://example.com",
         skipListen: true,
         userModel: UserModel as any,
@@ -48,8 +48,8 @@ describe("TerrenoApp", () => {
   });
 
   describe("start", () => {
-    it("returns an express application with skipListen", () => {
-      const app = new TerrenoApp({
+    it("returns an express application with skipListen", async () => {
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       }).start();
@@ -81,7 +81,7 @@ describe("TerrenoApp", () => {
       expect(foodRegistration.__type).toBe("modelRouter");
       expect(foodRegistration.path).toBe("/food");
 
-      const app = new TerrenoApp({
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       })
@@ -113,7 +113,7 @@ describe("TerrenoApp", () => {
         },
       });
 
-      const app = new TerrenoApp({
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       })
@@ -125,13 +125,13 @@ describe("TerrenoApp", () => {
   });
 
   describe("register with plugin", () => {
-    it("calls plugin.register with the express app", () => {
+    it("calls plugin.register with the express app", async () => {
       const registerFn = mock(() => {});
       const plugin: TerrenoPlugin = {
         register: registerFn,
       };
 
-      const app = new TerrenoApp({
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       })
@@ -153,7 +153,7 @@ describe("TerrenoApp", () => {
         next();
       };
 
-      const app = new TerrenoApp({
+      const app = await new TerrenoApp({
         skipListen: true,
         userModel: UserModel as any,
       })

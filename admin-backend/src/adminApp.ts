@@ -1,11 +1,15 @@
 import {
   getOpenApiSpecForModel,
+  logger,
   type ModelRouterOptions,
   modelRouter,
   Permissions,
 } from "@terreno/api";
 import type express from "express";
 import type {Model} from "mongoose";
+import mongoose from "mongoose";
+import {FeatureFlag, type FeatureFlagDocument} from "./models/featureFlag";
+import {createFlagRoutes} from "./routes/flags";
 
 export interface AdminModelConfig {
   model: Model<any>;
@@ -15,9 +19,18 @@ export interface AdminModelConfig {
   defaultSort?: string;
 }
 
+export interface FlagDefinition {
+  key: string;
+  flagType: "boolean" | "string";
+  defaultValue: any;
+  description?: string;
+}
+
 export interface AdminOptions {
   models: AdminModelConfig[];
   basePath?: string;
+  flags?: FlagDefinition[];
+  userModel?: Model<any>;
 }
 
 interface AdminFieldMeta {
@@ -67,12 +80,16 @@ const extractFieldMeta = (
 
 export class AdminApp {
   private options: AdminOptions;
+  private flagCache: Map<string, FeatureFlagDocument> = new Map();
 
   constructor(options: AdminOptions) {
     this.options = options;
+    if (options.flags && options.flags.length > 0 && !options.userModel) {
+      throw new Error("AdminApp: userModel is required when flags are configured");
+    }
   }
 
-  register(app: express.Application): void {
+  async register(app: express.Application): Promise<void> {
     const basePath = this.options.basePath ?? "/admin";
     const modelConfigs = this.options.models;
 
@@ -128,5 +145,138 @@ export class AdminApp {
 
       app.use(`${basePath}${config.routePath}`, modelRouter(config.model, routerOptions));
     }
+
+    // Feature flags setup
+    if (this.options.flags && this.options.flags.length > 0) {
+      await this.syncFlags(this.options.flags);
+
+      // Mount flag routes
+      const flagRouter = createFlagRoutes(this, this.options.userModel!);
+      app.use(`${basePath}/flags`, flagRouter);
+    }
+  }
+
+  private async syncFlags(flags: FlagDefinition[]): Promise<void> {
+    const registeredKeys = flags.map((f) => f.key);
+
+    const bulkOps = flags.map((flag) => ({
+      updateOne: {
+        filter: {key: flag.key},
+        update: {
+          $set: {
+            defaultValue: flag.defaultValue,
+            description: flag.description ?? "",
+            flagType: flag.flagType,
+            status: "active",
+          },
+          $setOnInsert: {
+            enabled: false,
+            key: flag.key,
+          },
+        },
+        upsert: true,
+      },
+    }));
+
+    try {
+      // Try transactional sync first (requires replica set)
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          await FeatureFlag.bulkWrite(bulkOps, {session});
+          await FeatureFlag.updateMany(
+            {key: {$nin: registeredKeys}, status: "active"},
+            {$set: {status: "archived"}},
+            {session}
+          );
+        });
+      } finally {
+        await session.endSession();
+      }
+    } catch (err: any) {
+      // Fall back to non-transactional sync (standalone MongoDB)
+      if (
+        err?.message?.includes("Transaction") ||
+        err?.codeName === "IllegalOperation" ||
+        err?.code === 20
+      ) {
+        logger.debug("Transactions not available, syncing flags without transaction");
+        await FeatureFlag.bulkWrite(bulkOps);
+        await FeatureFlag.updateMany(
+          {key: {$nin: registeredKeys}, status: "active"},
+          {$set: {status: "archived"}}
+        );
+      } else {
+        throw err;
+      }
+    }
+
+    await this.refreshFlagCache();
+
+    logger.info(`Feature flags synced: ${registeredKeys.length} flags registered`);
+  }
+
+  async refreshFlagCache(): Promise<void> {
+    const flags = await FeatureFlag.find({});
+    this.flagCache.clear();
+    for (const flag of flags) {
+      this.flagCache.set(flag.key, flag);
+    }
+  }
+
+  async variation(key: string, user: any | null, defaultValue: any): Promise<any> {
+    // Check user override first
+    if (user?.featureFlags?.has?.(key)) {
+      return user.featureFlags.get(key);
+    }
+
+    const flag = this.flagCache.get(key);
+    if (!flag || !flag.enabled) {
+      return defaultValue;
+    }
+
+    // globalValue takes priority over flag defaultValue when set
+    if (flag.globalValue !== undefined && flag.globalValue !== null) {
+      return flag.globalValue;
+    }
+
+    return flag.defaultValue;
+  }
+
+  async boolVariation(key: string, user: any | null, defaultValue: boolean): Promise<boolean> {
+    const value = await this.variation(key, user, defaultValue);
+    return Boolean(value);
+  }
+
+  async stringVariation(key: string, user: any | null, defaultValue: string): Promise<string> {
+    const value = await this.variation(key, user, defaultValue);
+    return String(value);
+  }
+
+  async allFlags(user: any | null): Promise<Record<string, any>> {
+    const result: Record<string, any> = {};
+    for (const [key, flag] of this.flagCache.entries()) {
+      if (flag.status !== "active") {
+        continue;
+      }
+
+      // Check user override
+      if (user?.featureFlags?.has?.(key)) {
+        result[key] = user.featureFlags.get(key);
+        continue;
+      }
+
+      if (!flag.enabled) {
+        result[key] = flag.defaultValue;
+        continue;
+      }
+
+      if (flag.globalValue !== undefined && flag.globalValue !== null) {
+        result[key] = flag.globalValue;
+      } else {
+        result[key] = flag.defaultValue;
+      }
+    }
+    return result;
   }
 }

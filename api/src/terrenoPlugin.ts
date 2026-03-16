@@ -35,5 +35,5 @@ export interface TerrenoPlugin {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application): void;
+  register(app: express.Application): void | Promise<void>;
 }

@@ -1,3 +1,4 @@
+import {featureFlagsPlugin} from "@terreno/admin-backend";
 import mongoose from "mongoose";
 import _passportLocalMongoose from "passport-local-mongoose";
 import type {UserDocument, UserModel} from "../types";
@@ -50,6 +51,7 @@ userSchema.plugin(passportLocalMongoose, {
 });
 
 addDefaultPlugins(userSchema);
+userSchema.plugin(featureFlagsPlugin);
 
 // Define methods (use .method() to avoid overwriting passport-local-mongoose methods)
 userSchema.method("getDisplayName", function (this: UserDocument): string {

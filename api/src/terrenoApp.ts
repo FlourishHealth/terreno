@@ -182,11 +182,11 @@ export class TerrenoApp {
    * Use this method when you need the Express app instance for testing
    * or custom server setup. For normal use, call `start()` instead.
    *
-   * @returns Configured Express application instance
+   * @returns Promise resolving to configured Express application instance
    *
    * @example
    * ```typescript
-   * const app = new TerrenoApp({ userModel: User })
+   * const app = await new TerrenoApp({ userModel: User })
    *   .register(todoRouter)
    *   .build();
    *
@@ -194,7 +194,7 @@ export class TerrenoApp {
    * await request(app).get("/todos").expect(200);
    * ```
    */
-  build(): express.Application {
+  async build(): Promise<express.Application> {
     setupLogging(this.options.loggingOptions);
 
     const app = express();
@@ -278,7 +278,7 @@ export class TerrenoApp {
       if (this.isModelRouterRegistration(registration)) {
         app.use(registration.path, registration.router);
       } else {
-        registration.register(app);
+        await registration.register(app);
       }
     }
 
@@ -308,7 +308,7 @@ export class TerrenoApp {
    * listening on the port specified by the `PORT` environment variable (default: 9000).
    * If `skipListen` option is true, the app is built but the server is not started.
    *
-   * @returns Configured Express application instance
+   * @returns Promise resolving to configured Express application instance
    *
    * @throws Process exits with code 1 if the server fails to start
    *
@@ -316,13 +316,13 @@ export class TerrenoApp {
    * ```typescript
    * // Start server on port 3000
    * process.env.PORT = "3000";
-   * const app = new TerrenoApp({ userModel: User })
+   * const app = await new TerrenoApp({ userModel: User })
    *   .register(todoRouter)
    *   .start();
    * ```
    */
-  start(): express.Application {
-    const app = this.build();
+  async start(): Promise<express.Application> {
+    const app = await this.build();
 
     if (!this.options.skipListen) {
       const port = process.env.PORT || "9000";
