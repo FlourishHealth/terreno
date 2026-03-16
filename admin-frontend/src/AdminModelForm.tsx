@@ -17,9 +17,27 @@ interface AdminModelFormProps {
 }
 
 const getEditableFields = (
-  fields: Record<string, AdminFieldConfig>
+  fields: Record<string, AdminFieldConfig>,
+  fieldOrder?: string[]
 ): [string, AdminFieldConfig][] => {
-  return Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
+  const entries = Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
+  if (!fieldOrder || fieldOrder.length === 0) {
+    return entries;
+  }
+  const entryMap = new Map(entries);
+  const ordered: [string, AdminFieldConfig][] = [];
+  for (const key of fieldOrder) {
+    const config = entryMap.get(key);
+    if (config) {
+      ordered.push([key, config]);
+      entryMap.delete(key);
+    }
+  }
+  // Append any remaining fields not in fieldOrder
+  for (const [key, config] of entryMap) {
+    ordered.push([key, config]);
+  }
+  return ordered;
 };
 
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
@@ -134,7 +152,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
       if (modelConfig) {
-        for (const [key] of getEditableFields(modelConfig.fields)) {
+        for (const [key] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
           initial[key] = itemData[key] ?? "";
         }
       }
@@ -146,7 +164,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, any> = {};
-      for (const [key, fieldConfig] of getEditableFields(modelConfig.fields)) {
+      for (const [key, fieldConfig] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
         initial[key] = fieldConfig.default ?? "";
       }
       setFormState(initial);
@@ -168,7 +186,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return false;
     }
     const newErrors: Record<string, string> = {};
-    for (const [key, fieldConfig] of getEditableFields(modelConfig.fields)) {
+    for (const [key, fieldConfig] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
       if (fieldConfig.required && (formState[key] == null || formState[key] === "")) {
         newErrors[key] = `${key} is required`;
       }
@@ -225,7 +243,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     );
   }
 
-  const editableFields = getEditableFields(modelConfig.fields);
+  const editableFields = getEditableFields(modelConfig.fields, modelConfig.fieldOrder);
   const isSaving = isCreating || isUpdating;
   const saveLabel = mode === "create" ? "Create" : "Save";
 

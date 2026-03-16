@@ -40,6 +40,8 @@ export interface AdminModelConfig {
   defaultSort?: string;
   /** Per-field overrides for widget type and other display options */
   fieldOverrides?: Record<string, AdminFieldOverride>;
+  /** Ordered list of field names for the form. Fields not listed are appended at the end. */
+  fieldOrder?: string[];
 }
 
 /**
@@ -83,6 +85,7 @@ interface AdminModelMeta {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldMeta>;
+  fieldOrder?: string[];
 }
 
 interface AdminScriptMeta {
@@ -222,6 +225,7 @@ export class AdminApp {
       return {
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
+        fieldOrder: config.fieldOrder,
         fields,
         listFields: config.listFields,
         name: config.model.modelName,

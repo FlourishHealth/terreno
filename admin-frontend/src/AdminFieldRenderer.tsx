@@ -166,6 +166,23 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     );
   }
 
+  // Textarea widget
+  if (fieldConfig.widget === "textarea") {
+    return (
+      <TextField
+        errorText={errorText}
+        grow
+        helperText={helperText}
+        multiline
+        onChange={onChange}
+        rows={6}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={value ?? ""}
+      />
+    );
+  }
+
   // Default: string -> TextField
   return (
     <TextField
