@@ -11,17 +11,17 @@ import {AIService} from "../service/aiService";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
 import {addGptHistoryRoutes} from "./gptHistories";
 
-// Mock langfuse modules before dynamically importing gpt (which depends on them)
-mock.module("../langfuseClient", () => ({
-  getLangfuseClient: () => {
-    throw new Error("Langfuse client not initialized");
+// Mock the langfuse npm package to prevent module resolution failures in test.
+// langfuseClient.ts imports from "langfuse" which may not resolve correctly
+// in the bun test context from subdirectories.
+mock.module("langfuse", () => ({
+  Langfuse: class MockLangfuse {
+    flushAsync = async () => {};
+    getPromptStateless = async () => ({data: {message: "mocked"}, fetchResult: "failure"});
   },
-  isLangfuseInitialized: () => false,
 }));
-mock.module("../langfuseVercelAi", () => ({
-  createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
-  preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
-}));
+
+mock.module("langfuse-core", () => ({}));
 
 const {addGptRoutes} = await import("./gpt");
 
