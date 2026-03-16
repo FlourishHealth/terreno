@@ -74,6 +74,7 @@ export class AIService {
 
     try {
       const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-text", isEnabled: true},
         maxOutputTokens,
         model: this.model,
         prompt,
@@ -114,6 +115,7 @@ export class AIService {
 
     try {
       const result = streamText({
+        experimental_telemetry: {functionId: "generate-text-stream", isEnabled: true},
         maxOutputTokens,
         model: this.model,
         prompt,
@@ -244,6 +246,7 @@ export class AIService {
 
     try {
       const result = streamText({
+        experimental_telemetry: {functionId: "generate-chat-stream", isEnabled: true},
         messages: messages.map((m) => ({content: m.content, role: m.role})),
         model: this.model,
         stopWhen: stopWhen ?? stepCountIs(1),
