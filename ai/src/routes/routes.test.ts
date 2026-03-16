@@ -4,6 +4,15 @@ import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
+
+// Mock langfuseClient before importing routes that depend on it
+mock.module("../langfuseClient", () => ({
+  getLangfuseClient: () => {
+    throw new Error("Langfuse client not initialized");
+  },
+  isLangfuseInitialized: () => false,
+}));
+
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {AIService} from "../service/aiService";
