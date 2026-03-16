@@ -166,8 +166,8 @@ export class AdminApp {
           $set: {
             defaultValue: flag.defaultValue,
             description: flag.description ?? "",
-            flagType: flag.flagType,
-            status: "active",
+            flagType: flag.flagType as "boolean" | "string",
+            status: "active" as const,
           },
           $setOnInsert: {
             enabled: false,
@@ -186,7 +186,7 @@ export class AdminApp {
           await FeatureFlag.bulkWrite(bulkOps, {session});
           await FeatureFlag.updateMany(
             {key: {$nin: registeredKeys}, status: "active"},
-            {$set: {status: "archived"}},
+            {$set: {status: "archived" as const}},
             {session}
           );
         });
@@ -204,7 +204,7 @@ export class AdminApp {
         await FeatureFlag.bulkWrite(bulkOps);
         await FeatureFlag.updateMany(
           {key: {$nin: registeredKeys}, status: "active"},
-          {$set: {status: "archived"}}
+          {$set: {status: "archived" as const}}
         );
       } else {
         throw err;

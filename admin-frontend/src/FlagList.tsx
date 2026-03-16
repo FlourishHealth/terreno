@@ -7,6 +7,7 @@ import {
   type DataTableCellData,
   type DataTableColumn,
   type DataTableCustomComponentMap,
+  Link,
   Page,
   SelectField,
   Spinner,
@@ -65,11 +66,7 @@ export const FlagList: React.FC<FlagListProps> = ({baseUrl, api, onFlagPress}) =
       ({cellData}: {column: DataTableColumn; cellData: DataTableCellData}) => {
         const {key, text} = cellData.value as {key: string; text: string};
         if (onFlagPress) {
-          return (
-            <Text bold color="primary" onClick={() => onFlagPress(key)}>
-              {text}
-            </Text>
-          );
+          return <Link onClick={() => onFlagPress(key)} text={text} />;
         }
         return <Text>{text}</Text>;
       },
