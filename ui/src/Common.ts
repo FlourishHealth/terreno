@@ -630,6 +630,16 @@ export interface ErrorTextProps {
   errorText?: string;
 }
 
+export interface AiSuggestionProps {
+  status: "not-started" | "generating" | "ready" | "added";
+  text?: string;
+  onAdd?: () => void;
+  onFeedback?: (feedback: "like" | "dislike" | null) => void;
+  feedback?: "like" | "dislike" | null;
+  notStartedText?: string;
+  generatingText?: string;
+}
+
 export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
   type?: "email" | "password" | "phoneNumber" | "search" | "text" | "url";
 
@@ -642,6 +652,8 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
 
   inputRef?: any;
   trimOnBlur?: boolean;
+
+  aiSuggestion?: AiSuggestionProps;
 }
 
 export interface TextAreaProps extends Omit<TextFieldProps, "multiline" | "type"> {}
