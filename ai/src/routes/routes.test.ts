@@ -5,12 +5,25 @@ import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
-// Mock langfuseClient before importing routes that depend on it
+// Mock langfuse packages so langfuseClient can load without the real SDK
+mock.module("langfuse", () => ({
+  Langfuse: class MockLangfuse {
+    flushAsync = async () => {};
+  },
+}));
+
+// Mock langfuseClient to avoid real Langfuse initialization
 mock.module("../langfuseClient", () => ({
   getLangfuseClient: () => {
     throw new Error("Langfuse client not initialized");
   },
   isLangfuseInitialized: () => false,
+}));
+
+// Mock langfuseVercelAi to avoid Langfuse prompt fetching
+mock.module("../langfuseVercelAi", () => ({
+  createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+  preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
 }));
 
 import {AIRequest} from "../models/aiRequest";
