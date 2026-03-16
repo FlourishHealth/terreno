@@ -31,7 +31,7 @@
   ],
   "license": "Apache-2.0",
   "peerDependencies": {
-    "mongoose": ">=9.0.0"
+    "mongoose": ">=8.0.0"
   },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
@@ -49,5 +49,5 @@
     "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "0.0.1"
+  "version": "0.6.0"
 }

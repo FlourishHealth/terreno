@@ -1590,6 +1590,7 @@ exports[`CustomSelectField renders with custom value (not in options) 1`] = `
                     "enterKeyHint": undefined,
                     "keyboardType": "default",
                     "multiline": undefined,
+                    "nativeID": "customOptions",
                     "numberOfLines": 1,
                     "onBlur": [Function],
                     "onChangeText": [Function],

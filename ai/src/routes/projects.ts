@@ -10,6 +10,7 @@ import type express from "express";
 import type mongoose from "mongoose";
 
 import {Project} from "../models/project";
+import type {ProjectDocument} from "../types";
 
 export const addProjectRoutes = (
   router: any,
@@ -26,10 +27,11 @@ export const addProjectRoutes = (
         read: [Permissions.IsOwner],
         update: [Permissions.IsOwner],
       },
-      preCreate: (body: Record<string, unknown>, req: express.Request) => ({
-        ...body,
-        userId: (req as any).user?._id,
-      }),
+      preCreate: (body: Record<string, unknown>, req: express.Request) =>
+        ({
+          ...body,
+          userId: (req as any).user?._id,
+        }) as unknown as ProjectDocument,
       queryFields: ["userId"],
       queryFilter: (user: any) => ({userId: user?.id}),
       sort: "-updated",

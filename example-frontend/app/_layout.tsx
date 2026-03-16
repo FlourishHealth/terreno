@@ -91,11 +91,11 @@ function RootLayoutNav(): React.ReactElement {
 
   // Redirect based on auth state — keeps all routes declared so refresh works
   useEffect(() => {
-    const isOnLoginPage = segments[0] === "login";
+    const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
 
-    if (!userId && !isOnLoginPage) {
+    if (!userId && !isOnAuthPage) {
       router.replace("/login");
-    } else if (userId && isOnLoginPage) {
+    } else if (userId && isOnAuthPage) {
       router.replace("/(tabs)");
     }
   }, [userId, segments, router]);

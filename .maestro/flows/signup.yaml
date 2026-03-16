@@ -1,0 +1,42 @@
+url: http://localhost:8082/login
+---
+# Sign up a new user
+# Prerequisites: backend running on port 4000, frontend running on port 8082
+
+- launchApp
+
+# Wait for the login screen to load
+- extendedWaitUntil:
+    visible: "Welcome Back"
+    timeout: 30000
+
+# Navigate to signup page
+- tapOn: "Need an account? Sign Up"
+
+# Assert signup screen loaded
+- extendedWaitUntil:
+    visible: "Create Account"
+    timeout: 10000
+
+# Fill in name
+- tapOn:
+    id: "signup-screen-name-input"
+- inputText: "New User"
+
+# Fill in email
+- tapOn:
+    id: "signup-screen-email-input"
+- inputText: "newuser-${Date.now()}@example.com"
+
+# Fill in password
+- tapOn:
+    id: "signup-screen-password-input"
+- inputText: "testpassword123"
+
+# Submit signup
+- tapOn: "Sign Up"
+
+# Assert navigation to Todos screen
+- extendedWaitUntil:
+    visible: "My Todos"
+    timeout: 15000
