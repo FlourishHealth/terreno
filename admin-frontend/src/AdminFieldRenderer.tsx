@@ -8,6 +8,7 @@ import {
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";
+import {CheckboxListEditor} from "./CheckboxListEditor";
 import type {AdminFieldConfig, AdminScreenProps} from "./types";
 
 interface AdminFieldRendererProps extends AdminScreenProps {
@@ -162,6 +163,19 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value ?? ""}
+      />
+    );
+  }
+
+  // Checkbox list widget
+  if (fieldConfig.widget === "checkbox-list") {
+    return (
+      <CheckboxListEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? []}
       />
     );
   }

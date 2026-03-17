@@ -5,6 +5,7 @@ export {AdminModelTable} from "./AdminModelTable";
 export {AdminRefField} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
+export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {ConsentFormEditor} from "./ConsentFormEditor";
 export {ConsentFormList} from "./ConsentFormList";

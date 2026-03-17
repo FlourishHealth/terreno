@@ -21,6 +21,7 @@ import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
+import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
@@ -188,6 +189,7 @@ export async function start(skipListen = false): Promise<express.Application> {
                 "checkboxes",
               ],
               fieldOverrides: {
+                checkboxes: {widget: "checkbox-list"},
                 content: {widget: "markdown"},
               },
               listFields: ["title", "type", "version", "active", "order"],
@@ -213,6 +215,35 @@ export async function start(skipListen = false): Promise<express.Application> {
                   results.push("Wet run: no additional changes made by this script");
                 } else {
                   results.push("Dry run: no changes made");
+                }
+                return {results, success: true};
+              },
+            },
+            {
+              description:
+                "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
+              name: "syncConsents",
+              runner: async (wetRun) => {
+                const {syncConsents: sync} = await import("@terreno/api");
+                const result = await sync(consentDefinitions, {
+                  deactivateRemoved: true,
+                  dryRun: !wetRun,
+                });
+                const results: string[] = [];
+                if (result.created.length > 0) {
+                  results.push(`Created: ${result.created.join(", ")}`);
+                }
+                if (result.updated.length > 0) {
+                  results.push(`Updated: ${result.updated.join(", ")}`);
+                }
+                if (result.deactivated.length > 0) {
+                  results.push(`Deactivated: ${result.deactivated.join(", ")}`);
+                }
+                if (result.unchanged.length > 0) {
+                  results.push(`Unchanged: ${result.unchanged.join(", ")}`);
+                }
+                if (results.length === 0) {
+                  results.push("Nothing to do");
                 }
                 return {results, success: true};
               },
