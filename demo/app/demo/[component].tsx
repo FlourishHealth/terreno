@@ -26,6 +26,7 @@ import cloneDeep from "lodash/cloneDeep";
 import startCase from "lodash/startCase";
 import type React from "react";
 import {type FC, useEffect, useState} from "react";
+import {Linking, Pressable} from "react-native";
 import MarkdownView from "react-native-markdown-display";
 
 export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
@@ -221,9 +222,10 @@ const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
 };
 
 const ComponentStatusSection: FC<{
+  href?: string;
   status: DemoConfigStatus;
   title: string;
-}> = ({status, title}) => {
+}> = ({href, status, title}) => {
   let iconName: IconName = "circle";
   let color: TextColor = "secondaryLight";
   switch (status) {
@@ -242,12 +244,15 @@ const ComponentStatusSection: FC<{
       iconName = "calendar";
       break;
   }
+
+  const icon = <Icon color={color} iconName={iconName} size="md" />;
+
   return (
     <Box alignItems="center" direction="row" marginBottom={2} marginRight={4}>
       <Box marginRight={1}>
         <Text>{title}:</Text>
       </Box>
-      <Icon color={color} iconName={iconName} size="md" />
+      {href ? <Pressable onPress={() => Linking.openURL(href)}>{icon}</Pressable> : icon}
     </Box>
   );
 };
@@ -260,7 +265,11 @@ const ComponentStatus: FC<{config: DemoConfiguration}> = ({config}) => {
       </Box>
       <Box direction="column" mdDirection="row">
         <ComponentStatusSection status={config.status.documentation} title="Documentation" />
-        <ComponentStatusSection status={config.status.figma} title="Figma" />
+        <ComponentStatusSection
+          href={config.status.figmaLink}
+          status={config.status.figma}
+          title="Figma"
+        />
         <ComponentStatusSection status={config.status.web} title="Web" />
         <ComponentStatusSection status={config.status.ios} title="iOS" />
         <ComponentStatusSection status={config.status.android} title="Android" />
@@ -287,11 +296,13 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
               </Text>
             </Box>
             {config.usage.do.map((item, i) => (
-              <Box alignItems="center" direction="row" key={i} marginBottom={1}>
+              <Box direction="row" key={i} marginBottom={1}>
                 <Box marginRight={1}>
                   <Icon color="success" iconName="circle-check" size="sm" />
                 </Box>
-                <Text>{item}</Text>
+                <Box flex="shrink">
+                  <Text>{item}</Text>
+                </Box>
               </Box>
             ))}
           </Box>
@@ -304,11 +315,13 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
               </Text>
             </Box>
             {config.usage.doNot.map((item, i) => (
-              <Box alignItems="center" direction="row" key={i} marginBottom={1}>
+              <Box direction="row" key={i} marginBottom={1}>
                 <Box marginRight={1}>
                   <Icon color="error" iconName="circle-xmark" size="sm" />
                 </Box>
-                <Text>{item}</Text>
+                <Box flex="shrink">
+                  <Text>{item}</Text>
+                </Box>
               </Box>
             ))}
           </Box>
@@ -328,11 +341,13 @@ const ComponentA11yNotes: FC<{config: DemoConfiguration}> = ({config}) => {
         <Heading size="sm">Accessibility</Heading>
       </Box>
       {config.a11yNotes.map((note, i) => (
-        <Box alignItems="center" direction="row" key={i} marginBottom={1}>
+        <Box direction="row" key={i} marginBottom={1}>
           <Box marginRight={1}>
             <Icon color="secondaryLight" iconName="universal-access" size="sm" />
           </Box>
-          <Text>{note}</Text>
+          <Box flex="shrink">
+            <Text>{note}</Text>
+          </Box>
         </Box>
       ))}
     </Box>
