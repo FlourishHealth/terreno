@@ -61,6 +61,10 @@ jobs:
         run: bun run compile
         working-directory: admin-backend
 
+      - name: Build UI dependency
+        run: bun run compile
+        working-directory: ui
+
       - name: Lint
         run: bun run lint
         working-directory: example-backend

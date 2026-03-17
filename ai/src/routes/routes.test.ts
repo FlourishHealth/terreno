@@ -4,12 +4,20 @@ import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
+
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {AIService} from "../service/aiService";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
-import {addGptRoutes} from "./gpt";
 import {addGptHistoryRoutes} from "./gptHistories";
+
+// Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests
+mock.module("../langfuseVercelAi", () => ({
+  createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+  preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
+}));
+
+const {addGptRoutes} = await import("./gpt");
 
 // Test user schema
 const userSchema = new mongoose.Schema({

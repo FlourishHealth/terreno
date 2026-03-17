@@ -60,7 +60,7 @@ You can see the [web demo here](https://terreno-demo.netlify.app)
 
 # Installation
 
-    yarn add @terreno/ui
+    bun add @terreno/ui
 
 # Usage
 
@@ -105,11 +105,11 @@ If you need to test your changes in another project, you can use this handy bash
 
     # sync ui to different app
     syncui() {
-        cd <PATH>/terreno/ui && yarn build && rsync -avp <PATH>/terreno/ui/dist/* <PATH>/app/node_modules/@terreno/ui/dist/
+        cd <PATH>/terreno/ui && bun run build && rsync -avp <PATH>/terreno/ui/dist/* <PATH>/app/node_modules/@terreno/ui/dist/
     }
 
 Update the paths to match your project directories. This will build and pack up @terreno/ui like it is being
-send to NPM, then install it from the created tarball in your app. `yarn link` is also an option but React
+send to NPM, then install it from the created tarball in your app. `bun link` is also an option but React
 Native requires extra configuration to support symlinks.
 
 ## Releasing
@@ -154,7 +154,7 @@ To use your newly released version of @terreno/ui in your app:
 
 To upgrade to the latest Expo and upgrade the related dependencies:
 
-    yarn upgrades
+    bun update
 
 This will upgrade Expo, upgrade Expo packages, sync the changes from apps/demo to packages/ui,
-and update yarn.lock.
+and update bun.lock.

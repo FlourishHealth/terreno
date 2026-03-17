@@ -4,7 +4,7 @@ const fs = require("fs");
 
 // Find the project and monorepo workspace directories
 const projectRoot = __dirname;
-// This can be replaced with `find-yarn-workspace-root`
+// This can be replaced with `find-bun-workspace-root` or similar
 const monorepoRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);
@@ -94,12 +94,31 @@ const findLayoutFiles = (dir) => {
 
 const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
 
+// Backend-only modules that should not be bundled in web/native builds.
+// @terreno/api pulls in @wesleytodd/openapi -> merge-deep -> clone-deep@0.2.4
+// which uses lazy-cache syntax that Metro cannot parse.
+const backendOnlyModules = [
+  "@terreno/api",
+  "express",
+  "@wesleytodd/openapi",
+  "expo-notifications",
+];
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
   if (platform === "web" && (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/"))) {
     return {
       type: "empty",
     };
+  }
+
+  // Exclude backend-only modules from frontend builds
+  if (
+    backendOnlyModules.some(
+      (mod) => moduleName === mod || moduleName.startsWith(mod + "/")
+    )
+  ) {
+    return {type: "empty"};
   }
 
   // Fix relative imports when HMR incorrectly uses monorepo root as origin.

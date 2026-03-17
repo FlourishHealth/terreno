@@ -419,6 +419,11 @@ const AiScreen: React.FC = () => {
       onSubmit={handleSubmit}
       onUpdateTitle={handleUpdateTitle}
       selectedModel={selectedModel}
+      suggestedPrompts={[
+        "Tell me a dad joke about TypeScript",
+        "Make a pun about React hooks",
+        "Tell me a witty joke about MongoDB",
+      ]}
       testID="chat"
     />
   );

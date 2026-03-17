@@ -9,6 +9,7 @@ import type {Tool} from "ai";
 import {stepCountIs, streamText} from "ai";
 import type express from "express";
 import type mongoose from "mongoose";
+import {createTelemetryConfig, preparePromptForAI} from "../langfuseVercelAi";
 
 import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
@@ -189,6 +190,25 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           }
         }
 
+        // Load system prompt from Langfuse if configured
+        if (options.langfuseSystemPromptName) {
+          try {
+            const langfuseResult = await preparePromptForAI({
+              promptName: options.langfuseSystemPromptName,
+              userId: userId?.toString(),
+            });
+            const langfusePrompt =
+              typeof langfuseResult.prompt === "string" ? langfuseResult.prompt : undefined;
+            if (langfusePrompt) {
+              effectiveSystemPrompt = effectiveSystemPrompt
+                ? `${langfusePrompt}\n\n${effectiveSystemPrompt}`
+                : langfusePrompt;
+            }
+          } catch (err) {
+            logger.debug(`Langfuse system prompt skipped: ${(err as Error).message}`);
+          }
+        }
+
         // Build content parts from attachments
         const contentParts: MessageContentPart[] = [{text: prompt, type: "text"}];
         if (attachments && Array.isArray(attachments)) {
@@ -265,7 +285,17 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         const startTime = Date.now();
         try {
           logger.debug("Starting streamText", {model: modelId, supportsTools});
+          const telemetry = createTelemetryConfig({
+            functionId: "gpt-prompt",
+            metadata: {
+              ...(options.langfuseSystemPromptName
+                ? {langfusePromptName: options.langfuseSystemPromptName}
+                : {}),
+            },
+            userId: userId?.toString(),
+          });
           const result = streamText({
+            experimental_telemetry: telemetry,
             messages,
             model: (aiService as any).model,
             providerOptions: !supportsTools
