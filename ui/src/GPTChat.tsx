@@ -748,8 +748,8 @@ export const GPTChat = ({
       if (testId !== "gpt-input") {
         return;
       }
-      if (e.metaKey) {
-        // Cmd+Enter: allow default (new line)
+      if (e.metaKey || e.shiftKey) {
+        // Cmd+Enter or Shift+Enter: allow default (new line)
         return;
       }
       e.preventDefault();

@@ -45,7 +45,7 @@ export class LangfuseApp implements TerrenoPlugin {
       );
     }
 
-    process.on("SIGTERM", () => {
+    process.once("SIGTERM", () => {
       void this.shutdown();
     });
   }

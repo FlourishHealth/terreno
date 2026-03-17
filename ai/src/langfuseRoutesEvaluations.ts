@@ -38,7 +38,7 @@ export const addEvaluationRoutes = (
         dataType: dataType as "NUMERIC" | "CATEGORICAL" | "BOOLEAN" | undefined,
         name,
         traceId,
-        value: value as number,
+        value,
       });
 
       await client.flushAsync();
