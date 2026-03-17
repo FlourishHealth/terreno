@@ -6,18 +6,13 @@ import {
   type DemoConfigurationProp,
 } from "@config";
 import {
-  Badge,
   Box,
+  DataTable,
   Field,
   Heading,
   Icon,
   type IconName,
   Link,
-  Table,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-  TableText,
   Text,
   type TextColor,
 } from "@terreno/ui";
@@ -32,57 +27,43 @@ import MarkdownView from "react-native-markdown-display";
 export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
 
 const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
-  // TODO: setup these widths for mobile too.
+  if (!props?.length) {
+    return null;
+  }
 
-  // sort props into all the ones that are required first, then the rest
-  const sortProps = (p: DemoConfigurationProp[]): DemoConfigurationProp[] => {
-    if (!p) return [];
-    return p.sort((a, b) => {
-      // First, sort by optionality (non-optional first)
-      if (a.flags.isOptional !== b.flags.isOptional) {
-        return a.flags.isOptional ? 1 : -1;
-      }
+  const sortedProps = [...props].sort((a, b) => {
+    if (a.flags.isOptional !== b.flags.isOptional) {
+      return a.flags.isOptional ? 1 : -1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
-      // Then, sort alphabetically by name
-      return a.name.localeCompare(b.name);
-    });
-  };
+  const columns = [
+    {columnType: "text", title: "Name", width: 180},
+    {columnType: "text", title: "Type", width: 300},
+    {columnType: "text", title: "Required", width: 100},
+    {columnType: "text", title: "Description", width: 350},
+  ];
 
-  const sortedProps = sortProps(props);
+  const data = sortedProps.map((p) => [
+    {value: p.name},
+    {value: p.type.name},
+    {value: p.flags?.isOptional ? "" : "Required"},
+    {value: p.comment?.summary?.[0]?.text ?? ""},
+  ]);
 
   return (
     <Box marginBottom={4}>
       <Box marginBottom={2}>
         <Heading>Props</Heading>
       </Box>
-      <Table columns={[160, 600, 160]}>
-        <TableHeader>
-          <TableHeaderCell index={0} title="Name" />
-          <TableHeaderCell index={1} title="Type" />
-          <TableHeaderCell index={2} title="Default" />
-        </TableHeader>
-        {sortedProps.map((p) => (
-          <TableRow key={p.name}>
-            <Box direction="row">
-              <TableText value={p.name} />
-              {Boolean(p.flags?.isOptional !== true) && (
-                <Box marginLeft={1}>
-                  <Badge status="warning" value="Required" />
-                </Box>
-              )}
-            </Box>
-            <Box direction="column" width={160} wrap>
-              <TableText value={p.type.name} />
-              {Boolean(p.comment?.summary?.[0]?.text) && (
-                <Box marginTop={2}>
-                  <TableText value={p.comment?.summary?.[0]?.text} />
-                </Box>
-              )}
-            </Box>
-            <TableText value="-" />
-          </TableRow>
-        ))}
-      </Table>
+      <DataTable
+        alternateRowBackground
+        columns={columns}
+        data={data}
+        defaultTextSize="sm"
+        rowHeight={40}
+      />
     </Box>
   );
 };
