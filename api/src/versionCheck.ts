@@ -41,7 +41,7 @@ export class VersionCheckPlugin implements TerrenoPlugin {
 
         const platformNormalized = platform === "web" || platform === "mobile" ? platform : "web";
 
-        const config = await VersionConfig.findOne().lean();
+        const config = await VersionConfig.findOneOrNone({});
 
         if (!config) {
           return res.json({status: "ok" as VersionCheckStatus});

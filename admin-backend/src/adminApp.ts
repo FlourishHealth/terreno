@@ -265,7 +265,7 @@ export class AdminApp {
         if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        const config = await VersionConfig.findOne().lean();
+        const config = await VersionConfig.findOneOrNone({});
         const defaults = {
           mobileRequiredVersion: 0,
           mobileWarningVersion: 0,
@@ -294,15 +294,13 @@ export class AdminApp {
           webWarningVersion: number;
           warningMessage: string;
         }>;
-        const existing = await VersionConfig.findOne();
-        let doc;
-        if (existing) {
-          Object.assign(existing, body);
-          doc = await existing.save();
-        } else {
-          doc = await VersionConfig.create(body);
-        }
-        return res.json(doc.toObject ? doc.toObject() : doc);
+        const doc = await VersionConfig.findOneAndUpdate({}, {$set: body}, {
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          upsert: true,
+        }).lean();
+        return res.json(doc);
       })
     );
 

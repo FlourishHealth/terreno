@@ -49,10 +49,11 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
   const useVersionConfigQuery = (enhancedApi as any).useAdminVersionConfigQuery;
   const [updateConfig] = (enhancedApi as any).useUpdateVersionConfigMutation();
 
-  const {data, isLoading: isFetching} = useVersionConfigQuery();
+  const {data, isLoading: isFetching, error: fetchError} = useVersionConfigQuery();
 
+  // Populate form state with fetched config data or defaults when the query completes
   useEffect(() => {
-    if (isFetching) {
+    if (isFetching || fetchError) {
       return;
     }
     const defaults = {
@@ -116,6 +117,17 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
       <Page maxWidth="100%" title="Version Config">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
+        </Box>
+      </Page>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <Page maxWidth="100%" title="Version Config">
+        <Box alignItems="center" gap={4} justifyContent="center" padding={6}>
+          <Text color="error">Failed to load version config. Please try again later.</Text>
+          <Button onClick={handleBack} text="Back" variant="outline" />
         </Box>
       </Page>
     );

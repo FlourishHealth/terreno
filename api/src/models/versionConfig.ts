@@ -1,6 +1,7 @@
-import mongoose from "mongoose";
+import mongoose, {type Document} from "mongoose";
 
-import {createdUpdatedPlugin} from "../plugins";
+import {type APIErrorConstructor} from "../errors";
+import {createdUpdatedPlugin, findOneOrNone} from "../plugins";
 
 export interface VersionConfigDocument extends mongoose.Document {
   webWarningVersion: number;
@@ -12,6 +13,13 @@ export interface VersionConfigDocument extends mongoose.Document {
   updateUrl?: string;
   created?: Date;
   updated?: Date;
+}
+
+export interface VersionConfigModel extends mongoose.Model<VersionConfigDocument> {
+  findOneOrNone(
+    query: Record<string, any>,
+    errorArgs?: Partial<APIErrorConstructor>
+  ): Promise<(Document & VersionConfigDocument) | null>;
 }
 
 const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
@@ -55,9 +63,22 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
-versionConfigSchema.plugin(createdUpdatedPlugin);
+// Enforce singleton: only one VersionConfig document can exist
+(versionConfigSchema as mongoose.Schema).add({
+  _singleton: {
+    default: "config",
+    description: "Sentinel field to enforce singleton via unique index",
+    immutable: true,
+    select: false,
+    type: String,
+  },
+});
+versionConfigSchema.index({_singleton: 1}, {unique: true});
 
-export const VersionConfig = mongoose.model<VersionConfigDocument>(
+versionConfigSchema.plugin(createdUpdatedPlugin);
+versionConfigSchema.plugin(findOneOrNone);
+
+export const VersionConfig = mongoose.model<VersionConfigDocument, VersionConfigModel>(
   "VersionConfig",
   versionConfigSchema
 );
