@@ -19,12 +19,19 @@ export interface AdminModelConfig {
   fields: Record<string, AdminFieldConfig>;
 }
 
+export interface AdminCustomScreen {
+  displayName: string;
+  name: string;
+  routePath: string;
+}
+
 export interface AdminScriptConfig {
   name: string;
   description: string;
 }
 
 export interface AdminConfigResponse {
+  customScreens?: AdminCustomScreen[];
   models: AdminModelConfig[];
   scripts: AdminScriptConfig[];
 }

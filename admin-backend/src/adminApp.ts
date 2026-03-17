@@ -4,6 +4,7 @@ import {
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
+  checkPermissions,
   getOpenApiSpecForModel,
   logger,
   type ModelRouterOptions,
@@ -13,6 +14,7 @@ import {
   type ScriptResult,
   type ScriptRunner,
   TaskCancelledError,
+  VersionConfig,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
@@ -91,6 +93,7 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
+  customScreens?: {displayName: string; name: string; routePath: string}[];
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
 }
@@ -236,12 +239,72 @@ export class AdminApp {
       name: script.name,
     }));
 
-    const configResponse: AdminConfigResponse = {models: configModels, scripts: configScripts};
+    const configResponse: AdminConfigResponse = {
+      customScreens: [
+        {
+          displayName: "Version Config",
+          name: "version-config",
+          routePath: `${basePath}/version-config`,
+        },
+      ],
+      models: configModels,
+      scripts: configScripts,
+    };
 
     // GET /admin/config
     app.get(`${basePath}/config`, (_req, res) => {
       return res.json(configResponse);
     });
+
+    // Version config singleton routes (GET/PUT /admin/version-config)
+    const versionConfigPath = `${basePath}/version-config`;
+    app.get(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const config = await VersionConfig.findOne().lean();
+        const defaults = {
+          mobileRequiredVersion: 0,
+          mobileWarningVersion: 0,
+          requiredMessage: "This version is no longer supported. Please update to continue.",
+          updateUrl: undefined as string | undefined,
+          warningMessage: "A new version is available. Please update for the best experience.",
+          webRequiredVersion: 0,
+          webWarningVersion: 0,
+        };
+        return res.json(config ?? defaults);
+      })
+    );
+    app.put(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const body = req.body as Partial<{
+          mobileRequiredVersion: number;
+          mobileWarningVersion: number;
+          requiredMessage: string;
+          updateUrl: string;
+          webRequiredVersion: number;
+          webWarningVersion: number;
+          warningMessage: string;
+        }>;
+        const existing = await VersionConfig.findOne();
+        let doc;
+        if (existing) {
+          Object.assign(existing, body);
+          doc = await existing.save();
+        } else {
+          doc = await VersionConfig.create(body);
+        }
+        return res.json(doc.toObject ? doc.toObject() : doc);
+      })
+    );
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
