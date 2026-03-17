@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - master
-      - expo-workflows-3
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build_ios:
