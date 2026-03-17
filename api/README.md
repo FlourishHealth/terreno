@@ -21,11 +21,7 @@ model instances.
 
 To install:
 
-    npm install @terreno/api
-
-    yarn install @terreno/api
-    
-    bun install @terreno/api
+    bun add @terreno/api
 
 ## DateOnly Type
 

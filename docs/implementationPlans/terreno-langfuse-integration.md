@@ -80,10 +80,10 @@ langfuse/src/
 
 ## Implementation Phases
 
-### Phase 1: Core package
+### Phase 1: Core package ✅ COMPLETED
 Package scaffold (`package.json`, `tsconfig.json`, `index.ts` re-exports), Langfuse client singleton with Cloud EU/US and self-hosted URL support, MongoDB cache layer (Mongoose model with TTL index on `expiresAt` for automatic expiry — no Redis needed, reuses the existing Mongoose connection), prompt management (`getPrompt` cache-first with Langfuse fallback, `compilePrompt` with `{{variable}}` interpolation, write-through `createPrompt`/`updatePromptLabels` with cache invalidation), OpenTelemetry tracing (`@opentelemetry/sdk-node` + `LangfuseSpanProcessor`), Vercel AI SDK helpers (`preparePromptForAI` returning `{ prompt, telemetry, config }`), the `LangfuseApp` plugin class (`.install()` wires up client + cache + tracing + admin routes + `res.locals.langfuse`, `.shutdown()` for cleanup), React hooks (`usePrompt`, `usePrompts`, `useTrace`, `useEvaluation` — all talking to admin API routes, never Langfuse directly), and `LangfuseProvider`. Peer deps on `@terreno/api`, `@terreno/ui`, `react`, and optional `ai` (Vercel AI SDK).
 
-### Phase 2: Admin UI
+### Phase 2: Admin UI ✅ COMPLETED
 Built with `@terreno/ui` components. Pages: prompt list, prompt detail/editor, playground (compile + test with LLM), trace explorer, dashboard with counts. Components are also exported individually for embedding in custom admin pages.
 
 ## Usage
@@ -130,11 +130,11 @@ const { prompt, compile, isLoading } = usePrompt('chat-assistant');
 | `@opentelemetry/sdk-node` | OpenTelemetry Node SDK |
 | `mongoose` | MongoDB ODM (peer dep from @terreno/api) |
 
-## Files to Modify Outside This Package
+## Files to Modify Outside This Package ✅ COMPLETED
 
-- **Root `package.json`**: Add `langfuse` to workspaces, add deps to catalog
-- **`api/src/TerrenoApp.ts`**: Requires the `.install()` plugin system from [PR #149](https://github.com/FlourishHealth/terreno/pull/149)
-- **`example-backend/`** and **`example-frontend/`**: Add usage examples
+- **Root `package.json`**: Add `langfuse` to workspaces, add deps to catalog ✅
+- **`api/src/TerrenoApp.ts`**: TerrenoPlugin interface already supported via `register()` ✅
+- **`example-backend/`** and **`example-frontend/`**: Usage examples added ✅
 
 ## References
 

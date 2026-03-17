@@ -6,8 +6,13 @@
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.21",
     "@google-cloud/storage": "^7.15.0",
+    "@langfuse/otel": "^4.6.1",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-node": "^0.213.0",
     "@terreno/api": "workspace:*",
     "ai": "catalog:",
+    "langfuse": "^3.38.6",
+    "langfuse-core": "^3.38.6",
     "multer": "^1.4.5-lts.1"
   },
   "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
@@ -15,6 +20,7 @@
     "@biomejs/biome": "^2.3.6",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
+    "@types/luxon": "catalog:",
     "@types/multer": "^1.4.12",
     "@types/passport-local-mongoose": "^6.1.5",
     "@types/supertest": "^6.0.2",
@@ -22,6 +28,12 @@
     "supertest": "^7.0.0",
     "typescript": "5.8.2",
     "winston": "^3.18.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
   "keywords": [
@@ -43,6 +55,7 @@
   },
   "scripts": {
     "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
@@ -51,5 +64,5 @@
     "test:ci": "bun test --preload ./src/tests/bunSetup.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.6.0"
+  "version": "0.7.0"
 }

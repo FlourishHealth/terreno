@@ -4,12 +4,7 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "demo/**"
-      - "ui/**"
-      - ".github/workflows/demo-eas.yml"
-      - "demo/.eas/workflows/demo-build.yml"
-  pull_request:
+      - expo-workflow-2
     paths:
       - "demo/**"
       - "ui/**"
@@ -41,13 +36,6 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
 
       - name: Run EAS Workflow
         run: eas workflow:run .eas/workflows/demo-build.yml --non-interactive

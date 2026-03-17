@@ -110,6 +110,8 @@ jobs:
           env_vars: |
             NODE_ENV=production
             MONGODB_URI=${{ secrets.MONGO_URI }}
+            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
           flags: |
             --port=3000
             --memory=512Mi
@@ -249,6 +251,8 @@ jobs:
           env_vars: |
             NODE_ENV=production
             MONGODB_URI=${{ secrets.MONGO_URI }}
+            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
           flags: |
             --port=3000
             --memory=512Mi

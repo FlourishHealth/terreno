@@ -103,6 +103,7 @@ export interface GPTChatProps {
   onSubmit: (prompt: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
   selectedModel?: string;
+  suggestedPrompts?: string[];
   systemMemory?: string;
   testID?: string;
 }
@@ -706,6 +707,7 @@ export const GPTChat = ({
   onSubmit,
   onUpdateTitle,
   selectedModel,
+  suggestedPrompts,
   systemMemory,
   testID,
 }: GPTChatProps): React.ReactElement => {
@@ -730,7 +732,7 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
-  // On web, intercept Enter key in the chat input to submit (Shift+Enter for newline)
+  // On web: Enter sends, Cmd+Enter inserts a new line
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
   useEffect(() => {
@@ -738,12 +740,16 @@ export const GPTChat = ({
       return;
     }
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Enter" || e.shiftKey) {
+      if (e.key !== "Enter") {
         return;
       }
       const target = e.target as HTMLElement | null;
       const testId = target?.getAttribute("data-testid");
       if (testId !== "gpt-input") {
+        return;
+      }
+      if (e.metaKey || e.shiftKey) {
+        // Cmd+Enter or Shift+Enter: allow default (new line)
         return;
       }
       e.preventDefault();
@@ -829,6 +835,16 @@ export const GPTChat = ({
     setEditingHistoryId(null);
     setEditingTitle("");
   }, [editingHistoryId, editingTitle, onUpdateTitle]);
+
+  const handleSuggestedPrompt = useCallback(
+    (prompt: string) => {
+      if (isStreaming) {
+        return;
+      }
+      onSubmit(prompt);
+    },
+    [isStreaming, onSubmit]
+  );
 
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");
@@ -917,6 +933,28 @@ export const GPTChat = ({
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout}>
           <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
             <Box gap={3} onLayout={handleContentLayout}>
+              {currentMessages.length === 0 && suggestedPrompts && suggestedPrompts.length > 0 && (
+                <Box alignItems="center" gap={2} paddingY={4}>
+                  <Text color="secondaryDark" size="sm">
+                    Try asking...
+                  </Text>
+                  <Box direction="row" gap={2} wrap={true}>
+                    {suggestedPrompts.map((prompt) => (
+                      <Box
+                        accessibilityHint="Send this suggested prompt"
+                        accessibilityLabel={prompt}
+                        border="default"
+                        key={prompt}
+                        onClick={() => handleSuggestedPrompt(prompt)}
+                        padding={2}
+                        rounding="lg"
+                      >
+                        <Text size="sm">{prompt}</Text>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
               {currentMessages.map((message, index) => {
                 // Tool call/result messages
                 if (message.role === "tool-call" && message.toolCall) {
