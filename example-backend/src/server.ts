@@ -1,6 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {LangfuseApp} from "@terreno/ai";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -190,6 +191,20 @@ export async function start(skipListen = false): Promise<express.Application> {
     if (betterAuthConfig) {
       // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
       terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    // Register Langfuse plugin if configured
+    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+      terraApp.register(
+        new LangfuseApp({
+          baseUrl: process.env.LANGFUSE_BASE_URL,
+          organization: process.env.LANGFUSE_ORGANIZATION,
+          project: process.env.LANGFUSE_PROJECT,
+          projectId: process.env.LANGFUSE_PROJECT_ID,
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY,
+        })
+      );
     }
 
     const app = terraApp.start();
