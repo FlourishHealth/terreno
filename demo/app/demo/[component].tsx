@@ -12,6 +12,7 @@ import {
   Heading,
   Icon,
   type IconName,
+  Link,
   Table,
   TableHeader,
   TableHeaderCell,
@@ -268,6 +269,97 @@ const ComponentStatus: FC<{config: DemoConfiguration}> = ({config}) => {
   );
 };
 
+const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.usage.do.length && !config.usage.doNot.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Usage Guidelines</Heading>
+      </Box>
+      <Box direction="column" gap={4} mdDirection="row">
+        {Boolean(config.usage.do.length) && (
+          <Box flex="grow">
+            <Box marginBottom={1}>
+              <Text bold color="success">
+                Do
+              </Text>
+            </Box>
+            {config.usage.do.map((item, i) => (
+              <Box direction="row" key={i} marginBottom={1}>
+                <Box marginRight={1}>
+                  <Icon color="success" iconName="circle-check" size="sm" />
+                </Box>
+                <Text>{item}</Text>
+              </Box>
+            ))}
+          </Box>
+        )}
+        {Boolean(config.usage.doNot.length) && (
+          <Box flex="grow">
+            <Box marginBottom={1}>
+              <Text bold color="error">
+                Don't
+              </Text>
+            </Box>
+            {config.usage.doNot.map((item, i) => (
+              <Box direction="row" key={i} marginBottom={1}>
+                <Box marginRight={1}>
+                  <Icon color="error" iconName="circle-xmark" size="sm" />
+                </Box>
+                <Text>{item}</Text>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const ComponentA11yNotes: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.a11yNotes.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Accessibility</Heading>
+      </Box>
+      {config.a11yNotes.map((note, i) => (
+        <Box direction="row" key={i} marginBottom={1}>
+          <Box marginRight={1}>
+            <Icon color="secondaryLight" iconName="universal-access" size="sm" />
+          </Box>
+          <Text>{note}</Text>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.additionalDocumentation?.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Additional Documentation</Heading>
+      </Box>
+      {config.additionalDocumentation.map((doc, i) => (
+        <Box alignItems="center" direction="row" key={i} marginBottom={1}>
+          <Box marginRight={1}>
+            <Icon color="secondaryLight" iconName="arrow-up-right-from-square" size="sm" />
+          </Box>
+          <Link href={doc.link} text={doc.name} />
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const ComponentPage: FC = () => {
   const {component} = useLocalSearchParams<{component: string}>();
 
@@ -295,8 +387,11 @@ const ComponentPage: FC = () => {
         <MarkdownView>{config?.description}</MarkdownView>
       </Box>
       <ComponentDemo config={config!} />
+      <ComponentUsage config={config!} />
+      <ComponentA11yNotes config={config!} />
       <ComponentProps props={config?.props?.children} />
       <ComponentStatus config={config!} />
+      <ComponentAdditionalDocs config={config!} />
       {Boolean(config?.related.length) && (
         <Box marginBottom={4}>
           <Box marginBottom={2}>
