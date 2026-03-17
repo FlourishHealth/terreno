@@ -287,7 +287,7 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
               </Text>
             </Box>
             {config.usage.do.map((item, i) => (
-              <Box direction="row" key={i} marginBottom={1}>
+              <Box alignItems="center" direction="row" key={i} marginBottom={1}>
                 <Box marginRight={1}>
                   <Icon color="success" iconName="circle-check" size="sm" />
                 </Box>
@@ -304,7 +304,7 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
               </Text>
             </Box>
             {config.usage.doNot.map((item, i) => (
-              <Box direction="row" key={i} marginBottom={1}>
+              <Box alignItems="center" direction="row" key={i} marginBottom={1}>
                 <Box marginRight={1}>
                   <Icon color="error" iconName="circle-xmark" size="sm" />
                 </Box>
@@ -328,7 +328,7 @@ const ComponentA11yNotes: FC<{config: DemoConfiguration}> = ({config}) => {
         <Heading size="sm">Accessibility</Heading>
       </Box>
       {config.a11yNotes.map((note, i) => (
-        <Box direction="row" key={i} marginBottom={1}>
+        <Box alignItems="center" direction="row" key={i} marginBottom={1}>
           <Box marginRight={1}>
             <Icon color="secondaryLight" iconName="universal-access" size="sm" />
           </Box>
