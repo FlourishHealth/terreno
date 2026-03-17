@@ -284,15 +284,22 @@ export class AdminApp {
         if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as any))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        const body = req.body as Partial<{
-          mobileRequiredVersion: number;
-          mobileWarningVersion: number;
-          requiredMessage: string;
-          updateUrl: string;
-          webRequiredVersion: number;
-          webWarningVersion: number;
-          warningMessage: string;
-        }>;
+        const raw = req.body as Record<string, unknown>;
+        const allowedFields = [
+          "mobileRequiredVersion",
+          "mobileWarningVersion",
+          "requiredMessage",
+          "updateUrl",
+          "webRequiredVersion",
+          "webWarningVersion",
+          "warningMessage",
+        ] as const;
+        const body: Record<string, unknown> = {};
+        for (const field of allowedFields) {
+          if (raw[field] !== undefined) {
+            body[field] = raw[field];
+          }
+        }
         const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, {$set: body}, {
           new: true,
           runValidators: true,

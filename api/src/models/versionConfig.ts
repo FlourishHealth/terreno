@@ -27,11 +27,13 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
     mobileRequiredVersion: {
       default: 0,
       description: "Build number at which mobile users are blocked from using the app",
+      min: 0,
       type: Number,
     },
     mobileWarningVersion: {
       default: 0,
       description: "Build number at which mobile users see a warning toast",
+      min: 0,
       type: Number,
     },
     requiredMessage: {
@@ -52,11 +54,13 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
     webRequiredVersion: {
       default: 0,
       description: "Build number at which web users are blocked from using the app",
+      min: 0,
       type: Number,
     },
     webWarningVersion: {
       default: 0,
       description: "Build number at which web users see a warning toast",
+      min: 0,
       type: Number,
     },
   },
