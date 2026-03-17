@@ -367,6 +367,7 @@ const ComponentPage: FC = () => {
 
   if (!component || !config) {
     router.replace("/demo");
+    return null;
   }
 
   const navigation = useNavigation();
