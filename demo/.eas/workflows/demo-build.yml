@@ -1,5 +1,11 @@
 name: Demo Build
 
+on:
+  push:
+    branches:
+      - master
+      - expo-workflows-3
+
 jobs:
   build_ios:
     name: Build iOS
