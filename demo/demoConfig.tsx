@@ -1,6 +1,7 @@
 import {
   AccordionConfiguration,
   AddressFieldConfiguration,
+  AiSuggestionBoxConfiguration,
   AvatarConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
@@ -173,6 +174,7 @@ export interface DemoConfiguration extends DemoConfigurationBase {
 
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,
+  AiSuggestionBoxConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
   BadgeConfiguration,
