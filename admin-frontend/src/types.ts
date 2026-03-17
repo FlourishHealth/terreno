@@ -22,7 +22,6 @@ export interface AdminModelConfig {
 export interface AdminCustomScreen {
   displayName: string;
   name: string;
-  routePath: string;
 }
 
 export interface AdminScriptConfig {

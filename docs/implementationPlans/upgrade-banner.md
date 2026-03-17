@@ -71,7 +71,7 @@ versionConfigSchema.plugin(createdUpdatedPlugin);
 | Auth | None (public) |
 | Query Params | `version` (integer build number), `platform` ("web" \| "mobile") |
 | Response | `{status: "ok" \| "warning" \| "required", message?: string, updateUrl?: string}` |
-| Notes | Built into `setupServer`/`TerrenoApp` automatically. Returns `{status: "ok"}` if no VersionConfig document exists. |
+| Notes | Requires explicit registration via `VersionCheckPlugin` (e.g., `app.register(new VersionCheckPlugin())`). Returns `{status: "ok"}` if no VersionConfig document exists. |
 
 **Logic:**
 ```
@@ -146,7 +146,7 @@ App mounts → useUpgradeCheck() fires
 ### Phase 1: Backend + Admin
 
 - VersionConfig Mongoose model in `@terreno/api`
-- `GET /version-check` public endpoint built into TerrenoApp
+- `GET /version-check` public endpoint via `VersionCheckPlugin`
 - `GET/PUT /admin/version-config` admin routes
 - Admin frontend screen for version config
 - Unit tests for the version check logic
@@ -202,7 +202,7 @@ The Terreno codebase already sends `App-Version` and `App-Platform` headers with
 
 - **Per-platform config:** Yes — separate thresholds for web vs mobile since web can force-refresh but mobile needs app store update.
 - **Update mechanism:** Platform-specific — web forces page refresh, mobile triggers expo-updates OTA if available, falls back to app store link.
-- **Endpoint location:** Built-in route in `setupServer`/`TerrenoApp` — no reason not to have this as a framework feature.
+- **Endpoint location:** `VersionCheckPlugin` registered with `TerrenoApp` — opt-in per app.
 - **Config storage:** Mongoose model (database-backed) so admins can change without redeploy.
 
 ## Findings
@@ -254,7 +254,7 @@ No existing build number system. `app.json` version is static.
 ## Recommendation
 
 **Add to core packages** — spread across:
-- `@terreno/api` — VersionConfig model + public `GET /version-check` endpoint (built-in)
+- `@terreno/api` — VersionConfig model + public `GET /version-check` endpoint (via `VersionCheckPlugin`)
 - `@terreno/admin-frontend` — Custom admin screen for version config
 - `@terreno/rtk` — `useUpgradeCheck` hook
 - `@terreno/ui` — `UpgradeRequiredScreen` blocking component

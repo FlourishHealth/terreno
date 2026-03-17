@@ -78,7 +78,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
     } else {
       setFormState(defaults);
     }
-  }, [data, isFetching]);
+  }, [data, isFetching, fetchError]);
 
   const handleFieldChange = useCallback(
     (field: keyof VersionConfigData, value: string | number) => {
@@ -90,11 +90,12 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
+      const trimmedUpdateUrl = (formState.updateUrl ?? "").trim();
       await updateConfig({
         mobileRequiredVersion: Number(formState.mobileRequiredVersion) || 0,
         mobileWarningVersion: Number(formState.mobileWarningVersion) || 0,
         requiredMessage: formState.requiredMessage ?? "",
-        updateUrl: formState.updateUrl ?? "",
+        updateUrl: trimmedUpdateUrl || undefined,
         warningMessage: formState.warningMessage ?? "",
         webRequiredVersion: Number(formState.webRequiredVersion) || 0,
         webWarningVersion: Number(formState.webWarningVersion) || 0,

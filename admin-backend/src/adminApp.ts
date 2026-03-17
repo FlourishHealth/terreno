@@ -93,7 +93,7 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
-  customScreens?: {displayName: string; name: string; routePath: string}[];
+  customScreens?: {displayName: string; name: string}[];
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
 }
@@ -244,7 +244,6 @@ export class AdminApp {
         {
           displayName: "Version Config",
           name: "version-config",
-          routePath: `${basePath}/version-config`,
         },
       ],
       models: configModels,
@@ -265,7 +264,7 @@ export class AdminApp {
         if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
-        const config = await VersionConfig.findOneOrNone({});
+        const config = await VersionConfig.findOneOrNone({_singleton: "config"});
         const defaults = {
           mobileRequiredVersion: 0,
           mobileWarningVersion: 0,
@@ -294,7 +293,7 @@ export class AdminApp {
           webWarningVersion: number;
           warningMessage: string;
         }>;
-        const doc = await VersionConfig.findOneAndUpdate({}, {$set: body}, {
+        const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, {$set: body}, {
           new: true,
           runValidators: true,
           setDefaultsOnInsert: true,
