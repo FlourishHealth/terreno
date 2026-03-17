@@ -226,16 +226,21 @@ const ComponentStatusSection: FC<{
       break;
   }
 
-  const icon = <Icon color={color} iconName={iconName} size="md" />;
-
-  return (
+  const content = (
     <Box alignItems="center" direction="row" marginBottom={2} marginRight={4}>
       <Box marginRight={1}>
-        <Text>{title}:</Text>
+        <Text color={href ? "link" : undefined} underline={Boolean(href)}>
+          {title}:
+        </Text>
       </Box>
-      {href ? <Pressable onPress={() => Linking.openURL(href)}>{icon}</Pressable> : icon}
+      <Icon color={color} iconName={iconName} size="md" />
     </Box>
   );
+
+  if (href) {
+    return <Pressable onPress={() => Linking.openURL(href)}>{content}</Pressable>;
+  }
+  return content;
 };
 
 const ComponentStatus: FC<{config: DemoConfiguration}> = ({config}) => {
@@ -278,7 +283,7 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
             </Box>
             {config.usage.do.map((item, i) => (
               <Box direction="row" key={i} marginBottom={1}>
-                <Box marginRight={1} style={{paddingTop: 2}}>
+                <Box marginRight={1} style={{paddingTop: 4}}>
                   <Icon color="success" iconName="circle-check" size="sm" />
                 </Box>
                 <Box flex="shrink">
@@ -297,7 +302,7 @@ const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
             </Box>
             {config.usage.doNot.map((item, i) => (
               <Box direction="row" key={i} marginBottom={1}>
-                <Box marginRight={1} style={{paddingTop: 2}}>
+                <Box marginRight={1} style={{paddingTop: 4}}>
                   <Icon color="error" iconName="circle-xmark" size="sm" />
                 </Box>
                 <Box flex="shrink">
@@ -323,7 +328,7 @@ const ComponentA11yNotes: FC<{config: DemoConfiguration}> = ({config}) => {
       </Box>
       {config.a11yNotes.map((note, i) => (
         <Box direction="row" key={i} marginBottom={1}>
-          <Box marginRight={1} style={{paddingTop: 2}}>
+          <Box marginRight={1} style={{paddingTop: 4}}>
             <Icon color="secondaryLight" iconName="universal-access" size="sm" />
           </Box>
           <Box flex="shrink">
