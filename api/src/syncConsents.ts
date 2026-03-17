@@ -206,7 +206,9 @@ export const syncConsents = async (
 
     // Content or config changed — publish a new version
     const newVersion = existing.version + 1;
-    logger.info(`syncConsents: updating "${slug}" v${existing.version} -> v${newVersion}`, {dryRun});
+    logger.info(`syncConsents: updating "${slug}" v${existing.version} -> v${newVersion}`, {
+      dryRun,
+    });
     if (!dryRun) {
       await ConsentForm.create({
         active: true,
@@ -225,7 +227,10 @@ export const syncConsents = async (
         type: def.type,
         version: newVersion,
       });
-      await ConsentForm.updateMany({_id: {$ne: undefined}, slug, version: {$lt: newVersion}}, {active: false});
+      await ConsentForm.updateMany(
+        {_id: {$ne: undefined}, slug, version: {$lt: newVersion}},
+        {active: false}
+      );
     }
     result.updated.push(slug);
   }

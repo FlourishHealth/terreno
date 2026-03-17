@@ -73,13 +73,13 @@ describe("syncConsents", () => {
 
     expect(result.updated).toEqual(["terms"]);
 
-    const active = await ConsentForm.findOne({slug: "terms", active: true});
+    const active = await ConsentForm.findOne({active: true, slug: "terms"});
     expect(active?.version).toBe(2);
     expect(active?.title).toBe("Updated Terms");
   });
 
   it("deactivates removed forms when deactivateRemoved is true", async () => {
-    await syncConsents({terms: baseDef, privacy: {...baseDef, type: "privacy", title: "Privacy"}});
+    await syncConsents({privacy: {...baseDef, title: "Privacy", type: "privacy"}, terms: baseDef});
 
     const result = await syncConsents({terms: baseDef}, {deactivateRemoved: true});
 
@@ -91,7 +91,7 @@ describe("syncConsents", () => {
   });
 
   it("does not deactivate removed forms by default", async () => {
-    await syncConsents({terms: baseDef, privacy: {...baseDef, type: "privacy", title: "Privacy"}});
+    await syncConsents({privacy: {...baseDef, title: "Privacy", type: "privacy"}, terms: baseDef});
 
     const result = await syncConsents({terms: baseDef});
 

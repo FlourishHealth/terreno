@@ -14,6 +14,34 @@ import mongoose from "mongoose";
 import {connectToMongoDB} from "../utils/database";
 
 const definitions: Record<string, ConsentFormDefinition> = {
+  "privacy-policy": {
+    content: {
+      en: `# Privacy Policy
+
+We are committed to protecting your personal information.
+
+## Information We Collect
+
+We collect information you provide directly to us, such as when you create an account.
+
+## How We Use Your Information
+
+We use the information we collect to provide, maintain, and improve our services.
+
+## Data Security
+
+We implement appropriate technical and organizational measures to protect your personal information.
+
+## Contact Us
+
+If you have any questions about this Privacy Policy, please contact us.`,
+    },
+    order: 2,
+    required: true,
+    requireScrollToBottom: true,
+    title: "Privacy Policy",
+    type: "privacy",
+  },
   "terms-of-service": {
     captureSignature: true,
     content: {
@@ -42,34 +70,6 @@ We reserve the right to modify these terms at any time. We will notify you of an
     requireScrollToBottom: true,
     title: "Terms of Service",
     type: "terms",
-  },
-  "privacy-policy": {
-    content: {
-      en: `# Privacy Policy
-
-We are committed to protecting your personal information.
-
-## Information We Collect
-
-We collect information you provide directly to us, such as when you create an account.
-
-## How We Use Your Information
-
-We use the information we collect to provide, maintain, and improve our services.
-
-## Data Security
-
-We implement appropriate technical and organizational measures to protect your personal information.
-
-## Contact Us
-
-If you have any questions about this Privacy Policy, please contact us.`,
-    },
-    order: 2,
-    required: true,
-    requireScrollToBottom: true,
-    title: "Privacy Policy",
-    type: "privacy",
   },
 };
 

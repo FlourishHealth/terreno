@@ -164,7 +164,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, any> = {};
-      for (const [key, fieldConfig] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
+      for (const [key, fieldConfig] of getEditableFields(
+        modelConfig.fields,
+        modelConfig.fieldOrder
+      )) {
         initial[key] = fieldConfig.default ?? "";
       }
       setFormState(initial);
@@ -186,7 +189,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return false;
     }
     const newErrors: Record<string, string> = {};
-    for (const [key, fieldConfig] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
+    for (const [key, fieldConfig] of getEditableFields(
+      modelConfig.fields,
+      modelConfig.fieldOrder
+    )) {
       if (fieldConfig.required && (formState[key] == null || formState[key] === "")) {
         newErrors[key] = `${key} is required`;
       }
