@@ -251,9 +251,16 @@ export class AdminApp {
     };
 
     // GET /admin/config
-    app.get(`${basePath}/config`, (_req, res) => {
-      return res.json(configResponse);
-    });
+    app.get(
+      `${basePath}/config`,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        return res.json(configResponse);
+      })
+    );
 
     // Version config singleton routes (GET/PUT /admin/version-config)
     const versionConfigPath = `${basePath}/version-config`;
@@ -294,13 +301,23 @@ export class AdminApp {
           "webWarningVersion",
           "warningMessage",
         ] as const;
-        const body: Record<string, unknown> = {};
+        const setFields: Record<string, unknown> = {};
+        const unsetFields: Record<string, 1> = {};
         for (const field of allowedFields) {
-          if (raw[field] !== undefined) {
-            body[field] = raw[field];
+          if (raw[field] === null) {
+            unsetFields[field] = 1;
+          } else if (raw[field] !== undefined) {
+            setFields[field] = raw[field];
           }
         }
-        const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, {$set: body}, {
+        const updateOp: Record<string, unknown> = {};
+        if (Object.keys(setFields).length > 0) {
+          updateOp.$set = setFields;
+        }
+        if (Object.keys(unsetFields).length > 0) {
+          updateOp.$unset = unsetFields;
+        }
+        const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, updateOp, {
           new: true,
           runValidators: true,
           setDefaultsOnInsert: true,
