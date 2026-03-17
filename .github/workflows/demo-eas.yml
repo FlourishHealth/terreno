@@ -4,12 +4,7 @@ on:
   push:
     branches:
       - master
-      - expo-workflow-2
-    paths:
-      - "demo/**"
-      - "ui/**"
-      - ".github/workflows/demo-eas.yml"
-      - "demo/.eas/workflows/demo-build.yml"
+      - expo-workflows-3
 
 jobs:
   build:
