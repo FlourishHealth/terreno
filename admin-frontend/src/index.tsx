@@ -11,6 +11,7 @@ export {ConsentFormEditor} from "./ConsentFormEditor";
 export {ConsentFormList} from "./ConsentFormList";
 export {ConsentResponseViewer} from "./ConsentResponseViewer";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
+export {LocaleContentEditor} from "./LocaleContentEditor";
 export type {
   AdminConfigResponse,
   AdminFieldConfig,

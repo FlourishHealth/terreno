@@ -9,6 +9,7 @@ import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";
 import {CheckboxListEditor} from "./CheckboxListEditor";
+import {LocaleContentEditor} from "./LocaleContentEditor";
 import type {AdminFieldConfig, AdminScreenProps} from "./types";
 
 interface AdminFieldRendererProps extends AdminScreenProps {
@@ -149,6 +150,19 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  // Locale content widget (Map<locale, markdown>)
+  if (fieldConfig.widget === "locale-content") {
+    return (
+      <LocaleContentEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? {}}
       />
     );
   }
