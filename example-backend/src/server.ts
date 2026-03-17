@@ -78,6 +78,12 @@ export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
 
+  // Sync default consent forms on startup
+  const {syncConsents} = await import("@terreno/api");
+  await syncConsents(consentDefinitions).catch((err: unknown) => {
+    logger.warn(`Failed to sync consent forms on startup: ${err}`);
+  });
+
   // Enable OpenAPI request validation. Strips unknown properties and logs them.
   configureOpenApiValidator({
     onAdditionalPropertiesRemoved: (props: string[], req: {method: string; path: string}) => {

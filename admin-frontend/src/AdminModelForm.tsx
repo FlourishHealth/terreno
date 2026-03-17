@@ -40,6 +40,19 @@ const getEditableFields = (
   return ordered;
 };
 
+const getFieldDefault = (fieldConfig: AdminFieldConfig): any => {
+  if (fieldConfig.default !== undefined) {
+    return fieldConfig.default;
+  }
+  if (fieldConfig.type === "boolean") {
+    return false;
+  }
+  if (fieldConfig.type === "number") {
+    return 0;
+  }
+  return "";
+};
+
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
   <Button
     confirmationText="Are you sure you want to delete this item?"
@@ -152,8 +165,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
       if (modelConfig) {
-        for (const [key] of getEditableFields(modelConfig.fields, modelConfig.fieldOrder)) {
-          initial[key] = itemData[key] ?? "";
+        for (const [key, fieldConfig] of getEditableFields(
+          modelConfig.fields,
+          modelConfig.fieldOrder
+        )) {
+          const raw = itemData[key];
+          initial[key] = raw ?? getFieldDefault(fieldConfig);
         }
       }
       setFormState(initial);
@@ -168,7 +185,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         modelConfig.fields,
         modelConfig.fieldOrder
       )) {
-        initial[key] = fieldConfig.default ?? "";
+        initial[key] = getFieldDefault(fieldConfig);
       }
       setFormState(initial);
       setIsInitialized(true);
