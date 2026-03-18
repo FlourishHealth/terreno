@@ -7,7 +7,7 @@ interface VersionConfigData {
   mobileRequiredVersion?: number;
   mobileWarningVersion?: number;
   requiredMessage?: string;
-  updateUrl?: string;
+  updateUrl?: string | null;
   webRequiredVersion?: number;
   webWarningVersion?: number;
   warningMessage?: string;
@@ -95,7 +95,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
         mobileRequiredVersion: Number(formState.mobileRequiredVersion) || 0,
         mobileWarningVersion: Number(formState.mobileWarningVersion) || 0,
         requiredMessage: formState.requiredMessage ?? "",
-        updateUrl: trimmedUpdateUrl || undefined,
+        updateUrl: trimmedUpdateUrl || null,
         warningMessage: formState.warningMessage ?? "",
         webRequiredVersion: Number(formState.webRequiredVersion) || 0,
         webWarningVersion: Number(formState.webWarningVersion) || 0,
