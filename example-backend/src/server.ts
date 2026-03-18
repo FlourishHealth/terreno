@@ -10,6 +10,7 @@ import {
   ConsentForm,
   ConsentResponse,
   checkModelsStrict,
+  syncConsents,
   configureOpenApiValidator,
   logger,
   TerrenoApp,
@@ -79,7 +80,6 @@ export async function start(skipListen = false): Promise<express.Application> {
   await connectToMongoDB();
 
   // Sync default consent forms on startup
-  const {syncConsents} = await import("@terreno/api");
   await syncConsents(consentDefinitions).catch((err: unknown) => {
     logger.warn(`Failed to sync consent forms on startup: ${err}`);
   });
@@ -231,8 +231,7 @@ export async function start(skipListen = false): Promise<express.Application> {
                 "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
               name: "syncConsents",
               runner: async (wetRun) => {
-                const {syncConsents: sync} = await import("@terreno/api");
-                const result = await sync(consentDefinitions, {
+                const result = await syncConsents(consentDefinitions, {
                   deactivateRemoved: true,
                   dryRun: !wetRun,
                 });
