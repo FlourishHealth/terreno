@@ -302,8 +302,6 @@ export class TerrenoApp {
       app.use("/swagger", oapi.swaggerui());
     }
 
-    addMeRoutes(app, options.userModel as any, options.authOptions);
-
     // GitHub OAuth
     if (options.githubAuth) {
       setupGitHubAuth(app, options.userModel as any, options.githubAuth);
@@ -324,8 +322,9 @@ export class TerrenoApp {
       }
     }
 
-    // Inject openApi into model router options for registered routers
-    // The openApi middleware handles this via the oapi instance already mounted on the app
+    // /auth/me must be registered after plugins so that session middleware
+    // (e.g. Better Auth) has a chance to populate req.user first.
+    addMeRoutes(app, options.userModel as any, options.authOptions);
 
     Sentry.setupExpressErrorHandler(app);
 
