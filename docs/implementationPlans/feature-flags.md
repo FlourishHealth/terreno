@@ -104,6 +104,41 @@ featureFlagSchema.index({enabled: 1, archived: 1});
 
 **Pre-save validation:** For variant-type flags, validate that `variants` is non-empty and weights sum to 100. Throw APIError if invalid.
 
+### How the Two Flag Types Work
+
+#### Boolean Flags (`type: "boolean"`)
+
+Boolean flags return `true` or `false`. They use `rolloutPercentage` to control gradual rollouts and ignore the `variants` array entirely.
+
+- **`enabled: false`** → always returns `false` for all users
+- **`enabled: true`, no matching rules** → deterministic hash of `userId + flagKey` compared against `rolloutPercentage`. At 100% (default), all users get `true`. At 50%, roughly half get `true`.
+- **Matching rule** → returns the rule's `enabled` value (`true` or `false`)
+
+Examples:
+- Feature toggle: `rolloutPercentage: 100` — on for everyone
+- Gradual rollout: `rolloutPercentage: 10` — on for ~10% of users, increase over time
+- Targeted: rule matching `admin: true` → `enabled: true`, everyone else gets the rollout percentage
+
+#### Variant Flags (`type: "variant"`)
+
+Variant flags return a string key identifying which variant the user is assigned to. They use the `variants` array with weighted distribution and ignore `rolloutPercentage`.
+
+- **`enabled: false`** → returns `null` for all users (consumers should handle this as "no experiment running")
+- **`enabled: true`, no matching rules** → deterministic hash of `userId + flagKey` mapped to variant based on cumulative weights. With `[{key: "control", weight: 50}, {key: "variant-a", weight: 50}]`, hash 0–49 = "control", 50–99 = "variant-a"
+- **Matching rule** → returns the rule's `variant` value (forced into a specific variant, bypassing the hash)
+
+The variant key is just an identifier — the consumer maps it to actual behavior in code:
+```typescript
+const variant = useVariant("checkout-experiment");
+if (variant === "control") {
+  return <OldCheckout />;
+} else if (variant === "variant-a") {
+  return <NewCheckout />;
+}
+```
+
+Deterministic hashing guarantees the same user always gets the same variant for the same flag, without storing assignments in the database.
+
 ## **APIs**
 
 ### FeatureFlagsApp Plugin Routes
