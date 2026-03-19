@@ -55,7 +55,7 @@ const featureFlagSchema = new mongoose.Schema({
   rules: [{
     field: {
       type: String,
-      description: "User field to match against, e.g., 'email', 'admin', 'plan'",
+      description: "User field to match against. Supports dot notation for nested fields, e.g., 'email', 'admin', 'address.zip'",
     },
     operator: {
       type: String,
@@ -86,6 +86,11 @@ const featureFlagSchema = new mongoose.Schema({
     max: 100,
     description: "For boolean flags with no matching rules: percentage of users who get true",
   },
+  archived: {
+    type: Boolean,
+    default: false,
+    description: "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
+  },
 }, {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}});
 
 featureFlagSchema.plugin(createdUpdatedPlugin);
@@ -94,42 +99,10 @@ featureFlagSchema.plugin(findExactlyOne);
 featureFlagSchema.plugin(findOneOrNone);
 
 featureFlagSchema.index({key: 1}, {unique: true});
-featureFlagSchema.index({enabled: 1});
+featureFlagSchema.index({enabled: 1, archived: 1});
 ```
 
 **Pre-save validation:** For variant-type flags, validate that `variants` is non-empty and weights sum to 100. Throw APIError if invalid.
-
-### FlagAssignment
-
-Sticky A/B test variant assignments per user per flag.
-
-```typescript
-const flagAssignmentSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-    description: "User assigned to this variant",
-  },
-  flagKey: {
-    type: String,
-    required: true,
-    description: "Feature flag key this assignment belongs to",
-  },
-  variant: {
-    type: String,
-    required: true,
-    description: "Assigned variant key",
-  },
-}, {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}});
-
-flagAssignmentSchema.plugin(createdUpdatedPlugin);
-flagAssignmentSchema.plugin(findExactlyOne);
-flagAssignmentSchema.plugin(findOneOrNone);
-
-flagAssignmentSchema.index({userId: 1, flagKey: 1}, {unique: true});
-flagAssignmentSchema.index({flagKey: 1});
-```
 
 ## **APIs**
 
@@ -146,8 +119,6 @@ All routes mounted under configurable `basePath` (default: `/feature-flags`).
 | GET | `/flags/:id` | modelRouter | Get single flag |
 | PATCH | `/flags/:id` | modelRouter | Update flag |
 | DELETE | `/flags/:id` | modelRouter | Soft-delete flag |
-| GET | `/assignments` | modelRouter | List assignments (filterable by flagKey) |
-| DELETE | `/assignments/:id` | modelRouter | Delete assignment (reset a user's variant) |
 | GET | `/segments` | custom | List registered segment function names |
 
 #### User Routes (IsAuthenticated)
@@ -190,14 +161,16 @@ class FeatureFlagsApp implements TerrenoPlugin {
 
 ### Evaluation Logic
 
-1. Fetch all enabled FeatureFlags
+Evaluation is a **pure read** — no database writes occur during flag evaluation.
+
+1. Fetch all enabled, non-archived FeatureFlags (`{enabled: true, archived: false}`)
 2. For each flag, evaluate `rules` in order:
-   - **Field rule:** Compare `user[rule.field]` against `rule.value` using `rule.operator`
+   - **Field rule:** Access `user[rule.field]` using dot notation (e.g., `lodash.get(user, rule.field)`) and compare against `rule.value` using `rule.operator`
    - **Segment rule:** Call `segments[rule.segment](user)` — match if returns true; log warning if segment not found
    - First matching rule → return `rule.enabled` (boolean) or `rule.variant` (variant)
-3. If no rules match:
-   - **Boolean flags:** Deterministic hash of `userId + flagKey` mod 100, compare against `rolloutPercentage`
-   - **Variant flags:** Look up existing `FlagAssignment` for this user+flag. If none, create one using weighted random selection based on variant weights.
+3. If no rules match, use **deterministic hashing** (`hash(userId + flagKey) % 100`):
+   - **Boolean flags:** Compare hash against `rolloutPercentage` — if hash < rolloutPercentage, return `true`
+   - **Variant flags:** Map hash to variant based on cumulative weights. E.g., variants `[{key: "control", weight: 50}, {key: "variant-a", weight: 30}, {key: "variant-b", weight: 20}]` → hash 0–49 = "control", 50–79 = "variant-a", 80–99 = "variant-b"
 4. If flag is disabled: return `false` for boolean, `null` for variant
 
 ### Consumer Registration
@@ -219,13 +192,7 @@ new TerrenoApp({userModel: User})
         model: FeatureFlag,
         routePath: "/feature-flags",
         displayName: "Feature Flags",
-        listFields: ["key", "name", "type", "enabled", "created"],
-      },
-      {
-        model: FlagAssignment,
-        routePath: "/flag-assignments",
-        displayName: "Flag Assignments",
-        listFields: ["userId", "flagKey", "variant", "created"],
+        listFields: ["key", "name", "type", "enabled", "archived", "created"],
       },
     ],
   }))
@@ -238,7 +205,7 @@ None needed.
 
 ## **UI**
 
-No new dedicated screens. Feature flags are managed through the existing AdminApp generic form by registering the FeatureFlag and FlagAssignment models.
+No new dedicated screens. Feature flags are managed through the existing AdminApp generic form by registering the FeatureFlag model.
 
 ### Frontend Hook (`@terreno/rtk`)
 
@@ -262,9 +229,9 @@ Fetches once on mount, caches via RTK Query, refetches on window focus.
 
 ### Phase 1: Backend package + evaluation engine
 - Create `feature-flags/` package directory with package.json, tsconfig
-- Implement FeatureFlag and FlagAssignment models
+- Implement FeatureFlag model (with archived field)
 - Implement FeatureFlagsApp plugin with modelRouter CRUD
-- Implement evaluation engine (field rules, segment rules, rollout hashing, variant assignment)
+- Implement evaluation engine (field rules with dot notation, segment rules, deterministic hashing for both boolean rollout and variant assignment)
 - Implement `/evaluate`, `/segments` custom endpoints
 - Unit tests for evaluation logic
 
