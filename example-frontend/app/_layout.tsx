@@ -4,8 +4,8 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
-import {TerrenoProvider} from "@terreno/ui";
+import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
+import {TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import store, {logout, persistor, useAppDispatch} from "@/store";
@@ -71,6 +71,7 @@ function RootLayoutNav(): React.ReactElement {
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
+  const {isRequired, requiredMessage, onUpdate} = useUpgradeCheck();
 
   // Validate stored auth token on mount
   useEffect(() => {
@@ -96,6 +97,17 @@ function RootLayoutNav(): React.ReactElement {
       router.replace("/(tabs)");
     }
   }, [userId, segments, router]);
+
+  if (isRequired) {
+    return (
+      <UpgradeRequiredScreen
+        message={
+          requiredMessage ?? "This version is no longer supported. Please update to continue."
+        }
+        onUpdate={onUpdate}
+      />
+    );
+  }
 
   return (
     <Stack screenOptions={{headerShown: false}}>
