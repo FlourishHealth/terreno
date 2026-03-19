@@ -7,7 +7,7 @@
 ### Phase 1: Core MCP Infrastructure
 
 - [ ] **Task 1.1**: Define MCP types and interfaces
-  - Description: Create `MCPConfig` interface, `MCPRegistryEntry`, and add `mcp?: MCPConfig` to `ModelRouterOptions`. Create the `api/src/mcp/` directory structure.
+  - Description: Create `MCPConfig` interface (with `methods` defaulting to `['list', 'read']`, `excludeFields` for hiding sensitive fields, `maxLimit` defaulting to 50), `MCPRegistryEntry`, and add `mcp?: MCPConfig` to `ModelRouterOptions`. Create the `api/src/mcp/` directory structure.
   - Files: `api/src/mcp/types.ts`, `api/src/mcp/index.ts`, `api/src/api.ts` (add mcp to ModelRouterOptions)
   - Depends on: none
   - Acceptance: Types compile, existing tests still pass, `mcp` is an optional field on `ModelRouterOptions`
@@ -19,10 +19,10 @@
   - Acceptance: Calling `modelRouter(Todo, { ..., mcp: { methods: ['list', 'read'] } })` adds entries to the registry. `getMCPTools()` returns CoreTool objects.
 
 - [ ] **Task 1.3**: Generate Zod schemas from Mongoose models
-  - Description: Build a utility that converts a Mongoose model's schema into Zod schemas suitable for MCP tool `inputSchema`. Handle common field types (String, Number, Boolean, Date, ObjectId, Array, Mixed). Generate separate schemas for create (required fields), update (all optional + id required), read (id + optional populate), list (queryFields + pagination), and delete (id only).
+  - Description: Build a utility that converts a Mongoose model's schema into Zod schemas suitable for MCP tool `inputSchema`. Handle common field types (String, Number, Boolean, Date, ObjectId, Array, Mixed). Generate separate schemas for create (required fields), update (all optional + id required), read (id + optional populate), list (queryFields + pagination), and delete (id only). Respect `excludeFields` — omit listed fields from all generated schemas.
   - Files: `api/src/mcp/schemaGenerator.ts`, `api/src/mcp/schemaGenerator.test.ts`
   - Depends on: Task 1.1
-  - Acceptance: Given a Mongoose model, produces valid Zod schemas for each CRUD method. Tests cover all common field types.
+  - Acceptance: Given a Mongoose model, produces valid Zod schemas for each CRUD method. Tests cover all common field types. `excludeFields` removes specified fields from schemas.
 
 - [ ] **Task 1.4**: Generate MCP tool definitions from registry entries
   - Description: Build tool generator that takes an `MCPRegistryEntry` and produces both `@modelcontextprotocol/sdk` `Tool` objects (JSON Schema input) and Vercel `ai` SDK `CoreTool` objects. Auto-generate descriptions from model name, fields, and queryFields. Apply `toolPrefix` naming (`{prefix}_{method}`). Only generate tools for methods listed in `mcp.methods`.
@@ -31,10 +31,10 @@
   - Acceptance: Registry entry with `methods: ['list', 'read']` produces exactly `todos_list` and `todos_read` tools with correct schemas and descriptions.
 
 - [ ] **Task 1.5**: Implement MCP tool handlers (CRUD execution)
-  - Description: Build the execute functions for each CRUD tool. Each handler: (1) extracts user from auth context, (2) checks permissions via `checkPermissions()`, (3) for read/update/delete: loads document and checks object-level permissions, (4) applies queryFilter and population for list, (5) runs pre/post hooks, (6) serializes via `mcpResponseHandler` or default. Reuse internal logic from REST handlers but decoupled from Express req/res.
+  - Description: Build the execute functions for each CRUD tool. Each handler: (1) extracts user from auth context, (2) checks permissions via `checkPermissions()`, (3) for read/update/delete: loads document and checks object-level permissions, (4) applies queryFilter and population for list, (5) enforces `maxLimit` cap on list results (default 50), (6) runs pre/post hooks, (7) strips `excludeFields` from response data, (8) serializes via `mcpResponseHandler` or default. Reuse internal logic from REST handlers but decoupled from Express req/res.
   - Files: `api/src/mcp/handlers.ts`, `api/src/mcp/handlers.test.ts`
   - Depends on: Task 1.4
-  - Acceptance: Each CRUD handler works with correct permission checks, population, filtering. Tests cover: successful CRUD, permission denied (403), not found (404), validation errors, owner filtering, population.
+  - Acceptance: Each CRUD handler works with correct permission checks, population, filtering. List enforces maxLimit. excludeFields are stripped from responses. Tests cover: successful CRUD, permission denied (403), not found (404), validation errors, owner filtering, population, maxLimit enforcement, excludeFields stripping.
 
 - [ ] **Task 1.6**: Auth-agnostic user extraction for MCP
   - Description: Build middleware/utility that extracts user from MCP transport headers using whichever auth provider is configured (JWT via passport or Better Auth via `auth.api.getSession()`). Should mirror `authenticateMiddleware` behavior but work with raw headers instead of Express req.

@@ -9,6 +9,8 @@ Add MCP (Model Context Protocol) tool generation to `@terreno/api`'s `modelRoute
 This makes every Terreno app instantly AI-native: any model becomes callable by LLMs with the same permission, filtering, and population guarantees as REST.
 
 **Key design decisions:**
+- Safe defaults: `methods` defaults to `['list', 'read']` (read-only), `maxLimit` defaults to 50
+- `excludeFields` allows hiding sensitive/regulated fields from MCP tool schemas and responses
 - MCP config lives on each `modelRouter` call (per-model opt-in)
 - `TerrenoApp` aggregates all MCP-enabled models into a single `/mcp` endpoint
 - `modelRouter` return type is unchanged — MCP registration is a side effect (same pattern as OpenAPI)
@@ -29,9 +31,12 @@ No new Mongoose models or database changes. New TypeScript interfaces added to `
 // api/src/mcp/types.ts
 
 export interface MCPConfig {
-  methods: Array<'create' | 'list' | 'read' | 'update' | 'delete'>;
+  methods?: Array<'create' | 'list' | 'read' | 'update' | 'delete'>; // Default: ['list', 'read']
   description?: string;            // Override auto-generated model description
   toolPrefix?: string;             // Override tool name prefix (default: pluralized model name)
+  excludeFields?: string[];        // Fields to hide from MCP tool schemas and responses
+                                   // e.g. ['internalNote', '__v', 'metadata.secretKey']
+  maxLimit?: number;               // Max items returned by list tool (default: 50)
   mcpResponseHandler?: (          // MCP-specific serialization (separate from REST responseHandler)
     value: any,
     method: 'create' | 'list' | 'read' | 'update' | 'delete',
@@ -81,7 +86,7 @@ For each model with `mcp` config, tools are generated based on `mcp.methods`:
 
 | Tool Name | Generates When | Input Schema | Output |
 |-----------|---------------|--------------|--------|
-| `{prefix}_list` | `'list'` in methods | `{ query?, page?, limit?, sort?, populate? }` | `{ data, total, page, more }` |
+| `{prefix}_list` | `'list'` in methods | `{ query?, page?, limit?, sort?, populate? }` | `{ data, total, page, more }` (limit capped at `maxLimit`, default 50) |
 | `{prefix}_read` | `'read'` in methods | `{ id, populate? }` | `{ data }` |
 | `{prefix}_create` | `'create'` in methods | Model fields from Mongoose schema | `{ data }` |
 | `{prefix}_update` | `'update'` in methods | `{ id, ...partial model fields }` | `{ data }` |
@@ -95,12 +100,13 @@ For each model with `mcp` config, tools are generated based on `mcp.methods`:
 4. For read/update/delete: load document, run object-level permission check
 5. Apply `queryFilter` for list operations
 6. Apply `populatePaths` (default) + optional extra `populate` param from tool input
-7. Serialize through `mcpResponseHandler` if provided, otherwise default serialization
+7. Strip `excludeFields` from response data
+8. Serialize through `mcpResponseHandler` if provided, otherwise default serialization
 
 ### Tool Description Auto-generation
 
 Generated from model name, field names/types, and `queryFields`. Example:
-> "List todo items. Filterable by: completed, status, ownerId. Sortable. Paginated (default 100, max 500)."
+> "List todo items. Filterable by: completed, status, ownerId. Sortable. Paginated (default 50, max controlled by maxLimit)."
 
 `mcp.description` overrides the auto-generated description.
 
