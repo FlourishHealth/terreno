@@ -42,7 +42,12 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   }
 
   if (error) {
-    console.warn("[ConsentNavigator] Error fetching pending consents:", error);
+    const status = (error as any)?.status ?? (error as any)?.originalStatus;
+    console.warn("[ConsentNavigator] Error fetching pending consents:", {error, status});
+    // On auth errors, pass through to let the app handle re-authentication
+    if (status === 401 || status === 403) {
+      return <>{children}</>;
+    }
     onError?.(error);
     return (
       <Box
