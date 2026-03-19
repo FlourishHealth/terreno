@@ -110,8 +110,18 @@ function RootLayoutNav(): React.ReactElement {
   );
 
   if (userId && !profile?.admin) {
+    console.info("[RootLayout] Non-admin user, wrapping with ConsentNavigator", {
+      admin: profile?.admin,
+      profileLoaded: !!profile,
+      userId,
+    });
     return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
   }
 
+  console.debug("[RootLayout] Skipping ConsentNavigator", {
+    admin: profile?.admin,
+    profileLoaded: !!profile,
+    userId: userId ?? "none",
+  });
   return stack;
 }

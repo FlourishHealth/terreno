@@ -201,12 +201,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     }
     navigation.setOptions({
       headerRight: () => (
-        <Button
-          onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
-          testID="admin-create-button"
-          text="Create"
-          variant="primary"
-        />
+        <Box alignItems="center" justifyContent="center" marginRight={3}>
+          <Button
+            onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+            testID="admin-create-button"
+            text="Create"
+            variant="primary"
+          />
+        </Box>
       ),
       title: modelConfig.displayName,
     });

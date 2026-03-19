@@ -1,13 +1,9 @@
-import {ConsentHistory, Page} from "@terreno/ui";
+import {ConsentHistory} from "@terreno/ui";
 import type React from "react";
 import {terrenoApi} from "@/store/sdk";
 
 const ConsentsScreen: React.FC = () => {
-  return (
-    <Page title="My Consents">
-      <ConsentHistory api={terrenoApi} />
-    </Page>
-  );
+  return <ConsentHistory api={terrenoApi} />;
 };
 
 export default ConsentsScreen;

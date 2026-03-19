@@ -28,6 +28,7 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   const locale = detectLocale();
 
   if (isLoading) {
+    console.debug("[ConsentNavigator] Loading pending consents...");
     return (
       <Box
         alignItems="center"
@@ -41,6 +42,7 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   }
 
   if (error) {
+    console.warn("[ConsentNavigator] Error fetching pending consents:", error);
     onError?.(error);
     return (
       <Box
@@ -61,8 +63,11 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   }
 
   if (forms.length === 0 || currentIndex >= forms.length) {
+    console.debug("[ConsentNavigator] No pending consents, showing app");
     return <>{children}</>;
   }
+
+  console.info(`[ConsentNavigator] Showing consent form ${currentIndex + 1}/${forms.length}: ${forms[currentIndex]?.title}`);
 
   const currentForm = forms[currentIndex];
 

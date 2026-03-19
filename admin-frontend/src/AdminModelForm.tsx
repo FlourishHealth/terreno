@@ -246,6 +246,28 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
   }, [itemId, deleteItem, toast, modelName]);
 
+  const isSaving = isCreating || isUpdating;
+
+  useEffect(() => {
+    if (!modelConfig) {
+      return;
+    }
+    navigation.setOptions({
+      headerRight: () => (
+        <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
+          {mode === "edit" && <DeleteButton loading={isDeleting} onDelete={handleDelete} />}
+          <Button
+            loading={isSaving}
+            onClick={handleSave}
+            testID="admin-save-button"
+            text={mode === "create" ? "Create" : "Save"}
+            variant="primary"
+          />
+        </Box>
+      ),
+    });
+  }, [navigation, modelConfig, mode, isSaving, isDeleting, handleSave, handleDelete]);
+
   if (isConfigLoading || !modelConfig) {
     return (
       <Page maxWidth="100%">
@@ -267,31 +289,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }
 
   const editableFields = getEditableFields(modelConfig.fields, modelConfig.fieldOrder);
-  const isSaving = isCreating || isUpdating;
-  const saveLabel = mode === "create" ? "Create" : "Save";
 
   const modelConfigs =
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
 
   return (
-    <Page
-      footer={
-        <Box direction="row" gap={2} justifyContent="between" padding={2}>
-          <Box>
-            {mode === "edit" && <DeleteButton loading={isDeleting} onDelete={handleDelete} />}
-          </Box>
-          <Button
-            loading={isSaving}
-            onClick={handleSave}
-            testID="admin-save-button"
-            text={saveLabel}
-            variant="primary"
-          />
-        </Box>
-      }
-      maxWidth="100%"
-      scroll
-    >
+    <Page maxWidth="100%" scroll>
       <Box gap={3} padding={4}>
         {editableFields.map(([fieldKey, fieldConfig]) => (
           <AdminFieldRenderer
