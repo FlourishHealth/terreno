@@ -5,9 +5,34 @@ import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
 import type {MCPMethod, MCPRegistryEntry} from "./types";
 
+const deleteAtPath = (obj: any, segments: string[]): void => {
+  if (!obj || typeof obj !== "object" || segments.length === 0) {
+    return;
+  }
+  if (segments.length === 1) {
+    delete obj[segments[0]];
+    return;
+  }
+  const [head, ...rest] = segments;
+  if (obj[head] && typeof obj[head] === "object") {
+    deleteAtPath(obj[head], rest);
+  }
+};
+
 const stripExcludedFields = (data: any, excludeFields: string[]): any => {
   if (!excludeFields.length || !data) {
     return data;
+  }
+
+  // Split excludeFields into top-level keys and dot-notation paths
+  const topLevelKeys: string[] = [];
+  const dotPaths: string[][] = [];
+  for (const field of excludeFields) {
+    if (field.includes(".")) {
+      dotPaths.push(field.split("."));
+    } else {
+      topLevelKeys.push(field);
+    }
   }
 
   const strip = (obj: any): any => {
@@ -17,9 +42,13 @@ const stripExcludedFields = (data: any, excludeFields: string[]): any => {
     if (obj && typeof obj === "object") {
       const result: Record<string, any> = {};
       for (const [key, value] of Object.entries(obj)) {
-        if (!excludeFields.includes(key)) {
+        if (!topLevelKeys.includes(key)) {
           result[key] = value;
         }
+      }
+      // Handle dot-notation paths
+      for (const segments of dotPaths) {
+        deleteAtPath(result, segments);
       }
       return result;
     }
@@ -92,12 +121,17 @@ export const handleList = async (
     query = {...options.defaultQueryParams};
   }
 
-  // Apply filter fields from args
+  // Apply filter fields from args — only allow fields in queryFields (same as REST)
   const reservedKeys = new Set(["limit", "page", "sort", "populate"]);
+  const allowedQueryFields = new Set(options.queryFields ?? []);
   for (const [key, value] of Object.entries(args)) {
-    if (!reservedKeys.has(key) && value !== undefined) {
-      query[key] = value;
+    if (reservedKeys.has(key) || value === undefined) {
+      continue;
     }
+    if (!allowedQueryFields.has(key)) {
+      continue;
+    }
+    query[key] = value;
   }
 
   // Apply query filter

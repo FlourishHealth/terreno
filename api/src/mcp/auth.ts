@@ -27,7 +27,13 @@ export const extractUserFromHeaders = async (
       });
 
       if (session?.user && session?.session) {
-        const appUser = await userModel.findOne({betterAuthId: session.user.id});
+        // betterAuthId is unique per user — findById-like lookup that may return null.
+        // Use findOneOrNone (safe single-doc lookup) if available, otherwise findOne.
+        const q = {betterAuthId: session.user.id};
+        const model = userModel as any;
+        const appUser = await (typeof model.findOneOrNone === "function"
+          ? model.findOneOrNone(q)
+          : model.findOne(q));
         if (appUser) {
           return appUser as unknown as User;
         }
