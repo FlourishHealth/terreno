@@ -8,6 +8,7 @@ on:
       - "ui/**"
       - "rtk/**"
       - "api/**"
+      - "feature-flags/**"
       - ".github/workflows/e2e-ci.yml"
 
 jobs:
