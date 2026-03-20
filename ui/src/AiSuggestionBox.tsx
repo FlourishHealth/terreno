@@ -23,6 +23,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
   const {theme} = useTheme();
   const [expanded, setExpanded] = useState(true);
 
+  // Re-expand when a new suggestion arrives or is added
   useEffect(() => {
     if (status === "ready" || status === "added") {
       setExpanded(true);
@@ -135,12 +136,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
 
   if (!expanded) {
     return (
-      <Pressable
-        accessibilityRole="button"
-        onPress={toggleExpanded}
-        style={{...containerStyle, flexDirection: "column"}}
-        testID={testID}
-      >
+      <View style={{...containerStyle, flexDirection: "column"}} testID={testID}>
         <View style={{alignItems: "center", flexDirection: "row", gap: 4, width: "100%"}}>
           <Icon color="secondaryDark" iconName="wand-magic-sparkles" size="xs" />
           <View style={{flex: 1}}>
@@ -163,7 +159,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
             {renderFeedback()}
           </View>
         </View>
-      </Pressable>
+      </View>
     );
   }
 

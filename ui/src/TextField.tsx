@@ -185,7 +185,9 @@ export const TextField: FC<TextFieldProps> = ({
             nativeID={id}
             numberOfLines={rows || 4}
             onBlur={() => {
-              if (disabled) return;
+              if (disabled) {
+                return;
+              }
               let finalValue = value ?? "";
 
               if (trimOnBlur && value) {
