@@ -98,7 +98,7 @@ const featureFlagSchema = new mongoose.Schema<FeatureFlagDocument, FeatureFlagMo
       },
     ],
   },
-  {strict: true, toJSON: {virtuals: true}, toObject: {virtuals: true}}
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
 );
 
 featureFlagSchema.plugin(createdUpdatedPlugin);
