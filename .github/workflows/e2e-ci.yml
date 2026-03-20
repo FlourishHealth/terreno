@@ -67,6 +67,10 @@ jobs:
         run: bun run compile
         working-directory: admin-backend
 
+      - name: Build Feature Flags dependency
+        run: bun run compile
+        working-directory: feature-flags
+
       - name: Build Admin Frontend dependency
         run: bun run compile
         working-directory: admin-frontend
