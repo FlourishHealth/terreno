@@ -2,14 +2,19 @@ import type {AiSuggestionProps} from "@terreno/ui";
 import {Box, Heading, TextArea} from "@terreno/ui";
 import {type ReactElement, useCallback, useState} from "react";
 
+const SAMPLE_TEXT =
+  "The clinician used CBT techniques including cognitive restructuring and behavioral activation. Motivational interviewing was also employed to address ambivalence about treatment goals.";
+
 const AiSuggestionDemo = ({
   initialStatus,
   text,
   label,
+  showTitle,
 }: {
   initialStatus: AiSuggestionProps["status"];
   text?: string;
-  label: string;
+  label?: string;
+  showTitle?: boolean;
 }): ReactElement => {
   const [value, setValue] = useState("");
   const [feedback, setFeedback] = useState<"like" | "dislike" | null>(null);
@@ -21,8 +26,8 @@ const AiSuggestionDemo = ({
   }, [text]);
 
   return (
-    <Box gap={1} paddingY={2}>
-      <Heading size="sm">{label}</Heading>
+    <Box gap={1} paddingY={2} width="100%">
+      {Boolean(label) && <Heading size="sm">{label}</Heading>}
       <TextArea
         aiSuggestion={{
           feedback,
@@ -34,7 +39,7 @@ const AiSuggestionDemo = ({
         onChange={setValue}
         placeholder="Add your notes here..."
         rows={3}
-        title="Intervention(s)"
+        title={showTitle ? "Intervention(s)" : undefined}
         value={value}
       />
     </Box>
@@ -53,20 +58,22 @@ export const AiSuggestionReady = (): ReactElement => (
   <AiSuggestionDemo
     initialStatus="ready"
     label="Ready (click Add to note to see Added state)"
-    text="The clinician used CBT techniques including cognitive restructuring and behavioral activation. Motivational interviewing was also employed to address ambivalence about treatment goals."
+    text={SAMPLE_TEXT}
   />
 );
 
 export const AiSuggestionAdded = (): ReactElement => (
-  <AiSuggestionDemo
-    initialStatus="added"
-    label="Added"
-    text="The clinician used CBT techniques including cognitive restructuring and behavioral activation."
-  />
+  <AiSuggestionDemo initialStatus="added" label="Added" text={SAMPLE_TEXT} />
+);
+
+export const AiSuggestionMainDemo = (): ReactElement => (
+  <Box width="100%">
+    <AiSuggestionDemo initialStatus="ready" text={SAMPLE_TEXT} />
+  </Box>
 );
 
 export const AiSuggestionAllStates = (): ReactElement => (
-  <Box gap={4} padding={4}>
+  <Box gap={4} padding={4} width="100%">
     <AiSuggestionNotStarted />
     <AiSuggestionGenerating />
     <AiSuggestionReady />

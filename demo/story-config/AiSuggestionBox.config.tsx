@@ -3,6 +3,7 @@ import {
   AiSuggestionAdded,
   AiSuggestionAllStates,
   AiSuggestionGenerating,
+  AiSuggestionMainDemo,
   AiSuggestionNotStarted,
   AiSuggestionReady,
 } from "@stories";
@@ -43,7 +44,7 @@ export const AiSuggestionBoxConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: AiSuggestionAllStates,
+  demo: AiSuggestionMainDemo,
   demoOptions: {},
   stories: {
     NotStarted: {render: AiSuggestionNotStarted},

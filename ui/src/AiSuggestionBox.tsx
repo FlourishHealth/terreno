@@ -138,7 +138,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
       <Pressable
         accessibilityRole="button"
         onPress={toggleExpanded}
-        style={containerStyle}
+        style={{...containerStyle, flexDirection: "column"}}
         testID={testID}
       >
         <View style={{alignItems: "center", flexDirection: "row", gap: 4, width: "100%"}}>
