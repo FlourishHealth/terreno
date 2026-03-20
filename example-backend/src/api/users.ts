@@ -10,6 +10,10 @@ const serializeUser = (doc: any): Record<string, unknown> => {
 
 // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
 export const userRouter = modelRouter("/users", User as any, {
+  mcp: {
+    excludeFields: ["hash", "salt", "attempts", "last"],
+    methods: ["list", "read"],
+  },
   permissions: {
     create: [Permissions.IsAdmin],
     delete: [Permissions.IsAdmin],
