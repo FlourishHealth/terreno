@@ -634,6 +634,8 @@ export interface AiSuggestionProps {
   status: "not-started" | "generating" | "ready" | "added";
   text?: string;
   onAdd?: () => void;
+  onHide?: () => void;
+  onShow?: () => void;
   onFeedback?: (feedback: "like" | "dislike" | null) => void;
   feedback?: "like" | "dislike" | null;
   notStartedText?: string;

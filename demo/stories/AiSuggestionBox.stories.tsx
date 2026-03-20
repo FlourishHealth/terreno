@@ -1,5 +1,5 @@
 import type {AiSuggestionProps} from "@terreno/ui";
-import {Box, Heading, TextArea} from "@terreno/ui";
+import {AiSuggestionBox, Box, Heading, TextArea} from "@terreno/ui";
 import {type ReactElement, useCallback, useState} from "react";
 
 const SAMPLE_TEXT =
@@ -9,12 +9,10 @@ const AiSuggestionDemo = ({
   initialStatus,
   text,
   label,
-  showTitle,
 }: {
   initialStatus: AiSuggestionProps["status"];
   text?: string;
   label?: string;
-  showTitle?: boolean;
 }): ReactElement => {
   const [value, setValue] = useState("");
   const [feedback, setFeedback] = useState<"like" | "dislike" | null>(null);
@@ -39,7 +37,6 @@ const AiSuggestionDemo = ({
         onChange={setValue}
         placeholder="Add your notes here..."
         rows={3}
-        title={showTitle ? "Intervention(s)" : undefined}
         value={value}
       />
     </Box>
@@ -66,11 +63,19 @@ export const AiSuggestionAdded = (): ReactElement => (
   <AiSuggestionDemo initialStatus="added" label="Added" text={SAMPLE_TEXT} />
 );
 
-export const AiSuggestionMainDemo = (): ReactElement => (
-  <Box width="100%">
-    <AiSuggestionDemo initialStatus="ready" text={SAMPLE_TEXT} />
-  </Box>
-);
+export const AiSuggestionMainDemo = (): ReactElement => {
+  const [feedback, setFeedback] = useState<"like" | "dislike" | null>(null);
+
+  return (
+    <AiSuggestionBox
+      feedback={feedback}
+      onAdd={() => {}}
+      onFeedback={setFeedback}
+      status="ready"
+      text="AI generated note"
+    />
+  );
+};
 
 export const AiSuggestionAllStates = (): ReactElement => (
   <Box gap={4} padding={4} width="100%">

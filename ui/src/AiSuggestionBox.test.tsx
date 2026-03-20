@@ -163,6 +163,47 @@ describe("AiSuggestionBox in TextArea", () => {
       expect(getByText("Suggestion text")).toBeTruthy();
       expect(getByText("AI-generated note")).toBeTruthy();
     });
+
+    it("should call onHide when Hide is pressed", () => {
+      const mockOnHide = mock(() => {});
+      const {getByLabelText} = renderWithTheme(
+        <TextArea
+          aiSuggestion={{
+            onAdd: () => {},
+            onHide: mockOnHide,
+            status: "ready",
+            text: "Suggestion text",
+          }}
+          onChange={() => {}}
+          testID="test"
+          value=""
+        />
+      );
+
+      fireEvent.press(getByLabelText("Hide suggestion"));
+      expect(mockOnHide).toHaveBeenCalledTimes(1);
+    });
+
+    it("should call onShow when Show is pressed", () => {
+      const mockOnShow = mock(() => {});
+      const {getByLabelText} = renderWithTheme(
+        <TextArea
+          aiSuggestion={{
+            onAdd: () => {},
+            onShow: mockOnShow,
+            status: "ready",
+            text: "Suggestion text",
+          }}
+          onChange={() => {}}
+          testID="test"
+          value=""
+        />
+      );
+
+      fireEvent.press(getByLabelText("Hide suggestion"));
+      fireEvent.press(getByLabelText("Show suggestion"));
+      expect(mockOnShow).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("added state", () => {

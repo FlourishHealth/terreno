@@ -14,6 +14,8 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
   status,
   text,
   onAdd,
+  onHide,
+  onShow,
   onFeedback,
   feedback,
   notStartedText = "AI note will be generated once the session ends.",
@@ -65,9 +67,15 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
             ? "AI-generated note"
             : "AI-generated note (hidden)";
 
-  const toggleExpanded = useCallback(() => {
-    setExpanded((prev) => !prev);
-  }, []);
+  const handleHide = useCallback(() => {
+    setExpanded(false);
+    onHide?.();
+  }, [onHide]);
+
+  const handleShow = useCallback(() => {
+    setExpanded(true);
+    onShow?.();
+  }, [onShow]);
 
   const handleThumbsUp = useCallback(() => {
     if (!onFeedback) {
@@ -148,7 +156,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
             <Pressable
               accessibilityLabel="Show suggestion"
               accessibilityRole="button"
-              onPress={toggleExpanded}
+              onPress={handleShow}
               style={{height: 28, justifyContent: "center", paddingHorizontal: 16}}
               testID={testID ? `${testID}-show` : undefined}
             >
@@ -193,7 +201,7 @@ export const AiSuggestionBox: FC<AiSuggestionBoxProps> = ({
         <Pressable
           accessibilityLabel="Hide suggestion"
           accessibilityRole="button"
-          onPress={toggleExpanded}
+          onPress={handleHide}
           style={{height: 28, justifyContent: "center", paddingHorizontal: 16}}
           testID={testID ? `${testID}-hide` : undefined}
         >
