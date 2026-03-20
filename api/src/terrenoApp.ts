@@ -11,6 +11,8 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {getMCPRegistry} from "./mcp/registry";
+import {mountMCPServer} from "./mcp/server";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
@@ -324,8 +326,10 @@ export class TerrenoApp {
       }
     }
 
-    // Inject openApi into model router options for registered routers
-    // The openApi middleware handles this via the oapi instance already mounted on the app
+    // Mount MCP server if any models have mcp config
+    if (getMCPRegistry().length > 0) {
+      mountMCPServer(app, {userModel: options.userModel as any});
+    }
 
     Sentry.setupExpressErrorHandler(app);
 

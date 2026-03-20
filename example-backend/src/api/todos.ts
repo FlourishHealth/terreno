@@ -3,6 +3,11 @@ import {Todo} from "../models";
 import type {TodoDocument, UserDocument} from "../types";
 
 export const todoRouter = modelRouter("/todos", Todo, {
+  mcp: {
+    excludeFields: ["ownerId"],
+    maxLimit: 25,
+    methods: ["list", "read"],
+  },
   permissions: {
     create: [Permissions.IsAuthenticated],
     delete: [Permissions.IsOwner],
