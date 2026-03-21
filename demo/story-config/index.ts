@@ -1,4 +1,5 @@
 export * from "./Accordion.config";
+export * from "./AiSuggestionBox.config";
 export * from "./AddressField.config";
 export * from "./Avatar.config";
 export * from "./Badge.config";
