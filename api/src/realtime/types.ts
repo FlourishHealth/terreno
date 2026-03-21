@@ -83,3 +83,25 @@ export interface RealtimeAppOptions {
   /** Enable debug logging */
   debug?: boolean;
 }
+
+/**
+ * Payload sent by the client to subscribe to a single document's changes.
+ */
+export interface DocumentSubscription {
+  /** Collection tag (e.g. "todos") */
+  collection: string;
+  /** Document ID */
+  id: string;
+}
+
+/**
+ * Payload sent by the client to subscribe to a query-filtered list.
+ */
+export interface QuerySubscription {
+  /** Collection tag (e.g. "todos") */
+  collection: string;
+  /** MongoDB-style query filter (e.g. {completed: false}) */
+  query: Record<string, any>;
+  /** Client-generated unique ID for this query subscription */
+  queryId: string;
+}

@@ -7,6 +7,8 @@ type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
 type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
 
 import {logger} from "../logger";
+import {matchesQuery} from "./queryMatcher";
+import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
@@ -91,6 +93,65 @@ const serializeDoc = async (
   }
   // Use toJSON for simple serialization since we don't have a request context in change streams
   return typeof doc.toJSON === "function" ? doc.toJSON() : doc;
+};
+
+/**
+ * Emit a sync event to document-specific and query rooms.
+ *
+ * Document rooms: `document:{collection}:{docId}` — clients subscribed to a single document.
+ * Query rooms: `query:{queryId}` — clients subscribed to a query filter. The change stream
+ * watcher evaluates whether the document matches each active query for the collection.
+ */
+const emitToDocumentAndQueryRooms = (
+  io: Server,
+  collection: string,
+  event: RealtimeEvent,
+  fullDocument: any,
+  logDebug: (msg: string) => void
+): void => {
+  // Emit to document-specific room
+  const docRoom = `document:${collection}:${event.id}`;
+  io.to(docRoom).emit("sync", event);
+  logDebug(`[realtime] Emitted ${event.method} to ${docRoom}`);
+
+  // Evaluate query subscriptions
+  const querySubscriptions = getQuerySubscriptionsForCollection(collection);
+  for (const {queryId, query} of querySubscriptions) {
+    const queryRoom = `query:${queryId}`;
+
+    if (event.method === "delete") {
+      // Always forward deletes — the client will remove the item if present
+      io.to(queryRoom).emit("sync", event);
+      logDebug(`[realtime] Emitted delete to ${queryRoom}`);
+      continue;
+    }
+
+    if (!fullDocument) {
+      continue;
+    }
+
+    const docMatches = matchesQuery(fullDocument, query);
+
+    if (event.method === "create" && docMatches) {
+      // New document matches the query — send create event
+      io.to(queryRoom).emit("sync", event);
+      logDebug(`[realtime] Emitted create to ${queryRoom} (query matched)`);
+    } else if (event.method === "update") {
+      if (docMatches) {
+        // Document still matches (or newly matches) — send update event
+        io.to(queryRoom).emit("sync", event);
+        logDebug(`[realtime] Emitted update to ${queryRoom} (query matched)`);
+      } else {
+        // Document no longer matches the query — send delete event so client removes it
+        const removeEvent: RealtimeEvent = {
+          ...event,
+          method: "delete",
+        };
+        io.to(queryRoom).emit("sync", removeEvent);
+        logDebug(`[realtime] Emitted delete to ${queryRoom} (query no longer matched)`);
+      }
+    }
+  }
 };
 
 /**
@@ -229,10 +290,13 @@ export const startChangeStreamWatcher = (
             : {}),
         };
 
-        // Emit to each target room
+        // Emit to strategy-based rooms (model/owner/broadcast)
         for (const room of rooms) {
           io.to(room).emit("sync", event);
         }
+
+        // Emit to document-specific and query rooms
+        emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug);
 
         logDebug(
           `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`

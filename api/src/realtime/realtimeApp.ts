@@ -7,24 +7,30 @@ import {Server} from "socket.io";
 import {logger} from "../logger";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
-import type {RealtimeAppOptions} from "./types";
+import {addQuerySubscription, removeAllSocketQueries, removeQuerySubscription} from "./queryStore";
+import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
  * TerrenoPlugin that provides real-time sync via Socket.io and MongoDB change streams.
  *
  * Attaches a Socket.io server to the HTTP server created by TerrenoApp.start(),
- * sets up JWT authentication for socket connections, manages room subscriptions,
- * and starts a change stream watcher that emits events to connected clients.
+ * sets up JWT authentication for socket connections, manages room subscriptions
+ * (model, document, and query rooms), and starts a change stream watcher that
+ * emits events to connected clients.
+ *
+ * ## Subscription types
+ *
+ * - **Model rooms**: `subscribe:model` / `unsubscribe:model` — receive all events for a collection
+ * - **Document rooms**: `subscribe:document` / `unsubscribe:document` — receive events for a single document
+ * - **Query rooms**: `subscribe:query` / `unsubscribe:query` — receive events matching a MongoDB query
  *
  * @example
  * ```typescript
- * const app = new TerrenoApp({ userModel: User })
+ * const app = new TerrenoApp({
+ *   userModel: User,
+ *   realtime: { debug: true },
+ * })
  *   .register(todoRouter)   // todoRouter has realtime config
- *   .register(new RealtimeApp({
- *     changeStream: {
- *       ignoredCollections: ['sessions'],
- *     },
- *   }))
  *   .start();
  * ```
  */
@@ -111,7 +117,7 @@ export class RealtimeApp implements TerrenoPlugin {
             logInfo(`[realtime] Admin user ${userId} joined admin room`);
           }
 
-          // Model room subscription
+          // Model room subscription (all events for a collection)
           socket.on("subscribe:model", async (modelName: string): Promise<void> => {
             if (typeof modelName === "string" && modelName.length > 0) {
               await socket.join(`model:${modelName}`);
@@ -126,7 +132,48 @@ export class RealtimeApp implements TerrenoPlugin {
             }
           });
 
+          // Document room subscription (events for a single document)
+          socket.on("subscribe:document", async (payload: DocumentSubscription): Promise<void> => {
+            if (payload?.collection && payload?.id) {
+              const room = `document:${payload.collection}:${payload.id}`;
+              await socket.join(room);
+              logInfo(`[realtime] User ${userId} subscribed to ${room}`);
+            }
+          });
+
+          socket.on(
+            "unsubscribe:document",
+            async (payload: DocumentSubscription): Promise<void> => {
+              if (payload?.collection && payload?.id) {
+                const room = `document:${payload.collection}:${payload.id}`;
+                await socket.leave(room);
+                logInfo(`[realtime] User ${userId} unsubscribed from ${room}`);
+              }
+            }
+          );
+
+          // Query room subscription (events matching a MongoDB query)
+          socket.on("subscribe:query", async (payload: QuerySubscription): Promise<void> => {
+            if (payload?.collection && payload?.query && payload?.queryId) {
+              addQuerySubscription(socket.id, payload.collection, payload.query, payload.queryId);
+              await socket.join(`query:${payload.queryId}`);
+              logInfo(
+                `[realtime] User ${userId} subscribed to query:${payload.queryId} ` +
+                  `on ${payload.collection} with ${JSON.stringify(payload.query)}`
+              );
+            }
+          });
+
+          socket.on("unsubscribe:query", async (payload: {queryId: string}): Promise<void> => {
+            if (payload?.queryId) {
+              removeQuerySubscription(socket.id, payload.queryId);
+              await socket.leave(`query:${payload.queryId}`);
+              logInfo(`[realtime] User ${userId} unsubscribed from query:${payload.queryId}`);
+            }
+          });
+
           socket.on("disconnect", () => {
+            removeAllSocketQueries(socket.id);
             logInfo(`[realtime] User ${userId} disconnected`);
           });
         } catch (error) {

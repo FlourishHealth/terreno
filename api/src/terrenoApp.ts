@@ -12,6 +12,8 @@ import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {RealtimeApp} from "./realtime/realtimeApp";
+import type {RealtimeAppOptions} from "./realtime/types";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 
 type CorsOrigin =
@@ -49,6 +51,13 @@ export interface TerrenoAppOptions {
   arrayLimit?: number;
   /** Whether to log all incoming requests (default: true) */
   logRequests?: boolean;
+  /**
+   * Real-time sync configuration. When provided, Socket.io and MongoDB change streams
+   * are set up automatically — no need to register RealtimeApp as a separate plugin.
+   *
+   * Set to `true` for defaults, or pass a RealtimeAppOptions object for full control.
+   */
+  realtime?: boolean | RealtimeAppOptions;
 }
 
 /**
@@ -323,6 +332,18 @@ export class TerrenoApp {
    * ```
    */
   start(): express.Application {
+    // If realtime option is set, auto-register the RealtimeApp plugin
+    if (this.options.realtime) {
+      const hasRealtimePlugin = this.registrations.some(
+        (r) => !this.isModelRouterRegistration(r) && r instanceof RealtimeApp
+      );
+      if (!hasRealtimePlugin) {
+        const realtimeConfig =
+          typeof this.options.realtime === "object" ? this.options.realtime : {};
+        this.register(new RealtimeApp(realtimeConfig));
+      }
+    }
+
     const app = this.build();
 
     if (!this.options.skipListen) {

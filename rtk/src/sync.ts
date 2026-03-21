@@ -3,26 +3,7 @@ import {useEffect, useRef} from "react";
 import {useDispatch, useStore} from "react-redux";
 import type {Socket} from "socket.io-client";
 
-/**
- * A real-time sync event received from the server via WebSocket.
- * Must be kept in sync with the backend RealtimeEvent in @terreno/api.
- */
-export interface RealtimeEvent {
-  /** Mongoose model name (e.g. "Todo") */
-  model: string;
-  /** Route path used as tag type (e.g. "todos") */
-  collection: string;
-  /** The CRUD method that triggered this event */
-  method: "create" | "update" | "delete";
-  /** Document ID */
-  id: string;
-  /** Serialized document data (omitted for hard deletes) */
-  data?: any;
-  /** Fields that were updated (for update events) */
-  updatedFields?: string[];
-  /** Epoch milliseconds when the event was generated */
-  timestamp: number;
-}
+import type {RealtimeEvent} from "./realtime";
 
 interface UseSyncConnectionOptions {
   /** Socket.io client instance (from useSocketConnection) */
