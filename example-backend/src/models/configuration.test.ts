@@ -518,6 +518,10 @@ describe("Configuration", () => {
   });
 
   describe("secret type", () => {
+    afterAll(() => {
+      Configuration.resetGsmClient();
+    });
+
     it("should get value from secrets cache", () => {
       // Manually populate the secrets cache via a round-trip:
       // We can test that get() reads from the cache by using refreshSecret-like behavior
