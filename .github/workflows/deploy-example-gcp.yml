@@ -12,6 +12,23 @@ env:
   GCP_SERVICE_NAME: terreno-backend-example
 
 jobs:
+  check-changes:
+    name: Check for relevant changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check PR diff for backend-related changes
+        id: check
+        run: |
+          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
+          echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   deploy-production:
     name: Deploy Production
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
@@ -136,7 +153,8 @@ jobs:
 
   deploy-preview:
     name: Deploy Preview
-    if: github.event_name == 'pull_request'
+    needs: [check-changes]
+    if: always() && github.event_name == 'pull_request' && needs.check-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read

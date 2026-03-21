@@ -57,6 +57,7 @@
     "seed": "bun run src/scripts/seed-test-data.ts",
     "start": "bun run src/index.ts",
     "start:prod": "bun run dist/index.js",
+    "sync-consents": "bun run src/scripts/syncConsents.ts",
     "test": "bun test",
     "test:ci": "bun test",
     "test:coverage": "bun test --coverage",

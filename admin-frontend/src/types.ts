@@ -17,6 +17,7 @@ export interface AdminModelConfig {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
+  fieldOrder?: string[];
 }
 
 export interface AdminScriptConfig {

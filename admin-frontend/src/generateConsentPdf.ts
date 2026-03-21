@@ -1,0 +1,264 @@
+import {jsPDF} from "jspdf";
+import {DateTime} from "luxon";
+
+interface ConsentResponseData {
+  _id?: string;
+  agreed: boolean;
+  agreedAt?: string;
+  checkboxValues?: Record<string, boolean>;
+  consentFormId?: {title?: string; slug?: string; version?: number; type?: string} | string;
+  contentSnapshot?: string;
+  formVersionSnapshot?: number;
+  ipAddress?: string;
+  locale?: string;
+  signature?: string;
+  signedAt?: string;
+  userAgent?: string;
+  userId?: {_id?: string; email?: string; name?: string} | string;
+}
+
+const PAGE_WIDTH = 210;
+const MARGIN_LEFT = 20;
+const MARGIN_RIGHT = 20;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const PAGE_HEIGHT = 297;
+const MARGIN_BOTTOM = 20;
+
+const formatDate = (value: unknown): string => {
+  if (!value) {
+    return "";
+  }
+  const dt = DateTime.fromISO(String(value));
+  if (!dt.isValid) {
+    return String(value);
+  }
+  return dt.toLocaleString(DateTime.DATETIME_FULL);
+};
+
+const ensureSpace = (doc: jsPDF, y: number, needed: number): number => {
+  if (y + needed > PAGE_HEIGHT - MARGIN_BOTTOM) {
+    doc.addPage();
+    return 20;
+  }
+  return y;
+};
+
+export const generateConsentPdf = async (response: ConsentResponseData): Promise<void> => {
+  const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
+
+  const formTitle =
+    typeof response.consentFormId === "object"
+      ? (response.consentFormId?.title ?? "Unknown Form")
+      : "Unknown Form";
+
+  const formSlug =
+    typeof response.consentFormId === "object" ? (response.consentFormId?.slug ?? "") : "";
+
+  const formType =
+    typeof response.consentFormId === "object" ? (response.consentFormId?.type ?? "") : "";
+
+  const formVersion =
+    typeof response.consentFormId === "object"
+      ? response.consentFormId?.version
+      : response.formVersionSnapshot;
+
+  const userId =
+    typeof response.userId === "object"
+      ? (response.userId?._id ?? String(response.userId))
+      : String(response.userId ?? "");
+
+  const userEmail = typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
+
+  const userName = typeof response.userId === "object" ? (response.userId?.name ?? "") : "";
+
+  let y = 20;
+
+  // Title
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Consent Record", MARGIN_LEFT, y);
+  y += 10;
+
+  // Form title
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.text(formTitle, MARGIN_LEFT, y);
+  y += 10;
+
+  // Separator
+  doc.setDrawColor(200, 200, 200);
+  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  y += 8;
+
+  // Helper to add a labeled field
+  const addField = (label: string, value: string) => {
+    y = ensureSpace(doc, y, 8);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 100, 100);
+    doc.text(label, MARGIN_LEFT, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(value, MARGIN_LEFT + 45, y);
+    y += 6;
+  };
+
+  // Response Details
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("Response Details", MARGIN_LEFT, y);
+  y += 8;
+
+  if (formSlug) {
+    addField("Form Slug:", formSlug);
+  }
+  if (formType) {
+    addField("Form Type:", formType);
+  }
+  if (formVersion !== undefined) {
+    addField("Form Version:", String(formVersion));
+  }
+  addField("Decision:", response.agreed ? "Agreed" : "Declined");
+  if (response.agreedAt) {
+    addField("Agreed At:", formatDate(response.agreedAt));
+  }
+  if (response.locale) {
+    addField("Locale:", response.locale);
+  }
+
+  y += 4;
+
+  // User Info
+  y = ensureSpace(doc, y, 20);
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(0, 0, 0);
+  doc.text("User Information", MARGIN_LEFT, y);
+  y += 8;
+
+  addField("User ID:", userId);
+  if (userName) {
+    addField("Name:", userName);
+  }
+  if (userEmail) {
+    addField("Email:", userEmail);
+  }
+
+  y += 4;
+
+  // Checkbox Values
+  const checkboxEntries =
+    response.checkboxValues && typeof response.checkboxValues === "object"
+      ? Object.entries(response.checkboxValues)
+      : [];
+
+  if (checkboxEntries.length > 0) {
+    y = ensureSpace(doc, y, 12 + checkboxEntries.length * 6);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Checkbox Responses", MARGIN_LEFT, y);
+    y += 8;
+
+    for (const [index, checked] of checkboxEntries) {
+      y = ensureSpace(doc, y, 6);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const checkmark = checked ? "[x]" : "[ ]";
+      doc.text(`${checkmark} Checkbox ${index}`, MARGIN_LEFT + 4, y);
+      y += 6;
+    }
+    y += 4;
+  }
+
+  // Audit Trail
+  const hasAuditTrail = response.ipAddress || response.userAgent || response.formVersionSnapshot;
+
+  if (hasAuditTrail) {
+    y = ensureSpace(doc, y, 20);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Audit Trail", MARGIN_LEFT, y);
+    y += 8;
+
+    if (response.ipAddress) {
+      addField("IP Address:", response.ipAddress);
+    }
+    if (response.userAgent) {
+      addField("User Agent:", response.userAgent);
+    }
+    if (response.formVersionSnapshot !== undefined) {
+      addField("Form Version:", String(response.formVersionSnapshot));
+    }
+    if (response.signedAt) {
+      addField("Signed At:", formatDate(response.signedAt));
+    }
+    y += 4;
+  }
+
+  // Signature
+  if (response.signature) {
+    y = ensureSpace(doc, y, 50);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Signature", MARGIN_LEFT, y);
+    y += 6;
+
+    try {
+      // signature is a base64 data URI (e.g. data:image/png;base64,...)
+      const sigData = response.signature;
+      const format = sigData.includes("image/png") ? "PNG" : "JPEG";
+      doc.addImage(sigData, format, MARGIN_LEFT, y, 80, 30);
+      y += 34;
+    } catch {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.text("(Signature image could not be embedded)", MARGIN_LEFT, y);
+      y += 6;
+    }
+    y += 4;
+  }
+
+  // Content Snapshot
+  if (response.contentSnapshot) {
+    y = ensureSpace(doc, y, 20);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Content Snapshot", MARGIN_LEFT, y);
+    y += 8;
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(50, 50, 50);
+
+    const lines = doc.splitTextToSize(response.contentSnapshot, CONTENT_WIDTH);
+    for (const line of lines) {
+      y = ensureSpace(doc, y, 5);
+      doc.text(line, MARGIN_LEFT, y);
+      y += 4;
+    }
+  }
+
+  // Footer
+  y = ensureSpace(doc, y, 20);
+  y += 8;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
+  y += 6;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(150, 150, 150);
+  doc.text(`Generated ${DateTime.now().toLocaleString(DateTime.DATETIME_FULL)}`, MARGIN_LEFT, y);
+  if (response._id) {
+    doc.text(`Response ID: ${response._id}`, PAGE_WIDTH - MARGIN_RIGHT, y, {align: "right"});
+  }
+
+  // Download
+  const filename = `consent-${formSlug || "response"}-${userId.slice(-6)}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
+  doc.save(filename);
+};

@@ -6,7 +6,11 @@ import {
   type AuthProvider,
   BetterAuthApp,
   type BetterAuthConfig,
+  ConsentApp,
+  ConsentForm,
+  ConsentResponse,
   checkModelsStrict,
+  syncConsents,
   configureOpenApiValidator,
   logger,
   TerrenoApp,
@@ -19,6 +23,7 @@ import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
+import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
@@ -73,6 +78,11 @@ const buildBetterAuthConfig = (): BetterAuthConfig | undefined => {
 export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
+
+  // Sync default consent forms on startup
+  await syncConsents(consentDefinitions).catch((err: unknown) => {
+    logger.warn(`Failed to sync consent forms on startup: ${err}`);
+  });
 
   // Enable OpenAPI request validation. Strips unknown properties and logs them.
   configureOpenApiValidator({
@@ -166,6 +176,39 @@ export async function start(skipListen = false): Promise<express.Application> {
               model: User as any,
               routePath: "/users",
             },
+            {
+              displayName: "Consent Forms",
+              fieldOrder: [
+                "title",
+                "slug",
+                "type",
+                "version",
+                "order",
+                "active",
+                "required",
+                "content",
+                "defaultLocale",
+                "requireScrollToBottom",
+                "captureSignature",
+                "agreeButtonText",
+                "allowDecline",
+                "declineButtonText",
+                "checkboxes",
+              ],
+              fieldOverrides: {
+                checkboxes: {widget: "checkbox-list"},
+                content: {widget: "locale-content"},
+              },
+              listFields: ["title", "type", "version", "active", "order"],
+              model: ConsentForm,
+              routePath: "/consent-forms",
+            },
+            {
+              displayName: "Consent Responses",
+              listFields: ["userId", "agreed", "locale", "agreedAt"],
+              model: ConsentResponse,
+              routePath: "/consent-responses",
+            },
           ],
           scripts: [
             {
@@ -183,7 +226,42 @@ export async function start(skipListen = false): Promise<express.Application> {
                 return {results, success: true};
               },
             },
+            {
+              description:
+                "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
+              name: "syncConsents",
+              runner: async (wetRun) => {
+                const result = await syncConsents(consentDefinitions, {
+                  deactivateRemoved: true,
+                  dryRun: !wetRun,
+                });
+                const results: string[] = [];
+                if (result.created.length > 0) {
+                  results.push(`Created: ${result.created.join(", ")}`);
+                }
+                if (result.updated.length > 0) {
+                  results.push(`Updated: ${result.updated.join(", ")}`);
+                }
+                if (result.deactivated.length > 0) {
+                  results.push(`Deactivated: ${result.deactivated.join(", ")}`);
+                }
+                if (result.unchanged.length > 0) {
+                  results.push(`Unchanged: ${result.unchanged.join(", ")}`);
+                }
+                if (results.length === 0) {
+                  results.push("Nothing to do");
+                }
+                return {results, success: true};
+              },
+            },
           ],
+        })
+      )
+      .register(
+        new ConsentApp({
+          auditTrail: true,
+          resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
+          supportedLocales: ["en", "es"],
         })
       );
 

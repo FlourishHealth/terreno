@@ -8,6 +8,8 @@ import {
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminRefField} from "./AdminRefField";
+import {CheckboxListEditor} from "./CheckboxListEditor";
+import {LocaleContentEditor} from "./LocaleContentEditor";
 import type {AdminFieldConfig, AdminScreenProps} from "./types";
 
 interface AdminFieldRendererProps extends AdminScreenProps {
@@ -152,6 +154,19 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     );
   }
 
+  // Locale content widget (Map<locale, markdown>)
+  if (fieldConfig.widget === "locale-content") {
+    return (
+      <LocaleContentEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? {}}
+      />
+    );
+  }
+
   // Markdown widget
   if (fieldConfig.widget === "markdown") {
     return (
@@ -159,6 +174,36 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={value ?? ""}
+      />
+    );
+  }
+
+  // Checkbox list widget
+  if (fieldConfig.widget === "checkbox-list") {
+    return (
+      <CheckboxListEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? []}
+      />
+    );
+  }
+
+  // Textarea widget
+  if (fieldConfig.widget === "textarea") {
+    return (
+      <TextField
+        errorText={errorText}
+        grow
+        helperText={helperText}
+        multiline
+        onChange={onChange}
+        rows={6}
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value ?? ""}
