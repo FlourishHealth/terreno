@@ -106,7 +106,6 @@ featureFlagSchema.plugin(isDeletedPlugin);
 featureFlagSchema.plugin(findExactlyOne);
 featureFlagSchema.plugin(findOneOrNone);
 
-featureFlagSchema.index({key: 1}, {unique: true});
 featureFlagSchema.index({archived: 1, enabled: 1});
 
 featureFlagSchema.pre("save", function () {
