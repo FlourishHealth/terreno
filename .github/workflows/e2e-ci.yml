@@ -8,6 +8,7 @@ on:
       - "ui/**"
       - "rtk/**"
       - "api/**"
+      - "feature-flags/**"
       - ".github/workflows/e2e-ci.yml"
 
 jobs:
@@ -66,6 +67,10 @@ jobs:
       - name: Build Admin Backend dependency
         run: bun run compile
         working-directory: admin-backend
+
+      - name: Build Feature Flags dependency
+        run: bun run compile
+        working-directory: feature-flags
 
       - name: Build Admin Frontend dependency
         run: bun run compile

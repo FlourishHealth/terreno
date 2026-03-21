@@ -10,6 +10,7 @@ RUN bun run --filter "@terreno/api" compile
 RUN bun run --filter "@terreno/api-health" compile
 RUN bun run --filter "@terreno/ai" compile
 RUN bun run --filter "@terreno/admin-backend" compile
+RUN bun run --filter "@terreno/feature-flags" compile
 RUN bun run --filter "@terreno/ui" compile
 
 WORKDIR /app/example-backend

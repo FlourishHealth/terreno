@@ -12,6 +12,7 @@ import {
   TerrenoApp,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
+import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
@@ -145,6 +146,13 @@ export async function start(skipListen = false): Promise<express.Application> {
         })
       )
       .register(
+        new FeatureFlagsApp({
+          segments: {
+            "admin-users": (user: unknown) => (user as {admin?: boolean}).admin === true,
+          },
+        })
+      )
+      .register(
         new DocumentStorageApp({
           basePath: "/admin/documents",
           bucketName: process.env.GCS_BUCKET ?? "",
@@ -153,6 +161,12 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(
         new AdminApp({
           models: [
+            {
+              displayName: "Feature Flags",
+              listFields: ["key", "name", "type", "enabled", "archived", "created"],
+              model: FeatureFlag,
+              routePath: "/feature-flags",
+            },
             {
               displayName: "Todos",
               listFields: ["title", "completed", "ownerId", "created"],
