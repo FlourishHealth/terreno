@@ -4,6 +4,7 @@ import {
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
+  checkPermissions,
   getOpenApiSpecForModel,
   logger,
   type ModelRouterOptions,
@@ -13,6 +14,7 @@ import {
   type ScriptResult,
   type ScriptRunner,
   TaskCancelledError,
+  VersionConfig,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
@@ -91,6 +93,7 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
+  customScreens?: {displayName: string; name: string}[];
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
 }
@@ -236,12 +239,93 @@ export class AdminApp {
       name: script.name,
     }));
 
-    const configResponse: AdminConfigResponse = {models: configModels, scripts: configScripts};
+    const configResponse: AdminConfigResponse = {
+      customScreens: [
+        {
+          displayName: "Version Config",
+          name: "version-config",
+        },
+      ],
+      models: configModels,
+      scripts: configScripts,
+    };
 
     // GET /admin/config
-    app.get(`${basePath}/config`, (_req, res) => {
-      return res.json(configResponse);
-    });
+    app.get(
+      `${basePath}/config`,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        return res.json(configResponse);
+      })
+    );
+
+    // Version config singleton routes (GET/PUT /admin/version-config)
+    const versionConfigPath = `${basePath}/version-config`;
+    app.get(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const config = await VersionConfig.findOneOrNone({_singleton: "config"});
+        const defaults = {
+          mobileRequiredVersion: 0,
+          mobileWarningVersion: 0,
+          requiredMessage: "This version is no longer supported. Please update to continue.",
+          updateUrl: undefined as string | undefined,
+          warningMessage: "A new version is available. Please update for the best experience.",
+          webRequiredVersion: 0,
+          webWarningVersion: 0,
+        };
+        return res.json(config ?? defaults);
+      })
+    );
+    app.put(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const raw = req.body as Record<string, unknown>;
+        const allowedFields = [
+          "mobileRequiredVersion",
+          "mobileWarningVersion",
+          "requiredMessage",
+          "updateUrl",
+          "webRequiredVersion",
+          "webWarningVersion",
+          "warningMessage",
+        ] as const;
+        const setFields: Record<string, unknown> = {};
+        const unsetFields: Record<string, 1> = {};
+        for (const field of allowedFields) {
+          if (raw[field] === null) {
+            unsetFields[field] = 1;
+          } else if (raw[field] !== undefined) {
+            setFields[field] = raw[field];
+          }
+        }
+        const updateOp: Record<string, unknown> = {};
+        if (Object.keys(setFields).length > 0) {
+          updateOp.$set = setFields;
+        }
+        if (Object.keys(unsetFields).length > 0) {
+          updateOp.$unset = unsetFields;
+        }
+        const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, updateOp, {
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          upsert: true,
+        }).lean();
+        return res.json(doc);
+      })
+    );
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
