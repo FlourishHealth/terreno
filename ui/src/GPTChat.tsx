@@ -763,7 +763,7 @@ export const GPTChat = ({
     };
     el.addEventListener("keydown", handler);
     return () => el.removeEventListener("keydown", handler);
-  }, [inputElementRef.current]);
+  }, []);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");

@@ -3,6 +3,7 @@
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "declaration": true,
     //"suppressImplicitAnyIndexErrors": true,
     "downlevelIteration": true,
