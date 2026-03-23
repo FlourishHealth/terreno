@@ -1,6 +1,8 @@
+import {useFeatureFlags} from "@terreno/rtk";
 import {
   AIRequestExplorer,
   type AIRequestExplorerData,
+  Badge,
   Box,
   Button,
   Card,
@@ -11,12 +13,14 @@ import {
   Text,
   TextField,
   useStoredState,
+  useTheme,
 } from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useState} from "react";
 import {
   logout,
+  terrenoApi,
   useAppDispatch,
   useGetAiRequestsExplorerQuery,
   useGetMeQuery,
@@ -30,6 +34,11 @@ const ProfileScreen: React.FC = () => {
   const dispatch = useAppDispatch();
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery();
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
+  const {setPrimitives, resetTheme} = useTheme();
+
+  const {getFlag, getVariant} = useFeatureFlags(terrenoApi);
+  const showDarkModeToggle = getFlag("dark-mode-toggle");
+  const profileLayout = getVariant("profile-layout");
 
   const profile = profileResponse?.data;
   const isAdmin = profile?.admin === true;
@@ -294,6 +303,52 @@ const ProfileScreen: React.FC = () => {
             </Box>
           </Box>
         </Card>
+
+        {/* Dark mode toggle — gated by "dark-mode-toggle" feature flag */}
+        {showDarkModeToggle && (
+          <Card marginBottom={6} testID="profile-dark-mode-card">
+            <Box gap={4}>
+              <Heading size="lg">Appearance</Heading>
+              <Box direction="row" gap={3}>
+                <Button
+                  iconName="sun"
+                  onClick={() => resetTheme()}
+                  text="Light"
+                  variant="outline"
+                />
+                <Button
+                  iconName="moon"
+                  onClick={() =>
+                    setPrimitives({
+                      neutral000: "#1a1a2e",
+                      neutral100: "#16213e",
+                      neutral200: "#0f3460",
+                      neutral800: "#e0e0e0",
+                      neutral900: "#ffffff",
+                    })
+                  }
+                  text="Dark"
+                  variant="outline"
+                />
+              </Box>
+            </Box>
+          </Card>
+        )}
+
+        {/* Profile layout variant — shows which A/B variant the user is in */}
+        {profileLayout && (
+          <Card marginBottom={6} testID="profile-layout-variant-card">
+            <Box alignItems="center" direction="row" gap={3}>
+              <Text color="secondaryLight" size="sm">
+                Profile layout variant:
+              </Text>
+              <Badge
+                status={profileLayout === "compact" ? "info" : "success"}
+                value={profileLayout}
+              />
+            </Box>
+          </Card>
+        )}
 
         <Card marginBottom={6}>
           <Box gap={4}>
