@@ -1,5 +1,5 @@
 {
   "entryPoints": ["src/Common.ts", "src/CommonIconTypes.ts"],
-  "tsconfig": "tsconfig.typedoc.json",
+  "tsconfig": "tsconfig.json",
   "json": "../demo/ui-types-documentation.json"
 }
