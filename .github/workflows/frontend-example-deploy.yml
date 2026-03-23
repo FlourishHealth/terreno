@@ -97,10 +97,18 @@ jobs:
       - name: Get branch alias
         id: branch
         run: |
-          BRANCH="${{ github.ref_name }}"
-          SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-' | tr -cd '[:alnum:]-' | cut -c1-30)
-          echo "alias=branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "env=example-frontend-preview-branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // empty')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "alias=pr${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+            echo "env=example-frontend-preview-pr${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH="${{ github.ref_name }}"
+            SAFE_BRANCH=$(echo "$BRANCH" | tr '/' '-' | tr -cd '[:alnum:]-' | cut -c1-30)
+            echo "alias=branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+            echo "env=example-frontend-preview-branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Deactivate previous branch deployments
         uses: actions/github-script@v8
