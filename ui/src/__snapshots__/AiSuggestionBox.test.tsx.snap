@@ -1,0 +1,1031 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`AiSuggestionBox in TextArea snapshots should match snapshot for not-started state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "AI note will be generated once the session ends.",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-regular",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "backgroundColor": "#F2F2F2",
+              "borderColor": "#B6CDD5",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "gap": 8,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": true,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": undefined,
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 40,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": undefined,
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 10,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`AiSuggestionBox in TextArea snapshots should match snapshot for generating state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "AI note generation in progress...",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-regular",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "backgroundColor": "#EBFAFF",
+              "borderColor": "#90D8F0",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "gap": 8,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": true,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": undefined,
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 40,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": undefined,
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 10,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`AiSuggestionBox in TextArea snapshots should match snapshot for ready state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "AI-generated note",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-regular",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityLabel": "Thumbs up",
+                        "accessibilityRole": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "height": 24,
+                          "justifyContent": "center",
+                          "width": 24,
+                        },
+                        "testID": "test-ai-suggestion-thumbs-up",
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityLabel": "Thumbs down",
+                        "accessibilityRole": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "height": 24,
+                          "justifyContent": "center",
+                          "width": 24,
+                        },
+                        "testID": "test-ai-suggestion-thumbs-down",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                    },
+                    "testID": "test-ai-suggestion-feedback",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "AI-generated suggestion text.",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingBottom": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Hide",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-bold",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityLabel": "Hide suggestion",
+                    "accessibilityRole": "button",
+                    "onPress": [Function],
+                    "style": {
+                      "height": 28,
+                      "justifyContent": "center",
+                      "paddingHorizontal": 16,
+                    },
+                    "testID": "test-ai-suggestion-hide",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Add to note",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#FFFFFF",
+                              "fontFamily": "text-bold",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityLabel": "Add to note",
+                    "accessibilityRole": "button",
+                    "onPress": [Function],
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#2B6072",
+                      "borderRadius": 360,
+                      "height": 28,
+                      "justifyContent": "center",
+                      "paddingHorizontal": 16,
+                    },
+                    "testID": "test-ai-suggestion-add",
+                  },
+                  "type": "Pressable",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 8,
+                  "justifyContent": "flex-end",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "flex-end",
+              "backgroundColor": "#EBFAFF",
+              "borderColor": "#90D8F0",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "gap": 8,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": "test-ai-suggestion",
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": true,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": undefined,
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 40,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": "test",
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 10,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`AiSuggestionBox in TextArea snapshots should match snapshot for added state 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "AI-generated note added!",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-regular",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityLabel": "Thumbs up",
+                        "accessibilityRole": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "height": 24,
+                          "justifyContent": "center",
+                          "width": 24,
+                        },
+                        "testID": "test-ai-suggestion-thumbs-up",
+                      },
+                      "type": "Pressable",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "accessibilityLabel": "Thumbs down",
+                        "accessibilityRole": "button",
+                        "onPress": [Function],
+                        "style": {
+                          "alignItems": "center",
+                          "height": 24,
+                          "justifyContent": "center",
+                          "width": 24,
+                        },
+                        "testID": "test-ai-suggestion-thumbs-down",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                    },
+                    "testID": "test-ai-suggestion-feedback",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "AI-generated suggestion text.",
+                      ],
+                      "props": {
+                        "numberOfLines": 0,
+                        "selectable": undefined,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "fontFamily": "text-regular",
+                          "fontSize": 14,
+                          "textAlign": "left",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "Text",
+                    },
+                  ],
+                  "props": {},
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "paddingBottom": 4,
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Hide",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#092E3A",
+                              "fontFamily": "text-bold",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityLabel": "Hide suggestion",
+                    "accessibilityRole": "button",
+                    "onPress": [Function],
+                    "style": {
+                      "height": 28,
+                      "justifyContent": "center",
+                      "paddingHorizontal": 16,
+                    },
+                    "testID": "test-ai-suggestion-hide",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            "Add to note",
+                          ],
+                          "props": {
+                            "numberOfLines": 0,
+                            "selectable": undefined,
+                            "style": {
+                              "color": "#FFFFFF",
+                              "fontFamily": "text-bold",
+                              "fontSize": 10,
+                              "textAlign": "left",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "Text",
+                        },
+                      ],
+                      "props": {},
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "accessibilityLabel": "Add to note",
+                    "accessibilityRole": "button",
+                    "onPress": [Function],
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#2B6072",
+                      "borderRadius": 360,
+                      "height": 28,
+                      "justifyContent": "center",
+                      "paddingHorizontal": 16,
+                    },
+                    "testID": "test-ai-suggestion-add",
+                  },
+                  "type": "Pressable",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flexDirection": "row",
+                  "gap": 8,
+                  "justifyContent": "flex-end",
+                  "width": "100%",
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "flex-end",
+              "backgroundColor": "#DCF2E2",
+              "borderColor": "#9BE7B2",
+              "borderRadius": 8,
+              "borderWidth": 1,
+              "gap": 8,
+              "padding": 8,
+              "width": "100%",
+            },
+            "testID": "test-ai-suggestion",
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": true,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": undefined,
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 40,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": "test",
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 10,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
