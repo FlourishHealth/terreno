@@ -1,10 +1,8 @@
 {
   "dependencies": {
-    "@ai-sdk/google": "^3.0.30",
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/logging-winston": "^6.0.1",
     "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0",
-    "@google-cloud/secret-manager": "^6.1.1",
     "@google-cloud/trace-agent": "^8.0.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@opentelemetry/instrumentation-express": "^0.60.0",
@@ -17,21 +15,16 @@
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@terreno/admin-backend": "workspace:*",
-    "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",
     "@thream/socketio-jwt": "^3.1.4",
-    "ai": "catalog:",
     "ioredis": "^5.9.3",
     "lodash": "^4.17.23",
     "luxon": "^3.4.0",
     "mongoose": "catalog:",
     "passport-local-mongoose": "^9.0.1",
-    "path-to-regexp": "^8.3.0",
-    "pdf-lib": "^1.17.1",
     "qs": "^6.15.0",
-    "socket.io": "^4.8.1",
-    "zod": "^4.3.6"
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
@@ -55,7 +48,6 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "seed": "bun run src/scripts/seed-test-data.ts",
     "start": "bun run src/index.ts",
     "start:prod": "bun run dist/index.js",
     "test": "bun test",
