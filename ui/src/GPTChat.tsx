@@ -732,32 +732,38 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
-  // On web: Enter sends, Cmd+Enter inserts a new line
+  // On web: Enter sends, Shift+Enter inserts a new line
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
+  const inputElementRef = useRef<HTMLElement | null>(null);
+
+  const handleInputRef = useCallback((ref: HTMLElement | null) => {
+    inputElementRef.current = ref;
+  }, []);
+
+  // Attach keydown listener directly to the textarea element for reliable Enter-to-send
   useEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") {
+    if (Platform.OS !== "web") {
       return;
     }
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Enter") {
+    const el = inputElementRef.current;
+    if (!el) {
+      return;
+    }
+    const handler = (e: Event) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key !== "Enter") {
         return;
       }
-      const target = e.target as HTMLElement | null;
-      const testId = target?.getAttribute("data-testid");
-      if (testId !== "gpt-input") {
-        return;
-      }
-      if (e.metaKey || e.shiftKey) {
-        // Cmd+Enter or Shift+Enter: allow default (new line)
+      if (ke.shiftKey || ke.metaKey) {
         return;
       }
       e.preventDefault();
       handleSubmitRef.current();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+    el.addEventListener("keydown", handler);
+    return () => el.removeEventListener("keydown", handler);
+  }, [inputElementRef.current]);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
@@ -1015,8 +1021,8 @@ export const GPTChat = ({
             <TextArea
               blurOnSubmit={false}
               disabled={isStreaming}
+              inputRef={handleInputRef}
               onChange={setInputValue}
-              onEnter={handleSubmit}
               placeholder="Type a message..."
               testID="gpt-input"
               value={inputValue}
