@@ -499,6 +499,7 @@
         "react-router-dom": "catalog:",
         "react-test-renderer": "catalog:",
         "tsc-watch": "^7.1.1",
+        "typedoc": "~0.28.17",
         "typescript": "catalog:",
       },
       "peerDependencies": {

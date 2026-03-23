@@ -95,6 +95,7 @@
     "react-router-dom": "catalog:",
     "react-test-renderer": "catalog:",
     "tsc-watch": "^7.1.1",
+    "typedoc": "~0.28.17",
     "typescript": "catalog:"
   },
   "files": [
@@ -128,7 +129,7 @@
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
-    "types": "bunx typedoc"
+    "types": "bun typedoc"
   },
   "version": "0.7.0"
 }
