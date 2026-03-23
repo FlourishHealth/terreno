@@ -13,10 +13,13 @@ import {
 import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
+import {mcpServerRouter} from "./api/mcpServers";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
+import {McpApp} from "./mcp";
 import {Configuration} from "./models/configuration";
+import {McpServer} from "./models/mcpServer";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {connectToMongoDB} from "./utils/database";
@@ -121,6 +124,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     })
+      .register(mcpServerRouter)
       .register(todoRouter)
       .register(userRouter)
       .register(
@@ -141,6 +145,12 @@ export async function start(skipListen = false): Promise<express.Application> {
         new AdminApp({
           models: [
             {
+              displayName: "MCP Servers",
+              listFields: ["name", "url", "enabled", "ownerId", "created"],
+              model: McpServer,
+              routePath: "/mcp-servers",
+            },
+            {
               displayName: "Todos",
               listFields: ["title", "completed", "ownerId", "created"],
               model: Todo,
@@ -156,6 +166,19 @@ export async function start(skipListen = false): Promise<express.Application> {
           ],
         })
       );
+
+    // Register MCP tools for todos
+    terraApp.register(
+      new McpApp({
+        models: [
+          {
+            description: "todo items",
+            model: Todo,
+            name: "Todo",
+          },
+        ],
+      })
+    );
 
     // Register Better Auth plugin if configured
     if (betterAuthConfig) {

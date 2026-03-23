@@ -1,6 +1,6 @@
 import {emptySplitApi as api} from "@terreno/rtk";
 
-export const addTagTypes = ["todos", "users", "profile"] as const;
+export const addTagTypes = ["mcpServers", "todos", "users", "profile"] as const;
 
 // Todo types
 export interface Todo {
@@ -35,6 +35,45 @@ export interface UpdateTodoBody {
   completed?: boolean;
 }
 
+// McpServer types
+export interface McpServer {
+  _id: string;
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  apiKey?: string;
+  ownerId: string;
+  created: string;
+  updated: string;
+}
+
+export interface McpServersListResponse {
+  data: McpServer[];
+  limit?: number;
+  more?: boolean;
+  page?: number;
+  total?: number;
+}
+
+export interface McpServerResponse {
+  data: McpServer;
+}
+
+export interface CreateMcpServerBody {
+  name: string;
+  url: string;
+  enabled?: boolean;
+  apiKey?: string;
+}
+
+export interface UpdateMcpServerBody {
+  name?: string;
+  url?: string;
+  enabled?: boolean;
+  apiKey?: string;
+}
+
 // User types
 export interface User {
   _id: string;
@@ -63,6 +102,17 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
+      // MCP Servers endpoints
+      deleteMcpServersById: build.mutation<void, {id: string}>({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "mcpServers" as const},
+          {id: "LIST", type: "mcpServers" as const},
+        ],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/mcp-servers/${queryArg.id}`,
+        }),
+      }),
       deleteTodosById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -72,6 +122,26 @@ const injectedRtkApi = api
           method: "DELETE",
           url: `/todos/${queryArg.id}`,
         }),
+      }),
+      getMcpServers: build.query<McpServersListResponse, {enabled?: boolean; ownerId?: string}>({
+        providesTags: (result) =>
+          result?.data
+            ? [
+                ...result.data.map(({id}) => ({id, type: "mcpServers" as const})),
+                {id: "LIST", type: "mcpServers" as const},
+              ]
+            : [{id: "LIST", type: "mcpServers" as const}],
+        query: (queryArg) => ({
+          params: {
+            enabled: queryArg.enabled,
+            ownerId: queryArg.ownerId,
+          },
+          url: "/mcp-servers",
+        }),
+      }),
+      getMcpServersById: build.query<McpServerResponse, {id: string}>({
+        providesTags: (_result, _error, {id}) => [{id, type: "mcpServers" as const}],
+        query: (queryArg) => ({url: `/mcp-servers/${queryArg.id}`}),
       }),
       // Todos endpoints
       getTodos: build.query<TodosListResponse, {completed?: boolean; ownerId?: string}>({
@@ -115,6 +185,20 @@ const injectedRtkApi = api
         providesTags: (_result, _error, {id}) => [{id, type: "users" as const}],
         query: (queryArg) => ({url: `/users/${queryArg.id}`}),
       }),
+      patchMcpServersById: build.mutation<
+        McpServerResponse,
+        {id: string; body: UpdateMcpServerBody}
+      >({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "mcpServers" as const},
+          {id: "LIST", type: "mcpServers" as const},
+        ],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/mcp-servers/${queryArg.id}`,
+        }),
+      }),
       patchTodosById: build.mutation<TodoResponse, {id: string; body: UpdateTodoBody}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -137,6 +221,14 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
+      postMcpServers: build.mutation<McpServerResponse, {body: CreateMcpServerBody}>({
+        invalidatesTags: [{id: "LIST", type: "mcpServers" as const}],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: "/mcp-servers",
+        }),
+      }),
       postTodos: build.mutation<TodoResponse, {body: CreateTodoBody}>({
         invalidatesTags: [{id: "LIST", type: "todos" as const}],
         query: (queryArg) => ({
@@ -152,6 +244,11 @@ const injectedRtkApi = api
 export {injectedRtkApi as openapi};
 
 export const {
+  useGetMcpServersQuery,
+  useGetMcpServersByIdQuery,
+  usePostMcpServersMutation,
+  usePatchMcpServersByIdMutation,
+  useDeleteMcpServersByIdMutation,
   useGetTodosQuery,
   useGetTodosByIdQuery,
   usePostTodosMutation,

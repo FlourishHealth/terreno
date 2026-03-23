@@ -53,9 +53,10 @@ export const terrenoApi = openapi
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "profile"],
+    addTagTypes: ["consentForms", "mcpServers", "profile"],
     endpoints: {
       ...generateTags(openapi, [...addTagTypes]),
+      postMcpServers: {invalidatesTags: ["mcpServers"]},
       postTodos: {invalidatesTags: ["todos"]},
     },
   });
