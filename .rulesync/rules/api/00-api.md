@@ -27,9 +27,14 @@ src/
   index.ts               # All package exports
   api.ts                 # modelRouter core (~1000 lines)
   auth.ts                # JWT/Passport authentication
+  betterAuth.ts          # Better Auth types and configuration
+  betterAuthSetup.ts     # Better Auth initialization with MongoDB
+  betterAuthApp.ts       # Better Auth TerrenoPlugin
   permissions.ts         # Permission system
   errors.ts              # APIError and error middleware
   expressServer.ts       # setupServer and middleware stack
+  terrenoApp.ts          # TerrenoApp class with register pattern
+  terrenoPlugin.ts       # TerrenoPlugin interface for extensibility
   openApiBuilder.ts      # Fluent OpenAPI middleware builder
   openApi.ts             # OpenAPI spec generation
   logger.ts              # Winston-based logging
@@ -42,9 +47,63 @@ src/
   tests/bunSetup.ts      # Test environment setup
 ```
 
+## Server Setup
+
+### TerrenoApp (Recommended)
+
+Fluent API with a register pattern:
+
+```typescript
+import {TerrenoApp, modelRouter} from "@terreno/api";
+
+const todoRouter = modelRouter("/todos", Todo, {
+  permissions: {...},
+  queryFilter: OwnerQueryFilter,
+});
+
+const app = new TerrenoApp({userModel: User})
+  .register(todoRouter)
+  .register(userRouter)
+  .start();
+```
+
+Methods:
+- `register(registration)` — Register `ModelRouterRegistration` or `TerrenoPlugin`
+- `addMiddleware(fn)` — Add Express middleware
+- `build()` — Build Express app without listening
+- `start()` — Build and start server
+
+### setupServer (Legacy)
+
+Callback-based pattern:
+
+```typescript
+import {setupServer, modelRouter} from "@terreno/api";
+
+setupServer({
+  userModel: User,
+  addRoutes: (router) => {
+    router.use("/todos", modelRouter(Todo, options));
+  },
+});
+```
+
+Both patterns create the same middleware stack (CORS, auth, logging, OpenAPI).
+
 ## modelRouter
 
 Auto-generates RESTful CRUD APIs for Mongoose models with permissions, population, filtering, and lifecycle hooks.
+
+**Two signatures:**
+
+```typescript
+// 1. Router signature (for setupServer):
+router.use("/todos", modelRouter(Todo, options));
+
+// 2. Registration signature (for TerrenoApp):
+const todoRouter = modelRouter("/todos", Todo, options);
+app.register(todoRouter);
+```
 
 ### Generated Endpoints
 
@@ -164,9 +223,67 @@ GitHub OAuth endpoints:
 - `POST /auth/github/link` — Link GitHub to existing account (requires authentication)
 - `DELETE /auth/github/unlink` — Unlink GitHub from account (requires authentication)
 
+### Better Auth Authentication
+
+Better Auth is an optional, modern authentication provider supporting social OAuth (Google, GitHub, Apple) and email/password. Use it alongside or instead of JWT/Passport.
+
+Add Better Auth to your API:
+
+```typescript
+import {BetterAuthApp, type BetterAuthConfig, TerrenoApp} from "@terreno/api";
+
+const betterAuthConfig: BetterAuthConfig = {
+  enabled: true,
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  basePath: "/api/auth",  // Optional, default
+  trustedOrigins: ["terreno://", "exp://"],  // For mobile deep links
+  googleOAuth: {
+    clientId: process.env.GOOGLE_CLIENT_ID!,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  },
+  githubOAuth: {
+    clientId: process.env.GITHUB_CLIENT_ID!,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  },
+  appleOAuth: {
+    clientId: process.env.APPLE_CLIENT_ID!,
+    clientSecret: process.env.APPLE_CLIENT_SECRET!,
+  },
+};
+
+const app = new TerrenoApp({
+  userModel: User,
+  plugins: [
+    new BetterAuthApp({config: betterAuthConfig, userModel: User}),
+  ],
+});
+```
+
+Key exports:
+- `BetterAuthApp` — TerrenoPlugin for registering Better Auth
+- `BetterAuthConfig` interface — Configuration options
+- `createBetterAuth(options)` — Initialize Better Auth instance
+- `createBetterAuthSessionMiddleware(auth, userModel)` — Session extraction middleware
+- `syncBetterAuthUser(userModel, betterAuthUser)` — Sync Better Auth user to app User model
+
+Better Auth automatically:
+- Creates OAuth routes at `{basePath}/{provider}` (e.g., `/api/auth/google`)
+- Extracts sessions from requests and populates `req.user`
+- Syncs Better Auth users to your Mongoose User model (requires `betterAuthId` field)
+- Supports email/password signup and login
+
+User model fields for Better Auth:
+```typescript
+{
+  betterAuthId: {type: String, index: true},  // Better Auth user ID
+  oauthProvider: {type: String},               // OAuth provider name
+}
+```
+
 ### Environment Variables
 
-Email/Password:
+Email/Password (JWT):
 - `TOKEN_SECRET` — JWT signing secret (required)
 - `TOKEN_ISSUER` — JWT issuer claim (required)
 - `REFRESH_TOKEN_SECRET` — Refresh token secret (required)
@@ -175,10 +292,20 @@ Email/Password:
 - `REFRESH_TOKEN_EXPIRES_IN` — Refresh token TTL (default: 30d)
 - `SIGNUP_DISABLED` — Disable user registration
 
-GitHub OAuth (optional):
+GitHub OAuth (JWT auth, optional):
 - `GITHUB_CLIENT_ID` — GitHub OAuth app client ID
 - `GITHUB_CLIENT_SECRET` — GitHub OAuth app client secret
 - `GITHUB_CALLBACK_URL` — GitHub OAuth callback URL (e.g., https://yourapp.com/auth/github/callback)
+
+Better Auth (optional):
+- `AUTH_PROVIDER` — "jwt" (default) or "better-auth"
+- `BETTER_AUTH_SECRET` — Session encryption secret (required if using Better Auth)
+- `BETTER_AUTH_URL` — Base URL for auth server (required if using Better Auth)
+- `GOOGLE_CLIENT_ID` — Google OAuth client ID (optional)
+- `GOOGLE_CLIENT_SECRET` — Google OAuth client secret (optional)
+- `APPLE_CLIENT_ID` — Apple OAuth client ID (optional)
+- `APPLE_CLIENT_SECRET` — Apple OAuth client secret (optional)
+- GitHub OAuth with Better Auth uses same `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`
 
 ## Permissions
 

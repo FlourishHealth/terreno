@@ -14,7 +14,7 @@ export const AccordionConfiguration: DemoConfiguration = {
     documentation: "ready",
     figma: "ready",
     figmaLink:
-      "https://www.figma.com/design/ykXj5qjjtFjOYkAvTasu9r/Flourish-Health-Design-System?node-id=656-23490",
+      "https://www.figma.com/design/ykXj5qjjtFjOYkAvTasu9r/Flourish-Health-Design-System?node-id=3318-6026&t=Qm7RCZRrCGRgEA7b-1",
     ios: "ready",
     android: "ready",
     web: "ready",

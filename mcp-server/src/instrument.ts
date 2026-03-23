@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/bun";
 
 if (process.env.NODE_ENV === "production" && !process.env.SENTRY_DSN) {
-  throw new Error("SENTRY_DSN must be set in production");
+  console.warn("WARNING: SENTRY_DSN is not set in production. Error tracking will be disabled.");
 }
 
 Sentry.init({

@@ -15,6 +15,7 @@ import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 
 const SLOW_READ_MAX = 200;
@@ -180,6 +181,9 @@ function initializeRoutes(
 ): express.Application {
   const app = express();
 
+  // Record mount paths on layers for Express 5 → OpenAPI compat
+  patchAppUse(app);
+
   // TODO: Log a warning when we hit the array limit.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));
 
@@ -193,7 +197,7 @@ function initializeRoutes(
     options.addMiddleware(app);
   }
 
-  app.use(express.json());
+  app.use(express.json({limit: "50mb"}));
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
   addAuthRoutes(app, UserModel as any, options?.authOptions);
@@ -210,7 +214,7 @@ function initializeRoutes(
   });
 
   // Add Sentry scopes for session, transaction, and userId if any are set
-  app.all("*", (req: any, _res: any, next: any) => {
+  app.use((req: any, _res: any, next: any) => {
     const transactionId = req.header("X-Transaction-ID");
     const sessionId = req.header("X-Session-ID");
     if (transactionId) {
@@ -226,6 +230,7 @@ function initializeRoutes(
   });
 
   // Add ETag middleware for OpenAPI JSON endpoint before the openapi middleware
+  app.use(openApiCompatMiddleware);
   app.use(openApiEtagMiddleware);
 
   const oapi = openapi({

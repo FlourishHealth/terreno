@@ -41,6 +41,12 @@ Configuration.register("BACKEND_SERVICE", {
   type: "string",
 });
 
+Configuration.register("GCP_PROJECT_ID", {
+  description: "Google Cloud Platform project ID for Secret Manager",
+  envVar: "GCP_PROJECT_ID",
+  type: "string",
+});
+
 Configuration.register("PR_NUMBER", {
   description: "Pull request number",
   envVar: "PR_NUMBER",
@@ -141,3 +147,10 @@ if (isPullRequest) {
 export {API_URL, TASKS_URL};
 
 export const WEBSOCKETS_DEBUG = Configuration.get<boolean>("WEBSOCKETS_DEBUG");
+
+Configuration.register("LANGFUSE_BASE_URL", {
+  defaultValue: "https://cloud.langfuse.com",
+  description: "Langfuse API base URL (override for self-hosted instances)",
+  envVar: "LANGFUSE_BASE_URL",
+  type: "string",
+});

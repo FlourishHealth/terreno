@@ -1,6 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp} from "@terreno/admin-backend";
+import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {LangfuseApp} from "@terreno/ai";
 import {
   type AuthProvider,
   BetterAuthApp,
@@ -14,10 +15,13 @@ import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
 import {mcpServerRouter} from "./api/mcpServers";
+import {addAiRoutes} from "./api/ai";
+import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {userRouter} from "./api/users";
 import {isDeployed} from "./conf";
 import {McpApp} from "./mcp";
+import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {McpServer} from "./models/mcpServer";
 import {Todo} from "./models/todo";
@@ -124,7 +128,10 @@ export async function start(skipListen = false): Promise<express.Application> {
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
     })
+      .configure(AppConfiguration)
       .register(mcpServerRouter)
+      .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
       .register(
@@ -139,6 +146,12 @@ export async function start(skipListen = false): Promise<express.Application> {
               healthy: mongoConnected,
             };
           },
+        })
+      )
+      .register(
+        new DocumentStorageApp({
+          basePath: "/admin/documents",
+          bucketName: process.env.GCS_BUCKET ?? "",
         })
       )
       .register(
@@ -164,6 +177,23 @@ export async function start(skipListen = false): Promise<express.Application> {
               routePath: "/users",
             },
           ],
+          scripts: [
+            {
+              description: "Count all todos and users in the database",
+              name: "countRecords",
+              runner: async (wetRun) => {
+                const todoCount = await Todo.countDocuments();
+                const userCount = await User.countDocuments();
+                const results = [`Found ${todoCount} todos`, `Found ${userCount} users`];
+                if (wetRun) {
+                  results.push("Wet run: no additional changes made by this script");
+                } else {
+                  results.push("Dry run: no changes made");
+                }
+                return {results, success: true};
+              },
+            },
+          ],
         })
       );
 
@@ -184,6 +214,20 @@ export async function start(skipListen = false): Promise<express.Application> {
     if (betterAuthConfig) {
       // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
       terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    // Register Langfuse plugin if configured
+    if (process.env.LANGFUSE_SECRET_KEY && process.env.LANGFUSE_PUBLIC_KEY) {
+      terraApp.register(
+        new LangfuseApp({
+          baseUrl: process.env.LANGFUSE_BASE_URL,
+          organization: process.env.LANGFUSE_ORGANIZATION,
+          project: process.env.LANGFUSE_PROJECT,
+          projectId: process.env.LANGFUSE_PROJECT_ID,
+          publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+          secretKey: process.env.LANGFUSE_SECRET_KEY,
+        })
+      );
     }
 
     const app = terraApp.start();

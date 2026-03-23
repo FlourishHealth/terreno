@@ -24,6 +24,41 @@ const getDisplayValue = (item: any): string => {
   return item._id ?? String(item);
 };
 
+/**
+ * Select field for choosing a referenced model instance by ID.
+ *
+ * Fetches all items from the referenced model and displays them in a dropdown.
+ * Automatically determines a display label by checking common fields (name, title, email, etc.).
+ * Falls back to the item's _id if no suitable display field is found.
+ *
+ * @param props - Component props
+ * @param props.api - RTK Query API instance for fetching reference data
+ * @param props.baseUrl - Base URL for admin routes (not currently used, kept for consistency)
+ * @param props.routePath - Full route path to the referenced model's list endpoint
+ * @param props.refModelName - Name of the referenced model (e.g., "User")
+ * @param props.title - Label displayed above the select field
+ * @param props.value - Currently selected ID
+ * @param props.onChange - Callback when selection changes
+ * @param props.errorText - Optional validation error message
+ * @param props.helperText - Optional helper text shown below the field
+ *
+ * @example
+ * ```typescript
+ * <AdminRefField
+ *   api={api}
+ *   baseUrl="/admin"
+ *   routePath="/admin/users"
+ *   refModelName="User"
+ *   title="Owner"
+ *   value={ownerId}
+ *   onChange={(id) => setOwnerId(id)}
+ *   helperText="Select the user who owns this item"
+ * />
+ * ```
+ *
+ * @see AdminFieldRenderer for field type selection
+ * @see useAdminApi for the API hook pattern
+ */
 export const AdminRefField: React.FC<AdminRefFieldProps> = ({
   api,
   routePath,
@@ -47,7 +82,7 @@ export const AdminRefField: React.FC<AdminRefFieldProps> = ({
           }),
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, routePath, endpointKey]);
 

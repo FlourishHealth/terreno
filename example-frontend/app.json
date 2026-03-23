@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "Terreno Todo",
-    "slug": "frontend",
+    "name": "Terreno Example",
+    "slug": "terreno-example",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
     "userInterfaceStyle": "automatic",
@@ -14,7 +14,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.terreno.todo"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +23,15 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.terreno.todo"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "ddbe68d9-1142-4991-a02e-4ebb9fd83530"
+      },
+      "router": {},
+      "BASE_URL": "http://localhost:4000"
     },
     "web": {
       "bundler": "metro",
@@ -35,8 +44,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "BASE_URL": "http://localhost:4000"
-    }
+    "owner": "flourishhealth"
   }
 }

@@ -39,6 +39,7 @@ jobs:
         uses: supercharge/mongodb-github-action@1.12.1
         with:
           mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-image: mirror.gcr.io/library/mongo
 
       - name: Install dependencies
         working-directory: .

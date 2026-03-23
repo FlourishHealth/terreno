@@ -22,6 +22,71 @@ const getEditableFields = (
   return Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
 };
 
+const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
+  <Button
+    confirmationText="Are you sure you want to delete this item?"
+    loading={loading}
+    onClick={onDelete}
+    testID="admin-delete-button"
+    text="Delete"
+    variant="destructive"
+    withConfirmation
+  />
+);
+
+const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fields.</Text>;
+
+/**
+ * Form screen for creating or editing a model instance in the admin panel.
+ *
+ * Auto-generates form fields based on the model schema from the backend configuration.
+ * Handles field validation, type-specific inputs (text, boolean, select, date, reference fields),
+ * and save/cancel actions. System fields (_id, __v, created, updated, deleted) are automatically
+ * excluded from the form.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.modelName - Name of the model to create/edit (e.g., "User")
+ * @param props.mode - Form mode: "create" for new items, "edit" for existing items
+ * @param props.itemId - ID of the item to edit (required when mode is "edit")
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelForm} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ * import {useLocalSearchParams} from "expo-router";
+ *
+ * function AdminCreateScreen() {
+ *   const {modelName} = useLocalSearchParams();
+ *   return (
+ *     <AdminModelForm
+ *       baseUrl="/admin"
+ *       api={api}
+ *       modelName={modelName as string}
+ *       mode="create"
+ *     />
+ *   );
+ * }
+ *
+ * function AdminEditScreen() {
+ *   const {modelName, id} = useLocalSearchParams();
+ *   return (
+ *     <AdminModelForm
+ *       baseUrl="/admin"
+ *       api={api}
+ *       modelName={modelName as string}
+ *       mode="edit"
+ *       itemId={id as string}
+ *     />
+ *   );
+ * }
+ * ```
+ *
+ * @see AdminFieldRenderer for field type rendering
+ * @see AdminModelTable for the list view
+ * @see SYSTEM_FIELDS for excluded fields
+ */
 export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   baseUrl,
   api,
@@ -42,7 +107,6 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const toast = useToast();
 
-  // Set the navigation header title based on mode and model name
   useEffect(() => {
     if (!modelConfig) {
       return;
@@ -66,7 +130,6 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [updateItem, {isLoading: isUpdating}] = useUpdateMutation();
   const [deleteItem, {isLoading: isDeleting}] = useDeleteMutation();
 
-  // Initialize form state from fetched item in edit mode
   useEffect(() => {
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
@@ -80,7 +143,6 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
   }, [mode, itemData, modelConfig, isInitialized]);
 
-  // Initialize default values in create mode
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, any> = {};
@@ -165,6 +227,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const editableFields = getEditableFields(modelConfig.fields);
   const isSaving = isCreating || isUpdating;
+  const saveLabel = mode === "create" ? "Create" : "Save";
 
   const modelConfigs =
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
@@ -174,23 +237,13 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       footer={
         <Box direction="row" gap={2} justifyContent="between" padding={2}>
           <Box>
-            {mode === "edit" && (
-              <Button
-                confirmationText="Are you sure you want to delete this item?"
-                loading={isDeleting}
-                onClick={handleDelete}
-                testID="admin-delete-button"
-                text="Delete"
-                variant="destructive"
-                withConfirmation
-              />
-            )}
+            {mode === "edit" && <DeleteButton loading={isDeleting} onDelete={handleDelete} />}
           </Box>
           <Button
             loading={isSaving}
             onClick={handleSave}
             testID="admin-save-button"
-            text={mode === "create" ? "Create" : "Save"}
+            text={saveLabel}
             variant="primary"
           />
         </Box>
@@ -212,7 +265,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
             value={formState[fieldKey]}
           />
         ))}
-        {editableFields.length === 0 && <Text color="secondaryDark">No editable fields.</Text>}
+        {editableFields.length === 0 && <EmptyFields />}
       </Box>
     </Page>
   );

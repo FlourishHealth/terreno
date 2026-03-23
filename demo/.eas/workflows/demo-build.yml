@@ -1,0 +1,29 @@
+name: Demo Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build_ios:
+    name: Build iOS
+    type: build
+    params:
+      platform: ios
+      profile: development
+
+  build_android:
+    name: Build Android
+    type: build
+    params:
+      platform: android
+      profile: development
+
+  github_comment:
+    name: Post GitHub Comment
+    type: github-comment
+    after: [build_ios, build_android]

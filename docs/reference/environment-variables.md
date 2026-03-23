@@ -20,13 +20,25 @@ Environment variables used by the `@terreno/api` package.
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `TOKEN_SECRET` | ✅ | - | Secret key for signing JWT access tokens |
-| `TOKEN_ISSUER` | ✅ | - | JWT issuer claim (e.g., `your-app.com`) |
-| `REFRESH_TOKEN_SECRET` | ✅ | - | Secret key for signing refresh tokens |
-| `SESSION_SECRET` | ✅ | - | Express session secret |
+| `AUTH_PROVIDER` | ❌ | `jwt` | Authentication provider: `"jwt"` or `"better-auth"` |
+| `TOKEN_SECRET` | ✅ (if JWT) | - | Secret key for signing JWT access tokens |
+| `TOKEN_ISSUER` | ✅ (if JWT) | - | JWT issuer claim (e.g., `your-app.com`) |
+| `REFRESH_TOKEN_SECRET` | ✅ (if JWT) | - | Secret key for signing refresh tokens |
+| `SESSION_SECRET` | ✅ (if JWT) | - | Express session secret |
 | `TOKEN_EXPIRES_IN` | ❌ | `15m` | Access token expiration (e.g., `1h`, `30m`) |
 | `REFRESH_TOKEN_EXPIRES_IN` | ❌ | `30d` | Refresh token expiration (e.g., `7d`, `90d`) |
 | `SIGNUP_DISABLED` | ❌ | `false` | Disable user registration (invite-only mode) |
+
+### Better Auth (Optional)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `BETTER_AUTH_SECRET` | ✅ (if Better Auth) | - | Secret key for Better Auth session encryption |
+| `BETTER_AUTH_URL` | ✅ (if Better Auth) | - | Base URL for Better Auth server (e.g., `https://api.example.com`) |
+| `GOOGLE_CLIENT_ID` | ❌ | - | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | ❌ | - | Google OAuth client secret |
+| `APPLE_CLIENT_ID` | ❌ | - | Apple Sign In service ID |
+| `APPLE_CLIENT_SECRET` | ❌ | - | Apple Sign In private key |
 
 ### GitHub OAuth (Optional)
 
@@ -89,11 +101,26 @@ Environment variables used by the `@terreno/api` package.
 ### Example .env File
 
 ``````bash
-# Required
+# Authentication Provider
+AUTH_PROVIDER=jwt  # or "better-auth"
+
+# Required for JWT authentication
 TOKEN_SECRET=your-secret-key-change-this-in-production
 TOKEN_ISSUER=your-app.com
 REFRESH_TOKEN_SECRET=your-refresh-secret-change-this-too
 SESSION_SECRET=your-session-secret-change-this-also
+
+# Required for Better Auth (if AUTH_PROVIDER=better-auth)
+# BETTER_AUTH_SECRET=your-better-auth-secret-min-32-chars
+# BETTER_AUTH_URL=http://localhost:4000
+
+# Optional - Social OAuth (Better Auth)
+# GOOGLE_CLIENT_ID=your-google-client-id
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+# GITHUB_CLIENT_ID=your-github-client-id
+# GITHUB_CLIENT_SECRET=your-github-client-secret
+
+# Database
 MONGO_URI=mongodb://localhost:27017/your-app
 
 # Optional - Common in development

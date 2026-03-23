@@ -4,12 +4,23 @@ Understanding how authentication works in @terreno/api — from JWT tokens to OA
 
 ## Overview
 
-@terreno/api provides a complete authentication system built on:
+@terreno/api provides two complete authentication systems to choose from:
+
+**JWT/Passport Authentication (Default)**
 - **JWT (JSON Web Tokens)** for stateless session management
 - **Passport.js** for authentication strategy management
 - **Multiple strategies**: Email/password, GitHub OAuth, Anonymous
 - **Automatic token refresh** to maintain long-lived sessions
 - **Token storage utilities** for secure frontend storage (via @terreno/rtk)
+
+**Better Auth (Optional)**
+- **Session-based authentication** with MongoDB storage
+- **Built-in OAuth providers**: Google, GitHub, Apple
+- **Modern OAuth 2.0 flows** with PKCE
+- **Automatic session management** via cookies
+- **Redux integration** for session state (via @terreno/rtk)
+
+Choose your authentication provider via `AUTH_PROVIDER` environment variable. Both systems can run in parallel, allowing gradual migration.
 
 ## Authentication Strategies
 
@@ -48,6 +59,44 @@ OAuth 2.0 authentication with GitHub.
 - Users must have a password set before unlinking GitHub
 
 **Learn more:** [How to add GitHub OAuth](../how-to/add-github-oauth.md)
+
+### Better Auth Strategy
+
+Modern session-based authentication with built-in social OAuth support. Better Auth runs **alongside** JWT/Passport authentication as an optional alternative.
+
+**Flow:**
+1. Configure Better Auth with `AUTH_PROVIDER=better-auth`
+2. User chooses social provider (Google, GitHub, Apple) or email/password
+3. Backend redirects to OAuth provider or validates credentials
+4. Better Auth creates session in MongoDB
+5. Frontend receives session cookie
+6. Session middleware populates `req.user` for subsequent requests
+
+**Key differences from JWT auth:**
+- Session-based (cookies) vs. stateless (tokens)
+- Built-in OAuth providers vs. custom Passport strategies
+- Automatic session management vs. manual token refresh
+- Modern OAuth 2.0 flows with PKCE
+
+**Use Better Auth when you need:**
+- Social login (Google, GitHub, Apple)
+- Session-based authentication
+- Modern OAuth 2.0 flows
+
+**Use JWT authentication when you need:**
+- Stateless authentication
+- Simpler token-based auth
+- No social login required
+
+**Endpoints (when enabled):**
+- `POST /api/auth/signup/email` — Email/password signup
+- `POST /api/auth/signin/email` — Email/password signin
+- `GET /api/auth/signin/{provider}` — Initiate OAuth flow (google, github, apple)
+- `GET /api/auth/callback/{provider}` — OAuth callback handler
+- `POST /api/auth/signout` — Sign out session
+- `GET /api/auth/session` — Get current session
+
+**Learn more:** [Configure Better Auth](../how-to/configure-better-auth.md)
 
 ### Anonymous Strategy
 

@@ -1,0 +1,68 @@
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "@terreno/api";
+import mongoose from "mongoose";
+
+import type {GptHistoryDocument, GptHistoryModel} from "../types";
+
+const contentPartSchema = new mongoose.Schema(
+  {
+    filename: {type: String},
+    mimeType: {type: String},
+    text: {type: String},
+    type: {enum: ["text", "image", "file"], required: true, type: String},
+    url: {type: String},
+  },
+  {_id: false}
+);
+
+const gptHistoryPromptSchema = new mongoose.Schema(
+  {
+    args: {type: mongoose.Schema.Types.Mixed},
+    content: {type: [contentPartSchema]},
+    model: {type: String},
+    rating: {
+      description: "User feedback rating for this prompt",
+      enum: ["up", "down"],
+      type: String,
+    },
+    result: {type: mongoose.Schema.Types.Mixed},
+    text: {required: true, type: String},
+    toolCallId: {type: String},
+    toolName: {type: String},
+    type: {
+      enum: ["user", "assistant", "system", "tool-call", "tool-result"],
+      required: true,
+      type: String,
+    },
+  },
+  {_id: false}
+);
+
+const gptHistorySchema = new mongoose.Schema<GptHistoryDocument, GptHistoryModel>(
+  {
+    projectId: {
+      description: "Project this conversation belongs to",
+      index: true,
+      ref: "Project",
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    prompts: {default: [], type: [gptHistoryPromptSchema]},
+    title: {type: String},
+    userId: {index: true, ref: "User", required: true, type: mongoose.Schema.Types.ObjectId},
+  },
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
+
+gptHistorySchema.plugin(createdUpdatedPlugin);
+gptHistorySchema.plugin(isDeletedPlugin);
+gptHistorySchema.plugin(findOneOrNone);
+gptHistorySchema.plugin(findExactlyOne);
+
+// Virtual ownerId alias so Permissions.IsOwner works with userId field
+gptHistorySchema.virtual("ownerId").get(function () {
+  return this.userId;
+});
+
+export const GptHistory = mongoose.model<GptHistoryDocument, GptHistoryModel>(
+  "GptHistory",
+  gptHistorySchema
+);

@@ -46,7 +46,7 @@ export const DemoHomePage: FC<{
               }}
             >
               <Box flex="grow" width="100%">
-                {c.demo({})}
+                {c.demo({preview: true})}
               </Box>
               <Box height={100} marginTop={4}>
                 <Box marginBottom={1}>
