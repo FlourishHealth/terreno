@@ -53,11 +53,21 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
             URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           else
-            URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            if [ -z "$PR_NUMBER" ]; then
+              PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number // empty')
+            fi
+            if [ -n "$PR_NUMBER" ]; then
+              URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            else
+              URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            fi
           fi
           jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "BASE_URL set to $URL"
         working-directory: example-frontend
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Export example-frontend for web
         run: bun run export
