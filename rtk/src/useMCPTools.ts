@@ -45,6 +45,7 @@ export const useMCPTools = (options: UseMCPToolsOptions = {}): UseMCPToolsResult
     try {
       const token = await getAuthToken();
       const headers: Record<string, string> = {
+        Accept: "application/json, text/event-stream",
         "Content-Type": "application/json",
       };
       if (token) {
