@@ -6,6 +6,7 @@
     "declaration": true,
     //"suppressImplicitAnyIndexErrors": true,
     "downlevelIteration": true,
+    "ignoreDeprecations": "5.0",
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
