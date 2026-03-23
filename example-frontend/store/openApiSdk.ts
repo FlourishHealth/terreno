@@ -151,17 +151,6 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      // MCP Servers endpoints
-      deleteMcpServersById: build.mutation<void, {id: string}>({
-        invalidatesTags: (_result, _error, {id}) => [
-          {id, type: "mcpServers" as const},
-          {id: "LIST", type: "mcpServers" as const},
-        ],
-        query: (queryArg) => ({
-          method: "DELETE",
-          url: `/mcp-servers/${queryArg.id}`,
-        }),
-      }),
       // GptHistory endpoints
       deleteGptHistoriesById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
@@ -173,6 +162,17 @@ const injectedRtkApi = api
           url: `/gpt/histories/${queryArg.id}`,
         }),
       }),
+      // MCP Servers endpoints
+      deleteMcpServersById: build.mutation<void, {id: string}>({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "mcpServers" as const},
+          {id: "LIST", type: "mcpServers" as const},
+        ],
+        query: (queryArg) => ({
+          method: "DELETE",
+          url: `/mcp-servers/${queryArg.id}`,
+        }),
+      }),
       deleteTodosById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -182,6 +182,20 @@ const injectedRtkApi = api
           method: "DELETE",
           url: `/todos/${queryArg.id}`,
         }),
+      }),
+      getGptHistories: build.query<GptHistoriesListResponse, void>({
+        providesTags: (result) =>
+          result?.data
+            ? [
+                ...result.data.map(({id}) => ({id, type: "gptHistories" as const})),
+                {id: "LIST", type: "gptHistories" as const},
+              ]
+            : [{id: "LIST", type: "gptHistories" as const}],
+        query: () => ({url: "/gpt/histories"}),
+      }),
+      getGptHistoriesById: build.query<GptHistoryResponse, {id: string}>({
+        providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
+        query: (queryArg) => ({url: `/gpt/histories/${queryArg.id}`}),
       }),
       getMcpServers: build.query<McpServersListResponse, {enabled?: boolean; ownerId?: string}>({
         providesTags: (result) =>
@@ -202,20 +216,6 @@ const injectedRtkApi = api
       getMcpServersById: build.query<McpServerResponse, {id: string}>({
         providesTags: (_result, _error, {id}) => [{id, type: "mcpServers" as const}],
         query: (queryArg) => ({url: `/mcp-servers/${queryArg.id}`}),
-      }),
-      getGptHistories: build.query<GptHistoriesListResponse, void>({
-        providesTags: (result) =>
-          result?.data
-            ? [
-                ...result.data.map(({id}) => ({id, type: "gptHistories" as const})),
-                {id: "LIST", type: "gptHistories" as const},
-              ]
-            : [{id: "LIST", type: "gptHistories" as const}],
-        query: () => ({url: "/gpt/histories"}),
-      }),
-      getGptHistoriesById: build.query<GptHistoryResponse, {id: string}>({
-        providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
-        query: (queryArg) => ({url: `/gpt/histories/${queryArg.id}`}),
       }),
       // Todos endpoints
       getTodos: build.query<TodosListResponse, {completed?: boolean; ownerId?: string}>({
@@ -259,20 +259,6 @@ const injectedRtkApi = api
         providesTags: (_result, _error, {id}) => [{id, type: "users" as const}],
         query: (queryArg) => ({url: `/users/${queryArg.id}`}),
       }),
-      patchMcpServersById: build.mutation<
-        McpServerResponse,
-        {id: string; body: UpdateMcpServerBody}
-      >({
-        invalidatesTags: (_result, _error, {id}) => [
-          {id, type: "mcpServers" as const},
-          {id: "LIST", type: "mcpServers" as const},
-        ],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "PATCH",
-          url: `/mcp-servers/${queryArg.id}`,
-        }),
-      }),
       patchGptHistoriesById: build.mutation<
         GptHistoryResponse,
         {id: string; body: UpdateGptHistoryBody}
@@ -285,6 +271,20 @@ const injectedRtkApi = api
           body: queryArg.body,
           method: "PATCH",
           url: `/gpt/histories/${queryArg.id}`,
+        }),
+      }),
+      patchMcpServersById: build.mutation<
+        McpServerResponse,
+        {id: string; body: UpdateMcpServerBody}
+      >({
+        invalidatesTags: (_result, _error, {id}) => [
+          {id, type: "mcpServers" as const},
+          {id: "LIST", type: "mcpServers" as const},
+        ],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "PATCH",
+          url: `/mcp-servers/${queryArg.id}`,
         }),
       }),
       patchTodosById: build.mutation<TodoResponse, {id: string; body: UpdateTodoBody}>({
@@ -309,20 +309,20 @@ const injectedRtkApi = api
           url: `/users/${queryArg.id}`,
         }),
       }),
-      postMcpServers: build.mutation<McpServerResponse, {body: CreateMcpServerBody}>({
-        invalidatesTags: [{id: "LIST", type: "mcpServers" as const}],
-        query: (queryArg) => ({
-          body: queryArg.body,
-          method: "POST",
-          url: "/mcp-servers",
-        }),
-      }),
       postGptHistories: build.mutation<GptHistoryResponse, {body: CreateGptHistoryBody}>({
         invalidatesTags: [{id: "LIST", type: "gptHistories" as const}],
         query: (queryArg) => ({
           body: queryArg.body,
           method: "POST",
           url: "/gpt/histories",
+        }),
+      }),
+      postMcpServers: build.mutation<McpServerResponse, {body: CreateMcpServerBody}>({
+        invalidatesTags: [{id: "LIST", type: "mcpServers" as const}],
+        query: (queryArg) => ({
+          body: queryArg.body,
+          method: "POST",
+          url: "/mcp-servers",
         }),
       }),
       postTodos: build.mutation<TodoResponse, {body: CreateTodoBody}>({
