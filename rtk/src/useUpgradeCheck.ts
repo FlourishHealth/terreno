@@ -7,9 +7,11 @@ import {baseUrl} from "./constants";
 import {IsWeb} from "./platform";
 
 interface VersionCheckResponse {
-  status: "ok" | "warning" | "required";
   message?: string;
+  requiredVersion?: number;
+  status: "ok" | "warning" | "required";
   updateUrl?: string;
+  warningVersion?: number;
 }
 
 interface UseUpgradeCheckResult {
@@ -22,17 +24,28 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
   const [isRequired, setIsRequired] = useState(false);
   const [requiredMessage, setRequiredMessage] = useState<string>();
   const [updateUrl, setUpdateUrl] = useState<string>();
+  const [warningMessage, setWarningMessage] = useState<string>();
   const toast = useToast();
 
   const onUpdate = useCallback(() => {
-    if (IsWeb) {
-      window.location.reload();
-      return;
-    }
     if (updateUrl) {
       void Linking.openURL(updateUrl);
+      return;
+    }
+    if (IsWeb) {
+      window.location.reload();
     }
   }, [updateUrl]);
+
+  // Show warning toast in a separate effect. ToastProvider initializes its ref
+  // in useEffect, so we may need to retry when toast becomes available.
+  useEffect(() => {
+    if (!warningMessage) return;
+    const toastId = toast.warn(warningMessage, {persistent: true});
+    if (toastId) {
+      setWarningMessage(undefined);
+    }
+  }, [warningMessage, toast]);
 
   useEffect(() => {
     const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
@@ -46,17 +59,17 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
         const response = await axios.get<VersionCheckResponse>(
           `${baseUrl}/version-check?version=${buildNumber}&platform=${platform}`
         );
-        const {status, message, updateUrl: responseUpdateUrl} = response.data;
-
-        if (responseUpdateUrl) {
-          setUpdateUrl(responseUpdateUrl);
-        }
+        const {message, status, updateUrl: responseUpdateUrl} = response.data;
 
         if (status === "required") {
           setIsRequired(true);
           setRequiredMessage(message);
         } else if (status === "warning" && message) {
-          toast.warn(message, {persistent: true});
+          setWarningMessage(message);
+        }
+
+        if (responseUpdateUrl) {
+          setUpdateUrl(responseUpdateUrl);
         }
       } catch (error) {
         console.debug("Version check failed, continuing normally", error);

@@ -1,6 +1,6 @@
 import mongoose, {type Document} from "mongoose";
 
-import {type APIErrorConstructor} from "../errors";
+import type {APIErrorConstructor} from "../errors";
 import {createdUpdatedPlugin, findOneOrNone} from "../plugins";
 
 export interface VersionConfigDocument extends mongoose.Document {
