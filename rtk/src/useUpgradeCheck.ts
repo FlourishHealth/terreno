@@ -1,18 +1,10 @@
 import {useToast} from "@terreno/ui";
-import axios from "axios";
 import Constants from "expo-constants";
 import {useCallback, useEffect, useState} from "react";
 import {Linking} from "react-native";
-import {baseUrl} from "./constants";
-import {IsWeb} from "./platform";
 
-interface VersionCheckResponse {
-  message?: string;
-  requiredVersion?: number;
-  status: "ok" | "warning" | "required";
-  updateUrl?: string;
-  warningVersion?: number;
-}
+import {useLazyGetVersionCheckQuery} from "./emptyApi";
+import {IsWeb} from "./platform";
 
 interface UseUpgradeCheckResult {
   isRequired: boolean;
@@ -26,6 +18,7 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
   const [updateUrl, setUpdateUrl] = useState<string>();
   const [warningMessage, setWarningMessage] = useState<string>();
   const toast = useToast();
+  const [triggerVersionCheck, result] = useLazyGetVersionCheckQuery();
 
   const onUpdate = useCallback(() => {
     if (updateUrl) {
@@ -54,30 +47,30 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
     }
 
     const platform = IsWeb ? "web" : "mobile";
-    const checkVersion = async (): Promise<void> => {
-      try {
-        const response = await axios.get<VersionCheckResponse>(
-          `${baseUrl}/version-check?version=${buildNumber}&platform=${platform}`
-        );
-        const {message, status, updateUrl: responseUpdateUrl} = response.data;
+    void triggerVersionCheck({platform, version: buildNumber});
+  }, [triggerVersionCheck]);
 
-        if (status === "required") {
-          setIsRequired(true);
-          setRequiredMessage(message);
-        } else if (status === "warning" && message) {
-          setWarningMessage(message);
-        }
+  useEffect(() => {
+    if (result.isError) {
+      console.debug("Version check failed, continuing normally", result.error);
+      return;
+    }
+    if (!result.isSuccess || !result.data) {
+      return;
+    }
+    const {message, status, updateUrl: responseUpdateUrl} = result.data;
 
-        if (responseUpdateUrl) {
-          setUpdateUrl(responseUpdateUrl);
-        }
-      } catch (error) {
-        console.debug("Version check failed, continuing normally", error);
-      }
-    };
-    void checkVersion();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (status === "required") {
+      setIsRequired(true);
+      setRequiredMessage(message);
+    } else if (status === "warning" && message) {
+      setWarningMessage(message);
+    }
+
+    if (responseUpdateUrl) {
+      setUpdateUrl(responseUpdateUrl);
+    }
+  }, [result.data, result.error, result.isError, result.isSuccess]);
 
   return {isRequired, onUpdate, requiredMessage};
 };
