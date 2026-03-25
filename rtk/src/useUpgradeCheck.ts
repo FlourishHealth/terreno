@@ -19,6 +19,7 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
   const [warningMessage, setWarningMessage] = useState<string>();
   const toast = useToast();
   const [triggerVersionCheck, result] = useLazyGetVersionCheckQuery();
+  const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
 
   const onUpdate = useCallback(() => {
     if (updateUrl) {
@@ -41,14 +42,13 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
   }, [warningMessage, toast]);
 
   useEffect(() => {
-    const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
     if (buildNumber === undefined || buildNumber === null) {
       return;
     }
 
     const platform = IsWeb ? "web" : "mobile";
     void triggerVersionCheck({platform, version: buildNumber});
-  }, [triggerVersionCheck]);
+  }, [buildNumber, triggerVersionCheck]);
 
   useEffect(() => {
     if (result.isError) {

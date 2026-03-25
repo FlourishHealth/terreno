@@ -25,20 +25,48 @@ This adds the public `GET /version-check` endpoint. The admin routes (`GET/PUT /
 
 ### 2. Frontend: Add build number injection
 
-Create or update `app.config.js` in your Expo app root:
+Create or update `app.config.ts` in your Expo app root. The example app resolves `buildNumber` in this order:
 
-```js
-const {execSync} = require("child_process");
+1. **`BUILD_NUMBER_OVERRIDE`** at the top of `app.config.ts` (set to a number for local testing, or `undefined` for normal behavior)
+2. **`expo.extra.buildNumber`** in `app.json` (optional)
+3. **`EXPO_PUBLIC_BUILD_NUMBER`** env
+4. **`git rev-list --count HEAD`** (default)
 
-module.exports = ({config}) => {
-  let buildNumber = 0;
-  try {
-    buildNumber = parseInt(
-      execSync("git rev-list --count HEAD").toString().trim(),
-      10
-    );
-  } catch {
-    // Fallback for environments without git
+```typescript
+import {execSync} from "node:child_process";
+
+import type {ConfigContext, ExpoConfig} from "expo/config";
+
+const BUILD_NUMBER_OVERRIDE: number | undefined = undefined;
+
+const coerceBuildNumber = (value: unknown): number | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const n = typeof value === "number" ? value : parseInt(String(value), 10);
+  return Number.isFinite(n) ? n : undefined;
+};
+
+export default ({config}: ConfigContext): ExpoConfig => {
+  let buildNumber = coerceBuildNumber(BUILD_NUMBER_OVERRIDE);
+
+  if (buildNumber === undefined) {
+    buildNumber = coerceBuildNumber(config.extra?.buildNumber);
+  }
+
+  if (buildNumber === undefined && process.env.EXPO_PUBLIC_BUILD_NUMBER) {
+    buildNumber = coerceBuildNumber(process.env.EXPO_PUBLIC_BUILD_NUMBER);
+  }
+
+  if (buildNumber === undefined) {
+    try {
+      buildNumber = parseInt(
+        execSync("git rev-list --count HEAD").toString().trim(),
+        10
+      );
+    } catch {
+      buildNumber = 0;
+    }
   }
 
   return {
@@ -51,7 +79,9 @@ module.exports = ({config}) => {
 };
 ```
 
-This sets `Constants.expoConfig.extra.buildNumber` to the current git commit count at build time. The number increases monotonically with each commit.
+This sets `Constants.expoConfig.extra.buildNumber` when Metro loads the config. By default it tracks the git commit count.
+
+**If you change `buildNumber` and nothing updates:** restart the dev server (`bun expo start` or `expo start --clear`). `expo-constants` is filled when the bundle is built; hot reload does not always re-read `app.config.ts`.
 
 ### 3. Frontend: Wire up the hook
 
@@ -120,7 +150,7 @@ jobs:
         run: eas build --platform all --non-interactive
 ```
 
-Since `app.config.js` runs `git rev-list --count HEAD` at build time, the build number is automatically set. The key requirement is `fetch-depth: 0` in the checkout step to ensure the full git history is available.
+Since `app.config.ts` runs `git rev-list --count HEAD` at build time, the build number is automatically set. The key requirement is `fetch-depth: 0` in the checkout step to ensure the full git history is available.
 
 ### Web Deployments
 
@@ -145,7 +175,7 @@ jobs:
         run: # your deployment step
 ```
 
-The `app.config.js` runs during `expo export`, so the build number is embedded in the static output.
+The `app.config.ts` runs during `expo export`, so the build number is embedded in the static output.
 
 ### Verifying the Build Number
 

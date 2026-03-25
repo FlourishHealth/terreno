@@ -54,9 +54,9 @@
   - Depends on: Task 1.2
   - Acceptance: Hook returns correct state for ok/warning/required. Toast appears for warning. isRequired flag set for required. onUpdate triggers appropriate platform action.
 
-- [ ] **Task 2.3**: Add `app.config.js` build number injection
-  - Description: Create or update `app.config.js` in the example frontend to dynamically set `expo.extra.buildNumber` from `git rev-list --count HEAD` at build time. Document the pattern for consuming apps.
-  - Files: `example-frontend/app.config.js` (create/modify), `example-frontend/app.json` (may need adjustment)
+- [ ] **Task 2.3**: Add `app.config.ts` build number injection
+  - Description: Create or update `app.config.ts` in the example frontend to dynamically set `expo.extra.buildNumber` from `git rev-list --count HEAD` at build time. Document the pattern for consuming apps.
+  - Files: `example-frontend/app.config.ts` (create/modify), `example-frontend/app.json` (may need adjustment)
   - Depends on: none
   - Acceptance: Running `expo start` or `expo build` sets `Constants.expoConfig.extra.buildNumber` to the current git commit count.
 
