@@ -63,6 +63,8 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ### Deployed Services
 
 - **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
+- **example-backend/** - Example backend API (deployed to [prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app](https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app))
+- **example-frontend/** - Example frontend app (deployed to [terreno-frontend.netlify.app](https://terreno-frontend.netlify.app))
 
 ### Example/Demo Apps
 
