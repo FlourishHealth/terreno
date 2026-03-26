@@ -11,7 +11,7 @@
   - Acceptance: Model can be imported from `@terreno/api`, compiles cleanly, schema matches spec
 
 - [ ] **Task 1.2**: Add public `GET /version-check` endpoint
-  - Description: Add a built-in public route via VersionCheckPlugin (TerrenoPlugin) that handles `GET /version-check?version=N&platform=web|mobile`. Fetches the singleton VersionConfig, compares the client's build number against the platform-specific thresholds, and returns `{status, message?, updateUrl?}`. Returns `{status: "ok"}` if no config document exists.
+  - Description: Add a built-in public route via VersionCheckPlugin (TerrenoPlugin) that handles `GET /version-check?version=N&platform=web|mobile`. Fetches the singleton VersionConfig, compares the client's build number against the platform-specific thresholds, and returns a JSON object including status and, when a config exists, version threshold fields: `{status, message?, updateUrl?, requiredVersion?, warningVersion?}`. Returns `{status: "ok"}` if no config document exists.
   - Files: `api/src/versionCheckPlugin.ts` (create - exports VersionCheckPlugin)
   - Depends on: Task 1.1
   - Acceptance: Endpoint returns correct status for all combinations: no config → ok, version >= warning → ok, version < warning → warning, version < required → required. No auth required.

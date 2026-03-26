@@ -23,12 +23,16 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
   const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
 
   const onUpdate = useCallback(() => {
-    if (updateUrl) {
-      void Linking.openURL(updateUrl);
-      return;
-    }
     if (IsWeb) {
       window.location.reload();
+      return;
+    }
+    if (updateUrl) {
+      void Linking.openURL(updateUrl).catch((err: unknown) => {
+        console.warn("Failed to open update URL", err);
+      });
+    } else {
+      console.warn("useUpgradeCheck: no update URL available for mobile update");
     }
   }, [updateUrl]);
 
@@ -39,6 +43,8 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
     const toastId = toast.warn(warningMessage, {persistent: true});
     if (toastId) {
       setWarningMessage(undefined);
+    } else {
+      console.warn("useUpgradeCheck: toast not yet available, will retry on next render");
     }
   }, [warningMessage, toast]);
 

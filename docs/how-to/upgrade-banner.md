@@ -65,7 +65,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
         10
       );
     } catch {
-      buildNumber = 0;
+      // Leave buildNumber undefined so the upgrade check is skipped when git is unavailable
     }
   }
 

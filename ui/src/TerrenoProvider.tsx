@@ -19,9 +19,16 @@ export const TerrenoProvider: FC<{
         duration={50000}
         offset={50}
         placement="bottom"
-        renderToast={(toastOptions) => (
-          <Toast {...toastOptions?.data} onDismiss={toastOptions?.onHide} />
-        )}
+        renderToast={(toastOptions) => {
+          const dataOnDismiss = toastOptions?.data?.onDismiss;
+          const providerOnHide = toastOptions?.onHide;
+          const handleDismiss = () => {
+            dataOnDismiss?.();
+            providerOnHide?.();
+          };
+
+          return <Toast {...toastOptions?.data} onDismiss={handleDismiss} />;
+        }}
         swipeEnabled
       >
         <OpenAPIProvider specUrl={openAPISpecUrl}>
