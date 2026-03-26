@@ -5,6 +5,7 @@ export {AdminModelTable} from "./AdminModelTable";
 export {AdminRefField} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
+export {AdminVersionConfig} from "./AdminVersionConfig";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
 export type {

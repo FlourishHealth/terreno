@@ -10,6 +10,7 @@ import {
   configureOpenApiValidator,
   logger,
   TerrenoApp,
+  VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
@@ -131,6 +132,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
+      .register(new VersionCheckPlugin())
       .register(
         new HealthApp({
           check: async () => {

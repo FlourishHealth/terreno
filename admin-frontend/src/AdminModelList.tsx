@@ -127,14 +127,31 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
     );
   }
 
+  const customScreens = config.customScreens ?? [];
   const scripts = config.scripts ?? [];
   const hasToolCards = scripts.length > 0 || !!configurationPath;
 
   return (
     <Page maxWidth="100%" scroll title="Admin">
       <Box gap={4} padding={4}>
-        {hasToolCards && (
+        {(customScreens.length > 0 || hasToolCards) && (
           <Box direction="row" gap={4} wrap>
+            {customScreens.map((screen) => (
+              <Card key={screen.name} padding={4} testID={`admin-model-card-${screen.name}`}>
+                <Box
+                  accessibilityHint={`Navigate to ${screen.displayName}`}
+                  accessibilityLabel={screen.displayName}
+                  gap={2}
+                  onClick={() => handlePress(screen.name)}
+                  width={240}
+                >
+                  <Heading size="md">{screen.displayName}</Heading>
+                  <Text color="secondaryDark" size="sm">
+                    Singleton config
+                  </Text>
+                </Box>
+              </Card>
+            ))}
             {scripts.length > 0 && (
               <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
             )}

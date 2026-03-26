@@ -51,7 +51,7 @@ jobs:
       - name: Set BASE_URL for deploy
         run: |
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           else
             URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           fi
