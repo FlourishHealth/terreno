@@ -1,9 +1,7 @@
 import * as Sentry from "@sentry/bun";
-import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
-
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
@@ -14,6 +12,7 @@ import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
+import openapi from "./vendor/wesleytodd-openapi/index";
 
 type CorsOrigin =
   | string
