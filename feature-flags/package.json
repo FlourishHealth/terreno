@@ -6,7 +6,7 @@
   "dependencies": {
     "@terreno/api": "workspace:*",
     "express": "^5.2.1",
-    "lodash": "^4.17.23"
+    "lodash": "catalog:"
   },
   "description": "Feature flags and A/B testing plugin for @terreno/api",
   "devDependencies": {

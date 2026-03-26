@@ -30,9 +30,9 @@ const matchesFieldRule = (user: unknown, rule: FeatureFlagRule): boolean => {
 
   switch (rule.operator) {
     case "eq":
-      return fieldValue === ruleValue;
+      return ruleValue !== undefined && fieldValue === ruleValue;
     case "neq":
-      return fieldValue !== ruleValue;
+      return ruleValue !== undefined && fieldValue !== ruleValue;
     case "in":
       return Array.isArray(ruleValue) && ruleValue.includes(fieldValue);
     case "nin":
@@ -103,7 +103,7 @@ export const evaluateFlag = (
   }
 
   // No rules matched — use deterministic hashing
-  const hash = deterministicHash(`${userId}${flag.key}`);
+  const hash = deterministicHash(`${userId}:${flag.key}`);
 
   if (flag.type === "boolean") {
     return hash < flag.rolloutPercentage;

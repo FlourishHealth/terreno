@@ -43,6 +43,13 @@ describe("deterministicHash", () => {
     expect(hash1).toBeGreaterThanOrEqual(0);
     expect(hash2).toBeGreaterThanOrEqual(0);
   });
+
+  it("does not collide for ambiguous userId/key pairs", () => {
+    // "12" + "3" must not equal "1" + "23" — delimiter prevents this
+    const hash1 = deterministicHash("12:3");
+    const hash2 = deterministicHash("1:23");
+    expect(hash1).not.toBe(hash2);
+  });
 });
 
 describe("evaluateFlag", () => {
@@ -231,6 +238,25 @@ describe("evaluateFlag", () => {
 
       expect(evaluateFlag(flag, "user1", {email: "john@company.com"}, noSegments)).toBe(true);
       expect(evaluateFlag(flag, "user2", {email: "john@gmail.com"}, noSegments)).toBe(false);
+    });
+
+    it("does not match eq when rule.value is undefined", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "missingField", operator: "eq"}],
+      });
+
+      // Both user field and rule.value are undefined — should NOT match
+      expect(evaluateFlag(flag, "user1", {}, noSegments)).toBe(false);
+    });
+
+    it("does not match neq when rule.value is undefined", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "missingField", operator: "neq"}],
+      });
+
+      expect(evaluateFlag(flag, "user1", {}, noSegments)).toBe(false);
     });
 
     it("supports dot notation for nested fields", () => {
