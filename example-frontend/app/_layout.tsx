@@ -71,7 +71,7 @@ function RootLayoutNav(): React.ReactElement {
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
-  const {isRequired, requiredMessage, onUpdate} = useUpgradeCheck();
+  const {canUpdate, isRequired, requiredMessage, onUpdate} = useUpgradeCheck();
 
   // Validate stored auth token on mount
   useEffect(() => {
@@ -101,6 +101,7 @@ function RootLayoutNav(): React.ReactElement {
   if (isRequired) {
     return (
       <UpgradeRequiredScreen
+        canUpdate={canUpdate}
         message={
           requiredMessage ?? "This version is no longer supported. Please update to continue."
         }

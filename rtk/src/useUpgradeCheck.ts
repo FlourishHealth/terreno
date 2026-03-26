@@ -7,6 +7,7 @@ import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
 
 interface UseUpgradeCheckResult {
+  canUpdate: boolean;
   isRequired: boolean;
   requiredMessage?: string;
   onUpdate: () => void;
@@ -50,6 +51,7 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
     void triggerVersionCheck({platform, version: buildNumber});
   }, [buildNumber, triggerVersionCheck]);
 
+  // Process the version-check response: block on required, warn on warning
   useEffect(() => {
     if (result.isError) {
       console.debug("Version check failed, continuing normally", result.error);
@@ -72,5 +74,7 @@ export const useUpgradeCheck = (): UseUpgradeCheckResult => {
     }
   }, [result.data, result.error, result.isError, result.isSuccess]);
 
-  return {isRequired, onUpdate, requiredMessage};
+  const canUpdate = IsWeb || !!updateUrl;
+
+  return {canUpdate, isRequired, onUpdate, requiredMessage};
 };

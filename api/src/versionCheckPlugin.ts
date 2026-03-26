@@ -8,8 +8,10 @@ export type VersionCheckStatus = "ok" | "warning" | "required";
 
 export interface VersionCheckResponse {
   message?: string;
+  requiredVersion?: number;
   status: VersionCheckStatus;
   updateUrl?: string;
+  warningVersion?: number;
 }
 
 const DEFAULT_WARNING_MESSAGE =
@@ -57,7 +59,9 @@ export class VersionCheckPlugin implements TerrenoPlugin {
             : (config.mobileWarningVersion ?? 0);
 
         const response: VersionCheckResponse = {
+          requiredVersion: requiredVersion > 0 ? requiredVersion : undefined,
           status: "ok",
+          warningVersion: warningVersion > 0 ? warningVersion : undefined,
         };
 
         if (requiredVersion > 0 && version < requiredVersion) {

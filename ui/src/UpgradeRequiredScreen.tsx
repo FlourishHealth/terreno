@@ -7,11 +7,13 @@ import {Icon} from "./Icon";
 import {Text} from "./Text";
 
 interface UpgradeRequiredScreenProps {
+  canUpdate?: boolean;
   message: string;
   onUpdate: () => void;
 }
 
 export const UpgradeRequiredScreen: React.FC<UpgradeRequiredScreenProps> = ({
+  canUpdate = true,
   message,
   onUpdate,
 }) => {
@@ -35,9 +37,15 @@ export const UpgradeRequiredScreen: React.FC<UpgradeRequiredScreenProps> = ({
         <Text align="center" color="secondaryDark" size="lg">
           {message}
         </Text>
-        <Box marginTop={2} width="100%">
-          <Button fullWidth onClick={onUpdate} text="Update" variant="primary" />
-        </Box>
+        {canUpdate ? (
+          <Box marginTop={2} width="100%">
+            <Button fullWidth onClick={onUpdate} text="Update" variant="primary" />
+          </Box>
+        ) : (
+          <Text align="center" color="secondaryDark" size="md">
+            Please contact support or check your app store for an update.
+          </Text>
+        )}
       </Box>
     </Box>
   );

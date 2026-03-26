@@ -31,7 +31,7 @@ export default ({config}: ConfigContext): ExpoConfig => {
     try {
       buildNumber = parseInt(execSync("git rev-list --count HEAD").toString().trim(), 10);
     } catch {
-      buildNumber = 0;
+      // Leave undefined so the version check is skipped in environments without git
     }
   }
 
