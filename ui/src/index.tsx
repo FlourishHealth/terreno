@@ -4,6 +4,7 @@ export * from "./Accordion";
 export * from "./ActionSheet";
 export * from "./AddressField";
 export * from "./AIRequestExplorer";
+export * from "./AiSuggestionBox";
 export * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";

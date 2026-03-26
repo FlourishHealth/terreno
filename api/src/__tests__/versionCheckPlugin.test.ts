@@ -3,7 +3,7 @@ import supertest from "supertest";
 import {VersionConfig} from "../models/versionConfig";
 import {TerrenoApp} from "../terrenoApp";
 import {setupDb, UserModel} from "../tests";
-import {VersionCheckPlugin} from "../versionCheck";
+import {VersionCheckPlugin} from "../versionCheckPlugin";
 
 describe("VersionCheckPlugin", () => {
   let app: ReturnType<typeof supertest>;
