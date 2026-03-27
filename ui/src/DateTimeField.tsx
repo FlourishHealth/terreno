@@ -538,11 +538,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       // Normalize emitted value to ISO (UTC for date-only)
       const normalized =
         type === "date"
-          ? parsedDate
-              .setZone("UTC")
+          ? DateTime.fromISO(inputDate, {zone: "UTC"})
               .startOf("day")
               .set({millisecond: 0, second: 0})
-              .toUTC()
               .toISO()
           : parsedDate.set({millisecond: 0, second: 0}).toUTC().toISO();
       if (!normalized) {
