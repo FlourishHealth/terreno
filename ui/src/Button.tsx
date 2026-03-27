@@ -103,7 +103,7 @@ const ButtonComponent: FC<ButtonProps> = ({
       )}
       style={{
         alignItems: "center",
-        alignSelf: fullWidth ? "stretch" : "flex-start",
+        alignSelf: fullWidth ? "stretch" : undefined,
         backgroundColor,
         borderColor,
         borderRadius: theme.radius.rounded,

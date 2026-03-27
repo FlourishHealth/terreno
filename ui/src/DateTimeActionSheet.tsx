@@ -214,7 +214,7 @@ const MobileTime = ({
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => setHour(itemValue)}
+            onValueChange={(itemValue) => setHour(Number(itemValue))}
             selectedValue={hour}
             style={{
               backgroundColor: "#FFFFFF",
@@ -222,7 +222,7 @@ const MobileTime = ({
             }}
           >
             {hours.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
+              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
             ))}
           </Picker>
         </Box>
@@ -231,7 +231,7 @@ const MobileTime = ({
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
             }}
-            onValueChange={(itemValue) => setMinute(itemValue)}
+            onValueChange={(itemValue) => setMinute(Number(itemValue))}
             selectedValue={minute}
             style={{
               backgroundColor: "#FFFFFF",
@@ -239,7 +239,7 @@ const MobileTime = ({
             }}
           >
             {minutes.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
+              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
             ))}
           </Picker>
         </Box>
