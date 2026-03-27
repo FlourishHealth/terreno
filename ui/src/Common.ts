@@ -553,6 +553,42 @@ export type BoxProps =
   | (BoxPropsBase & {onClick: () => void} & AccessibilityProps);
 export type BoxColor = SurfaceColor | "transparent";
 
+export type CardProps = BoxProps & {
+  /**
+   * The visual variant of the card.
+   * - "container": A simple surface wrapper for arbitrary children (default).
+   * - "display": A structured card with a colored header, title, description, and optional action button.
+   * @default "container"
+   */
+  variant?: "container" | "display";
+
+  /**
+   * The title displayed in the card body. Used in the "display" variant.
+   */
+  title?: string;
+
+  /**
+   * A short description displayed below the title. Used in the "display" variant.
+   */
+  description?: string;
+
+  /**
+   * The surface color of the header section. Used in the "display" variant.
+   * @default "primary"
+   */
+  headerColor?: SurfaceColor;
+
+  /**
+   * The label for the action button. Used in the "display" variant.
+   */
+  buttonText?: string;
+
+  /**
+   * Callback invoked when the action button is pressed. Used in the "display" variant.
+   */
+  buttonOnClick?: () => void | Promise<void>;
+};
+
 export interface ErrorBoundaryProps {
   onError?: (error: Error, stack: any) => void;
   children?: ReactNode;

@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CardDemo, Plain} from "@stories";
+import {CardDemo, CardVariants, DisplayCardDemo, Plain} from "@stories";
 import {Card} from "@terreno/ui";
 
 export const CardConfiguration: DemoConfiguration = {
@@ -19,7 +19,7 @@ export const CardConfiguration: DemoConfiguration = {
     documentation: "ready",
     figma: "ready",
     figmaLink:
-      "https://www.figma.com/file/ykXj5qjjtFjOYkAvTasu9r/Flourish-Health-Design-System?type=design&node-id=656%3A24249&mode=design&t=AKQ8wyFQBA4qC5eF-1",
+      "https://www.figma.com/design/ykXj5qjjtFjOYkAvTasu9r/Terreno-Design-System?node-id=656-24249&t=Hxfv5dAP1P29ZnF3-11",
     ios: "ready",
     android: "ready",
     web: "ready",
@@ -38,5 +38,13 @@ export const CardConfiguration: DemoConfiguration = {
   demoOptions: {},
   stories: {
     Plain: {render: Plain},
+    Display: {
+      description: "Display cards feature a colored header, title, description, and an action button to highlight a feature or guide users into a flow.",
+      render: DisplayCardDemo,
+    },
+    Variants: {
+      description: "Both card variants side by side.",
+      render: CardVariants,
+    },
   },
 };
