@@ -14,7 +14,6 @@ import {
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
-import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
@@ -26,6 +25,7 @@ import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
+import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
