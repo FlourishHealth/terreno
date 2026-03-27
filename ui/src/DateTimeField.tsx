@@ -211,8 +211,6 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   // Use provided timezone if available, otherwise use local
   const timezone = providedTimezone ?? localTimezone;
-  const lastTimezoneRef = useRef(timezone);
-
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   let iconName: IconName | undefined;
@@ -578,18 +576,6 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setHour("");
       setMinute("");
       setAmPm("am");
-      return;
-    }
-
-    // // If only timezone changed, don't recalculate fields
-    const isOnlyTimezoneChange =
-      lastTimezoneRef.current !== timezone &&
-      DateTime.fromISO(value).toUTC().toISO() ===
-        DateTime.fromISO(value).setZone(timezone).toUTC().toISO();
-
-    lastTimezoneRef.current = timezone;
-
-    if (isOnlyTimezoneChange) {
       return;
     }
 
