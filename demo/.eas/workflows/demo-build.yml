@@ -1,12 +1,8 @@
 name: Demo Build
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+  pull_request_labeled:
+    label: "build-expo"
 
 jobs:
   build_ios:
