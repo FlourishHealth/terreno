@@ -317,6 +317,24 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 
 ## CI/CD Workflows
 
+### Expo Builds (EAS)
+
+Native iOS and Android builds run via EAS workflows and are **not triggered automatically**. They only run when the `build-expo` label is added to a pull request.
+
+**Add the `build-expo` label when a PR includes:**
+- Changes to `example-frontend/` or `demo/` app code (screens, navigation, app config)
+- Changes to `ui/` components that affect native rendering (animations, gestures, platform-specific behavior)
+- Changes to `rtk/` that affect native token storage or platform detection
+- Updates to `eas.json`, `app.json`, or Expo/Metro config in any app
+- Changes to native dependencies (anything affecting iOS/Android builds)
+- Any change you want to verify builds successfully on device before merging
+
+**Do not add the `build-expo` label for:**
+- Backend-only changes (`api/`, `example-backend/`)
+- Documentation or config file updates
+- Pure web changes that don't affect native builds
+- `ui/` changes limited to web rendering or test snapshots
+
 ### Required Secret Validation
 
 GitHub Actions workflows that use secrets or environment variables must validate all required variables are set before using them. Add a validation step early in the job that fails fast with a clear error message listing any missing variables.

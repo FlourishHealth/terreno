@@ -64,5 +64,5 @@
     "test:ci": "bun test --preload ./src/tests/bunSetup.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.7.0"
+  "version": "0.7.2"
 }
