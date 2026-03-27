@@ -7,7 +7,6 @@
  * system. Skips any flags that already exist (matched by key).
  */
 
-import "dotenv/config";
 import {logger} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
 import mongoose from "mongoose";
