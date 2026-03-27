@@ -281,9 +281,15 @@ const DateRowWithIcon: FC<DateRowWithIconProps> = ({
       <DateField {...segmentProps} type={type} />
       {isMobile && <Box flex="grow" />}
       {!disabled && isMobile && (
-        <View style={{paddingHorizontal: 10, paddingVertical: 8}}>
+        <Pressable
+          accessibilityHint="Opens the calendar to select a date"
+          accessibilityLabel="Show calendar"
+          hitSlop={10}
+          onPress={onOpenActionSheet}
+          style={{paddingHorizontal: 10, paddingVertical: 8}}
+        >
           <FontAwesome6 color={theme.text.primary} name="calendar" size={16} />
-        </View>
+        </Pressable>
       )}
       {!disabled && !isMobile && type === "date" && (
         <IconButton
