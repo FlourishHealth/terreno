@@ -520,9 +520,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setAmPm(parsedDate.hour >= 12 ? "pm" : "am");
 
       if (type === "date" || type === "datetime") {
-        setMonth(parsedDate.month.toString().padStart(2, "0"));
-        setDay(parsedDate.day.toString().padStart(2, "0"));
-        setYear(parsedDate.year.toString());
+        // type="date" values are UTC midnight — parse in UTC to extract the correct calendar date.
+        const displayDate =
+          type === "date" ? DateTime.fromISO(inputDate, {zone: "UTC"}) : parsedDate;
+        setMonth(displayDate.month.toString().padStart(2, "0"));
+        setDay(displayDate.day.toString().padStart(2, "0"));
+        setYear(displayDate.year.toString());
       }
 
       if (type === "time" || type === "datetime") {
