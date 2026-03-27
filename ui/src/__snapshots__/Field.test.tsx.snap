@@ -1007,33 +1007,9 @@ exports[`Field renders date field 1`] = `
           },
           "type": "View",
         },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": null,
-          "props": {
-            "style": {
-              "paddingHorizontal": 10,
-              "paddingVertical": 8,
-            },
-            "testID": undefined,
-          },
-          "type": "View",
-        },
       ],
       "props": {
         "pointerEvents": "auto",
-        "style": {
-          "alignItems": "center",
-          "flexDirection": "row",
-        },
-        "testID": undefined,
-      },
-      "type": "View",
-    },
-    {
-      "$$typeof": Symbol(react.test.json),
-      "children": null,
-      "props": {
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
