@@ -206,3 +206,35 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Cursor Cloud specific instructions
+
+### Prerequisites
+
+- **Bun** must be installed (`curl -fsSL https://bun.sh/install | bash`). Ensure `~/.bun/bin` is on `PATH`.
+- **MongoDB 6.0+** must be installed and running on `localhost:27017`. The VM update script handles `bun install`; MongoDB and Bun are system-level dependencies installed in the snapshot.
+
+### Starting MongoDB
+
+MongoDB must be started before running the backend or API tests:
+
+```bash
+mongod --fork --logpath /var/log/mongod.log --dbpath /data/db
+```
+
+If `/data/db` doesn't exist: `sudo mkdir -p /data/db && sudo chown -R $(whoami) /data/db`.
+
+### Running services
+
+- **Backend**: `bun run backend:dev` (port 4000). Requires MongoDB. The `.env` at `example-backend/.env` has dev-ready values.
+- **Frontend**: `bun run frontend:web` (port 8082). Takes ~15s for initial Metro bundle.
+- **Tests**: `bun run test` runs all test suites. `bun run api:test` needs MongoDB. `bun run ui:test` has no external deps.
+- **Lint**: `bun run lint` across all packages.
+- **Compile**: `bun run compile` type-checks all packages.
+
+### Gotchas
+
+- The `example-backend/.env` ships with placeholder secrets (`your-secret-key-here` etc.) which work fine for local dev since JWT just needs any non-empty string.
+- The signup endpoint requires a `name` field in addition to `email` and `password`.
+- API tests (`bun run api:test`) connect to `mongodb://127.0.0.1/terreno` and will fail if MongoDB is not running.
+- Frontend Metro bundler can take 15-30s for the first request after startup; wait before testing `localhost:8082`.
