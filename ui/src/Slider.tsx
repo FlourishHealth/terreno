@@ -1,6 +1,7 @@
 import SliderComponent from "@react-native-community/slider";
 import type React from "react";
 import type {FC} from "react";
+import {Platform} from "react-native";
 
 import {Box} from "./Box";
 import type {IconName, SliderProps, ValueMappingItem} from "./Common";
@@ -151,7 +152,7 @@ export const Slider: FC<SliderProps> = ({
     thumbStyle: {
       backgroundColor: "white",
       borderRadius: 24,
-      boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)",
+      ...(Platform.OS === "web" ? {boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)"} : {}),
       elevation: 5,
       height: 48,
       width: 48,
