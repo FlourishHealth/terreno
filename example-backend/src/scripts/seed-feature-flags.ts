@@ -112,7 +112,9 @@ const main = async (): Promise<void> => {
   }
 };
 
-main().catch((error: unknown) => {
-  logger.error(`Unhandled error: ${error}`);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error: unknown) => {
+    logger.error(`Unhandled error: ${error}`);
+    process.exit(1);
+  });
+}
