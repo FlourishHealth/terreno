@@ -1,3 +1,5 @@
+import type React from "react";
+
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {CardProps} from "./Common";
@@ -15,7 +17,7 @@ export const Card = ({
   buttonText,
   buttonOnClick,
   ...rest
-}: CardProps) => {
+}: CardProps): React.ReactElement => {
   if (variant === "display") {
     return (
       <Box

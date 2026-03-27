@@ -1,4 +1,5 @@
 import {Box, Button, Card, Heading, Text} from "@terreno/ui";
+import type React from "react";
 
 export const CardDemo = () => {
   return (
@@ -61,7 +62,7 @@ export const Plain = () => {
   );
 };
 
-export const DisplayCardDemo = () => {
+export const DisplayCardDemo = (): React.ReactElement => {
   return (
     <Box color="neutralLight" direction="column" gap={4} padding={4} width="100%">
       <Card
@@ -89,7 +90,7 @@ export const DisplayCardDemo = () => {
   );
 };
 
-export const CardVariants = () => {
+export const CardVariants = (): React.ReactElement => {
   return (
     <Box color="neutralLight" direction="column" gap={4} padding={4} width="100%">
       <Heading size="sm">Container (default)</Heading>
