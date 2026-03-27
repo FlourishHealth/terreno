@@ -14,6 +14,7 @@ import {
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
+import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import type express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
@@ -200,6 +201,23 @@ export async function start(skipListen = false): Promise<express.Application> {
                   results.push("Dry run: no changes made");
                 }
                 return {results, success: true};
+              },
+            },
+            {
+              description:
+                "Seed example feature flags (boolean and variant). Skips flags that already exist.",
+              name: "seedFeatureFlags",
+              runner: async (wetRun) => {
+                if (!wetRun) {
+                  return {
+                    results: [
+                      "Dry run: would create up to 5 example feature flags",
+                      "Run as wet run to actually create them",
+                    ],
+                    success: true,
+                  };
+                }
+                return seedFeatureFlags();
               },
             },
           ],

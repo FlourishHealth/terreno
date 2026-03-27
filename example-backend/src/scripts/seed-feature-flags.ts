@@ -13,7 +13,7 @@ import {FeatureFlag} from "@terreno/feature-flags";
 import mongoose from "mongoose";
 import {connectToMongoDB} from "../utils/database";
 
-const FLAGS = [
+export const SEED_FLAGS = [
   {
     description: "Show a summary card with todo counts above the todo list",
     enabled: true,
@@ -74,28 +74,38 @@ const FLAGS = [
   },
 ];
 
+export const seedFeatureFlags = async (): Promise<{results: string[]; success: boolean}> => {
+  let created = 0;
+  let skipped = 0;
+  const results: string[] = [];
+
+  for (const flag of SEED_FLAGS) {
+    const existing = await FeatureFlag.findOne({key: flag.key});
+    if (existing) {
+      results.push(`Skipped (already exists): ${flag.key}`);
+      skipped++;
+      continue;
+    }
+
+    await FeatureFlag.create(flag);
+    results.push(`Created: ${flag.key} (${flag.type}, enabled: ${flag.enabled})`);
+    created++;
+  }
+
+  results.push(`Done. Created: ${created}, Skipped: ${skipped}`);
+  return {results, success: true};
+};
+
 const main = async (): Promise<void> => {
   try {
     logger.info("Connecting to MongoDB...");
     await connectToMongoDB();
 
-    let created = 0;
-    let skipped = 0;
-
-    for (const flag of FLAGS) {
-      const existing = await FeatureFlag.findOne({key: flag.key});
-      if (existing) {
-        logger.info(`Flag already exists: ${flag.key}`);
-        skipped++;
-        continue;
-      }
-
-      await FeatureFlag.create(flag);
-      logger.info(`Created flag: ${flag.key} (${flag.type}, enabled: ${flag.enabled})`);
-      created++;
+    const {results} = await seedFeatureFlags();
+    for (const line of results) {
+      logger.info(line);
     }
 
-    logger.info(`Done. Created: ${created}, Skipped: ${skipped}`);
     await mongoose.disconnect();
   } catch (error: unknown) {
     logger.error(`Error seeding feature flags: ${error}`);
