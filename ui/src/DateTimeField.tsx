@@ -1,6 +1,7 @@
+import {FontAwesome6} from "@expo/vector-icons";
 import {DateTime} from "luxon";
 import React, {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {TextInput, View} from "react-native";
+import {Pressable, TextInput, View} from "react-native";
 
 import {Box} from "./Box";
 import type {DateTimeFieldProps, IconName} from "./Common";
@@ -145,6 +146,63 @@ const TimeField: FC<DateTimeProps> = ({type, onBlur, fieldErrors, ...segmentProp
         onBlur={onBlur}
       />
     </View>
+  );
+};
+
+interface MobileTimeDisplayProps {
+  borderColor?: string;
+  disabled?: boolean;
+  displayText: string;
+  onPress: () => void;
+  placeholder: string;
+  showBorder?: boolean;
+}
+
+const MobileTimeDisplay: FC<MobileTimeDisplayProps> = ({
+  borderColor,
+  disabled,
+  displayText,
+  onPress,
+  placeholder,
+  showBorder = true,
+}): React.ReactElement => {
+  const {theme} = useTheme();
+  const isPlaceholder = !displayText;
+
+  return (
+    <Pressable
+      accessibilityHint="Tap to select a time"
+      accessibilityLabel="Time picker"
+      disabled={disabled}
+      onPress={onPress}
+      style={{
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 10,
+        minHeight: 40,
+        paddingHorizontal: showBorder ? 12 : 10,
+        paddingVertical: showBorder ? 8 : 4,
+        ...(showBorder
+          ? {
+              backgroundColor: disabled ? theme.surface.disabled : theme.surface.base,
+              borderColor,
+              borderRadius: 4,
+              borderWidth: 1,
+              maxWidth: 250,
+            }
+          : {}),
+      }}
+    >
+      <Text color={isPlaceholder ? "secondaryLight" : "primary"} numberOfLines={1} size="md">
+        {displayText || placeholder}
+      </Text>
+      <Box flex="grow" />
+      <FontAwesome6
+        color={disabled ? theme.text.secondaryLight : theme.text.primary}
+        name="clock"
+        size={16}
+      />
+    </Pressable>
   );
 };
 
@@ -657,108 +715,154 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     onRef: (el: TextInput | null, i: number) => (inputRefs.current[i] = el),
   };
 
+  const isMobile = isMobileDevice();
+  const isMobileTimeOnly = isMobile && type === "time";
+  const isMobileDatetime = isMobile && type === "datetime";
+  const timezoneAbbr = DateTime.now().setZone(timezone).offsetNameShort ?? "";
+  const mobileTimeDisplayText =
+    hour && minute ? `${hour}:${minute} ${amPm.toUpperCase()} ${timezoneAbbr}` : "";
+  const mobileTimePlaceholder = `12:00 PM ${timezoneAbbr}`;
+
   return (
     <>
-      {Boolean(title) && <FieldTitle text={title!} />}
-      {Boolean(errorText) && <FieldError text={errorText!} />}
-      <View
-        onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
-        style={{
-          alignItems: "center",
-          backgroundColor: theme.surface.base,
-          borderColor,
-          borderRadius: 4,
-          borderWidth: 1,
-          flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
-          maxWidth: maximumWidth,
-          minWidth: minimumWidth,
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-        }}
-      >
-        {(type === "date" || type === "datetime") && (
-          <View style={{alignItems: "center", flexDirection: "row"}}>
-            <DateField {...segmentProps} type={type} />
-            {!disabled &&
-              (type === "date" ||
-                (type === "datetime" && parentIsLessThanBreakpointOrIsMobile)) && (
-                <IconButton
-                  accessibilityHint="Opens the calendar to select a date and time"
-                  accessibilityLabel="Show calendar"
-                  iconName={iconName!}
-                  onClick={() => setShowDate(true)}
-                  variant="muted"
-                />
-              )}
-          </View>
-        )}
-
-        <View style={{alignItems: "center", flexDirection: "row"}}>
-          {(type === "time" || type === "datetime") && <TimeField {...segmentProps} type={type} />}
-          {Boolean(type === "datetime" || type === "time") && (
-            <>
-              <Box direction="column" marginLeft={2} marginRight={2} width={60}>
-                <SelectField
-                  disabled={disabled}
-                  onChange={(result) => {
-                    setAmPm(result as "am" | "pm");
-                    // No onblur, so we need to manually update the value
-                    const iso = getISOFromFields({amPm: result as "am" | "pm"});
-                    // Compare in UTC to avoid timezone issues
-                    const currentValueUTC = value
-                      ? DateTime.fromISO(value).toUTC().toISO()
-                      : undefined;
-                    if (iso && iso !== currentValueUTC) {
-                      onChange(iso);
-                    }
-                  }}
-                  options={[
-                    {label: "am", value: "am"},
-                    {label: "pm", value: "pm"},
-                  ]}
-                  requireValue
-                  value={amPm}
-                />
-              </Box>
-              <Box direction="column" width={70}>
-                <TimezonePicker
-                  disabled={disabled}
-                  hideTitle
-                  onChange={(t) => {
-                    if (onTimezoneChange) {
-                      onTimezoneChange(t);
-                    } else {
-                      setLocalTimezone(t);
-                    }
-                    const iso = getISOFromFields({timezone: t});
-                    // Compare in UTC to avoid timezone issues
-                    const currentValueUTC = value
-                      ? DateTime.fromISO(value).toUTC().toISO()
-                      : undefined;
-                    if (iso && iso !== currentValueUTC) {
-                      onChange(iso);
-                    }
-                  }}
-                  shortTimezone
-                  timezone={timezone}
-                />
-              </Box>
-            </>
+      {Boolean(title) && <FieldTitle text={title as string} />}
+      {Boolean(errorText) && <FieldError text={errorText as string} />}
+      {isMobileTimeOnly ? (
+        <MobileTimeDisplay
+          borderColor={borderColor}
+          disabled={disabled}
+          displayText={mobileTimeDisplayText}
+          onPress={() => setShowDate(true)}
+          placeholder={mobileTimePlaceholder}
+        />
+      ) : (
+        <Pressable
+          disabled={!isMobileDatetime || disabled}
+          onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
+          onPress={() => setShowDate(true)}
+          style={{
+            alignItems: parentIsLessThanBreakpointOrIsMobile ? "stretch" : "center",
+            backgroundColor: theme.surface.base,
+            borderColor,
+            borderRadius: 4,
+            borderWidth: 1,
+            flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
+            maxWidth: isMobileDatetime ? 250 : maximumWidth,
+            minWidth: isMobileDatetime ? 200 : minimumWidth,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+          }}
+        >
+          {(type === "date" || type === "datetime") && (
+            <View
+              pointerEvents={isMobileDatetime ? "none" : "auto"}
+              style={{alignItems: "center", flexDirection: "row"}}
+            >
+              <DateField {...segmentProps} type={type} />
+              {parentIsLessThanBreakpointOrIsMobile && <Box flex="grow" />}
+              {!disabled &&
+                (type === "date" ||
+                  (type === "datetime" && parentIsLessThanBreakpointOrIsMobile)) && (
+                  <View style={{paddingHorizontal: 10, paddingVertical: 8}}>
+                    <FontAwesome6 color={theme.text.primary} name="calendar" size={16} />
+                  </View>
+                )}
+              {!disabled &&
+                iconName &&
+                type === "date" &&
+                !parentIsLessThanBreakpointOrIsMobile && (
+                  <IconButton
+                    accessibilityHint="Opens the calendar to select a date and time"
+                    accessibilityLabel="Show calendar"
+                    iconName={iconName}
+                    onClick={() => setShowDate(true)}
+                    variant="navigation"
+                  />
+                )}
+            </View>
           )}
 
-          {!disabled && type === "datetime" && !parentIsLessThanBreakpointOrIsMobile && (
-            <Box marginLeft={2}>
-              <IconButton
-                accessibilityHint="Opens the calendar to select a date and time"
-                accessibilityLabel="Show calendar"
-                iconName={iconName!}
-                onClick={() => setShowDate(true)}
-                variant="muted"
+          {isMobileDatetime ? (
+            <View pointerEvents="none">
+              <MobileTimeDisplay
+                disabled={disabled}
+                displayText={mobileTimeDisplayText}
+                onPress={() => setShowDate(true)}
+                placeholder={mobileTimePlaceholder}
+                showBorder={false}
               />
-            </Box>
+            </View>
+          ) : (
+            <View style={{alignItems: "center", flexDirection: "row"}}>
+              {(type === "time" || type === "datetime") && (
+                <TimeField {...segmentProps} type={type} />
+              )}
+              {Boolean(type === "datetime" || type === "time") && (
+                <>
+                  <Box direction="column" marginLeft={2} marginRight={2} width={60}>
+                    <SelectField
+                      disabled={disabled}
+                      onChange={(result) => {
+                        setAmPm(result as "am" | "pm");
+                        const iso = getISOFromFields({amPm: result as "am" | "pm"});
+                        const currentValueUTC = value
+                          ? DateTime.fromISO(value).toUTC().toISO()
+                          : undefined;
+                        if (iso && iso !== currentValueUTC) {
+                          onChange(iso);
+                        }
+                      }}
+                      options={[
+                        {label: "am", value: "am"},
+                        {label: "pm", value: "pm"},
+                      ]}
+                      requireValue
+                      value={amPm}
+                    />
+                  </Box>
+                  <Box direction="column" width={70}>
+                    <TimezonePicker
+                      disabled={disabled}
+                      hideTitle
+                      onChange={(t) => {
+                        if (onTimezoneChange) {
+                          onTimezoneChange(t);
+                        } else {
+                          setLocalTimezone(t);
+                        }
+                        const iso = getISOFromFields({timezone: t});
+                        const currentValueUTC = value
+                          ? DateTime.fromISO(value).toUTC().toISO()
+                          : undefined;
+                        if (iso && iso !== currentValueUTC) {
+                          onChange(iso);
+                        }
+                      }}
+                      shortTimezone
+                      timezone={timezone}
+                    />
+                  </Box>
+                </>
+              )}
+
+              {!disabled &&
+                iconName &&
+                type === "datetime" &&
+                !parentIsLessThanBreakpointOrIsMobile && (
+                  <Box marginLeft={2}>
+                    <IconButton
+                      accessibilityHint="Opens the calendar to select a date and time"
+                      accessibilityLabel="Show calendar"
+                      iconName={iconName}
+                      onClick={() => setShowDate(true)}
+                      variant="navigation"
+                    />
+                  </Box>
+                )}
+            </View>
           )}
-        </View>
-      </View>
+        </Pressable>
+      )}
 
       {!disabled && (
         <DateTimeActionSheet
@@ -771,7 +875,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           visible={showDate}
         />
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
     </>
   );
 };
