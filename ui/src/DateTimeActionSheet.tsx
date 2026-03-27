@@ -222,7 +222,7 @@ const MobileTime = ({
             }}
           >
             {hours.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
+              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
             ))}
           </Picker>
         </Box>
@@ -239,7 +239,7 @@ const MobileTime = ({
             }}
           >
             {minutes.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
+              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
             ))}
           </Picker>
         </Box>
