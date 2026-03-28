@@ -3,7 +3,6 @@ import {useCallback, useEffect, useMemo, useRef} from "react";
 
 type FlagValues = Record<string, boolean | string | null>;
 
-type EvaluateResponse = FlagValues | {data: FlagValues};
 
 interface UseFeatureFlagsResult {
   flags: FlagValues;
@@ -13,18 +12,6 @@ interface UseFeatureFlagsResult {
   error: unknown;
   refetch: () => void;
 }
-
-const resolveEvaluatedFlags = (response?: EvaluateResponse): FlagValues => {
-  if (!response) {
-    return {};
-  }
-
-  if ("data" in response) {
-    return response.data ?? {};
-  }
-
-  return response;
-};
 
 /**
  * Creates feature flag accessors from an RTK Query API instance.
@@ -50,7 +37,7 @@ export const useFeatureFlags = (
     () =>
       api.injectEndpoints({
         endpoints: (builder) => ({
-          evaluateFeatureFlags: builder.query<EvaluateResponse, void>({
+          evaluateFeatureFlags: builder.query<FlagValues, void>({
             query: () => ({
               method: "GET",
               url: `${basePath}/evaluate`,
@@ -67,7 +54,7 @@ export const useFeatureFlags = (
   const {data, isLoading, error, refetch} = useEvaluateQuery();
   const evaluateStartedAtRef = useRef<number | null>(null);
 
-  const flags = resolveEvaluatedFlags(data);
+  const flags: FlagValues = data ?? {};
 
   // Log when evaluate request enters loading state so client timing can be measured.
   useEffect((): void => {
