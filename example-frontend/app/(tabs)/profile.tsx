@@ -132,10 +132,6 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
-  const handleOpenExplorer = useCallback((): void => {
-    router.push("/admin/AIAdminScreen" as any);
-  }, [router]);
-
   const isAdmin = profile?.admin === true;
 
   if (isLoading) {
@@ -327,12 +323,6 @@ const ProfileScreen: React.FC = () => {
                 iconName="gear"
                 onClick={handleNavigateToAdmin}
                 text="Admin Panel"
-                variant="secondary"
-              />
-              <Button
-                iconName="chart-bar"
-                onClick={handleOpenExplorer}
-                text="AI Admin"
                 variant="secondary"
               />
             </Box>

@@ -1,5 +1,5 @@
 import React from "react";
-import {useWindowDimensions} from "react-native";
+import {ScrollView, useWindowDimensions} from "react-native";
 import {Box} from "./Box";
 import {Heading} from "./Heading";
 import {MarkdownView} from "./MarkdownView";
@@ -12,6 +12,7 @@ interface MarkdownEditorProps {
   title?: string;
   disabled?: boolean;
   testID?: string;
+  maxHeight?: number;
 }
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
@@ -21,6 +22,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   title,
   disabled,
   testID,
+  maxHeight = 500,
 }) => {
   const {width} = useWindowDimensions();
   const isDesktop = width >= 768;
@@ -46,15 +48,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
         </Box>
         <Box flex="grow">
           <Heading size="sm">Preview</Heading>
-          <Box
-            border="default"
-            marginTop={1}
-            padding={3}
-            rounding="sm"
-            testID={testID ? `${testID}-preview` : undefined}
-          >
-            <MarkdownView>{value || " "}</MarkdownView>
-          </Box>
+          <ScrollView style={{maxHeight, minHeight: 100}}>
+            <Box
+              border="default"
+              marginTop={1}
+              padding={3}
+              rounding="sm"
+              testID={testID ? `${testID}-preview` : undefined}
+            >
+              <MarkdownView>{value || " "}</MarkdownView>
+            </Box>
+          </ScrollView>
         </Box>
       </Box>
     </Box>
