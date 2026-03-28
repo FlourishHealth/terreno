@@ -7,8 +7,33 @@ import {
 } from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React from "react";
+import {AdminNestedArrayField} from "./AdminNestedArrayField";
 import {AdminRefField} from "./AdminRefField";
 import type {AdminFieldConfig, AdminScreenProps} from "./types";
+
+// Attempts to parse a string as JSON, returning the parsed value or the raw string
+const parseJsonValue = (text: string): any => {
+  const trimmed = text.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+};
+
+// Serializes any value to a display string for the JSON editor
+const serializeJsonValue = (val: any): string => {
+  if (val == null) {
+    return "";
+  }
+  if (typeof val === "string") {
+    return val;
+  }
+  return JSON.stringify(val, null, 2);
+};
 
 interface AdminFieldRendererProps extends AdminScreenProps {
   fieldKey: string;
@@ -17,6 +42,8 @@ interface AdminFieldRendererProps extends AdminScreenProps {
   onChange: (value: any) => void;
   errorText?: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
+  /** Parent document form state, used to derive dynamic options for sub-fields */
+  parentFormState?: Record<string, any>;
 }
 
 /**
@@ -64,9 +91,35 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   baseUrl,
   api,
   modelConfigs,
+  parentFormState,
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
+
+  // Dynamic enum: look for a sibling array field whose items have a `key` property.
+  // E.g. sub-field "variant" → parent field "variants" → extract key values as options.
+  if (!fieldConfig.enum && parentFormState && fieldConfig.type === "string") {
+    const pluralKey = `${fieldKey}s`;
+    const siblingArray = parentFormState[pluralKey];
+    if (Array.isArray(siblingArray) && siblingArray.length > 0 && siblingArray[0]?.key != null) {
+      const dynamicOptions = siblingArray
+        .map((item: any) => item.key)
+        .filter(Boolean)
+        .map((k: string) => ({label: k, value: k}));
+      if (dynamicOptions.length > 0) {
+        return (
+          <SelectField
+            errorText={errorText}
+            helperText={helperText}
+            onChange={onChange}
+            options={dynamicOptions}
+            title={label}
+            value={value ?? ""}
+          />
+        );
+      }
+    }
+  }
 
   // ObjectId with ref -> reference field
   if (fieldConfig.ref && modelConfigs) {
@@ -148,6 +201,66 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  // Mixed / object type — JSON-aware single-line field for schemaless fields (e.g., Mongoose Mixed)
+  if (fieldConfig.type === "object" || fieldConfig.type === "mixed") {
+    const displayValue = serializeJsonValue(value);
+    return (
+      <TextField
+        errorText={errorText}
+        helperText={helperText ?? "JSON value (string, number, boolean, object, or array)"}
+        onChange={(text: string) => {
+          onChange(parseJsonValue(text));
+        }}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={displayValue}
+      />
+    );
+  }
+
+  // Array of sub-documents
+  if (fieldConfig.type === "array" && fieldConfig.items) {
+    return (
+      <AdminNestedArrayField
+        api={api}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        helperText={helperText}
+        items={fieldConfig.items}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        parentFormState={parentFormState}
+        title={label}
+        value={value ?? []}
+      />
+    );
+  }
+
+  // Array without item metadata — show as JSON text
+  if (fieldConfig.type === "array") {
+    const jsonValue =
+      value != null ? (typeof value === "string" ? value : JSON.stringify(value, null, 2)) : "[]";
+    return (
+      <TextField
+        errorText={errorText}
+        grow
+        helperText={helperText ?? "Enter valid JSON array"}
+        multiline
+        onChange={(text: string) => {
+          try {
+            onChange(JSON.parse(text));
+          } catch {
+            onChange(text);
+          }
+        }}
+        rows={4}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={jsonValue}
       />
     );
   }

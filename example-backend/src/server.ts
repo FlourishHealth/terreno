@@ -9,24 +9,53 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
+  type ModelRouterOptions,
+  type ModelRouterRegistration,
   TerrenoApp,
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
-import type express from "express";
+import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
+import express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
-import {todoRouter} from "./api/todos";
-import {userRouter} from "./api/users";
+import {addTodoRoutes} from "./api/todos";
+import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
+import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
+
+type RegisterRoutesWithOptions = (
+  router: express.Router,
+  options?: Partial<ModelRouterOptions<unknown>>
+) => void;
+
+const createOpenApiAwareRouteRegistration = (
+  registerRoutes: RegisterRoutesWithOptions
+): ModelRouterRegistration => {
+  const buildRouter = (openApi?: unknown): express.Router => {
+    const router = express.Router();
+    const routeOptions = openApi ? ({openApi} as Partial<ModelRouterOptions<unknown>>) : undefined;
+    registerRoutes(router, routeOptions);
+    return router;
+  };
+
+  const registration: ModelRouterRegistration = {
+    __type: "modelRouter",
+    _buildWithOpenApi: buildRouter,
+    path: "/",
+    // Placeholder router; TerrenoApp uses _buildWithOpenApi during registration.
+    router: express.Router(),
+  };
+  return registration;
+};
 
 /**
  * Builds Better Auth configuration from environment variables.
@@ -127,10 +156,10 @@ export async function start(skipListen = false): Promise<express.Application> {
       userModel: User as any,
     })
       .configure(AppConfiguration)
-      .register({register: (app: express.Application) => addAiRoutes(app)})
-      .register({register: (app: express.Application) => addSettingsRoutes(app)})
-      .register(todoRouter)
-      .register(userRouter)
+      .register(createOpenApiAwareRouteRegistration(addAiRoutes))
+      .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
+      .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
+      .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
       .register(
         new HealthApp({
@@ -147,6 +176,16 @@ export async function start(skipListen = false): Promise<express.Application> {
         })
       )
       .register(
+        new FeatureFlagsApp({
+          segments: {
+            "admin-users": (user: unknown) => (user as {admin?: boolean}).admin === true,
+            "has-name": (user: unknown) => Boolean((user as {name?: string}).name),
+            "oauth-users": (user: unknown) =>
+              Boolean((user as {oauthProvider?: string}).oauthProvider),
+          },
+        })
+      )
+      .register(
         new DocumentStorageApp({
           basePath: "/admin/documents",
           bucketName: process.env.GCS_BUCKET ?? "",
@@ -155,6 +194,12 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(
         new AdminApp({
           models: [
+            {
+              displayName: "Feature Flags",
+              listFields: ["key", "name", "type", "enabled", "archived", "created"],
+              model: FeatureFlag,
+              routePath: "/feature-flags",
+            },
             {
               displayName: "Todos",
               listFields: ["title", "completed", "ownerId", "created"],
@@ -183,6 +228,23 @@ export async function start(skipListen = false): Promise<express.Application> {
                   results.push("Dry run: no changes made");
                 }
                 return {results, success: true};
+              },
+            },
+            {
+              description:
+                "Seed example feature flags (boolean and variant). Skips flags that already exist.",
+              name: "seedFeatureFlags",
+              runner: async (wetRun) => {
+                if (!wetRun) {
+                  return {
+                    results: [
+                      "Dry run: would create up to 5 example feature flags",
+                      "Run as wet run to actually create them",
+                    ],
+                    success: true,
+                  };
+                }
+                return seedFeatureFlags();
               },
             },
           ],

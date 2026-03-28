@@ -10,12 +10,12 @@ import {
   IconButton,
   Link,
   Page,
+  printDateAndTime,
   Spinner,
   Text,
 } from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
-import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import type {AdminFieldConfig, AdminModelConfig} from "./types";
 import {useAdminApi} from "./useAdminApi";
@@ -31,28 +31,34 @@ interface AdminModelTableProps {
 const ACTIONS_COLUMN_TYPE = "adminActions";
 const LINK_COLUMN_TYPE = "adminLink";
 const DEFAULT_LIMIT = 20;
+const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
 
-const mapFieldTypeToColumnType = (fieldConfig: AdminFieldConfig): string => {
-  if (fieldConfig.type === "boolean") {
-    return "boolean";
+const getColumnType = (fieldKey: string, fieldConfig?: AdminFieldConfig): string => {
+  if (fieldConfig) {
+    if (fieldConfig.type === "boolean") {
+      return "boolean";
+    }
+    if (fieldConfig.type === "number") {
+      return "number";
+    }
+    if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+      return "date";
+    }
   }
-  if (fieldConfig.type === "number") {
-    return "number";
-  }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+  if (DATE_FIELD_NAMES.has(fieldKey)) {
     return "date";
   }
   return "text";
 };
 
-const getColumnWidth = (fieldKey: string, fieldConfig: AdminFieldConfig): number => {
-  if (fieldConfig.type === "boolean") {
+const getColumnWidth = (fieldKey: string, columnType: string): number => {
+  if (columnType === "boolean") {
     return 100;
   }
-  if (fieldConfig.type === "number") {
+  if (columnType === "number") {
     return 120;
   }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+  if (columnType === "date") {
     return 180;
   }
   if (fieldKey === "_id") {
@@ -61,16 +67,18 @@ const getColumnWidth = (fieldKey: string, fieldConfig: AdminFieldConfig): number
   return 200;
 };
 
-const formatCellValue = (value: any, fieldConfig: AdminFieldConfig): string => {
+const formatCellValue = (value: any, columnType: string): string => {
   if (value == null) {
     return "";
   }
-  if (fieldConfig.type === "boolean") {
+  if (columnType === "boolean") {
     return value ? "\u2713" : "";
   }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
-    const dt = DateTime.fromISO(String(value));
-    return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_SHORT) : String(value);
+  if (columnType === "date") {
+    return printDateAndTime(String(value), {defaultValue: String(value)});
+  }
+  if (Array.isArray(value)) {
+    return `${value.length} item${value.length === 1 ? "" : "s"}`;
   }
   if (typeof value === "object") {
     return value._id ?? JSON.stringify(value);
@@ -201,12 +209,14 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     }
     navigation.setOptions({
       headerRight: () => (
-        <Button
-          onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
-          testID="admin-create-button"
-          text="Create"
-          variant="primary"
-        />
+        <Box paddingX={4} paddingY={2}>
+          <Button
+            onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+            testID="admin-create-button"
+            text="Create"
+            variant="primary"
+          />
+        </Box>
       ),
       title: modelConfig.displayName,
     });
@@ -263,15 +273,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const dataColumns: DataTableColumn[] = displayFields.map((fieldKey, index) => {
     const fieldConfig = modelConfig.fields[fieldKey];
     const isFirst = index === 0;
+    const columnType = getColumnType(fieldKey, fieldConfig);
     return {
-      columnType: isFirst
-        ? LINK_COLUMN_TYPE
-        : fieldConfig
-          ? mapFieldTypeToColumnType(fieldConfig)
-          : "text",
+      columnType: isFirst ? LINK_COLUMN_TYPE : columnType,
       sortable: true,
       title: startCase(fieldKey),
-      width: fieldConfig ? getColumnWidth(fieldKey, fieldConfig) : 200,
+      width: getColumnWidth(fieldKey, columnType),
     };
   });
 
@@ -289,23 +296,20 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const fieldCells = displayFields.map((fieldKey, index) => {
       const fieldConfig = modelConfig.fields[fieldKey];
       const isFirst = index === 0;
+      const columnType = getColumnType(fieldKey, fieldConfig);
+      const formatted = formatCellValue(item[fieldKey], columnType);
 
       if (isFirst) {
-        const displayText = fieldConfig
-          ? formatCellValue(item[fieldKey], fieldConfig)
-          : String(item[fieldKey] ?? "");
         return {
           value: {
             href: `${baseUrl}/${modelName}/${item._id}`,
-            text: displayText,
+            text: formatted,
           },
         };
       }
 
       return {
-        value: fieldConfig
-          ? formatCellValue(item[fieldKey], fieldConfig)
-          : String(item[fieldKey] ?? ""),
+        value: formatted,
       };
     });
 

@@ -76,6 +76,8 @@ interface AdminFieldMeta {
   default?: any;
   ref?: string;
   widget?: string;
+  /** For array fields: metadata about each item's sub-fields */
+  items?: Record<string, AdminFieldMeta>;
 }
 
 interface AdminModelMeta {
@@ -112,6 +114,12 @@ const extractFieldMeta = (
       required: required.includes(key),
       type: prop.type ?? "string",
     };
+
+    // For array fields, extract item sub-field metadata
+    if (prop.type === "array" && prop.items?.properties) {
+      const itemRequired: string[] = prop.items.required ?? [];
+      fields[key].items = extractFieldMeta(prop.items.properties, itemRequired);
+    }
 
     // Check for ObjectId references in the raw property
     if (!fields[key].ref && prop.type === "string" && prop.format === "objectid") {
@@ -189,7 +197,7 @@ export class AdminApp {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application): void {
+  register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/admin";
     const modelConfigs = this.options.models;
 
@@ -330,6 +338,7 @@ export class AdminApp {
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const routerOptions: ModelRouterOptions<any> = {
+        ...(openApi ? {openApi: openApi as any} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],
