@@ -11,15 +11,13 @@ import {addTagTypes, openapi} from "./openApiSdk";
 // endpoints, since we don't automatically generate for endpoints that don't use the router
 // currently.
 
-// Profile response type
+// Profile response type — emptyApi's base query already unwraps the `data` envelope
 export interface ProfileResponse {
-  data: {
-    _id: string;
-    id: string;
-    email: string;
-    name: string;
-    admin?: boolean;
-  };
+  _id: string;
+  id: string;
+  email: string;
+  name: string;
+  admin?: boolean;
 }
 
 // AI Request Explorer types

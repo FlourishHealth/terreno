@@ -8,6 +8,8 @@ export interface AdminFieldConfig {
   default?: any;
   ref?: string;
   widget?: string;
+  /** For array fields: metadata about each item's sub-fields */
+  items?: Record<string, AdminFieldConfig>;
 }
 
 export interface AdminModelConfig {
@@ -21,6 +23,7 @@ export interface AdminModelConfig {
 }
 
 export interface AdminCustomScreen {
+  description?: string;
   displayName: string;
   name: string;
 }

@@ -1,4 +1,6 @@
+import {useFeatureFlags} from "@terreno/rtk";
 import {
+  Badge,
   Box,
   Button,
   Card,
@@ -15,6 +17,7 @@ import {useCallback, useState} from "react";
 import {RefreshControl, ScrollView} from "react-native";
 import {
   type Todo,
+  terrenoApi,
   useDeleteTodosByIdMutation,
   useGetTodosQuery,
   usePatchTodosByIdMutation,
@@ -87,6 +90,9 @@ const TodosScreen: React.FC = () => {
   const [updateTodo] = usePatchTodosByIdMutation();
   const [deleteTodo] = useDeleteTodosByIdMutation();
 
+  const {getFlag} = useFeatureFlags(terrenoApi);
+  const showSummaryCard = getFlag("todo-summary-card");
+
   const todos = todosData?.data ?? [];
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const completedTodos = todos.filter((todo) => todo.completed);
@@ -156,6 +162,20 @@ const TodosScreen: React.FC = () => {
           <Box marginBottom={6}>
             <Heading size="xl">My Todos</Heading>
           </Box>
+
+          {/* Summary card — gated by "todo-summary-card" feature flag */}
+          {showSummaryCard && (
+            <Card marginBottom={4} testID="todos-summary-card">
+              <Box alignItems="center" direction="row" gap={3}>
+                <Badge status="warning" value={incompleteTodos.length} />
+                <Text size="sm">remaining</Text>
+                <Badge status="success" value={completedTodos.length} />
+                <Text size="sm">completed</Text>
+                <Badge status="info" value={todos.length} />
+                <Text size="sm">total</Text>
+              </Box>
+            </Card>
+          )}
 
           {/* Add new todo */}
           <Card marginBottom={6}>

@@ -2,7 +2,7 @@ import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminModelConfig} from "./types";
+import type {AdminCustomScreen, AdminModelConfig} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
@@ -10,6 +10,8 @@ interface AdminModelListProps {
   api: Api<any, any, any, any>;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
+  /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
+  customScreens?: AdminCustomScreen[];
 }
 
 const ScriptsCard: React.FC<{count: number; onPress: () => void}> = ({count, onPress}) => (
@@ -69,6 +71,26 @@ const ModelCard: React.FC<{model: AdminModelConfig; onPress: (name: string) => v
   );
 };
 
+const CustomScreenCard: React.FC<{screen: AdminCustomScreen; onPress: () => void}> = ({
+  screen,
+  onPress,
+}) => (
+  <Card padding={4} testID={`admin-custom-screen-card-${screen.name}`}>
+    <Box
+      accessibilityHint={`Navigate to ${screen.displayName}`}
+      accessibilityLabel={screen.displayName}
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">{screen.displayName}</Heading>
+      <Text color="secondaryDark" size="sm">
+        {screen.description ?? "Custom screen"}
+      </Text>
+    </Box>
+  </Card>
+);
+
 /**
  * Admin panel entry screen that displays all available models as clickable cards.
  *
@@ -79,6 +101,7 @@ const ModelCard: React.FC<{model: AdminModelConfig; onPress: (name: string) => v
  * @param props - Component props
  * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
  * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.customScreens - Additional custom screens to display as cards
  *
  * @example
  * ```typescript
@@ -97,6 +120,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   baseUrl,
   api,
   configurationPath,
+  customScreens: propCustomScreens,
 }) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
@@ -127,30 +151,22 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
     );
   }
 
-  const customScreens = config.customScreens ?? [];
+  const backendScreens = config.customScreens ?? [];
+  const allCustomScreens = [...backendScreens, ...(propCustomScreens ?? [])];
   const scripts = config.scripts ?? [];
-  const hasToolCards = scripts.length > 0 || !!configurationPath;
+  const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
 
   return (
     <Page maxWidth="100%" scroll title="Admin">
       <Box gap={4} padding={4}>
-        {(customScreens.length > 0 || hasToolCards) && (
+        {hasToolCards && (
           <Box direction="row" gap={4} wrap>
-            {customScreens.map((screen) => (
-              <Card key={screen.name} padding={4} testID={`admin-model-card-${screen.name}`}>
-                <Box
-                  accessibilityHint={`Navigate to ${screen.displayName}`}
-                  accessibilityLabel={screen.displayName}
-                  gap={2}
-                  onClick={() => handlePress(screen.name)}
-                  width={240}
-                >
-                  <Heading size="md">{screen.displayName}</Heading>
-                  <Text color="secondaryDark" size="sm">
-                    Singleton config
-                  </Text>
-                </Box>
-              </Card>
+            {allCustomScreens.map((screen) => (
+              <CustomScreenCard
+                key={screen.name}
+                onPress={() => handlePress(screen.name)}
+                screen={screen}
+              />
             ))}
             {scripts.length > 0 && (
               <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />

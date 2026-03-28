@@ -173,15 +173,6 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const toast = useToast();
 
-  useEffect(() => {
-    if (!modelConfig) {
-      return;
-    }
-    const title =
-      mode === "create" ? `Create ${modelConfig.displayName}` : `Edit ${modelConfig.displayName}`;
-    navigation.setOptions({title});
-  }, [navigation, mode, modelConfig]);
-
   const {useReadQuery, useCreateMutation, useUpdateMutation, useDeleteMutation} = useAdminApi(
     api,
     modelConfig?.routePath ?? "",
@@ -196,6 +187,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   const [updateItem, {isLoading: isUpdating}] = useUpdateMutation();
   const [deleteItem, {isLoading: isDeleting}] = useDeleteMutation();
 
+  // Initialize form state from fetched item data in edit mode
   useEffect(() => {
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
@@ -213,6 +205,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
   }, [mode, itemData, modelConfig, isInitialized]);
 
+  // Initialize form state with defaults in create mode
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, any> = {};
@@ -302,6 +295,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const isSaving = isCreating || isUpdating;
 
+  // Set header action buttons (save/delete)
   useEffect(() => {
     if (!modelConfig) {
       return;
@@ -360,6 +354,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
             key={fieldKey}
             modelConfigs={modelConfigs}
             onChange={(value: any) => handleFieldChange(fieldKey, value)}
+            parentFormState={formState}
             value={formState[fieldKey]}
           />
         ))}

@@ -315,9 +315,10 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        app.use(registration.path, registration.router);
+        const router = registration._buildWithOpenApi(oapi);
+        app.use(registration.path, router);
       } else {
-        registration.register(app);
+        registration.register(app, oapi);
       }
     }
 

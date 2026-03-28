@@ -43,6 +43,7 @@ import m2s from "mongoose-to-swagger";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import type {OpenApiSchema, OpenApiSchemaProperty} from "./openApiBuilder";
+import {fixMixedFields} from "./populate";
 
 /**
  * Global configuration for OpenAPI validation.
@@ -713,6 +714,7 @@ const m2sOptions = {
  */
 export function getSchemaFromModel<T>(model: Model<T>): Record<string, OpenApiSchemaProperty> {
   const modelSwagger = m2s(model, m2sOptions);
+  fixMixedFields((model as any).schema, modelSwagger.properties);
   return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
 }
 
