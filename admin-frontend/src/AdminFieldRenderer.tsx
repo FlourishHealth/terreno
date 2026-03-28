@@ -105,12 +105,16 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
 
   // Enum -> SelectField
   if (fieldConfig.enum && fieldConfig.enum.length > 0) {
-    const options = fieldConfig.enum.map((v: string) => ({label: startCase(v), value: v}));
+    const includesNullOption = fieldConfig.enum.some((value: any) => value == null);
+    const enumOptions = fieldConfig.enum
+      .filter((value: any): value is string => typeof value === "string")
+      .map((v: string) => ({label: startCase(v), value: v}));
+    const options = includesNullOption ? [{label: "None", value: ""}, ...enumOptions] : enumOptions;
     return (
       <SelectField
         errorText={errorText}
         helperText={helperText}
-        onChange={onChange}
+        onChange={(nextValue: string) => onChange(nextValue === "" ? undefined : nextValue)}
         options={options}
         title={label}
         value={value ?? ""}

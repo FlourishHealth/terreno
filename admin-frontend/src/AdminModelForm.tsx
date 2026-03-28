@@ -14,6 +14,16 @@ interface AdminModelFormProps {
   modelName: string;
   mode: "create" | "edit";
   itemId?: string;
+  footerContent?: React.ReactNode;
+  transformPayload?: (params: {mode: "create" | "edit"; payload: Record<string, any>}) => Promise<
+    Record<string, any>
+  > | Record<string, any>;
+  onSaveSuccess?: (params: {
+    mode: "create" | "edit";
+    payload: Record<string, any>;
+    result: any;
+    itemId?: string;
+  }) => Promise<void> | void;
 }
 
 const getEditableFields = (
@@ -51,6 +61,28 @@ const getFieldDefault = (fieldConfig: AdminFieldConfig): any => {
     return 0;
   }
   return "";
+};
+
+const sanitizePayloadValue = (value: any): any => {
+  if (value === null) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizePayloadValue(item))
+      .filter((item) => item !== undefined);
+  }
+  if (value && typeof value === "object") {
+    const nextValue: Record<string, any> = {};
+    for (const [key, childValue] of Object.entries(value)) {
+      const sanitizedChild = sanitizePayloadValue(childValue);
+      if (sanitizedChild !== undefined) {
+        nextValue[key] = sanitizedChild;
+      }
+    }
+    return nextValue;
+  }
+  return value;
 };
 
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
@@ -124,6 +156,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   modelName,
   mode,
   itemId,
+  footerContent,
+  transformPayload,
+  onSaveSuccess,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
   const [formState, setFormState] = useState<Record<string, any>>({});
@@ -223,16 +258,35 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
+      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, any>;
+      const payload = transformPayload
+        ? await transformPayload({mode, payload: sanitizedPayload})
+        : sanitizedPayload;
+      let result: any;
       if (mode === "create") {
-        await createItem(formState).unwrap();
+        result = await createItem(payload).unwrap();
       } else if (itemId) {
-        await updateItem({body: formState, id: itemId}).unwrap();
+        result = await updateItem({body: payload, id: itemId}).unwrap();
+      }
+      if (onSaveSuccess) {
+        await onSaveSuccess({itemId, mode, payload, result});
       }
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to ${mode === "create" ? "create" : "update"} ${modelName}`);
     }
-  }, [mode, formState, itemId, createItem, updateItem, validate, toast, modelName]);
+  }, [
+    mode,
+    formState,
+    itemId,
+    createItem,
+    updateItem,
+    validate,
+    toast,
+    modelName,
+    transformPayload,
+    onSaveSuccess,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!itemId) {
@@ -310,6 +364,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           />
         ))}
         {editableFields.length === 0 && <EmptyFields />}
+        {footerContent}
       </Box>
     </Page>
   );

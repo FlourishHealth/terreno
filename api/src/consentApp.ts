@@ -204,11 +204,19 @@ export class ConsentApp implements TerrenoPlugin {
           throw new APIError({status: 401, title: "Authentication required"});
         }
 
+        logger.debug("Fetching pending consent forms", {userId: user.id});
+
         const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
 
         let resolvedForms: ConsentFormDocument[];
         if (resolveConsentForms) {
           resolvedForms = await resolveConsentForms(user, activeForms);
+          logger.debug("resolveConsentForms applied", {
+            activeFormCount: activeForms.length,
+            resolvedFormCount: resolvedForms.length,
+            userAdmin: Boolean(user.admin),
+            userId: user.id,
+          });
         } else {
           resolvedForms = activeForms;
         }
@@ -241,6 +249,20 @@ export class ConsentApp implements TerrenoPlugin {
           }
           // Check if any response matches the current form version
           return !matchingResponses.some((r) => r.formVersionSnapshot === form.version);
+        });
+
+        const filteredOutByResolverCount = Math.max(activeForms.length - resolvedForms.length, 0);
+        const filteredOutByResponsesCount = Math.max(resolvedForms.length - pendingForms.length, 0);
+
+        logger.info("Pending consent forms fetched", {
+          activeFormCount: activeForms.length,
+          filteredOutByResolverCount,
+          filteredOutByResponsesCount,
+          pendingFormCount: pendingForms.length,
+          resolvedFormCount: resolvedForms.length,
+          responseCount: existingResponses.length,
+          userAdmin: Boolean(user.admin),
+          userId: user.id,
         });
 
         return res.json({data: pendingForms});

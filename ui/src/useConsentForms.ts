@@ -40,10 +40,22 @@ export const detectLocale = (): string => {
 
 export const useConsentForms = (api: any, baseUrl?: string) => {
   const base = baseUrl || "";
+  const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
 
-  const enhancedApi = api.injectEndpoints({
+  const enhancedApi = apiWithConsentTags.injectEndpoints({
     endpoints: (build: any) => ({
       getPendingConsents: build.query({
+        async onQueryStarted(_arg: unknown, {queryFulfilled}: {queryFulfilled: Promise<unknown>}) {
+          console.info("[useConsentForms] Fetching pending consent forms");
+          try {
+            const result = (await queryFulfilled) as {data?: ConsentFormPublic[]};
+            console.info("[useConsentForms] Pending consent forms fetched", {
+              count: result?.data?.length ?? 0,
+            });
+          } catch (error) {
+            console.warn("[useConsentForms] Failed to fetch pending consent forms", {error});
+          }
+        },
         providesTags: ["PendingConsents"],
         query: () => `${base}/consents/pending`,
       }),
@@ -52,7 +64,7 @@ export const useConsentForms = (api: any, baseUrl?: string) => {
   });
 
   const {data, isLoading, error, refetch} = enhancedApi.useGetPendingConsentsQuery();
-  const forms: ConsentFormPublic[] = data?.data ?? [];
+  const forms: ConsentFormPublic[] = Array.isArray(data) ? data : (data?.data ?? []);
 
   return {error, forms, isLoading, refetch};
 };

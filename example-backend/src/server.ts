@@ -10,15 +10,16 @@ import {
   ConsentForm,
   ConsentResponse,
   checkModelsStrict,
-  syncConsents,
   configureOpenApiValidator,
   logger,
+  syncConsents,
   TerrenoApp,
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import type express from "express";
 import mongoose from "mongoose";
+import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
@@ -138,6 +139,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     })
       .configure(AppConfiguration)
       .register({register: (app: express.Application) => addAiRoutes(app)})
+      .register({register: (app: express.Application) => addAdminUserRoutes(app)})
       .register({register: (app: express.Application) => addSettingsRoutes(app)})
       .register(todoRouter)
       .register(userRouter)
@@ -173,6 +175,7 @@ export async function start(skipListen = false): Promise<express.Application> {
             },
             {
               displayName: "Users",
+              hiddenFields: ["hash", "salt"],
               listFields: ["email", "name", "admin", "created"],
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,

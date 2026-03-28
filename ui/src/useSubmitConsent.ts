@@ -8,8 +8,9 @@ export interface SubmitConsentBody {
 
 export const useSubmitConsent = (api: any, baseUrl?: string) => {
   const base = baseUrl || "";
+  const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
 
-  const enhancedApi = api.injectEndpoints({
+  const enhancedApi = apiWithConsentTags.injectEndpoints({
     endpoints: (build: any) => ({
       submitConsentResponse: build.mutation({
         invalidatesTags: ["PendingConsents"],
