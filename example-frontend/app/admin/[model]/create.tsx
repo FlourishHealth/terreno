@@ -75,7 +75,12 @@ const AdminCreateScreen: React.FC = () => {
   }, [isUserModel, passwordState]);
 
   const transformPayload = useCallback(
-    ({payload}: {mode: "create" | "edit"; payload: Record<string, unknown>}): Record<string, unknown> => {
+    ({
+      payload,
+    }: {
+      mode: "create" | "edit";
+      payload: Record<string, unknown>;
+    }): Record<string, unknown> => {
       if (!isUserModel) {
         return payload;
       }

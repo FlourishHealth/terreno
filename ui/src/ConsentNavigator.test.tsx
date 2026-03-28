@@ -30,7 +30,7 @@ const createMockApi = (forms: ConsentFormPublic[]) => {
   const mockUnwrap = mock(() => Promise.resolve({agreed: true, id: "response-1"}));
   mockSubmitMutation.mockReturnValue({unwrap: mockUnwrap});
 
-  return {
+  const innerApi = {
     injectEndpoints: mock((_config: any) => ({
       useGetPendingConsentsQuery: mock(() => ({
         data: {data: forms},
@@ -44,22 +44,32 @@ const createMockApi = (forms: ConsentFormPublic[]) => {
       ]),
     })),
   };
+
+  return {
+    enhanceEndpoints: mock((_config: any) => innerApi),
+  };
 };
 
-const createLoadingMockApi = () => ({
-  injectEndpoints: mock((_config: any) => ({
-    useGetPendingConsentsQuery: mock(() => ({
-      data: undefined,
-      error: undefined,
-      isLoading: true,
-      refetch: mock(() => Promise.resolve()),
+const createLoadingMockApi = () => {
+  const innerApi = {
+    injectEndpoints: mock((_config: any) => ({
+      useGetPendingConsentsQuery: mock(() => ({
+        data: undefined,
+        error: undefined,
+        isLoading: true,
+        refetch: mock(() => Promise.resolve()),
+      })),
+      useSubmitConsentResponseMutation: mock(() => [
+        mock(() => ({unwrap: mock(() => Promise.resolve({}))})),
+        {error: undefined, isLoading: false},
+      ]),
     })),
-    useSubmitConsentResponseMutation: mock(() => [
-      mock(() => ({unwrap: mock(() => Promise.resolve({}))})),
-      {error: undefined, isLoading: false},
-    ]),
-  })),
-});
+  };
+
+  return {
+    enhanceEndpoints: mock((_config: any) => innerApi),
+  };
+};
 
 describe("ConsentNavigator", () => {
   it("renders children when there are no pending consent forms", async () => {
