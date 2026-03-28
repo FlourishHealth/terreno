@@ -3,7 +3,6 @@ import {useCallback, useEffect, useMemo, useRef} from "react";
 
 type FlagValues = Record<string, boolean | string | null>;
 
-
 interface UseFeatureFlagsResult {
   flags: FlagValues;
   getFlag: (key: string) => boolean;

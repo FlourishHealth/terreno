@@ -63,15 +63,15 @@ const featureFlagSchema = new mongoose.Schema<FeatureFlagDocument, FeatureFlagMo
           enum: ["eq", "neq", "in", "nin", "gt", "lt", "contains"],
           type: String,
         },
-        value: {
-          description:
-            "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
-          type: mongoose.Schema.Types.Mixed,
-        },
         segment: {
           description:
             "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
           type: String,
+        },
+        value: {
+          description:
+            "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
+          type: mongoose.Schema.Types.Mixed,
         },
         variant: {
           description:

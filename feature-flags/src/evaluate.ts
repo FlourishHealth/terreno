@@ -111,7 +111,9 @@ export const evaluateFlag = (
 
   if (!flag.enabled) {
     if (debug) {
-      logger.info(`[feature-flags] "${flag.key}" is disabled → ${flag.type === "variant" ? "null" : "false"}`);
+      logger.info(
+        `[feature-flags] "${flag.key}" is disabled → ${flag.type === "variant" ? "null" : "false"}`
+      );
     }
     return flag.type === "variant" ? null : false;
   }
@@ -123,9 +125,7 @@ export const evaluateFlag = (
     if (matched) {
       const result = flag.type === "variant" ? (rule.variant ?? null) : (rule.enabled ?? false);
       if (debug) {
-        logger.info(
-          `[feature-flags] "${flag.key}" matched rule ${i} → ${JSON.stringify(result)}`
-        );
+        logger.info(`[feature-flags] "${flag.key}" matched rule ${i} → ${JSON.stringify(result)}`);
       }
       return result;
     }
