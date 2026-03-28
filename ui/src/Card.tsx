@@ -62,7 +62,7 @@ export const Card = ({
         ) : (
           <Box
             color={headerColor}
-            height={isHorizontal ? undefined : imageHeight}
+            {...(!isHorizontal && {height: imageHeight})}
             style={isHorizontal ? {alignSelf: "stretch", width: 160} : {width: "100%"}}
           />
         )}
