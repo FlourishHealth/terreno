@@ -1,5 +1,6 @@
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminModelForm} from "./AdminModelForm";
+export {AdminNestedArrayField} from "./AdminNestedArrayField";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";
 export {AdminRefField} from "./AdminRefField";
@@ -10,6 +11,7 @@ export {ConfigurationScreen} from "./ConfigurationScreen";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
 export type {
   AdminConfigResponse,
+  AdminCustomScreen,
   AdminFieldConfig,
   AdminModelConfig,
   AdminScreenProps,

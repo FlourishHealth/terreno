@@ -1,13 +1,10 @@
 import {useFeatureFlags} from "@terreno/rtk";
 import {
-  AIRequestExplorer,
-  type AIRequestExplorerData,
   Badge,
   Box,
   Button,
   Card,
   Heading,
-  Modal,
   Page,
   Spinner,
   Text,
@@ -18,16 +15,7 @@ import {
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useEffect, useState} from "react";
-import {
-  logout,
-  terrenoApi,
-  useAppDispatch,
-  useGetAiRequestsExplorerQuery,
-  useGetMeQuery,
-  usePatchMeMutation,
-} from "@/store";
-
-const EXPLORER_LIMIT = 20;
+import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
@@ -38,10 +26,10 @@ const ProfileScreen: React.FC = () => {
 
   const {getFlag, getVariant} = useFeatureFlags(terrenoApi);
   const showDarkModeToggle = getFlag("dark-mode-toggle");
+  console.log("showDarkModeToggle", showDarkModeToggle);
   const profileLayout = getVariant("profile-layout");
 
   const profile = profileResponse?.data;
-  const isAdmin = profile?.admin === true;
 
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -54,24 +42,6 @@ const ProfileScreen: React.FC = () => {
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
-
-  // Admin explorer modal
-  const [showExplorer, setShowExplorer] = useState<boolean>(false);
-  const [explorerPage, setExplorerPage] = useState(1);
-  const [requestTypeFilter, setRequestTypeFilter] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  const {data: explorerData, isLoading: isExplorerLoading} = useGetAiRequestsExplorerQuery(
-    {
-      endDate: endDate || undefined,
-      limit: EXPLORER_LIMIT,
-      page: explorerPage,
-      requestType: requestTypeFilter.length === 1 ? requestTypeFilter[0] : undefined,
-      startDate: startDate || undefined,
-    },
-    {skip: !isAdmin || !showExplorer}
-  );
 
   // Initialize form with profile data when loaded
   useEffect(() => {
@@ -153,33 +123,6 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
-  const handleOpenExplorer = useCallback((): void => {
-    setShowExplorer(true);
-  }, []);
-
-  const handleCloseExplorer = useCallback((): void => {
-    setShowExplorer(false);
-  }, []);
-
-  const handleExplorerPageChange = useCallback((newPage: number) => {
-    setExplorerPage(newPage);
-  }, []);
-
-  const handleRequestTypeFilterChange = useCallback((types: string[]) => {
-    setRequestTypeFilter(types);
-    setExplorerPage(1);
-  }, []);
-
-  const handleStartDateChange = useCallback((date: string) => {
-    setStartDate(date);
-    setExplorerPage(1);
-  }, []);
-
-  const handleEndDateChange = useCallback((date: string) => {
-    setEndDate(date);
-    setExplorerPage(1);
-  }, []);
-
   if (isLoading) {
     return (
       <Page navigation={undefined}>
@@ -189,21 +132,6 @@ const ProfileScreen: React.FC = () => {
       </Page>
     );
   }
-
-  const explorerItems: AIRequestExplorerData[] = (explorerData?.data ?? []).map((item) => ({
-    aiModel: item.aiModel,
-    created: item.created,
-    error: item.error,
-    prompt: item.prompt,
-    requestType: item.requestType,
-    response: item.response,
-    responseTime: item.responseTime,
-    tokensUsed: item.tokensUsed,
-    user: item.user,
-  }));
-
-  const explorerTotal = explorerData?.total ?? 0;
-  const explorerTotalPages = Math.ceil(explorerTotal / EXPLORER_LIMIT);
 
   return (
     <Page navigation={undefined} scroll>
@@ -373,38 +301,9 @@ const ProfileScreen: React.FC = () => {
               text="Admin Panel"
               variant="secondary"
             />
-            <Button
-              iconName="chart-bar"
-              onClick={handleOpenExplorer}
-              text="AI Admin"
-              variant="secondary"
-            />
           </Box>
         </Card>
       </Box>
-
-      <Modal
-        onDismiss={handleCloseExplorer}
-        size="lg"
-        title="AI Request Explorer"
-        visible={showExplorer}
-      >
-        <AIRequestExplorer
-          data={explorerItems}
-          endDate={endDate}
-          isLoading={isExplorerLoading}
-          onEndDateChange={handleEndDateChange}
-          onPageChange={handleExplorerPageChange}
-          onRequestTypeFilterChange={handleRequestTypeFilterChange}
-          onStartDateChange={handleStartDateChange}
-          page={explorerPage}
-          requestTypeFilter={requestTypeFilter}
-          startDate={startDate}
-          testID="admin-explorer"
-          totalCount={explorerTotal}
-          totalPages={explorerTotalPages}
-        />
-      </Modal>
     </Page>
   );
 };

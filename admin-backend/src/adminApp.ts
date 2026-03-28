@@ -76,6 +76,8 @@ interface AdminFieldMeta {
   default?: any;
   ref?: string;
   widget?: string;
+  /** For array fields: metadata about each item's sub-fields */
+  items?: Record<string, AdminFieldMeta>;
 }
 
 interface AdminModelMeta {
@@ -112,6 +114,12 @@ const extractFieldMeta = (
       required: required.includes(key),
       type: prop.type ?? "string",
     };
+
+    // For array fields, extract item sub-field metadata
+    if (prop.type === "array" && prop.items?.properties) {
+      const itemRequired: string[] = prop.items.required ?? [];
+      fields[key].items = extractFieldMeta(prop.items.properties, itemRequired);
+    }
 
     // Check for ObjectId references in the raw property
     if (!fields[key].ref && prop.type === "string" && prop.format === "objectid") {

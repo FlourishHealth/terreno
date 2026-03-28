@@ -56,6 +56,7 @@ export const useFeatureFlags = (
   const {data, isLoading, error, refetch} = useEvaluateQuery();
 
   const flags: FlagValues = data?.data ?? {};
+  console.log("flags", flags);
 
   const getFlag = useCallback(
     (key: string): boolean => {

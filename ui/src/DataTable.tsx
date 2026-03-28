@@ -36,7 +36,7 @@ const TextCell: FC<{
   column: DataTableColumn;
 }> = ({cellData}) => {
   return (
-    <Box flex="grow" justifyContent="center" paddingX={2}>
+    <Box flex="grow" justifyContent="center">
       <Text size={cellData.textSize || "md"}>{cellData.value}</Text>
     </Box>
   );

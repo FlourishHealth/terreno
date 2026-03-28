@@ -48,29 +48,34 @@ const featureFlagSchema = new mongoose.Schema<FeatureFlagDocument, FeatureFlagMo
     rules: [
       {
         enabled: {
-          description: "For boolean flags: override value when rule matches",
+          description:
+            "Whether the flag/variant is turned on when this rule matches. For boolean flags this is the override value; for variant flags it gates whether the forced variant applies.",
           type: Boolean,
         },
         field: {
           description:
-            "User field to match against. Supports dot notation for nested fields, e.g., 'email', 'admin', 'address.zip'",
+            "User field to match against (use with operator + value). Supports dot notation, e.g., 'email', 'admin', 'address.zip'. Use field/operator/value together, OR segment alone.",
           type: String,
         },
         operator: {
-          description: "Comparison operator for field-based rules",
+          description:
+            "Comparison operator for field-based rules (use with field + value). Use field/operator/value together, OR segment alone.",
           enum: ["eq", "neq", "in", "nin", "gt", "lt", "contains"],
           type: String,
         },
-        segment: {
-          description: "Name of a registered segment function, e.g., 'pro-users'",
-          type: String,
-        },
         value: {
-          description: "Value to compare against (string, number, boolean, or array for in/nin)",
+          description:
+            "Value to compare against (use with field + operator). String, number, boolean, or array for in/nin. Use field/operator/value together, OR segment alone.",
           type: mongoose.Schema.Types.Mixed,
         },
+        segment: {
+          description:
+            "Name of a registered segment function, e.g., 'pro-users'. Use segment alone, OR field/operator/value together.",
+          type: String,
+        },
         variant: {
-          description: "For variant flags: forced variant key when rule matches",
+          description:
+            "For variant flags only: forced variant key when this rule matches. Use field/operator/value together, OR segment alone.",
           type: String,
         },
       },

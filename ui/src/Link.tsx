@@ -14,7 +14,7 @@ export const Link = ({text, href, onClick}: LinkProps): React.ReactElement => {
       hitSlop={20}
       onPress={() => (onClick ? onClick() : href && Linking.openURL(href))}
     >
-      <Text color="link" underline>
+      <Text color="link" skipLinking underline>
         {text}
       </Text>
     </Pressable>

@@ -8,12 +8,12 @@ export interface ProfileData {
   admin?: boolean;
 }
 
-export function useReadProfile(): ProfileData | undefined {
-  const {data: profileResponse} = useGetMeQuery();
+export const useReadProfile = (): ProfileData | undefined => {
+  const {data: profile} = useGetMeQuery();
 
-  if (!profileResponse?.data) {
+  if (!profile) {
     return undefined;
   }
 
-  return profileResponse.data as ProfileData;
-}
+  return profile as ProfileData;
+};

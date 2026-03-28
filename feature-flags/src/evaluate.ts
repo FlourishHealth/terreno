@@ -7,6 +7,8 @@ import type {
   SegmentFunction,
 } from "./types";
 
+const isDebugEnabled = (): boolean => process.env.FEATURE_FLAGS_DEBUG !== "false";
+
 /**
  * Deterministic hash of a string to a number between 0 and 99.
  * Uses a simple but effective hash (djb2) to ensure the same user+flag
@@ -27,33 +29,46 @@ const matchesFieldRule = (user: unknown, rule: FeatureFlagRule): boolean => {
 
   const fieldValue = get(user, rule.field);
   const ruleValue = rule.value;
+  let result = false;
 
   switch (rule.operator) {
     case "eq":
-      return ruleValue !== undefined && fieldValue === ruleValue;
+      result = ruleValue !== undefined && fieldValue === ruleValue;
+      break;
     case "neq":
-      return ruleValue !== undefined && fieldValue !== ruleValue;
+      result = ruleValue !== undefined && fieldValue !== ruleValue;
+      break;
     case "in":
-      return Array.isArray(ruleValue) && ruleValue.includes(fieldValue);
+      result = Array.isArray(ruleValue) && ruleValue.includes(fieldValue);
+      break;
     case "nin":
-      return Array.isArray(ruleValue) && !ruleValue.includes(fieldValue);
+      result = Array.isArray(ruleValue) && !ruleValue.includes(fieldValue);
+      break;
     case "gt":
-      return (
-        typeof fieldValue === "number" && typeof ruleValue === "number" && fieldValue > ruleValue
-      );
+      result =
+        typeof fieldValue === "number" && typeof ruleValue === "number" && fieldValue > ruleValue;
+      break;
     case "lt":
-      return (
-        typeof fieldValue === "number" && typeof ruleValue === "number" && fieldValue < ruleValue
-      );
+      result =
+        typeof fieldValue === "number" && typeof ruleValue === "number" && fieldValue < ruleValue;
+      break;
     case "contains":
-      return (
+      result =
         typeof fieldValue === "string" &&
         typeof ruleValue === "string" &&
-        fieldValue.includes(ruleValue)
-      );
+        fieldValue.includes(ruleValue);
+      break;
     default:
-      return false;
+      break;
   }
+
+  if (isDebugEnabled()) {
+    logger.info(
+      `[feature-flags] field rule: user.${rule.field}=${JSON.stringify(fieldValue)} ${rule.operator} ${JSON.stringify(ruleValue)} → ${result}`
+    );
+  }
+
+  return result;
 };
 
 const matchesRule = (
@@ -68,7 +83,11 @@ const matchesRule = (
       return false;
     }
     try {
-      return segmentFn(user);
+      const result = segmentFn(user);
+      if (isDebugEnabled()) {
+        logger.info(`[feature-flags] segment rule: "${rule.segment}" → ${result}`);
+      }
+      return result;
     } catch (err) {
       logger.warn(`Segment function "${rule.segment}" threw: ${err}`);
       return false;
@@ -88,17 +107,27 @@ export const evaluateFlag = (
   user: unknown,
   segments: Record<string, SegmentFunction>
 ): boolean | string | null => {
+  const debug = isDebugEnabled();
+
   if (!flag.enabled) {
+    if (debug) {
+      logger.info(`[feature-flags] "${flag.key}" is disabled → ${flag.type === "variant" ? "null" : "false"}`);
+    }
     return flag.type === "variant" ? null : false;
   }
 
   // Check rules in order — first match wins
-  for (const rule of flag.rules) {
-    if (matchesRule(user, rule, segments)) {
-      if (flag.type === "variant") {
-        return rule.variant ?? null;
+  for (let i = 0; i < flag.rules.length; i++) {
+    const rule = flag.rules[i];
+    const matched = matchesRule(user, rule, segments);
+    if (matched) {
+      const result = flag.type === "variant" ? (rule.variant ?? null) : (rule.enabled ?? false);
+      if (debug) {
+        logger.info(
+          `[feature-flags] "${flag.key}" matched rule ${i} → ${JSON.stringify(result)}`
+        );
       }
-      return rule.enabled ?? false;
+      return result;
     }
   }
 
@@ -106,7 +135,13 @@ export const evaluateFlag = (
   const hash = deterministicHash(`${userId}:${flag.key}`);
 
   if (flag.type === "boolean") {
-    return hash < flag.rolloutPercentage;
+    const result = hash < flag.rolloutPercentage;
+    if (debug) {
+      logger.info(
+        `[feature-flags] "${flag.key}" no rules matched, hash=${hash} rollout=${flag.rolloutPercentage}% → ${result}`
+      );
+    }
+    return result;
   }
 
   // Variant assignment based on cumulative weights
@@ -114,12 +149,21 @@ export const evaluateFlag = (
   for (const variant of flag.variants) {
     cumulativeWeight += variant.weight;
     if (hash < cumulativeWeight) {
+      if (debug) {
+        logger.info(
+          `[feature-flags] "${flag.key}" no rules matched, hash=${hash} → variant "${variant.key}"`
+        );
+      }
       return variant.key;
     }
   }
 
   // Fallback (shouldn't happen if weights sum to 100)
-  return flag.variants.length > 0 ? flag.variants[flag.variants.length - 1].key : null;
+  const fallback = flag.variants.length > 0 ? flag.variants[flag.variants.length - 1].key : null;
+  if (debug) {
+    logger.info(`[feature-flags] "${flag.key}" variant fallback → ${JSON.stringify(fallback)}`);
+  }
+  return fallback;
 };
 
 /**
@@ -135,8 +179,16 @@ export const evaluateAllFlags = async (
   const flags = await flagModel.find({archived: {$ne: true}, enabled: true});
   const results: EvaluationResult = {};
 
+  if (isDebugEnabled()) {
+    logger.info(`[feature-flags] evaluating ${flags.length} flags for user ${userId}`);
+  }
+
   for (const flag of flags) {
     results[flag.key] = evaluateFlag(flag, userId, user, segments);
+  }
+
+  if (isDebugEnabled()) {
+    logger.info(`[feature-flags] results: ${JSON.stringify(results)}`);
   }
 
   return results;
