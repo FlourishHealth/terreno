@@ -148,7 +148,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       return (
         <Card padding={3}>
           <Box gap={2}>
-            <Box direction="row" alignItems="center" justifyContent="between">
+            <Box alignItems="center" direction="row" justifyContent="between">
               <Text bold size="sm">
                 Item {index + 1}
               </Text>
@@ -194,7 +194,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
 
   return (
     <Box gap={2}>
-      <Box direction="row" alignItems="center" justifyContent="between">
+      <Box alignItems="center" direction="row" justifyContent="between">
         <Heading size="sm">{title}</Heading>
         <Button iconName="plus" onClick={handleAddItem} text="Add" variant="outline" />
       </Box>
@@ -210,7 +210,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       ) : null}
 
       {arrayValue.length === 0 ? (
-        <Box padding={3} alignItems="center">
+        <Box alignItems="center" padding={3}>
           <Text color="secondaryDark">No items. Click &quot;Add&quot; to create one.</Text>
         </Box>
       ) : (

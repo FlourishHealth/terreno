@@ -2,6 +2,7 @@ import {
   APIError,
   asyncHandler,
   authenticateMiddleware,
+  type ModelRouterOptions,
   modelRouter,
   Permissions,
   type TerrenoPlugin,
@@ -38,23 +39,22 @@ export class FeatureFlagsApp implements TerrenoPlugin {
     this.segments = this.options.segments ?? {};
   }
 
-  register(app: express.Application): void {
+  register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/feature-flags";
+    const routerOptions: ModelRouterOptions<any> = {
+      ...(openApi ? ({openApi} as Partial<ModelRouterOptions<any>>) : {}),
+      permissions: {
+        create: [Permissions.IsAdmin],
+        delete: [Permissions.IsAdmin],
+        list: [Permissions.IsAdmin],
+        read: [Permissions.IsAdmin],
+        update: [Permissions.IsAdmin],
+      },
+      sort: "-created",
+    };
 
     // Admin CRUD routes for flags
-    app.use(
-      `${basePath}/flags`,
-      modelRouter(FeatureFlag, {
-        permissions: {
-          create: [Permissions.IsAdmin],
-          delete: [Permissions.IsAdmin],
-          list: [Permissions.IsAdmin],
-          read: [Permissions.IsAdmin],
-          update: [Permissions.IsAdmin],
-        },
-        sort: "-created",
-      })
-    );
+    app.use(`${basePath}/flags`, modelRouter(FeatureFlag as any, routerOptions));
 
     // GET /feature-flags/evaluate — evaluate all flags for current user
     app.get(

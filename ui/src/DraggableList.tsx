@@ -357,13 +357,15 @@ export const DraggableList: React.FC<DragListProps> = (props) => {
    * Converts an array of item IDs to a positions object
    * Maps each ID to its index in the array
    */
-  function listToObject(list: string[]): Positions {
-    const object: Positions = {};
-    list.forEach((item, i) => {
-      object[item] = i;
-    });
-    return object;
-  }
+  const listToObject = useMemo(() => {
+    return (list: string[]): Positions => {
+      const object: Positions = {};
+      list.forEach((item, i) => {
+        object[item] = i;
+      });
+      return object;
+    };
+  }, []);
 
   // Shared values for tracking positions and scroll
   const positions = useSharedValue(listToObject(dataIDs));
@@ -387,7 +389,7 @@ export const DraggableList: React.FC<DragListProps> = (props) => {
   // This effect ensures the positions shared value is updated when the dataIDs prop changes
   React.useEffect(() => {
     positions.value = listToObject(dataIDs);
-  }, [dataIDs, positions]);
+  }, [dataIDs, positions, listToObject]);
 
   return (
     <View

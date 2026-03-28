@@ -9,17 +9,19 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
+  type ModelRouterOptions,
+  type ModelRouterRegistration,
   TerrenoApp,
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
 import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
-import type express from "express";
+import express from "express";
 import mongoose from "mongoose";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
-import {todoRouter} from "./api/todos";
-import {userRouter} from "./api/users";
+import {addTodoRoutes} from "./api/todos";
+import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -29,6 +31,31 @@ import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
 
 const BOOT_START_TIME = process.hrtime();
+
+type RegisterRoutesWithOptions = (
+  router: express.Router,
+  options?: Partial<ModelRouterOptions<unknown>>
+) => void;
+
+const createOpenApiAwareRouteRegistration = (
+  registerRoutes: RegisterRoutesWithOptions
+): ModelRouterRegistration => {
+  const buildRouter = (openApi?: unknown): express.Router => {
+    const router = express.Router();
+    const routeOptions = openApi ? ({openApi} as Partial<ModelRouterOptions<unknown>>) : undefined;
+    registerRoutes(router, routeOptions);
+    return router;
+  };
+
+  const registration: ModelRouterRegistration = {
+    __type: "modelRouter",
+    _buildWithOpenApi: buildRouter,
+    path: "/",
+    // Placeholder router; TerrenoApp uses _buildWithOpenApi during registration.
+    router: express.Router(),
+  };
+  return registration;
+};
 
 /**
  * Builds Better Auth configuration from environment variables.
@@ -129,10 +156,10 @@ export async function start(skipListen = false): Promise<express.Application> {
       userModel: User as any,
     })
       .configure(AppConfiguration)
-      .register({register: (app: express.Application) => addAiRoutes(app)})
-      .register({register: (app: express.Application) => addSettingsRoutes(app)})
-      .register(todoRouter)
-      .register(userRouter)
+      .register(createOpenApiAwareRouteRegistration(addAiRoutes))
+      .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
+      .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
+      .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
       .register(
         new HealthApp({

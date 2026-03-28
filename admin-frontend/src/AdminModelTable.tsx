@@ -104,7 +104,6 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   cellData,
 }) => {
   const {text, href} = cellData.value as {text: string; href: string};
-  console.log(text, href);
   return <Link onClick={() => router.push(href as any)} text={text} />;
 };
 

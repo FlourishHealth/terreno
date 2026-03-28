@@ -1,4 +1,4 @@
-import {AdminModelList, type AdminCustomScreen} from "@terreno/admin-frontend";
+import {type AdminCustomScreen, AdminModelList} from "@terreno/admin-frontend";
 import React from "react";
 import {terrenoApi} from "@/store/sdk";
 

@@ -197,7 +197,7 @@ export class AdminApp {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application): void {
+  register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/admin";
     const modelConfigs = this.options.models;
 
@@ -338,6 +338,7 @@ export class AdminApp {
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const routerOptions: ModelRouterOptions<any> = {
+        ...(openApi ? {openApi: openApi as any} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],

@@ -1,6 +1,5 @@
 import {useFeatureFlags} from "@terreno/rtk";
 import {
-  Badge,
   Box,
   Button,
   Card,
@@ -14,7 +13,7 @@ import {
 } from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
-import {useCallback, useEffect, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
 
 const ProfileScreen: React.FC = () => {
@@ -24,10 +23,20 @@ const ProfileScreen: React.FC = () => {
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
   const {setPrimitives, resetTheme} = useTheme();
 
-  const {getFlag, getVariant} = useFeatureFlags(terrenoApi);
+  const {
+    flags,
+    getFlag,
+    isLoading: isFeatureFlagsLoading,
+    error: featureFlagsError,
+  } = useFeatureFlags(terrenoApi);
   const showDarkModeToggle = getFlag("dark-mode-toggle");
-  console.log("showDarkModeToggle", showDarkModeToggle);
-  const profileLayout = getVariant("profile-layout");
+  const featureFlagEntries = useMemo(
+    (): Array<{key: string; value: boolean | string | null}> =>
+      Object.keys(flags)
+        .sort((left, right) => left.localeCompare(right))
+        .map((key) => ({key, value: flags[key]})),
+    [flags]
+  );
 
   const profile = profileResponse?.data;
 
@@ -263,20 +272,32 @@ const ProfileScreen: React.FC = () => {
           </Card>
         )}
 
-        {/* Profile layout variant — shows which A/B variant the user is in */}
-        {profileLayout && (
-          <Card marginBottom={6} testID="profile-layout-variant-card">
-            <Box alignItems="center" direction="row" gap={3}>
-              <Text color="secondaryLight" size="sm">
-                Profile layout variant:
-              </Text>
-              <Badge
-                status={profileLayout === "compact" ? "info" : "success"}
-                value={profileLayout}
-              />
-            </Box>
-          </Card>
-        )}
+        <Card marginBottom={6} testID="profile-feature-flags-card">
+          <Box gap={3}>
+            <Heading size="lg">Feature Flags</Heading>
+            {isFeatureFlagsLoading && <Text color="secondaryLight">Loading feature flags...</Text>}
+            {!isFeatureFlagsLoading && featureFlagsError && (
+              <Text color="error">Failed to load feature flags</Text>
+            )}
+            {!isFeatureFlagsLoading && !featureFlagsError && featureFlagEntries.length === 0 && (
+              <Text color="secondaryLight">No feature flags evaluated for this user.</Text>
+            )}
+            {!isFeatureFlagsLoading &&
+              !featureFlagsError &&
+              featureFlagEntries.map((flagEntry) => (
+                <Box
+                  alignItems="center"
+                  direction="row"
+                  justifyContent="between"
+                  key={flagEntry.key}
+                  paddingY={1}
+                >
+                  <Text>{flagEntry.key}</Text>
+                  <Text color="secondaryLight">{String(flagEntry.value)}</Text>
+                </Box>
+              ))}
+          </Box>
+        </Card>
 
         <Card marginBottom={6}>
           <Box gap={4}>
