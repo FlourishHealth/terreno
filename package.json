@@ -100,6 +100,9 @@
     "demo:lint": "bun run --filter 'terreno-demo' lint",
     "demo:start": "bun run --filter 'terreno-demo' start",
     "demo:web": "bun run --filter 'terreno-demo' web",
+    "feature-flags:compile": "bun run --filter '@terreno/feature-flags' compile",
+    "feature-flags:lint": "bun run --filter '@terreno/feature-flags' lint",
+    "feature-flags:test": "bun run --filter '@terreno/feature-flags' test",
     "frontend:android": "bun run --filter '@terreno/example-frontend' android",
     "frontend:ios": "bun run --filter '@terreno/example-frontend' ios",
     "frontend:lint": "bun run --filter '@terreno/example-frontend' lint",
@@ -138,6 +141,7 @@
     "demo",
     "example-backend",
     "example-frontend",
+    "feature-flags",
     "mcp-server",
     "rtk",
     "ui"
