@@ -553,6 +553,25 @@ export type BoxProps =
   | (BoxPropsBase & {onClick: () => void} & AccessibilityProps);
 export type BoxColor = SurfaceColor | "transparent";
 
+interface CardOwnProps {
+  /**
+   * URI of an image to display at the top of the card. When provided, the image spans the full
+   * width of the card with a cover fit.
+   */
+  imageUri?: string;
+  /**
+   * Accessibility label for the card image. Required when imageUri is provided.
+   */
+  imageAlt?: string;
+  /**
+   * Height in pixels for the image area when imageUri is provided.
+   * @default 160
+   */
+  imageHeight?: number;
+}
+
+export type CardProps = BoxProps & CardOwnProps;
+
 export interface ErrorBoundaryProps {
   onError?: (error: Error, stack: any) => void;
   children?: ReactNode;

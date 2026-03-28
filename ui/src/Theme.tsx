@@ -200,11 +200,14 @@ export const ThemeContext = createContext({
 
 interface ThemeProviderProps {
   children: any;
+  initialPrimitives?: DeepPartial<ThemePrimitives>;
 }
 
-export const ThemeProvider = ({children}: ThemeProviderProps) => {
+export const ThemeProvider = ({children, initialPrimitives}: ThemeProviderProps) => {
   const [providerTheme, setProviderTheme] = useState<DeepPartial<TerrenoThemeConfig>>(defaultTheme);
-  const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(defaultPrimitives);
+  const [providerPrimitives, setProviderPrimitives] = useState<ThemePrimitives>(
+    initialPrimitives ? {...defaultPrimitives, ...initialPrimitives} : defaultPrimitives
+  );
 
   const computedTheme = useMemo(
     () => computeTheme(providerTheme, providerPrimitives),
