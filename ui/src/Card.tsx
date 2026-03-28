@@ -1,4 +1,5 @@
 import type React from "react";
+import {Image} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -16,6 +17,9 @@ export const Card = ({
   headerColor = "primary",
   buttonText,
   buttonOnClick,
+  imageUri,
+  imageAlt,
+  imageHeight = 160,
   ...rest
 }: CardProps): React.ReactElement => {
   if (variant === "display") {
@@ -29,7 +33,16 @@ export const Card = ({
         shadow
         {...rest}
       >
-        <Box color={headerColor} height={80} />
+        {imageUri ? (
+          <Image
+            accessibilityLabel={imageAlt}
+            resizeMode="cover"
+            source={{uri: imageUri}}
+            style={{height: imageHeight, width: "100%"}}
+          />
+        ) : (
+          <Box color={headerColor} height={80} />
+        )}
         <Box direction="column" display="flex" gap={2} padding={padding}>
           {Boolean(title) && <Heading size="md">{title}</Heading>}
           {Boolean(description) && <Text>{description}</Text>}

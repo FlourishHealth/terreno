@@ -587,6 +587,23 @@ export type CardProps = BoxProps & {
    * Callback invoked when the action button is pressed. Used in the "display" variant.
    */
   buttonOnClick?: () => void | Promise<void>;
+
+  /**
+   * URI of an image to display at the top of the card. When provided in the "display" variant,
+   * replaces the colored header with a full-width cover image.
+   */
+  imageUri?: string;
+
+  /**
+   * Accessibility label for the card image.
+   */
+  imageAlt?: string;
+
+  /**
+   * Height in pixels for the image area when imageUri is provided.
+   * @default 160
+   */
+  imageHeight?: number;
 };
 
 export interface ErrorBoundaryProps {
