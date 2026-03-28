@@ -1,5 +1,9 @@
 name: Demo Build
 
+on:
+  pull_request_labeled:
+    label: "build-expo"
+
 jobs:
   build_ios:
     name: Build iOS

@@ -1,6 +1,7 @@
 import {
   AccordionConfiguration,
   AddressFieldConfiguration,
+  AiSuggestionBoxConfiguration,
   AvatarConfiguration,
   BadgeConfiguration,
   BannerConfiguration,
@@ -173,6 +174,7 @@ export interface DemoConfiguration extends DemoConfigurationBase {
 
 const Config: DemoConfigurationBase[] = [
   AccordionConfiguration,
+  AiSuggestionBoxConfiguration,
   AvatarConfiguration,
   AddressFieldConfiguration,
   BadgeConfiguration,
@@ -235,5 +237,7 @@ const Config: DemoConfigurationBase[] = [
 // Ensure consistent alphabetical sorting
 export const DemoConfig = Config.map((c) => ({
   ...c,
-  props: PropsJSON.children.find((json: any) => json.name === c.interfaceName),
+  props: PropsJSON.children
+    .flatMap((mod: any) => mod.children ?? [])
+    .find((json: any) => json.name === c.interfaceName),
 })).sort((a, b) => a.name.localeCompare(b.name));

@@ -1,5 +1,6 @@
 export * from "./Accordion.stories";
 export * from "./AddressField.stories";
+export * from "./AiSuggestionBox.stories";
 export * from "./Avatar.stories";
 export * from "./Badge.stories";
 export * from "./Banner.stories";

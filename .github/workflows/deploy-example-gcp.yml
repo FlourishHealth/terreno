@@ -107,6 +107,7 @@ jobs:
           service: ${{ env.GCP_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+          tag: prod
           env_vars: |
             NODE_ENV=production
             MONGODB_URI=${{ secrets.MONGO_URI }}

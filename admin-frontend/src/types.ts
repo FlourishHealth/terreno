@@ -20,12 +20,18 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
 }
 
+export interface AdminCustomScreen {
+  displayName: string;
+  name: string;
+}
+
 export interface AdminScriptConfig {
   name: string;
   description: string;
 }
 
 export interface AdminConfigResponse {
+  customScreens?: AdminCustomScreen[];
   models: AdminModelConfig[];
   scripts: AdminScriptConfig[];
 }
