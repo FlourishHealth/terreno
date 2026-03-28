@@ -72,7 +72,9 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
     return <>{children}</>;
   }
 
-  console.info(`[ConsentNavigator] Showing consent form ${currentIndex + 1}/${forms.length}: ${forms[currentIndex]?.title}`);
+  console.info(
+    `[ConsentNavigator] Showing consent form ${currentIndex + 1}/${forms.length}: ${forms[currentIndex]?.title}`
+  );
 
   const currentForm = forms[currentIndex];
 

@@ -168,7 +168,9 @@ export async function start(skipListen = false): Promise<express.Application> {
     })
       .configure(AppConfiguration)
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
-      .register(createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions))
+      .register(
+        createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
+      )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))

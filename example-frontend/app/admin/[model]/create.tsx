@@ -75,7 +75,7 @@ const AdminCreateScreen: React.FC = () => {
   }, [isUserModel, passwordState]);
 
   const transformPayload = useCallback(
-    ({payload}: {mode: "create" | "edit"; payload: Record<string, any>}): Record<string, any> => {
+    ({payload}: {mode: "create" | "edit"; payload: Record<string, unknown>}): Record<string, unknown> => {
       if (!isUserModel) {
         return payload;
       }
@@ -94,6 +94,7 @@ const AdminCreateScreen: React.FC = () => {
   );
 
   const onSaveSuccess = useCallback(
+    // biome-ignore lint/suspicious/noExplicitAny: result type comes from AdminModelForm library
     async ({result}: {result: any}): Promise<void> => {
       if (!isUserModel || !passwordState.password) {
         return;
