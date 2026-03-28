@@ -38,7 +38,7 @@ const ProfileScreen: React.FC = () => {
     [flags]
   );
 
-  const profile = profileResponse?.data;
+  const profile = profileResponse;
 
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");

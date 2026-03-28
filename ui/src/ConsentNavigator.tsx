@@ -90,12 +90,11 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
 
     try {
       await submit(body);
-      if (currentIndex + 1 >= forms.length) {
-        await refetch();
-        setCurrentIndex(0);
-      } else {
-        setCurrentIndex(currentIndex + 1);
-      }
+      // Always refetch and reset so we pick up the updated pending list.
+      // Advancing currentIndex is racy because invalidatesTags shrinks
+      // the forms array in the background.
+      setCurrentIndex(0);
+      await refetch();
     } catch (err) {
       onError?.(err);
     }
@@ -108,14 +107,10 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
         consentFormId: currentForm.id,
         locale,
       });
+      setCurrentIndex(0);
+      await refetch();
     } catch (err) {
       onError?.(err);
-    }
-    if (currentIndex + 1 >= forms.length) {
-      await refetch();
-      setCurrentIndex(0);
-    } else {
-      setCurrentIndex(currentIndex + 1);
     }
   };
 

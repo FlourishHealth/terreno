@@ -34,7 +34,7 @@ export const useConsentHistory = (api: any, baseUrl?: string) => {
   });
 
   const {data, isLoading, error, refetch} = enhancedApi.useGetMyConsentsQuery();
-  const entries: ConsentHistoryEntry[] = data?.data ?? [];
+  const entries: ConsentHistoryEntry[] = Array.isArray(data) ? data : (data?.data ?? []);
 
   return {entries, error, isLoading, refetch};
 };

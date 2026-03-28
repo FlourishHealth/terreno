@@ -32,6 +32,8 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmModalCheckboxIndex, setConfirmModalCheckboxIndex] = useState<number | null>(null);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [layoutHeight, setLayoutHeight] = useState(0);
 
   const content = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
 
@@ -45,6 +47,22 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
 
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
+
+  // Auto-satisfy scroll requirement when content fits within the viewport
+  const handleContentSizeChange = (_w: number, h: number) => {
+    setContentHeight(h);
+    if (!hasScrolledToBottom && h > 0 && layoutHeight > 0 && h <= layoutHeight) {
+      setHasScrolledToBottom(true);
+    }
+  };
+
+  const handleLayout = (event: any) => {
+    const h = event.nativeEvent.layout.height;
+    setLayoutHeight(h);
+    if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
+      setHasScrolledToBottom(true);
+    }
+  };
 
   const handleScroll = (event: any) => {
     if (hasScrolledToBottom) {
@@ -121,6 +139,8 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   return (
     <Page footer={footer} scroll={false} title={form.title}>
       <ScrollView
+        onContentSizeChange={handleContentSizeChange}
+        onLayout={handleLayout}
         onScroll={handleScroll}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}

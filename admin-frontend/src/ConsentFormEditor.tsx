@@ -77,6 +77,9 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [captureSignature, setCaptureSignature] = useState(false);
   const [requireScrollToBottom, setRequireScrollToBottom] = useState(false);
 
+  // Locale config
+  const [defaultLocale, setDefaultLocale] = useState(supportedLocales[0] ?? "en");
+
   // Button config
   const [agreeButtonText, setAgreeButtonText] = useState("I Agree");
   const [allowDecline, setAllowDecline] = useState(false);
@@ -174,6 +177,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     setActive(formData.active ?? true);
     setCaptureSignature(formData.captureSignature ?? false);
     setRequireScrollToBottom(formData.requireScrollToBottom ?? false);
+    setDefaultLocale(formData.defaultLocale ?? supportedLocales[0] ?? "en");
     setAgreeButtonText(formData.agreeButtonText ?? "I Agree");
     setAllowDecline(formData.allowDecline ?? false);
     setDeclineButtonText(formData.declineButtonText ?? "Decline");
@@ -243,6 +247,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
       })),
       content: localeContent,
       declineButtonText: allowDecline ? declineButtonText : undefined,
+      defaultLocale,
       order: parseInt(order, 10) || 0,
       required,
       requireScrollToBottom,
@@ -256,6 +261,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     allowDecline,
     captureSignature,
     checkboxes,
+    defaultLocale,
     localeContent,
     declineButtonText,
     order,
@@ -338,7 +344,6 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   const handleTranslate = useCallback(
     async (targetLocale: string) => {
-      const defaultLocale = supportedLocales[0] ?? "en";
       const sourceContent = localeContent[defaultLocale] ?? "";
 
       if (!sourceContent.trim()) {
@@ -359,7 +364,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
         toast.catch(err, `Failed to translate content to ${targetLocale}`);
       }
     },
-    [handleLocaleContentChange, localeContent, supportedLocales, toast, translateContent]
+    [defaultLocale, handleLocaleContentChange, localeContent, toast, translateContent]
   );
 
   if (isEditMode && isFormLoading) {
@@ -374,8 +379,21 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   const isSaving = isCreating || isUpdating;
   const activeLocale = supportedLocales[activeLocaleIndex] ?? "en";
-  const defaultLocale = supportedLocales[0] ?? "en";
   const isNonDefaultLocale = activeLocale !== defaultLocale;
+
+  const contentLocales = useMemo(
+    () => Object.keys(localeContent).filter((k) => localeContent[k] !== undefined),
+    [localeContent]
+  );
+  const hasLocales = contentLocales.length > 0;
+  const defaultLocaleOptions = useMemo(
+    () =>
+      contentLocales.map((locale) => ({
+        label: locale.toUpperCase(),
+        value: locale,
+      })),
+    [contentLocales]
+  );
 
   return (
     <Page
@@ -459,6 +477,18 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
             title="Order"
             type="number"
             value={order}
+          />
+          <SelectField
+            disabled={!hasLocales}
+            helperText={
+              hasLocales
+                ? undefined
+                : "Add at least one locale with content before setting a default locale."
+            }
+            onChange={setDefaultLocale}
+            options={defaultLocaleOptions}
+            title="Default Locale"
+            value={defaultLocale}
           />
           <BooleanField onChange={setRequired} title="Required" value={required} variant="title" />
           <BooleanField onChange={setActive} title="Active" value={active} variant="title" />

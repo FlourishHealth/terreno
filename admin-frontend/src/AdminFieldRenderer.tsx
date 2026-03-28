@@ -224,6 +224,32 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     );
   }
 
+  // Locale default widget — dropdown populated from sibling content field's locale keys
+  if (fieldConfig.widget === "locale-default") {
+    const contentMap = parentFormState?.content;
+    const localeKeys =
+      contentMap && typeof contentMap === "object" && !Array.isArray(contentMap)
+        ? Object.keys(contentMap)
+        : [];
+    const hasLocales = localeKeys.length > 0;
+    const options = localeKeys.map((k) => ({label: k.toUpperCase(), value: k}));
+    return (
+      <SelectField
+        disabled={!hasLocales}
+        errorText={errorText}
+        helperText={
+          hasLocales
+            ? helperText
+            : "Add at least one locale with content before setting a default locale."
+        }
+        onChange={onChange}
+        options={options}
+        title={label}
+        value={value ?? ""}
+      />
+    );
+  }
+
   // Mixed / object type — JSON-aware single-line field for schemaless fields (e.g., Mongoose Mixed)
   if (fieldConfig.type === "object" || fieldConfig.type === "mixed") {
     const displayValue = serializeJsonValue(value);

@@ -248,6 +248,7 @@ export async function start(skipListen = false): Promise<express.Application> {
               fieldOverrides: {
                 checkboxes: {widget: "checkbox-list"},
                 content: {widget: "locale-content"},
+                defaultLocale: {widget: "locale-default"},
               },
               listFields: ["title", "type", "version", "active", "order"],
               model: ConsentForm,
