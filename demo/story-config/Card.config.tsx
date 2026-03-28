@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {CardDemo, CardVariants, DisplayCardDemo, LightAndDark, Plain, WithImage} from "@stories";
+import {CardDemo, CardVariants, DisplayCardDemo, DisplaySizes, LightAndDark, Plain, WithImage} from "@stories";
 import {Card} from "@terreno/ui";
 
 export const CardConfiguration: DemoConfiguration = {
@@ -50,6 +50,11 @@ export const CardConfiguration: DemoConfiguration = {
     "Light and Dark": {
       description: "Cards adapt to both light and dark themes.",
       render: LightAndDark,
+    },
+    "Display Sizes": {
+      description:
+        "Display cards support three sizes. Large and default lay out horizontally on desktop and vertically on mobile. Small is always vertical.",
+      render: DisplaySizes,
     },
     "With Image": {
       description:

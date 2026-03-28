@@ -135,6 +135,54 @@ export const CardVariants = (): React.ReactElement => {
   );
 };
 
+export const DisplaySizes = (): React.ReactElement => {
+  return (
+    <Box color="neutralLight" direction="column" gap={6} padding={4} width="100%">
+      <Box direction="column" gap={1}>
+        <Heading size="sm">Large — horizontal on desktop, vertical on mobile</Heading>
+        <Card
+          buttonOnClick={() => console.info("clicked")}
+          buttonText="Explore"
+          description="Large cards lay out horizontally on desktop with the image or header on the left."
+          imageAlt="Mountain landscape"
+          imageUri={SAMPLE_IMAGE}
+          size="large"
+          title="Mountain Vista"
+          variant="display"
+        />
+      </Box>
+      <Box direction="column" gap={1}>
+        <Heading size="sm">Default — horizontal on desktop, vertical on mobile</Heading>
+        <Card
+          buttonOnClick={() => console.info("clicked")}
+          buttonText="Explore"
+          description="Default cards use the same horizontal layout as large on desktop."
+          imageAlt="Mountain landscape"
+          imageUri={SAMPLE_IMAGE}
+          size="default"
+          title="Mountain Vista"
+          variant="display"
+        />
+      </Box>
+      <Box direction="column" gap={1}>
+        <Heading size="sm">Small — always vertical</Heading>
+        <Box width={300}>
+          <Card
+            buttonOnClick={() => console.info("clicked")}
+            buttonText="Explore"
+            description="Small cards are always vertical with a fixed-height image area."
+            imageAlt="Mountain landscape"
+            imageUri={SAMPLE_IMAGE}
+            size="small"
+            title="Mountain Vista"
+            variant="display"
+          />
+        </Box>
+      </Box>
+    </Box>
+  );
+};
+
 export const LightAndDark = (): React.ReactElement => {
   return (
     <Box direction="column" display="flex" gap={4} width="100%">
@@ -171,11 +219,11 @@ export const LightAndDark = (): React.ReactElement => {
 export const WithImage = (): React.ReactElement => {
   return (
     <Box direction="row" display="flex" gap={4} wrap>
-      <Box width={280}>
+      <Box flex="grow">
         <Card
           buttonOnClick={() => console.info("clicked")}
           buttonText="Explore"
-          description="A breathtaking view from the summit."
+          description="On desktop, the image sits inside the card's 32px padding. On mobile it is edge-to-edge."
           imageAlt="Mountain landscape"
           imageUri={SAMPLE_IMAGE}
           title="Mountain Vista"
@@ -183,11 +231,11 @@ export const WithImage = (): React.ReactElement => {
         />
       </Box>
       <ThemeProvider initialPrimitives={darkPrimitives}>
-        <Box width={280}>
+        <Box flex="grow">
           <Card
             buttonOnClick={() => console.info("clicked")}
             buttonText="Explore"
-            description="A breathtaking view from the summit."
+            description="On desktop, the image sits inside the card's 32px padding. On mobile it is edge-to-edge."
             imageAlt="Mountain landscape"
             imageUri={SAMPLE_IMAGE}
             title="Mountain Vista"
