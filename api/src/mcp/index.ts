@@ -1,4 +1,5 @@
 export {extractUserFromHeaders, type MCPAuthContext} from "./auth";
+export {MCPApp, type MCPAppOptions} from "./mcpApp";
 export {clearMCPRegistry, getMCPRegistry, registerMCPModel} from "./registry";
 export {generateInputSchema, generateToolDescription} from "./schemaGenerator";
 export {type MCPServerOptions, mountMCPServer} from "./server";

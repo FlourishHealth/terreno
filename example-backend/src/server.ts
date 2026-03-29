@@ -12,6 +12,7 @@ import {
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
+  MCPApp,
   type ModelRouterOptions,
   type ModelRouterRegistration,
   syncConsents,
@@ -175,6 +176,8 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
+      // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
+      .register(new MCPApp({userModel: User as any}))
       .register(
         new HealthApp({
           check: async () => {
