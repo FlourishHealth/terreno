@@ -996,9 +996,11 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
       {!isMobileTimeOnly && (
         <Pressable
-          accessibilityHint={isMobileDatetime ? "Opens date and time picker" : undefined}
-          accessibilityLabel={isMobileDatetime ? "Date and time picker" : undefined}
-          accessibilityRole={isMobileDatetime ? "button" : undefined}
+          {...(isMobileDatetime && {
+            accessibilityHint: "Opens date and time picker",
+            accessibilityLabel: "Date and time picker",
+            accessibilityRole: "button" as const,
+          })}
           disabled={!isMobileDatetime || disabled}
           onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
           onPress={openActionSheet}
