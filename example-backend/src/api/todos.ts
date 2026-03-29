@@ -15,7 +15,7 @@ export const addTodoRoutes = (
       mcp: {
         excludeFields: ["ownerId"],
         maxLimit: 25,
-        methods: ["list", "read"],
+        methods: ["list", "read", "create", "update", "delete"],
       },
       permissions: {
         create: [Permissions.IsAuthenticated],

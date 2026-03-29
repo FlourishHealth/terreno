@@ -1,4 +1,5 @@
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
+export {AdminMCPChat} from "./AdminMCPChat";
 export {AdminModelForm} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";

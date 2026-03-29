@@ -36,13 +36,6 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
-        name="mcp-chat"
-        options={{
-          tabBarIcon: ({color}) => <TabBarIcon color={color} name="magic" />,
-          title: "MCP",
-        }}
-      />
-      <Tabs.Screen
         name="files"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="folder-open" />,

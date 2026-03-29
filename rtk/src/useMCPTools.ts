@@ -29,6 +29,32 @@ interface MCPJsonRpcResponse {
 }
 
 /**
+ * Parse a JSON-RPC response from the MCP endpoint.
+ * The StreamableHTTPServerTransport may respond with either plain JSON
+ * or Server-Sent Events (text/event-stream). This handles both.
+ */
+const parseMCPResponse = async (response: Response): Promise<MCPJsonRpcResponse> => {
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("text/event-stream")) {
+    const text = await response.text();
+    const lines = text.split("\n");
+
+    for (const line of lines) {
+      if (line.startsWith("data:")) {
+        const jsonStr = line.slice("data:".length).trim();
+        if (jsonStr) {
+          return JSON.parse(jsonStr) as MCPJsonRpcResponse;
+        }
+      }
+    }
+    throw new Error("No data event found in SSE response");
+  }
+
+  return (await response.json()) as MCPJsonRpcResponse;
+};
+
+/**
  * Hook that discovers available MCP tools from the backend.
  * Makes a JSON-RPC call to the /mcp endpoint to list tools.
  */
@@ -67,7 +93,7 @@ export const useMCPTools = (options: UseMCPToolsOptions = {}): UseMCPToolsResult
         throw new Error(`MCP request failed: ${response.status}`);
       }
 
-      const data: MCPJsonRpcResponse = await response.json();
+      const data = await parseMCPResponse(response);
 
       if (data.error) {
         throw new Error(data.error.message || "MCP error");
@@ -89,8 +115,9 @@ export const useMCPTools = (options: UseMCPToolsOptions = {}): UseMCPToolsResult
     }
   }, [baseURL]);
 
+  // Fetch tools on mount
   useEffect(() => {
-    fetchTools();
+    void fetchTools();
   }, [fetchTools]);
 
   return {error, isLoading, refetch: fetchTools, tools};
