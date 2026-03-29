@@ -8,11 +8,6 @@ const CUSTOM_SCREENS: AdminCustomScreen[] = [
     displayName: "AI Admin",
     name: "ai-admin",
   },
-  {
-    description: "Chat with AI using MCP tools from your modelRouters",
-    displayName: "MCP Chat",
-    name: "mcp-chat",
-  },
 ];
 
 const AdminListScreen: React.FC = () => {
