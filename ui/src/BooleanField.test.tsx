@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
+import {Pressable} from "react-native";
 
 import {BooleanField} from "./BooleanField";
 import {renderWithTheme} from "./test-utils";
@@ -42,9 +43,7 @@ describe("BooleanField", () => {
     const {UNSAFE_getByType} = renderWithTheme(
       <BooleanField onChange={handleChange} value={false} />
     );
-    // TouchableWithoutFeedback is the pressable element
-    const touchable = UNSAFE_getByType("TouchableWithoutFeedback" as any);
-    fireEvent.press(touchable);
+    fireEvent.press(UNSAFE_getByType(Pressable));
     expect(handleChange).toHaveBeenCalledWith(true);
   });
 
@@ -53,8 +52,7 @@ describe("BooleanField", () => {
     const {UNSAFE_getByType} = renderWithTheme(
       <BooleanField disabled onChange={handleChange} value={false} />
     );
-    const touchable = UNSAFE_getByType("TouchableWithoutFeedback" as any);
-    fireEvent.press(touchable);
+    fireEvent.press(UNSAFE_getByType(Pressable));
     expect(handleChange).not.toHaveBeenCalled();
   });
 

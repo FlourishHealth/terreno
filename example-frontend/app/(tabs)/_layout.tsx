@@ -50,6 +50,13 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
+        name="consents"
+        options={{
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="file-text" />,
+          title: "Consents",
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,

@@ -14,8 +14,27 @@ on:
   pull_request:
 
 jobs:
+  check-changes:
+    name: Check for relevant changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check PR diff for frontend-related changes
+        id: check
+        run: |
+          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
+          echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   build:
     name: Build Example Frontend
+    needs: [check-changes]
+    if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -51,7 +70,7 @@ jobs:
       - name: Set BASE_URL for deploy
         run: |
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           else
             PR_NUMBER="${{ github.event.pull_request.number }}"
             if [ -z "$PR_NUMBER" ]; then
@@ -60,7 +79,7 @@ jobs:
             if [ -n "$PR_NUMBER" ]; then
               URL="https://pr-${PR_NUMBER}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
             else
-              URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+              URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
             fi
           fi
           jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
@@ -314,6 +333,9 @@ jobs:
     needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    environment:
+      name: example-frontend-preview-pr-${{ github.event.pull_request.number }}
+      url: ${{ steps.netlify.outputs.deploy-url }}
     permissions:
       contents: read
       deployments: write
