@@ -8,7 +8,8 @@
     "@terreno/api": "workspace:*",
     "express": "^5.2.1",
     "luxon": "catalog:",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "zod": "^3.24.0"
   },
   "description": "Admin panel backend plugin for @terreno/api",
   "devDependencies": {
@@ -31,7 +32,13 @@
   ],
   "license": "Apache-2.0",
   "peerDependencies": {
+    "ai": ">=4.0.0",
     "mongoose": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
   },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",

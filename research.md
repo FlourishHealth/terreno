@@ -1,176 +1,280 @@
-# Research: Consent Forms System for Terreno
+# Research: Graphing & Dashboard Capabilities for GPT and Admin Tools
 
 ## Summary
-Terreno has all the building blocks to support a consent forms system: `modelRouter` for CRUD APIs, `AdminApp` for admin UI, `MarkdownView`/`SignatureField`/`CheckBox` in ui, and RTK Query for client hooks. The main work is defining the models (ConsentForm + ConsentResponse), creating a `ConsentApp` plugin for api, adding admin support, and building a `ConsentNavigator` component in ui that client apps import. The Flourish implementation provides a proven UX pattern to follow.
+
+Tableau's conceptual model maps cleanly onto MongoDB: Dimensions → `$group._id` fields, Measures → aggregation expressions, LOD expressions → `$lookup` sub-pipelines, Calculated fields → `$addFields`, and Date hierarchies → `$dateTrunc`. The key insight from Tableau is that **data source** is a first-class concept separate from the chart — supporting "enriched models" (pre-defined aggregation pipelines that join multiple models and add computed fields) is the right way to handle higher-order data, following Tableau's Custom SQL / Relationships pattern. Recharts is the charting library (web-only per PRD). Dashboards are admin-only.
+
+## Context
+
+- **Problem:** Admins can't visualize data from the admin panel or GPT chat — everything is raw tables.
+- **Why:** Dashboards + inline charts dramatically increase the value of AI-assisted data exploration.
+- **Current state:** No charting anywhere. `react-native-svg` 15.12.1 is in the catalog. AI tool system handles structured SSE responses. Admin panel exposes full typed model metadata via `GET /admin/config`.
 
 ## Decisions Made
 
-1. **Option A** — Full plugin across api+ui+rtk (not a separate package)
-2. **Server-side form-to-user mapping** — Backend filters forms before sending to client
-3. **Explicit versioning** — "Publish new version" action, not auto-version on edit
-4. **No default forms** — Admin editor will have an AI-generate button using Terreno AI tooling
-5. **Markdown editor** — New UI component (may be broken off into its own task first)
-
-## Context
-- **Problem:** Apps need consent workflows (legal agreements, HIPAA, privacy policies) but there's no reusable system in Terreno.
-- **Current state:** Flourish has a working but hardcoded consent system — forms defined in constants, types enumerated, completion tracked on the User model. It works but isn't portable.
-- **Goal:** A first-class, configurable consent system spanning all Terreno packages.
+1. **Admin-only dashboards** — only admins can create and view dashboards; only in the admin screen.
+2. **EnrichedSource is admin-only** — only pre-registered pipelines (no user-defined raw pipelines).
+3. **Linear widget layout** — list of charts stacked vertically; no drag-and-drop grid for v1.
+4. **Running totals supported** — use MongoDB 5+ `$setWindowFields`; detect version and offer conditionally.
+5. **Strict Zod schema for AI tools** — AI must produce valid `ChartConfig` or explain failure; no loose fallbacks.
+6. **No per-user chart access** — only admins chart data.
 
 ## Findings
 
-### Finding 1 — API Patterns (modelRouter + TerrenoPlugin)
+### 1. GPT Chat Streaming System
 
-**modelRouter** (`api/src/api.ts:423-453`) generates full CRUD endpoints for any Mongoose model with permissions, hooks, validation, pagination, sorting, and OpenAPI spec generation.
+`POST /gpt/prompt` in `ai/src/routes/gpt.ts:82` streams SSE events: `{text}`, `{toolCall}`, `{toolResult}`, `{image}`, `{file}`, `{done}`. A new `{chart: ChartConfig}` SSE event type follows the exact same pattern as `{image}`. The `tools` option in `addGptRoutes` means adding a `generateChart` or `createDashboard` AI tool requires zero changes to the core route handler.
 
-**TerrenoPlugin** (`api/src/terrenoPlugin.ts`) is the extension point — `AdminApp`, `HealthApp`, and `BetterAuthApp` all implement it. A plugin gets `register(app)` and can mount arbitrary Express routes.
+### 2. Admin Backend
 
-**Registration pattern** (example-backend):
+`AdminApp` in `admin-backend/src/adminApp.ts:164` accepts `models: AdminModelConfig[]` and has full field metadata from `getOpenApiSpecForModel`. The `customScreens` array in `AdminConfigResponse` is the hook for adding a "Dashboards" screen to the admin panel. The dashboard query engine can receive the same `models` array.
+
+### 3. No Existing Charting
+
+No charting libraries anywhere. `react-native-svg` 15.12.1 is in the catalog, but since PRD says web-only, Recharts is the right choice — no RN-SVG dependency needed, simpler API, more powerful for web.
+
+### 4. MongoDB → Tableau Feature Mapping
+
+| Tableau Concept | MongoDB Equivalent |
+|---|---|
+| Dimension (GROUP BY) | `$group: {_id: "$field"}` |
+| Date hierarchy (truncate to month) | `$dateTrunc: {date: "$created", unit: "month"}` |
+| Measure: SUM/AVG/MIN/MAX | `$group: {total: {$sum: "$amount"}}` |
+| Measure: COUNT | `$group: {count: {$sum: 1}}` |
+| Measure: COUNT DISTINCT | `$addToSet` + `$size` |
+| Calculated field (row-level) | `$addFields: {margin: {$divide: ["$profit", "$sales"]}}` |
+| Filter (dimension) | `$match: {status: "active"}` |
+| Filter (measure / HAVING) | `$match` after `$group` |
+| Top N | `$sort` + `$limit` after `$group` |
+| LOD FIXED (per-entity total) | `$lookup` with sub-pipeline aggregation |
+| Table calc: Running total | `$setWindowFields` with `$sum` (MongoDB 5+) |
+| Table calc: Rank | `$setWindowFields` with `$rank` (MongoDB 5+) |
+| Percent of total | Two-pass: main agg + facet for total, then `$divide` |
+| Calculated field | `$addFields` expression |
+| Custom SQL / enriched source | Pre-defined `PipelineStage[]` registered by consuming app |
+| Data blending / JOIN | `$lookup` stages |
+
+### 5. Dimensions vs. Measures
+
+Tableau's core conceptual split, applied here:
+
+- **Dimensions** = fields you GROUP BY (categorical strings, booleans, date-truncated timestamps). Go on X axis, Color channel, or filters. Every field in a data source declares its role.
+- **Measures** = numeric fields you aggregate (SUM, AVG, COUNT, etc.). Go on the Y axis or Size channel.
+- **Date fields** are special dimensions — they can be bucketed at different granularities (year, month, day, hour).
+
+### 6. The "Enriched Model" Concept (Higher-Order Data Sources)
+
+An **EnrichedSource** is a pre-defined MongoDB aggregation pipeline registered by the consuming app. It is the equivalent of Tableau's Custom SQL or Relationships — it can join multiple models, add computed fields, and produce a declared output schema that the dashboard builder treats identically to a simple model.
+
+**Example — "Users with Conversation Counts":**
 ```typescript
-const terraApp = new TerrenoApp({userModel: User, ...})
-  .register(todoRouter)            // modelRouter
-  .register(new AdminApp({...}))   // plugin
-  .start();
+{
+  type: "enriched",
+  name: "UsersWithActivity",
+  displayName: "Users (with Activity)",
+  baseModel: "User",
+  pipeline: [
+    {$lookup: {
+      from: "gpthistories",
+      localField: "_id",
+      foreignField: "userId",
+      as: "histories"
+    }},
+    {$addFields: {
+      conversationCount: {$size: "$histories"},
+      lastActiveAt: {$max: "$histories.updated"},
+    }},
+    {$project: {histories: 0}},
+  ],
+  outputFields: {
+    email: {type: "string", description: "User email", role: "dimension"},
+    created: {type: "date", description: "Account created date", role: "dimension"},
+    conversationCount: {type: "number", description: "Total conversations", role: "measure"},
+    lastActiveAt: {type: "date", description: "Last activity date", role: "dimension"},
+  }
+}
 ```
 
-**Key hooks available on modelRouter:** `preCreate`, `postCreate`, `preUpdate`, `postUpdate`, `preDelete`, `postDelete`, `queryFilter`, `responseHandler`.
+### 7. Chart Types Supported (v1)
 
-### Finding 2 — Admin Backend + Frontend
+| Chart Type | X (dimension) | Y (measure) | Color (optional) | Notes |
+|---|---|---|---|---|
+| `bar` | Categorical / date | 1 measure | — | Vertical bars |
+| `bar-horizontal` | 1 measure | Categorical | — | Horizontal bars |
+| `bar-stacked` | Categorical / date | 1 measure | Dimension | Stacked segments |
+| `bar-grouped` | Categorical / date | 1 measure | Dimension | Side-by-side |
+| `line` | Date / ordered | 1+ measures | — | Time series |
+| `line-multi` | Date / ordered | 1 measure | Dimension | Multi-series lines |
+| `area` | Date / ordered | 1+ measures | — | Filled area |
+| `area-stacked` | Date / ordered | 1 measure | Dimension | Stacked area |
+| `pie` | — | 1 measure | Dimension | Part-to-whole |
+| `donut` | — | 1 measure | Dimension | Pie with hole |
+| `scatter` | 1 measure | 1 measure | Dimension (opt) | Correlation |
+| `bubble` | 1 measure | 1 measure | Dimension (opt) | Scatter + size encoding |
+| `heatmap` | Dimension | Dimension | Measure | Cross-tab with color |
+| `combo` | Date | 2 measures | — | Bar + line dual axis |
 
-**AdminApp** (`admin-backend/src/adminApp.ts:121-206`) takes a `models` array and auto-generates:
-- `GET /admin/config` — field metadata extracted from Mongoose schemas
-- CRUD routes per model via `modelRouter` with `Permissions.IsAdmin`
+### 8. The ChartConfig Data Model
 
-**Admin frontend** auto-generates list/table/form views from the config response:
-- `AdminModelList` — card grid of all models
-- `AdminModelTable` — DataTable with pagination, sorting, actions
-- `AdminModelForm` — auto-generated form from field metadata
-- `AdminFieldRenderer` — renders fields by type (string->TextField, boolean->BooleanField, enum->SelectField, etc.)
-
-**Gap:** No markdown editor field type exists. `AdminFieldRenderer` handles string/number/boolean/date/enum/objectid. For consent form markdown content, we need a new markdown editor component in UI.
-
-### Finding 3 — UI Components Available
-
-All needed UI primitives exist in `@terreno/ui`:
-
-| Component | Use in Consents |
-|-----------|----------------|
-| `Page` | Consent form screen container |
-| `MarkdownView` | Render consent form markdown content |
-| `SignatureField` | Capture signatures |
-| `CheckBox` | Optional toggles/checkboxes |
-| `Button` | Agree/Disagree actions |
-| `ScrollView` (via Page scroll) | Scroll-to-bottom tracking |
-| `Box` | Layout |
-| `Heading`/`Text` | Form title and instructions |
-
-No existing navigator pattern for multi-step flows. `ConsentNavigator` would be new.
-
-### Finding 4 — RTK Patterns for Client Hooks
-
-**emptySplitApi** (`rtk/src/emptyApi.ts`) is the base API with auth token management. Client apps run `bun run sdk` to generate typed hooks from the backend's `/openapi.json`.
-
-**generateTags** (`rtk/src/tagGenerator.ts`) auto-creates cache invalidation rules.
-
-For the consent system, we'd export a custom hook like `useConsentForms(api)` from `@terreno/ui` that:
-1. Fetches pending consent forms for the current user
-2. Returns forms, loading state, and a submit function
-3. Runs on every app launch
-
-### Finding 5 — Flourish System Architecture (Reference)
-
-**Models:** Consent stored as subdocuments on User (`consentFormAgreements[]` with consentFormId, type, isAgreed, agreedDate, signature, signedDate).
-
-**Form definition:** Interface with `consentFormId`, `title`, `text` (function returning markdown), `consentFormType`, `captureSignature`, `requireScrollToBottom`.
-
-**Types:** 8 types (patientAgreement, familyMemberAgreement, consent, transportation, research, privacy, hipaa, virginiaRights).
-
-**Navigation flow:** App layout checks `useConsentForms()` -> if pending forms exist, redirects to `/(consent)` screen -> user completes one at a time -> PATCH user with agreement -> when all done, redirect to main app.
-
-**Key patterns to keep:**
-- Versioned forms (consentFormId as version number)
-- Ordered display (show form A first, then B)
-- Per-form type configuration (signature, scroll-to-bottom, checkboxes)
-- Run-on-every-launch check
-
-**Key patterns to change:**
-- Forms in database (not hardcoded constants)
-- Separate ConsentForm and ConsentResponse models (not subdocuments on User)
-- Admin-editable markdown content
-- Hook-based server-side mapping (user data -> which forms to show)
-
-### Finding 6 — Proposed Data Model
-
-**ConsentForm** (admin-managed):
-- `title` (string, required)
-- `slug` (string, unique identifier for form lineage)
-- `content` (string/markdown, required)
-- `type` (enum: agreement, privacy, hipaa, research, custom)
-- `version` (number, explicit versioning)
-- `order` (number, display ordering)
-- `captureSignature` (boolean)
-- `requireScrollToBottom` (boolean)
-- `checkboxes` (array of {label, required})
-- `buttons` (object: {agreeText, disagreeText, showDisagree})
-- `active` (boolean)
-
-**ConsentResponse** (user completions):
-- `userId` (ObjectId, ref User)
-- `consentFormId` (ObjectId, ref ConsentForm)
-- `agreed` (boolean)
-- `agreedAt` (Date)
-- `signature` (string, base64)
-- `signedAt` (Date)
-- `checkboxValues` (Map of label->boolean)
-- `metadata` (Mixed, for custom data from hooks)
-
-### Finding 7 — Integration Points
-
-**Backend (`@terreno/api`):**
-- `ConsentApp` plugin implementing `TerrenoPlugin`
-- Registers ConsentForm and ConsentResponse models + routes
-- `GET /consents/pending` — returns pending forms for authenticated user (checks version, previous responses)
-- `POST /consents/respond` — records a consent response
-- Hook: `resolveConsentForms(user, allForms)` — server-side filtering of which forms to show based on user data
-
-**Admin:**
-- Register ConsentForm in AdminApp models array
-- Custom markdown field renderer for content editing (new component, may be separate task)
-- AI-generate button for creating consent form content
-
-**Frontend (`@terreno/ui`):**
-- `ConsentNavigator` — drop-in navigator component
-- `ConsentFormScreen` — renders a single consent form (markdown + signature + checkboxes + buttons)
-- `useConsentForms(api)` — hook that fetches pending forms, returns state + submit
-
-**Client app integration:**
 ```typescript
-import {ConsentNavigator} from "@terreno/ui";
+interface ChartConfig {
+  type: ChartType;
+  title: string;
+  dataSource: DataSourceRef;     // name of registered SimpleSource or EnrichedSource
 
-<ConsentNavigator api={terrenoApi} onComplete={() => router.replace("/(tabs)")} />
+  // Visual encodings
+  x: AxisConfig;                 // X axis: dimension or date with optional truncation
+  y: AxisConfig | AxisConfig[];  // Y axis: one or more measures
+  color?: SeriesConfig;          // Color channel: dimension for multi-series/stacked
+  size?: AxisConfig;             // Size channel for bubble charts
+
+  // Filters
+  filters?: FilterConfig[];
+
+  // Sort
+  sort?: {field: string; direction: "asc" | "desc"};
+
+  // Performance cap
+  limit?: number;                // Max data points (default 1000, max 5000)
+}
+
+interface AxisConfig {
+  field: string;
+  label?: string;
+  aggregation?: "count" | "sum" | "avg" | "min" | "max" | "countDistinct" | "runningTotal" | "rank";
+  dateTrunc?: "year" | "quarter" | "month" | "week" | "day" | "hour";
+}
+
+type FilterConfig =
+  | {type: "eq" | "ne" | "gt" | "gte" | "lt" | "lte"; field: string; value: any}
+  | {type: "in" | "nin"; field: string; values: any[]}
+  | {type: "dateRange"; field: string; from?: string; to?: string}
+  | {type: "relative"; field: string; unit: "year" | "month" | "week" | "day" | "hour"; amount: number};
 ```
 
-## Key File Paths
+### 9. Data Source Registration
 
-| Feature | File |
-|---------|------|
-| modelRouter | `api/src/api.ts:423-453` |
-| TerrenoPlugin interface | `api/src/terrenoPlugin.ts` |
-| TerrenoApp class | `api/src/terrenoApp.ts:41-190` |
-| Permissions | `api/src/permissions.ts` |
-| OpenAPI generation | `api/src/openApi.ts` |
-| AdminApp | `admin-backend/src/adminApp.ts:121-206` |
-| AdminFieldRenderer | `admin-frontend/src/AdminFieldRenderer.tsx` |
-| AdminModelForm | `admin-frontend/src/AdminModelForm.tsx` |
-| useAdminApi | `admin-frontend/src/useAdminApi.ts` |
-| MarkdownView | `ui/src/MarkdownView.tsx` |
-| SignatureField | `ui/src/SignatureField.tsx` |
-| CheckBox | `ui/src/CheckBox.tsx` |
-| Page | `ui/src/Page.tsx` |
-| emptySplitApi | `rtk/src/emptyApi.ts` |
-| generateAuthSlice | `rtk/src/authSlice.ts` |
-| generateTags | `rtk/src/tagGenerator.ts` |
-| Example backend | `example-backend/src/server.ts` |
-| Example frontend store | `example-frontend/store/sdk.ts` |
-| Flourish consent forms | `~/src/flourish/backend/src/constants/consentForms.ts` |
-| Flourish consent screen | `~/src/flourish/app/app/(consent)/index.tsx` |
-| Flourish consent hook | `~/src/flourish/app/hooks/useConsentForms.ts` |
+```typescript
+type DataSourceConfig = SimpleSource | EnrichedSource;
+
+interface SimpleSource {
+  type: "model";
+  modelName: string;    // Mongoose model name, must be in AdminApp's models list
+  displayName: string;
+}
+
+interface EnrichedSource {
+  type: "enriched";
+  name: string;
+  displayName: string;
+  baseModel: string;    // Root model name (for permissions — must be admin-accessible)
+  pipeline: PipelineStage[];
+  outputFields: Record<string, {
+    type: "string" | "number" | "date" | "boolean";
+    description: string;
+    role: "dimension" | "measure";
+  }>;
+}
+```
+
+### 10. Dashboard Persistence Model (new in @terreno/ai)
+
+```typescript
+interface Dashboard {
+  title: string;
+  userId: ObjectId;      // Admin user who created it
+  description?: string;
+  widgets: DashboardWidget[];
+  created: Date;
+  updated: Date;
+  deleted: boolean;
+}
+
+interface DashboardWidget {
+  widgetId: string;      // Local widget ID (uuid v4)
+  chart: ChartConfig;    // Full chart config
+}
+```
+
+### 11. Backend Query Execution
+
+`POST /dashboards/query` (admin-only, `IsAdmin` permission):
+```
+Body: ChartConfig
+Returns: {data: ChartDataPoint[], meta: {total: number, truncated: boolean, mongodbVersion: string}}
+```
+
+Pipeline construction order:
+1. Start with enriched source base pipeline (if applicable)
+2. `$match` — apply filters
+3. `$addFields` — apply `$dateTrunc` to date dimension fields
+4. `$group` — group by X (and color if present), aggregate Y measures
+5. `$setWindowFields` — for `runningTotal` or `rank` aggregations (MongoDB 5+ only; version detected at startup)
+6. `$sort` — by X field or measure
+7. `$limit` — cap at configured limit (default 1000)
+
+Auto-bucketing: if a date dimension would produce > limit unique values, automatically coarsen (days → months, months → quarters).
+
+### 12. AI Tools
+
+**`generateChart` tool** (inline GPT chart, not persisted, admin-only):
+```typescript
+{
+  name: "generateChart",
+  description: "Generate a chart from model data and display it inline in the chat",
+  parameters: z.object({chartConfig: ChartConfigSchema}),
+  execute: async ({chartConfig}) => ({chartConfig})
+  // Returns {chartConfig} as tool result → frontend renders ChartWidget inline
+}
+```
+
+**`createDashboard` tool** (persists to DB, admin-only):
+```typescript
+{
+  name: "createDashboard",
+  description: "Create a persistent admin dashboard with one or more charts",
+  parameters: z.object({
+    title: z.string(),
+    description: z.string().optional(),
+    widgets: z.array(z.object({chart: ChartConfigSchema})),
+  }),
+  execute: async ({title, description, widgets}, {userId}) => {
+    const dashboard = await Dashboard.create({title, description, widgets: widgets.map(...), userId});
+    return {dashboardId: dashboard._id.toString(), title, widgetCount: widgets.length}
+  }
+}
+```
+
+Both are registered via `addGptRoutes` `tools` option — no core route changes needed. The `createRequestTools` pattern from `GptRouteOptions` is used to inject the admin user's ID into the tool executor.
+
+### 13. Performance Strategy
+
+1. **Server-side aggregation only** — never stream raw documents to charts
+2. **Point cap** — 1000 default, 5000 absolute max
+3. **Auto-bucketing** — coarsen date granularity if row count would exceed limit
+4. **RTK Query cache** — 60s TTL for `/dashboards/query`
+5. **Parallel widget fetching** — each Dashboard widget fires its own RTK Query independently
+6. **React.memo on ChartWidget** — memoized on `chartConfig` deep equality
+7. **Index awareness** — query endpoint can warn if querying fields not in `Model.collection.indexes()`
+
+## Package Changes
+
+| Package | Changes |
+|---|---|
+| `@terreno/ai` | New: `Dashboard` model, `addDashboardRoutes()`, `DashboardApp` plugin, `ChartConfig` types, AI tools |
+| `@terreno/admin-backend` | Minor: expose data source registry to dashboard query engine |
+| `@terreno/admin-frontend` | New: `ChartWidget`, `Dashboard` screen, `DashboardBuilder`, `DashboardList`; add `recharts` dep |
+| `@terreno/ui` | No changes |
+| `@terreno/rtk` | No changes |
+
+## References
+
+- `ai/src/routes/gpt.ts:82` — SSE streaming, tool call/result pattern
+- `ai/src/types/index.ts` — `GptHistoryPrompt`, `GptRouteOptions.tools`
+- `admin-backend/src/adminApp.ts:164` — `AdminApp`, model registration, `customScreens`
+- `admin-frontend/src/AdminModelTable.tsx` — DataTable + model config integration
+- `admin-frontend/src/types.ts` — `AdminConfigResponse` with `customScreens`
+- Root `package.json:54` — `react-native-svg: 15.12.1` in catalog
+- Recharts: https://recharts.org
+- MongoDB `$setWindowFields`: https://www.mongodb.com/docs/manual/reference/operator/aggregation/setWindowFields/
+- MongoDB `$dateTrunc`: https://www.mongodb.com/docs/manual/reference/operator/aggregation/dateTrunc/

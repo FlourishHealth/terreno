@@ -96,6 +96,7 @@ interface AdminConfigResponse {
   customScreens?: {displayName: string; name: string}[];
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
+  dataSources?: {name: string; displayName: string}[];
 }
 
 const extractFieldMeta = (
@@ -244,6 +245,10 @@ export class AdminApp {
         {
           displayName: "Version Config",
           name: "version-config",
+        },
+        {
+          displayName: "Dashboards",
+          name: "dashboards",
         },
       ],
       models: configModels,

@@ -4,7 +4,8 @@
     "expo-router": "catalog:",
     "lodash": "catalog:",
     "luxon": "catalog:",
-    "react-native": "catalog:"
+    "react-native": "catalog:",
+    "recharts": "^2.15.0"
   },
   "description": "Admin panel frontend screens for @terreno/api backends",
   "devDependencies": {
