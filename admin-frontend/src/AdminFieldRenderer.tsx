@@ -9,6 +9,8 @@ import startCase from "lodash/startCase";
 import React from "react";
 import {AdminNestedArrayField} from "./AdminNestedArrayField";
 import {AdminRefField} from "./AdminRefField";
+import {CheckboxListEditor} from "./CheckboxListEditor";
+import {LocaleContentEditor} from "./LocaleContentEditor";
 import type {AdminFieldConfig, AdminScreenProps} from "./types";
 
 // Attempts to parse a string as JSON, returning the parsed value or the raw string
@@ -156,12 +158,16 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
 
   // Enum -> SelectField
   if (fieldConfig.enum && fieldConfig.enum.length > 0) {
-    const options = fieldConfig.enum.map((v: string) => ({label: startCase(v), value: v}));
+    const includesNullOption = fieldConfig.enum.some((value: any) => value == null);
+    const enumOptions = fieldConfig.enum
+      .filter((value: any): value is string => typeof value === "string")
+      .map((v: string) => ({label: startCase(v), value: v}));
+    const options = includesNullOption ? [{label: "None", value: ""}, ...enumOptions] : enumOptions;
     return (
       <SelectField
         errorText={errorText}
         helperText={helperText}
-        onChange={onChange}
+        onChange={(nextValue: string) => onChange(nextValue === "" ? undefined : nextValue)}
         options={options}
         title={label}
         value={value ?? ""}
@@ -201,6 +207,45 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value != null ? String(value) : ""}
+      />
+    );
+  }
+
+  // Locale content widget (Map<locale, markdown>)
+  if (fieldConfig.widget === "locale-content") {
+    return (
+      <LocaleContentEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? {}}
+      />
+    );
+  }
+
+  // Locale default widget — dropdown populated from sibling content field's locale keys
+  if (fieldConfig.widget === "locale-default") {
+    const contentMap = parentFormState?.content;
+    const localeKeys =
+      contentMap && typeof contentMap === "object" && !Array.isArray(contentMap)
+        ? Object.keys(contentMap)
+        : [];
+    const hasLocales = localeKeys.length > 0;
+    const options = localeKeys.map((k) => ({label: k.toUpperCase(), value: k}));
+    return (
+      <SelectField
+        disabled={!hasLocales}
+        errorText={errorText}
+        helperText={
+          hasLocales
+            ? helperText
+            : "Add at least one locale with content before setting a default locale."
+        }
+        onChange={onChange}
+        options={options}
+        title={label}
+        value={value ?? ""}
       />
     );
   }
@@ -272,6 +317,36 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
+        testID={`admin-field-${fieldKey}`}
+        title={label}
+        value={value ?? ""}
+      />
+    );
+  }
+
+  // Checkbox list widget
+  if (fieldConfig.widget === "checkbox-list") {
+    return (
+      <CheckboxListEditor
+        errorText={errorText}
+        helperText={helperText}
+        onChange={onChange}
+        title={label}
+        value={value ?? []}
+      />
+    );
+  }
+
+  // Textarea widget
+  if (fieldConfig.widget === "textarea") {
+    return (
+      <TextField
+        errorText={errorText}
+        grow
+        helperText={helperText}
+        multiline
+        onChange={onChange}
+        rows={6}
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={value ?? ""}

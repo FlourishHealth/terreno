@@ -63,6 +63,20 @@ config.resolver.unstable_enableSymlinks = true;
 // This prevents the "Invalid hook call" error caused by duplicate React instances
 const reactPackages = ["react", "react-dom", "react-native", "react-native-web"];
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
+  if (platform === "web" && moduleName === "jspdf") {
+    try {
+      const uiDir = path.resolve(monorepoRoot, "ui");
+      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, monorepoRoot]}));
+      return {
+        type: "sourceFile",
+        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+      };
+    } catch {
+      // jspdf not resolvable — let Metro handle it
+    }
+  }
+
   // Check if this is a React-related import
   const packageName = reactPackages.find(
     (pkg) => moduleName === pkg || moduleName.startsWith(pkg + "/")

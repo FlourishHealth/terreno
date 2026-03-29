@@ -209,7 +209,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     }
     navigation.setOptions({
       headerRight: () => (
-        <Box paddingX={4} paddingY={2}>
+        <Box alignItems="center" justifyContent="center" marginRight={3}>
           <Button
             onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
             testID="admin-create-button"

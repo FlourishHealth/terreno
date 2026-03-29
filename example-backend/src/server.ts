@@ -6,11 +6,15 @@ import {
   type AuthProvider,
   BetterAuthApp,
   type BetterAuthConfig,
+  ConsentApp,
+  ConsentForm,
+  ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
+  syncConsents,
   TerrenoApp,
   VersionCheckPlugin,
 } from "@terreno/api";
@@ -18,11 +22,13 @@ import {HealthApp} from "@terreno/api-health";
 import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
+import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
+import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
@@ -104,6 +110,11 @@ export async function start(skipListen = false): Promise<express.Application> {
   // Connect to MongoDB first
   await connectToMongoDB();
 
+  // Sync default consent forms on startup
+  await syncConsents(consentDefinitions).catch((err: unknown) => {
+    logger.warn(`Failed to sync consent forms on startup: ${err}`);
+  });
+
   // Enable OpenAPI request validation. Strips unknown properties and logs them.
   configureOpenApiValidator({
     onAdditionalPropertiesRemoved: (props: string[], req: {method: string; path: string}) => {
@@ -157,6 +168,9 @@ export async function start(skipListen = false): Promise<express.Application> {
     })
       .configure(AppConfiguration)
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
+      .register(
+        createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
+      )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
       .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
@@ -208,10 +222,45 @@ export async function start(skipListen = false): Promise<express.Application> {
             },
             {
               displayName: "Users",
+              hiddenFields: ["hash", "salt"],
               listFields: ["email", "name", "admin", "created"],
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
               routePath: "/users",
+            },
+            {
+              displayName: "Consent Forms",
+              fieldOrder: [
+                "title",
+                "slug",
+                "type",
+                "version",
+                "order",
+                "active",
+                "required",
+                "content",
+                "defaultLocale",
+                "requireScrollToBottom",
+                "captureSignature",
+                "agreeButtonText",
+                "allowDecline",
+                "declineButtonText",
+                "checkboxes",
+              ],
+              fieldOverrides: {
+                checkboxes: {widget: "checkbox-list"},
+                content: {widget: "locale-content"},
+                defaultLocale: {widget: "locale-default"},
+              },
+              listFields: ["title", "type", "version", "active", "order"],
+              model: ConsentForm,
+              routePath: "/consent-forms",
+            },
+            {
+              displayName: "Consent Responses",
+              listFields: ["userId", "agreed", "locale", "agreedAt"],
+              model: ConsentResponse,
+              routePath: "/consent-responses",
             },
           ],
           scripts: [
@@ -226,6 +275,34 @@ export async function start(skipListen = false): Promise<express.Application> {
                   results.push("Wet run: no additional changes made by this script");
                 } else {
                   results.push("Dry run: no changes made");
+                }
+                return {results, success: true};
+              },
+            },
+            {
+              description:
+                "Sync consent forms (Terms of Service, Privacy Policy) from code definitions to the database",
+              name: "syncConsents",
+              runner: async (wetRun) => {
+                const result = await syncConsents(consentDefinitions, {
+                  deactivateRemoved: true,
+                  dryRun: !wetRun,
+                });
+                const results: string[] = [];
+                if (result.created.length > 0) {
+                  results.push(`Created: ${result.created.join(", ")}`);
+                }
+                if (result.updated.length > 0) {
+                  results.push(`Updated: ${result.updated.join(", ")}`);
+                }
+                if (result.deactivated.length > 0) {
+                  results.push(`Deactivated: ${result.deactivated.join(", ")}`);
+                }
+                if (result.unchanged.length > 0) {
+                  results.push(`Unchanged: ${result.unchanged.join(", ")}`);
+                }
+                if (results.length === 0) {
+                  results.push("Nothing to do");
                 }
                 return {results, success: true};
               },
@@ -248,6 +325,13 @@ export async function start(skipListen = false): Promise<express.Application> {
               },
             },
           ],
+        })
+      )
+      .register(
+        new ConsentApp({
+          auditTrail: true,
+          resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
+          supportedLocales: ["en", "es"],
         })
       );
 

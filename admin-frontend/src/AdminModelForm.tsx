@@ -14,12 +14,75 @@ interface AdminModelFormProps {
   modelName: string;
   mode: "create" | "edit";
   itemId?: string;
+  footerContent?: React.ReactNode;
+  transformPayload?: (params: {mode: "create" | "edit"; payload: Record<string, any>}) => Promise<
+    Record<string, any>
+  > | Record<string, any>;
+  onSaveSuccess?: (params: {
+    mode: "create" | "edit";
+    payload: Record<string, any>;
+    result: any;
+    itemId?: string;
+  }) => Promise<void> | void;
 }
 
 const getEditableFields = (
-  fields: Record<string, AdminFieldConfig>
+  fields: Record<string, AdminFieldConfig>,
+  fieldOrder?: string[]
 ): [string, AdminFieldConfig][] => {
-  return Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
+  const entries = Object.entries(fields).filter(([key]) => !SYSTEM_FIELDS.has(key));
+  if (!fieldOrder || fieldOrder.length === 0) {
+    return entries;
+  }
+  const entryMap = new Map(entries);
+  const ordered: [string, AdminFieldConfig][] = [];
+  for (const key of fieldOrder) {
+    const config = entryMap.get(key);
+    if (config) {
+      ordered.push([key, config]);
+      entryMap.delete(key);
+    }
+  }
+  // Append any remaining fields not in fieldOrder
+  for (const [key, config] of entryMap) {
+    ordered.push([key, config]);
+  }
+  return ordered;
+};
+
+const getFieldDefault = (fieldConfig: AdminFieldConfig): any => {
+  if (fieldConfig.default !== undefined) {
+    return fieldConfig.default;
+  }
+  if (fieldConfig.type === "boolean") {
+    return false;
+  }
+  if (fieldConfig.type === "number") {
+    return 0;
+  }
+  return "";
+};
+
+const sanitizePayloadValue = (value: any): any => {
+  if (value === null) {
+    return undefined;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => sanitizePayloadValue(item))
+      .filter((item) => item !== undefined);
+  }
+  if (value && typeof value === "object") {
+    const nextValue: Record<string, any> = {};
+    for (const [key, childValue] of Object.entries(value)) {
+      const sanitizedChild = sanitizePayloadValue(childValue);
+      if (sanitizedChild !== undefined) {
+        nextValue[key] = sanitizedChild;
+      }
+    }
+    return nextValue;
+  }
+  return value;
 };
 
 const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loading, onDelete}) => (
@@ -93,6 +156,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   modelName,
   mode,
   itemId,
+  footerContent,
+  transformPayload,
+  onSaveSuccess,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
   const [formState, setFormState] = useState<Record<string, any>>({});
@@ -126,9 +192,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, any> = {};
       if (modelConfig) {
-        for (const [key, fieldConfig] of getEditableFields(modelConfig.fields)) {
-          const defaultEmpty = fieldConfig.type === "array" ? [] : "";
-          initial[key] = itemData[key] ?? defaultEmpty;
+        for (const [key, fieldConfig] of getEditableFields(
+          modelConfig.fields,
+          modelConfig.fieldOrder
+        )) {
+          const raw = itemData[key];
+          initial[key] = raw ?? getFieldDefault(fieldConfig);
         }
       }
       setFormState(initial);
@@ -140,12 +209,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, any> = {};
-      for (const [key, fieldConfig] of getEditableFields(modelConfig.fields)) {
-        if (fieldConfig.type === "array") {
-          initial[key] = fieldConfig.default ?? [];
-        } else {
-          initial[key] = fieldConfig.default ?? "";
-        }
+      for (const [key, fieldConfig] of getEditableFields(
+        modelConfig.fields,
+        modelConfig.fieldOrder
+      )) {
+        initial[key] = getFieldDefault(fieldConfig);
       }
       setFormState(initial);
       setIsInitialized(true);
@@ -166,7 +234,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return false;
     }
     const newErrors: Record<string, string> = {};
-    for (const [key, fieldConfig] of getEditableFields(modelConfig.fields)) {
+    for (const [key, fieldConfig] of getEditableFields(
+      modelConfig.fields,
+      modelConfig.fieldOrder
+    )) {
       if (fieldConfig.required && (formState[key] == null || formState[key] === "")) {
         newErrors[key] = `${key} is required`;
       }
@@ -175,37 +246,40 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     return Object.keys(newErrors).length === 0;
   }, [modelConfig, formState]);
 
-  const cleanFormState = useCallback((): Record<string, any> => {
-    if (!modelConfig) {
-      return formState;
-    }
-    const cleaned: Record<string, any> = {};
-    for (const [key, value] of Object.entries(formState)) {
-      const fieldConfig = modelConfig.fields[key];
-      if ((value === "" || value == null) && fieldConfig && !fieldConfig.required) {
-        continue;
-      }
-      cleaned[key] = value;
-    }
-    return cleaned;
-  }, [formState, modelConfig]);
-
   const handleSave = useCallback(async () => {
     if (!validate()) {
       return;
     }
     try {
-      const body = cleanFormState();
+      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, any>;
+      const payload = transformPayload
+        ? await transformPayload({mode, payload: sanitizedPayload})
+        : sanitizedPayload;
+      let result: any;
       if (mode === "create") {
-        await createItem(body).unwrap();
+        result = await createItem(payload).unwrap();
       } else if (itemId) {
-        await updateItem({body, id: itemId}).unwrap();
+        result = await updateItem({body: payload, id: itemId}).unwrap();
+      }
+      if (onSaveSuccess) {
+        await onSaveSuccess({itemId, mode, payload, result});
       }
       router.back();
     } catch (err) {
       toast.catch(err, `Failed to ${mode === "create" ? "create" : "update"} ${modelName}`);
     }
-  }, [mode, cleanFormState, itemId, createItem, updateItem, validate, toast, modelName]);
+  }, [
+    mode,
+    formState,
+    itemId,
+    createItem,
+    updateItem,
+    validate,
+    toast,
+    modelName,
+    transformPayload,
+    onSaveSuccess,
+  ]);
 
   const handleDelete = useCallback(async () => {
     if (!itemId) {
@@ -220,31 +294,27 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [itemId, deleteItem, toast, modelName]);
 
   const isSaving = isCreating || isUpdating;
-  const saveLabel = mode === "create" ? "Create" : "Save";
 
-  // Set header title and action buttons (save/delete)
+  // Set header action buttons (save/delete)
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    const title =
-      mode === "create" ? `Create ${modelConfig.displayName}` : `Edit ${modelConfig.displayName}`;
     navigation.setOptions({
       headerRight: () => (
-        <Box direction="row" gap={2} paddingX={4} paddingY={2}>
+        <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
           {mode === "edit" && <DeleteButton loading={isDeleting} onDelete={handleDelete} />}
           <Button
             loading={isSaving}
             onClick={handleSave}
             testID="admin-save-button"
-            text={saveLabel}
+            text={mode === "create" ? "Create" : "Save"}
             variant="primary"
           />
         </Box>
       ),
-      title,
     });
-  }, [navigation, mode, modelConfig, isSaving, isDeleting, handleSave, handleDelete, saveLabel]);
+  }, [navigation, modelConfig, mode, isSaving, isDeleting, handleSave, handleDelete]);
 
   if (isConfigLoading || !modelConfig) {
     return (
@@ -266,7 +336,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     );
   }
 
-  const editableFields = getEditableFields(modelConfig.fields);
+  const editableFields = getEditableFields(modelConfig.fields, modelConfig.fieldOrder);
 
   const modelConfigs =
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
@@ -289,6 +359,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           />
         ))}
         {editableFields.length === 0 && <EmptyFields />}
+        {footerContent}
       </Box>
     </Page>
   );

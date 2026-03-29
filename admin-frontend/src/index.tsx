@@ -7,8 +7,13 @@ export {AdminRefField} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
 export {AdminVersionConfig} from "./AdminVersionConfig";
+export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
+export {ConsentFormEditor} from "./ConsentFormEditor";
+export {ConsentFormList} from "./ConsentFormList";
+export {ConsentResponseViewer} from "./ConsentResponseViewer";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
+export {LocaleContentEditor} from "./LocaleContentEditor";
 export type {
   AdminConfigResponse,
   AdminCustomScreen,

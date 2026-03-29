@@ -38,7 +38,7 @@ const ProfileScreen: React.FC = () => {
     [flags]
   );
 
-  const profile = profileResponse?.data;
+  const profile = profileResponse;
 
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -131,6 +131,8 @@ const ProfileScreen: React.FC = () => {
   const handleNavigateToAdmin = useCallback((): void => {
     router.push("/admin");
   }, [router]);
+
+  const isAdmin = profile?.admin === true;
 
   if (isLoading) {
     return (
@@ -313,17 +315,19 @@ const ProfileScreen: React.FC = () => {
           </Box>
         </Card>
 
-        <Card marginBottom={6}>
-          <Box gap={4}>
-            <Heading size="lg">Developer</Heading>
-            <Button
-              iconName="gear"
-              onClick={handleNavigateToAdmin}
-              text="Admin Panel"
-              variant="secondary"
-            />
-          </Box>
-        </Card>
+        {isAdmin && (
+          <Card marginBottom={6}>
+            <Box gap={4}>
+              <Heading size="lg">Developer</Heading>
+              <Button
+                iconName="gear"
+                onClick={handleNavigateToAdmin}
+                text="Admin Panel"
+                variant="secondary"
+              />
+            </Box>
+          </Card>
+        )}
       </Box>
     </Page>
   );

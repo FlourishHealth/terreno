@@ -42,6 +42,10 @@ export interface AdminModelConfig {
   defaultSort?: string;
   /** Per-field overrides for widget type and other display options */
   fieldOverrides?: Record<string, AdminFieldOverride>;
+  /** Ordered list of field names for the form. Fields not listed are appended at the end. */
+  fieldOrder?: string[];
+  /** Fields to hide from admin forms/responses (e.g., password hash fields). */
+  hiddenFields?: string[];
 }
 
 /**
@@ -87,6 +91,7 @@ interface AdminModelMeta {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldMeta>;
+  fieldOrder?: string[];
 }
 
 interface AdminScriptMeta {
@@ -99,6 +104,30 @@ interface AdminConfigResponse {
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
 }
+
+const toPlainObject = (value: any): any => {
+  if (value && typeof value === "object" && typeof value.toObject === "function") {
+    return value.toObject();
+  }
+  return value;
+};
+
+const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => removeHiddenFields(item, hiddenFieldSet));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const plainValue = toPlainObject(value as any);
+  const nextValue: Record<string, unknown> = {};
+  for (const [key, fieldValue] of Object.entries(plainValue)) {
+    if (!hiddenFieldSet.has(key)) {
+      nextValue[key] = fieldValue;
+    }
+  }
+  return nextValue;
+};
 
 const extractFieldMeta = (
   properties: Record<string, any>,
@@ -204,9 +233,14 @@ export class AdminApp {
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
       const {properties, required} = getOpenApiSpecForModel(config.model);
+      const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+      const filteredProperties = Object.fromEntries(
+        Object.entries(properties).filter(([key]) => !hiddenFieldSet.has(key))
+      );
+      const filteredRequired = required.filter((key) => !hiddenFieldSet.has(key));
 
       // Extract ref information directly from the Mongoose schema
-      const fields = extractFieldMeta(properties, required);
+      const fields = extractFieldMeta(filteredProperties, filteredRequired);
       for (const [key, field] of Object.entries(fields)) {
         const schemaPath = config.model.schema.path(key);
         if (schemaPath) {
@@ -233,8 +267,9 @@ export class AdminApp {
       return {
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
+        fieldOrder: config.fieldOrder,
         fields,
-        listFields: config.listFields,
+        listFields: config.listFields.filter((field) => !hiddenFieldSet.has(field)),
         name: config.model.modelName,
         routePath: `${basePath}${config.routePath}`,
       };
@@ -337,6 +372,7 @@ export class AdminApp {
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
+      const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApi ? {openApi: openApi as any} : {}),
         permissions: {
@@ -346,6 +382,11 @@ export class AdminApp {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
+        responseHandler:
+          hiddenFieldSet.size > 0
+            ? async (value, _method, _request, _options): Promise<any> =>
+                removeHiddenFields(value, hiddenFieldSet) as any
+            : undefined,
         sort: config.defaultSort ?? "-created",
       };
 
