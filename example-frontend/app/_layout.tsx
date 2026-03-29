@@ -5,10 +5,12 @@ import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
 import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
-import {TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
+import {ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
+import {terrenoApi} from "@/store/sdk";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -68,6 +70,7 @@ export default function RootLayout(): React.ReactElement | null {
 
 function RootLayoutNav(): React.ReactElement {
   const userId = useSelectCurrentUserId();
+  const profile = useReadProfile();
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
@@ -110,7 +113,7 @@ function RootLayoutNav(): React.ReactElement {
     );
   }
 
-  return (
+  const stack = (
     <Stack screenOptions={{headerShown: false}}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin" />
@@ -118,4 +121,20 @@ function RootLayoutNav(): React.ReactElement {
       <Stack.Screen name="signup" />
     </Stack>
   );
+
+  if (userId && !profile?.admin) {
+    console.info("[RootLayout] Non-admin user, wrapping with ConsentNavigator", {
+      admin: profile?.admin,
+      profileLoaded: !!profile,
+      userId,
+    });
+    return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
+  }
+
+  console.debug("[RootLayout] Skipping ConsentNavigator", {
+    admin: profile?.admin,
+    profileLoaded: !!profile,
+    userId: userId ?? "none",
+  });
+  return stack;
 }
