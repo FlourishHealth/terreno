@@ -73,7 +73,7 @@ const ToolList: React.FC<{mcpTools: UseMCPToolsResult}> = ({mcpTools}) => {
   return (
     <Box direction="row" gap={2} padding={2} wrap>
       {tools.map((tool: MCPToolInfo) => (
-        <Badge key={tool.name} text={tool.name} />
+        <Badge key={tool.name} value={tool.name} />
       ))}
     </Box>
   );
@@ -143,7 +143,7 @@ export const AdminMCPChat: React.FC<AdminMCPChatProps> = ({
   const keyExtractor = useCallback((item: ChatMessage): string => item.id, []);
 
   return (
-    <Page maxWidth={800} scroll testID="admin-mcp-chat-screen" title="MCP Chat">
+    <Page maxWidth={800} scroll title="MCP Chat">
       <Box flex="grow" padding={4}>
         <Box marginBottom={4}>
           <Text color="secondaryLight" size="sm">
