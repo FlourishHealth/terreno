@@ -10,7 +10,7 @@ import {
   preparePromptForAI,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import {logger} from "@terreno/api";
+import {getMCPTools, logger} from "@terreno/api";
 import type {Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
@@ -291,9 +291,12 @@ const GENERATE_PDF_DESCRIPTION =
   "Generate a PDF document. ONLY use this tool when the user explicitly asks to create or generate a PDF file. Do NOT use for regular text questions. Use markdown-style formatting in content: # for main headings, ## for subheadings, - for bullet points, and blank lines between paragraphs.";
 
 const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
+  const tools: Record<string, Tool> = {...(getMCPTools(req.user as any) as any)};
+
   const apiKey = req.headers["x-ai-api-key"] as string | undefined;
   if (!apiKey) {
-    return {};
+    return tools;
   }
 
   const imageTool = tool({
@@ -330,7 +333,8 @@ const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
     {text: output.description ?? "Image generated.", type: "text"},
   ];
 
-  return {generate_image: imageTool as Tool};
+  tools.generate_image = imageTool as Tool;
+  return tools;
 };
 
 const pdfTool = tool({

@@ -12,6 +12,11 @@ export const addTodoRoutes = (
     "/todos",
     modelRouter(Todo, {
       ...options,
+      mcp: {
+        excludeFields: ["ownerId"],
+        maxLimit: 25,
+        methods: ["list", "read", "create", "update", "delete"],
+      },
       permissions: {
         create: [Permissions.IsAuthenticated],
         delete: [Permissions.IsOwner],
