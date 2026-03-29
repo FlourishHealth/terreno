@@ -34,7 +34,7 @@ describe("TimezonePicker", () => {
   });
 
   it("renders worldwide timezones when specified", () => {
-    const {toJSON, getByTestId} = renderWithTheme(
+    const {toJSON} = renderWithTheme(
       <TimezonePicker location="Worldwide" onChange={() => {}} timezone="Europe/London" />
     );
     const json = toJSON();

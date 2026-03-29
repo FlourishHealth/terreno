@@ -1,6 +1,6 @@
 import {FontAwesome6} from "@expo/vector-icons";
 import {DateTime} from "luxon";
-import React, {type FC, useCallback, useEffect, useRef, useState} from "react";
+import React, {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Pressable, TextInput, View} from "react-native";
 
 import {Box} from "./Box";
@@ -397,11 +397,12 @@ interface FieldConfig {
  * AM/PM {@link SelectField}, {@link TimezonePicker}, and a calendar/clock {@link IconButton}
  * that opens the {@link DateTimeActionSheet}.
  *
- * ## Mobile Behavior
- * Date segments remain visible but non-editable. Time segments are replaced with a
- * {@link MobileTimeDisplay} showing the formatted time (e.g. "02:30 PM CDT").
- * Tapping anywhere on the field opens the {@link DateTimeActionSheet} with native
- * picker wheels for selection. This follows the Figma design system's mobile pattern.
+ * ## Mobile Behavior (type="datetime")
+ * On mobile when `type="datetime"`, date segments remain visible but non-editable. Time
+ * segments are replaced with a {@link MobileTimeDisplay} showing the formatted time
+ * (e.g. "02:30 PM CDT"). Tapping anywhere on the field opens the
+ * {@link DateTimeActionSheet} with native picker wheels for selection. This follows the
+ * Figma design system's mobile pattern.
  *
  * All values are emitted as UTC ISO 8601 strings via the `onChange` callback.
  */
@@ -924,7 +925,22 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   const isMobileDatetime = isMobile && type === "datetime";
   const showDateSection = type === "date" || type === "datetime";
   const showDesktopTime = !isMobile && (type === "time" || type === "datetime");
-  const timezoneAbbr = DateTime.now().setZone(timezone).offsetNameShort ?? "";
+  const timezoneAbbr = useMemo((): string => {
+    if (value) {
+      const parsed = DateTime.fromISO(value);
+      if (parsed.isValid) {
+        return parsed.setZone(timezone).offsetNameShort ?? "";
+      }
+    }
+    const iso = getISOFromFields();
+    if (iso) {
+      const parsed = DateTime.fromISO(iso);
+      if (parsed.isValid) {
+        return parsed.setZone(timezone).offsetNameShort ?? "";
+      }
+    }
+    return DateTime.now().setZone(timezone).offsetNameShort ?? "";
+  }, [value, getISOFromFields, timezone]);
   const mobileTimeDisplayText =
     hour && minute ? `${hour}:${minute} ${amPm.toUpperCase()} ${timezoneAbbr}` : "";
   const mobileTimePlaceholder = `12:00 PM ${timezoneAbbr}`;
@@ -980,6 +996,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
       {!isMobileTimeOnly && (
         <Pressable
+          accessibilityHint={isMobileDatetime ? "Opens date and time picker" : undefined}
+          accessibilityLabel={isMobileDatetime ? "Date and time picker" : undefined}
+          accessibilityRole={isMobileDatetime ? "button" : undefined}
           disabled={!isMobileDatetime || disabled}
           onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
           onPress={openActionSheet}
