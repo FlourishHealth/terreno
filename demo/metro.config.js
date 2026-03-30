@@ -4,7 +4,7 @@ const fs = require("fs");
 
 // Find the project and workspace directories
 const projectRoot = __dirname;
-// This can be replaced with `find-yarn-workspace-root`
+// This can be replaced with `find-bun-workspace-root` or similar
 const monorepoRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);
@@ -63,6 +63,20 @@ config.resolver.unstable_enableSymlinks = true;
 // This prevents the "Invalid hook call" error caused by duplicate React instances
 const reactPackages = ["react", "react-dom", "react-native", "react-native-web"];
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
+  if (platform === "web" && moduleName === "jspdf") {
+    try {
+      const uiDir = path.resolve(monorepoRoot, "ui");
+      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, monorepoRoot]}));
+      return {
+        type: "sourceFile",
+        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+      };
+    } catch {
+      // jspdf not resolvable — let Metro handle it
+    }
+  }
+
   // Check if this is a React-related import
   const packageName = reactPackages.find(
     (pkg) => moduleName === pkg || moduleName.startsWith(pkg + "/")

@@ -9,6 +9,7 @@
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",
     "expo-constants": "catalog:",
+    "expo-dev-client": "catalog:",
     "expo-font": "catalog:",
     "expo-notifications": "catalog:",
     "expo-router": "catalog:",
@@ -19,7 +20,10 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
+    "react-native-reanimated": "catalog:",
     "react-native-web": "catalog:",
+    "react-native-webview": "catalog:",
+    "react-native-worklets": "catalog:",
     "react-redux": "catalog:",
     "redux-persist": "catalog:"
   },
@@ -29,7 +33,7 @@
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
-    "babel-preset-expo": "~55.0.6",
+    "babel-preset-expo": "~54.0.10",
     "typescript": "catalog:"
   },
   "main": "index.js",
@@ -44,7 +48,9 @@
     "lint:unsafefix": "biome check --write . --unsafe",
     "sdk": "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
     "start": "bun expo start --port 8082",
-    "test": "bun test",
+    "test": "bun test ./**/*.test.ts ./**/*.test.tsx",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report",
     "web": "bun expo start --web --port 8082"
   },
   "version": "1.0.0"

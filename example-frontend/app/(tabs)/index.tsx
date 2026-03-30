@@ -1,4 +1,6 @@
+import {useFeatureFlags} from "@terreno/rtk";
 import {
+  Badge,
   Box,
   Button,
   Card,
@@ -12,9 +14,10 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
-import {Pressable, RefreshControl, ScrollView} from "react-native";
+import {RefreshControl, ScrollView} from "react-native";
 import {
   type Todo,
+  terrenoApi,
   useDeleteTodosByIdMutation,
   useGetTodosQuery,
   usePatchTodosByIdMutation,
@@ -47,12 +50,14 @@ const TodoItem: React.FC<{
   }, [todo.id, onDelete]);
 
   return (
-    <Card marginBottom={2}>
+    <Card marginBottom={2} testID={`todos-item-${todo.id}`}>
       <Box alignItems="center" direction="row" justifyContent="between">
-        <Pressable
-          disabled={isUpdating}
-          onPress={handleToggle}
-          style={{alignItems: "center", flex: 1, flexDirection: "row"}}
+        <Box
+          alignItems="center"
+          direction="row"
+          flex="grow"
+          onClick={isUpdating ? undefined : handleToggle}
+          testID={`todos-toggle-${todo.id}`}
         >
           <Box marginRight={3}>
             <CheckBox selected={todo.completed} size="md" />
@@ -62,12 +67,13 @@ const TodoItem: React.FC<{
               {todo.title}
             </Text>
           </Box>
-        </Pressable>
+        </Box>
         <IconButton
           accessibilityLabel="Delete todo"
           disabled={isUpdating}
           iconName="trash"
           onClick={handleDelete}
+          testID={`todos-delete-${todo.id}`}
           variant="destructive"
         />
       </Box>
@@ -83,6 +89,9 @@ const TodosScreen: React.FC = () => {
   const [createTodo, {isLoading: isCreating}] = usePostTodosMutation();
   const [updateTodo] = usePatchTodosByIdMutation();
   const [deleteTodo] = useDeleteTodosByIdMutation();
+
+  const {getFlag} = useFeatureFlags(terrenoApi);
+  const showSummaryCard = getFlag("todo-summary-card");
 
   const todos = todosData?.data ?? [];
   const incompleteTodos = todos.filter((todo) => !todo.completed);
@@ -104,12 +113,13 @@ const TodosScreen: React.FC = () => {
   const handleToggleTodo = useCallback(
     async (id: string, completed: boolean): Promise<void> => {
       try {
-        await updateTodo({body: {completed}, id}).unwrap();
+        const todo = todos.find((t) => t.id === id);
+        await updateTodo({body: {completed, title: todo?.title ?? ""}, id}).unwrap();
       } catch (err) {
         console.error("Error updating todo:", err);
       }
     },
-    [updateTodo]
+    [updateTodo, todos]
   );
 
   const handleDeleteTodo = useCallback(
@@ -145,6 +155,7 @@ const TodosScreen: React.FC = () => {
     <ScrollView
       refreshControl={<RefreshControl onRefresh={handleRefresh} refreshing={isFetching} />}
       style={{flex: 1}}
+      testID="todos-screen"
     >
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>
@@ -152,14 +163,30 @@ const TodosScreen: React.FC = () => {
             <Heading size="xl">My Todos</Heading>
           </Box>
 
+          {/* Summary card — gated by "todo-summary-card" feature flag */}
+          {showSummaryCard && (
+            <Card marginBottom={4} testID="todos-summary-card">
+              <Box alignItems="center" direction="row" gap={3}>
+                <Badge status="warning" value={incompleteTodos.length} />
+                <Text size="sm">remaining</Text>
+                <Badge status="success" value={completedTodos.length} />
+                <Text size="sm">completed</Text>
+                <Badge status="info" value={todos.length} />
+                <Text size="sm">total</Text>
+              </Box>
+            </Card>
+          )}
+
           {/* Add new todo */}
           <Card marginBottom={6}>
             <Box gap={3}>
               <TextField
                 disabled={isCreating}
+                id="todo-new-input"
                 onChange={setNewTodoTitle}
                 onEnter={handleCreateTodo}
                 placeholder="What needs to be done?"
+                testID="todos-new-title-input"
                 title="New Todo"
                 value={newTodoTitle}
               />
@@ -169,6 +196,7 @@ const TodosScreen: React.FC = () => {
                 iconName="plus"
                 loading={isCreating}
                 onClick={handleCreateTodo}
+                testID="todos-add-button"
                 text="Add Todo"
               />
             </Box>
@@ -180,7 +208,9 @@ const TodosScreen: React.FC = () => {
               <Heading size="lg">To Do ({incompleteTodos.length})</Heading>
             </Box>
             {incompleteTodos.length === 0 ? (
-              <Text color="secondaryLight">No todos yet. Add one above!</Text>
+              <Text color="secondaryLight" testID="todos-empty-text">
+                No todos yet. Add one above!
+              </Text>
             ) : (
               incompleteTodos.map((todo) => (
                 <TodoItem
@@ -196,14 +226,18 @@ const TodosScreen: React.FC = () => {
           {/* Completed todos */}
           {completedTodos.length > 0 && (
             <Box>
-              <Pressable onPress={toggleShowCompleted}>
-                <Box alignItems="center" direction="row" marginBottom={3}>
-                  <Heading size="lg">Completed ({completedTodos.length})</Heading>
-                  <Box marginLeft={2}>
-                    <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
-                  </Box>
+              <Box
+                alignItems="center"
+                direction="row"
+                marginBottom={3}
+                onClick={toggleShowCompleted}
+                testID="todos-completed-section-toggle"
+              >
+                <Heading size="lg">Completed ({completedTodos.length})</Heading>
+                <Box marginLeft={2}>
+                  <Text color="secondaryLight">{showCompleted ? "▼" : "▶"}</Text>
                 </Box>
-              </Pressable>
+              </Box>
               {showCompleted &&
                 completedTodos.map((todo) => (
                   <TodoItem

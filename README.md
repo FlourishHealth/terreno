@@ -3,8 +3,50 @@
 [![@terreno/api](https://img.shields.io/npm/v/@terreno/api?label=%40terreno%2Fapi)](https://www.npmjs.com/package/@terreno/api)
 [![@terreno/ui](https://img.shields.io/npm/v/@terreno/ui?label=%40terreno%2Fui)](https://www.npmjs.com/package/@terreno/ui)
 [![@terreno/rtk](https://img.shields.io/npm/v/@terreno/rtk?label=%40terreno%2Frtk)](https://www.npmjs.com/package/@terreno/rtk)
+[![@terreno/ai](https://img.shields.io/npm/v/@terreno/ai?label=%40terreno%2Fai)](https://www.npmjs.com/package/@terreno/ai)
+[![@terreno/admin-backend](https://img.shields.io/npm/v/@terreno/admin-backend?label=%40terreno%2Fadmin-backend)](https://www.npmjs.com/package/@terreno/admin-backend)
+[![@terreno/admin-frontend](https://img.shields.io/npm/v/@terreno/admin-frontend?label=%40terreno%2Fadmin-frontend)](https://www.npmjs.com/package/@terreno/admin-frontend)
+[![@terreno/api-health](https://img.shields.io/npm/v/@terreno/api-health?label=%40terreno%2Fapi-health)](https://www.npmjs.com/package/@terreno/api-health)
 
-A monorepo containing shared packages for building full-stack applications.
+**The full-stack TypeScript framework for building and launching apps fast.**
+
+Terreno is to React Native + Express what Django is to Python web development: a batteries-included framework where the generic, undifferentiated work is already done so you can focus on what makes your app unique — the business logic.
+
+## Vision
+
+Most apps need the same foundational pieces: authentication, user management, CRUD APIs, admin panels, real-time updates, AI integrations, consent flows, onboarding carousels. These features are table stakes — they don't differentiate your product, but they take weeks to build from scratch. Terreno handles all of it out of the box.
+
+**The goal:** all the low-level, generalized code lives in Terreno. Your app only contains business logic.
+
+### What Terreno gives you today
+
+- **Authentication** — Email/password, Google, GitHub, and Apple OAuth with JWT or Better Auth. Login, signup, token refresh, and session management all built in.
+- **REST APIs in minutes** — Define a Mongoose model, pass it to `modelRouter`, and get a full CRUD API with permissions, pagination, filtering, sorting, and OpenAPI docs.
+- **90+ UI components** — A themed React Native component library that works on iOS, Android, and web. Forms, tables, modals, navigation — everything you need to build real screens.
+- **Auto-generated frontend SDK** — Your backend's OpenAPI spec generates type-safe RTK Query hooks. Change a backend route and regenerate — no manual API wiring.
+- **Admin panel** — Register your models and get a full admin interface with list views, forms, and reference linking. No custom admin code needed.
+- **AI integration** — Provider-agnostic AI service with streaming chat, text generation, conversation history, and request logging. Plug in any model via Vercel AI SDK.
+- **Real-time** — Socket.io integration with auth-aware connections, auto-reconnect, and token refresh.
+
+### Where Terreno is headed
+
+- **Onboarding & signup flows** — Pre-built carousel-based signup experiences that you configure, not code.
+- **Consent & legal** — Terms of service, privacy policy, and consent form management baked into the framework.
+- **Notifications** — Push notifications, in-app notifications, and email with a unified API.
+- **File uploads & media** — Managed file storage with image processing and CDN integration.
+- **Feature flags & remote config** — Runtime configuration without redeploying.
+- **Background jobs** — Queued task processing for emails, data sync, and scheduled work.
+
+### The best way to build with AI
+
+Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
+
+### Philosophy
+
+- **Flexible but opinionated.** Terreno makes strong default choices (Mongoose, RTK Query, Expo Router) so you don't have to. But every layer is configurable when you need it to be.
+- **Your app is just business logic.** If most apps need it and it doesn't add unique value to your product, it belongs in Terreno, not in your codebase.
+- **Full-stack coherence.** Backend models flow into OpenAPI specs, which generate frontend hooks, which power typed UI components. One change propagates cleanly across the stack.
+- **Ship, don't configure.** Terreno optimizes for getting to a launchable product with minimal effort — not for maximum flexibility at the cost of productivity.
 
 ## Packages
 
@@ -13,10 +55,16 @@ A monorepo containing shared packages for building full-stack applications.
 - **api/** - REST API framework built on Express/Mongoose (published as `@terreno/api`)
 - **ui/** - React Native UI component library (published as `@terreno/ui`)
 - **rtk/** - Redux Toolkit Query utilities for @terreno/api backends (published as `@terreno/rtk`)
+- **ai/** - AI service layer with streaming chat, text generation, and Langfuse integration (published as `@terreno/ai`)
+- **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
+- **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
+- **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
 
 ### Deployed Services
 
 - **mcp-server/** - MCP (Model Context Protocol) server for AI coding assistants (deployed to `mcp.terreno.flourish.health`)
+- **example-backend/** - Example backend API (deployed to [prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app](https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app))
+- **example-frontend/** - Example frontend app (deployed to [terreno-frontend.netlify.app](https://terreno-frontend.netlify.app))
 
 ### Example/Demo Apps
 
@@ -96,6 +144,68 @@ Workspace packages reference these versions using `catalog:`:
 ```
 
 This ensures consistent versions across all packages. To update a shared dependency version, change it in the root `catalog` and run `bun install`.
+
+## Linking Terreno Packages in Another Repo
+
+Consumers (e.g. [Flourish](https://github.com/FlourishHealth/flourish)) can develop against local copies of any published package—`@terreno/api`, `@terreno/ui`, `@terreno/rtk`—or multiple at once, using Bun’s link feature.
+
+### Which package goes where
+
+- **@terreno/api** — Link in the consumer’s backend (e.g. `backend/package.json`). Restart the server after changes; run `bun run api:compile` or `bun run api:dev` in terreno so the consumer uses the built output.
+- **@terreno/ui** — Link in the consumer’s frontend app (e.g. `app/package.json`). When the app uses Metro/Expo, the consumer’s Metro config must be updated (see step 5 below). Run `bun run ui:compile` or `bun run ui:dev` in terreno so the consumer uses `ui/dist/`.
+- **@terreno/rtk** — Link in the consumer’s frontend app. If the app uses Metro and you link rtk, you may need the same Metro resolution tweaks as for ui so dependencies resolve from the app’s `node_modules`.
+
+### One-time setup in the consumer repo
+
+1. **Clone both repos**  
+   Place terreno next to the consumer repo (e.g. `flourish` and `terreno` as siblings). Adjust paths below if your layout differs.
+
+2. **Declare the link(s) in the right package.json**  
+   In the workspace that depends on the package, set the dependency to the link protocol. Examples for a consumer where terreno is at `../terreno`:
+   ```json
+   "@terreno/api": "link:../../terreno/api",
+   "@terreno/ui": "link:../../terreno/ui",
+   "@terreno/rtk": "link:../../terreno/rtk"
+   ```
+   You can link one, two, or all three; use the path that resolves from that package.json to the terreno package directory.
+
+3. **Register and link each package**  
+   For each package you’re linking, from the consumer repo:
+   ```bash
+   cd ../terreno/<package-dir> && bun link && cd - && cd <consumer-dir> && bun link @terreno/<name>
+   ```
+   Example for ui when the consumer app is in `app/`:
+   ```bash
+   cd ../terreno/ui && bun link && cd - && cd app && bun link @terreno/ui
+   ```
+   Repeat for api (from backend dir) and rtk (from app dir) as needed. Or use scripts in the consumer repo (e.g. `bun run link:ui`, `bun run link:api`) if they exist.
+
+4. **Fix symlinks if resolution fails**  
+   If Bun creates a bad relative symlink and the package can’t be resolved, replace it with an absolute path. From the consumer workspace that contains `node_modules`:
+   ```bash
+   rm node_modules/@terreno/<name>
+   ln -s /absolute/path/to/terreno/<package-dir> node_modules/@terreno/<name>
+   ```
+
+5. **Metro (Expo / React Native)**  
+   When linking **@terreno/ui** (and optionally **@terreno/rtk**) in an Expo/Metro app, the consumer’s Metro config must:
+   - Add the linked package directory (e.g. `terreno/ui`) to `watchFolders`
+   - Resolve the linked package’s dependencies from the app’s `node_modules` (e.g. `resolver.nodeModulesPaths` and a `resolveRequest` fallback for bare imports from the linked path) so there’s only one copy of React and all deps resolve.
+
+   See a consumer that already does this (e.g. Flourish’s `app/metro.config.js`) for a reference.
+
+6. **Restart dev servers**  
+   After linking or Metro config changes, restart the bundler with a clean cache (e.g. `bun start --clear`). For backend, restart the API server so it picks up the linked `@terreno/api`.
+
+### In the terreno repo
+
+- Run the relevant compile or dev command for each linked package so the consumer sees changes: `bun run api:compile` / `api:dev`, `bun run ui:compile` / `ui:dev`, `bun run rtk:compile` / `rtk:dev`.
+
+### Reverting to published packages
+
+In the consumer’s `package.json`, set each linked dependency back to a version (e.g. `"@terreno/ui": "0.0.17"`) and run `bun install` in that workspace.
+
+---
 
 ## Releasing
 

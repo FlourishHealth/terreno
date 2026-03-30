@@ -10,12 +10,12 @@ import {
   IconButton,
   Link,
   Page,
+  printDateAndTime,
   Spinner,
   Text,
 } from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
-import {DateTime} from "luxon";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import type {AdminFieldConfig, AdminModelConfig} from "./types";
 import {useAdminApi} from "./useAdminApi";
@@ -31,28 +31,34 @@ interface AdminModelTableProps {
 const ACTIONS_COLUMN_TYPE = "adminActions";
 const LINK_COLUMN_TYPE = "adminLink";
 const DEFAULT_LIMIT = 20;
+const DATE_FIELD_NAMES = new Set(["created", "updated", "deleted"]);
 
-const mapFieldTypeToColumnType = (fieldConfig: AdminFieldConfig): string => {
-  if (fieldConfig.type === "boolean") {
-    return "boolean";
+const getColumnType = (fieldKey: string, fieldConfig?: AdminFieldConfig): string => {
+  if (fieldConfig) {
+    if (fieldConfig.type === "boolean") {
+      return "boolean";
+    }
+    if (fieldConfig.type === "number") {
+      return "number";
+    }
+    if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+      return "date";
+    }
   }
-  if (fieldConfig.type === "number") {
-    return "number";
-  }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+  if (DATE_FIELD_NAMES.has(fieldKey)) {
     return "date";
   }
   return "text";
 };
 
-const getColumnWidth = (fieldKey: string, fieldConfig: AdminFieldConfig): number => {
-  if (fieldConfig.type === "boolean") {
+const getColumnWidth = (fieldKey: string, columnType: string): number => {
+  if (columnType === "boolean") {
     return 100;
   }
-  if (fieldConfig.type === "number") {
+  if (columnType === "number") {
     return 120;
   }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
+  if (columnType === "date") {
     return 180;
   }
   if (fieldKey === "_id") {
@@ -61,16 +67,18 @@ const getColumnWidth = (fieldKey: string, fieldConfig: AdminFieldConfig): number
   return 200;
 };
 
-const formatCellValue = (value: any, fieldConfig: AdminFieldConfig): string => {
+const formatCellValue = (value: any, columnType: string): string => {
   if (value == null) {
     return "";
   }
-  if (fieldConfig.type === "boolean") {
+  if (columnType === "boolean") {
     return value ? "\u2713" : "";
   }
-  if (fieldConfig.type === "date" || fieldConfig.type === "datetime") {
-    const dt = DateTime.fromISO(String(value));
-    return dt.isValid ? dt.toLocaleString(DateTime.DATETIME_SHORT) : String(value);
+  if (columnType === "date") {
+    return printDateAndTime(String(value), {defaultValue: String(value)});
+  }
+  if (Array.isArray(value)) {
+    return `${value.length} item${value.length === 1 ? "" : "s"}`;
   }
   if (typeof value === "object") {
     return value._id ?? JSON.stringify(value);
@@ -99,6 +107,86 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   return <Link onClick={() => router.push(href as any)} text={text} />;
 };
 
+const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
+  cellData,
+}) => {
+  const {id, baseUrl, modelName, onDelete} = cellData.value as {
+    id: string;
+    baseUrl: string;
+    modelName: string;
+    onDelete: (id: string) => void;
+  };
+  const href = `${baseUrl}/${modelName}/${id}`;
+  return (
+    <Box alignItems="center" direction="row" gap={1} justifyContent="end">
+      <IconButton
+        accessibilityLabel="View"
+        iconName="eye"
+        onClick={() => router.push(href as any)}
+        tooltipText="View"
+        variant="muted"
+      />
+      <IconButton
+        accessibilityLabel="Edit"
+        iconName="pen-to-square"
+        onClick={() => router.push(href as any)}
+        tooltipText="Edit"
+        variant="muted"
+      />
+      <IconButton
+        accessibilityLabel="Delete"
+        confirmationText="Are you sure you want to delete this item?"
+        iconName="trash"
+        onClick={() => onDelete(id)}
+        tooltipText="Delete"
+        variant="destructive"
+        withConfirmation
+      />
+    </Box>
+  );
+};
+
+const LoadingContent: React.FC = () => (
+  <Box alignItems="center" justifyContent="center" padding={6}>
+    <Spinner />
+  </Box>
+);
+
+const EmptyContent: React.FC = () => (
+  <Box alignItems="center" padding={6}>
+    <Text color="secondaryDark">No items found.</Text>
+  </Box>
+);
+
+/**
+ * Table view for a specific admin model with pagination, sorting, and CRUD actions.
+ *
+ * Displays model data in a DataTable with columns from the model's `listFields` configuration.
+ * Provides actions for creating new items, editing existing items, and deleting items.
+ * Supports pagination, sorting, and reference field rendering as clickable links.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.modelName - Name of the model to display (e.g., "User")
+ * @param props.columns - Optional array of field names to display. Defaults to model's listFields.
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelTable} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ * import {useLocalSearchParams} from "expo-router";
+ *
+ * function AdminModelScreen() {
+ *   const {modelName} = useLocalSearchParams();
+ *   return <AdminModelTable baseUrl="/admin" api={api} modelName={modelName as string} />;
+ * }
+ * ```
+ *
+ * @see AdminModelForm for the create/edit form
+ * @see AdminModelList for the model list screen
+ * @see useAdminApi for the CRUD API hooks
+ */
 export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   baseUrl,
   api,
@@ -115,13 +203,24 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [config, modelName]
   );
 
-  // Set the navigation header title to the model display name
   useEffect(() => {
     if (!modelConfig) {
       return;
     }
-    navigation.setOptions({title: modelConfig.displayName});
-  }, [navigation, modelConfig]);
+    navigation.setOptions({
+      headerRight: () => (
+        <Box alignItems="center" justifyContent="center" marginRight={3}>
+          <Button
+            onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+            testID="admin-create-button"
+            text="Create"
+            variant="primary"
+          />
+        </Box>
+      ),
+      title: modelConfig.displayName,
+    });
+  }, [navigation, modelConfig, baseUrl, modelName]);
 
   const displayFields = useMemo(
     () => columnsProp ?? modelConfig?.listFields ?? [],
@@ -144,10 +243,6 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   );
   const [deleteItem] = useDeleteMutation();
 
-  const handleCreate = useCallback(() => {
-    router.push(`${baseUrl}/${modelName}/create` as any);
-  }, [baseUrl, modelName]);
-
   const handleDelete = useCallback(
     async (id: string) => {
       try {
@@ -159,57 +254,18 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [deleteItem]
   );
 
-  const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> =
-    useCallback(
-      ({cellData}: {column: DataTableColumn; cellData: DataTableCellData}) => {
-        const {id} = cellData.value as {id: string};
-        const viewHref = `${baseUrl}/${modelName}/${id}`;
-        const editHref = `${baseUrl}/${modelName}/${id}`;
-        return (
-          <Box alignItems="center" direction="row" gap={1} justifyContent="end">
-            <IconButton
-              accessibilityLabel="View"
-              iconName="eye"
-              onClick={() => router.push(viewHref as any)}
-              tooltipText="View"
-              variant="muted"
-            />
-            <IconButton
-              accessibilityLabel="Edit"
-              iconName="pen-to-square"
-              onClick={() => router.push(editHref as any)}
-              tooltipText="Edit"
-              variant="muted"
-            />
-            <IconButton
-              accessibilityLabel="Delete"
-              confirmationText="Are you sure you want to delete this item?"
-              iconName="trash"
-              onClick={() => handleDelete(id)}
-              tooltipText="Delete"
-              variant="destructive"
-              withConfirmation
-            />
-          </Box>
-        );
-      },
-      [baseUrl, modelName, handleDelete]
-    );
-
   const customColumnComponentMap: DataTableCustomComponentMap = useMemo(
     () => ({
       [ACTIONS_COLUMN_TYPE]: AdminActionsCell,
       [LINK_COLUMN_TYPE]: AdminLinkCell,
     }),
-    [AdminActionsCell]
+    []
   );
 
   if (isConfigLoading || !modelConfig) {
     return (
       <Page maxWidth="100%">
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+        <LoadingContent />
       </Page>
     );
   }
@@ -217,15 +273,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const dataColumns: DataTableColumn[] = displayFields.map((fieldKey, index) => {
     const fieldConfig = modelConfig.fields[fieldKey];
     const isFirst = index === 0;
+    const columnType = getColumnType(fieldKey, fieldConfig);
     return {
-      columnType: isFirst
-        ? LINK_COLUMN_TYPE
-        : fieldConfig
-          ? mapFieldTypeToColumnType(fieldConfig)
-          : "text",
+      columnType: isFirst ? LINK_COLUMN_TYPE : columnType,
       sortable: true,
       title: startCase(fieldKey),
-      width: fieldConfig ? getColumnWidth(fieldKey, fieldConfig) : 200,
+      width: getColumnWidth(fieldKey, columnType),
     };
   });
 
@@ -243,54 +296,35 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const fieldCells = displayFields.map((fieldKey, index) => {
       const fieldConfig = modelConfig.fields[fieldKey];
       const isFirst = index === 0;
+      const columnType = getColumnType(fieldKey, fieldConfig);
+      const formatted = formatCellValue(item[fieldKey], columnType);
 
       if (isFirst) {
-        const displayText = fieldConfig
-          ? formatCellValue(item[fieldKey], fieldConfig)
-          : String(item[fieldKey] ?? "");
         return {
           value: {
             href: `${baseUrl}/${modelName}/${item._id}`,
-            text: displayText,
+            text: formatted,
           },
         };
       }
 
       return {
-        value: fieldConfig
-          ? formatCellValue(item[fieldKey], fieldConfig)
-          : String(item[fieldKey] ?? ""),
+        value: formatted,
       };
     });
 
-    const actionsCell = {value: {id: item._id}};
+    const actionsCell = {value: {baseUrl, id: item._id, modelName, onDelete: handleDelete}};
     return [...fieldCells, actionsCell];
   });
 
   const totalPages = listData ? Math.ceil(listData.total / DEFAULT_LIMIT) : 1;
 
   return (
-    <Page
-      footer={
-        <Box direction="row" justifyContent="end" padding={2}>
-          <Button
-            onClick={handleCreate}
-            testID="admin-create-button"
-            text="Create"
-            variant="primary"
-          />
-        </Box>
-      }
-      maxWidth="100%"
-    >
+    <Page maxWidth="100%">
       {isListLoading ? (
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+        <LoadingContent />
       ) : data.length === 0 ? (
-        <Box alignItems="center" padding={6}>
-          <Text color="secondaryDark">No items found.</Text>
-        </Box>
+        <EmptyContent />
       ) : (
         <DataTable
           columns={columns}

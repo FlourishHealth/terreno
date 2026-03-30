@@ -1,6 +1,49 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
 
+/**
+ * Hook that generates RTK Query CRUD hooks for a specific admin model.
+ *
+ * Dynamically injects endpoints for list, read, create, update, and delete operations
+ * into the provided RTK Query API. Returns typed hooks for each operation with automatic
+ * cache invalidation tags.
+ *
+ * @param api - RTK Query API instance to inject endpoints into
+ * @param routePath - Full route path to the model's endpoints (e.g., "/admin/users")
+ * @param modelName - Name of the model for cache tag generation (e.g., "User")
+ * @returns Object with hooks: `useListQuery`, `useReadQuery`, `useCreateMutation`, `useUpdateMutation`, `useDeleteMutation`
+ *
+ * @example
+ * ```typescript
+ * import {useAdminApi} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ *
+ * function UserList() {
+ *   const {useListQuery, useCreateMutation, useDeleteMutation} = useAdminApi(
+ *     api,
+ *     "/admin/users",
+ *     "User"
+ *   );
+ *
+ *   const {data, isLoading} = useListQuery({limit: 20, page: 1});
+ *   const [create, {isLoading: isCreating}] = useCreateMutation();
+ *   const [deleteUser] = useDeleteMutation();
+ *
+ *   const handleCreate = async () => {
+ *     await create({email: "test@example.com", name: "Test"}).unwrap();
+ *   };
+ *
+ *   const handleDelete = async (id: string) => {
+ *     await deleteUser(id).unwrap();
+ *   };
+ *
+ *   return <DataTable data={data?.data} />;
+ * }
+ * ```
+ *
+ * @see useAdminConfig for fetching model configurations
+ * @see AdminModelTable for usage in the table view
+ */
 export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
     const listKey = `adminList_${modelName}`;
@@ -9,7 +52,8 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
     const updateKey = `adminUpdate_${modelName}`;
     const deleteKey = `adminDelete_${modelName}`;
 
-    return api.injectEndpoints({
+    const tagType = `admin_${modelName}`;
+    return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
       endpoints: (build: any) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
@@ -55,7 +99,7 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
           }),
         }),
       }),
-      overrideExisting: false,
+      overrideExisting: true,
     });
   }, [api, routePath, modelName]);
 

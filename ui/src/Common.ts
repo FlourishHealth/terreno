@@ -630,6 +630,18 @@ export interface ErrorTextProps {
   errorText?: string;
 }
 
+export interface AiSuggestionProps {
+  status: "not-started" | "generating" | "ready" | "added";
+  text?: string;
+  onAdd?: () => void;
+  onHide?: () => void;
+  onShow?: () => void;
+  onFeedback?: (feedback: "like" | "dislike" | null) => void;
+  feedback?: "like" | "dislike" | null;
+  notStartedText?: string;
+  generatingText?: string;
+}
+
 export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
   type?: "email" | "password" | "phoneNumber" | "search" | "text" | "url";
 
@@ -642,6 +654,8 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
 
   inputRef?: any;
   trimOnBlur?: boolean;
+
+  aiSuggestion?: AiSuggestionProps;
 }
 
 export interface TextAreaProps extends Omit<TextFieldProps, "multiline" | "type"> {}
@@ -685,6 +699,13 @@ export interface SearchFieldProps extends BaseFieldProps, HelperTextProps, Error
 export interface PercentFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
 
 export interface CurrencyFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
+
+export interface HeightFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
+}
 
 export interface AddressFieldProps
   extends Omit<BaseFieldProps, "value" | "onChange" | "onBlur">,
@@ -1712,6 +1733,12 @@ export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
   actionSheetRef: React.RefObject<any>;
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
+  /** Title shown at the top of the action sheet */
+  title?: string;
 }
 
 export interface HyperlinkProps {
@@ -1891,6 +1918,7 @@ export interface PageProps {
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
+  loadingText?: string;
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;

@@ -7,6 +7,7 @@ import {addFileRoutes} from "./routes/files";
 import {addGptRoutes} from "./routes/gpt";
 import {addGptHistoryRoutes} from "./routes/gptHistories";
 import {addMcpRoutes} from "./routes/mcp";
+import {addProjectRoutes} from "./routes/projects";
 import type {AIService} from "./service/aiService";
 import type {FileStorageService} from "./service/fileStorage";
 import type {MCPService} from "./service/mcpService";
@@ -30,6 +31,8 @@ export interface AiAppOptions {
   openApiOptions?: Record<string, unknown>;
   /** Tool choice strategy for chat requests. Defaults to "auto" when tools are present. */
   toolChoice?: "auto" | "none" | "required";
+  /** Cheap model ID used for generating conversation titles (e.g. "gemini-2.0-flash-lite"). Falls back to the main model if not set. */
+  titleModelId?: string;
   /** Tool definitions available to the AI model during chat. */
   tools?: Record<string, Tool>;
 }
@@ -78,6 +81,7 @@ export class AiApp implements TerrenoPlugin {
       maxSteps,
       mcpService,
       openApiOptions,
+      titleModelId,
       toolChoice,
       tools,
     } = this.options;
@@ -90,10 +94,12 @@ export class AiApp implements TerrenoPlugin {
       maxSteps,
       mcpService,
       openApiOptions,
+      titleModelId,
       toolChoice,
       tools,
     });
     addAiRequestsExplorerRoutes(router, {openApiOptions});
+    addProjectRoutes(router, {openApiOptions});
 
     if (fileStorageService && gcsBucket) {
       addFileRoutes(router, {

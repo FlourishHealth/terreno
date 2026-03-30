@@ -7,8 +7,10 @@ import {
   addMcpRoutes,
   FileStorageService,
   MCPService,
+  preparePromptForAI,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
+import {logger} from "@terreno/api";
 import type {Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
@@ -18,6 +20,13 @@ import {z} from "zod";
 let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
+
+export const getFileStorageService = (): FileStorageService | undefined =>
+  fileStorageServiceInstance;
+
+export const setFileStorageService = (service: FileStorageService | undefined): void => {
+  fileStorageServiceInstance = service;
+};
 
 // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
 const getGoogleModule = (): any => {
@@ -80,7 +89,7 @@ const getMcpService = (): MCPService | undefined => {
   return mcpServiceInstance;
 };
 
-const getFileStorageService = (): FileStorageService | undefined => {
+const initFileStorageService = (): FileStorageService | undefined => {
   if (fileStorageServiceInstance) {
     return fileStorageServiceInstance;
   }
@@ -355,8 +364,52 @@ const pdfTool = tool({
   {text: output.description ?? "PDF generated.", type: "text"},
 ];
 
+const JOKE_FALLBACK_SYSTEM_PROMPT =
+  "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
+
+const jokeGeneratorTool = tool({
+  description:
+    "Generate a joke about any topic. Uses a Langfuse prompt template when configured, otherwise uses a built-in prompt.",
+  execute: async ({topic, style}: {topic: string; style?: string}) => {
+    const svc = getAiService();
+    if (!svc) {
+      return {joke: `Why did the developer quit? Because they couldn't find their ${topic}!`};
+    }
+
+    let systemPrompt = JOKE_FALLBACK_SYSTEM_PROMPT;
+    try {
+      const prepared = await preparePromptForAI({
+        promptName: "joke-generator",
+        variables: {style: style ?? "witty", topic},
+      });
+      if (typeof prepared.prompt === "string") {
+        systemPrompt = prepared.prompt;
+      }
+    } catch (err) {
+      logger.debug(`Langfuse prompt skipped for joke-generator: ${(err as Error).message}`);
+    }
+
+    const joke = await svc.generateText({
+      prompt: `Tell me a ${style ?? "witty"} joke about: ${topic}`,
+      systemPrompt,
+      temperature: 1.2,
+    });
+    return {joke: joke.trim()};
+  },
+  inputSchema: zodSchema(
+    z.object({
+      style: z
+        .string()
+        .optional()
+        .describe("Style of joke: witty, pun, dad joke, dark, absurdist, etc."),
+      topic: z.string().describe("What the joke should be about"),
+    })
+  ),
+});
+
 // Sample tools for demo purposes
 const demoTools = {
+  generate_joke: jokeGeneratorTool,
   generate_pdf: pdfTool,
   get_current_time: tool({
     description: "Get the current date and time",
@@ -379,7 +432,7 @@ const demoTools = {
 export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
-  const fileStorageService = getFileStorageService();
+  const fileStorageService = initFileStorageService();
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
@@ -388,6 +441,7 @@ export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<an
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
     demoMode: !aiService,
+    langfuseSystemPromptName: "chat-assistant",
     maxSteps: 5,
     mcpService,
     openApiOptions: options,

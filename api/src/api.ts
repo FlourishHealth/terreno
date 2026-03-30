@@ -162,8 +162,8 @@ export interface ModelRouterOptions<T> {
    * query, max limit,
    *  or 500. */
   maxLimit?: number; // defaults to 500
-  /** */
-  endpoints?: (router: any) => void;
+  /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
+  endpoints?: (router: any, options?: Partial<ModelRouterOptions<T>>) => void;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
@@ -426,6 +426,8 @@ export interface ModelRouterRegistration {
   path: string;
   /** The Express router containing CRUD endpoints */
   router: express.Router;
+  /** @internal Rebuilds the router with the openApi instance injected into options */
+  _buildWithOpenApi: (openApi: any) => express.Router;
 }
 
 /**
@@ -479,7 +481,12 @@ export function modelRouter<T>(
         routePath: path,
       });
     }
-    return {__type: "modelRouter", path, router};
+    return {
+      __type: "modelRouter",
+      _buildWithOpenApi: (openApi: any) => _buildModelRouter(model, {...options, openApi}),
+      path,
+      router,
+    };
   }
 
   if (options.realtime) {
@@ -497,7 +504,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
   // Do before the other router options so endpoints take priority.
   if (options.endpoints) {
-    options.endpoints(router);
+    options.endpoints(router, options);
   }
 
   const responseHandler = options.responseHandler ?? defaultResponseHandler;
@@ -1045,7 +1052,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    const {field, itemId} = req.params;
+    const field = req.params.field as string;
+    const itemId = req.params.itemId as string;
 
     // We apply the operation *before* the hooks. As far as the callers are concerned, this should
     // be like PATCHing the field and replacing the whole thing.

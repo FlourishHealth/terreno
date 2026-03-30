@@ -87,7 +87,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     trustedOrigins: config.trustedOrigins ?? [],
   });
 
-  return auth;
+  return auth as any;
 };
 
 /**
@@ -205,7 +205,7 @@ export const mountBetterAuthRoutes = (
   const handler = toNodeHandler(auth);
 
   // Mount at the base path with wildcard
-  app.all(`${basePath}/*`, (req, res) => {
+  app.all(`${basePath}/*path`, (req, res) => {
     return handler(req, res);
   });
 

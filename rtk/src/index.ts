@@ -10,3 +10,4 @@ export * from "./realtime";
 export * from "./socket";
 export * from "./sync";
 export * from "./tagGenerator";
+export * from "./useFeatureFlags";

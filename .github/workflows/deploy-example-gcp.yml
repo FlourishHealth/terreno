@@ -4,21 +4,7 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "ai/**"
-      - "example-backend/**"
-      - "admin-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - ".github/workflows/deploy-example-gcp.yml"
   pull_request:
-    paths:
-      - "ai/**"
-      - "example-backend/**"
-      - "admin-backend/**"
-      - "api/**"
-      - "api-health/**"
-      - ".github/workflows/deploy-example-gcp.yml"
 
 env:
   GCP_PROJECT_ID: flourish-terreno
@@ -26,6 +12,23 @@ env:
   GCP_SERVICE_NAME: terreno-backend-example
 
 jobs:
+  check-changes:
+    name: Check for relevant changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check PR diff for backend-related changes
+        id: check
+        run: |
+          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
+          echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   deploy-production:
     name: Deploy Production
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
@@ -104,9 +107,12 @@ jobs:
           service: ${{ env.GCP_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_SERVICE_NAME }}/${{ env.GCP_SERVICE_NAME }}:${{ github.sha }}
+          tag: prod
           env_vars: |
             NODE_ENV=production
             MONGODB_URI=${{ secrets.MONGO_URI }}
+            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
           flags: |
             --port=3000
             --memory=512Mi
@@ -148,7 +154,8 @@ jobs:
 
   deploy-preview:
     name: Deploy Preview
-    if: github.event_name == 'pull_request'
+    needs: [check-changes]
+    if: always() && github.event_name == 'pull_request' && needs.check-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -245,6 +252,8 @@ jobs:
           env_vars: |
             NODE_ENV=production
             MONGODB_URI=${{ secrets.MONGO_URI }}
+            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
           flags: |
             --port=3000
             --memory=512Mi

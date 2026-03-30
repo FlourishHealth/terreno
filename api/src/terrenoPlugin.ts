@@ -36,7 +36,7 @@ export interface TerrenoPlugin {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application): void;
+  register(app: express.Application, openApi?: unknown): void;
 
   /**
    * Called after the HTTP server is created but before it starts listening.

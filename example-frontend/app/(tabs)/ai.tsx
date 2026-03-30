@@ -11,8 +11,10 @@ import {
 } from "@terreno/ui";
 import type React from "react";
 import {useCallback, useState} from "react";
+import {useDispatch} from "react-redux";
 import {
   type GptHistory,
+  terrenoApi,
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   usePatchGptHistoriesByIdMutation,
@@ -76,6 +78,7 @@ const AiScreen: React.FC = () => {
   const [attachments, setAttachments] = useState<SelectedFile[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
 
+  const dispatch = useDispatch();
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
@@ -335,6 +338,34 @@ const AiScreen: React.FC = () => {
                 if (data.historyId) {
                   setCurrentHistoryId(data.historyId);
                 }
+                // Update sidebar locally (backend already persisted it)
+                if (data.historyId) {
+                  dispatch(
+                    terrenoApi.util.updateQueryData(
+                      "getGptHistories" as never,
+                      undefined as never,
+                      (draft: {data?: GptHistory[]}) => {
+                        const entry = draft.data?.find((h: GptHistory) => h.id === data.historyId);
+                        if (entry) {
+                          if (data.title) {
+                            entry.title = data.title;
+                          }
+                        } else if (draft.data) {
+                          // New conversation — add it to the sidebar immediately
+                          draft.data.unshift({
+                            _id: data.historyId,
+                            created: new Date().toISOString(),
+                            id: data.historyId,
+                            prompts: [],
+                            title: data.title ?? "New Chat",
+                            updated: new Date().toISOString(),
+                            userId: "",
+                          });
+                        }
+                      }
+                    )
+                  );
+                }
               } else if (data.error) {
                 console.error("SSE error:", data.error);
                 setCurrentMessages((prev) => [
@@ -388,6 +419,11 @@ const AiScreen: React.FC = () => {
       onSubmit={handleSubmit}
       onUpdateTitle={handleUpdateTitle}
       selectedModel={selectedModel}
+      suggestedPrompts={[
+        "Tell me a dad joke about TypeScript",
+        "Make a pun about React hooks",
+        "Tell me a witty joke about MongoDB",
+      ]}
       testID="chat"
     />
   );

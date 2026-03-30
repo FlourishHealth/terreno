@@ -6,8 +6,14 @@ import type mongoose from "mongoose";
 // AIRequest Types
 // ============================================================
 
-export const AI_REQUEST_TYPES = ["general", "remix", "summarization", "translation"] as const;
-export type AIRequestType = (typeof AI_REQUEST_TYPES)[number];
+export const DEFAULT_AI_REQUEST_TYPES = [
+  "general",
+  "remix",
+  "summarization",
+  "translation",
+] as const;
+export type DefaultAIRequestType = (typeof DEFAULT_AI_REQUEST_TYPES)[number];
+export type AIRequestType = DefaultAIRequestType | (string & {});
 
 export type AIRequestDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   created: Date;
@@ -15,11 +21,15 @@ export type AIRequestDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   error?: string;
   metadata?: Record<string, unknown>;
   aiModel: string;
+  parentRequestId?: mongoose.Types.ObjectId;
   prompt: string;
   requestType: AIRequestType;
   response?: string;
   responseTime?: number;
+  subRequestIds?: mongoose.Types.ObjectId[];
   tokensUsed?: number;
+  totalResponseTime?: number;
+  totalTokensUsed?: number;
   updated: Date;
   userId?: mongoose.Types.ObjectId;
 };
@@ -27,6 +37,7 @@ export type AIRequestDocument = mongoose.Document<mongoose.Types.ObjectId> & {
 export interface AIRequestStatics
   extends FindExactlyOnePlugin<AIRequestDocument>,
     FindOneOrNonePlugin<AIRequestDocument> {
+  logMultiAgentRequest(params: LogMultiAgentRequestParams): Promise<AIRequestDocument>;
   logRequest(params: LogRequestParams): Promise<AIRequestDocument>;
 }
 
@@ -41,6 +52,16 @@ export interface LogRequestParams {
   response?: string;
   responseTime?: number;
   tokensUsed?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface LogMultiAgentRequestParams {
+  aiModel: string;
+  metadata?: Record<string, unknown>;
+  requestType: AIRequestType;
+  subRequestIds: mongoose.Types.ObjectId[];
+  totalResponseTime: number;
+  totalTokensUsed: number;
   userId?: mongoose.Types.ObjectId;
 }
 
@@ -87,6 +108,7 @@ export interface GptHistoryPrompt {
 export type GptHistoryDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   created: Date;
   deleted: boolean;
+  projectId?: mongoose.Types.ObjectId;
   prompts: GptHistoryPrompt[];
   title?: string;
   updated: Date;
@@ -98,6 +120,34 @@ export interface GptHistoryStatics
     FindOneOrNonePlugin<GptHistoryDocument> {}
 
 export type GptHistoryModel = mongoose.Model<GptHistoryDocument> & GptHistoryStatics;
+
+// ============================================================
+// Project Types
+// ============================================================
+
+export interface ProjectMemory {
+  _id?: mongoose.Types.ObjectId;
+  category?: string;
+  created?: Date;
+  source: "user" | "auto";
+  text: string;
+}
+
+export type ProjectDocument = mongoose.Document<mongoose.Types.ObjectId> & {
+  created: Date;
+  deleted: boolean;
+  memories: ProjectMemory[];
+  name: string;
+  systemContext: string;
+  updated: Date;
+  userId: mongoose.Types.ObjectId;
+};
+
+export interface ProjectStatics
+  extends FindExactlyOnePlugin<ProjectDocument>,
+    FindOneOrNonePlugin<ProjectDocument> {}
+
+export type ProjectModel = mongoose.Model<ProjectDocument> & ProjectStatics;
 
 // ============================================================
 // AI Service Types
@@ -171,6 +221,11 @@ export interface GptRouteOptions {
   tools?: Record<string, import("ai").Tool>;
   toolChoice?: "auto" | "none" | "required";
   maxSteps?: number;
+  /** Cheap model ID used for generating conversation titles (e.g. "gemini-2.0-flash-lite"). Falls back to the main model if not set. */
+  titleModelId?: string;
+  /** Langfuse prompt name to load and use as the system prompt. Compiled with no variables.
+   * Falls back gracefully if Langfuse is not configured or the prompt is not found. */
+  langfuseSystemPromptName?: string;
 }
 
 export interface GptHistoryRouteOptions {

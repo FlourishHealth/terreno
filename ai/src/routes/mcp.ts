@@ -68,7 +68,7 @@ export const addMcpRoutes = (router: any, options: McpRouteOptions): void => {
         throw new APIError({status: 403, title: "Admin access required"});
       }
 
-      const {name} = req.params;
+      const name = req.params.name as string;
       const connected = await mcpService.reconnectServer(name);
       return res.json({data: {connected, name}});
     })

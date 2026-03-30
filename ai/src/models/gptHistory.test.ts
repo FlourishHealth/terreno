@@ -50,8 +50,8 @@ describe("GptHistory Model", () => {
     });
   });
 
-  describe("auto-title", () => {
-    it("should auto-generate title from first assistant response", async () => {
+  describe("title", () => {
+    it("should not auto-generate title on save", async () => {
       const userId = new mongoose.Types.ObjectId();
       const history = new GptHistory({
         prompts: [
@@ -66,10 +66,10 @@ describe("GptHistory Model", () => {
 
       await history.save();
 
-      expect(history.title).toBe("Artificial Intelligence is a branch of computer sc");
+      expect(history.title).toBeUndefined();
     });
 
-    it("should not overwrite existing title", async () => {
+    it("should preserve title when explicitly set", async () => {
       const userId = new mongoose.Types.ObjectId();
       const history = new GptHistory({
         prompts: [{text: "Some response", type: "assistant"}],
@@ -80,18 +80,6 @@ describe("GptHistory Model", () => {
       await history.save();
 
       expect(history.title).toBe("Custom Title");
-    });
-
-    it("should not set title if no assistant response", async () => {
-      const userId = new mongoose.Types.ObjectId();
-      const history = new GptHistory({
-        prompts: [{text: "Hello", type: "user"}],
-        userId,
-      });
-
-      await history.save();
-
-      expect(history.title).toBeUndefined();
     });
   });
 

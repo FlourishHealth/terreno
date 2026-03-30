@@ -331,13 +331,15 @@ export class ActionSheet extends Component<Props, State, any> {
   measure = async (): Promise<number> => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        UIManager.measureInWindow(
-          this.safeAreaViewRef.current._nativeTag,
-          (_x, _y, _width, height) => {
+        const ref = this.safeAreaViewRef.current;
+        if (ref?.measureInWindow) {
+          ref.measureInWindow((_x: number, _y: number, _width: number, height: number) => {
             safeAreaPaddingTop = height;
             resolve(height === 0 ? 20 : height);
-          }
-        );
+          });
+        } else {
+          resolve(20);
+        }
       }, 100);
     });
   };

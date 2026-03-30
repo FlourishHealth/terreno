@@ -466,7 +466,7 @@ export type FontAwesome6BrandNames =
   | "yammer"
   | "yandex-international"
   | "yandex"
-  | "yarn"
+  | "bun"
   | "yelp"
   | "yoast"
   | "youtube"

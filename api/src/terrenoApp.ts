@@ -1,20 +1,21 @@
 import {createServer} from "node:http";
 import * as Sentry from "@sentry/bun";
-import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
-
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import {RealtimeApp} from "./realtime/realtimeApp";
 import type {RealtimeAppOptions} from "./realtime/types";
 import type {TerrenoPlugin} from "./terrenoPlugin";
+import openapi from "./vendor/wesleytodd-openapi/index";
 
 type CorsOrigin =
   | string
@@ -124,6 +125,7 @@ export class TerrenoApp {
   private options: TerrenoAppOptions;
   private registrations: (ModelRouterRegistration | TerrenoPlugin)[] = [];
   private middlewareFns: (express.RequestHandler | ((app: express.Application) => void))[] = [];
+  private configurationApp: ConfigurationApp | null = null;
 
   /**
    * Create a new TerrenoApp builder.
@@ -182,6 +184,36 @@ export class TerrenoApp {
   }
 
   /**
+   * Register a configuration model with the application.
+   *
+   * Adds configuration management endpoints that expose the model's schema
+   * as metadata, and provide GET/PATCH endpoints for reading and updating
+   * the singleton configuration document. Nested subschemas become separate
+   * sections in the admin UI.
+   *
+   * All configuration endpoints require admin authentication.
+   *
+   * @param model - Mongoose model with configurationPlugin applied
+   * @param options - Optional configuration (basePath, fieldOverrides)
+   * @returns This TerrenoApp instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * const app = new TerrenoApp({ userModel: User })
+   *   .configure(AppConfig)
+   *   .register(todoRouter)
+   *   .start();
+   * ```
+   */
+  configure(
+    model: import("mongoose").Model<any>,
+    options?: Omit<ConfigurationAppOptions, "model">
+  ): this {
+    this.configurationApp = new ConfigurationApp({model, ...options});
+    return this;
+  }
+
+  /**
    * Build the Express application without starting the server.
    *
    * Configures the complete middleware stack including:
@@ -210,6 +242,9 @@ export class TerrenoApp {
     const app = express();
     const options = this.options;
 
+    // Record mount paths on layers for Express 5 → OpenAPI compat
+    patchAppUse(app);
+
     app.set("query parser", (str: string) =>
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
     );
@@ -227,7 +262,7 @@ export class TerrenoApp {
       }
     }
 
-    app.use(express.json());
+    app.use(express.json({limit: "50mb"}));
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
     addAuthRoutes(app, options.userModel as any, options.authOptions);
@@ -244,7 +279,7 @@ export class TerrenoApp {
     });
 
     // Sentry scopes
-    app.all("*", (req: any, _res: any, next: any) => {
+    app.use((req: any, _res: any, next: any) => {
       const transactionId = req.header("X-Transaction-ID");
       const sessionId = req.header("X-Session-ID");
       if (transactionId) {
@@ -260,6 +295,7 @@ export class TerrenoApp {
     });
 
     // OpenAPI
+    app.use(openApiCompatMiddleware);
     app.use(openApiEtagMiddleware);
     const oapi = openapi({
       info: {
@@ -275,25 +311,30 @@ export class TerrenoApp {
       app.use("/swagger", oapi.swaggerui());
     }
 
-    addMeRoutes(app, options.userModel as any, options.authOptions);
-
     // GitHub OAuth
     if (options.githubAuth) {
       setupGitHubAuth(app, options.userModel as any, options.githubAuth);
       addGitHubAuthRoutes(app, options.userModel as any, options.githubAuth, options.authOptions);
     }
 
+    // Mount configuration app if configured
+    if (this.configurationApp) {
+      this.configurationApp.register(app);
+    }
+
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        app.use(registration.path, registration.router);
+        const router = registration._buildWithOpenApi(oapi);
+        app.use(registration.path, router);
       } else {
-        registration.register(app);
+        registration.register(app, oapi);
       }
     }
 
-    // Inject openApi into model router options for registered routers
-    // The openApi middleware handles this via the oapi instance already mounted on the app
+    // /auth/me must be registered after plugins so that session middleware
+    // (e.g. Better Auth) has a chance to populate req.user first.
+    addMeRoutes(app, options.userModel as any, options.authOptions);
 
     Sentry.setupExpressErrorHandler(app);
 
