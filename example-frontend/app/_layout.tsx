@@ -4,7 +4,13 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
+import {
+  baseUrl,
+  getAuthToken,
+  useSelectCurrentUserId,
+  useSocketConnection,
+  useSyncConnection,
+} from "@terreno/rtk";
 import {ConsentNavigator, TerrenoProvider} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
@@ -74,6 +80,20 @@ function RootLayoutNav(): React.ReactElement {
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
+
+  // Connect to WebSocket for real-time sync
+  const {socket} = useSocketConnection({
+    baseUrl,
+    getAuthToken,
+    shouldConnect: !!userId,
+  });
+
+  // Sync WebSocket events with RTK Query cache
+  useSyncConnection({
+    api: terrenoApi,
+    socket,
+    tagTypes: ["todos"],
+  });
 
   // Validate stored auth token on mount
   useEffect(() => {
