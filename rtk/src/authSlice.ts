@@ -70,7 +70,7 @@ export function generateProfileEndpoints(
       extraOptions: {maxRetries: 0},
       invalidatesTags: [path],
       query: ({email, username, password}) => ({
-        body: {email, username, password},
+        body: {email, password, username},
         method: "POST",
         url: "auth/login",
       }),
