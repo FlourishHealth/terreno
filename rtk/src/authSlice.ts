@@ -12,6 +12,7 @@ import {IsWeb} from "./platform";
 type AuthState = {
   userId: string | null;
   error: string | null;
+  isAuthenticating: boolean;
   lastTokenRefreshTimestamp: number | null;
 };
 
@@ -24,7 +25,8 @@ export interface UserResponse {
 }
 
 export interface EmailLoginRequest {
-  email: string;
+  email?: string;
+  username?: string;
   password: string;
 }
 
@@ -67,8 +69,8 @@ export function generateProfileEndpoints(
     emailLogin: builder.mutation<UserResponse, EmailLoginRequest>({
       extraOptions: {maxRetries: 0},
       invalidatesTags: [path],
-      query: ({email, password}) => ({
-        body: {email, password},
+      query: ({email, username, password}) => ({
+        body: {email, username, password},
         method: "POST",
         url: "auth/login",
       }),
@@ -105,7 +107,14 @@ export function generateProfileEndpoints(
 export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   const authSlice = createSlice({
     extraReducers: (builder) => {
-      builder.addMatcher(api.endpoints.emailLogin.matchFulfilled, () => {
+      // Reset isAuthenticating on rehydration in case the app was killed mid-login
+      builder.addCase("persist/REHYDRATE", (state) => {
+        state.isAuthenticating = false;
+      });
+      builder.addMatcher(api.endpoints.emailLogin.matchFulfilled, (state) => {
+        // Note: isAuthenticating is normally cleared by setUserId after the listener
+        // middleware stores the token. This is a safety fallback in case the listener fails.
+        state.isAuthenticating = false;
         console.debug("Login success");
       });
       builder.addMatcher(
@@ -113,14 +122,18 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         // biome-ignore lint/suspicious/noExplicitAny: Generic
         (state, action: PayloadAction<{data: any}>) => {
           state.error = action.payload?.data?.message;
+          state.isAuthenticating = false;
           console.debug("Login rejected", action.payload?.data?.message);
         }
       );
       builder.addMatcher(api.endpoints.emailLogin.matchPending, (state) => {
         state.error = null;
+        state.isAuthenticating = true;
         console.debug("Login pending");
       });
-      builder.addMatcher(api.endpoints.emailSignUp.matchFulfilled, () => {
+      builder.addMatcher(api.endpoints.emailSignUp.matchFulfilled, (state) => {
+        // Safety fallback: clear isAuthenticating in case the listener middleware fails.
+        state.isAuthenticating = false;
         console.debug("Signup success");
       });
       builder.addMatcher(
@@ -128,23 +141,42 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         // biome-ignore lint/suspicious/noExplicitAny: Generic
         (state, action: PayloadAction<{data: any}>) => {
           state.error = action.payload?.data?.message;
+          state.isAuthenticating = false;
           console.debug("Signup rejected", action.payload);
         }
       );
       builder.addMatcher(api.endpoints.emailSignUp.matchPending, (state) => {
         state.error = null;
+        state.isAuthenticating = true;
         console.debug("Signup pending");
       });
+      builder.addMatcher(api.endpoints.googleLogin.matchPending, (state) => {
+        state.isAuthenticating = true;
+      });
+      builder.addMatcher(api.endpoints.googleLogin.matchFulfilled, (state) => {
+        // Safety fallback: clear isAuthenticating in case the listener middleware fails.
+        state.isAuthenticating = false;
+      });
+      builder.addMatcher(api.endpoints.googleLogin.matchRejected, (state) => {
+        state.isAuthenticating = false;
+      });
     },
-    initialState: {error: null, lastTokenRefreshTimestamp: null, userId: null} as AuthState,
+    initialState: {
+      error: null,
+      isAuthenticating: false,
+      lastTokenRefreshTimestamp: null,
+      userId: null,
+    } as AuthState,
     name: "auth",
     reducers: {
       logout: (state) => {
         state.userId = null;
+        state.isAuthenticating = false;
         state.lastTokenRefreshTimestamp = null;
       },
       setUserId: (state, {payload: {userId}}: PayloadAction<{userId: string}>) => {
         state.userId = userId;
+        state.isAuthenticating = false;
       },
       tokenRefreshedSuccess: (state) => {
         state.lastTokenRefreshTimestamp = Date.now();
@@ -249,11 +281,17 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
 export const selectCurrentUserId = (state: RootState): string | undefined => state.auth?.userId;
 export const selectLastTokenRefreshTimestamp = (state: RootState): number | null =>
   state.auth?.lastTokenRefreshTimestamp;
+export const selectIsAuthenticating = (state: RootState): boolean =>
+  state.auth?.isAuthenticating ?? false;
 
 export const useSelectCurrentUserId = (): string | undefined => {
   return useSelector((state: RootState): string | undefined => {
     return state.auth?.userId;
   });
+};
+
+export const useSelectIsAuthenticating = (): boolean => {
+  return useSelector((state: RootState): boolean => state.auth?.isAuthenticating ?? false);
 };
 
 export async function getAuthToken(): Promise<string | null> {
