@@ -26,7 +26,7 @@ import mongoose from "mongoose";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
-import {addTodoRoutes} from "./api/todos";
+import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
 import {isDeployed} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
@@ -173,7 +173,7 @@ export async function start(skipListen = false): Promise<express.Application> {
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
-      .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
+      .register(todoRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
       .register(
