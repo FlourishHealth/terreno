@@ -25,59 +25,28 @@ This adds the public `GET /version-check` endpoint. The admin routes (`GET/PUT /
 
 ### 2. Frontend: Add build number injection
 
-Create or update `app.config.ts` in your Expo app root. The example app resolves `buildNumber` in this order:
-
-1. **`BUILD_NUMBER_OVERRIDE`** at the top of `app.config.ts` (set to a number for local testing, or `undefined` for normal behavior)
-2. **`expo.extra.buildNumber`** in `app.json` (optional)
-3. **`EXPO_PUBLIC_BUILD_NUMBER`** env
-4. **`git rev-list --count HEAD`** (default)
+Create or update `app.config.ts` in your Expo app root. Use the `resolveBuildNumber` helper from `@terreno/rtk/buildNumber`:
 
 ```typescript
-import {execSync} from "node:child_process";
-
+import {resolveBuildNumber} from "@terreno/rtk/buildNumber";
 import type {ConfigContext, ExpoConfig} from "expo/config";
 
-const BUILD_NUMBER_OVERRIDE: number | undefined = undefined;
-
-const coerceBuildNumber = (value: unknown): number | undefined => {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  const n = typeof value === "number" ? value : parseInt(String(value), 10);
-  return Number.isFinite(n) ? n : undefined;
-};
-
-export default ({config}: ConfigContext): ExpoConfig => {
-  let buildNumber = coerceBuildNumber(BUILD_NUMBER_OVERRIDE);
-
-  if (buildNumber === undefined) {
-    buildNumber = coerceBuildNumber(config.extra?.buildNumber);
-  }
-
-  if (buildNumber === undefined && process.env.EXPO_PUBLIC_BUILD_NUMBER) {
-    buildNumber = coerceBuildNumber(process.env.EXPO_PUBLIC_BUILD_NUMBER);
-  }
-
-  if (buildNumber === undefined) {
-    try {
-      buildNumber = parseInt(
-        execSync("git rev-list --count HEAD").toString().trim(),
-        10
-      );
-    } catch {
-      // Leave buildNumber undefined so the upgrade check is skipped when git is unavailable
-    }
-  }
-
-  return {
-    ...config,
-    extra: {
-      ...config.extra,
-      buildNumber,
-    },
-  };
-};
+export default ({config}: ConfigContext): ExpoConfig => ({
+  ...config,
+  extra: {
+    ...config.extra,
+    buildNumber: resolveBuildNumber({configValue: config.extra?.buildNumber}),
+  },
+} as ExpoConfig);
 ```
+
+`resolveBuildNumber` resolves the build number in this order:
+
+1. **`override`** option (set to a number for local testing)
+2. **`configValue`** option (e.g. from `app.json` `expo.extra.buildNumber` or EAS Build)
+3. **`EXPO_PUBLIC_BUILD_NUMBER`** env var (customizable via `envVar` option)
+4. **`git rev-list --count HEAD`** (default)
+5. **`undefined`** if git is unavailable (version check will be skipped)
 
 This sets `Constants.expoConfig.extra.buildNumber` when Metro loads the config. By default it tracks the git commit count.
 
