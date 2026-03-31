@@ -30,6 +30,16 @@
     "react": "catalog:",
     "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./buildNumber": {
+      "default": "./dist/buildNumber.js",
+      "types": "./dist/buildNumber.d.ts"
+    }
+  },
   "files": [
     "dist/**/*",
     "src/**/*"
