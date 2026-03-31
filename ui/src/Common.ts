@@ -2909,3 +2909,72 @@ export interface UserInactivityProps {
    */
   timeForInactivity?: number;
 }
+
+export interface SidebarNavigationItem {
+  /**
+   * Display text for the navigation item.
+   */
+  label: string;
+  /**
+   * Route name matching the expo-router file-based route (e.g. "index", "dashboard").
+   */
+  route: string;
+  /**
+   * FontAwesome 6 icon name rendered alongside the label.
+   */
+  iconName: IconName;
+}
+
+/**
+ * Props for the SidebarNavigation custom expo-router navigator.
+ * Used in _layout.tsx files to provide sidebar navigation.
+ */
+export interface SidebarNavigationProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * Optional callback fired after a navigation item is pressed.
+   */
+  onNavigate?: (route: string) => void;
+  /**
+   * The route to show when the navigator first renders.
+   */
+  initialRouteName?: string;
+  /**
+   * Screen options passed through to the underlying Navigator.
+   */
+  screenOptions?: Record<string, unknown>;
+}
+
+/**
+ * Props for the standalone SidebarNavigationPanel (no expo-router dependency).
+ * Useful for demos, testing, or non-expo-router apps.
+ */
+export interface SidebarNavigationPanelProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * The currently active route, used to highlight the matching item.
+   */
+  activeRoute?: string;
+  /**
+   * Called when a navigation item is pressed.
+   */
+  onNavigate: (route: string) => void;
+  /**
+   * Main content rendered beside (web) or behind (mobile) the sidebar.
+   */
+  children: React.ReactNode;
+}

@@ -25,6 +25,7 @@
     "@react-native-community/datetimepicker": "catalog:",
     "@react-native-community/slider": "catalog:",
     "@react-native-picker/picker": "catalog:",
+    "@react-navigation/native": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "~8.0.8",
     "expo-document-picker": "~14.0.8",
