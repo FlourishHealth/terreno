@@ -7,12 +7,27 @@ import supertest from "supertest";
 mock.module("./langfuseClient", () => ({
   getLangfuseClient: () => ({
     api: {
-      promptsList: async () => ({data: [], meta: {limit: 20, page: 1, total: 0, totalPages: 0}}),
+      prompts: {
+        list: async () => ({data: [], meta: {limit: 20, page: 1, total: 0, totalPages: 0}}),
+      },
+      trace: {
+        get: async () => null,
+        list: async () => ({data: [], meta: {limit: 20, page: 1, total: 0, totalPages: 0}}),
+      },
     },
-    fetchTrace: async () => ({data: null}),
-    fetchTraces: async () => ({data: [], meta: {limit: 20, page: 1, total: 0, totalPages: 0}}),
-    flushAsync: async () => {},
-    score: () => {},
+    flush: async () => {},
+    prompt: {
+      get: async () => ({
+        config: {},
+        labels: [],
+        name: "test",
+        prompt: "",
+        tags: [],
+        type: "text",
+        version: 1,
+      }),
+    },
+    score: {create: () => {}},
   }),
 }));
 
