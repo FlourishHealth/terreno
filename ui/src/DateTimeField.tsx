@@ -211,8 +211,6 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   // Use provided timezone if available, otherwise use local
   const timezone = providedTimezone ?? localTimezone;
-  const lastTimezoneRef = useRef(timezone);
-
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
   let iconName: IconName | undefined;
@@ -520,9 +518,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setAmPm(parsedDate.hour >= 12 ? "pm" : "am");
 
       if (type === "date" || type === "datetime") {
-        setMonth(parsedDate.month.toString().padStart(2, "0"));
-        setDay(parsedDate.day.toString().padStart(2, "0"));
-        setYear(parsedDate.year.toString());
+        // type="date" values are UTC midnight — parse in UTC to extract the correct calendar date.
+        const displayDate =
+          type === "date" ? DateTime.fromISO(inputDate, {zone: "UTC"}) : parsedDate;
+        setMonth(displayDate.month.toString().padStart(2, "0"));
+        setDay(displayDate.day.toString().padStart(2, "0"));
+        setYear(displayDate.year.toString());
       }
 
       if (type === "time" || type === "datetime") {
@@ -535,11 +536,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       // Normalize emitted value to ISO (UTC for date-only)
       const normalized =
         type === "date"
-          ? parsedDate
-              .setZone("UTC")
+          ? DateTime.fromISO(inputDate, {zone: "UTC"})
               .startOf("day")
               .set({millisecond: 0, second: 0})
-              .toUTC()
               .toISO()
           : parsedDate.set({millisecond: 0, second: 0}).toUTC().toISO();
       if (!normalized) {
@@ -577,18 +576,6 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setHour("");
       setMinute("");
       setAmPm("am");
-      return;
-    }
-
-    // // If only timezone changed, don't recalculate fields
-    const isOnlyTimezoneChange =
-      lastTimezoneRef.current !== timezone &&
-      DateTime.fromISO(value).toUTC().toISO() ===
-        DateTime.fromISO(value).setZone(timezone).toUTC().toISO();
-
-    lastTimezoneRef.current = timezone;
-
-    if (isOnlyTimezoneChange) {
       return;
     }
 
