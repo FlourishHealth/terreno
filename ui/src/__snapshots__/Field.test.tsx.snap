@@ -1000,18 +1000,7 @@ exports[`Field renders date field 1`] = `
         },
       ],
       "props": {
-        "style": {
-          "alignItems": "center",
-          "flexDirection": "row",
-        },
-        "testID": undefined,
-      },
-      "type": "View",
-    },
-    {
-      "$$typeof": Symbol(react.test.json),
-      "children": null,
-      "props": {
+        "pointerEvents": "auto",
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
@@ -1022,7 +1011,9 @@ exports[`Field renders date field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -1035,9 +1026,8 @@ exports[`Field renders date field 1`] = `
       "paddingHorizontal": 6,
       "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 
@@ -1791,7 +1781,9 @@ exports[`Field renders time field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -1804,9 +1796,8 @@ exports[`Field renders time field 1`] = `
       "paddingHorizontal": 6,
       "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 
@@ -2030,6 +2021,7 @@ exports[`Field renders datetime field 1`] = `
         },
       ],
       "props": {
+        "pointerEvents": "auto",
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
@@ -2797,7 +2789,9 @@ exports[`Field renders datetime field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -2810,9 +2804,8 @@ exports[`Field renders datetime field 1`] = `
       "paddingHorizontal": 6,
       "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 
