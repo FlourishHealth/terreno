@@ -1,5 +1,6 @@
 import type {SidebarNavigationItem} from "@terreno/ui";
-import {Box, Heading, SidebarNavigationPanel, Text} from "@terreno/ui";
+import {Box, Button, Heading, SidebarNavigationPanel, Text} from "@terreno/ui";
+import {router} from "expo-router";
 import {type FC, useState} from "react";
 
 const sampleTopItems: SidebarNavigationItem[] = [
@@ -15,15 +16,23 @@ const sampleBottomItems: SidebarNavigationItem[] = [
   {iconName: "right-from-bracket", label: "Logout", route: "logout"},
 ];
 
-export const SidebarNavigationDemo: FC = () => {
+export const SidebarNavigationDemo: FC<{
+  panelBackgroundColor?: string;
+  itemBackgroundColor?: string;
+}> = ({panelBackgroundColor, itemBackgroundColor}) => {
   const [activeRoute, setActiveRoute] = useState("index");
+
+  const panelStyle = panelBackgroundColor ? {backgroundColor: panelBackgroundColor} : undefined;
+  const itemStyle = itemBackgroundColor ? {backgroundColor: itemBackgroundColor} : undefined;
 
   return (
     <Box height={400} width="100%">
       <SidebarNavigationPanel
         activeRoute={activeRoute}
         bottomItems={sampleBottomItems}
+        itemStyle={itemStyle}
         onNavigate={setActiveRoute}
+        panelStyle={panelStyle}
         topItems={sampleTopItems}
       >
         <Box alignItems="center" justifyContent="center" padding={6} style={{flex: 1}}>
@@ -64,6 +73,21 @@ export const SidebarNavigationMinimal: FC = () => {
     </Box>
   );
 };
+
+export const SidebarNavigationLiveDemo: FC = () => (
+  <Box alignItems="center" gap={3} padding={4}>
+    <Text color="secondaryDark" size="md">
+      SidebarNavigation wraps expo-router's Navigator and must be used as a layout. Open the live
+      demo to see it in action with real routing.
+    </Text>
+    <Button
+      iconName="arrow-up-right-from-square"
+      onClick={() => router.navigate("/demo/sidebar-navigation")}
+      text="Open live demo"
+      variant="primary"
+    />
+  </Box>
+);
 
 export const SidebarNavigationManyItems: FC = () => {
   const [activeRoute, setActiveRoute] = useState("analytics");

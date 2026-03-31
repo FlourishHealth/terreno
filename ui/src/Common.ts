@@ -2950,6 +2950,14 @@ export interface SidebarNavigationProps {
    * Screen options passed through to the underlying Navigator.
    */
   screenOptions?: Record<string, unknown>;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
 }
 
 /**
@@ -2977,4 +2985,12 @@ export interface SidebarNavigationPanelProps {
    * Main content rendered beside (web) or behind (mobile) the sidebar.
    */
   children: React.ReactNode;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
 }

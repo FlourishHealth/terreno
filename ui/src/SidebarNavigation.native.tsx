@@ -1,7 +1,7 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
 import {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {Animated, Dimensions, Pressable, View} from "react-native";
+import {Animated, Dimensions, Pressable, type StyleProp, View, type ViewStyle} from "react-native";
 
 import type {
   SidebarNavigationItem,
@@ -22,7 +22,8 @@ const SidebarItem: FC<{
   item: SidebarNavigationItem;
   isActive: boolean;
   onPress: (route: string) => void;
-}> = ({item, isActive, onPress}) => {
+  itemStyle?: StyleProp<ViewStyle>;
+}> = ({item, isActive, onPress, itemStyle}) => {
   const {theme} = useTheme();
 
   const handlePress = useCallback(() => {
@@ -34,16 +35,19 @@ const SidebarItem: FC<{
       accessibilityLabel={item.label}
       accessibilityRole="button"
       onPress={handlePress}
-      style={{
-        alignItems: "center",
-        backgroundColor: isActive ? theme.surface.secondaryLight : "transparent",
-        borderRadius: theme.radius.default,
-        flexDirection: "row",
-        gap: 14,
-        height: ITEM_HEIGHT,
-        marginHorizontal: 12,
-        paddingHorizontal: 14,
-      }}
+      style={[
+        {
+          alignItems: "center",
+          backgroundColor: isActive ? theme.surface.secondaryLight : "transparent",
+          borderRadius: theme.radius.default,
+          flexDirection: "row",
+          gap: 14,
+          height: ITEM_HEIGHT,
+          marginHorizontal: 12,
+          paddingHorizontal: 14,
+        },
+        itemStyle,
+      ]}
     >
       <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
         <Icon color={isActive ? "primary" : "secondaryDark"} iconName={item.iconName} size="md" />
@@ -64,6 +68,8 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   activeRoute,
   onNavigate,
   children,
+  panelStyle,
+  itemStyle,
 }) => {
   const {theme} = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -169,21 +175,24 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
 
       {/* Drawer */}
       <Animated.View
-        style={{
-          backgroundColor: theme.surface.base,
-          borderColor: theme.border.default,
-          borderRightWidth: 1,
-          height: screenHeight,
-          justifyContent: "space-between",
-          left: 0,
-          paddingBottom: 32,
-          paddingTop: 20,
-          position: "absolute",
-          top: 0,
-          transform: [{translateX: slideAnim}],
-          width: DRAWER_WIDTH,
-          zIndex: 200,
-        }}
+        style={[
+          {
+            backgroundColor: theme.surface.base,
+            borderColor: theme.border.default,
+            borderRightWidth: 1,
+            height: screenHeight,
+            justifyContent: "space-between",
+            left: 0,
+            paddingBottom: 32,
+            paddingTop: 20,
+            position: "absolute",
+            top: 0,
+            transform: [{translateX: slideAnim}],
+            width: DRAWER_WIDTH,
+            zIndex: 200,
+          },
+          panelStyle,
+        ]}
       >
         {/* Close button */}
         <View>
@@ -207,6 +216,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
               <SidebarItem
                 isActive={activeRoute === item.route}
                 item={item}
+                itemStyle={itemStyle}
                 key={item.route}
                 onPress={handleNavigate}
               />
@@ -236,7 +246,9 @@ const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
   bottomItems: SidebarNavigationItem[];
   onNavigate?: (route: string) => void;
-}> = ({topItems, bottomItems, onNavigate}) => {
+  panelStyle?: StyleProp<ViewStyle>;
+  itemStyle?: StyleProp<ViewStyle>;
+}> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
   const {state, navigation} = Navigator.useContext();
   const activeRoute = state.routes[state.index]?.name;
 
@@ -252,7 +264,9 @@ const SidebarNavigatorContent: FC<{
     <SidebarNavigationPanel
       activeRoute={activeRoute}
       bottomItems={bottomItems}
+      itemStyle={itemStyle}
       onNavigate={handleNavigate}
+      panelStyle={panelStyle}
       topItems={topItems}
     >
       <Slot />
@@ -281,12 +295,16 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   onNavigate,
   initialRouteName,
   screenOptions,
+  panelStyle,
+  itemStyle,
 }) => {
   return (
     <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
       <SidebarNavigatorContent
         bottomItems={bottomItems}
+        itemStyle={itemStyle}
         onNavigate={onNavigate}
+        panelStyle={panelStyle}
         topItems={topItems}
       />
     </Navigator>

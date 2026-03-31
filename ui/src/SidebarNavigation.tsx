@@ -1,7 +1,7 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
 import {type FC, useCallback, useMemo, useState} from "react";
-import {Pressable, View} from "react-native";
+import {Pressable, type StyleProp, View, type ViewStyle} from "react-native";
 
 import type {
   SidebarNavigationItem,
@@ -22,7 +22,8 @@ const SidebarItem: FC<{
   isActive: boolean;
   isExpanded: boolean;
   onNavigate: (route: string) => void;
-}> = ({item, isActive, isExpanded, onNavigate}) => {
+  itemStyle?: StyleProp<ViewStyle>;
+}> = ({item, isActive, isExpanded, onNavigate, itemStyle}) => {
   const {theme} = useTheme();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -52,17 +53,20 @@ const SidebarItem: FC<{
       onHoverIn={handleHoverIn}
       onHoverOut={handleHoverOut}
       onPress={handlePress}
-      style={{
-        alignItems: "center",
-        backgroundColor,
-        borderRadius: theme.radius.default,
-        flexDirection: "row",
-        gap: 12,
-        height: ITEM_HEIGHT,
-        marginHorizontal: 8,
-        overflow: "hidden",
-        paddingHorizontal: 12,
-      }}
+      style={[
+        {
+          alignItems: "center",
+          backgroundColor,
+          borderRadius: theme.radius.default,
+          flexDirection: "row",
+          gap: 12,
+          height: ITEM_HEIGHT,
+          marginHorizontal: 8,
+          overflow: "hidden",
+          paddingHorizontal: 12,
+        },
+        itemStyle,
+      ]}
     >
       <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
         <Icon color={iconColor} iconName={item.iconName} size="sm" />
@@ -85,6 +89,8 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   activeRoute,
   onNavigate,
   children,
+  panelStyle,
+  itemStyle,
 }) => {
   const {theme} = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -119,6 +125,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
             transitionProperty: "width",
             transitionTimingFunction: "ease-in-out",
           } as any,
+          panelStyle,
         ]}
       >
         <View style={{gap: 4}}>
@@ -127,6 +134,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
               isActive={activeRoute === item.route}
               isExpanded={isExpanded}
               item={item}
+              itemStyle={itemStyle}
               key={item.route}
               onNavigate={onNavigate}
             />
@@ -138,6 +146,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
               isActive={activeRoute === item.route}
               isExpanded={isExpanded}
               item={item}
+              itemStyle={itemStyle}
               key={item.route}
               onNavigate={onNavigate}
             />
@@ -156,7 +165,9 @@ const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
   bottomItems: SidebarNavigationItem[];
   onNavigate?: (route: string) => void;
-}> = ({topItems, bottomItems, onNavigate}) => {
+  panelStyle?: StyleProp<ViewStyle>;
+  itemStyle?: StyleProp<ViewStyle>;
+}> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
   const {state, navigation} = Navigator.useContext();
   const activeRoute = state.routes[state.index]?.name;
 
@@ -172,7 +183,9 @@ const SidebarNavigatorContent: FC<{
     <SidebarNavigationPanel
       activeRoute={activeRoute}
       bottomItems={bottomItems}
+      itemStyle={itemStyle}
       onNavigate={handleNavigate}
+      panelStyle={panelStyle}
       topItems={topItems}
     >
       <Slot />
@@ -201,12 +214,16 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   onNavigate,
   initialRouteName,
   screenOptions,
+  panelStyle,
+  itemStyle,
 }) => {
   return (
     <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
       <SidebarNavigatorContent
         bottomItems={bottomItems}
+        itemStyle={itemStyle}
         onNavigate={onNavigate}
+        panelStyle={panelStyle}
         topItems={topItems}
       />
     </Navigator>
