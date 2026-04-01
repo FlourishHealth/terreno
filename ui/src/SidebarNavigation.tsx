@@ -3,16 +3,19 @@ import {Navigator, Slot} from "expo-router";
 import {type FC, useCallback, useMemo, useState} from "react";
 import {Pressable, type StyleProp, View, type ViewStyle} from "react-native";
 
+import {Badge} from "./Badge";
+import {Box} from "./Box";
 import type {
   SidebarNavigationItem,
   SidebarNavigationPanelProps,
   SidebarNavigationProps,
 } from "./Common";
+import {SIDEBAR_BADGE_STATUS_MAP} from "./Common";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
-const COLLAPSED_WIDTH = 56;
+const COLLAPSED_WIDTH = 65;
 const EXPANDED_WIDTH = 220;
 const ITEM_HEIGHT = 44;
 const ICON_SIZE = 18;
@@ -61,15 +64,25 @@ const SidebarItem: FC<{
           flexDirection: "row",
           gap: 12,
           height: ITEM_HEIGHT,
+          justifyContent: isExpanded ? undefined : "center",
           marginHorizontal: 8,
-          overflow: "hidden",
           paddingHorizontal: 12,
         },
         itemStyle,
       ]}
     >
       <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
-        <Icon color={iconColor} iconName={item.iconName} size="sm" />
+        <Icon color={iconColor} iconName={item.iconName} size="lg" />
+        {Boolean(item.badge) && (
+          <Box marginLeft={5} marginTop={5} position="absolute">
+            <Badge
+              maxValue={99}
+              status={SIDEBAR_BADGE_STATUS_MAP[item.badgeStatus ?? "error"]}
+              value={item.badge === true ? undefined : String(item.badge)}
+              variant={item.badge === true ? "iconOnly" : "numberOnly"}
+            />
+          </Box>
+        )}
       </View>
       {isExpanded && (
         <Text bold={isActive} color={isActive ? "primary" : "secondaryDark"} size="md">

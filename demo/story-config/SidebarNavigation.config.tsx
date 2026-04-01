@@ -16,6 +16,14 @@ const colorOptions = [
   {label: "Purple", value: "#6D28D9"},
 ];
 
+const badgeStatusOptions = [
+  {label: "Error (default)", value: "error"},
+  {label: "Info", value: "info"},
+  {label: "Neutral", value: "neutral"},
+  {label: "Success", value: "success"},
+  {label: "Warning", value: "warning"},
+];
+
 export const SidebarNavigationConfiguration: DemoConfiguration = {
   name: "Sidebar navigation (non-expo)",
   component: SidebarNavigationPanel,
@@ -61,6 +69,12 @@ export const SidebarNavigationConfiguration: DemoConfiguration = {
         defaultValue: "",
         options: colorOptions,
         title: "Item background color",
+        type: "select",
+      },
+      badgeStatus: {
+        defaultValue: "error",
+        options: badgeStatusOptions,
+        title: "Badge status",
         type: "select",
       },
     },
@@ -123,6 +137,12 @@ export const SidebarNavigationExpoRouterConfiguration: DemoConfiguration = {
         defaultValue: "",
         options: colorOptions,
         title: "Item background color",
+        type: "select",
+      },
+      badgeStatus: {
+        defaultValue: "error",
+        options: badgeStatusOptions,
+        title: "Badge status",
         type: "select",
       },
     },

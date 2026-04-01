@@ -3,11 +3,13 @@ import {Navigator, Slot} from "expo-router";
 import {type FC, useCallback, useEffect, useRef, useState} from "react";
 import {Animated, Dimensions, Pressable, type StyleProp, View, type ViewStyle} from "react-native";
 
+import {Badge} from "./Badge";
 import type {
   SidebarNavigationItem,
   SidebarNavigationPanelProps,
   SidebarNavigationProps,
 } from "./Common";
+import {SIDEBAR_BADGE_STATUS_MAP} from "./Common";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
@@ -51,6 +53,23 @@ const SidebarItem: FC<{
     >
       <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
         <Icon color={isActive ? "primary" : "secondaryDark"} iconName={item.iconName} size="md" />
+        {Boolean(item.badge) && (
+          <View
+            style={{
+              bottom: item.badge === true ? -4 : undefined,
+              position: "absolute",
+              right: -6,
+              top: item.badge === true ? undefined : -4,
+            }}
+          >
+            <Badge
+              maxValue={99}
+              status={SIDEBAR_BADGE_STATUS_MAP[item.badgeStatus ?? "error"]}
+              value={item.badge === true ? undefined : String(item.badge)}
+              variant={item.badge === true ? "iconOnly" : "numberOnly"}
+            />
+          </View>
+        )}
       </View>
       <Text bold={isActive} color={isActive ? "primary" : "secondaryDark"} size="md">
         {item.label}

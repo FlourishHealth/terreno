@@ -2910,6 +2910,19 @@ export interface UserInactivityProps {
   timeForInactivity?: number;
 }
 
+/**
+ * Maps badge status keys to their semantic meaning for sidebar navigation items.
+ */
+export const SIDEBAR_BADGE_STATUS_MAP = {
+  error: "error",
+  info: "info",
+  neutral: "neutral",
+  success: "success",
+  warning: "warning",
+} as const;
+
+export type SidebarBadgeStatus = keyof typeof SIDEBAR_BADGE_STATUS_MAP;
+
 export interface SidebarNavigationItem {
   /**
    * Display text for the navigation item.
@@ -2923,6 +2936,14 @@ export interface SidebarNavigationItem {
    * FontAwesome 6 icon name rendered alongside the label.
    */
   iconName: IconName;
+  /**
+   * Badge displayed on the icon. A number shows a count (capped at 99+); true shows a dot indicator.
+   */
+  badge?: number | boolean;
+  /**
+   * Color status of the badge. Defaults to "error".
+   */
+  badgeStatus?: SidebarBadgeStatus;
 }
 
 /**
