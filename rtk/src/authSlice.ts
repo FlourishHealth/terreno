@@ -24,11 +24,9 @@ export interface UserResponse {
   };
 }
 
-export interface EmailLoginRequest {
-  email?: string;
-  username?: string;
-  password: string;
-}
+export type EmailLoginRequest =
+  | {email: string; username?: never; password: string}
+  | {username: string; email?: never; password: string};
 
 export interface EmailSignupRequest {
   email: string;
@@ -151,6 +149,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         console.debug("Signup pending");
       });
       builder.addMatcher(api.endpoints.googleLogin.matchPending, (state) => {
+        state.error = null;
         state.isAuthenticating = true;
       });
       builder.addMatcher(api.endpoints.googleLogin.matchFulfilled, (state) => {
