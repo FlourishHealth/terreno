@@ -50,7 +50,8 @@ const SidebarItem: FC<{
     return "transparent";
   }, [isActive, isHovered, theme]);
 
-  const iconColor = isActive ? "primary" : "secondaryDark";
+  // Active = near-black (neutral900), hovered = light grey (neutral500), inactive = medium grey (neutral600)
+  const iconColor = isActive ? "primary" : isHovered ? "extraLight" : "secondaryLight";
 
   return (
     <Pressable
@@ -88,7 +89,7 @@ const SidebarItem: FC<{
         )}
       </View>
       {isExpanded && (
-        <Text bold={isActive} color={isActive ? "primary" : "secondaryDark"} size="md">
+        <Text bold={isActive} color={iconColor} size="md">
           {item.label}
         </Text>
       )}
