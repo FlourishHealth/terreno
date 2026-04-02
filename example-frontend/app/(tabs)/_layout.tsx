@@ -50,6 +50,13 @@ const TabLayout: React.FC = () => {
         }}
       />
       <Tabs.Screen
+        name="pdf"
+        options={{
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="file-pdf-o" />,
+          title: "PDF",
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="user" />,
