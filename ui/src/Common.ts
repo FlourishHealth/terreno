@@ -553,6 +553,69 @@ export type BoxProps =
   | (BoxPropsBase & {onClick: () => void} & AccessibilityProps);
 export type BoxColor = SurfaceColor | "transparent";
 
+export type CardProps = BoxProps & {
+  /**
+   * The visual variant of the card.
+   * - "container": A simple surface wrapper for arbitrary children (default).
+   * - "display": A structured card with a colored header, title, description, and optional action button.
+   * @default "container"
+   */
+  variant?: "container" | "display";
+
+  /**
+   * The size of the display card.
+   * - "large": On desktop, horizontal layout with image/header on the left (160px wide).
+   * - "default": Same horizontal layout as large on desktop.
+   * - "small": Always vertical layout — image/header stacked above content.
+   * On mobile all sizes are vertical with the image spanning the full width.
+   * @default "default"
+   */
+  size?: "small" | "default" | "large";
+
+  /**
+   * The title displayed in the card body. Used in the "display" variant.
+   */
+  title?: string;
+
+  /**
+   * A short description displayed below the title. Used in the "display" variant.
+   */
+  description?: string;
+
+  /**
+   * The surface color of the header section. Used in the "display" variant.
+   * @default "primary"
+   */
+  headerColor?: SurfaceColor;
+
+  /**
+   * The label for the action button. Used in the "display" variant.
+   */
+  buttonText?: string;
+
+  /**
+   * Callback invoked when the action button is pressed. Used in the "display" variant.
+   */
+  buttonOnClick?: () => void | Promise<void>;
+
+  /**
+   * URI of an image to display at the top of the card. When provided in the "display" variant,
+   * replaces the colored header with a full-width cover image.
+   */
+  imageUri?: string;
+
+  /**
+   * Accessibility label for the card image.
+   */
+  imageAlt?: string;
+
+  /**
+   * Height in pixels for the image area when imageUri is provided.
+   * @default 160
+   */
+  imageHeight?: number;
+};
+
 export interface ErrorBoundaryProps {
   onError?: (error: Error, stack: any) => void;
   children?: ReactNode;

@@ -1,6 +1,6 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`Card renders correctly with default props 1`] = `
+exports[`Card container variant (default) renders correctly with default props 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -48,7 +48,7 @@ exports[`Card renders correctly with default props 1`] = `
 }
 `;
 
-exports[`Card applies custom padding 1`] = `
+exports[`Card container variant (default) applies custom padding 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -96,7 +96,7 @@ exports[`Card applies custom padding 1`] = `
 }
 `;
 
-exports[`Card applies custom color 1`] = `
+exports[`Card container variant (default) applies custom color 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -144,7 +144,7 @@ exports[`Card applies custom color 1`] = `
 }
 `;
 
-exports[`Card passes additional Box props 1`] = `
+exports[`Card container variant (default) passes additional Box props 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -187,6 +187,176 @@ exports[`Card passes additional Box props 1`] = `
       "gap": 8,
       "marginTop": 16,
       "padding": 16,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Card display variant renders correctly with required props 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "backgroundColor": "#0E9DCD",
+          "style": {
+            "alignSelf": "stretch",
+            "width": 160,
+          },
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "Feature Title",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "heading-bold",
+              "fontSize": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "gap": 16,
+          "padding": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#FFFFFF",
+      "borderBottomColor": "#CDCDCD",
+      "borderBottomWidth": 1,
+      "borderLeftColor": "#CDCDCD",
+      "borderLeftWidth": 1,
+      "borderRadius": 4,
+      "borderRightColor": "#CDCDCD",
+      "borderRightWidth": 1,
+      "borderTopColor": "#CDCDCD",
+      "borderTopWidth": 1,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 32,
+      "overflow": "hidden",
+      "padding": 32,
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`Card display variant applies custom headerColor 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": null,
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "backgroundColor": undefined,
+          "style": {
+            "alignSelf": "stretch",
+            "width": 160,
+          },
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            "My Feature",
+          ],
+          "props": {
+            "numberOfLines": 0,
+            "style": {
+              "color": "#1C1C1C",
+              "fontFamily": "heading-bold",
+              "fontSize": 16,
+            },
+            "testID": undefined,
+          },
+          "type": "Text",
+        },
+      ],
+      "props": {
+        "onPointerEnter": [Function: AsyncFunction],
+        "onPointerLeave": [Function: AsyncFunction],
+        "style": {
+          "display": "flex",
+          "flexDirection": "column",
+          "flexGrow": 1,
+          "flexShrink": 1,
+          "gap": 16,
+          "padding": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "onPointerEnter": [Function: AsyncFunction],
+    "onPointerLeave": [Function: AsyncFunction],
+    "style": {
+      "alignItems": "center",
+      "backgroundColor": "#FFFFFF",
+      "borderBottomColor": "#CDCDCD",
+      "borderBottomWidth": 1,
+      "borderLeftColor": "#CDCDCD",
+      "borderLeftWidth": 1,
+      "borderRadius": 4,
+      "borderRightColor": "#CDCDCD",
+      "borderRightWidth": 1,
+      "borderTopColor": "#CDCDCD",
+      "borderTopWidth": 1,
+      "boxShadow": "2px 2px 2px rgba(153, 153, 153, 1.0)",
+      "display": "flex",
+      "flexDirection": "row",
+      "gap": 32,
+      "overflow": "hidden",
+      "padding": 32,
     },
     "testID": undefined,
   },
