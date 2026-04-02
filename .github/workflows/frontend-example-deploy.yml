@@ -14,8 +14,27 @@ on:
   pull_request:
 
 jobs:
+  check-changes:
+    name: Check for relevant changes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check PR diff for frontend-related changes
+        id: check
+        run: |
+          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
+          echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   build:
     name: Build Example Frontend
+    needs: [check-changes]
+    if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -48,27 +67,14 @@ jobs:
         run: bun run compile
         working-directory: ai
 
-      - name: Check for backend changes in PR
-        id: backend-changes
-        if: github.event_name == 'pull_request'
-        run: |
-          BACKEND_CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-backend/|api/|api-health/)' || true)
-          if [ "$BACKEND_CHANGES" -gt 0 ]; then
-            echo "has_backend_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_backend_changes=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
       - name: Set BASE_URL for deploy
         run: |
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
-          elif [ "${{ steps.backend-changes.outputs.has_backend_changes }}" = "true" ]; then
+            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+          elif [ -n "${{ github.event.pull_request.number }}" ]; then
             URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           else
-            URL="https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           fi
           jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "BASE_URL set to $URL"
@@ -104,7 +110,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download build artifact
-        uses: actions/download-artifact@v8.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: frontend-example-dist
           path: dist
@@ -224,7 +230,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download build artifact
-        uses: actions/download-artifact@v8.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: frontend-example-dist
           path: dist
@@ -311,6 +317,9 @@ jobs:
     needs: build
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    environment:
+      name: example-frontend-preview-pr-${{ github.event.pull_request.number }}
+      url: ${{ steps.netlify.outputs.deploy-url }}
     permissions:
       contents: read
       deployments: write
@@ -319,7 +328,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Download build artifact
-        uses: actions/download-artifact@v8.0.0
+        uses: actions/download-artifact@v8.0.1
         with:
           name: frontend-example-dist
           path: dist

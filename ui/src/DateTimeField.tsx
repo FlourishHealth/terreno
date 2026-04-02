@@ -1,9 +1,10 @@
+import {FontAwesome6} from "@expo/vector-icons";
 import {DateTime} from "luxon";
-import React, {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {TextInput, View} from "react-native";
+import React, {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {Pressable, TextInput, View} from "react-native";
 
 import {Box} from "./Box";
-import type {DateTimeFieldProps, IconName} from "./Common";
+import type {DateTimeFieldProps} from "./Common";
 import {DateTimeActionSheet} from "./DateTimeActionSheet";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {IconButton} from "./IconButton";
@@ -17,6 +18,10 @@ interface SeparatorProps {
   type: "date" | "time";
 }
 
+/**
+ * Visual separator rendered between date or time input segments.
+ * Displays "/" for date fields (MM/DD/YYYY) and ":" for time fields (hh:mm).
+ */
 const Separator: FC<SeparatorProps> = ({type}) => {
   return (
     <View>
@@ -36,6 +41,12 @@ interface DateTimeSegmentProps {
   error?: string;
 }
 
+/**
+ * A single numeric input segment within a date or time field.
+ * Each segment represents one part of the value (e.g. month, day, year, hour, minute).
+ * Renders a fixed-width TextInput with centered text and numeric keyboard.
+ * Used on desktop; on mobile, segments are replaced by {@link MobileTimeDisplay}.
+ */
 const DateTimeSegment: FC<DateTimeSegmentProps> = ({
   disabled,
   getFieldValue,
@@ -90,6 +101,11 @@ interface DateTimeProps extends Omit<DateTimeSegmentProps, "index" | "config"> {
   fieldErrors?: Record<number, string | undefined>;
 }
 
+/**
+ * Groups three {@link DateTimeSegment} inputs for month, day, and year (MM/DD/YYYY).
+ * Renders as a fixed-width (130px) row with "/" separators between segments.
+ * Used in both date-only and datetime field types.
+ */
 const DateField: FC<DateTimeProps> = ({fieldErrors, ...segmentProps}) => {
   return (
     <View
@@ -124,6 +140,15 @@ const DateField: FC<DateTimeProps> = ({fieldErrors, ...segmentProps}) => {
   );
 };
 
+/**
+ * Groups two {@link DateTimeSegment} inputs for hour and minute (hh:mm).
+ * Only used on desktop; on mobile, time is rendered as a read-only
+ * {@link MobileTimeDisplay} that opens the {@link DateTimeActionSheet} on tap.
+ *
+ * The hour/minute field indices depend on the parent type:
+ * - type="time": indices 0 (hour) and 1 (minute)
+ * - type="datetime": indices 3 (hour) and 4 (minute), after the date segments
+ */
 const TimeField: FC<DateTimeProps> = ({type, onBlur, fieldErrors, ...segmentProps}) => {
   const hourIndex = type === "time" ? 0 : 3;
   const minuteIndex = type === "time" ? 1 : 4;
@@ -148,12 +173,239 @@ const TimeField: FC<DateTimeProps> = ({type, onBlur, fieldErrors, ...segmentProp
   );
 };
 
-interface FieldConfig {
-  maxLength: number;
+/**
+ * @param borderColor - Border color from the parent's computed border state (error, disabled, default).
+ *   Only applied when {@link showBorder} is true.
+ * @param showBorder - When true (default), renders as a standalone bordered field (for type="time").
+ *   When false, renders borderless to embed inside the datetime container which provides its own border.
+ */
+interface MobileTimeDisplayProps {
+  borderColor?: string;
+  disabled?: boolean;
+  displayText: string;
+  onPress: () => void;
   placeholder: string;
+  showBorder?: boolean;
+}
+
+/**
+ * Read-only tappable time display used on mobile devices.
+ * Shows the formatted time (e.g. "02:30 PM CDT") with a clock icon, matching the
+ * Figma design system's mobile time field pattern.
+ *
+ * Tapping opens the {@link DateTimeActionSheet} for time selection via native pickers.
+ *
+ * Used in two contexts:
+ * - **Standalone** (type="time"): Renders with its own border as the full field container.
+ * - **Embedded** (type="datetime"): Renders borderless inside the datetime container,
+ *   below the date row. The parent container provides the border.
+ */
+const MobileTimeDisplay: FC<MobileTimeDisplayProps> = ({
+  borderColor,
+  disabled,
+  displayText,
+  onPress,
+  placeholder,
+  showBorder = true,
+}): React.ReactElement => {
+  const {theme} = useTheme();
+  const isPlaceholder = !displayText;
+
+  return (
+    <Pressable
+      accessibilityHint="Tap to select a time"
+      accessibilityLabel="Time picker"
+      disabled={disabled}
+      onPress={onPress}
+      style={{
+        alignItems: "center",
+        flexDirection: "row",
+        gap: 10,
+        minHeight: 40,
+        paddingHorizontal: showBorder ? 12 : 10,
+        paddingVertical: showBorder ? 8 : 4,
+        ...(showBorder
+          ? {
+              backgroundColor: disabled ? theme.surface.disabled : theme.surface.base,
+              borderColor,
+              borderRadius: 4,
+              borderWidth: 1,
+              maxWidth: 250,
+            }
+          : {}),
+      }}
+    >
+      <Text color={isPlaceholder ? "secondaryLight" : "primary"} numberOfLines={1} size="md">
+        {displayText || placeholder}
+      </Text>
+      <Box flex="grow" />
+      <FontAwesome6
+        color={disabled ? theme.text.secondaryLight : theme.text.primary}
+        name="clock"
+        size={16}
+      />
+    </Pressable>
+  );
+};
+
+interface DateRowWithIconProps {
+  disabled?: boolean;
+  isMobile: boolean;
+  isMobileDatetime: boolean;
+  onOpenActionSheet: () => void;
+  segmentProps: Omit<DateTimeProps, "type">;
+  type: "date" | "datetime" | "time";
+}
+
+/**
+ * Date section row showing MM/DD/YYYY {@link DateField} segments with a calendar icon.
+ * On mobile, renders a non-interactive row (via pointerEvents) with a plain dark calendar icon
+ * aligned to the right. On desktop date-only, renders an interactive {@link IconButton}.
+ * For desktop datetime, no icon is shown here — it appears in {@link DesktopTimeSection} instead.
+ */
+const DateRowWithIcon: FC<DateRowWithIconProps> = ({
+  disabled,
+  isMobile,
+  isMobileDatetime,
+  onOpenActionSheet,
+  segmentProps,
+  type,
+}): React.ReactElement => {
+  const {theme} = useTheme();
+
+  return (
+    <View
+      pointerEvents={isMobileDatetime ? "none" : "auto"}
+      style={{alignItems: "center", flexDirection: "row"}}
+    >
+      <DateField {...segmentProps} type={type} />
+      {isMobile && <Box flex="grow" />}
+      {!disabled && isMobile && (
+        <Pressable
+          accessibilityHint="Opens the calendar to select a date"
+          accessibilityLabel="Show calendar"
+          hitSlop={10}
+          onPress={onOpenActionSheet}
+          style={{paddingHorizontal: 10, paddingVertical: 8}}
+        >
+          <FontAwesome6 color={theme.text.primary} name="calendar" size={16} />
+        </Pressable>
+      )}
+      {!disabled && !isMobile && type === "date" && (
+        <IconButton
+          accessibilityHint="Opens the calendar to select a date"
+          accessibilityLabel="Show calendar"
+          iconName="calendar"
+          onClick={onOpenActionSheet}
+          variant="navigation"
+        />
+      )}
+    </View>
+  );
+};
+
+interface DesktopTimeSectionProps {
+  amPm: "am" | "pm";
+  disabled?: boolean;
+  isMobile: boolean;
+  onAmPmChange: (amPm: "am" | "pm") => void;
+  onOpenActionSheet: () => void;
+  onTimezoneChange: (tz: string) => void;
+  segmentProps: Omit<DateTimeProps, "type">;
+  timezone: string;
+  type: "date" | "datetime" | "time";
+}
+
+/**
+ * Desktop time editing controls rendered in a horizontal row.
+ * Contains editable {@link TimeField} segments (hh:mm), an AM/PM {@link SelectField},
+ * a {@link TimezonePicker}, and for datetime type, an {@link IconButton} that opens
+ * the {@link DateTimeActionSheet}.
+ *
+ * Only rendered on desktop; on mobile, time is shown via {@link MobileTimeDisplay}.
+ */
+const DesktopTimeSection: FC<DesktopTimeSectionProps> = ({
+  amPm,
+  disabled,
+  isMobile,
+  onAmPmChange,
+  onOpenActionSheet,
+  onTimezoneChange,
+  segmentProps,
+  timezone,
+  type,
+}): React.ReactElement => {
+  return (
+    <View style={{alignItems: "center", flexDirection: "row"}}>
+      <TimeField {...segmentProps} type={type} />
+      <Box direction="column" marginLeft={2} marginRight={2} width={60}>
+        <SelectField
+          disabled={disabled}
+          onChange={(result) => onAmPmChange(result as "am" | "pm")}
+          options={[
+            {label: "am", value: "am"},
+            {label: "pm", value: "pm"},
+          ]}
+          requireValue
+          value={amPm}
+        />
+      </Box>
+      <Box direction="column" width={70}>
+        <TimezonePicker
+          disabled={disabled}
+          hideTitle
+          onChange={onTimezoneChange}
+          shortTimezone
+          timezone={timezone}
+        />
+      </Box>
+      {!disabled && type === "datetime" && !isMobile && (
+        <Box marginLeft={2}>
+          <IconButton
+            accessibilityHint="Opens the calendar to select a date and time"
+            accessibilityLabel="Show calendar"
+            iconName="calendar"
+            onClick={onOpenActionSheet}
+            variant="navigation"
+          />
+        </Box>
+      )}
+    </View>
+  );
+};
+
+/** Configuration for a single {@link DateTimeSegment} input. */
+interface FieldConfig {
+  /** Maximum character length (e.g. 2 for MM/DD/hh/mm, 4 for YYYY). */
+  maxLength: number;
+  /** Placeholder text shown when the segment is empty (e.g. "MM", "DD", "YYYY", "hh", "mm"). */
+  placeholder: string;
+  /** Fixed pixel width of the segment container. */
   width: number;
 }
 
+/**
+ * A versatile date/time input field that adapts its rendering based on device type and field mode.
+ *
+ * Supports three modes via the `type` prop:
+ * - **"date"**: Date-only input (MM/DD/YYYY). Values stored as UTC midnight ISO strings.
+ * - **"time"**: Time-only input (hh:mm AM/PM + timezone). Values stored as UTC ISO strings.
+ * - **"datetime"**: Combined date and time input with timezone support.
+ *
+ * ## Desktop Behavior
+ * Renders editable {@link DateTimeSegment} inputs for each part of the date/time, with
+ * AM/PM {@link SelectField}, {@link TimezonePicker}, and a calendar/clock {@link IconButton}
+ * that opens the {@link DateTimeActionSheet}.
+ *
+ * ## Mobile Behavior (type="datetime")
+ * On mobile when `type="datetime"`, date segments remain visible but non-editable. Time
+ * segments are replaced with a {@link MobileTimeDisplay} showing the formatted time
+ * (e.g. "02:30 PM CDT"). Tapping anywhere on the field opens the
+ * {@link DateTimeActionSheet} with native picker wheels for selection. This follows the
+ * Figma design system's mobile pattern.
+ *
+ * All values are emitted as UTC ISO 8601 strings via the `onChange` callback.
+ */
 export const DateTimeField: FC<DateTimeFieldProps> = ({
   type,
   title,
@@ -211,18 +463,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   // Use provided timezone if available, otherwise use local
   const timezone = providedTimezone ?? localTimezone;
-  const lastTimezoneRef = useRef(timezone);
-
   const inputRefs = useRef<(TextInput | null)[]>([]);
-
-  let iconName: IconName | undefined;
-  if (disabled) {
-    iconName = undefined;
-  } else if (type === "time") {
-    iconName = "clock";
-  } else {
-    iconName = "calendar";
-  }
 
   let borderColor = theme.border.dark;
   if (disabled) {
@@ -231,6 +472,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     borderColor = theme.border.error;
   }
 
+  /** Builds the ordered array of {@link FieldConfig} for each input segment based on the field type. */
   const getFieldConfigs = useCallback((): FieldConfig[] => {
     const configs: FieldConfig[] = [];
     if (type === "date" || type === "datetime") {
@@ -255,6 +497,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     inputRefs.current = configs.map(() => null);
   }, [getFieldConfigs]);
 
+  /** Validates a single segment value and returns an error message if invalid, or undefined if valid. */
   const validateField = useCallback(
     (fieldIndex: number, fieldValue: string): string | undefined => {
       if (!fieldValue) return undefined;
@@ -302,6 +545,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     [type]
   );
 
+  /**
+   * Assembles the current segment state (month, day, year, hour, minute, amPm, timezone)
+   * into a UTC ISO 8601 string. Accepts optional overrides for fields that haven't
+   * been committed to state yet (e.g. during mid-edit or AM/PM toggle).
+   * Returns undefined if required fields are missing.
+   */
   const getISOFromFields = useCallback(
     (override?: {
       amPm?: "am" | "pm";
@@ -393,6 +642,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     [amPm, month, day, year, hour, minute, timezone, type]
   );
 
+  /**
+   * Handles text changes in any {@link DateTimeSegment} input.
+   * Strips non-numeric characters, validates the value, updates local state,
+   * and emits the ISO value via onChange when all required fields are complete.
+   * Auto-advances focus to the next segment when the current one is full.
+   */
   const handleFieldChange = useCallback(
     (index: number, text: string, config: FieldConfig) => {
       const numericValue = text.replace(/[^0-9]/g, "");
@@ -503,6 +758,11 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     [type, getFieldConfigs, getISOFromFields, onChange, value, validateField, month, day, year]
   );
 
+  /**
+   * Callback from the {@link DateTimeActionSheet}. Parses the selected ISO value,
+   * syncs it into the local segment state (month, day, year, hour, minute, amPm),
+   * normalizes it to UTC, and emits via onChange. An empty string clears the field.
+   */
   const onActionSheetChange = useCallback(
     (inputDate: string) => {
       // Handle clear case - empty string should clear the field
@@ -520,9 +780,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setAmPm(parsedDate.hour >= 12 ? "pm" : "am");
 
       if (type === "date" || type === "datetime") {
-        setMonth(parsedDate.month.toString().padStart(2, "0"));
-        setDay(parsedDate.day.toString().padStart(2, "0"));
-        setYear(parsedDate.year.toString());
+        // type="date" values are UTC midnight — parse in UTC to extract the correct calendar date.
+        const displayDate =
+          type === "date" ? DateTime.fromISO(inputDate, {zone: "UTC"}) : parsedDate;
+        setMonth(displayDate.month.toString().padStart(2, "0"));
+        setDay(displayDate.day.toString().padStart(2, "0"));
+        setYear(displayDate.year.toString());
       }
 
       if (type === "time" || type === "datetime") {
@@ -535,11 +798,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       // Normalize emitted value to ISO (UTC for date-only)
       const normalized =
         type === "date"
-          ? parsedDate
-              .setZone("UTC")
+          ? DateTime.fromISO(inputDate, {zone: "UTC"})
               .startOf("day")
               .set({millisecond: 0, second: 0})
-              .toUTC()
               .toISO()
           : parsedDate.set({millisecond: 0, second: 0}).toUTC().toISO();
       if (!normalized) {
@@ -552,7 +813,10 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     [onChange, type]
   );
 
-  // When fields change, send the value to onChange
+  /**
+   * Called when a segment input loses focus. Assembles the current field state
+   * (plus any pending overrides) into an ISO string and emits it if changed.
+   */
   const onBlur = useCallback(
     (override?: {amPm?: "am" | "pm"}) => {
       const iso = getISOFromFields({...override, ...pendingValueRef.current});
@@ -577,18 +841,6 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       setHour("");
       setMinute("");
       setAmPm("am");
-      return;
-    }
-
-    // // If only timezone changed, don't recalculate fields
-    const isOnlyTimezoneChange =
-      lastTimezoneRef.current !== timezone &&
-      DateTime.fromISO(value).toUTC().toISO() ===
-        DateTime.fromISO(value).setZone(timezone).toUTC().toISO();
-
-    lastTimezoneRef.current = timezone;
-
-    if (isOnlyTimezoneChange) {
       return;
     }
 
@@ -619,9 +871,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     }
   }, [value, type, timezone]);
 
-  // JOSH: This is where the infinite loop is happening
-  // We update the value of the date according to the zone and then this get triggered
-  // and we update the value of the date according to the zone again
+  /** Returns the current display string for a given segment index from local state. */
   const getFieldValue = useCallback(
     (index: number): string => {
       if (type === "date" || type === "datetime") {
@@ -657,108 +907,141 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
     onRef: (el: TextInput | null, i: number) => (inputRefs.current[i] = el),
   };
 
+  const isMobile = isMobileDevice();
+  const isMobileTimeOnly = isMobile && type === "time";
+  const isMobileDatetime = isMobile && type === "datetime";
+  const showDateSection = type === "date" || type === "datetime";
+  const showDesktopTime = !isMobile && (type === "time" || type === "datetime");
+  const timezoneAbbr = useMemo((): string => {
+    if (value) {
+      const parsed = DateTime.fromISO(value);
+      if (parsed.isValid) {
+        return parsed.setZone(timezone).offsetNameShort ?? "";
+      }
+    }
+    const iso = getISOFromFields();
+    if (iso) {
+      const parsed = DateTime.fromISO(iso);
+      if (parsed.isValid) {
+        return parsed.setZone(timezone).offsetNameShort ?? "";
+      }
+    }
+    return DateTime.now().setZone(timezone).offsetNameShort ?? "";
+  }, [value, getISOFromFields, timezone]);
+  const mobileTimeDisplayText =
+    hour && minute ? `${hour}:${minute} ${amPm.toUpperCase()} ${timezoneAbbr}` : "";
+  const mobileTimePlaceholder = `12:00 PM ${timezoneAbbr}`;
+
+  /** Handles AM/PM toggle from the SelectField, recomputes and emits the ISO value. */
+  const handleAmPmChange = useCallback(
+    (newAmPm: "am" | "pm"): void => {
+      setAmPm(newAmPm);
+      const iso = getISOFromFields({amPm: newAmPm});
+      const currentValueUTC = value ? DateTime.fromISO(value).toUTC().toISO() : undefined;
+      if (iso && iso !== currentValueUTC) {
+        onChange(iso);
+      }
+    },
+    [getISOFromFields, value, onChange]
+  );
+
+  /** Handles timezone changes from the TimezonePicker, recomputes and emits the ISO value. */
+  const handleTimezoneChange = useCallback(
+    (tz: string): void => {
+      if (onTimezoneChange) {
+        onTimezoneChange(tz);
+      } else {
+        setLocalTimezone(tz);
+      }
+      const iso = getISOFromFields({timezone: tz});
+      const currentValueUTC = value ? DateTime.fromISO(value).toUTC().toISO() : undefined;
+      if (iso && iso !== currentValueUTC) {
+        onChange(iso);
+      }
+    },
+    [getISOFromFields, value, onChange, onTimezoneChange]
+  );
+
+  const openActionSheet = useCallback((): void => {
+    setShowDate(true);
+  }, []);
+
   return (
     <>
-      {Boolean(title) && <FieldTitle text={title!} />}
-      {Boolean(errorText) && <FieldError text={errorText!} />}
-      <View
-        onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
-        style={{
-          alignItems: "center",
-          backgroundColor: theme.surface.base,
-          borderColor,
-          borderRadius: 4,
-          borderWidth: 1,
-          flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
-          maxWidth: maximumWidth,
-          minWidth: minimumWidth,
-          paddingHorizontal: 6,
-          paddingVertical: 2,
-        }}
-      >
-        {(type === "date" || type === "datetime") && (
-          <View style={{alignItems: "center", flexDirection: "row"}}>
-            <DateField {...segmentProps} type={type} />
-            {!disabled &&
-              (type === "date" ||
-                (type === "datetime" && parentIsLessThanBreakpointOrIsMobile)) && (
-                <IconButton
-                  accessibilityHint="Opens the calendar to select a date and time"
-                  accessibilityLabel="Show calendar"
-                  iconName={iconName!}
-                  onClick={() => setShowDate(true)}
-                  variant="muted"
-                />
-              )}
-          </View>
-        )}
+      {Boolean(title) && <FieldTitle text={title as string} />}
+      {Boolean(errorText) && <FieldError text={errorText as string} />}
 
-        <View style={{alignItems: "center", flexDirection: "row"}}>
-          {(type === "time" || type === "datetime") && <TimeField {...segmentProps} type={type} />}
-          {Boolean(type === "datetime" || type === "time") && (
-            <>
-              <Box direction="column" marginLeft={2} marginRight={2} width={60}>
-                <SelectField
-                  disabled={disabled}
-                  onChange={(result) => {
-                    setAmPm(result as "am" | "pm");
-                    // No onblur, so we need to manually update the value
-                    const iso = getISOFromFields({amPm: result as "am" | "pm"});
-                    // Compare in UTC to avoid timezone issues
-                    const currentValueUTC = value
-                      ? DateTime.fromISO(value).toUTC().toISO()
-                      : undefined;
-                    if (iso && iso !== currentValueUTC) {
-                      onChange(iso);
-                    }
-                  }}
-                  options={[
-                    {label: "am", value: "am"},
-                    {label: "pm", value: "pm"},
-                  ]}
-                  requireValue
-                  value={amPm}
-                />
-              </Box>
-              <Box direction="column" width={70}>
-                <TimezonePicker
-                  disabled={disabled}
-                  hideTitle
-                  onChange={(t) => {
-                    if (onTimezoneChange) {
-                      onTimezoneChange(t);
-                    } else {
-                      setLocalTimezone(t);
-                    }
-                    const iso = getISOFromFields({timezone: t});
-                    // Compare in UTC to avoid timezone issues
-                    const currentValueUTC = value
-                      ? DateTime.fromISO(value).toUTC().toISO()
-                      : undefined;
-                    if (iso && iso !== currentValueUTC) {
-                      onChange(iso);
-                    }
-                  }}
-                  shortTimezone
-                  timezone={timezone}
-                />
-              </Box>
-            </>
+      {isMobileTimeOnly && (
+        <MobileTimeDisplay
+          borderColor={borderColor}
+          disabled={disabled}
+          displayText={mobileTimeDisplayText}
+          onPress={openActionSheet}
+          placeholder={mobileTimePlaceholder}
+        />
+      )}
+
+      {!isMobileTimeOnly && (
+        <Pressable
+          {...(isMobileDatetime && {
+            accessibilityHint: "Opens date and time picker",
+            accessibilityLabel: "Date and time picker",
+            accessibilityRole: "button" as const,
+          })}
+          disabled={!isMobileDatetime || disabled}
+          onLayout={(e) => setParentWidth(e.nativeEvent.layout.width)}
+          onPress={openActionSheet}
+          style={{
+            alignItems: parentIsLessThanBreakpointOrIsMobile ? "stretch" : "center",
+            backgroundColor: theme.surface.base,
+            borderColor,
+            borderRadius: 4,
+            borderWidth: 1,
+            flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
+            maxWidth: isMobileDatetime ? 250 : maximumWidth,
+            minWidth: isMobileDatetime ? 200 : minimumWidth,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+          }}
+        >
+          {showDateSection && (
+            <DateRowWithIcon
+              disabled={disabled}
+              isMobile={parentIsLessThanBreakpointOrIsMobile}
+              isMobileDatetime={isMobileDatetime}
+              onOpenActionSheet={openActionSheet}
+              segmentProps={segmentProps}
+              type={type}
+            />
           )}
 
-          {!disabled && type === "datetime" && !parentIsLessThanBreakpointOrIsMobile && (
-            <Box marginLeft={2}>
-              <IconButton
-                accessibilityHint="Opens the calendar to select a date and time"
-                accessibilityLabel="Show calendar"
-                iconName={iconName!}
-                onClick={() => setShowDate(true)}
-                variant="muted"
+          {isMobileDatetime && (
+            <View pointerEvents="none">
+              <MobileTimeDisplay
+                disabled={disabled}
+                displayText={mobileTimeDisplayText}
+                onPress={openActionSheet}
+                placeholder={mobileTimePlaceholder}
+                showBorder={false}
               />
-            </Box>
+            </View>
           )}
-        </View>
-      </View>
+
+          {showDesktopTime && (
+            <DesktopTimeSection
+              amPm={amPm}
+              disabled={disabled}
+              isMobile={parentIsLessThanBreakpointOrIsMobile}
+              onAmPmChange={handleAmPmChange}
+              onOpenActionSheet={openActionSheet}
+              onTimezoneChange={handleTimezoneChange}
+              segmentProps={segmentProps}
+              timezone={timezone}
+              type={type}
+            />
+          )}
+        </Pressable>
+      )}
 
       {!disabled && (
         <DateTimeActionSheet
@@ -771,7 +1054,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           visible={showDate}
         />
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
     </>
   );
 };

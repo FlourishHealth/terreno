@@ -7,6 +7,7 @@ on:
       - "admin-backend/**"
       - "example-backend/**"
       - "api-health/**"
+      - "feature-flags/**"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:
@@ -60,6 +61,10 @@ jobs:
       - name: Build Admin Backend dependency
         run: bun run compile
         working-directory: admin-backend
+
+      - name: Build Feature Flags dependency
+        run: bun run compile
+        working-directory: feature-flags
 
       - name: Build UI dependency
         run: bun run compile

@@ -4,11 +4,13 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
-import {TerrenoProvider} from "@terreno/ui";
+import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
+import {ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
+import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
+import {terrenoApi} from "@/store/sdk";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -68,9 +70,11 @@ export default function RootLayout(): React.ReactElement | null {
 
 function RootLayoutNav(): React.ReactElement {
   const userId = useSelectCurrentUserId();
+  const profile = useReadProfile();
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
+  const {canUpdate, isRequired, requiredMessage, onUpdate} = useUpgradeCheck();
 
   // Validate stored auth token on mount
   useEffect(() => {
@@ -97,7 +101,19 @@ function RootLayoutNav(): React.ReactElement {
     }
   }, [userId, segments, router]);
 
-  return (
+  if (isRequired) {
+    return (
+      <UpgradeRequiredScreen
+        canUpdate={canUpdate}
+        message={
+          requiredMessage ?? "This version is no longer supported. Please update to continue."
+        }
+        onUpdate={onUpdate}
+      />
+    );
+  }
+
+  const stack = (
     <Stack screenOptions={{headerShown: false}}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin" />
@@ -105,4 +121,20 @@ function RootLayoutNav(): React.ReactElement {
       <Stack.Screen name="signup" />
     </Stack>
   );
+
+  if (userId && !profile?.admin) {
+    console.info("[RootLayout] Non-admin user, wrapping with ConsentNavigator", {
+      admin: profile?.admin,
+      profileLoaded: !!profile,
+      userId,
+    });
+    return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
+  }
+
+  console.debug("[RootLayout] Skipping ConsentNavigator", {
+    admin: profile?.admin,
+    profileLoaded: !!profile,
+    userId: userId ?? "none",
+  });
+  return stack;
 }

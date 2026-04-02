@@ -8,6 +8,7 @@ on:
       - "ui/**"
       - "rtk/**"
       - "api/**"
+      - "feature-flags/**"
       - ".github/workflows/e2e-ci.yml"
 
 jobs:
@@ -67,6 +68,10 @@ jobs:
         run: bun run compile
         working-directory: admin-backend
 
+      - name: Build Feature Flags dependency
+        run: bun run compile
+        working-directory: feature-flags
+
       - name: Build Admin Frontend dependency
         run: bun run compile
         working-directory: admin-frontend
@@ -91,9 +96,9 @@ jobs:
           bun run src/index.ts &
           BACKEND_PID=$!
           echo "Backend PID: $BACKEND_PID"
-          # Wait up to 60s for the health endpoint to respond
+          # Wait up to 60s for the backend to be healthy (DB connected)
           for i in $(seq 1 30); do
-            if curl -s http://localhost:4000/health > /dev/null 2>&1; then
+            if curl -s http://localhost:4000/health | grep -q '"healthy":true'; then
               echo "Backend ready after ${i}×2s"
               exit 0
             fi

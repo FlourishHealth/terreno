@@ -2,6 +2,7 @@
   "dependencies": {
     "@terreno/ui": "workspace:*",
     "expo-router": "catalog:",
+    "jspdf": "^4.2.0",
     "lodash": "catalog:",
     "luxon": "catalog:",
     "react-native": "catalog:"
@@ -46,5 +47,5 @@
     "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "0.6.0"
+  "version": "0.8.2"
 }

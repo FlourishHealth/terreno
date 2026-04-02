@@ -1,6 +1,6 @@
 import type React from "react";
 import {useMemo, useRef} from "react";
-import {Platform, Pressable, Text as RNText, TextInput, View} from "react-native";
+import {Platform, Pressable, Text as RNText, ScrollView, TextInput, View} from "react-native";
 
 import {Box} from "./Box";
 import type {ErrorTextProps, HelperTextProps} from "./Common";
@@ -16,6 +16,7 @@ interface MarkdownEditorFieldProps extends HelperTextProps, ErrorTextProps {
   placeholder?: string;
   disabled?: boolean;
   testID?: string;
+  maxHeight?: number;
 }
 
 interface ToolbarButton {
@@ -44,6 +45,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
   errorText,
   helperText,
   testID,
+  maxHeight = 500,
 }) => {
   const {theme} = useTheme();
   const isWeb = Platform.OS === "web";
@@ -64,30 +66,32 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
         overflow="hidden"
         rounding="md"
       >
-        <View style={{flex: 1, minHeight: 200}}>
-          <TextInput
-            editable={!disabled}
-            multiline
-            onChangeText={onChange}
-            placeholder={placeholder ?? "Enter markdown..."}
-            placeholderTextColor={theme.text.secondaryDark}
-            ref={inputRef}
-            style={{
-              backgroundColor: theme.surface.base,
-              borderBottomWidth: isWeb ? 0 : 1,
-              borderColor: theme.border.default,
-              borderRightWidth: isWeb ? 1 : 0,
-              color: theme.text.primary,
-              flex: 1,
-              fontFamily: monoFont,
-              fontSize: 14,
-              minHeight: 200,
-              padding: 12,
-              textAlignVertical: "top",
-            }}
-            testID={testID ? `${testID}-input` : undefined}
-            value={value}
-          />
+        <View style={{flex: 1, maxHeight, minHeight: 200}}>
+          <ScrollView style={{flex: 1}}>
+            <TextInput
+              editable={!disabled}
+              multiline
+              onChangeText={onChange}
+              placeholder={placeholder ?? "Enter markdown..."}
+              placeholderTextColor={theme.text.secondaryDark}
+              ref={inputRef}
+              style={{
+                backgroundColor: theme.surface.base,
+                borderBottomWidth: isWeb ? 0 : 1,
+                borderColor: theme.border.default,
+                borderRightWidth: isWeb ? 1 : 0,
+                color: theme.text.primary,
+                flex: 1,
+                fontFamily: monoFont,
+                fontSize: 14,
+                minHeight: 200,
+                padding: 12,
+                textAlignVertical: "top",
+              }}
+              testID={testID ? `${testID}-input` : undefined}
+              value={value}
+            />
+          </ScrollView>
           {!disabled && (
             <View
               style={{
@@ -135,8 +139,8 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
             </View>
           )}
         </View>
-        <View style={{flex: 1, minHeight: 200}}>
-          <Box color="base" padding={3} style={{flex: 1, minHeight: 200}}>
+        <ScrollView style={{flex: 1, maxHeight, minHeight: 200}}>
+          <Box color="base" padding={3} style={{minHeight: 200}}>
             {value ? (
               <MarkdownView>{value}</MarkdownView>
             ) : (
@@ -145,7 +149,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
               </Text>
             )}
           </Box>
-        </View>
+        </ScrollView>
       </Box>
       {errorText && <FieldError text={errorText} />}
       {helperText && <FieldHelperText text={helperText} />}

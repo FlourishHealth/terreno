@@ -6,13 +6,12 @@
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.21",
     "@google-cloud/storage": "^7.15.0",
-    "@langfuse/otel": "^4.6.1",
+    "@langfuse/client": "^5.0.1",
+    "@langfuse/otel": "^5.0.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.213.0",
     "@terreno/api": "workspace:*",
     "ai": "catalog:",
-    "langfuse": "^3.38.6",
-    "langfuse-core": "^3.38.6",
     "multer": "^1.4.5-lts.1"
   },
   "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
@@ -64,5 +63,5 @@
     "test:ci": "bun test --preload ./src/tests/bunSetup.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.6.0"
+  "version": "0.8.2"
 }
