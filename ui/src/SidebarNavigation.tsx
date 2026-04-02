@@ -42,10 +42,10 @@ const SidebarItem: FC<{
 
   const backgroundColor = useMemo(() => {
     if (isActive) {
-      return theme.surface.secondaryLight;
+      return theme.surface.neutralLight;
     }
     if (isHovered) {
-      return theme.surface.neutralLight;
+      return theme.primitives.neutral050;
     }
     return "transparent";
   }, [isActive, isHovered, theme]);
