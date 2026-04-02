@@ -1,4 +1,4 @@
-import {jsPDF} from "jspdf";
+import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
 import {Platform} from "react-native";
 
@@ -93,6 +93,7 @@ const buildTemplateData = (entry: ConsentHistoryEntry): PdfTemplateData => {
 };
 
 const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
+  const {jsPDF} = await import("jspdf");
   const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
 
   const formTitle = entry.form?.title ?? "Unknown Form";

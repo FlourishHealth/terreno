@@ -82,7 +82,7 @@ export const buildConsentPdfHtml = (data: PdfTemplateData): string => {
   const signatureHtml = data.signature
     ? `<div class="section">
         <h2>Signature</h2>
-        <img src="${data.signature}" class="signature-img" />
+        <img src="${escapeHtml(data.signature)}" class="signature-img" />
       </div>`
     : "";
 
