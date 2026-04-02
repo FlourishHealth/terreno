@@ -156,9 +156,14 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         // Safety fallback: clear isAuthenticating in case the listener middleware fails.
         state.isAuthenticating = false;
       });
-      builder.addMatcher(api.endpoints.googleLogin.matchRejected, (state) => {
-        state.isAuthenticating = false;
-      });
+      builder.addMatcher(
+        api.endpoints.googleLogin.matchRejected,
+        // biome-ignore lint/suspicious/noExplicitAny: Generic
+        (state, action: PayloadAction<{data: any}>) => {
+          state.error = action.payload?.data?.message;
+          state.isAuthenticating = false;
+        }
+      );
     },
     initialState: {
       error: null,

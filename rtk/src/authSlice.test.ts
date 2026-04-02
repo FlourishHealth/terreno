@@ -233,7 +233,7 @@ describe("generateAuthSlice", () => {
       expect(store.getState().auth.isAuthenticating).toBe(false);
     });
 
-    it("matchRejected clears isAuthenticating", () => {
+    it("matchRejected sets error and clears isAuthenticating", () => {
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
@@ -241,10 +241,12 @@ describe("generateAuthSlice", () => {
       });
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
-        payload: {},
+        payload: {data: {message: "Google auth failed"}},
         type: "terreno-rtk/executeMutation/rejected",
       });
-      expect(store.getState().auth.isAuthenticating).toBe(false);
+      const state = store.getState().auth;
+      expect(state.isAuthenticating).toBe(false);
+      expect(state.error).toBe("Google auth failed");
     });
   });
 
