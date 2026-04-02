@@ -433,9 +433,25 @@ export function deleteOpenApiMiddleware<T>(
     return noop;
   }
 
+  const {properties} = getOpenApiSpecForModel(model, {
+    extraModelProperties: options.openApiExtraModelProperties,
+    populatePaths: options.populatePaths,
+  });
+
   return options.openApi.path(
     merge(
       {
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                properties,
+                type: "object",
+              },
+            },
+          },
+          required: false,
+        },
         responses: {
           204: {
             description: "Successful delete",
