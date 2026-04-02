@@ -45,8 +45,8 @@ const PdfScreen: React.FC = () => {
   }, []);
 
   return (
-    <Page maxWidth={800} scroll testID="pdf-screen" title="PDF Generation">
-      <Box gap={4} padding={4}>
+    <Page maxWidth={800} scroll title="PDF Generation">
+      <Box gap={4} padding={4} testID="pdf-screen">
         <Card padding={4}>
           <Box gap={3}>
             <Heading size="md">PDF Generation Test</Heading>
