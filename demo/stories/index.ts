@@ -37,6 +37,7 @@ export * from "./SectionDivider.stories";
 export * from "./SegmentedControl.stories";
 export * from "./SelectBadge.stories";
 export * from "./SelectField.stories";
+export * from "./SidebarNavigation.stories";
 export * from "./SideDrawer.stories";
 export * from "./SignatureField.stories";
 export * from "./Slider.stories";

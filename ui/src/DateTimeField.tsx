@@ -66,7 +66,7 @@ const DateTimeSegment: FC<DateTimeSegmentProps> = ({
         borderColor: error ? theme.border.error : "transparent",
         flexDirection: "row",
         flexShrink: 1,
-        height: 50,
+        height: 40,
         overflow: "hidden",
         padding: 0,
         width: config.width,
@@ -999,9 +999,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             borderWidth: 1,
             flexDirection: parentIsLessThanBreakpointOrIsMobile ? "column" : "row",
             maxWidth: isMobileDatetime ? 250 : maximumWidth,
+            minHeight: 40,
             minWidth: isMobileDatetime ? 200 : minimumWidth,
             paddingHorizontal: 6,
-            paddingVertical: 2,
           }}
         >
           {showDateSection && (
