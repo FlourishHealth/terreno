@@ -1,6 +1,8 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
-// Screen is the same component used internally by Stack.Screen and Tabs.Screen
+// Screen is not exported from expo-router's public API (exports.d.ts only exposes ScreenProps).
+// Stack.Screen and Tabs.Screen use this same internal path. If expo-router upgrades break this,
+// update the import path here — this is the only place in the codebase that references it.
 // eslint-disable-next-line import/no-internal-modules
 import {Screen} from "expo-router/build/views/Screen";
 import {type FC, useCallback, useMemo, useState} from "react";
@@ -21,7 +23,7 @@ import {useTheme} from "./Theme";
 const COLLAPSED_WIDTH = 65;
 const EXPANDED_WIDTH = 220;
 const ITEM_HEIGHT = 44;
-const ICON_SIZE = 18;
+const ICON_SIZE = 20;
 
 const SidebarItem: FC<{
   item: SidebarNavigationItem;
@@ -219,11 +221,13 @@ const SidebarNavigatorContent: FC<{
             paddingVertical: 12,
           }}
         >
-          <View style={{minWidth: 40}}>{headerLeft?.()}</View>
-          <Text bold size="lg">
-            {title}
-          </Text>
-          <View style={{alignItems: "flex-end", minWidth: 40}}>{headerRight?.()}</View>
+          <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
+            {headerLeft?.({})}
+            <Text bold size="lg">
+              {title}
+            </Text>
+          </View>
+          <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>
         </View>
       )}
       <SidebarNavigationPanel
