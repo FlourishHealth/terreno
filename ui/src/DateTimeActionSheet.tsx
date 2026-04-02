@@ -209,7 +209,7 @@ const MobileTime = ({
   return (
     <Box>
       <Box direction="row" width="100%">
-        <Box paddingY={2} width="35%">
+        <Box paddingY={2} width="30%">
           <Picker
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
@@ -226,7 +226,7 @@ const MobileTime = ({
             ))}
           </Picker>
         </Box>
-        <Box paddingY={2} width="35%">
+        <Box paddingY={2} width="30%">
           <Picker
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
@@ -243,9 +243,10 @@ const MobileTime = ({
             ))}
           </Picker>
         </Box>
-        <Box paddingY={2} width="30%">
+        <Box paddingY={2} width="40%">
           <Picker
             itemStyle={{
+              fontSize: 16,
               height: TIME_PICKER_HEIGHT,
             }}
             onValueChange={(itemValue) => setAmPm(itemValue)}

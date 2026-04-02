@@ -104,9 +104,15 @@ const backendOnlyModules = [
   "expo-notifications",
 ];
 
+const jspdfNativeStub = path.resolve(__dirname, "jspdf-native-stub.js");
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
-  if (platform === "web" && moduleName === "jspdf") {
+  // jspdf uses browser/node APIs (latin1 encoding, Buffer) unavailable in Hermes —
+  // stub it on native, force ESM build on web (CJS entry uses AMD require() Metro can't parse).
+  if (moduleName === "jspdf") {
+    if (platform !== "web") {
+      return {type: "sourceFile", filePath: jspdfNativeStub};
+    }
     try {
       const uiDir = path.resolve(monorepoRoot, "ui");
       const adminFrontendDir = path.resolve(monorepoRoot, "admin-frontend");
