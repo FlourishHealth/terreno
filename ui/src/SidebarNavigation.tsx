@@ -1,5 +1,8 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
+// Screen is the same component used internally by Stack.Screen and Tabs.Screen
+// eslint-disable-next-line import/no-internal-modules
+import {Screen} from "expo-router/build/views/Screen";
 import {type FC, useCallback, useMemo, useState} from "react";
 import {Pressable, type StyleProp, View, type ViewStyle} from "react-native";
 
@@ -118,7 +121,8 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   const width = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   return (
-    <View style={{flex: 1, flexDirection: "row"}}>
+    <View style={{flex: 1}}>
+      <View style={{flex: 1, marginLeft: COLLAPSED_WIDTH}}>{children}</View>
       <View
         {...({onMouseEnter: handleHoverIn, onMouseLeave: handleHoverOut} as any)}
         style={[
@@ -126,11 +130,16 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
             backgroundColor: theme.surface.base,
             borderColor: theme.border.default,
             borderRightWidth: 1,
+            bottom: 0,
             flexDirection: "column",
             justifyContent: "space-between",
+            left: 0,
             overflow: "hidden",
             paddingVertical: 12,
+            position: "absolute",
+            top: 0,
             width,
+            zIndex: 10,
           },
           // Web-only CSS transitions for smooth expand/collapse
           {
@@ -166,7 +175,6 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
           ))}
         </View>
       </View>
-      <View style={{flex: 1}}>{children}</View>
     </View>
   );
 };
@@ -181,8 +189,10 @@ const SidebarNavigatorContent: FC<{
   panelStyle?: StyleProp<ViewStyle>;
   itemStyle?: StyleProp<ViewStyle>;
 }> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
-  const {state, navigation} = Navigator.useContext();
-  const activeRoute = state.routes[state.index]?.name;
+  const {theme} = useTheme();
+  const {state, navigation, descriptors} = Navigator.useContext();
+  const activeRoute = state.routes[state.index];
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
 
   const handleNavigate = useCallback(
     (route: string) => {
@@ -193,16 +203,39 @@ const SidebarNavigatorContent: FC<{
   );
 
   return (
-    <SidebarNavigationPanel
-      activeRoute={activeRoute}
-      bottomItems={bottomItems}
-      itemStyle={itemStyle}
-      onNavigate={handleNavigate}
-      panelStyle={panelStyle}
-      topItems={topItems}
-    >
-      <Slot />
-    </SidebarNavigationPanel>
+    <View style={{flex: 1}}>
+      {(title || headerLeft || headerRight) && (
+        <View
+          style={{
+            alignItems: "center",
+            backgroundColor: theme.surface.base,
+            borderBottomColor: theme.border.default,
+            borderBottomWidth: 1,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            minHeight: 52,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          }}
+        >
+          <View style={{minWidth: 40}}>{headerLeft?.()}</View>
+          <Text bold size="lg">
+            {title}
+          </Text>
+          <View style={{alignItems: "flex-end", minWidth: 40}}>{headerRight?.()}</View>
+        </View>
+      )}
+      <SidebarNavigationPanel
+        activeRoute={activeRoute?.name}
+        bottomItems={bottomItems}
+        itemStyle={itemStyle}
+        onNavigate={handleNavigate}
+        panelStyle={panelStyle}
+        topItems={topItems}
+      >
+        <Slot />
+      </SidebarNavigationPanel>
+    </View>
   );
 };
 
@@ -221,7 +254,7 @@ const SidebarNavigatorContent: FC<{
  * }
  * ```
  */
-export const SidebarNavigation: FC<SidebarNavigationProps> = ({
+const SidebarNavigationBase: FC<SidebarNavigationProps> = ({
   topItems,
   bottomItems,
   onNavigate,
@@ -229,6 +262,7 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   screenOptions,
   panelStyle,
   itemStyle,
+  children,
 }) => {
   return (
     <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
@@ -239,6 +273,14 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
         panelStyle={panelStyle}
         topItems={topItems}
       />
+      {children}
     </Navigator>
   );
 };
+
+/**
+ * Custom expo-router navigator with a collapsible sidebar rail.
+ * Supports per-screen options via SidebarNavigation.Screen, matching the
+ * Stack.Screen / Tabs.Screen pattern.
+ */
+export const SidebarNavigation = Object.assign(SidebarNavigationBase, {Screen});

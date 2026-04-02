@@ -2979,6 +2979,11 @@ export interface SidebarNavigationProps {
    * Additional styles applied to each navigation item.
    */
   itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Optional Screen definitions passed to the underlying Navigator,
+   * e.g. <Screen name="index" options={{title: "Home"}} />.
+   */
+  children?: React.ReactNode;
 }
 
 /**
