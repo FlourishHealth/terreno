@@ -106,7 +106,9 @@ export const TextField: FC<TextFieldProps> = ({
     } else if (multiline) {
       return height || "100%";
     } else {
-      return 20;
+      // iOS clips placeholder glyphs (descenders, cap height) when the box is ~fontSize tall;
+      // single-line inputs need extra vertical room beyond 16px text.
+      return Platform.OS === "ios" ? 24 : 22;
     }
   }, [grow, height, multiline]);
 
