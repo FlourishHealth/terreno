@@ -60,14 +60,20 @@ module.exports = function generateDocument (baseDocument, router, basePath) {
 
         if (schema.parameters) {
           schema.parameters.forEach((p) => {
-            if (!params.find((pp) => p.name === pp.name)) {
+            if (p.name && !params.find((pp) => p.name === pp.name)) {
               params.push(p)
             }
           })
         }
 
-        operation.parameters = params
-        path = pathToRegexp.compile(path.replace(/\*|\(\*\)/g, '(.*)'))(keys, { encode: (value) => value })
+        operation.parameters = params.filter((p) => typeof p.name === 'string' && p.name)
+        try {
+          path = pathToRegexp.compile(path.replace(/\*|\(\*\)/g, '(.*)'))(keys, { encode: (value) => value })
+        } catch (_e) {
+          // Express 5 stores path params in matchers instead of layer.keys, so keys
+          // may be incomplete. Fall back to simple regex replacement of :param → {param}.
+          path = path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}')
+        }
       }
 
       doc.paths[path] = doc.paths[path] || {}
