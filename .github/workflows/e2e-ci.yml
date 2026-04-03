@@ -4,7 +4,11 @@ on:
   push:
     paths:
       - "example-frontend/app/**"
+      - "example-frontend/constants/**"
+      - "example-frontend/hooks/**"
+      - "example-frontend/lib/**"
       - "example-frontend/store/**"
+      - "example-frontend/utils/**"
       - "example-frontend/e2e/**"
       - "example-frontend/playwright.config.ts"
       - "example-frontend/package.json"

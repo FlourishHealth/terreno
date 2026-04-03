@@ -30,7 +30,7 @@ export const createConsentForm = async (
     headers: {authorization: `Bearer ${token}`},
   });
   if (!res.ok()) {
-    throw new Error(`Failed to create consent form: ${(await res.json()) as string}`);
+    throw new Error(`Failed to create consent form: ${JSON.stringify(await res.json())}`);
   }
   const body = (await res.json()) as {data?: {_id?: string}};
   return body?.data?._id ?? "";
