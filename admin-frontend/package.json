@@ -1,9 +1,7 @@
 {
   "dependencies": {
     "@terreno/ui": "workspace:*",
-    "expo-print": "catalog:",
     "expo-router": "catalog:",
-    "expo-sharing": "catalog:",
     "jspdf": "^4.2.0",
     "lodash": "catalog:",
     "luxon": "catalog:",
