@@ -3,21 +3,36 @@ name: E2E Tests
 on:
   push:
     paths:
-      - "example-frontend/**"
-      - "example-backend/**"
-      - "ui/**"
-      - "rtk/**"
-      - "api/**"
-      - "feature-flags/**"
+      - "example-frontend/app/**"
+      - "example-frontend/store/**"
+      - "example-frontend/e2e/**"
+      - "example-frontend/playwright.config.ts"
+      - "example-backend/src/**"
+      - "ui/src/**"
+      - "rtk/src/**"
+      - "api/src/**"
+      - "ai/src/**"
+      - "admin-backend/src/**"
+      - "admin-frontend/src/**"
+      - "feature-flags/src/**"
+      - "api-health/src/**"
       - ".github/workflows/e2e-ci.yml"
 
 jobs:
   e2e:
-    name: Playwright E2E Tests
+    name: "E2E · ${{ matrix.spec }}"
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        mongodb-version: ["6.0"]
+        spec:
+          - login
+          - signup
+          - todos
+          - profile
+          - admin
+          - consents
+          - ai-chat
     steps:
       - uses: actions/checkout@v6
 
@@ -38,43 +53,14 @@ jobs:
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
-          mongodb-version: ${{ matrix.mongodb-version }}
+          mongodb-version: "6.0"
           mongodb-image: mirror.gcr.io/library/mongo
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build API dependency
-        run: bun run compile
-        working-directory: api
-
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
-
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
-
-      - name: Build AI dependency
-        run: bun run compile
-        working-directory: ai
-
-      - name: Build API Health dependency
-        run: bun run compile
-        working-directory: api-health
-
-      - name: Build Admin Backend dependency
-        run: bun run compile
-        working-directory: admin-backend
-
-      - name: Build Feature Flags dependency
-        run: bun run compile
-        working-directory: feature-flags
-
-      - name: Build Admin Frontend dependency
-        run: bun run compile
-        working-directory: admin-frontend
+      - name: Compile workspace packages
+        run: bun run --filter '*' compile
 
       - name: Validate required secrets
         run: |
@@ -123,8 +109,8 @@ jobs:
         run: bunx playwright install --with-deps chromium
         working-directory: example-frontend
 
-      - name: Run Playwright tests
-        run: bun run test:e2e
+      - name: Run Playwright tests — ${{ matrix.spec }}
+        run: bunx playwright test ${{ matrix.spec }}.spec.ts
         working-directory: example-frontend
         env:
           CI: true
@@ -138,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.spec }}
           path: example-frontend/playwright-report/
           if-no-files-found: ignore
           retention-days: 30
@@ -147,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.spec }}
           path: example-frontend/test-results/
           if-no-files-found: ignore
           retention-days: 30
