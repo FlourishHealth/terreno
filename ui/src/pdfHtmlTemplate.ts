@@ -208,10 +208,29 @@ export const sharePdfFromHtml = async (options: {
 
   const Print = await import("expo-print");
   const Sharing = await import("expo-sharing");
+  const legacyFileSystemModule = "expo-file-system/legacy";
+  const FileSystem = (await import(legacyFileSystemModule)) as {
+    cacheDirectory: string | null;
+    deleteAsync: (uri: string) => Promise<void>;
+    getInfoAsync: (uri: string) => Promise<{exists: boolean}>;
+    moveAsync: (options: {from: string; to: string}) => Promise<void>;
+  };
+  if (!FileSystem.cacheDirectory) {
+    throw new Error("Unable to access cache directory for PDF sharing");
+  }
 
   const {uri} = await Print.printToFileAsync({html: options.html});
+  const normalizedFilename = options.filename.toLowerCase().endsWith(".pdf")
+    ? options.filename
+    : `${options.filename}.pdf`;
+  const outputUri = `${FileSystem.cacheDirectory}${normalizedFilename}`;
+  const existingFile = await FileSystem.getInfoAsync(outputUri);
+  if (existingFile.exists) {
+    await FileSystem.deleteAsync(outputUri);
+  }
+  await FileSystem.moveAsync({from: uri, to: outputUri});
 
-  await Sharing.shareAsync(uri, {
+  await Sharing.shareAsync(outputUri, {
     dialogTitle: options.filename,
     mimeType: "application/pdf",
     UTI: "com.adobe.pdf",
