@@ -1,4 +1,5 @@
 import {DateTime} from "luxon";
+import {Platform} from "react-native";
 
 interface PdfField {
   label: string;
@@ -82,7 +83,7 @@ export const buildConsentPdfHtml = (data: PdfTemplateData): string => {
   const signatureHtml = data.signature
     ? `<div class="section">
         <h2>Signature</h2>
-        <img src="${data.signature}" class="signature-img" />
+        <img src="${escapeHtml(data.signature)}" class="signature-img" />
       </div>`
     : "";
 
@@ -195,4 +196,24 @@ export const buildConsentPdfHtml = (data: PdfTemplateData): string => {
   </div>
 </body>
 </html>`;
+};
+
+export const sharePdfFromHtml = async (options: {
+  html: string;
+  filename: string;
+}): Promise<void> => {
+  if (Platform.OS === "web") {
+    throw new Error("sharePdfFromHtml is only supported on mobile platforms");
+  }
+
+  const Print = await import("expo-print");
+  const Sharing = await import("expo-sharing");
+
+  const {uri} = await Print.printToFileAsync({html: options.html});
+
+  await Sharing.shareAsync(uri, {
+    dialogTitle: options.filename,
+    mimeType: "application/pdf",
+    UTI: "com.adobe.pdf",
+  });
 };

@@ -1,9 +1,9 @@
-import {jsPDF} from "jspdf";
+import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
 import {Platform} from "react-native";
 
 import type {PdfTemplateData} from "./pdfHtmlTemplate";
-import {buildConsentPdfHtml} from "./pdfHtmlTemplate";
+import {buildConsentPdfHtml, sharePdfFromHtml} from "./pdfHtmlTemplate";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
 
 const PAGE_WIDTH = 210;
@@ -93,7 +93,8 @@ const buildTemplateData = (entry: ConsentHistoryEntry): PdfTemplateData => {
 };
 
 const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
-  const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
+  const {jsPDF: JsPDF} = await import("jspdf");
+  const doc = new JsPDF({format: "a4", orientation: "portrait", unit: "mm"});
 
   const formTitle = entry.form?.title ?? "Unknown Form";
   const formSlug = entry.form?.slug ?? "";
@@ -274,22 +275,11 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
 };
 
 const generatePdfMobile = async (entry: ConsentHistoryEntry): Promise<void> => {
-  const Print = await import("expo-print");
-  const Sharing = await import("expo-sharing");
-
   const templateData = buildTemplateData(entry);
   const html = buildConsentPdfHtml(templateData);
-
   const formSlug = entry.form?.slug ?? "response";
   const filename = `consent-${formSlug}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
-
-  const {uri} = await Print.printToFileAsync({html});
-
-  await Sharing.shareAsync(uri, {
-    dialogTitle: filename,
-    mimeType: "application/pdf",
-    UTI: "com.adobe.pdf",
-  });
+  await sharePdfFromHtml({filename, html});
 };
 
 export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Promise<void> => {

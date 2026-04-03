@@ -1,5 +1,5 @@
-import {buildConsentPdfHtml, type PdfTemplateData} from "@terreno/ui";
-import {jsPDF} from "jspdf";
+import {buildConsentPdfHtml, type PdfTemplateData, sharePdfFromHtml} from "@terreno/ui";
+import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
 import {Platform} from "react-native";
 
@@ -136,7 +136,8 @@ const buildTemplateData = (response: ConsentResponseData): PdfTemplateData => {
 };
 
 const generatePdfWeb = async (response: ConsentResponseData): Promise<void> => {
-  const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
+  const {jsPDF: JsPDF} = await import("jspdf");
+  const doc = new JsPDF({format: "a4", orientation: "portrait", unit: "mm"});
 
   const {formTitle, formSlug, formType, formVersion, userId, userEmail, userName} =
     extractResponseFields(response);
@@ -333,22 +334,11 @@ const generatePdfWeb = async (response: ConsentResponseData): Promise<void> => {
 };
 
 const generatePdfMobile = async (response: ConsentResponseData): Promise<void> => {
-  const Print = await import("expo-print");
-  const Sharing = await import("expo-sharing");
-
   const templateData = buildTemplateData(response);
   const html = buildConsentPdfHtml(templateData);
-
   const {formSlug, userId} = extractResponseFields(response);
   const filename = `consent-${formSlug || "response"}-${userId.slice(-6)}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
-
-  const {uri} = await Print.printToFileAsync({html});
-
-  await Sharing.shareAsync(uri, {
-    dialogTitle: filename,
-    mimeType: "application/pdf",
-    UTI: "com.adobe.pdf",
-  });
+  await sharePdfFromHtml({filename, html});
 };
 
 export const generateConsentPdf = async (response: ConsentResponseData): Promise<void> => {
