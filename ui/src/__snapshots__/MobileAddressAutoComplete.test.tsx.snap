@@ -93,7 +93,7 @@ exports[`MobileAddressAutocomplete renders TextField fallback without Google API
                   "fontFamily": "text",
                   "fontSize": 16,
                   "gap": 10,
-                  "height": 20,
+                  "height": 24,
                   "paddingVertical": 0,
                   "width": "100%",
                 },
