@@ -30,6 +30,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@playwright/test": "^1.58.2",
+    "mongodb": "^6.20.0",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",

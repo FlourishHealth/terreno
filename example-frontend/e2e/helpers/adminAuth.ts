@@ -1,5 +1,5 @@
-import {execSync} from "node:child_process";
 import type {Page} from "@playwright/test";
+import {MongoClient} from "mongodb";
 import {ADMIN_USER} from "../fixtures/testUsers";
 import {loginAs} from "./login";
 
@@ -7,11 +7,16 @@ const MONGO_URI = process.env.MONGO_URI ?? "mongodb://127.0.0.1/terreno-e2e";
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
 
 export const setUserAdmin = async (email: string): Promise<void> => {
-  const dbName = MONGO_URI.split("/").pop()?.split("?")[0] ?? "terreno-e2e";
-  execSync(
-    `mongosh "${MONGO_URI}" --quiet --eval 'db.getSiblingDB("${dbName}").users.updateOne({email: "${email}"}, {$set: {admin: true}})'`,
-    {timeout: 10000}
-  );
+  const client = new MongoClient(MONGO_URI);
+  try {
+    await client.connect();
+    await client
+      .db()
+      .collection("users")
+      .updateOne({email}, {$set: {admin: true}});
+  } finally {
+    await client.close();
+  }
 };
 
 export const getAdminToken = async (request: {
