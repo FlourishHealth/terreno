@@ -11,8 +11,10 @@ export {CheckboxListEditor} from "./CheckboxListEditor";
 export {ConfigurationScreen} from "./ConfigurationScreen";
 export {ConsentFormEditor} from "./ConsentFormEditor";
 export {ConsentFormList} from "./ConsentFormList";
+export {ConsentHistory} from "./ConsentHistory";
 export {ConsentResponseViewer} from "./ConsentResponseViewer";
 export {DocumentStorageBrowser} from "./DocumentStorageBrowser";
+export {generateConsentHistoryPdf} from "./generateConsentHistoryPdf";
 export {LocaleContentEditor} from "./LocaleContentEditor";
 export type {
   AdminConfigResponse,
@@ -31,4 +33,5 @@ export {useAdminApi} from "./useAdminApi";
 export {useAdminConfig} from "./useAdminConfig";
 export {useAdminScripts} from "./useAdminScripts";
 export {useConfigurationApi} from "./useConfigurationApi";
+export * from "./useConsentHistory";
 export {useDocumentStorageApi} from "./useDocumentStorageApi";

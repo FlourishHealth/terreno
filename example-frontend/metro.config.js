@@ -105,18 +105,24 @@ const backendOnlyModules = [
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
-  if (platform === "web" && moduleName === "jspdf") {
-    try {
-      const uiDir = path.resolve(monorepoRoot, "ui");
-      const adminFrontendDir = path.resolve(monorepoRoot, "admin-frontend");
-      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, adminFrontendDir, monorepoRoot]}));
-      return {
-        type: "sourceFile",
-        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
-      };
-    } catch {
-      // jspdf not resolvable — let Metro handle it
+  // jspdf is only used on web (dynamically imported in generatePdfWeb).
+  // On web: force the ESM build since Metro can't parse the AMD/Node build.
+  // On mobile: return empty module to avoid bundling a large web-only library.
+  if (moduleName === "jspdf") {
+    if (platform === "web") {
+      try {
+        const uiDir = path.resolve(monorepoRoot, "ui");
+        const adminFrontendDir = path.resolve(monorepoRoot, "admin-frontend");
+        const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, adminFrontendDir, monorepoRoot]}));
+        return {
+          type: "sourceFile",
+          filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+        };
+      } catch {
+        // jspdf not resolvable — let Metro handle it
+      }
+    } else {
+      return {type: "empty"};
     }
   }
 
