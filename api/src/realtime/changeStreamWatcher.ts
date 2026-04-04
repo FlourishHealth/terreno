@@ -155,6 +155,11 @@ const emitToDocumentAndQueryRooms = (
   }
 };
 
+const supportsDocumentAndQueryRooms = (entry: RealtimeRegistryEntry): boolean => {
+  const {roomStrategy} = entry.config;
+  return roomStrategy === "model" || roomStrategy === "broadcast";
+};
+
 /**
  * Start watching MongoDB change streams and emitting real-time events.
  */
@@ -296,8 +301,11 @@ export const startChangeStreamWatcher = (
           io.to(room).emit("sync", event);
         }
 
-        // Emit to document-specific and query rooms
-        emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug);
+        // Emit to document/query rooms only for model-level or broadcast strategies.
+        // Owner/custom strategies may encode stricter visibility rules that these rooms cannot enforce.
+        if (supportsDocumentAndQueryRooms(entry)) {
+          emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug);
+        }
 
         logDebug(
           `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
