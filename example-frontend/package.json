@@ -6,6 +6,7 @@
     "@react-native-async-storage/async-storage": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@sentry/react": "catalog:",
+    "@terreno/admin-frontend": "workspace:*",
     "@terreno/rtk": "workspace:*",
     "@terreno/ui": "workspace:*",
     "expo": "catalog:",

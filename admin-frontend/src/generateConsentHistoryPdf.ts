@@ -1,9 +1,8 @@
+import {buildConsentPdfHtml, type PdfTemplateData, sharePdfFromHtml} from "@terreno/ui";
 import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
 import {Platform} from "react-native";
 
-import type {PdfTemplateData} from "./pdfHtmlTemplate";
-import {buildConsentPdfHtml, sharePdfFromHtml} from "./pdfHtmlTemplate";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
 
 const PAGE_WIDTH = 210;
@@ -103,24 +102,20 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
 
   let y = 20;
 
-  // Title
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.text("Consent Record", MARGIN_LEFT, y);
   y += 10;
 
-  // Form title
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
   doc.text(formTitle, MARGIN_LEFT, y);
   y += 10;
 
-  // Separator
   doc.setDrawColor(200, 200, 200);
   doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
   y += 8;
 
-  // Helper to add a labeled field
   const addField = (label: string, value: string) => {
     y = ensureSpace(doc, y, 8);
     doc.setFontSize(9);
@@ -134,7 +129,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     y += 6;
   };
 
-  // Response Details
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
@@ -160,7 +154,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
 
   y += 4;
 
-  // Checkbox Values
   const checkboxEntries =
     entry.checkboxValues && typeof entry.checkboxValues === "object"
       ? Object.entries(entry.checkboxValues)
@@ -186,7 +179,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     y += 4;
   }
 
-  // Audit Trail
   const hasAuditTrail = entry.ipAddress || entry.userAgent || entry.formVersionSnapshot;
 
   if (hasAuditTrail) {
@@ -212,7 +204,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     y += 4;
   }
 
-  // Signature
   if (entry.signature) {
     y = ensureSpace(doc, y, 50);
     doc.setFontSize(12);
@@ -234,7 +225,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     y += 4;
   }
 
-  // Content Snapshot
   if (entry.contentSnapshot) {
     y = ensureSpace(doc, y, 20);
     doc.setFontSize(12);
@@ -255,7 +245,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     }
   }
 
-  // Footer
   y = ensureSpace(doc, y, 20);
   y += 8;
   doc.setDrawColor(200, 200, 200);
@@ -269,7 +258,6 @@ const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
     doc.text(`Response ID: ${entry._id}`, PAGE_WIDTH - MARGIN_RIGHT, y, {align: "right"});
   }
 
-  // Download
   const filename = `consent-${formSlug || "response"}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
   doc.save(filename);
 };

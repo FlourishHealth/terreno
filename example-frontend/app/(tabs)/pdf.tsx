@@ -1,5 +1,5 @@
-import type {ConsentHistoryEntry} from "@terreno/ui";
-import {Box, Button, Card, generateConsentHistoryPdf, Heading, Page, Text} from "@terreno/ui";
+import {type ConsentHistoryEntry, generateConsentHistoryPdf} from "@terreno/admin-frontend";
+import {Box, Button, Card, Heading, Page, Text} from "@terreno/ui";
 import {useCallback, useState} from "react";
 
 const SAMPLE_ENTRY: ConsentHistoryEntry = {

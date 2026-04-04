@@ -1,4 +1,4 @@
-import {ConsentHistory} from "@terreno/ui";
+import {ConsentHistory} from "@terreno/admin-frontend";
 import type React from "react";
 import {terrenoApi} from "@/store/sdk";
 
