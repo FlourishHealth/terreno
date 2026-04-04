@@ -24,7 +24,7 @@ env_vars = {
 
 # Secrets — env var name -> Secret Manager secret ID
 secrets = {
-  MONGO_CONNECTION     = "MONGO_CONNECTION"
+  MONGO_URI            = "MONGO_CONNECTION"
   TOKEN_SECRET         = "TOKEN_SECRET"
   REFRESH_TOKEN_SECRET = "REFRESH_TOKEN_SECRET"
   SESSION_SECRET       = "SESSION_SECRET"
