@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/bun";
+import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import type {Server} from "socket.io";
 
@@ -284,7 +285,7 @@ export const startChangeStreamWatcher = (
           id: docId,
           method,
           model: entry.modelName,
-          timestamp: Date.now(),
+          timestamp: DateTime.now().toMillis(),
           ...(change.operationType === "update" && (change as any).updateDescription?.updatedFields
             ? {updatedFields: Object.keys((change as any).updateDescription.updatedFields)}
             : {}),

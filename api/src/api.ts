@@ -6,6 +6,7 @@
 import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
+import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
 import {authenticateMiddleware, type User} from "./auth";
@@ -838,15 +839,17 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       // check if the document has been modified since the client last fetched it.
       if (req.headers["if-unmodified-since"] || req.body._updatedAt) {
         const clientTimestamp = req.headers["if-unmodified-since"]
-          ? new Date(req.headers["if-unmodified-since"] as string)
-          : new Date(req.body._updatedAt);
-        const serverTimestamp = (doc as any).updated;
+          ? DateTime.fromHTTP(req.headers["if-unmodified-since"] as string)
+          : DateTime.fromISO(req.body._updatedAt);
+        const serverTimestamp = (doc as any).updated
+          ? DateTime.fromJSDate(new Date((doc as any).updated))
+          : null;
 
         if (serverTimestamp && clientTimestamp < serverTimestamp) {
           throw new APIError({
             detail: JSON.stringify({
-              clientUpdated: clientTimestamp,
-              serverUpdated: serverTimestamp,
+              clientUpdated: clientTimestamp.toISO(),
+              serverUpdated: serverTimestamp.toISO(),
             }),
             status: 409,
             title: "Conflict: document has been modified since you last fetched it",

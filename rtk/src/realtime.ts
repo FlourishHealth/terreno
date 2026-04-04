@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: RTK Query internal types require dynamic access patterns
+import {DateTime} from "luxon";
 import type {Socket} from "socket.io-client";
 
 /**
@@ -287,7 +288,7 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
                   if (
                     cachedUpdated &&
                     event.data.updated &&
-                    new Date(cachedUpdated) > new Date(event.data.updated)
+                    DateTime.fromISO(cachedUpdated) > DateTime.fromISO(event.data.updated)
                   ) {
                     return;
                   }

@@ -1,4 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: RTK Query internal types require dynamic access patterns
+import {DateTime} from "luxon";
 import {useEffect, useRef} from "react";
 import {useDispatch, useStore} from "react-redux";
 import type {Socket} from "socket.io-client";
@@ -153,7 +154,7 @@ export const useSyncConnection = ({
                         if (
                           cachedUpdated &&
                           data.updated &&
-                          new Date(cachedUpdated) > new Date(data.updated)
+                          DateTime.fromISO(cachedUpdated) > DateTime.fromISO(data.updated)
                         ) {
                           log(`Skipping stale update for ${collection}/${id}`);
                           return;
@@ -172,7 +173,7 @@ export const useSyncConnection = ({
               if (
                 cachedUpdated &&
                 data.updated &&
-                new Date(cachedUpdated) > new Date(data.updated)
+                DateTime.fromISO(cachedUpdated) > DateTime.fromISO(data.updated)
               ) {
                 log(`Skipping stale update for ${collection}/${id}`);
                 continue;
