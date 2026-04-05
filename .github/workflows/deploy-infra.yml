@@ -1,0 +1,44 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "terraform/**"
+  workflow_dispatch:
+
+env:
+  REGION: us-central1
+  PROJECT: flourish-terreno
+  WIF_PROVIDER: projects/966061500091/locations/global/workloadIdentityPools/github-actions/providers/github
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: terreno-infra@${{ env.PROJECT }}.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy via Infrastructure Manager
+        run: |
+          gcloud infra-manager deployments apply terreno \
+            --project ${{ env.PROJECT }} \
+            --location ${{ env.REGION }} \
+            --service-account "projects/${{ env.PROJECT }}/serviceAccounts/terreno-infra@${{ env.PROJECT }}.iam.gserviceaccount.com" \
+            --local-source terraform/ \
+            --input-values-file terraform/environments/production.tfvars \
+            --quiet
