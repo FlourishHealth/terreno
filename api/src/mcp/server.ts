@@ -46,12 +46,14 @@ export const mountMCPServer = (app: Application, options: MCPServerOptions): voi
           jsonrpc: "2.0",
         });
       }
+      transport.close().catch(() => {});
+      server.close().catch(() => {});
       return;
     }
 
     res.on("close", () => {
-      transport.close();
-      server.close();
+      transport.close().catch(() => {});
+      server.close().catch(() => {});
     });
   };
 
@@ -99,20 +101,15 @@ const createMcpServerInstance = (
 
   // Register each tool with the MCP server
   for (const tool of tools) {
-    server.tool(
-      tool.name,
-      tool.description,
-      tool.inputSchema,
-      async (args: Record<string, unknown>) => {
-        // Extract user from the original request headers
-        const user = await extractUserFromHeaders(
-          req.headers as Record<string, string>,
-          authContext
-        );
+    // McpServer.tool() expects a Zod raw shape (e.g. {id: z.string()}), not JSON Schema.
+    // The zodSchema from generateInputSchema is a z.object(), so extract its .shape.
+    const zodShape = "shape" in tool.zodSchema ? (tool.zodSchema as any).shape : {};
+    server.tool(tool.name, tool.description, zodShape, async (args: Record<string, unknown>) => {
+      // Extract user from the original request headers
+      const user = await extractUserFromHeaders(req.headers as Record<string, string>, authContext);
 
-        return tool.handler(args as Record<string, any>, user);
-      }
-    );
+      return tool.handler(args as Record<string, any>, user);
+    });
   }
 
   return server;

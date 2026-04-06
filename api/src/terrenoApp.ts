@@ -326,7 +326,12 @@ export class TerrenoApp {
 
     // Mount MCP server if any models have mcp config
     if (getMCPRegistry().length > 0) {
-      mountMCPServer(app, {userModel: options.userModel as any});
+      // Find Better Auth instance from registered plugins if available
+      const betterAuthPlugin = this.registrations.find(
+        (r) => "getAuth" in r && typeof (r as any).getAuth === "function"
+      );
+      const betterAuth = betterAuthPlugin ? (betterAuthPlugin as any).getAuth() : undefined;
+      mountMCPServer(app, {betterAuth, userModel: options.userModel as any});
     }
 
     // /auth/me must be registered after plugins so that session middleware
