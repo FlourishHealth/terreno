@@ -1,5 +1,6 @@
 import {addPopulateToQuery, type JSONValue} from "../api";
 import type {User} from "../auth";
+import {isAPIError} from "../errors";
 import {checkPermissions} from "../permissions";
 import type {PopulatePath} from "../populate";
 import {defaultResponseHandler, transform} from "../transformers";
@@ -215,11 +216,20 @@ export const handleCreate = async (
     return errorResult("Permission denied: cannot create");
   }
 
-  let body: any = transform(options, args, "create", user);
+  let body: any;
+  try {
+    body = transform(options, args, "create", user);
+  } catch (error) {
+    return hookErrorResult(error, "Create transform error");
+  }
 
   if (options.preCreate) {
     const fakeReq = {user} as any;
-    body = await options.preCreate(body, fakeReq);
+    try {
+      body = await options.preCreate(body, fakeReq);
+    } catch (error) {
+      return hookErrorResult(error, "preCreate hook error");
+    }
     if (body === null || body === undefined) {
       return errorResult("Create not allowed");
     }
@@ -242,7 +252,11 @@ export const handleCreate = async (
 
   if (options.postCreate) {
     const fakeReq = {user} as any;
-    await options.postCreate(data, fakeReq);
+    try {
+      await options.postCreate(data, fakeReq);
+    } catch (error) {
+      return hookErrorResult(error, "postCreate hook error");
+    }
   }
 
   const serialized = await serializeResponse(data, "create", entry, user);
@@ -272,11 +286,20 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update this document");
   }
 
-  let body: any = transform(options, updateFields, "update", user);
+  let body: any;
+  try {
+    body = transform(options, updateFields, "update", user);
+  } catch (error) {
+    return hookErrorResult(error, "Update transform error");
+  }
 
   if (options.preUpdate) {
     const fakeReq = {user} as any;
-    body = await options.preUpdate(body, fakeReq);
+    try {
+      body = await options.preUpdate(body, fakeReq);
+    } catch (error) {
+      return hookErrorResult(error, "preUpdate hook error");
+    }
     if (body === null || body === undefined) {
       return errorResult("Update not allowed");
     }
@@ -298,7 +321,11 @@ export const handleUpdate = async (
 
   if (options.postUpdate) {
     const fakeReq = {user} as any;
-    await options.postUpdate(doc, body, fakeReq, prevDoc);
+    try {
+      await options.postUpdate(doc, body, fakeReq, prevDoc);
+    } catch (error) {
+      return hookErrorResult(error, "postUpdate hook error");
+    }
   }
 
   const serialized = await serializeResponse(doc, "update", entry, user);
@@ -329,7 +356,12 @@ export const handleDelete = async (
 
   if (options.preDelete) {
     const fakeReq = {user} as any;
-    const result = await options.preDelete(doc, fakeReq);
+    let result;
+    try {
+      result = await options.preDelete(doc, fakeReq);
+    } catch (error) {
+      return hookErrorResult(error, "preDelete hook error");
+    }
     if (result === null || result === undefined) {
       return errorResult("Delete not allowed");
     }
@@ -348,7 +380,11 @@ export const handleDelete = async (
 
   if (options.postDelete) {
     const fakeReq = {user} as any;
-    await options.postDelete(fakeReq, doc);
+    try {
+      await options.postDelete(fakeReq, doc);
+    } catch (error) {
+      return hookErrorResult(error, "postDelete hook error");
+    }
   }
 
   return textResult(JSON.stringify({success: true}));
@@ -358,7 +394,22 @@ const textResult = (text: string) => ({
   content: [{text, type: "text" as const}],
 });
 
-const errorResult = (message: string) => ({
-  content: [{text: JSON.stringify({error: message}), type: "text" as const}],
+const errorResult = (message: string, status?: number) => ({
+  content: [
+    {text: JSON.stringify({error: message, ...(status ? {status} : {})}), type: "text" as const},
+  ],
   isError: true,
 });
+
+const hookErrorResult = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof Error && isAPIError(error)) {
+    const message = error.detail ? `${error.title}: ${error.detail}` : error.title;
+    return errorResult(message, error.status);
+  }
+
+  if (error instanceof Error) {
+    return errorResult(`${fallbackMessage}: ${error.message}`);
+  }
+
+  return errorResult(fallbackMessage);
+};
