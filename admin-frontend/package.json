@@ -27,7 +27,6 @@
   "name": "@terreno/admin-frontend",
   "peerDependencies": {
     "@reduxjs/toolkit": "catalog:",
-    "@terreno/rtk": "workspace:*",
     "react": "catalog:",
     "react-native-webview": "catalog:",
     "react-redux": "catalog:"
