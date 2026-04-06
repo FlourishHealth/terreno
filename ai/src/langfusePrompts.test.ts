@@ -3,21 +3,18 @@ import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {LangfuseCache} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
-const mockGetPromptStateless = mock(async (_name: string, _version?: number, _label?: string) => ({
-  data: {
-    config: {},
-    labels: ["production"],
-    name: "test-prompt",
-    prompt: "Hello world",
-    tags: [],
-    type: "text" as const,
-    version: 1,
-  },
-  fetchResult: "success" as const,
+const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
+  config: {},
+  labels: ["production"],
+  name: "test-prompt",
+  prompt: "Hello world",
+  tags: [],
+  type: "text" as const,
+  version: 1,
 }));
 
 mock.module("./langfuseClient", () => ({
-  getLangfuseClient: () => ({getPromptStateless: mockGetPromptStateless}),
+  getLangfuseClient: () => ({prompt: {get: mockPromptGet}}),
 }));
 
 const {compilePrompt, getPrompt} = await import("./langfusePrompts");
@@ -90,21 +87,16 @@ describe("compilePrompt", () => {
 describe("getPrompt", () => {
   beforeEach(async () => {
     await LangfuseCache.deleteMany({});
-    mockGetPromptStateless.mockClear();
-    mockGetPromptStateless.mockImplementation(
-      async (_name: string, _version?: number, _label?: string) => ({
-        data: {
-          config: {},
-          labels: ["production"],
-          name: "test-prompt",
-          prompt: "Hello world",
-          tags: [],
-          type: "text" as const,
-          version: 1,
-        },
-        fetchResult: "success" as const,
-      })
-    );
+    mockPromptGet.mockClear();
+    mockPromptGet.mockImplementation(async (_name: string, _options?: Record<string, unknown>) => ({
+      config: {},
+      labels: ["production"],
+      name: "test-prompt",
+      prompt: "Hello world",
+      tags: [],
+      type: "text" as const,
+      version: 1,
+    }));
   });
 
   afterEach(async () => {
@@ -115,13 +107,13 @@ describe("getPrompt", () => {
     const result = await getPrompt("test-prompt");
     expect(result.name).toBe("test-prompt");
     expect(result.type).toBe("text");
-    expect(mockGetPromptStateless).toHaveBeenCalledTimes(1);
+    expect(mockPromptGet).toHaveBeenCalledTimes(1);
   });
 
   it("returns cached result on second call", async () => {
     await getPrompt("test-prompt");
     await getPrompt("test-prompt");
-    expect(mockGetPromptStateless).toHaveBeenCalledTimes(1);
+    expect(mockPromptGet).toHaveBeenCalledTimes(1);
   });
 
   it("writes fetched prompt to cache", async () => {
@@ -131,13 +123,10 @@ describe("getPrompt", () => {
   });
 
   it("throws when Langfuse fetch fails", async () => {
-    mockGetPromptStateless.mockImplementation(async () => ({
-      data: {message: "Prompt not found"},
-      fetchResult: "failure" as const,
-    }));
+    mockPromptGet.mockImplementation(async () => {
+      throw new Error("Prompt not found");
+    });
 
-    await expect(getPrompt("missing-prompt")).rejects.toThrow(
-      'Failed to fetch prompt "missing-prompt"'
-    );
+    await expect(getPrompt("missing-prompt")).rejects.toThrow("Prompt not found");
   });
 });

@@ -15,7 +15,7 @@ export const addPromptRoutes = (router: express.Application, basePath: string): 
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 20;
 
-      const result = await client.api.promptsList({limit, page});
+      const result = await client.api.prompts.list({limit, page});
       return res.json({
         data: result.data,
         meta: result.meta,
@@ -32,8 +32,9 @@ export const addPromptRoutes = (router: express.Application, basePath: string): 
       const version = req.query.version ? Number(req.query.version) : undefined;
       const label = req.query.label as string | undefined;
 
-      const prompt = await client.getPrompt(name, version, {
+      const prompt = await client.prompt.get(name, {
         cacheTtlSeconds: 0,
+        ...(version !== undefined ? {version} : {}),
         ...(label ? {label} : {}),
       });
 

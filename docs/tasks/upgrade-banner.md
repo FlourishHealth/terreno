@@ -11,8 +11,8 @@
   - Acceptance: Model can be imported from `@terreno/api`, compiles cleanly, schema matches spec
 
 - [ ] **Task 1.2**: Add public `GET /version-check` endpoint
-  - Description: Add a built-in public route via VersionCheckPlugin (TerrenoPlugin) that handles `GET /version-check?version=N&platform=web|mobile`. Fetches the singleton VersionConfig, compares the client's build number against the platform-specific thresholds, and returns `{status, message?, updateUrl?}`. Returns `{status: "ok"}` if no config document exists.
-  - Files: `api/src/versionCheck.ts` (create - exports VersionCheckPlugin)
+  - Description: Add a built-in public route via VersionCheckPlugin (TerrenoPlugin) that handles `GET /version-check?version=N&platform=web|mobile`. Fetches the singleton VersionConfig, compares the client's build number against the platform-specific thresholds, and returns a JSON object including status and, when a config exists, version threshold fields: `{status, message?, updateUrl?, requiredVersion?, warningVersion?}`. Returns `{status: "ok"}` if no config document exists.
+  - Files: `api/src/versionCheckPlugin.ts` (create - exports VersionCheckPlugin)
   - Depends on: Task 1.1
   - Acceptance: Endpoint returns correct status for all combinations: no config → ok, version >= warning → ok, version < warning → warning, version < required → required. No auth required.
 
@@ -54,9 +54,9 @@
   - Depends on: Task 1.2
   - Acceptance: Hook returns correct state for ok/warning/required. Toast appears for warning. isRequired flag set for required. onUpdate triggers appropriate platform action.
 
-- [ ] **Task 2.3**: Add `app.config.js` build number injection
-  - Description: Create or update `app.config.js` in the example frontend to dynamically set `expo.extra.buildNumber` from `git rev-list --count HEAD` at build time. Document the pattern for consuming apps.
-  - Files: `example-frontend/app.config.js` (create/modify), `example-frontend/app.json` (may need adjustment)
+- [ ] **Task 2.3**: Add `app.config.ts` build number injection
+  - Description: Create or update `app.config.ts` in the example frontend to dynamically set `expo.extra.buildNumber` from `git rev-list --count HEAD` at build time. Document the pattern for consuming apps.
+  - Files: `example-frontend/app.config.ts` (create/modify), `example-frontend/app.json` (may need adjustment)
   - Depends on: none
   - Acceptance: Running `expo start` or `expo build` sets `Constants.expoConfig.extra.buildNumber` to the current git commit count.
 

@@ -823,7 +823,7 @@ exports[`Field renders date field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 40,
@@ -900,7 +900,7 @@ exports[`Field renders date field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -977,7 +977,7 @@ exports[`Field renders date field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 50,
@@ -1000,18 +1000,7 @@ exports[`Field renders date field 1`] = `
         },
       ],
       "props": {
-        "style": {
-          "alignItems": "center",
-          "flexDirection": "row",
-        },
-        "testID": undefined,
-      },
-      "type": "View",
-    },
-    {
-      "$$typeof": Symbol(react.test.json),
-      "children": null,
-      "props": {
+        "pointerEvents": "auto",
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
@@ -1022,7 +1011,9 @@ exports[`Field renders date field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -1031,13 +1022,12 @@ exports[`Field renders date field 1`] = `
       "borderWidth": 1,
       "flexDirection": "row",
       "maxWidth": 210,
+      "minHeight": 40,
       "minWidth": 200,
       "paddingHorizontal": 6,
-      "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 
@@ -1084,7 +1074,7 @@ exports[`Field renders time field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -1161,7 +1151,7 @@ exports[`Field renders time field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -1791,7 +1781,9 @@ exports[`Field renders time field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -1800,13 +1792,12 @@ exports[`Field renders time field 1`] = `
       "borderWidth": 1,
       "flexDirection": "row",
       "maxWidth": 240,
+      "minHeight": 40,
       "minWidth": 230,
       "paddingHorizontal": 6,
-      "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 
@@ -1853,7 +1844,7 @@ exports[`Field renders datetime field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 40,
@@ -1930,7 +1921,7 @@ exports[`Field renders datetime field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -2007,7 +1998,7 @@ exports[`Field renders datetime field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 50,
@@ -2030,6 +2021,7 @@ exports[`Field renders datetime field 1`] = `
         },
       ],
       "props": {
+        "pointerEvents": "auto",
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
@@ -2077,7 +2069,7 @@ exports[`Field renders datetime field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -2154,7 +2146,7 @@ exports[`Field renders datetime field 1`] = `
                   "borderColor": "transparent",
                   "flexDirection": "row",
                   "flexShrink": 1,
-                  "height": 50,
+                  "height": 40,
                   "overflow": "hidden",
                   "padding": 0,
                   "width": 30,
@@ -2797,7 +2789,9 @@ exports[`Field renders datetime field 1`] = `
     },
   ],
   "props": {
+    "disabled": true,
     "onLayout": [Function],
+    "onPress": [Function],
     "style": {
       "alignItems": "center",
       "backgroundColor": "#FFFFFF",
@@ -2806,13 +2800,12 @@ exports[`Field renders datetime field 1`] = `
       "borderWidth": 1,
       "flexDirection": "row",
       "maxWidth": 395,
+      "minHeight": 40,
       "minWidth": 230,
       "paddingHorizontal": 6,
-      "paddingVertical": 2,
     },
-    "testID": undefined,
   },
-  "type": "View",
+  "type": "Pressable",
 }
 `;
 

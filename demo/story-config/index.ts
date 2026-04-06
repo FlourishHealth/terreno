@@ -34,6 +34,7 @@ export * from "./SectionDivider.config";
 export * from "./SegmentedControl.config";
 export * from "./SelectBadge.config";
 export * from "./SelectField.config";
+export * from "./SidebarNavigation.config";
 export * from "./SideDrawer.config";
 export * from "./SignatureField.config";
 export * from "./Slider.config";
