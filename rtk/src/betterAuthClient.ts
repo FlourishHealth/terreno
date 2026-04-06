@@ -85,7 +85,8 @@ const createStorageAdapter = (): StorageAdapter => {
  * const session = await authClient.getSession();
  * ```
  */
-export const createBetterAuthClient = (config: BetterAuthClientConfig) => {
+// biome-ignore lint/suspicious/noExplicitAny: Return type uses internal @better-auth/core types that aren't portable (TS2742)
+export const createBetterAuthClient = (config: BetterAuthClientConfig): any => {
   const storage = createStorageAdapter();
 
   return createAuthClient({
