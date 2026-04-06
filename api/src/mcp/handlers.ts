@@ -343,7 +343,8 @@ export const handleDelete = async (
     return errorResult("Permission denied: cannot delete");
   }
 
-  const doc: any = await model.findById(id);
+  const builtQuery = addPopulateToQuery(model.findById(id) as any, options.populatePaths);
+  const doc: any = await builtQuery.exec();
 
   if (!doc) {
     return errorResult(`Document ${id} not found`);
