@@ -144,7 +144,7 @@ export const handleList = async (
   }
 
   // Pagination
-  const limit = Math.min(Number(args.limit) || maxLimit, maxLimit);
+  const limit = Math.max(1, Math.min(Number(args.limit) || maxLimit, maxLimit));
   const page = Number(args.page) || 1;
 
   let builtQuery = model.find(query).limit(limit + 1);
@@ -215,13 +215,22 @@ export const handleCreate = async (
     return errorResult("Permission denied: cannot create");
   }
 
-  let body: any = transform(options, args, "create", user);
+  let body: any;
+  try {
+    body = transform(options, args, "create", user);
+  } catch (error: any) {
+    return errorResult(`Transform failed: ${error.message}`);
+  }
 
   if (options.preCreate) {
-    const fakeReq = {user} as any;
-    body = await options.preCreate(body, fakeReq);
-    if (body === null || body === undefined) {
-      return errorResult("Create not allowed");
+    try {
+      const fakeReq = {user} as any;
+      body = await options.preCreate(body, fakeReq);
+      if (body === null || body === undefined) {
+        return errorResult("Create not allowed");
+      }
+    } catch (error: any) {
+      return errorResult(`preCreate hook failed: ${error.message}`);
     }
   }
 
@@ -241,8 +250,12 @@ export const handleCreate = async (
   }
 
   if (options.postCreate) {
-    const fakeReq = {user} as any;
-    await options.postCreate(data, fakeReq);
+    try {
+      const fakeReq = {user} as any;
+      await options.postCreate(data, fakeReq);
+    } catch (error: any) {
+      return errorResult(`postCreate hook failed: ${error.message}`);
+    }
   }
 
   const serialized = await serializeResponse(data, "create", entry, user);
@@ -272,13 +285,22 @@ export const handleUpdate = async (
     return errorResult("Permission denied: cannot update this document");
   }
 
-  let body: any = transform(options, updateFields, "update", user);
+  let body: any;
+  try {
+    body = transform(options, updateFields, "update", user);
+  } catch (error: any) {
+    return errorResult(`Transform failed: ${error.message}`);
+  }
 
   if (options.preUpdate) {
-    const fakeReq = {user} as any;
-    body = await options.preUpdate(body, fakeReq);
-    if (body === null || body === undefined) {
-      return errorResult("Update not allowed");
+    try {
+      const fakeReq = {user} as any;
+      body = await options.preUpdate(body, fakeReq);
+      if (body === null || body === undefined) {
+        return errorResult("Update not allowed");
+      }
+    } catch (error: any) {
+      return errorResult(`preUpdate hook failed: ${error.message}`);
     }
   }
 
@@ -297,8 +319,12 @@ export const handleUpdate = async (
   }
 
   if (options.postUpdate) {
-    const fakeReq = {user} as any;
-    await options.postUpdate(doc, body, fakeReq, prevDoc);
+    try {
+      const fakeReq = {user} as any;
+      await options.postUpdate(doc, body, fakeReq, prevDoc);
+    } catch (error: any) {
+      return errorResult(`postUpdate hook failed: ${error.message}`);
+    }
   }
 
   const serialized = await serializeResponse(doc, "update", entry, user);
@@ -328,27 +354,39 @@ export const handleDelete = async (
   }
 
   if (options.preDelete) {
-    const fakeReq = {user} as any;
-    const result = await options.preDelete(doc, fakeReq);
-    if (result === null || result === undefined) {
-      return errorResult("Delete not allowed");
+    try {
+      const fakeReq = {user} as any;
+      const result = await options.preDelete(doc, fakeReq);
+      if (result === null || result === undefined) {
+        return errorResult("Delete not allowed");
+      }
+    } catch (error: any) {
+      return errorResult(`preDelete hook failed: ${error.message}`);
     }
   }
 
   // Support soft delete via isDeleted plugin
-  if (
-    Object.keys(model.schema.paths).includes("deleted") &&
-    model.schema.paths.deleted.instance === "Boolean"
-  ) {
-    doc.deleted = true;
-    await doc.save();
-  } else {
-    await doc.deleteOne();
+  try {
+    if (
+      Object.keys(model.schema.paths).includes("deleted") &&
+      model.schema.paths.deleted.instance === "Boolean"
+    ) {
+      doc.deleted = true;
+      await doc.save();
+    } else {
+      await doc.deleteOne();
+    }
+  } catch (error: any) {
+    return errorResult(`Delete failed: ${error.message}`);
   }
 
   if (options.postDelete) {
-    const fakeReq = {user} as any;
-    await options.postDelete(fakeReq, doc);
+    try {
+      const fakeReq = {user} as any;
+      await options.postDelete(fakeReq, doc);
+    } catch (error: any) {
+      return errorResult(`postDelete hook failed: ${error.message}`);
+    }
   }
 
   return textResult(JSON.stringify({success: true}));
