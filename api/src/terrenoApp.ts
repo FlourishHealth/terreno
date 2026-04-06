@@ -4,6 +4,7 @@ import express from "express";
 import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
+import {BetterAuthApp} from "./betterAuthApp";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
@@ -326,7 +327,12 @@ export class TerrenoApp {
 
     // Mount MCP server if any models have mcp config
     if (getMCPRegistry().length > 0) {
-      mountMCPServer(app, {userModel: options.userModel as any});
+      const betterAuth = this.registrations
+        .find(
+          (registration): registration is BetterAuthApp => registration instanceof BetterAuthApp
+        )
+        ?.getAuth();
+      mountMCPServer(app, {betterAuth, userModel: options.userModel as any});
     }
 
     // /auth/me must be registered after plugins so that session middleware

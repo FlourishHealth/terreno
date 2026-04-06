@@ -783,9 +783,14 @@ export const GPTChat = ({
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
   const inputElementRef = useRef<HTMLElement | null>(null);
+  const [inputElement, setInputElement] = useState<HTMLElement | null>(null);
 
   const handleInputRef = useCallback((ref: HTMLElement | null) => {
+    if (inputElementRef.current === ref) {
+      return;
+    }
     inputElementRef.current = ref;
+    setInputElement(ref);
   }, []);
 
   // Attach keydown listener directly to the textarea element for reliable Enter-to-send
@@ -793,7 +798,7 @@ export const GPTChat = ({
     if (Platform.OS !== "web") {
       return;
     }
-    const el = inputElementRef.current;
+    const el = inputElement;
     if (!el) {
       return;
     }
@@ -810,7 +815,7 @@ export const GPTChat = ({
     };
     el.addEventListener("keydown", handler);
     return () => el.removeEventListener("keydown", handler);
-  }, []);
+  }, [inputElement]);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
