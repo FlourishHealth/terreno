@@ -215,6 +215,7 @@ export class RealtimeApp implements TerrenoPlugin {
             await socket.join(`query:${queryId}`);
             // Send the computed queryId back to the client so it can unsubscribe
             socket.emit("query:subscribed", {
+              clientQueryId: payload.queryId,
               collection: payload.collection,
               queryId,
             });
