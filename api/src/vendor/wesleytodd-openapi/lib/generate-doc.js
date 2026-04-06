@@ -60,13 +60,13 @@ module.exports = function generateDocument (baseDocument, router, basePath) {
 
         if (schema.parameters) {
           schema.parameters.forEach((p) => {
-            if (!params.find((pp) => p.name === pp.name)) {
+            if (p.name && !params.find((pp) => p.name === pp.name)) {
               params.push(p)
             }
           })
         }
 
-        operation.parameters = params
+        operation.parameters = params.filter((p) => typeof p.name === 'string' && p.name)
         try {
           path = pathToRegexp.compile(path.replace(/\*|\(\*\)/g, '(.*)'))(keys, { encode: (value) => value })
         } catch (_e) {

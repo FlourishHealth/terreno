@@ -15,9 +15,10 @@ interface AdminModelFormProps {
   mode: "create" | "edit";
   itemId?: string;
   footerContent?: React.ReactNode;
-  transformPayload?: (params: {mode: "create" | "edit"; payload: Record<string, any>}) => Promise<
-    Record<string, any>
-  > | Record<string, any>;
+  transformPayload?: (params: {
+    mode: "create" | "edit";
+    payload: Record<string, any>;
+  }) => Promise<Record<string, any>> | Record<string, any>;
   onSaveSuccess?: (params: {
     mode: "create" | "edit";
     payload: Record<string, any>;
@@ -68,9 +69,7 @@ const sanitizePayloadValue = (value: any): any => {
     return undefined;
   }
   if (Array.isArray(value)) {
-    return value
-      .map((item) => sanitizePayloadValue(item))
-      .filter((item) => item !== undefined);
+    return value.map((item) => sanitizePayloadValue(item)).filter((item) => item !== undefined);
   }
   if (value && typeof value === "object") {
     const nextValue: Record<string, any> = {};
