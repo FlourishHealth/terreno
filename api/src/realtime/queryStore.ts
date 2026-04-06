@@ -12,6 +12,19 @@ interface QuerySubscription {
   queryId: string;
 }
 
+/**
+ * Compute a deterministic queryId from collection and query on the server side.
+ * This prevents clients from hijacking other subscriptions by providing a colliding queryId.
+ */
+export const computeQueryId = (collection: string, query: Record<string, any>): string => {
+  const sortedKeys = Object.keys(query).sort();
+  const normalized: Record<string, any> = {};
+  for (const key of sortedKeys) {
+    normalized[key] = query[key];
+  }
+  return `${collection}:${JSON.stringify(normalized)}`;
+};
+
 /** queryId → query subscription details (shared across all sockets in that room) */
 const querySubscriptions = new Map<string, QuerySubscription>();
 

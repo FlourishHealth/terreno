@@ -7,7 +7,13 @@ import {Server} from "socket.io";
 import {logger} from "../logger";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
-import {addQuerySubscription, removeAllSocketQueries, removeQuerySubscription} from "./queryStore";
+import {
+  addQuerySubscription,
+  computeQueryId,
+  removeAllSocketQueries,
+  removeQuerySubscription,
+} from "./queryStore";
+import {findRegistryEntryByRoutePath} from "./registry";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -134,11 +140,35 @@ export class RealtimeApp implements TerrenoPlugin {
 
           // Document room subscription (events for a single document)
           socket.on("subscribe:document", async (payload: DocumentSubscription): Promise<void> => {
-            if (payload?.collection && payload?.id) {
-              const room = `document:${payload.collection}:${payload.id}`;
-              await socket.join(room);
-              logInfo(`[realtime] User ${userId} subscribed to ${room}`);
+            if (!payload?.collection || !payload?.id) {
+              return;
             }
+
+            // Check that the collection is registered for realtime
+            const entry = findRegistryEntryByRoutePath(payload.collection);
+            if (!entry) {
+              logInfo(
+                `[realtime] User ${userId} denied document subscription: ` +
+                  `collection "${payload.collection}" not registered`
+              );
+              return;
+            }
+
+            // Enforce roomStrategy: owner-based models require the user to own the document
+            if (entry.config.roomStrategy === "owner" && !isAdmin) {
+              // For owner strategy, only allow subscribing to documents via the user's own room.
+              // The change stream watcher already emits owner-strategy events to user:{ownerId},
+              // so document rooms are restricted to admins only for owner-based models.
+              logInfo(
+                `[realtime] User ${userId} denied document subscription for ` +
+                  `${payload.collection}/${payload.id}: owner strategy requires admin`
+              );
+              return;
+            }
+
+            const room = `document:${payload.collection}:${payload.id}`;
+            await socket.join(room);
+            logInfo(`[realtime] User ${userId} subscribed to ${room}`);
           });
 
           socket.on(
@@ -154,14 +184,44 @@ export class RealtimeApp implements TerrenoPlugin {
 
           // Query room subscription (events matching a MongoDB query)
           socket.on("subscribe:query", async (payload: QuerySubscription): Promise<void> => {
-            if (payload?.collection && payload?.query && payload?.queryId) {
-              addQuerySubscription(socket.id, payload.collection, payload.query, payload.queryId);
-              await socket.join(`query:${payload.queryId}`);
-              logInfo(
-                `[realtime] User ${userId} subscribed to query:${payload.queryId} ` +
-                  `on ${payload.collection} with ${JSON.stringify(payload.query)}`
-              );
+            if (!payload?.collection || !payload?.query) {
+              return;
             }
+
+            // Check that the collection is registered for realtime
+            const entry = findRegistryEntryByRoutePath(payload.collection);
+            if (!entry) {
+              logInfo(
+                `[realtime] User ${userId} denied query subscription: ` +
+                  `collection "${payload.collection}" not registered`
+              );
+              return;
+            }
+
+            // For owner strategy, inject ownerId filter so users can only subscribe
+            // to their own documents (admins bypass this)
+            let query = {...payload.query};
+            if (entry.config.roomStrategy === "owner" && !isAdmin) {
+              if (!userId) {
+                return;
+              }
+              query = {...query, ownerId: userId};
+            }
+
+            // Compute queryId server-side to prevent hijacking
+            const queryId = computeQueryId(payload.collection, query);
+
+            addQuerySubscription(socket.id, payload.collection, query, queryId);
+            await socket.join(`query:${queryId}`);
+            // Send the computed queryId back to the client so it can unsubscribe
+            socket.emit("query:subscribed", {
+              collection: payload.collection,
+              queryId,
+            });
+            logInfo(
+              `[realtime] User ${userId} subscribed to query:${queryId} ` +
+                `on ${payload.collection} with ${JSON.stringify(query)}`
+            );
           });
 
           socket.on("unsubscribe:query", async (payload: {queryId: string}): Promise<void> => {

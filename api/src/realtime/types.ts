@@ -102,6 +102,6 @@ export interface QuerySubscription {
   collection: string;
   /** MongoDB-style query filter (e.g. {completed: false}) */
   query: Record<string, any>;
-  /** Client-generated unique ID for this query subscription */
-  queryId: string;
+  /** Client-provided queryId (ignored — server computes a canonical ID) */
+  queryId?: string;
 }

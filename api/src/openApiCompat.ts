@@ -112,13 +112,14 @@ export const patchAppUse = (app: any): void => {
   const originalUse = app.use.bind(app);
   app.use = function patchedUse(...args: any[]) {
     // Track stack length before the call
-    const stackBefore = app._router?.stack?.length ?? 0;
+    const router = app._router || app.router;
+    const stackBefore = router?.stack?.length ?? 0;
 
     const result = originalUse(...args);
 
     // After use(), check if new layers were added and annotate them
-    if (app._router?.stack) {
-      const routerAfter = app._router;
+    const routerAfter = app._router || app.router;
+    if (routerAfter?.stack) {
       const stackAfter = routerAfter.stack.length;
       // The first arg is the mount path if it's a string
       const mountPath = typeof args[0] === "string" ? args[0] : undefined;
@@ -138,7 +139,7 @@ export const patchAppUse = (app: any): void => {
  * generation. Must be mounted before the openapi middleware.
  */
 export const openApiCompatMiddleware = (req: any, _res: any, next: () => void): void => {
-  const router = req.app._router;
+  const router = req.app._router || req.app.router;
   if (router?.stack) {
     patchRouterStack(router.stack);
   }

@@ -22,7 +22,7 @@
     "@terreno/feature-flags": "workspace:*",
     "@thream/socketio-jwt": "^3.1.4",
     "ai": "catalog:",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "ioredis": "^5.9.3",
     "lodash": "^4.17.23",
     "luxon": "^3.4.0",
@@ -36,7 +36,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.6",
     "@types/lodash": "^4.17.23",
     "@types/luxon": "^3.4.0",
     "@types/passport-local-mongoose": "^6.1.5",

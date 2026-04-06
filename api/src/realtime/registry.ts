@@ -42,6 +42,17 @@ export const findRegistryEntryByCollection = (
 };
 
 /**
+ * Find a registry entry by route path / collection tag (e.g. "todos").
+ */
+export const findRegistryEntryByRoutePath = (
+  collection: string
+): RealtimeRegistryEntry | undefined => {
+  return realtimeRegistry.find(
+    (entry) => entry.routePath === `/${collection}` || entry.routePath === collection
+  );
+};
+
+/**
  * Clear the registry (for testing).
  */
 export const clearRealtimeRegistry = (): void => {

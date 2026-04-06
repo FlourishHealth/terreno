@@ -116,8 +116,8 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
         }
         break;
       default:
-        // Unknown operator — skip (don't fail the match)
-        break;
+        // Unknown operator — fail closed to avoid leaking data
+        return false;
     }
   }
 

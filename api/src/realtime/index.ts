@@ -3,6 +3,7 @@ export {matchesQuery} from "./queryMatcher";
 export {
   addQuerySubscription,
   clearQueryStore,
+  computeQueryId,
   getQuerySubscriptionsForCollection,
   removeAllSocketQueries,
   removeQuerySubscription,
@@ -11,6 +12,7 @@ export {RealtimeApp} from "./realtimeApp";
 export {
   clearRealtimeRegistry,
   findRegistryEntryByCollection,
+  findRegistryEntryByRoutePath,
   getRealtimeRegistry,
   type RealtimeRegistryEntry,
   registerRealtime,
