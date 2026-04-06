@@ -102,7 +102,7 @@ const createMcpServerInstance = (
     server.tool(
       tool.name,
       tool.description,
-      tool.inputSchema,
+      tool.zodSchema,
       async (args: Record<string, unknown>) => {
         // Extract user from the original request headers
         const user = await extractUserFromHeaders(
