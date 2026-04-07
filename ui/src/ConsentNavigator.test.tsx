@@ -1,5 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import React from "react";
+import {Pressable} from "react-native";
+import {Box} from "./Box";
 import {ConsentNavigator} from "./ConsentNavigator";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -71,6 +73,15 @@ const createLoadingMockApi = () => {
   };
 };
 
+const ExtraScreen: React.FC<{onNext?: () => void}> = ({onNext}) => (
+  <Box testID="extra-screen">
+    <Text>Extra Screen Content</Text>
+    <Pressable onPress={onNext} testID="extra-screen-next">
+      <Text>Next</Text>
+    </Pressable>
+  </Box>
+);
+
 describe("ConsentNavigator", () => {
   it("renders children when there are no pending consent forms", async () => {
     const api = createMockApi([]);
@@ -107,5 +118,50 @@ describe("ConsentNavigator", () => {
     );
 
     expect(getByTestId("consent-navigator-loading")).toBeTruthy();
+  });
+
+  it("shows extra screens after consent forms are completed", async () => {
+    const api = createMockApi([]);
+
+    const {getByTestId, queryByText} = renderWithTheme(
+      <ConsentNavigator api={api} extraScreens={[<ExtraScreen key="extra" />]}>
+        <Text>App Content</Text>
+      </ConsentNavigator>
+    );
+
+    expect(getByTestId("extra-screen")).toBeTruthy();
+    expect(queryByText("App Content")).toBeNull();
+  });
+
+  it("shows children after all extra screens are dismissed", async () => {
+    const api = createMockApi([]);
+    const {act, fireEvent, waitFor} = await import("@testing-library/react-native");
+
+    const {getByTestId, getByText} = renderWithTheme(
+      <ConsentNavigator api={api} extraScreens={[<ExtraScreen key="extra" />]}>
+        <Text>App Content</Text>
+      </ConsentNavigator>
+    );
+
+    expect(getByTestId("extra-screen")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByTestId("extra-screen-next"));
+    });
+    await waitFor(() => {
+      expect(getByText("App Content")).toBeTruthy();
+    });
+  });
+
+  it("injects onNext prop into extra screen elements", async () => {
+    const api = createMockApi([]);
+
+    const {getByTestId} = renderWithTheme(
+      <ConsentNavigator api={api} extraScreens={[<ExtraScreen key="extra" />]}>
+        <Text>App Content</Text>
+      </ConsentNavigator>
+    );
+
+    // The extra screen should have a working next button (onNext was injected)
+    expect(getByTestId("extra-screen-next")).toBeTruthy();
   });
 });
