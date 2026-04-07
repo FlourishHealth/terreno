@@ -181,6 +181,20 @@ jobs:
         if: matrix.changed != 'true'
         run: echo "Skipping ${{ matrix.app }} — no changes"
 
+      - name: Validate required secrets
+        if: matrix.changed == 'true'
+        run: |
+          missing=()
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then missing+=("NETLIFY_AUTH_TOKEN"); fi
+          if [ -z "$NETLIFY_SITE_ID" ]; then missing+=("${{ matrix.site_id_secret }}"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
+
       - uses: actions/checkout@v6
         if: matrix.changed == 'true'
 
@@ -233,7 +247,7 @@ jobs:
         timeout-minutes: 5
 
       - name: Update deployment status
-        if: matrix.changed == 'true' && always()
+        if: matrix.changed == 'true' && always() && steps.create-deployment.outputs.deployment_id
         uses: actions/github-script@v7
         with:
           script: |
@@ -270,6 +284,20 @@ jobs:
       - name: Skip if not changed
         if: matrix.changed != 'true'
         run: echo "Skipping ${{ matrix.app }} — no changes"
+
+      - name: Validate required secrets
+        if: matrix.changed == 'true'
+        run: |
+          missing=()
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then missing+=("NETLIFY_AUTH_TOKEN"); fi
+          if [ -z "$NETLIFY_SITE_ID" ]; then missing+=("${{ matrix.site_id_secret }}"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
 
       - uses: actions/checkout@v6
         if: matrix.changed == 'true'
@@ -340,7 +368,7 @@ jobs:
         timeout-minutes: 5
 
       - name: Update deployment status
-        if: matrix.changed == 'true' && always()
+        if: matrix.changed == 'true' && always() && steps.create-deployment.outputs.deployment_id
         uses: actions/github-script@v7
         with:
           script: |

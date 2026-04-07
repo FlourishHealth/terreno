@@ -129,6 +129,15 @@ resource "google_cloud_run_v2_service" "api" {
   location = var.region
   ingress  = lookup(local.ingress_enum_map, var.ingress, "INGRESS_TRAFFIC_ALL")
 
+  lifecycle {
+    precondition {
+      condition     = var.image_tag != ""
+      error_message = "image_tag must be set when deploy_service is true."
+    }
+    # Image is updated by CI via gcloud run deploy, not Terraform
+    ignore_changes = [template[0].containers[0].image]
+  }
+
   template {
     service_account = google_service_account.cloudrun.email
     timeout         = "${var.api_timeout}s"
