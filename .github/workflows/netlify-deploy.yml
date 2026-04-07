@@ -57,6 +57,7 @@ jobs:
   build:
     name: Build ${{ matrix.app }}
     needs: detect-changes
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

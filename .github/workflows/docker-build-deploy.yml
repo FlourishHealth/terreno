@@ -11,7 +11,6 @@ on:
       - "admin-backend/**"
       - "ai/**"
       - "feature-flags/**"
-      - "example-backend/Dockerfile"
       - ".github/workflows/docker-build-deploy.yml"
   pull_request:
     paths:
@@ -21,7 +20,6 @@ on:
       - "admin-backend/**"
       - "ai/**"
       - "feature-flags/**"
-      - "example-backend/Dockerfile"
       - ".github/workflows/docker-build-deploy.yml"
 
 env:

@@ -183,7 +183,7 @@ resource "google_cloud_run_v2_service" "api" {
 
       # Secret environment variables from Secret Manager
       dynamic "env" {
-        for_each = var.secrets
+        for_each = var.deploy_service ? var.secrets : {}
         content {
           name = env.key
           value_source {
