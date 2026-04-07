@@ -37,6 +37,7 @@
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "~54.0.10",
+    "mongodb": "^6.20.0",
     "typescript": "catalog:"
   },
   "main": "index.js",

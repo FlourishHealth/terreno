@@ -70,6 +70,7 @@ export * from "./SectionDivider";
 export * from "./SegmentedControl";
 export * from "./SelectBadge";
 export * from "./SelectField";
+export * from "./SidebarNavigation";
 export * from "./SideDrawer";
 export * from "./Signature";
 export * from "./SignatureField";
