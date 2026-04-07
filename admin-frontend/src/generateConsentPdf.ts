@@ -129,9 +129,7 @@ const buildTemplateData = (response: ConsentResponseData): PdfTemplateData => {
     responseId: response._id,
     signature: response.signature,
     title: "Consent Record",
-    userInfo: userId
-      ? {email: userEmail || undefined, name: userName || undefined, userId}
-      : undefined,
+    userInfo: {email: userEmail || undefined, name: userName || undefined, userId},
   };
 };
 
