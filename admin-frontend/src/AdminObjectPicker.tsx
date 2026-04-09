@@ -167,12 +167,22 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
             value={selectedDisplay}
           />
           <Box direction="row" gap={3}>
-            <Box onClick={handleClear} testID={`admin-picker-${refModelName}-clear`}>
+            <Box
+              accessibilityHint="Clears the current selection"
+              accessibilityLabel="Clear selection"
+              onClick={handleClear}
+              testID={`admin-picker-${refModelName}-clear`}
+            >
               <Text color="primary" size="sm">
                 Clear
               </Text>
             </Box>
-            <Box onClick={handleChange} testID={`admin-picker-${refModelName}-change`}>
+            <Box
+              accessibilityHint="Opens search to pick a different value"
+              accessibilityLabel="Change selection"
+              onClick={handleChange}
+              testID={`admin-picker-${refModelName}-change`}
+            >
               <Text color="primary" size="sm">
                 Change
               </Text>
@@ -213,6 +223,8 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
               const secondary = getSecondaryText(item, primaryField);
               return (
                 <Box
+                  accessibilityHint={`Selects ${getDisplayValue(item)}`}
+                  accessibilityLabel={`Select ${getDisplayValue(item)}`}
                   key={item._id}
                   onClick={() => handleSelect(item)}
                   paddingX={3}
