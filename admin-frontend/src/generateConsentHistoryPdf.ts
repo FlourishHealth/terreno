@@ -1,5 +1,7 @@
-import {jsPDF} from "jspdf";
+import {buildConsentPdfHtml, type PdfTemplateData, sharePdfFromHtml} from "@terreno/ui";
+import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
+import {Platform} from "react-native";
 
 import type {ConsentHistoryEntry} from "./useConsentHistory";
 
@@ -29,8 +31,69 @@ const ensureSpace = (doc: jsPDF, y: number, needed: number): number => {
   return y;
 };
 
-export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Promise<void> => {
-  const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
+const buildTemplateData = (entry: ConsentHistoryEntry): PdfTemplateData => {
+  const formTitle = entry.form?.title ?? "Unknown Form";
+  const formSlug = entry.form?.slug ?? "";
+  const formType = entry.form?.type ?? "";
+  const formVersion = entry.form?.version ?? entry.formVersionSnapshot;
+
+  const fields: PdfTemplateData["fields"] = [];
+  if (formSlug) {
+    fields.push({label: "Form Slug:", value: formSlug});
+  }
+  if (formType) {
+    fields.push({label: "Form Type:", value: formType});
+  }
+  if (formVersion !== undefined) {
+    fields.push({label: "Form Version:", value: String(formVersion)});
+  }
+  fields.push({label: "Decision:", value: entry.agreed ? "Agreed" : "Declined"});
+  if (entry.agreedAt) {
+    fields.push({label: "Agreed At:", value: formatDate(entry.agreedAt)});
+  }
+  if (entry.locale) {
+    fields.push({label: "Locale:", value: entry.locale});
+  }
+
+  const checkboxEntries =
+    entry.checkboxValues && typeof entry.checkboxValues === "object"
+      ? Object.entries(entry.checkboxValues)
+      : [];
+
+  const checkboxes = checkboxEntries.map(([index, checked]) => ({
+    checked: Boolean(checked),
+    label: entry.form?.checkboxes?.[Number(index)]?.label ?? `Checkbox ${index}`,
+  }));
+
+  const auditTrail: PdfTemplateData["fields"] = [];
+  if (entry.ipAddress) {
+    auditTrail.push({label: "IP Address:", value: entry.ipAddress});
+  }
+  if (entry.userAgent) {
+    auditTrail.push({label: "User Agent:", value: entry.userAgent});
+  }
+  if (entry.formVersionSnapshot !== undefined) {
+    auditTrail.push({label: "Form Version:", value: String(entry.formVersionSnapshot)});
+  }
+  if (entry.signedAt) {
+    auditTrail.push({label: "Signed At:", value: formatDate(entry.signedAt)});
+  }
+
+  return {
+    auditTrail: auditTrail.length > 0 ? auditTrail : undefined,
+    checkboxes: checkboxes.length > 0 ? checkboxes : undefined,
+    contentSnapshot: entry.contentSnapshot,
+    fields,
+    formTitle,
+    responseId: entry._id,
+    signature: entry.signature,
+    title: "Consent Record",
+  };
+};
+
+const generatePdfWeb = async (entry: ConsentHistoryEntry): Promise<void> => {
+  const {jsPDF: JsPDF} = await import("jspdf");
+  const doc = new JsPDF({format: "a4", orientation: "portrait", unit: "mm"});
 
   const formTitle = entry.form?.title ?? "Unknown Form";
   const formSlug = entry.form?.slug ?? "";
@@ -39,24 +102,20 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
 
   let y = 20;
 
-  // Title
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
   doc.text("Consent Record", MARGIN_LEFT, y);
   y += 10;
 
-  // Form title
   doc.setFontSize(14);
   doc.setFont("helvetica", "normal");
   doc.text(formTitle, MARGIN_LEFT, y);
   y += 10;
 
-  // Separator
   doc.setDrawColor(200, 200, 200);
   doc.line(MARGIN_LEFT, y, PAGE_WIDTH - MARGIN_RIGHT, y);
   y += 8;
 
-  // Helper to add a labeled field
   const addField = (label: string, value: string) => {
     y = ensureSpace(doc, y, 8);
     doc.setFontSize(9);
@@ -70,7 +129,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     y += 6;
   };
 
-  // Response Details
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
@@ -96,7 +154,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
 
   y += 4;
 
-  // Checkbox Values
   const checkboxEntries =
     entry.checkboxValues && typeof entry.checkboxValues === "object"
       ? Object.entries(entry.checkboxValues)
@@ -122,7 +179,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     y += 4;
   }
 
-  // Audit Trail
   const hasAuditTrail = entry.ipAddress || entry.userAgent || entry.formVersionSnapshot;
 
   if (hasAuditTrail) {
@@ -148,7 +204,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     y += 4;
   }
 
-  // Signature
   if (entry.signature) {
     y = ensureSpace(doc, y, 50);
     doc.setFontSize(12);
@@ -170,7 +225,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     y += 4;
   }
 
-  // Content Snapshot
   if (entry.contentSnapshot) {
     y = ensureSpace(doc, y, 20);
     doc.setFontSize(12);
@@ -191,7 +245,6 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     }
   }
 
-  // Footer
   y = ensureSpace(doc, y, 20);
   y += 8;
   doc.setDrawColor(200, 200, 200);
@@ -205,7 +258,21 @@ export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Pro
     doc.text(`Response ID: ${entry._id}`, PAGE_WIDTH - MARGIN_RIGHT, y, {align: "right"});
   }
 
-  // Download
   const filename = `consent-${formSlug || "response"}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
   doc.save(filename);
+};
+
+const generatePdfMobile = async (entry: ConsentHistoryEntry): Promise<void> => {
+  const templateData = buildTemplateData(entry);
+  const html = buildConsentPdfHtml(templateData);
+  const formSlug = entry.form?.slug ?? "response";
+  const filename = `consent-${formSlug}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
+  await sharePdfFromHtml({filename, html});
+};
+
+export const generateConsentHistoryPdf = async (entry: ConsentHistoryEntry): Promise<void> => {
+  if (Platform.OS === "web") {
+    return generatePdfWeb(entry);
+  }
+  return generatePdfMobile(entry);
 };
