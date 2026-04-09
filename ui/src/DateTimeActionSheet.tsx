@@ -205,59 +205,89 @@ const MobileTime = ({
   setMinute,
   amPm,
   setAmPm,
-}: TimeProps) => {
+}: TimeProps): React.ReactElement => {
+  const {theme} = useTheme();
+  // Match picker surface to the app theme. A fixed white background with `theme.text.primary`
+  // (light in dark mode) produced invisible labels on Android; `itemStyle` is iOS-only and is
+  // omitted on Android to avoid broken / blank spinner rendering on some OS versions.
+  const pickerStyle = {
+    backgroundColor: theme.surface.base,
+    height: TIME_PICKER_HEIGHT,
+    ...(Platform.OS === "android" ? {color: theme.text.primary} : {}),
+  };
+  const androidItemColor = Platform.OS === "android" ? (theme.text.primary as string) : undefined;
+
   return (
     <Box>
       <Box direction="row" width="100%">
         <Box paddingY={2} width="30%">
           <Picker
-            itemStyle={{
-              height: TIME_PICKER_HEIGHT,
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => {
+              const n = typeof itemValue === "number" ? itemValue : Number(itemValue);
+              setHour(n);
             }}
-            onValueChange={(itemValue) => setHour(itemValue)}
             selectedValue={hour}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
+            style={pickerStyle}
           >
             {hours.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
+              <Picker.Item
+                color={androidItemColor}
+                key={String(n)}
+                label={String(n)}
+                value={Number(n)}
+              />
             ))}
           </Picker>
         </Box>
         <Box paddingY={2} width="30%">
           <Picker
-            itemStyle={{
-              height: TIME_PICKER_HEIGHT,
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => {
+              const n = typeof itemValue === "number" ? itemValue : Number(itemValue);
+              setMinute(n);
             }}
-            onValueChange={(itemValue) => setMinute(itemValue)}
             selectedValue={minute}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
+            style={pickerStyle}
           >
             {minutes.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={Number(n)} />
+              <Picker.Item
+                color={androidItemColor}
+                key={String(n)}
+                label={String(n)}
+                value={Number(n)}
+              />
             ))}
           </Picker>
         </Box>
         <Box paddingY={2} width="40%">
           <Picker
-            itemStyle={{
-              fontSize: 16,
-              height: TIME_PICKER_HEIGHT,
-            }}
-            onValueChange={(itemValue) => setAmPm(itemValue)}
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    fontSize: 16,
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => setAmPm(itemValue as "am" | "pm")}
             selectedValue={amPm}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
+            style={pickerStyle}
           >
-            <Picker.Item key="am" label="am" value="am" />
-            <Picker.Item key="pm" label="pm" value="pm" />
+            <Picker.Item color={androidItemColor} key="am" label="am" value="am" />
+            <Picker.Item color={androidItemColor} key="pm" label="pm" value="pm" />
           </Picker>
         </Box>
       </Box>
