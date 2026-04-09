@@ -9,7 +9,7 @@ interface AdminRefFieldProps {
   refModelName: string;
   title: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string | null) => void;
   errorText?: string;
   helperText?: string;
 }

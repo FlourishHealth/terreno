@@ -8,7 +8,7 @@ interface AdminObjectPickerProps {
   refModelName: string;
   title: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string | null) => void;
   errorText?: string;
   helperText?: string;
 }
@@ -137,7 +137,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   );
 
   const handleClear = useCallback(() => {
-    onChange("");
+    onChange(null);
     setSelectedDisplay("");
     setSearchText("");
     setDebouncedQuery("");
