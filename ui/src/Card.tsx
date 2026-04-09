@@ -54,16 +54,15 @@ export const Card = ({
             style={
               isHorizontal
                 ? {alignSelf: "stretch", width: 160}
-                : isMobile && size !== "small"
-                  ? {flexGrow: 1, flexShrink: 0, width: "100%"}
-                  : {height: imageHeight, width: "100%"}
+                : {height: imageHeight, width: "100%"}
             }
           />
         ) : (
           <Box
+            alignSelf={isHorizontal ? "stretch" : undefined}
             color={headerColor}
-            {...(!isHorizontal && {height: imageHeight})}
-            style={isHorizontal ? {alignSelf: "stretch", width: 160} : {width: "100%"}}
+            height={isHorizontal ? undefined : imageHeight}
+            width={isHorizontal ? 160 : "100%"}
           />
         )}
         <Box

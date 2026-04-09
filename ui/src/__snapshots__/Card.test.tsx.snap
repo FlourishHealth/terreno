@@ -205,11 +205,10 @@ exports[`Card display variant renders correctly with required props 1`] = `
         "onPointerEnter": [Function: AsyncFunction],
         "onPointerLeave": [Function: AsyncFunction],
         "style": {
+          "alignSelf": undefined,
           "backgroundColor": "#0E9DCD",
           "height": 160,
-          "style": {
-            "width": "100%",
-          },
+          "width": "100%",
         },
         "testID": undefined,
       },
@@ -285,11 +284,10 @@ exports[`Card display variant applies custom headerColor 1`] = `
         "onPointerEnter": [Function: AsyncFunction],
         "onPointerLeave": [Function: AsyncFunction],
         "style": {
+          "alignSelf": undefined,
           "backgroundColor": undefined,
           "height": 160,
-          "style": {
-            "width": "100%",
-          },
+          "width": "100%",
         },
         "testID": undefined,
       },
