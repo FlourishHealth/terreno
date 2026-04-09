@@ -1,5 +1,5 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {Box, Spinner, Text, TextField} from "@terreno/ui";
+import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
 interface AdminObjectPickerProps {
@@ -157,37 +157,33 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   return (
     <Box gap={1}>
       {value && selectedDisplay && !isChanging ? (
-        <Box gap={1}>
-          <TextField
-            disabled
-            helperText={helperText}
-            onChange={() => {}}
-            testID={`admin-picker-${refModelName}-display`}
-            title={title}
-            value={selectedDisplay}
-          />
-          <Box direction="row" gap={3}>
-            <Box
-              accessibilityHint="Clears the current selection"
-              accessibilityLabel="Clear selection"
-              onClick={handleClear}
-              testID={`admin-picker-${refModelName}-clear`}
-            >
-              <Text color="primary" size="sm">
-                Clear
-              </Text>
-            </Box>
-            <Box
-              accessibilityHint="Opens search to pick a different value"
-              accessibilityLabel="Change selection"
-              onClick={handleChange}
-              testID={`admin-picker-${refModelName}-change`}
-            >
-              <Text color="primary" size="sm">
-                Change
-              </Text>
-            </Box>
+        <Box alignItems="end" direction="row" gap={2}>
+          <Box flex="grow">
+            <TextField
+              disabled
+              helperText={helperText}
+              onChange={() => {}}
+              testID={`admin-picker-${refModelName}-display`}
+              title={title}
+              value={selectedDisplay}
+            />
           </Box>
+          <IconButton
+            accessibilityHint="Opens search to pick a different value"
+            accessibilityLabel="Change selection"
+            iconName="pencil"
+            onClick={handleChange}
+            size="sm"
+            testID={`admin-picker-${refModelName}-change`}
+          />
+          <IconButton
+            accessibilityHint="Clears the current selection"
+            accessibilityLabel="Clear selection"
+            iconName="xmark"
+            onClick={handleClear}
+            size="sm"
+            testID={`admin-picker-${refModelName}-clear`}
+          />
         </Box>
       ) : (
         <TextField

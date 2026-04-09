@@ -375,12 +375,18 @@ export class AdminApp {
 
     // Mount search endpoint for each model
     for (const config of modelConfigs) {
+      // Determine searchable fields from the actual Mongoose schema type,
+      // not the OpenAPI type (which reports ObjectId as "string")
+      const searchableFields: string[] = [];
       const modelMeta = configModels.find((m) => m.name === config.model.modelName);
-      const searchableFields = modelMeta
-        ? Object.entries(modelMeta.fields)
-            .filter(([, f]) => f.searchable)
-            .map(([key]) => key)
-        : [];
+      if (modelMeta) {
+        for (const key of Object.keys(modelMeta.fields)) {
+          const schemaPath = config.model.schema.path(key);
+          if (schemaPath && schemaPath.instance === "String" && !modelMeta.fields[key].enum) {
+            searchableFields.push(key);
+          }
+        }
+      }
 
       app.get(
         `${basePath}${config.routePath}/search`,
@@ -411,8 +417,17 @@ export class AdminApp {
           }
 
           const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
-          const results = await config.model.find({$or: orConditions}).limit(20).lean();
-          return res.json({data: results});
+          try {
+            const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            return res.json({data: results});
+          } catch (err) {
+            logger.error("Admin search failed", {
+              error: err,
+              fields,
+              model: config.model.modelName,
+            });
+            throw err;
+          }
         })
       );
     }
