@@ -1,11 +1,10 @@
 import type React from "react";
-import {Image} from "react-native";
+import {Image, useWindowDimensions} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
 import type {CardProps} from "./Common";
 import {Heading} from "./Heading";
-import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";
 
 export const Card = ({
@@ -24,12 +23,13 @@ export const Card = ({
   imageHeight = 160,
   ...rest
 }: CardProps): React.ReactElement => {
-  if (variant === "display") {
-    const isMobile = isMobileDevice();
-    // Desktop: large/default = horizontal row; small = vertical column
-    // Mobile: always vertical column
-    const isHorizontal = !isMobile && size !== "small";
+  const {width} = useWindowDimensions();
+  // Desktop (>768px): large/default = horizontal row; small = vertical column
+  // Mobile (<=768px): always vertical column
+  const isMobile = width <= 768;
+  const isHorizontal = !isMobile && size !== "small";
 
+  if (variant === "display") {
     return (
       <Box
         alignItems={isHorizontal ? "center" : undefined}
