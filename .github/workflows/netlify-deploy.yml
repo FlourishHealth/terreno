@@ -1,0 +1,384 @@
+name: Netlify Deploy
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "example-frontend/**"
+      - "demo/**"
+      - "ui/**"
+      - "rtk/**"
+      - "ai/**"
+      - "admin-frontend/**"
+      - "demo/scripts/fix-netlify-assets.sh"
+      - ".github/workflows/netlify-deploy.yml"
+  pull_request:
+    paths:
+      - "example-frontend/**"
+      - "demo/**"
+      - "ui/**"
+      - "rtk/**"
+      - "ai/**"
+      - "admin-frontend/**"
+      - "demo/scripts/fix-netlify-assets.sh"
+      - ".github/workflows/netlify-deploy.yml"
+
+jobs:
+  detect-changes:
+    name: Detect Changed Apps
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      example-frontend: ${{ steps.changes.outputs.example-frontend }}
+      demo: ${{ steps.changes.outputs.demo }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            example-frontend:
+              - 'example-frontend/**'
+              - 'ui/**'
+              - 'rtk/**'
+              - 'ai/**'
+              - 'admin-frontend/**'
+              - 'demo/scripts/fix-netlify-assets.sh'
+              - '.github/workflows/netlify-deploy.yml'
+            demo:
+              - 'demo/**'
+              - 'ui/**'
+              - 'demo/scripts/fix-netlify-assets.sh'
+              - '.github/workflows/netlify-deploy.yml'
+
+  build:
+    name: Build ${{ matrix.app }}
+    needs: detect-changes
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: example-frontend
+            changed: ${{ needs.detect-changes.outputs.example-frontend }}
+          - app: demo
+            changed: ${{ needs.detect-changes.outputs.demo }}
+    if: >-
+      needs.detect-changes.outputs.example-frontend == 'true' ||
+      needs.detect-changes.outputs.demo == 'true'
+    steps:
+      - name: Skip if not changed
+        if: matrix.changed != 'true'
+        run: echo "Skipping ${{ matrix.app }} — no changes detected"
+
+      - uses: actions/checkout@v6
+        if: matrix.changed == 'true'
+
+      - name: Setup Bun
+        if: matrix.changed == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        if: matrix.changed == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        if: matrix.changed == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build UI dependency
+        if: matrix.changed == 'true'
+        run: bun run compile
+        working-directory: ui
+
+      # example-frontend needs additional dependencies compiled
+      - name: Build RTK dependency
+        if: matrix.changed == 'true' && matrix.app == 'example-frontend'
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Build Admin Frontend dependency
+        if: matrix.changed == 'true' && matrix.app == 'example-frontend'
+        run: bun run compile
+        working-directory: admin-frontend
+
+      - name: Build API dependency
+        if: matrix.changed == 'true' && matrix.app == 'example-frontend'
+        run: bun run compile
+        working-directory: api
+
+      - name: Build AI dependency
+        if: matrix.changed == 'true' && matrix.app == 'example-frontend'
+        run: bun run compile
+        working-directory: ai
+
+      # demo needs UI type documentation
+      - name: Generate UI type documentation
+        if: matrix.changed == 'true' && matrix.app == 'demo'
+        run: bun run types
+        working-directory: ui
+
+      - name: Set BASE_URL for deploy
+        if: matrix.changed == 'true' && matrix.app == 'example-frontend'
+        run: |
+          # Production URL — PR previews of the frontend still point at the
+          # production backend. If you want PR-specific backend URLs, update
+          # this to use the Cloud Run tag URL for the PR.
+          URL="https://terreno-api-7knxlrnpqq-uc.a.run.app"
+          jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
+          echo "BASE_URL set to $URL"
+        working-directory: example-frontend
+
+      - name: Export for web
+        if: matrix.changed == 'true'
+        run: bunx expo export --platform web
+        working-directory: ${{ matrix.app }}
+
+      - name: Fix asset paths for Netlify
+        if: matrix.changed == 'true'
+        run: bash demo/scripts/fix-netlify-assets.sh ${{ matrix.app }}/dist
+
+      - name: Add SPA redirects
+        if: matrix.changed == 'true'
+        run: echo '/*    /index.html   200' > ${{ matrix.app }}/dist/_redirects
+
+      - name: Upload build artifact
+        if: matrix.changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-dist
+          path: ${{ matrix.app }}/dist
+          retention-days: 1
+
+  deploy-production:
+    name: Deploy ${{ matrix.app }} to Production
+    needs: [detect-changes, build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      statuses: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: example-frontend
+            changed: ${{ needs.detect-changes.outputs.example-frontend }}
+            site_id_secret: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
+          - app: demo
+            changed: ${{ needs.detect-changes.outputs.demo }}
+            site_id_secret: NETLIFY_DEMO_SITE_ID
+    steps:
+      - name: Skip if not changed
+        if: matrix.changed != 'true'
+        run: echo "Skipping ${{ matrix.app }} — no changes"
+
+      - name: Validate required secrets
+        if: matrix.changed == 'true'
+        run: |
+          missing=()
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then missing+=("NETLIFY_AUTH_TOKEN"); fi
+          if [ -z "$NETLIFY_SITE_ID" ]; then missing+=("${{ matrix.site_id_secret }}"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
+
+      - uses: actions/checkout@v6
+        if: matrix.changed == 'true'
+
+      - name: Download build artifact
+        if: matrix.changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.app }}-dist
+          path: dist
+
+      - name: Get commit message
+        if: matrix.changed == 'true'
+        id: commit
+        run: echo "message=$(echo "$COMMIT_MSG" | head -n 1)" >> "$GITHUB_OUTPUT"
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+
+      - name: Create GitHub Deployment
+        if: matrix.changed == 'true'
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ matrix.app }}',
+              auto_merge: false,
+              required_contexts: [],
+              description: '${{ matrix.app }} Production Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Deploy to Netlify
+        if: matrix.changed == 'true'
+        id: netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: "./dist"
+          production-deploy: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "${{ matrix.app }} deploy - ${{ steps.commit.outputs.message }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
+        timeout-minutes: 5
+
+      - name: Update deployment status
+        if: matrix.changed == 'true' && always() && steps.create-deployment.outputs.deployment_id
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state,
+              environment_url: state === 'success' ? '${{ steps.netlify.outputs.deploy-url }}' : undefined,
+              description: `${{ matrix.app }} deployment ${state}`
+            });
+
+  deploy-preview:
+    name: Deploy ${{ matrix.app }} Preview
+    needs: [detect-changes, build]
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      statuses: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: example-frontend
+            changed: ${{ needs.detect-changes.outputs.example-frontend }}
+            site_id_secret: NETLIFY_FRONTEND_EXAMPLE_SITE_ID
+          - app: demo
+            changed: ${{ needs.detect-changes.outputs.demo }}
+            site_id_secret: NETLIFY_DEMO_SITE_ID
+    steps:
+      - name: Skip if not changed
+        if: matrix.changed != 'true'
+        run: echo "Skipping ${{ matrix.app }} — no changes"
+
+      - name: Validate required secrets
+        if: matrix.changed == 'true'
+        run: |
+          missing=()
+          if [ -z "$NETLIFY_AUTH_TOKEN" ]; then missing+=("NETLIFY_AUTH_TOKEN"); fi
+          if [ -z "$NETLIFY_SITE_ID" ]; then missing+=("${{ matrix.site_id_secret }}"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
+
+      - uses: actions/checkout@v6
+        if: matrix.changed == 'true'
+
+      - name: Download build artifact
+        if: matrix.changed == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.app }}-dist
+          path: dist
+
+      - name: Deactivate previous preview deployments
+        if: matrix.changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const environment = `${{ matrix.app }}-preview-pr-${{ github.event.pull_request.number }}`;
+            try {
+              const deployments = await github.rest.repos.listDeployments({
+                ...context.repo,
+                environment,
+              });
+              for (const deployment of deployments.data) {
+                await github.rest.repos.createDeploymentStatus({
+                  ...context.repo,
+                  deployment_id: deployment.id,
+                  state: 'inactive',
+                });
+              }
+            } catch (e) {
+              core.info(`No previous deployments found for ${environment}`);
+            }
+
+      - name: Create GitHub Deployment
+        if: matrix.changed == 'true'
+        id: create-deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: `${{ matrix.app }}-preview-pr-${{ github.event.pull_request.number }}`,
+              transient_environment: true,
+              auto_merge: false,
+              required_contexts: [],
+              description: '${{ matrix.app }} Preview Deployment'
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+      - name: Deploy to Netlify
+        if: matrix.changed == 'true'
+        id: netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: "./dist"
+          production-deploy: false
+          alias: ${{ matrix.app }}-pr-${{ github.event.pull_request.number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "${{ matrix.app }} preview for PR #${{ github.event.pull_request.number }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: false
+          enable-github-deployment: false
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets[matrix.site_id_secret] }}
+        timeout-minutes: 5
+
+      - name: Update deployment status
+        if: matrix.changed == 'true' && always() && steps.create-deployment.outputs.deployment_id
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.create-deployment.outputs.deployment_id }},
+              state,
+              environment_url: state === 'success' ? '${{ steps.netlify.outputs.deploy-url }}' : undefined,
+              description: `${{ matrix.app }} preview ${state}`
+            });
