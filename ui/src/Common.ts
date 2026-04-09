@@ -583,12 +583,6 @@ export type CardProps = BoxProps & {
   description?: string;
 
   /**
-   * The surface color of the header section. Used in the "display" variant.
-   * @default "primary"
-   */
-  headerColor?: SurfaceColor;
-
-  /**
    * The label for the action button. Used in the "display" variant.
    */
   buttonText?: string;

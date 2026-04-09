@@ -95,13 +95,11 @@ export const DisplayCardDemo = (): React.ReactElement => {
         buttonOnClick={() => console.info("Get started clicked")}
         buttonText="Get Started"
         description="Follow the setup guide to integrate Terreno into your project in minutes."
-        headerColor="secondaryDark"
         title="Quick Start Guide"
         variant="display"
       />
       <Card
         description="Your data is protected with end-to-end encryption and regular security audits."
-        headerColor="success"
         title="Security & Privacy"
         variant="display"
       />

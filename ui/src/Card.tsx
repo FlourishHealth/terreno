@@ -15,7 +15,6 @@ export const Card = ({
   size = "default",
   title,
   description,
-  headerColor = "primary",
   buttonText,
   buttonOnClick,
   imageUri,
@@ -23,13 +22,20 @@ export const Card = ({
   imageHeight = 160,
   ...rest
 }: CardProps): React.ReactElement => {
-  const {width} = useWindowDimensions();
-  // Desktop (>768px): large/default = horizontal row; small = vertical column
+  const {width: windowWidth} = useWindowDimensions();
+  // Desktop (>768px): large/default = horizontal (image left, content right)
   // Mobile (<=768px): always vertical column
-  const isMobile = width <= 768;
+  const isMobile = windowWidth <= 768;
   const isHorizontal = !isMobile && size !== "small";
 
   if (variant === "display") {
+    // Card dimensions vary by size on mobile
+    const cardWidth = isMobile && size === "small" ? 200 : undefined;
+    const cardHeight = isMobile && size === "small" ? 298 : undefined;
+
+    // Image height: large mobile = 500px, all others = imageHeight prop
+    const mobileImageHeight = size === "large" ? 500 : imageHeight;
+
     return (
       <Box
         alignItems={isHorizontal ? "center" : undefined}
@@ -39,14 +45,16 @@ export const Card = ({
         borderTop="default"
         color={color}
         direction={isHorizontal ? "row" : "column"}
-        gap={isMobile ? 0 : 6}
+        gap={isHorizontal ? 6 : 0}
+        height={cardHeight}
         overflow="hidden"
-        padding={isMobile ? 0 : 6}
+        padding={isHorizontal ? 6 : 0}
         rounding="md"
         shadow
+        width={cardWidth}
         {...rest}
       >
-        {imageUri ? (
+        {imageUri && (
           <Image
             accessibilityLabel={imageAlt}
             resizeMode="cover"
@@ -54,23 +62,11 @@ export const Card = ({
             style={
               isHorizontal
                 ? {alignSelf: "stretch", width: 160}
-                : {height: imageHeight, width: "100%"}
+                : {height: mobileImageHeight, width: "100%"}
             }
           />
-        ) : (
-          <Box
-            alignSelf={isHorizontal ? "stretch" : undefined}
-            color={headerColor}
-            height={isHorizontal ? undefined : imageHeight}
-            width={isHorizontal ? 160 : "100%"}
-          />
         )}
-        <Box
-          direction="column"
-          flex={isHorizontal ? "grow" : undefined}
-          gap={4}
-          padding={isMobile ? 4 : 0}
-        >
+        <Box direction="column" flex={isHorizontal ? "grow" : undefined} gap={4} padding={4}>
           {Boolean(title) && <Heading size="md">{title}</Heading>}
           {Boolean(description) && <Text>{description}</Text>}
           {Boolean(buttonText && buttonOnClick) && (

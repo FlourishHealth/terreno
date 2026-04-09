@@ -200,22 +200,6 @@ exports[`Card display variant renders correctly with required props 1`] = `
   "children": [
     {
       "$$typeof": Symbol(react.test.json),
-      "children": null,
-      "props": {
-        "onPointerEnter": [Function: AsyncFunction],
-        "onPointerLeave": [Function: AsyncFunction],
-        "style": {
-          "alignSelf": undefined,
-          "backgroundColor": "#0E9DCD",
-          "height": 160,
-          "width": "100%",
-        },
-        "testID": undefined,
-      },
-      "type": "View",
-    },
-    {
-      "$$typeof": Symbol(react.test.json),
       "children": [
         {
           "$$typeof": Symbol(react.test.json),
@@ -273,7 +257,7 @@ exports[`Card display variant renders correctly with required props 1`] = `
 }
 `;
 
-exports[`Card display variant applies custom headerColor 1`] = `
+exports[`Card display variant renders image when imageUri is provided 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -281,17 +265,17 @@ exports[`Card display variant applies custom headerColor 1`] = `
       "$$typeof": Symbol(react.test.json),
       "children": null,
       "props": {
-        "onPointerEnter": [Function: AsyncFunction],
-        "onPointerLeave": [Function: AsyncFunction],
+        "accessibilityLabel": "Test image",
+        "resizeMode": "cover",
+        "source": {
+          "uri": "https://example.com/img.jpg",
+        },
         "style": {
-          "alignSelf": undefined,
-          "backgroundColor": undefined,
           "height": 160,
           "width": "100%",
         },
-        "testID": undefined,
       },
-      "type": "View",
+      "type": "Image",
     },
     {
       "$$typeof": Symbol(react.test.json),

@@ -108,9 +108,14 @@ describe("Card", () => {
       expect(getByText("Extra content")).toBeTruthy();
     });
 
-    it("applies custom headerColor", () => {
+    it("renders image when imageUri is provided", () => {
       const {toJSON} = renderWithTheme(
-        <Card headerColor="secondary" title="My Feature" variant="display" />
+        <Card
+          imageAlt="Test image"
+          imageUri="https://example.com/img.jpg"
+          title="My Feature"
+          variant="display"
+        />
       );
       expect(toJSON()).toMatchSnapshot();
     });
