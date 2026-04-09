@@ -205,58 +205,89 @@ const MobileTime = ({
   setMinute,
   amPm,
   setAmPm,
-}: TimeProps) => {
+}: TimeProps): React.ReactElement => {
+  const {theme} = useTheme();
+  // Match picker surface to the app theme. A fixed white background with `theme.text.primary`
+  // (light in dark mode) produced invisible labels on Android; `itemStyle` is iOS-only and is
+  // omitted on Android to avoid broken / blank spinner rendering on some OS versions.
+  const pickerStyle = {
+    backgroundColor: theme.surface.base,
+    height: TIME_PICKER_HEIGHT,
+    ...(Platform.OS === "android" ? {color: theme.text.primary} : {}),
+  };
+  const androidItemColor = Platform.OS === "android" ? (theme.text.primary as string) : undefined;
+
   return (
     <Box>
       <Box direction="row" width="100%">
-        <Box paddingY={2} width="35%">
+        <Box paddingY={2} width="30%">
           <Picker
-            itemStyle={{
-              height: TIME_PICKER_HEIGHT,
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => {
+              const n = typeof itemValue === "number" ? itemValue : Number(itemValue);
+              setHour(n);
             }}
-            onValueChange={(itemValue) => setHour(itemValue)}
             selectedValue={hour}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
+            style={pickerStyle}
           >
             {hours.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
-            ))}
-          </Picker>
-        </Box>
-        <Box paddingY={2} width="35%">
-          <Picker
-            itemStyle={{
-              height: TIME_PICKER_HEIGHT,
-            }}
-            onValueChange={(itemValue) => setMinute(itemValue)}
-            selectedValue={minute}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
-          >
-            {minutes.map((n) => (
-              <Picker.Item key={String(n)} label={String(n)} value={String(n)} />
+              <Picker.Item
+                color={androidItemColor}
+                key={String(n)}
+                label={String(n)}
+                value={Number(n)}
+              />
             ))}
           </Picker>
         </Box>
         <Box paddingY={2} width="30%">
           <Picker
-            itemStyle={{
-              height: TIME_PICKER_HEIGHT,
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => {
+              const n = typeof itemValue === "number" ? itemValue : Number(itemValue);
+              setMinute(n);
             }}
-            onValueChange={(itemValue) => setAmPm(itemValue)}
-            selectedValue={amPm}
-            style={{
-              backgroundColor: "#FFFFFF",
-              height: TIME_PICKER_HEIGHT,
-            }}
+            selectedValue={minute}
+            style={pickerStyle}
           >
-            <Picker.Item key="am" label="am" value="am" />
-            <Picker.Item key="pm" label="pm" value="pm" />
+            {minutes.map((n) => (
+              <Picker.Item
+                color={androidItemColor}
+                key={String(n)}
+                label={String(n)}
+                value={Number(n)}
+              />
+            ))}
+          </Picker>
+        </Box>
+        <Box paddingY={2} width="40%">
+          <Picker
+            itemStyle={
+              Platform.OS === "ios"
+                ? {
+                    fontSize: 16,
+                    height: TIME_PICKER_HEIGHT,
+                  }
+                : undefined
+            }
+            onValueChange={(itemValue) => setAmPm(itemValue as "am" | "pm")}
+            selectedValue={amPm}
+            style={pickerStyle}
+          >
+            <Picker.Item color={androidItemColor} key="am" label="am" value="am" />
+            <Picker.Item color={androidItemColor} key="pm" label="pm" value="pm" />
           </Picker>
         </Box>
       </Box>
@@ -352,9 +383,14 @@ const DateCalendar = ({
   }
 
   if (date) {
-    const displayDate = timezone
-      ? DateTime.fromISO(dateString).setZone(timezone).toFormat("yyyy-MM-dd")
-      : DateTime.fromISO(dateString).toFormat("yyyy-MM-dd");
+    let displayDate: string;
+    if (type === "date") {
+      displayDate = DateTime.fromISO(dateString).toUTC().toFormat("yyyy-MM-dd");
+    } else if (timezone) {
+      displayDate = DateTime.fromISO(dateString).setZone(timezone).toFormat("yyyy-MM-dd");
+    } else {
+      displayDate = DateTime.fromISO(dateString).toFormat("yyyy-MM-dd");
+    }
     markedDates[displayDate] = {
       customStyles: {
         container: {
@@ -437,7 +473,13 @@ export const DateTimeActionSheet = ({
   useEffect(() => {
     let datetime;
     if (value) {
-      datetime = DateTime.fromISO(value).setZone(originalTimezone).set({millisecond: 0, second: 0});
+      if (type === "date") {
+        datetime = DateTime.fromISO(value).toUTC().set({millisecond: 0, second: 0});
+      } else {
+        datetime = DateTime.fromISO(value)
+          .setZone(originalTimezone)
+          .set({millisecond: 0, second: 0});
+      }
     } else {
       datetime = DateTime.now().setZone(originalTimezone).set({millisecond: 0, second: 0});
     }
@@ -456,7 +498,7 @@ export const DateTimeActionSheet = ({
     setDate(datetime.toISO());
     // Reset timezone when the sent date changes.
     setTimezone(originalTimezone);
-  }, [value, originalTimezone]);
+  }, [value, originalTimezone, type]);
 
   // TODO Support 24 hour time for time picker.
   // Note: do not call this if waiting on a state change.
@@ -469,7 +511,9 @@ export const DateTimeActionSheet = ({
       militaryHour = Number(hour) + 12;
     }
 
-    const dateTime = DateTime.fromISO(date, {zone: timezone});
+    // For type="date" the date state is always UTC midnight — parse it in UTC, not the component
+    // timezone, to avoid shifting the date when converting back to UTC.
+    const dateTime = DateTime.fromISO(date, {zone: type === "date" ? "UTC" : timezone});
 
     if (type === "date") {
       const v = dateTime.set({hour: 0, millisecond: 0, minute: 0, second: 0}).toUTC().toISO();

@@ -11,15 +11,13 @@ import {addTagTypes, openapi} from "./openApiSdk";
 // endpoints, since we don't automatically generate for endpoints that don't use the router
 // currently.
 
-// Profile response type
+// Profile response type — emptyApi's base query already unwraps the `data` envelope
 export interface ProfileResponse {
-  data: {
-    _id: string;
-    id: string;
-    email: string;
-    name: string;
-    admin?: boolean;
-  };
+  _id: string;
+  id: string;
+  email: string;
+  name: string;
+  admin?: boolean;
 }
 
 // AI Request Explorer types
@@ -60,6 +58,11 @@ export interface UpdateProfileRequest {
   password?: string;
 }
 
+export interface SetAdminUserPasswordRequest {
+  id: string;
+  password: string;
+}
+
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
@@ -91,12 +94,23 @@ export const terrenoApi = openapi
           url: "/auth/me",
         }),
       }),
+      setAdminUserPassword: builder.mutation<
+        {data: {_id: string; message: string}},
+        SetAdminUserPasswordRequest
+      >({
+        invalidatesTags: ["users"],
+        query: ({id, password}) => ({
+          body: {password},
+          method: "POST",
+          url: `/admin/users/${id}/password`,
+        }),
+      }),
     }),
   })
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
   .enhanceEndpoints({
-    addTagTypes: ["consentForms", "gptHistories", "profile"],
+    addTagTypes: ["consentForms", "gptHistories", "profile", "PendingConsents"],
     endpoints: {
       ...generateTags(openapi, [...addTagTypes]),
       postTodos: {invalidatesTags: ["todos"]},
@@ -112,6 +126,7 @@ export const {
   useGetMeQuery,
   usePatchMeMutation,
   useGetAiRequestsExplorerQuery,
+  useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";
 

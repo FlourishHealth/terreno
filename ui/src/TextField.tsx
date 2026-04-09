@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 
+import {AiSuggestionBox} from "./AiSuggestionBox";
 import type {TextFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {Icon} from "./Icon";
@@ -78,6 +79,8 @@ export const TextField: FC<TextFieldProps> = ({
   onEnter,
   onSubmitEditing,
   testID,
+  id,
+  aiSuggestion,
 }) => {
   const {theme} = useTheme();
 
@@ -103,7 +106,9 @@ export const TextField: FC<TextFieldProps> = ({
     } else if (multiline) {
       return height || "100%";
     } else {
-      return 20;
+      // iOS clips placeholder glyphs (descenders, cap height) when the box is ~fontSize tall;
+      // single-line inputs need extra vertical room beyond 16px text.
+      return Platform.OS === "ios" ? 24 : 22;
     }
   }, [grow, height, multiline]);
 
@@ -146,86 +151,102 @@ export const TextField: FC<TextFieldProps> = ({
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <View
         style={{
-          alignItems: "center",
           backgroundColor: disabled ? theme.surface.neutralLight : theme.surface.base,
           borderColor,
           borderRadius: 4,
           borderWidth: focused ? 3 : 1,
-          flexDirection: "row",
+          flexDirection: "column",
+          gap: aiSuggestion ? 10 : 0,
           overflow: "hidden",
           paddingHorizontal: focused ? 10 : 12,
           paddingVertical: focused ? 6 : 8,
         }}
       >
-        <TextInput
-          accessibilityHint="Enter text here"
-          accessibilityState={{disabled}}
-          aria-label="Text input field"
-          autoCapitalize={type === "text" ? "sentences" : "none"}
-          autoCorrect={shouldAutocorrect}
-          blurOnSubmit={blurOnSubmit}
-          enterKeyHint={returnKeyType}
-          keyboardType={keyboardType as KeyboardTypeOptions}
-          multiline={multiline}
-          numberOfLines={rows || 4}
-          onBlur={() => {
-            if (disabled) return;
-            let finalValue = value ?? "";
-
-            if (trimOnBlur && value) {
-              finalValue = finalValue.trim();
-              if (finalValue !== value) {
-                onChange(finalValue);
-              }
-            }
-            if (onBlur) {
-              onBlur(finalValue);
-            }
-            setFocused(false);
-          }}
-          onChangeText={onChange}
-          onContentSizeChange={(event) => {
-            if (!grow) {
-              return;
-            }
-            setHeight(event.nativeEvent.contentSize.height);
-          }}
-          onFocus={() => {
-            if (!disabled) {
-              setFocused(true);
-            }
-            if (onFocus) {
-              onFocus();
-            }
-          }}
-          onSubmitEditing={() => {
-            if (onEnter) {
-              onEnter();
-            }
-            if (onSubmitEditing) {
-              onSubmitEditing();
-            }
-          }}
-          placeholder={placeholder}
-          placeholderTextColor={theme.text.secondaryLight}
-          readOnly={disabled}
-          ref={(ref) => {
-            if (inputRef) {
-              inputRef(ref);
-            }
-          }}
-          secureTextEntry={type === "password"}
-          style={defaultTextInputStyles}
-          testID={testID}
-          textContentType={textContentType}
-          underlineColorAndroid="transparent"
-          value={value}
-        />
-        {Boolean(iconName) && (
-          <Pressable aria-role="button" onPress={onIconClick}>
-            <Icon iconName={iconName!} size="md" />
-          </Pressable>
+        {Boolean(aiSuggestion) && (
+          <AiSuggestionBox
+            testID={testID ? `${testID}-ai-suggestion` : undefined}
+            {...aiSuggestion!}
+          />
         )}
+        <View
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+          }}
+        >
+          <TextInput
+            accessibilityHint="Enter text here"
+            accessibilityState={{disabled}}
+            aria-label="Text input field"
+            autoCapitalize={type === "text" ? "sentences" : "none"}
+            autoCorrect={shouldAutocorrect}
+            blurOnSubmit={blurOnSubmit}
+            enterKeyHint={returnKeyType}
+            keyboardType={keyboardType as KeyboardTypeOptions}
+            multiline={multiline}
+            nativeID={id}
+            numberOfLines={rows || 4}
+            onBlur={() => {
+              if (disabled) {
+                return;
+              }
+              let finalValue = value ?? "";
+
+              if (trimOnBlur && value) {
+                finalValue = finalValue.trim();
+                if (finalValue !== value) {
+                  onChange(finalValue);
+                }
+              }
+              if (onBlur) {
+                onBlur(finalValue);
+              }
+              setFocused(false);
+            }}
+            onChangeText={onChange}
+            onContentSizeChange={(event) => {
+              if (!grow) {
+                return;
+              }
+              setHeight(event.nativeEvent.contentSize.height);
+            }}
+            onFocus={() => {
+              if (!disabled) {
+                setFocused(true);
+              }
+              if (onFocus) {
+                onFocus();
+              }
+            }}
+            onSubmitEditing={() => {
+              if (onEnter) {
+                onEnter();
+              }
+              if (onSubmitEditing) {
+                onSubmitEditing();
+              }
+            }}
+            placeholder={placeholder}
+            placeholderTextColor={theme.text.secondaryLight}
+            readOnly={disabled}
+            ref={(ref) => {
+              if (inputRef) {
+                inputRef(ref);
+              }
+            }}
+            secureTextEntry={type === "password"}
+            style={defaultTextInputStyles}
+            testID={testID}
+            textContentType={textContentType}
+            underlineColorAndroid="transparent"
+            value={value}
+          />
+          {Boolean(iconName) && (
+            <Pressable aria-role="button" onPress={onIconClick}>
+              <Icon iconName={iconName!} size="md" />
+            </Pressable>
+          )}
+        </View>
       </View>
       {Boolean(helperText) && <FieldHelperText text={helperText!} />}
       {/* {type === "numberRange" && value && (

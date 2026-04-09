@@ -630,6 +630,18 @@ export interface ErrorTextProps {
   errorText?: string;
 }
 
+export interface AiSuggestionProps {
+  status: "not-started" | "generating" | "ready" | "added";
+  text?: string;
+  onAdd?: () => void;
+  onHide?: () => void;
+  onShow?: () => void;
+  onFeedback?: (feedback: "like" | "dislike" | null) => void;
+  feedback?: "like" | "dislike" | null;
+  notStartedText?: string;
+  generatingText?: string;
+}
+
 export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
   type?: "email" | "password" | "phoneNumber" | "search" | "text" | "url";
 
@@ -642,6 +654,8 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
 
   inputRef?: any;
   trimOnBlur?: boolean;
+
+  aiSuggestion?: AiSuggestionProps;
 }
 
 export interface TextAreaProps extends Omit<TextFieldProps, "multiline" | "type"> {}
@@ -685,6 +699,13 @@ export interface SearchFieldProps extends BaseFieldProps, HelperTextProps, Error
 export interface PercentFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
 
 export interface CurrencyFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {}
+
+export interface HeightFieldProps extends BaseFieldProps, HelperTextProps, ErrorTextProps {
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
+}
 
 export interface AddressFieldProps
   extends Omit<BaseFieldProps, "value" | "onChange" | "onBlur">,
@@ -1712,6 +1733,12 @@ export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
   actionSheetRef: React.RefObject<any>;
+  /** Minimum height in total inches */
+  min?: number;
+  /** Maximum height in total inches */
+  max?: number;
+  /** Title shown at the top of the action sheet */
+  title?: string;
 }
 
 export interface HyperlinkProps {
@@ -1891,6 +1918,7 @@ export interface PageProps {
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
+  loadingText?: string;
   display?: "flex" | "none" | "block" | "inlineBlock";
   title?: string;
   backButton?: boolean;
@@ -2880,4 +2908,115 @@ export interface UserInactivityProps {
    * @default 10000
    */
   timeForInactivity?: number;
+}
+
+/**
+ * Maps badge status keys to their semantic meaning for sidebar navigation items.
+ */
+export const SIDEBAR_BADGE_STATUS_MAP = {
+  error: "error",
+  info: "info",
+  neutral: "neutral",
+  success: "success",
+  warning: "warning",
+} as const;
+
+export type SidebarBadgeStatus = keyof typeof SIDEBAR_BADGE_STATUS_MAP;
+
+export interface SidebarNavigationItem {
+  /**
+   * Display text for the navigation item.
+   */
+  label: string;
+  /**
+   * Route name matching the expo-router file-based route (e.g. "index", "dashboard").
+   */
+  route: string;
+  /**
+   * FontAwesome 6 icon name rendered alongside the label.
+   */
+  iconName: IconName;
+  /**
+   * Badge displayed on the icon. A number shows a count (capped at 99+); true shows a dot indicator.
+   */
+  badge?: number | boolean;
+  /**
+   * Color status of the badge. Defaults to "error".
+   */
+  badgeStatus?: SidebarBadgeStatus;
+}
+
+/**
+ * Props for the SidebarNavigation custom expo-router navigator.
+ * Used in _layout.tsx files to provide sidebar navigation.
+ */
+export interface SidebarNavigationProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * Optional callback fired after a navigation item is pressed.
+   */
+  onNavigate?: (route: string) => void;
+  /**
+   * The route to show when the navigator first renders.
+   */
+  initialRouteName?: string;
+  /**
+   * Screen options passed through to the underlying Navigator.
+   */
+  screenOptions?: Record<string, unknown>;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Optional Screen definitions passed to the underlying Navigator,
+   * e.g. <Screen name="index" options={{title: "Home"}} />.
+   */
+  children?: React.ReactNode;
+}
+
+/**
+ * Props for the standalone SidebarNavigationPanel (no expo-router dependency).
+ * Useful for demos, testing, or non-expo-router apps.
+ */
+export interface SidebarNavigationPanelProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * The currently active route, used to highlight the matching item.
+   */
+  activeRoute?: string;
+  /**
+   * Called when a navigation item is pressed.
+   */
+  onNavigate: (route: string) => void;
+  /**
+   * Main content rendered beside (web) or behind (mobile) the sidebar.
+   */
+  children: React.ReactNode;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
 }

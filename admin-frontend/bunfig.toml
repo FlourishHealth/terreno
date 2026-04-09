@@ -1,0 +1,3 @@
+[test]
+preload = ["../ui/src/bunSetup.ts"]
+root = "./src"

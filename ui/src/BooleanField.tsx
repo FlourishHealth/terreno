@@ -1,5 +1,5 @@
 import {type FC, useCallback, useEffect, useRef} from "react";
-import {Animated, TouchableWithoutFeedback, View} from "react-native";
+import {Animated, Pressable, View} from "react-native";
 
 import type {BooleanFieldProps} from "./Common";
 import {FieldHelperText, FieldTitle} from "./fieldElements";
@@ -92,47 +92,49 @@ export const BooleanField: FC<BooleanFieldProps> = ({
         }}
       >
         {Boolean(title) && <FieldTitle text={title!} />}
-        <TouchableWithoutFeedback aria-role="button" onPress={handleSwitch}>
-          <View style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}>
+        <Pressable
+          aria-role="button"
+          onPress={handleSwitch}
+          style={{alignItems: "center", flexDirection: "row", justifyContent: "center"}}
+        >
+          <Animated.View
+            style={{
+              backgroundColor: disabled ? theme.surface.disabled : interpolatedColorAnimation,
+              borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
+              borderRadius: TOUCHABLE_SIZE,
+              borderWidth: 1,
+              height: TOUCHABLE_SIZE,
+              marginHorizontal: variant === "title" ? undefined : OFFSET,
+              marginRight: variant === "title" ? OFFSET : undefined,
+              width: WIDTH,
+            }}
+          >
             <Animated.View
               style={{
-                backgroundColor: disabled ? theme.surface.disabled : interpolatedColorAnimation,
-                borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
-                borderRadius: TOUCHABLE_SIZE,
-                borderWidth: 1,
-                height: TOUCHABLE_SIZE,
-                marginHorizontal: variant === "title" ? undefined : OFFSET,
-                marginRight: variant === "title" ? OFFSET : undefined,
+                alignItems: "center",
+                flex: 1,
+                flexDirection: "row",
+                justifyContent: "center",
+                left: transformSwitch,
                 width: WIDTH,
               }}
             >
               <Animated.View
                 style={{
                   alignItems: "center",
-                  flex: 1,
-                  flexDirection: "row",
+                  backgroundColor: theme.surface.base,
+                  borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  height: TOUCHABLE_SIZE,
                   justifyContent: "center",
-                  left: transformSwitch,
-                  width: WIDTH,
+                  width: TOUCHABLE_SIZE,
                 }}
-              >
-                <Animated.View
-                  style={{
-                    alignItems: "center",
-                    backgroundColor: theme.surface.base,
-                    borderColor: disabled ? theme.surface.disabled : theme.surface.secondaryDark,
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    height: TOUCHABLE_SIZE,
-                    justifyContent: "center",
-                    width: TOUCHABLE_SIZE,
-                  }}
-                />
-              </Animated.View>
+              />
             </Animated.View>
-            {variant === "title" && <Text size="md">{value ? "Yes" : "No"}</Text>}
-          </View>
-        </TouchableWithoutFeedback>
+          </Animated.View>
+          {variant === "title" && <Text size="md">{value ? "Yes" : "No"}</Text>}
+        </Pressable>
       </View>
       {disabled && disabledHelperText && <FieldHelperText text={disabledHelperText} />}
       {Boolean(helperText) && <FieldHelperText text={helperText as string} />}

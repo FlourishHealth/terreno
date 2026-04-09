@@ -6,17 +6,13 @@ import {
   type DemoConfigurationProp,
 } from "@config";
 import {
-  Badge,
   Box,
+  DataTable,
   Field,
   Heading,
   Icon,
   type IconName,
-  Table,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-  TableText,
+  Link,
   Text,
   type TextColor,
 } from "@terreno/ui";
@@ -25,62 +21,49 @@ import cloneDeep from "lodash/cloneDeep";
 import startCase from "lodash/startCase";
 import type React from "react";
 import {type FC, useEffect, useState} from "react";
+import {Linking, Pressable} from "react-native";
 import MarkdownView from "react-native-markdown-display";
 
 export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
 
 const ComponentProps = ({props}: {props: DemoConfigurationProp[]}) => {
-  // TODO: setup these widths for mobile too.
+  if (!props?.length) {
+    return null;
+  }
 
-  // sort props into all the ones that are required first, then the rest
-  const sortProps = (p: DemoConfigurationProp[]): DemoConfigurationProp[] => {
-    if (!p) return [];
-    return p.sort((a, b) => {
-      // First, sort by optionality (non-optional first)
-      if (a.flags.isOptional !== b.flags.isOptional) {
-        return a.flags.isOptional ? 1 : -1;
-      }
+  const sortedProps = [...props].sort((a, b) => {
+    if (a.flags.isOptional !== b.flags.isOptional) {
+      return a.flags.isOptional ? 1 : -1;
+    }
+    return a.name.localeCompare(b.name);
+  });
 
-      // Then, sort alphabetically by name
-      return a.name.localeCompare(b.name);
-    });
-  };
+  const columns = [
+    {columnType: "text", title: "Name", width: 180},
+    {columnType: "text", title: "Type", width: 300},
+    {columnType: "text", title: "Required", width: 100},
+    {columnType: "text", title: "Description", width: 350},
+  ];
 
-  const sortedProps = sortProps(props);
+  const data = sortedProps.map((p) => [
+    {value: p.name},
+    {value: p.type.name},
+    {value: p.flags?.isOptional ? "" : "Required"},
+    {value: p.comment?.summary?.[0]?.text ?? ""},
+  ]);
 
   return (
     <Box marginBottom={4}>
       <Box marginBottom={2}>
         <Heading>Props</Heading>
       </Box>
-      <Table columns={[160, 600, 160]}>
-        <TableHeader>
-          <TableHeaderCell index={0} title="Name" />
-          <TableHeaderCell index={1} title="Type" />
-          <TableHeaderCell index={2} title="Default" />
-        </TableHeader>
-        {sortedProps.map((p) => (
-          <TableRow key={p.name}>
-            <Box direction="row">
-              <TableText value={p.name} />
-              {Boolean(p.flags?.isOptional !== true) && (
-                <Box marginLeft={1}>
-                  <Badge status="warning" value="Required" />
-                </Box>
-              )}
-            </Box>
-            <Box direction="column" width={160} wrap>
-              <TableText value={p.type.name} />
-              {Boolean(p.comment?.summary?.[0]?.text) && (
-                <Box marginTop={2}>
-                  <TableText value={p.comment?.summary?.[0]?.text} />
-                </Box>
-              )}
-            </Box>
-            <TableText value="-" />
-          </TableRow>
-        ))}
-      </Table>
+      <DataTable
+        alternateRowBackground
+        columns={columns}
+        data={data}
+        defaultTextSize="sm"
+        rowHeight={40}
+      />
     </Box>
   );
 };
@@ -220,9 +203,10 @@ const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
 };
 
 const ComponentStatusSection: FC<{
+  href?: string;
   status: DemoConfigStatus;
   title: string;
-}> = ({status, title}) => {
+}> = ({href, status, title}) => {
   let iconName: IconName = "circle";
   let color: TextColor = "secondaryLight";
   switch (status) {
@@ -241,14 +225,22 @@ const ComponentStatusSection: FC<{
       iconName = "calendar";
       break;
   }
-  return (
+
+  const content = (
     <Box alignItems="center" direction="row" marginBottom={2} marginRight={4}>
       <Box marginRight={1}>
-        <Text>{title}:</Text>
+        <Text color={href ? "link" : undefined} underline={Boolean(href)}>
+          {title}:
+        </Text>
       </Box>
       <Icon color={color} iconName={iconName} size="md" />
     </Box>
   );
+
+  if (href) {
+    return <Pressable onPress={() => Linking.openURL(href)}>{content}</Pressable>;
+  }
+  return content;
 };
 
 const ComponentStatus: FC<{config: DemoConfiguration}> = ({config}) => {
@@ -259,11 +251,112 @@ const ComponentStatus: FC<{config: DemoConfiguration}> = ({config}) => {
       </Box>
       <Box direction="column" mdDirection="row">
         <ComponentStatusSection status={config.status.documentation} title="Documentation" />
-        <ComponentStatusSection status={config.status.figma} title="Figma" />
+        <ComponentStatusSection
+          href={config.status.figmaLink}
+          status={config.status.figma}
+          title="Figma"
+        />
         <ComponentStatusSection status={config.status.web} title="Web" />
         <ComponentStatusSection status={config.status.ios} title="iOS" />
         <ComponentStatusSection status={config.status.android} title="Android" />
       </Box>
+    </Box>
+  );
+};
+
+const ComponentUsage: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.usage.do.length && !config.usage.doNot.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Usage Guidelines</Heading>
+      </Box>
+      <Box direction="column" gap={4} mdDirection="row">
+        {Boolean(config.usage.do.length) && (
+          <Box flex="grow">
+            <Box marginBottom={1}>
+              <Text bold color="success">
+                Do
+              </Text>
+            </Box>
+            {config.usage.do.map((item, i) => (
+              <Box direction="row" key={i} marginBottom={1}>
+                <Box marginRight={1} style={{paddingTop: 4}}>
+                  <Icon color="success" iconName="circle-check" size="sm" />
+                </Box>
+                <Box flex="shrink">
+                  <Text>{item}</Text>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+        {Boolean(config.usage.doNot.length) && (
+          <Box flex="grow">
+            <Box marginBottom={1}>
+              <Text bold color="error">
+                Don't
+              </Text>
+            </Box>
+            {config.usage.doNot.map((item, i) => (
+              <Box direction="row" key={i} marginBottom={1}>
+                <Box marginRight={1} style={{paddingTop: 4}}>
+                  <Icon color="error" iconName="circle-xmark" size="sm" />
+                </Box>
+                <Box flex="shrink">
+                  <Text>{item}</Text>
+                </Box>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Box>
+  );
+};
+
+const ComponentA11yNotes: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.a11yNotes.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Accessibility</Heading>
+      </Box>
+      {config.a11yNotes.map((note, i) => (
+        <Box direction="row" key={i} marginBottom={1}>
+          <Box marginRight={1} style={{paddingTop: 4}}>
+            <Icon color="secondaryLight" iconName="universal-access" size="sm" />
+          </Box>
+          <Box flex="shrink">
+            <Text>{note}</Text>
+          </Box>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
+const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
+  if (!config.additionalDocumentation?.length) {
+    return null;
+  }
+  return (
+    <Box marginBottom={4}>
+      <Box marginBottom={2}>
+        <Heading size="sm">Additional Documentation</Heading>
+      </Box>
+      {config.additionalDocumentation.map((doc, i) => (
+        <Box alignItems="center" direction="row" key={i} marginBottom={1}>
+          <Box marginRight={1}>
+            <Icon color="secondaryLight" iconName="arrow-up-right-from-square" size="sm" />
+          </Box>
+          <Link href={doc.link} text={doc.name} />
+        </Box>
+      ))}
     </Box>
   );
 };
@@ -275,6 +368,7 @@ const ComponentPage: FC = () => {
 
   if (!component || !config) {
     router.replace("/demo");
+    return null;
   }
 
   const navigation = useNavigation();
@@ -295,8 +389,11 @@ const ComponentPage: FC = () => {
         <MarkdownView>{config?.description}</MarkdownView>
       </Box>
       <ComponentDemo config={config!} />
+      <ComponentUsage config={config!} />
+      <ComponentA11yNotes config={config!} />
       <ComponentProps props={config?.props?.children} />
       <ComponentStatus config={config!} />
+      <ComponentAdditionalDocs config={config!} />
       {Boolean(config?.related.length) && (
         <Box marginBottom={4}>
           <Box marginBottom={2}>

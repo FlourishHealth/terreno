@@ -8,6 +8,9 @@ export interface AdminFieldConfig {
   default?: any;
   ref?: string;
   searchable?: boolean;
+  widget?: string;
+  /** For array fields: metadata about each item's sub-fields */
+  items?: Record<string, AdminFieldConfig>;
 }
 
 export interface AdminModelConfig {
@@ -17,10 +20,51 @@ export interface AdminModelConfig {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
+  fieldOrder?: string[];
+}
+
+export interface AdminCustomScreen {
+  description?: string;
+  displayName: string;
+  name: string;
+}
+
+export interface AdminScriptConfig {
+  name: string;
+  description: string;
 }
 
 export interface AdminConfigResponse {
+  customScreens?: AdminCustomScreen[];
   models: AdminModelConfig[];
+  scripts: AdminScriptConfig[];
+}
+
+export interface BackgroundTaskProgress {
+  percentage: number;
+  stage?: string;
+  message?: string;
+}
+
+export interface BackgroundTaskLog {
+  timestamp: string;
+  level: "info" | "warn" | "error";
+  message: string;
+}
+
+export interface BackgroundTask {
+  _id: string;
+  taskType: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress?: BackgroundTaskProgress;
+  isDryRun: boolean;
+  result?: string[];
+  error?: string;
+  logs: BackgroundTaskLog[];
+  startedAt?: string;
+  completedAt?: string;
+  created: string;
+  updated: string;
 }
 
 export interface AdminScreenProps {
@@ -30,3 +74,28 @@ export interface AdminScreenProps {
 
 // System fields that should be skipped in forms
 export const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
+
+export interface DocumentFile {
+  name: string;
+  fullPath: string;
+  size: number;
+  contentType: string | undefined;
+  updated: string;
+  isFolder: boolean;
+}
+
+export interface DocumentListResponse {
+  files: DocumentFile[];
+  folders: string[];
+  prefix: string;
+}
+
+export interface DocumentStorageBrowserProps {
+  api: Api<any, any, any, any>;
+  basePath: string;
+  title?: string;
+  allowDelete?: boolean;
+  allowUpload?: boolean;
+  onFileSelect?: (file: DocumentFile) => void;
+  onSettingsPress?: () => void;
+}

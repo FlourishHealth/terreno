@@ -1,38 +1,44 @@
+import {useFeatureFlags} from "@terreno/rtk";
 import {
-  AIRequestExplorer,
-  type AIRequestExplorerData,
   Box,
   Button,
   Card,
   Heading,
-  Modal,
   Page,
   Spinner,
   Text,
   TextField,
   useStoredState,
+  useTheme,
 } from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
-import {useCallback, useEffect, useState} from "react";
-import {
-  logout,
-  useAppDispatch,
-  useGetAiRequestsExplorerQuery,
-  useGetMeQuery,
-  usePatchMeMutation,
-} from "@/store";
-
-const EXPLORER_LIMIT = 20;
+import {useCallback, useEffect, useMemo, useState} from "react";
+import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} from "@/store";
 
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const {data: profileResponse, isLoading, refetch} = useGetMeQuery();
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
+  const {setPrimitives, resetTheme} = useTheme();
 
-  const profile = profileResponse?.data;
-  const isAdmin = profile?.admin === true;
+  const {
+    flags,
+    getFlag,
+    isLoading: isFeatureFlagsLoading,
+    error: featureFlagsError,
+  } = useFeatureFlags(terrenoApi);
+  const showDarkModeToggle = getFlag("dark-mode-toggle");
+  const featureFlagEntries = useMemo(
+    (): Array<{key: string; value: boolean | string | null}> =>
+      Object.keys(flags)
+        .sort((left, right) => left.localeCompare(right))
+        .map((key) => ({key, value: flags[key]})),
+    [flags]
+  );
+
+  const profile = profileResponse;
 
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -45,24 +51,6 @@ const ProfileScreen: React.FC = () => {
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [apiKeyInput, setApiKeyInput] = useState<string>("");
   const [apiKeySaved, setApiKeySaved] = useState<boolean>(false);
-
-  // Admin explorer modal
-  const [showExplorer, setShowExplorer] = useState<boolean>(false);
-  const [explorerPage, setExplorerPage] = useState(1);
-  const [requestTypeFilter, setRequestTypeFilter] = useState<string[]>([]);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  const {data: explorerData, isLoading: isExplorerLoading} = useGetAiRequestsExplorerQuery(
-    {
-      endDate: endDate || undefined,
-      limit: EXPLORER_LIMIT,
-      page: explorerPage,
-      requestType: requestTypeFilter.length === 1 ? requestTypeFilter[0] : undefined,
-      startDate: startDate || undefined,
-    },
-    {skip: !isAdmin || !showExplorer}
-  );
 
   // Initialize form with profile data when loaded
   useEffect(() => {
@@ -144,32 +132,7 @@ const ProfileScreen: React.FC = () => {
     router.push("/admin");
   }, [router]);
 
-  const handleOpenExplorer = useCallback((): void => {
-    setShowExplorer(true);
-  }, []);
-
-  const handleCloseExplorer = useCallback((): void => {
-    setShowExplorer(false);
-  }, []);
-
-  const handleExplorerPageChange = useCallback((newPage: number) => {
-    setExplorerPage(newPage);
-  }, []);
-
-  const handleRequestTypeFilterChange = useCallback((types: string[]) => {
-    setRequestTypeFilter(types);
-    setExplorerPage(1);
-  }, []);
-
-  const handleStartDateChange = useCallback((date: string) => {
-    setStartDate(date);
-    setExplorerPage(1);
-  }, []);
-
-  const handleEndDateChange = useCallback((date: string) => {
-    setEndDate(date);
-    setExplorerPage(1);
-  }, []);
+  const isAdmin = profile?.admin === true;
 
   if (isLoading) {
     return (
@@ -180,21 +143,6 @@ const ProfileScreen: React.FC = () => {
       </Page>
     );
   }
-
-  const explorerItems: AIRequestExplorerData[] = (explorerData?.data ?? []).map((item) => ({
-    aiModel: item.aiModel,
-    created: item.created,
-    error: item.error,
-    prompt: item.prompt,
-    requestType: item.requestType,
-    response: item.response,
-    responseTime: item.responseTime,
-    tokensUsed: item.tokensUsed,
-    user: item.user,
-  }));
-
-  const explorerTotal = explorerData?.total ?? 0;
-  const explorerTotalPages = Math.ceil(explorerTotal / EXPLORER_LIMIT);
 
   return (
     <Page navigation={undefined} scroll>
@@ -211,6 +159,7 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setName}
               placeholder="Your name"
+              testID="profile-name-input"
               title="Name"
               value={name}
             />
@@ -220,6 +169,7 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setEmail}
               placeholder="your@email.com"
+              testID="profile-email-input"
               title="Email"
               type="email"
               value={email}
@@ -229,19 +179,20 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setPassword}
               placeholder="Leave blank to keep current password"
+              testID="profile-password-input"
               title="New Password"
               type="password"
               value={password}
             />
 
             {saveSuccess && (
-              <Box>
+              <Box testID="profile-save-success">
                 <Text color="success">Profile updated successfully!</Text>
               </Box>
             )}
 
             {saveError && (
-              <Box>
+              <Box testID="profile-save-error">
                 <Text color="error">{saveError}</Text>
               </Box>
             )}
@@ -252,6 +203,7 @@ const ProfileScreen: React.FC = () => {
                 iconName="check"
                 loading={isUpdating}
                 onClick={handleSave}
+                testID="profile-save-button"
                 text="Save Changes"
               />
             </Box>
@@ -268,12 +220,13 @@ const ProfileScreen: React.FC = () => {
             <TextField
               onChange={setApiKeyInput}
               placeholder="Enter your Gemini API key"
+              testID="profile-gemini-key-input"
               title="API Key"
               type="password"
               value={apiKeyInput}
             />
             {apiKeySaved && (
-              <Box>
+              <Box testID="profile-gemini-saved-text">
                 <Text color="success">API key saved!</Text>
               </Box>
             )}
@@ -282,12 +235,14 @@ const ProfileScreen: React.FC = () => {
                 disabled={!apiKeyInput.trim()}
                 iconName="check"
                 onClick={handleSaveApiKey}
+                testID="profile-gemini-save-button"
                 text="Save Key"
               />
               <Button
                 disabled={!geminiApiKey}
                 iconName="trash"
                 onClick={handleClearApiKey}
+                testID="profile-gemini-clear-button"
                 text="Clear Key"
                 variant="destructive"
               />
@@ -295,60 +250,95 @@ const ProfileScreen: React.FC = () => {
           </Box>
         </Card>
 
+        {/* Dark mode toggle — gated by "dark-mode-toggle" feature flag */}
+        {showDarkModeToggle && (
+          <Card marginBottom={6} testID="profile-dark-mode-card">
+            <Box gap={4}>
+              <Heading size="lg">Appearance</Heading>
+              <Box direction="row" gap={3}>
+                <Button
+                  iconName="sun"
+                  onClick={() => resetTheme()}
+                  text="Light"
+                  variant="outline"
+                />
+                <Button
+                  iconName="moon"
+                  onClick={() =>
+                    setPrimitives({
+                      neutral000: "#1a1a2e",
+                      neutral100: "#16213e",
+                      neutral200: "#0f3460",
+                      neutral800: "#e0e0e0",
+                      neutral900: "#ffffff",
+                    })
+                  }
+                  text="Dark"
+                  variant="outline"
+                />
+              </Box>
+            </Box>
+          </Card>
+        )}
+
+        <Card marginBottom={6} testID="profile-feature-flags-card">
+          <Box gap={3}>
+            <Heading size="lg">Feature Flags</Heading>
+            {isFeatureFlagsLoading && <Text color="secondaryLight">Loading feature flags...</Text>}
+            {!isFeatureFlagsLoading && featureFlagsError && (
+              <Text color="error">Failed to load feature flags</Text>
+            )}
+            {!isFeatureFlagsLoading && !featureFlagsError && featureFlagEntries.length === 0 && (
+              <Text color="secondaryLight">No feature flags evaluated for this user.</Text>
+            )}
+            {!isFeatureFlagsLoading &&
+              !featureFlagsError &&
+              featureFlagEntries.map((flagEntry) => (
+                <Box
+                  alignItems="center"
+                  direction="row"
+                  justifyContent="between"
+                  key={flagEntry.key}
+                  paddingY={1}
+                >
+                  <Text>{flagEntry.key}</Text>
+                  <Text color="secondaryLight">{String(flagEntry.value)}</Text>
+                </Box>
+              ))}
+          </Box>
+        </Card>
+
         <Card marginBottom={6}>
           <Box gap={4}>
             <Heading size="lg">Session</Heading>
-            <Text color="secondaryLight">Logged in as {profile?.email}</Text>
+            <Text color="secondaryLight" testID="profile-logged-in-as">
+              Logged in as {profile?.email}
+            </Text>
             <Button
               iconName="right-from-bracket"
               onClick={handleLogout}
+              testID="profile-logout-button"
               text="Logout"
               variant="destructive"
             />
           </Box>
         </Card>
 
-        <Card marginBottom={6}>
-          <Box gap={4}>
-            <Heading size="lg">Developer</Heading>
-            <Button
-              iconName="gear"
-              onClick={handleNavigateToAdmin}
-              text="Admin Panel"
-              variant="secondary"
-            />
-            <Button
-              iconName="chart-bar"
-              onClick={handleOpenExplorer}
-              text="AI Admin"
-              variant="secondary"
-            />
-          </Box>
-        </Card>
+        {isAdmin && (
+          <Card marginBottom={6}>
+            <Box gap={4}>
+              <Heading size="lg">Developer</Heading>
+              <Button
+                iconName="gear"
+                onClick={handleNavigateToAdmin}
+                testID="profile-admin-button"
+                text="Admin Panel"
+                variant="secondary"
+              />
+            </Box>
+          </Card>
+        )}
       </Box>
-
-      <Modal
-        onDismiss={handleCloseExplorer}
-        size="lg"
-        title="AI Request Explorer"
-        visible={showExplorer}
-      >
-        <AIRequestExplorer
-          data={explorerItems}
-          endDate={endDate}
-          isLoading={isExplorerLoading}
-          onEndDateChange={handleEndDateChange}
-          onPageChange={handleExplorerPageChange}
-          onRequestTypeFilterChange={handleRequestTypeFilterChange}
-          onStartDateChange={handleStartDateChange}
-          page={explorerPage}
-          requestTypeFilter={requestTypeFilter}
-          startDate={startDate}
-          testID="admin-explorer"
-          totalCount={explorerTotal}
-          totalPages={explorerTotalPages}
-        />
-      </Modal>
     </Page>
   );
 };

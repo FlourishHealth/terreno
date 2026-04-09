@@ -16,8 +16,6 @@ coverage/
 logs/
 *.log
 npm-debug.*
-yarn-debug.*
-yarn-error.*
 
 # Environment files
 .env

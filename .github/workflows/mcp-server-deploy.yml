@@ -142,6 +142,8 @@ jobs:
           service: ${{ env.GCP_MCP_SERVICE_NAME }}
           region: ${{ env.GCP_REGION }}
           image: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_ARTIFACT_REGISTRY }}/${{ env.GCP_MCP_SERVICE_NAME }}:${{ github.sha }}
+          env_vars: |
+            SENTRY_DSN=${{ secrets.MCP_SENTRY_DSN }}
           flags: |
             --cpu=1
             --memory=512Mi

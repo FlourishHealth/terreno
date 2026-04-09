@@ -8,6 +8,7 @@ import {ErrorBoundary} from "./ErrorBoundary";
 import {Heading} from "./Heading";
 import {IconButton} from "./IconButton";
 import {Spinner} from "./Spinner";
+import {Text} from "./Text";
 
 export class Page extends React.Component<PageProps, {}> {
   actionSheetRef: React.RefObject<any> = React.createRef();
@@ -74,15 +75,25 @@ export class Page extends React.Component<PageProps, {}> {
           width="100%"
         >
           {this.renderHeader()}
-          {this.props.loading === true && <Spinner />}
-          {/* <KeyboardAccessoryNavigation
-          avoidKeyboard
-          doneButton={true}
-          nextButton={true}
-          previousButton={true}
-        /> */}
-
-          {this.props.children}
+          {this.props.loading ? (
+            <Box
+              alignItems="center"
+              direction="column"
+              display="flex"
+              flex="grow"
+              justifyContent="center"
+              marginTop={8}
+            >
+              <Spinner />
+              {Boolean(this.props.loadingText) && (
+                <Box marginTop={2}>
+                  <Text color="secondaryDark">{this.props.loadingText}</Text>
+                </Box>
+              )}
+            </Box>
+          ) : (
+            this.props.children
+          )}
         </Box>
         {Boolean(this.props.footer) && (
           <Box

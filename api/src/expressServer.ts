@@ -1,5 +1,4 @@
 import * as Sentry from "@sentry/bun";
-import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import cron from "cron";
 import express, {type Router} from "express";
@@ -8,15 +7,15 @@ import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
 import qs from "qs";
-
 import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
-import {openApiCompatMiddleware} from "./openApiCompat";
+import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import openapi from "./vendor/wesleytodd-openapi/index";
 
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
@@ -180,6 +179,9 @@ function initializeRoutes(
   options: InitializeRoutesOptions = {}
 ): express.Application {
   const app = express();
+
+  // Record mount paths on layers for Express 5 → OpenAPI compat
+  patchAppUse(app);
 
   // TODO: Log a warning when we hit the array limit.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));

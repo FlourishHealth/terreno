@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import {Image as RNImage, type ScrollView as RNScrollView} from "react-native";
+import {Platform, Image as RNImage, type ScrollView as RNScrollView} from "react-native";
 
 import {AttachmentPreview} from "./AttachmentPreview";
 import {Box} from "./Box";
@@ -103,9 +103,27 @@ export interface GPTChatProps {
   onSubmit: (prompt: string) => void;
   onUpdateTitle?: (id: string, title: string) => void;
   selectedModel?: string;
+  suggestedPrompts?: string[];
   systemMemory?: string;
   testID?: string;
 }
+
+// ============================================================
+// Small helper components to replace ternaries
+// ============================================================
+
+const ExpandableContent = ({
+  children,
+  isExpanded,
+}: {
+  children: React.ReactNode;
+  isExpanded: boolean;
+}): React.ReactElement | null => {
+  if (!isExpanded) {
+    return null;
+  }
+  return <>{children}</>;
+};
 
 const ToolCallCard = ({toolCall}: {toolCall: ToolCallInfo}): React.ReactElement => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -126,14 +144,29 @@ const ToolCallCard = ({toolCall}: {toolCall: ToolCallInfo}): React.ReactElement 
         </Text>
         <Icon iconName={isExpanded ? "chevron-up" : "chevron-down"} size="xs" />
       </Box>
-      {isExpanded ? (
+      <ExpandableContent isExpanded={isExpanded}>
         <Box marginTop={1} padding={1}>
           <Text color="secondaryDark" size="sm">
             {JSON.stringify(toolCall.args, null, 2)}
           </Text>
         </Box>
-      ) : null}
+      </ExpandableContent>
     </Box>
+  );
+};
+
+const ToolResultText = ({result}: {result: unknown}): React.ReactElement => {
+  if (typeof result === "string") {
+    return (
+      <Text color="secondaryDark" size="sm">
+        {result}
+      </Text>
+    );
+  }
+  return (
+    <Text color="secondaryDark" size="sm">
+      {JSON.stringify(result, null, 2)}
+    </Text>
   );
 };
 
@@ -156,15 +189,11 @@ const ToolResultCard = ({toolResult}: {toolResult: ToolResultInfo}): React.React
         </Text>
         <Icon iconName={isExpanded ? "chevron-up" : "chevron-down"} size="xs" />
       </Box>
-      {isExpanded ? (
+      <ExpandableContent isExpanded={isExpanded}>
         <Box marginTop={1} padding={1}>
-          <Text color="secondaryDark" size="sm">
-            {typeof toolResult.result === "string"
-              ? toolResult.result
-              : JSON.stringify(toolResult.result, null, 2)}
-          </Text>
+          <ToolResultText result={toolResult.result} />
         </Box>
-      ) : null}
+      </ExpandableContent>
     </Box>
   );
 };
@@ -243,6 +272,24 @@ const MessageContentParts = ({parts}: {parts: MessageContentPart[]}): React.Reac
   );
 };
 
+const MCPServerList = ({servers}: {servers: MCPServerStatus[]}): React.ReactElement => {
+  return (
+    <Box border="default" marginTop={1} padding={2} position="absolute" rounding="md">
+      {servers.map((server) => (
+        <Box alignItems="center" direction="row" gap={1} key={server.name} padding={1}>
+          <Box
+            color={server.connected ? "success" : "error"}
+            height={6}
+            rounding="circle"
+            width={6}
+          />
+          <Text size="sm">{server.name}</Text>
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const MCPStatusIndicator = ({servers}: {servers: MCPServerStatus[]}): React.ReactElement => {
   const [showList, setShowList] = useState(false);
   const connectedCount = servers.filter((s) => s.connected).length;
@@ -267,24 +314,377 @@ const MCPStatusIndicator = ({servers}: {servers: MCPServerStatus[]}): React.Reac
           {connectedCount}/{servers.length} MCP
         </Text>
       </Box>
-      {showList ? (
-        <Box border="default" marginTop={1} padding={2} position="absolute" rounding="md">
-          {servers.map((server) => (
-            <Box alignItems="center" direction="row" gap={1} key={server.name} padding={1}>
-              <Box
-                color={server.connected ? "success" : "error"}
-                height={6}
-                rounding="circle"
-                width={6}
-              />
-              <Text size="sm">{server.name}</Text>
-            </Box>
-          ))}
-        </Box>
-      ) : null}
+      <ExpandableContent isExpanded={showList}>
+        <MCPServerList servers={servers} />
+      </ExpandableContent>
     </Box>
   );
 };
+
+const SidebarModelSelector = ({
+  availableModels,
+  onModelChange,
+  selectedModel,
+}: {
+  availableModels?: Array<{label: string; value: string}>;
+  onModelChange?: (modelId: string) => void;
+  selectedModel?: string;
+}): React.ReactElement | null => {
+  if (!availableModels || availableModels.length === 0 || !onModelChange) {
+    return null;
+  }
+  return (
+    <Box marginBottom={2}>
+      <SelectField
+        onChange={onModelChange}
+        options={availableModels}
+        requireValue
+        value={selectedModel ?? availableModels[0]?.value ?? ""}
+      />
+    </Box>
+  );
+};
+
+const SidebarToolbarButtons = ({
+  mcpServers,
+  onGeminiApiKeyChange,
+  onMemoryEdit,
+  handleOpenApiKeyModal,
+  systemMemory,
+}: {
+  handleOpenApiKeyModal: () => void;
+  mcpServers?: MCPServerStatus[];
+  onGeminiApiKeyChange?: (key: string) => void;
+  onMemoryEdit?: (memory: string) => void;
+  systemMemory?: string;
+}): React.ReactElement => {
+  return (
+    <>
+      <MCPServersButton servers={mcpServers} />
+      <ApiKeyButton
+        handleOpenApiKeyModal={handleOpenApiKeyModal}
+        onGeminiApiKeyChange={onGeminiApiKeyChange}
+      />
+      <MemoryButton onMemoryEdit={onMemoryEdit} systemMemory={systemMemory} />
+    </>
+  );
+};
+
+const MCPServersButton = ({servers}: {servers?: MCPServerStatus[]}): React.ReactElement | null => {
+  if (!servers || servers.length === 0) {
+    return null;
+  }
+  return <MCPStatusIndicator servers={servers} />;
+};
+
+const ApiKeyButton = ({
+  handleOpenApiKeyModal,
+  onGeminiApiKeyChange,
+}: {
+  handleOpenApiKeyModal: () => void;
+  onGeminiApiKeyChange?: (key: string) => void;
+}): React.ReactElement | null => {
+  if (!onGeminiApiKeyChange) {
+    return null;
+  }
+  return (
+    <IconButton
+      accessibilityLabel="Set Gemini API key"
+      iconName="key"
+      onClick={handleOpenApiKeyModal}
+      testID="gpt-api-key-button"
+    />
+  );
+};
+
+const MemoryButton = ({
+  onMemoryEdit,
+  systemMemory,
+}: {
+  onMemoryEdit?: (memory: string) => void;
+  systemMemory?: string;
+}): React.ReactElement | null => {
+  if (!onMemoryEdit) {
+    return null;
+  }
+  return (
+    <IconButton
+      accessibilityLabel="Edit system memory"
+      iconName="gear"
+      onClick={() => onMemoryEdit(systemMemory ?? "")}
+      testID="gpt-memory-button"
+    />
+  );
+};
+
+const HistoryItemTitle = ({
+  currentHistoryId,
+  editingHistoryId,
+  editingTitle,
+  handleFinishRename,
+  history,
+  setEditingTitle,
+}: {
+  currentHistoryId?: string;
+  editingHistoryId: string | null;
+  editingTitle: string;
+  handleFinishRename: () => void;
+  history: GPTChatHistory;
+  setEditingTitle: (title: string) => void;
+}): React.ReactElement => {
+  if (editingHistoryId === history.id) {
+    return (
+      <Box flex="grow" marginRight={1}>
+        <TextField
+          onBlur={handleFinishRename}
+          onChange={setEditingTitle}
+          onEnter={handleFinishRename}
+          testID={`gpt-rename-input-${history.id}`}
+          value={editingTitle}
+        />
+      </Box>
+    );
+  }
+  return (
+    <Text color={history.id === currentHistoryId ? "inverted" : "primary"} size="sm" truncate>
+      {history.title ?? "New Chat"}
+    </Text>
+  );
+};
+
+const HistoryItemActionButton = ({
+  editingHistoryId,
+  handleFinishRename,
+  handleStartRename,
+  history,
+  onUpdateTitle,
+}: {
+  editingHistoryId: string | null;
+  handleFinishRename: () => void;
+  handleStartRename: (id: string, title: string) => void;
+  history: GPTChatHistory;
+  onUpdateTitle?: (id: string, title: string) => void;
+}): React.ReactElement | null => {
+  if (editingHistoryId === history.id) {
+    return (
+      <IconButton
+        accessibilityLabel="Save title"
+        iconName="check"
+        onClick={handleFinishRename}
+        testID={`gpt-rename-save-${history.id}`}
+      />
+    );
+  }
+  if (!onUpdateTitle) {
+    return null;
+  }
+  return (
+    <IconButton
+      accessibilityLabel={`Rename chat: ${history.title ?? "New Chat"}`}
+      iconName="pencil"
+      onClick={() => handleStartRename(history.id, history.title ?? "")}
+      testID={`gpt-rename-history-${history.id}`}
+    />
+  );
+};
+
+const ContentPartsPreview = ({
+  hasContent,
+  parts,
+}: {
+  hasContent: boolean;
+  parts?: MessageContentPart[];
+}): React.ReactElement | null => {
+  const nonTextParts = parts?.filter((p) => p.type !== "text");
+  if (!nonTextParts || nonTextParts.length === 0) {
+    return null;
+  }
+  return (
+    <Box marginBottom={hasContent ? 2 : 0}>
+      <MessageContentParts parts={nonTextParts} />
+    </Box>
+  );
+};
+
+const MessageText = ({content, role}: {content: string; role: string}): React.ReactElement => {
+  if (role === "assistant") {
+    return <MarkdownView>{content}</MarkdownView>;
+  }
+  return <Text color={role === "user" ? "inverted" : "primary"}>{content}</Text>;
+};
+
+const RatingButtons = ({
+  index,
+  onRateFeedback,
+  rating,
+}: {
+  index: number;
+  onRateFeedback?: (promptIndex: number, rating: "up" | "down" | null) => void;
+  rating?: "up" | "down";
+}): React.ReactElement | null => {
+  if (!onRateFeedback) {
+    return null;
+  }
+  return (
+    <>
+      <IconButton
+        accessibilityLabel="Thumbs up"
+        iconName="thumbs-up"
+        onClick={() => onRateFeedback(index, rating === "up" ? null : "up")}
+        testID={`gpt-rate-up-${index}`}
+        variant={rating === "up" ? "primary" : "muted"}
+      />
+      <IconButton
+        accessibilityLabel="Thumbs down"
+        iconName="thumbs-down"
+        onClick={() => onRateFeedback(index, rating === "down" ? null : "down")}
+        testID={`gpt-rate-down-${index}`}
+        variant={rating === "down" ? "primary" : "muted"}
+      />
+    </>
+  );
+};
+
+const AssistantActions = ({
+  handleCopyMessage,
+  index,
+  message,
+  onRateFeedback,
+}: {
+  handleCopyMessage: (text: string) => void;
+  index: number;
+  message: GPTChatMessage;
+  onRateFeedback?: (promptIndex: number, rating: "up" | "down" | null) => void;
+}): React.ReactElement | null => {
+  if (message.role !== "assistant") {
+    return null;
+  }
+  return (
+    <Box alignItems="end" direction="row" gap={1} justifyContent="end" marginTop={1}>
+      <RatingButtons index={index} onRateFeedback={onRateFeedback} rating={message.rating} />
+      <IconButton
+        accessibilityLabel="Copy message"
+        iconName="copy"
+        onClick={() => handleCopyMessage(message.content)}
+        testID={`gpt-copy-msg-${index}`}
+      />
+    </Box>
+  );
+};
+
+const StreamingIndicator = ({isStreaming}: {isStreaming: boolean}): React.ReactElement | null => {
+  if (!isStreaming) {
+    return null;
+  }
+  return (
+    <Box alignItems="start" padding={2}>
+      <Spinner size="sm" />
+    </Box>
+  );
+};
+
+const ScrollToBottomButton = ({
+  isScrolledUp,
+  scrollToBottom,
+}: {
+  isScrolledUp: boolean;
+  scrollToBottom: () => void;
+}): React.ReactElement | null => {
+  if (!isScrolledUp) {
+    return null;
+  }
+  return (
+    <Box alignItems="center" marginBottom={2}>
+      <Button
+        iconName="arrow-down"
+        onClick={scrollToBottom}
+        text="Scroll to bottom"
+        variant="outline"
+      />
+    </Box>
+  );
+};
+
+const AttachmentSection = ({
+  attachments,
+  onRemoveAttachment,
+}: {
+  attachments: SelectedFile[];
+  onRemoveAttachment?: (index: number) => void;
+}): React.ReactElement | null => {
+  if (attachments.length === 0 || !onRemoveAttachment) {
+    return null;
+  }
+  return <AttachmentPreview attachments={attachments} onRemove={onRemoveAttachment} />;
+};
+
+const AttachButton = ({
+  handleFilesSelected,
+  isStreaming,
+  onAttachFiles,
+}: {
+  handleFilesSelected: (files: SelectedFile[]) => void;
+  isStreaming: boolean;
+  onAttachFiles?: (files: SelectedFile[]) => void;
+}): React.ReactElement | null => {
+  if (!onAttachFiles) {
+    return null;
+  }
+  return (
+    <FilePickerButton
+      disabled={isStreaming}
+      onFilesSelected={handleFilesSelected}
+      testID="gpt-attach-button"
+    />
+  );
+};
+
+const ApiKeyModal = ({
+  apiKeyDraft,
+  handleSaveApiKey,
+  isVisible,
+  onDismiss,
+  onGeminiApiKeyChange,
+  setApiKeyDraft,
+}: {
+  apiKeyDraft: string;
+  handleSaveApiKey: () => void;
+  isVisible: boolean;
+  onDismiss: () => void;
+  onGeminiApiKeyChange?: (key: string) => void;
+  setApiKeyDraft: (key: string) => void;
+}): React.ReactElement | null => {
+  if (!onGeminiApiKeyChange) {
+    return null;
+  }
+  return (
+    <Modal
+      onDismiss={onDismiss}
+      primaryButtonOnClick={handleSaveApiKey}
+      primaryButtonText="Save"
+      secondaryButtonOnClick={onDismiss}
+      secondaryButtonText="Cancel"
+      size="sm"
+      subtitle="Provide your own Gemini API key for AI requests."
+      title="Gemini API Key"
+      visible={isVisible}
+    >
+      <Box padding={2}>
+        <TextField
+          onChange={setApiKeyDraft}
+          placeholder="Enter Gemini API key..."
+          testID="gpt-api-key-input"
+          type="password"
+          value={apiKeyDraft}
+        />
+      </Box>
+    </Modal>
+  );
+};
+
+// ============================================================
+// Main Component
+// ============================================================
 
 export const GPTChat = ({
   attachments = [],
@@ -305,11 +705,15 @@ export const GPTChat = ({
   onRemoveAttachment,
   onSelectHistory,
   onSubmit,
+  onUpdateTitle,
   selectedModel,
+  suggestedPrompts,
   systemMemory,
   testID,
 }: GPTChatProps): React.ReactElement => {
   const [inputValue, setInputValue] = useState("");
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
   const scrollViewRef = useRef<RNScrollView>(null);
   const [isScrolledUp, setIsScrolledUp] = useState(false);
   const contentHeightRef = useRef(0);
@@ -327,6 +731,33 @@ export const GPTChat = ({
     onSubmit(trimmed);
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
+
+  // On web: Enter sends, Cmd+Enter inserts a new line
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof document === "undefined") {
+      return;
+    }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== "Enter") {
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      const testId = target?.getAttribute("data-testid");
+      if (testId !== "gpt-input") {
+        return;
+      }
+      if (e.metaKey || e.shiftKey) {
+        // Cmd+Enter or Shift+Enter: allow default (new line)
+        return;
+      }
+      e.preventDefault();
+      handleSubmitRef.current();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
@@ -385,6 +816,36 @@ export const GPTChat = ({
     }
   }, [scrollTrigger, isScrolledUp, scrollToBottom]);
 
+  const handleStartRename = useCallback((id: string, currentTitle: string) => {
+    renameSavedRef.current = false;
+    setEditingHistoryId(id);
+    setEditingTitle(currentTitle || "");
+  }, []);
+
+  const renameSavedRef = useRef(false);
+
+  const handleFinishRename = useCallback(() => {
+    if (renameSavedRef.current) {
+      return;
+    }
+    renameSavedRef.current = true;
+    if (editingHistoryId && editingTitle.trim()) {
+      onUpdateTitle?.(editingHistoryId, editingTitle.trim());
+    }
+    setEditingHistoryId(null);
+    setEditingTitle("");
+  }, [editingHistoryId, editingTitle, onUpdateTitle]);
+
+  const handleSuggestedPrompt = useCallback(
+    (prompt: string) => {
+      if (isStreaming) {
+        return;
+      }
+      onSubmit(prompt);
+    },
+    [isStreaming, onSubmit]
+  );
+
   const handleOpenApiKeyModal = useCallback(() => {
     setApiKeyDraft(geminiApiKey ?? "");
     setIsApiKeyModalVisible(true);
@@ -399,39 +860,22 @@ export const GPTChat = ({
     <Box direction="row" flex="grow" testID={testID}>
       {/* Sidebar */}
       <Box border="default" color="base" minWidth={250} overflow="scrollY" padding={3} width="30%">
-        {availableModels && availableModels.length > 0 && onModelChange ? (
-          <Box marginBottom={2}>
-            <SelectField
-              onChange={onModelChange}
-              options={availableModels}
-              requireValue
-              value={selectedModel ?? availableModels[0]?.value ?? ""}
-            />
-          </Box>
-        ) : null}
+        <SidebarModelSelector
+          availableModels={availableModels}
+          onModelChange={onModelChange}
+          selectedModel={selectedModel}
+        />
 
         <Box alignItems="center" direction="row" justifyContent="between" marginBottom={3}>
           <Heading size="sm">Chats</Heading>
           <Box direction="row" gap={1}>
-            {mcpServers && mcpServers.length > 0 ? (
-              <MCPStatusIndicator servers={mcpServers} />
-            ) : null}
-            {onGeminiApiKeyChange ? (
-              <IconButton
-                accessibilityLabel="Set Gemini API key"
-                iconName="key"
-                onClick={handleOpenApiKeyModal}
-                testID="gpt-api-key-button"
-              />
-            ) : null}
-            {onMemoryEdit ? (
-              <IconButton
-                accessibilityLabel="Edit system memory"
-                iconName="gear"
-                onClick={() => onMemoryEdit(systemMemory ?? "")}
-                testID="gpt-memory-button"
-              />
-            ) : null}
+            <SidebarToolbarButtons
+              handleOpenApiKeyModal={handleOpenApiKeyModal}
+              mcpServers={mcpServers}
+              onGeminiApiKeyChange={onGeminiApiKeyChange}
+              onMemoryEdit={onMemoryEdit}
+              systemMemory={systemMemory}
+            />
             <IconButton
               accessibilityLabel="New chat"
               iconName="plus"
@@ -455,20 +899,30 @@ export const GPTChat = ({
             padding={2}
             rounding="md"
           >
-            <Text
-              color={history.id === currentHistoryId ? "inverted" : "primary"}
-              size="sm"
-              truncate
-            >
-              {history.title ?? "New Chat"}
-            </Text>
-            <IconButton
-              accessibilityLabel={`Delete chat: ${history.title ?? "New Chat"}`}
-              iconName="trash"
-              onClick={() => onDeleteHistory(history.id)}
-              testID={`gpt-delete-history-${history.id}`}
-              variant="destructive"
+            <HistoryItemTitle
+              currentHistoryId={currentHistoryId}
+              editingHistoryId={editingHistoryId}
+              editingTitle={editingTitle}
+              handleFinishRename={handleFinishRename}
+              history={history}
+              setEditingTitle={setEditingTitle}
             />
+            <Box direction="row" gap={1}>
+              <HistoryItemActionButton
+                editingHistoryId={editingHistoryId}
+                handleFinishRename={handleFinishRename}
+                handleStartRename={handleStartRename}
+                history={history}
+                onUpdateTitle={onUpdateTitle}
+              />
+              <IconButton
+                accessibilityLabel={`Delete chat: ${history.title ?? "New Chat"}`}
+                iconName="trash"
+                onClick={() => onDeleteHistory(history.id)}
+                testID={`gpt-delete-history-${history.id}`}
+                variant="destructive"
+              />
+            </Box>
           </Box>
         ))}
       </Box>
@@ -479,6 +933,28 @@ export const GPTChat = ({
         <Box flex="grow" marginBottom={3} onLayout={handleViewportLayout}>
           <Box flex="grow" gap={3} onScroll={handleScroll} scroll={true} scrollRef={scrollViewRef}>
             <Box gap={3} onLayout={handleContentLayout}>
+              {currentMessages.length === 0 && suggestedPrompts && suggestedPrompts.length > 0 && (
+                <Box alignItems="center" gap={2} paddingY={4}>
+                  <Text color="secondaryDark" size="sm">
+                    Try asking...
+                  </Text>
+                  <Box direction="row" gap={2} wrap={true}>
+                    {suggestedPrompts.map((prompt) => (
+                      <Box
+                        accessibilityHint="Send this suggested prompt"
+                        accessibilityLabel={prompt}
+                        border="default"
+                        key={prompt}
+                        onClick={() => handleSuggestedPrompt(prompt)}
+                        padding={2}
+                        rounding="lg"
+                      >
+                        <Text size="sm">{prompt}</Text>
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
               {currentMessages.map((message, index) => {
                 // Tool call/result messages
                 if (message.role === "tool-call" && message.toolCall) {
@@ -505,106 +981,42 @@ export const GPTChat = ({
                       padding={3}
                       rounding="lg"
                     >
-                      {/* Render content parts (images, files) */}
-                      {message.contentParts && message.contentParts.length > 0 ? (
-                        <Box marginBottom={message.content ? 2 : 0}>
-                          <MessageContentParts
-                            parts={message.contentParts.filter((p) => p.type !== "text")}
-                          />
-                        </Box>
-                      ) : null}
-
-                      {/* Render text content */}
-                      {message.role === "assistant" ? (
-                        <MarkdownView>{message.content}</MarkdownView>
-                      ) : (
-                        <Text color={message.role === "user" ? "inverted" : "primary"}>
-                          {message.content}
-                        </Text>
-                      )}
-
-                      {/* Action buttons */}
-                      {message.role === "assistant" ? (
-                        <Box
-                          alignItems="end"
-                          direction="row"
-                          gap={1}
-                          justifyContent="end"
-                          marginTop={1}
-                        >
-                          {onRateFeedback ? (
-                            <>
-                              <IconButton
-                                accessibilityLabel="Thumbs up"
-                                iconName="thumbs-up"
-                                onClick={() =>
-                                  onRateFeedback(index, message.rating === "up" ? null : "up")
-                                }
-                                testID={`gpt-rate-up-${index}`}
-                                variant={message.rating === "up" ? "primary" : "muted"}
-                              />
-                              <IconButton
-                                accessibilityLabel="Thumbs down"
-                                iconName="thumbs-down"
-                                onClick={() =>
-                                  onRateFeedback(index, message.rating === "down" ? null : "down")
-                                }
-                                testID={`gpt-rate-down-${index}`}
-                                variant={message.rating === "down" ? "primary" : "muted"}
-                              />
-                            </>
-                          ) : null}
-                          <IconButton
-                            accessibilityLabel="Copy message"
-                            iconName="copy"
-                            onClick={() => handleCopyMessage(message.content)}
-                            testID={`gpt-copy-msg-${index}`}
-                          />
-                        </Box>
-                      ) : null}
+                      <ContentPartsPreview
+                        hasContent={Boolean(message.content)}
+                        parts={message.contentParts}
+                      />
+                      <MessageText content={message.content} role={message.role} />
+                      <AssistantActions
+                        handleCopyMessage={handleCopyMessage}
+                        index={index}
+                        message={message}
+                        onRateFeedback={onRateFeedback}
+                      />
                     </Box>
                   </Box>
                 );
               })}
-              {isStreaming ? (
-                <Box alignItems="start" padding={2}>
-                  <Spinner size="sm" />
-                </Box>
-              ) : null}
+              <StreamingIndicator isStreaming={isStreaming} />
             </Box>
           </Box>
         </Box>
 
-        {/* Scroll to bottom button */}
-        {isScrolledUp ? (
-          <Box alignItems="center" marginBottom={2}>
-            <Button
-              iconName="arrow-down"
-              onClick={scrollToBottom}
-              text="Scroll to bottom"
-              variant="outline"
-            />
-          </Box>
-        ) : null}
-
-        {/* Attachment preview */}
-        {attachments.length > 0 && onRemoveAttachment ? (
-          <AttachmentPreview attachments={attachments} onRemove={onRemoveAttachment} />
-        ) : null}
+        <ScrollToBottomButton isScrolledUp={isScrolledUp} scrollToBottom={scrollToBottom} />
+        <AttachmentSection attachments={attachments} onRemoveAttachment={onRemoveAttachment} />
 
         {/* Input */}
         <Box alignItems="end" direction="row" gap={2}>
-          {onAttachFiles ? (
-            <FilePickerButton
-              disabled={isStreaming}
-              onFilesSelected={handleFilesSelected}
-              testID="gpt-attach-button"
-            />
-          ) : null}
+          <AttachButton
+            handleFilesSelected={handleFilesSelected}
+            isStreaming={isStreaming}
+            onAttachFiles={onAttachFiles}
+          />
           <Box flex="grow">
             <TextArea
+              blurOnSubmit={false}
               disabled={isStreaming}
               onChange={setInputValue}
+              onEnter={handleSubmit}
               placeholder="Type a message..."
               testID="gpt-input"
               value={inputValue}
@@ -620,29 +1032,14 @@ export const GPTChat = ({
         </Box>
       </Box>
 
-      {onGeminiApiKeyChange ? (
-        <Modal
-          onDismiss={() => setIsApiKeyModalVisible(false)}
-          primaryButtonOnClick={handleSaveApiKey}
-          primaryButtonText="Save"
-          secondaryButtonOnClick={() => setIsApiKeyModalVisible(false)}
-          secondaryButtonText="Cancel"
-          size="sm"
-          subtitle="Provide your own Gemini API key for AI requests."
-          title="Gemini API Key"
-          visible={isApiKeyModalVisible}
-        >
-          <Box padding={2}>
-            <TextField
-              onChange={setApiKeyDraft}
-              placeholder="Enter Gemini API key..."
-              testID="gpt-api-key-input"
-              type="password"
-              value={apiKeyDraft}
-            />
-          </Box>
-        </Modal>
-      ) : null}
+      <ApiKeyModal
+        apiKeyDraft={apiKeyDraft}
+        handleSaveApiKey={handleSaveApiKey}
+        isVisible={isApiKeyModalVisible}
+        onDismiss={() => setIsApiKeyModalVisible(false)}
+        onGeminiApiKeyChange={onGeminiApiKeyChange}
+        setApiKeyDraft={setApiKeyDraft}
+      />
     </Box>
   );
 };

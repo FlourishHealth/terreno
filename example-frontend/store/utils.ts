@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import type {ExpoPushToken} from "expo-notifications";
 import * as Notifications from "expo-notifications";
 import * as Updates from "expo-updates";
+import {Platform} from "react-native";
 
 interface VersionInfo {
   environment: "production" | "staging" | "publish-on-merge" | "dev" | "unknown" | null;
@@ -30,6 +31,9 @@ export function versionInfo(): VersionInfo {
 }
 
 export const getCurrentExpoToken = async (): Promise<ExpoPushToken> => {
+  if (Platform.OS === "web") {
+    return {data: "", type: "expo"};
+  }
   let tokenRes: ExpoPushToken;
   if (__DEV__) {
     const appConfig = require("../app.json");

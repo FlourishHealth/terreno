@@ -290,8 +290,8 @@ export class Configuration {
       }
     }
 
-    logger.info(
-      `Loaded ${successCount}/${secretConfigs.length} secrets from Google Secret Manager`
+    logger.debug(
+      `Configuration: loaded ${successCount}/${secretConfigs.length} secrets from Google Secret Manager`
     );
   }
 
@@ -360,7 +360,7 @@ export class Configuration {
       for (const config of allConfigs) {
         dbCache.set(config.key, config.value);
       }
-      logger.info(`Loaded ${allConfigs.length} configuration values from database`);
+      logger.debug(`Configuration: loaded ${allConfigs.length} values from database`);
     } catch (error: unknown) {
       logger.error(`Failed to load configuration from database: ${error}`);
       throw error;
@@ -438,7 +438,7 @@ export class Configuration {
         }, 5000);
       });
 
-      logger.info("Configuration change stream started");
+      logger.debug("Configuration: change stream started");
       return true;
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -495,11 +495,9 @@ export class Configuration {
 
       // Start watching for changes (may fail if replica set not available)
       const changeStreamAvailable = await Configuration.startWatching();
-      if (!changeStreamAvailable) {
-        logger.info("Configuration system initialized (change streams not available)");
-      } else {
-        logger.info("Configuration system initialized with database support");
-      }
+      logger.info(
+        `Configuration initialized (change streams: ${changeStreamAvailable ? "enabled" : "disabled"})`
+      );
 
       isInitialized = true;
     } catch (error: unknown) {

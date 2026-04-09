@@ -2,9 +2,9 @@ const {getDefaultConfig} = require("expo/metro-config");
 const path = require("path");
 const fs = require("fs");
 
-// Find the project and workspace directories
+// Find the project and monorepo workspace directories
 const projectRoot = __dirname;
-// This can be replaced with `find-yarn-workspace-root`
+// This can be replaced with `find-bun-workspace-root` or similar
 const monorepoRoot = path.resolve(projectRoot, "..");
 
 const config = getDefaultConfig(projectRoot);
@@ -94,12 +94,52 @@ const findLayoutFiles = (dir) => {
 
 const appLayoutFiles = findLayoutFiles(path.resolve(projectRoot, "app"));
 
+// Backend-only modules that should not be bundled in web/native builds.
+// @terreno/api pulls in @wesleytodd/openapi -> merge-deep -> clone-deep@0.2.4
+// which uses lazy-cache syntax that Metro cannot parse.
+const backendOnlyModules = [
+  "@terreno/api",
+  "express",
+  "@wesleytodd/openapi",
+  "expo-notifications",
+];
+
+const jspdfNativeStub = path.resolve(__dirname, "jspdf-native-stub.js");
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // jspdf uses browser/node APIs (latin1 encoding, Buffer) unavailable in Hermes —
+  // stub it on native, force ESM build on web (CJS entry uses AMD require() Metro can't parse).
+  if (moduleName === "jspdf") {
+    if (platform !== "web") {
+      return {type: "sourceFile", filePath: jspdfNativeStub};
+    }
+    try {
+      const uiDir = path.resolve(monorepoRoot, "ui");
+      const adminFrontendDir = path.resolve(monorepoRoot, "admin-frontend");
+      const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, adminFrontendDir, monorepoRoot]}));
+      return {
+        type: "sourceFile",
+        filePath: path.join(jspdfDir, "dist", "jspdf.es.min.js"),
+      };
+    } catch {
+      // jspdf not resolvable — let Metro handle it
+    }
+  }
+
   // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
   if (platform === "web" && (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/"))) {
     return {
       type: "empty",
     };
+  }
+
+  // Exclude backend-only modules from frontend builds
+  if (
+    backendOnlyModules.some(
+      (mod) => moduleName === mod || moduleName.startsWith(mod + "/")
+    )
+  ) {
+    return {type: "empty"};
   }
 
   // Fix relative imports when HMR incorrectly uses monorepo root as origin.

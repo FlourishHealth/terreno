@@ -1,5 +1,12 @@
 import {type FC, useEffect, useRef} from "react";
-import {Dimensions, type DimensionValue, Pressable, Modal as RNModal, View} from "react-native";
+import {
+  Dimensions,
+  type DimensionValue,
+  Platform,
+  Pressable,
+  Modal as RNModal,
+  View,
+} from "react-native";
 import ActionSheet, {type ActionSheetRef} from "react-native-actions-sheet";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {runOnJS} from "react-native-reanimated";
@@ -210,6 +217,17 @@ export const Modal: FC<ModalProps> = ({
       runOnJS(handleDismiss)();
     }
   });
+
+  // On web, blur the active element before the modal opens to prevent
+  // "aria-hidden on a focused element" warnings from React Native Web.
+  useEffect(() => {
+    if (visible && Platform.OS === "web") {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    }
+  }, [visible]);
 
   // Open the action sheet ref when the visible prop changes.
   useEffect(() => {

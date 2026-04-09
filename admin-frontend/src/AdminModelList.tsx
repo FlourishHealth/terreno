@@ -2,15 +2,126 @@ import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminModelConfig} from "./types";
+import type {AdminCustomScreen, AdminModelConfig} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
+  /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
+  configurationPath?: string;
+  /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
+  customScreens?: AdminCustomScreen[];
 }
 
-export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) => {
+const ScriptsCard: React.FC<{count: number; onPress: () => void}> = ({count, onPress}) => (
+  <Card padding={4} testID="admin-scripts-card">
+    <Box
+      accessibilityHint="Navigate to admin scripts"
+      accessibilityLabel="Scripts"
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">Scripts</Heading>
+      <Text color="secondaryDark" size="sm">
+        {count} script{count !== 1 ? "s" : ""}
+      </Text>
+    </Box>
+  </Card>
+);
+
+const ConfigurationCard: React.FC<{onPress: () => void}> = ({onPress}) => (
+  <Card padding={4} testID="admin-configuration-card">
+    <Box
+      accessibilityHint="Navigate to application configuration"
+      accessibilityLabel="Configuration"
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">Configuration</Heading>
+      <Text color="secondaryDark" size="sm">
+        Manage application settings
+      </Text>
+    </Box>
+  </Card>
+);
+
+const ModelCard: React.FC<{model: AdminModelConfig; onPress: (name: string) => void}> = ({
+  model,
+  onPress,
+}) => {
+  const fieldCount = Object.keys(model.fields).length;
+  return (
+    <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
+      <Box
+        accessibilityHint={`Navigate to ${model.displayName} admin`}
+        accessibilityLabel={model.displayName}
+        gap={2}
+        onClick={() => onPress(model.name)}
+        width={240}
+      >
+        <Heading size="md">{model.displayName}</Heading>
+        <Text color="secondaryDark" size="sm">
+          {fieldCount} field{fieldCount !== 1 ? "s" : ""}
+        </Text>
+      </Box>
+    </Card>
+  );
+};
+
+const CustomScreenCard: React.FC<{screen: AdminCustomScreen; onPress: () => void}> = ({
+  screen,
+  onPress,
+}) => (
+  <Card padding={4} testID={`admin-custom-screen-card-${screen.name}`}>
+    <Box
+      accessibilityHint={`Navigate to ${screen.displayName}`}
+      accessibilityLabel={screen.displayName}
+      gap={2}
+      onClick={onPress}
+      width={240}
+    >
+      <Heading size="md">{screen.displayName}</Heading>
+      <Text color="secondaryDark" size="sm">
+        {screen.description ?? "Custom screen"}
+      </Text>
+    </Box>
+  </Card>
+);
+
+/**
+ * Admin panel entry screen that displays all available models as clickable cards.
+ *
+ * Fetches the admin configuration from the backend and renders a grid of model cards.
+ * Each card shows the model's display name and field count. Clicking a card navigates
+ * to the model's table view.
+ *
+ * @param props - Component props
+ * @param props.baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param props.api - RTK Query API instance for making authenticated requests
+ * @param props.customScreens - Additional custom screens to display as cards
+ *
+ * @example
+ * ```typescript
+ * import {AdminModelList} from "@terreno/admin-frontend";
+ * import {api} from "@/store/openApiSdk";
+ *
+ * function AdminIndexScreen() {
+ *   return <AdminModelList baseUrl="/admin" api={api} />;
+ * }
+ * ```
+ *
+ * @see AdminModelTable for the table view that this navigates to
+ * @see useAdminConfig for the configuration hook
+ */
+export const AdminModelList: React.FC<AdminModelListProps> = ({
+  baseUrl,
+  api,
+  configurationPath,
+  customScreens: propCustomScreens,
+}) => {
   const {config, isLoading, error} = useAdminConfig(api, baseUrl);
 
   const handlePress = useCallback(
@@ -40,28 +151,36 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({baseUrl, api}) =>
     );
   }
 
+  const backendScreens = config.customScreens ?? [];
+  const allCustomScreens = [...backendScreens, ...(propCustomScreens ?? [])];
+  const scripts = config.scripts ?? [];
+  const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
+
   return (
     <Page maxWidth="100%" scroll title="Admin">
-      <Box direction="row" gap={4} padding={4} wrap>
-        {config.models.map((model: AdminModelConfig) => {
-          const fieldCount = Object.keys(model.fields).length;
-          return (
-            <Card key={model.name} padding={4} testID={`admin-model-card-${model.name}`}>
-              <Box
-                accessibilityHint={`Navigate to ${model.displayName} admin`}
-                accessibilityLabel={model.displayName}
-                gap={2}
-                onClick={() => handlePress(model.name)}
-                width={240}
-              >
-                <Heading size="md">{model.displayName}</Heading>
-                <Text color="secondaryDark" size="sm">
-                  {fieldCount} field{fieldCount !== 1 ? "s" : ""}
-                </Text>
-              </Box>
-            </Card>
-          );
-        })}
+      <Box gap={4} padding={4}>
+        {hasToolCards && (
+          <Box direction="row" gap={4} wrap>
+            {allCustomScreens.map((screen) => (
+              <CustomScreenCard
+                key={screen.name}
+                onPress={() => handlePress(screen.name)}
+                screen={screen}
+              />
+            ))}
+            {scripts.length > 0 && (
+              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+            )}
+            {configurationPath && (
+              <ConfigurationCard onPress={() => router.push(configurationPath as any)} />
+            )}
+          </Box>
+        )}
+        <Box direction="row" gap={4} wrap>
+          {config.models.map((model: AdminModelConfig) => (
+            <ModelCard key={model.name} model={model} onPress={handlePress} />
+          ))}
+        </Box>
       </Box>
     </Page>
   );
