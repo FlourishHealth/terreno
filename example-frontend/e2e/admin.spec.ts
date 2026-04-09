@@ -52,8 +52,9 @@ test.describe("Admin Panel", () => {
     // Search for and select an owner via the ObjectId picker
     const ownerSearch = page.getByTestId("admin-picker-User-search");
     await ownerSearch.click();
-    await ownerSearch.fill("a");
-    // Wait for search results to appear and select the first one
+    await ownerSearch.pressSequentially("admin", {delay: 50});
+    // Wait for debounced search request to complete and results to render
+    await page.waitForLoadState("networkidle");
     const firstResult = page.locator('[data-testid^="admin-picker-User-result-"]').first();
     await firstResult.waitFor({state: "visible"});
     await firstResult.click();
