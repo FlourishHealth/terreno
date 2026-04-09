@@ -10,6 +10,7 @@ export * from "./errors";
 export * from "./expressServer";
 export * from "./githubAuth";
 export * from "./logger";
+export * from "./mcp";
 export * from "./middleware";
 export * from "./models/consentForm";
 export * from "./models/consentResponse";

@@ -9,4 +9,6 @@ export * from "./platform";
 export * from "./socket";
 export * from "./tagGenerator";
 export * from "./useFeatureFlags";
+export * from "./useMCPTools";
+export * from "./useTerrenoChat";
 export * from "./useUpgradeCheck";

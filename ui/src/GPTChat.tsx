@@ -82,6 +82,11 @@ export interface MCPServerStatus {
   name: string;
 }
 
+export interface MCPToolDetail {
+  name: string;
+  description?: string;
+}
+
 export interface GPTChatProps {
   attachments?: SelectedFile[];
   availableModels?: Array<{label: string; value: string}>;
@@ -90,6 +95,8 @@ export interface GPTChatProps {
   geminiApiKey?: string;
   histories: GPTChatHistory[];
   isStreaming?: boolean;
+  /** Available MCP tools to display in the tools panel. */
+  mcpTools?: MCPToolDetail[];
   mcpServers?: MCPServerStatus[];
   onAttachFiles?: (files: SelectedFile[]) => void;
   onCreateHistory: () => void;
@@ -639,6 +646,44 @@ const AttachButton = ({
   );
 };
 
+const ToolsModal = ({
+  isVisible,
+  mcpTools,
+  onDismiss,
+}: {
+  isVisible: boolean;
+  mcpTools: MCPToolDetail[];
+  onDismiss: () => void;
+}): React.ReactElement => {
+  return (
+    <Modal onDismiss={onDismiss} size="md" title="Available Tools" visible={isVisible}>
+      <Box gap={2} padding={3}>
+        {mcpTools.length === 0 ? (
+          <Text color="secondaryDark" size="sm">
+            No tools available.
+          </Text>
+        ) : (
+          mcpTools.map((tool) => (
+            <Box border="default" gap={1} key={tool.name} padding={3} rounding="md">
+              <Box alignItems="center" direction="row" gap={2}>
+                <Icon iconName="wrench" size="xs" />
+                <Text bold size="sm">
+                  {tool.name}
+                </Text>
+              </Box>
+              {tool.description && (
+                <Text color="secondaryDark" size="sm">
+                  {tool.description}
+                </Text>
+              )}
+            </Box>
+          ))
+        )}
+      </Box>
+    </Modal>
+  );
+};
+
 const ApiKeyModal = ({
   apiKeyDraft,
   handleSaveApiKey,
@@ -694,6 +739,7 @@ export const GPTChat = ({
   geminiApiKey,
   histories,
   isStreaming = false,
+  mcpTools,
   mcpServers,
   onAttachFiles,
   onCreateHistory,
@@ -720,6 +766,7 @@ export const GPTChat = ({
   const scrollOffsetRef = useRef(0);
   const viewportHeightRef = useRef(0);
   const [isApiKeyModalVisible, setIsApiKeyModalVisible] = useState(false);
+  const [isToolsModalVisible, setIsToolsModalVisible] = useState(false);
   const [apiKeyDraft, setApiKeyDraft] = useState(geminiApiKey ?? "");
 
   const handleSubmit = useCallback(() => {
@@ -732,32 +779,42 @@ export const GPTChat = ({
     setInputValue("");
   }, [inputValue, isStreaming, onSubmit]);
 
-  // On web: Enter sends, Cmd+Enter inserts a new line
+  // On web: Enter sends, Shift+Enter inserts a new line
   const handleSubmitRef = useRef(handleSubmit);
   handleSubmitRef.current = handleSubmit;
+  const inputElementRef = useRef<HTMLElement | null>(null);
+
+  // Attach keydown listener directly to the textarea element for reliable Enter-to-send.
+  // Re-runs when inputElementRef.current changes (set asynchronously via ref callback).
+  const [inputElement, setInputElement] = useState<HTMLElement | null>(null);
+
+  const handleInputRef = useCallback((ref: HTMLElement | null) => {
+    inputElementRef.current = ref;
+    setInputElement(ref);
+  }, []);
+
   useEffect(() => {
-    if (Platform.OS !== "web" || typeof document === "undefined") {
+    if (Platform.OS !== "web") {
       return;
     }
-    const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Enter") {
+    const el = inputElement;
+    if (!el) {
+      return;
+    }
+    const handler = (e: Event) => {
+      const ke = e as KeyboardEvent;
+      if (ke.key !== "Enter") {
         return;
       }
-      const target = e.target as HTMLElement | null;
-      const testId = target?.getAttribute("data-testid");
-      if (testId !== "gpt-input") {
-        return;
-      }
-      if (e.metaKey || e.shiftKey) {
-        // Cmd+Enter or Shift+Enter: allow default (new line)
+      if (ke.shiftKey || ke.metaKey) {
         return;
       }
       e.preventDefault();
       handleSubmitRef.current();
     };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, []);
+    el.addEventListener("keydown", handler);
+    return () => el.removeEventListener("keydown", handler);
+  }, [inputElement]);
 
   const handleCopyMessage = useCallback(async (text: string) => {
     const Clipboard = await import("expo-clipboard");
@@ -1011,12 +1068,20 @@ export const GPTChat = ({
             isStreaming={isStreaming}
             onAttachFiles={onAttachFiles}
           />
+          {mcpTools && mcpTools.length > 0 && (
+            <IconButton
+              accessibilityLabel="Show available tools"
+              iconName="hammer"
+              onClick={() => setIsToolsModalVisible(true)}
+              testID="gpt-tools-button"
+            />
+          )}
           <Box flex="grow">
             <TextArea
               blurOnSubmit={false}
               disabled={isStreaming}
+              inputRef={handleInputRef}
               onChange={setInputValue}
-              onEnter={handleSubmit}
               placeholder="Type a message..."
               testID="gpt-input"
               value={inputValue}
@@ -1039,6 +1104,11 @@ export const GPTChat = ({
         onDismiss={() => setIsApiKeyModalVisible(false)}
         onGeminiApiKeyChange={onGeminiApiKeyChange}
         setApiKeyDraft={setApiKeyDraft}
+      />
+      <ToolsModal
+        isVisible={isToolsModalVisible}
+        mcpTools={mcpTools ?? []}
+        onDismiss={() => setIsToolsModalVisible(false)}
       />
     </Box>
   );

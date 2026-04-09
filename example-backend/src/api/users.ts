@@ -20,6 +20,10 @@ export const addUserRoutes = (
     // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
     modelRouter(User as any, {
       ...options,
+      mcp: {
+        excludeFields: ["hash", "salt", "attempts", "last"],
+        methods: ["list", "read"],
+      },
       permissions: {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],
