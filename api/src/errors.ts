@@ -120,11 +120,14 @@ export class APIError extends Error {
       this.meta.fields = fields;
     }
     this.error = error;
-    logger.error(
-      `APIError(${status}): ${title} ${detail ? detail : ""}${
-        data.error?.stack ? `\n${data.error?.stack}` : ""
-      }`
-    );
+    const logMessage = `APIError(${status}): ${title} ${detail ? detail : ""}${
+      data.error?.stack ? `\n${data.error?.stack}` : ""
+    }`;
+    if (data.disableExternalErrorTracking) {
+      logger.warn(logMessage);
+    } else {
+      logger.error(logMessage);
+    }
   }
 }
 
