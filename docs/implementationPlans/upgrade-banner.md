@@ -158,7 +158,7 @@ App mounts → useUpgradeCheck() fires
 
 - `UpgradeRequiredScreen` component in `@terreno/ui`
 - `useUpgradeCheck` hook in `@terreno/rtk`
-- `app.config.js` helper for build number injection via `expo.extra.buildNumber`
+- `app.config.ts` helper for build number injection via `expo.extra.buildNumber`
 - Example frontend wired up with the hook
 - GitHub Actions snippet for `git rev-list --count HEAD`
 

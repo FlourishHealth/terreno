@@ -58,3 +58,7 @@ temp/
 
 # Rulesync generated files are tracked in git
 # (we want to track them so they're available when cloning)
+
+# Generated typedoc output (embeds commit SHA, causes noisy diffs)
+demo/ui-types-documentation.json
+mcp-server/src/docs/ui-types-documentation.json

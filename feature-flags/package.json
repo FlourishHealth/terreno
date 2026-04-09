@@ -1,0 +1,48 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@terreno/api": "workspace:*",
+    "express": "^5.2.1",
+    "lodash": "catalog:"
+  },
+  "description": "Feature flags and A/B testing plugin for @terreno/api",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@types/bun": "^1.2.4",
+    "@types/express": "^5.0.6",
+    "@types/lodash": "catalog:",
+    "typescript": "catalog:"
+  },
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "feature-flags",
+    "ab-testing",
+    "api",
+    "express",
+    "terreno"
+  ],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "mongoose": ">=8.0.0"
+  },
+  "main": "dist/index.js",
+  "name": "@terreno/feature-flags",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "bun tsc",
+    "compile:watch": "bun tsc -w",
+    "dev": "bun tsc -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test",
+    "test:ci": "bun test"
+  },
+  "types": "dist/index.d.ts",
+  "version": "0.7.0"
+}

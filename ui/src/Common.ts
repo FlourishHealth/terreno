@@ -2972,3 +2972,114 @@ export interface UserInactivityProps {
    */
   timeForInactivity?: number;
 }
+
+/**
+ * Maps badge status keys to their semantic meaning for sidebar navigation items.
+ */
+export const SIDEBAR_BADGE_STATUS_MAP = {
+  error: "error",
+  info: "info",
+  neutral: "neutral",
+  success: "success",
+  warning: "warning",
+} as const;
+
+export type SidebarBadgeStatus = keyof typeof SIDEBAR_BADGE_STATUS_MAP;
+
+export interface SidebarNavigationItem {
+  /**
+   * Display text for the navigation item.
+   */
+  label: string;
+  /**
+   * Route name matching the expo-router file-based route (e.g. "index", "dashboard").
+   */
+  route: string;
+  /**
+   * FontAwesome 6 icon name rendered alongside the label.
+   */
+  iconName: IconName;
+  /**
+   * Badge displayed on the icon. A number shows a count (capped at 99+); true shows a dot indicator.
+   */
+  badge?: number | boolean;
+  /**
+   * Color status of the badge. Defaults to "error".
+   */
+  badgeStatus?: SidebarBadgeStatus;
+}
+
+/**
+ * Props for the SidebarNavigation custom expo-router navigator.
+ * Used in _layout.tsx files to provide sidebar navigation.
+ */
+export interface SidebarNavigationProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * Optional callback fired after a navigation item is pressed.
+   */
+  onNavigate?: (route: string) => void;
+  /**
+   * The route to show when the navigator first renders.
+   */
+  initialRouteName?: string;
+  /**
+   * Screen options passed through to the underlying Navigator.
+   */
+  screenOptions?: Record<string, unknown>;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Optional Screen definitions passed to the underlying Navigator,
+   * e.g. <Screen name="index" options={{title: "Home"}} />.
+   */
+  children?: React.ReactNode;
+}
+
+/**
+ * Props for the standalone SidebarNavigationPanel (no expo-router dependency).
+ * Useful for demos, testing, or non-expo-router apps.
+ */
+export interface SidebarNavigationPanelProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * The currently active route, used to highlight the matching item.
+   */
+  activeRoute?: string;
+  /**
+   * Called when a navigation item is pressed.
+   */
+  onNavigate: (route: string) => void;
+  /**
+   * Main content rendered beside (web) or behind (mobile) the sidebar.
+   */
+  children: React.ReactNode;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
+}

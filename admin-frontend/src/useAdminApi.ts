@@ -52,7 +52,8 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
     const updateKey = `adminUpdate_${modelName}`;
     const deleteKey = `adminDelete_${modelName}`;
 
-    return api.injectEndpoints({
+    const tagType = `admin_${modelName}`;
+    return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
       endpoints: (build: any) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],

@@ -3,6 +3,7 @@ import {useLocalSearchParams} from "expo-router";
 import React from "react";
 import {useReadProfile} from "@/hooks/useReadProfile";
 import {terrenoApi} from "@/store/sdk";
+import AIAdminScreen from "../AIAdminScreen";
 
 const ADMIN_BASE_URL = "/admin";
 
@@ -16,6 +17,10 @@ const AdminTableScreen: React.FC = () => {
 
   if (model === "version-config") {
     return <AdminVersionConfig api={terrenoApi} baseUrl={ADMIN_BASE_URL} />;
+  }
+
+  if (model === "ai-admin") {
+    return <AIAdminScreen />;
   }
 
   return <AdminModelTable api={terrenoApi} baseUrl={ADMIN_BASE_URL} modelName={model} />;

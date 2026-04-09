@@ -209,7 +209,7 @@ const MobileTime = ({
   return (
     <Box>
       <Box direction="row" width="100%">
-        <Box paddingY={2} width="35%">
+        <Box paddingY={2} width="30%">
           <Picker
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
@@ -226,7 +226,7 @@ const MobileTime = ({
             ))}
           </Picker>
         </Box>
-        <Box paddingY={2} width="35%">
+        <Box paddingY={2} width="30%">
           <Picker
             itemStyle={{
               height: TIME_PICKER_HEIGHT,
@@ -243,9 +243,10 @@ const MobileTime = ({
             ))}
           </Picker>
         </Box>
-        <Box paddingY={2} width="30%">
+        <Box paddingY={2} width="40%">
           <Picker
             itemStyle={{
+              fontSize: 16,
               height: TIME_PICKER_HEIGHT,
             }}
             onValueChange={(itemValue) => setAmPm(itemValue)}
@@ -352,9 +353,14 @@ const DateCalendar = ({
   }
 
   if (date) {
-    const displayDate = timezone
-      ? DateTime.fromISO(dateString).setZone(timezone).toFormat("yyyy-MM-dd")
-      : DateTime.fromISO(dateString).toFormat("yyyy-MM-dd");
+    let displayDate: string;
+    if (type === "date") {
+      displayDate = DateTime.fromISO(dateString).toUTC().toFormat("yyyy-MM-dd");
+    } else if (timezone) {
+      displayDate = DateTime.fromISO(dateString).setZone(timezone).toFormat("yyyy-MM-dd");
+    } else {
+      displayDate = DateTime.fromISO(dateString).toFormat("yyyy-MM-dd");
+    }
     markedDates[displayDate] = {
       customStyles: {
         container: {
@@ -437,7 +443,13 @@ export const DateTimeActionSheet = ({
   useEffect(() => {
     let datetime;
     if (value) {
-      datetime = DateTime.fromISO(value).setZone(originalTimezone).set({millisecond: 0, second: 0});
+      if (type === "date") {
+        datetime = DateTime.fromISO(value).toUTC().set({millisecond: 0, second: 0});
+      } else {
+        datetime = DateTime.fromISO(value)
+          .setZone(originalTimezone)
+          .set({millisecond: 0, second: 0});
+      }
     } else {
       datetime = DateTime.now().setZone(originalTimezone).set({millisecond: 0, second: 0});
     }
@@ -456,7 +468,7 @@ export const DateTimeActionSheet = ({
     setDate(datetime.toISO());
     // Reset timezone when the sent date changes.
     setTimezone(originalTimezone);
-  }, [value, originalTimezone]);
+  }, [value, originalTimezone, type]);
 
   // TODO Support 24 hour time for time picker.
   // Note: do not call this if waiting on a state change.
@@ -469,7 +481,9 @@ export const DateTimeActionSheet = ({
       militaryHour = Number(hour) + 12;
     }
 
-    const dateTime = DateTime.fromISO(date, {zone: timezone});
+    // For type="date" the date state is always UTC midnight — parse it in UTC, not the component
+    // timezone, to avoid shifting the date when converting back to UTC.
+    const dateTime = DateTime.fromISO(date, {zone: type === "date" ? "UTC" : timezone});
 
     if (type === "date") {
       const v = dateTime.set({hour: 0, millisecond: 0, minute: 0, second: 0}).toUTC().toISO();
