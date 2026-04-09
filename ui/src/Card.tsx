@@ -10,7 +10,7 @@ import {Text} from "./Text";
 export const Card = ({
   children,
   color = "base",
-  padding = 4,
+  padding,
   variant = "container",
   size = "default",
   title,
@@ -23,34 +23,38 @@ export const Card = ({
   ...rest
 }: CardProps): React.ReactElement => {
   const {width: windowWidth} = useWindowDimensions();
-  // Desktop (>768px): large/default = horizontal (image left, content right)
-  // Mobile (<=768px): always vertical column
   const isMobile = windowWidth <= 768;
-  const isHorizontal = !isMobile && size !== "small";
 
   if (variant === "display") {
-    // Card dimensions vary by size on mobile
-    const cardWidth = isMobile && size === "small" ? 200 : undefined;
-    const cardHeight = isMobile && size === "small" ? 298 : undefined;
+    // Row layout: desktop large/default and mobile default
+    const isRow = (!isMobile && size !== "small") || (isMobile && size === "default");
+    // All 4 borders on desktop (all sizes) and mobile small; top+bottom only on mobile large/default
+    const allBorders = !isMobile || size === "small";
 
-    // Image height: large mobile = 500px, all others = imageHeight prop
-    const mobileImageHeight = size === "large" ? 500 : imageHeight;
+    const cardWidth = isMobile && size === "small" ? 200 : undefined;
+    const cardHeight = isMobile && size === "large" ? 500 : undefined;
+
+    // Image dimensions vary by layout context
+    const imageStyle = isRow
+      ? {alignSelf: "stretch" as const, width: isMobile ? 100 : 160}
+      : isMobile && size === "large"
+        ? {flex: 1, width: "100%" as const}
+        : {height: imageHeight, width: "100%" as const};
 
     return (
       <Box
-        alignItems={isHorizontal ? "center" : undefined}
+        alignItems={isRow ? "center" : undefined}
         borderBottom="default"
-        borderLeft={isMobile ? undefined : "default"}
-        borderRight={isMobile ? undefined : "default"}
+        borderLeft={allBorders ? "default" : undefined}
+        borderRight={allBorders ? "default" : undefined}
         borderTop="default"
         color={color}
-        direction={isHorizontal ? "row" : "column"}
-        gap={isHorizontal ? 6 : 0}
+        direction={isRow ? "row" : "column"}
+        gap={isMobile ? 0 : 6}
         height={cardHeight}
         overflow="hidden"
-        padding={isHorizontal ? 6 : 0}
-        rounding="md"
-        shadow
+        padding={isMobile ? 0 : 6}
+        rounding={allBorders ? "md" : undefined}
         width={cardWidth}
         {...rest}
       >
@@ -59,20 +63,23 @@ export const Card = ({
             accessibilityLabel={imageAlt}
             resizeMode="cover"
             source={{uri: imageUri}}
-            style={
-              isHorizontal
-                ? {alignSelf: "stretch", width: 160}
-                : {height: mobileImageHeight, width: "100%"}
-            }
+            style={imageStyle}
           />
         )}
-        <Box direction="column" flex={isHorizontal ? "grow" : undefined} gap={4} padding={4}>
-          {Boolean(title) && <Heading size="md">{title}</Heading>}
-          {Boolean(description) && <Text>{description}</Text>}
-          {Boolean(buttonText && buttonOnClick) && (
-            <Box marginTop={2}>
-              <Button onClick={buttonOnClick!} text={buttonText!} />
+        <Box
+          direction="column"
+          flex={isRow ? "grow" : undefined}
+          gap={4}
+          padding={isMobile ? 4 : 0}
+        >
+          {(Boolean(title) || Boolean(description)) && (
+            <Box direction="column" gap={2}>
+              {Boolean(title) && <Heading size="lg">{title}</Heading>}
+              {Boolean(description) && <Text>{description}</Text>}
             </Box>
+          )}
+          {Boolean(buttonText && buttonOnClick) && (
+            <Button onClick={buttonOnClick!} text={buttonText!} />
           )}
           {children}
         </Box>
@@ -80,14 +87,18 @@ export const Card = ({
     );
   }
 
+  // Container variant
   return (
     <Box
+      borderBottom="default"
+      borderLeft={isMobile ? undefined : "default"}
+      borderRight={isMobile ? undefined : "default"}
+      borderTop="default"
       color={color}
       direction="column"
       display="flex"
-      padding={padding}
-      rounding="md"
-      shadow
+      padding={padding ?? (isMobile ? 4 : 6)}
+      rounding={isMobile ? undefined : "md"}
       {...rest}
     >
       {children}
