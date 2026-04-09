@@ -412,7 +412,10 @@ export class AdminApp {
 
           const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
           const results = await config.model.find({$or: orConditions}).limit(20).lean();
-          return res.json({data: results});
+          const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+          const data =
+            hiddenFieldSet.size > 0 ? removeHiddenFields(results, hiddenFieldSet) : results;
+          return res.json({data});
         })
       );
     }
