@@ -54,9 +54,19 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 }) => {
   const [searchText, setSearchText] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isChanging, setIsChanging] = useState(false);
   const [selectedDisplay, setSelectedDisplay] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // Clear pending debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const searchEndpointKey = `adminSearch_${refModelName}`;
   const readEndpointKey = `adminSearchRead_${refModelName}`;
@@ -121,6 +131,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
       setSearchText("");
       setDebouncedQuery("");
       setIsOpen(false);
+      setIsChanging(false);
     },
     [onChange]
   );
@@ -131,13 +142,21 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
     setSearchText("");
     setDebouncedQuery("");
     setIsOpen(false);
+    setIsChanging(false);
   }, [onChange]);
+
+  const handleChange = useCallback(() => {
+    setSearchText("");
+    setDebouncedQuery("");
+    setIsChanging(true);
+    setIsOpen(true);
+  }, []);
 
   const results = searchData?.data ?? [];
 
   return (
     <Box gap={1}>
-      {value && selectedDisplay ? (
+      {value && selectedDisplay && !isChanging ? (
         <Box gap={1}>
           <TextField
             disabled
@@ -153,13 +172,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
                 Clear
               </Text>
             </Box>
-            <Box
-              onClick={() => {
-                setSearchText("");
-                setIsOpen(true);
-              }}
-              testID={`admin-picker-${refModelName}-change`}
-            >
+            <Box onClick={handleChange} testID={`admin-picker-${refModelName}-change`}>
               <Text color="primary" size="sm">
                 Change
               </Text>
