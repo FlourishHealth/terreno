@@ -173,7 +173,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
             accessibilityLabel="Change selection"
             iconName="pencil"
             onClick={handleChange}
-            size="sm"
+
             testID={`admin-picker-${refModelName}-change`}
           />
           <IconButton
@@ -181,7 +181,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
             accessibilityLabel="Clear selection"
             iconName="xmark"
             onClick={handleClear}
-            size="sm"
+
             testID={`admin-picker-${refModelName}-clear`}
           />
         </Box>
