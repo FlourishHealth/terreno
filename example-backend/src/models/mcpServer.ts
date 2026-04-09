@@ -6,6 +6,7 @@ const mcpServerSchema = new mongoose.Schema<McpServerDocument, McpServerModel>(
   {
     apiKey: {
       description: "Optional API key for authenticating with the MCP server",
+      select: false,
       type: String,
     },
     enabled: {

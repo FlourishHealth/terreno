@@ -2,7 +2,7 @@ import {McpServer} from "@modelcontextprotocol/sdk/server/mcp.js";
 import {StreamableHTTPServerTransport} from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {CallToolRequestSchema, ListToolsRequestSchema} from "@modelcontextprotocol/sdk/types.js";
 import type {TerrenoPlugin} from "@terreno/api";
-import {logger} from "@terreno/api";
+import {authenticateMiddleware, logger} from "@terreno/api";
 import type express from "express";
 import type {Model} from "mongoose";
 import {buildModelTools} from "./tools";
@@ -63,7 +63,7 @@ export class McpApp implements TerrenoPlugin {
       return server;
     };
 
-    app.post(this.basePath, async (req: express.Request, res: express.Response) => {
+    app.post(this.basePath, authenticateMiddleware(), async (req: express.Request, res: express.Response) => {
       const server = createServer();
       const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined});
 
