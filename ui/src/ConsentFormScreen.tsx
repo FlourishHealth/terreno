@@ -17,6 +17,7 @@ interface ConsentFormScreenProps {
   locale: string;
   onAgree: (data: {checkboxValues: Record<string, boolean>; signature?: string}) => void;
   onDecline?: () => void;
+  variables?: Record<string, string>;
 }
 
 export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
@@ -25,6 +26,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   locale,
   onAgree,
   onDecline,
+  variables,
 }) => {
   const [checkboxValues, setCheckboxValues] = useState<Record<string, boolean>>({});
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(!form.requireScrollToBottom);
@@ -35,7 +37,10 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
 
-  const content = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
+  const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
+  const content = variables
+    ? rawContent.replace(/\{\{(\w+)\}\}/g, (match, key) => variables[key] ?? match)
+    : rawContent;
 
   const allRequiredCheckboxesChecked = form.checkboxes.every((checkbox, index) => {
     if (!checkbox.required) {
