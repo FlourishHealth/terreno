@@ -1,4 +1,7 @@
 import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
   getOpenApiSpecForModel,
   type ModelRouterOptions,
   modelRouter,
@@ -27,6 +30,7 @@ interface AdminFieldMeta {
   enum?: string[];
   default?: any;
   ref?: string;
+  searchable?: boolean;
 }
 
 interface AdminModelMeta {
@@ -48,13 +52,15 @@ const extractFieldMeta = (
 ): Record<string, AdminFieldMeta> => {
   const fields: Record<string, AdminFieldMeta> = {};
   for (const [key, prop] of Object.entries(properties)) {
+    const fieldType = prop.type ?? "string";
     fields[key] = {
       default: prop.default,
       description: prop.description,
       enum: prop.enum,
       ref: prop.$ref ? prop.$ref.replace("#/components/schemas/", "") : undefined,
       required: required.includes(key),
-      type: prop.type ?? "string",
+      searchable: fieldType === "string" && !prop.enum,
+      type: fieldType,
     };
 
     // Check for ObjectId references in the raw property
@@ -112,6 +118,50 @@ export class AdminApp {
     app.get(`${basePath}/config`, (_req, res) => {
       return res.json(configResponse);
     });
+
+    // Mount search endpoint for each model
+    for (const config of modelConfigs) {
+      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const searchableFields = modelMeta
+        ? Object.entries(modelMeta.fields)
+            .filter(([, f]) => f.searchable)
+            .map(([key]) => key)
+        : [];
+
+      app.get(
+        `${basePath}${config.routePath}/search`,
+        authenticateMiddleware(),
+        asyncHandler(async (req, res) => {
+          if (!(req as any).user?.admin) {
+            throw new APIError({
+              disableExternalErrorTracking: true,
+              status: 403,
+              title: "Forbidden",
+            });
+          }
+          const q = String(req.query.q ?? "");
+          if (!q) {
+            return res.json({data: []});
+          }
+
+          const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(escapedQ, "i");
+
+          const fields =
+            typeof req.query.fields === "string"
+              ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
+              : searchableFields;
+
+          if (fields.length === 0) {
+            return res.json({data: []});
+          }
+
+          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          const results = await config.model.find({$or: orConditions}).limit(20).lean();
+          return res.json({data: results});
+        })
+      );
+    }
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {

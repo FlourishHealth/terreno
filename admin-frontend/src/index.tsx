@@ -2,6 +2,7 @@ export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminModelForm} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";
+export {AdminObjectPicker} from "./AdminObjectPicker";
 export {AdminRefField} from "./AdminRefField";
 export type {
   AdminConfigResponse,
