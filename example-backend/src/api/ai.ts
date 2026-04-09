@@ -11,11 +11,28 @@ import {
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
 import {logger} from "@terreno/api";
-import type {Tool} from "ai";
+import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+
+/** A provider that creates language models and image models from model IDs. */
+interface AIProvider {
+  (modelId: string): LanguageModel;
+  image: (modelId: string) => ImageModel;
+}
+
+/** The subset of @ai-sdk/google we use (loaded dynamically). */
+interface GoogleModule {
+  createGoogleGenerativeAI: (opts: {apiKey: string}) => AIProvider;
+  google: AIProvider;
+}
+
+/** The subset of @ai-sdk/google-vertex we use (loaded dynamically). */
+interface VertexModule {
+  createVertex: (opts: {location: string; project: string}) => AIProvider;
+}
 
 let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
@@ -28,19 +45,17 @@ export const setFileStorageService = (service: FileStorageService | undefined): 
   fileStorageServiceInstance = service;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-const getGoogleModule = (): any => {
+const getGoogleModule = (): GoogleModule | undefined => {
   try {
-    return require("@ai-sdk/google");
+    return require("@ai-sdk/google") as GoogleModule;
   } catch {
     return undefined;
   }
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-const getVertexModule = (): any => {
+const getVertexModule = (): VertexModule | undefined => {
   try {
-    return require("@ai-sdk/google-vertex");
+    return require("@ai-sdk/google-vertex") as VertexModule;
   } catch {
     return undefined;
   }
@@ -48,10 +63,9 @@ const getVertexModule = (): any => {
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-let vertexProviderInstance: any;
+let vertexProviderInstance: AIProvider | undefined;
 
-const getVertexProvider = () => {
+const getVertexProvider = (): AIProvider | undefined => {
   if (vertexProviderInstance) {
     return vertexProviderInstance;
   }
@@ -387,10 +401,12 @@ const createImageTool = (apiKey?: string): Tool => {
       })
     ),
   });
-  // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-  (imageTool as any).toModelOutput = ({output}: {output: any}) => [
-    {text: output.description ?? "Image generated.", type: "text"},
-  ];
+  // toModelOutput is an internal AI SDK property for tool output → model message conversion
+  (imageTool as Record<string, unknown>).toModelOutput = ({
+    output,
+  }: {
+    output: Record<string, unknown>;
+  }) => [{text: (output.description as string) ?? "Image generated.", type: "text"}];
   return imageTool as Tool;
 };
 
@@ -429,10 +445,12 @@ const pdfTool = tool({
     })
   ),
 });
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-(pdfTool as any).toModelOutput = ({output}: {output: any}) => [
-  {text: output.description ?? "PDF generated.", type: "text"},
-];
+// toModelOutput is an internal AI SDK property for tool output → model message conversion
+(pdfTool as Record<string, unknown>).toModelOutput = ({
+  output,
+}: {
+  output: Record<string, unknown>;
+}) => [{text: (output.description as string) ?? "PDF generated.", type: "text"}];
 
 const JOKE_FALLBACK_SYSTEM_PROMPT =
   "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
@@ -507,8 +525,11 @@ const getDemoTools = (): Record<string, Tool> => {
   return tools;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
+export const addAiRoutes = (
+  router: express.Router,
+  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
+  options?: Partial<ModelRouterOptions<any>>
+): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
   const fileStorageService = initFileStorageService();
