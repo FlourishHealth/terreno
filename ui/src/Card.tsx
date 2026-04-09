@@ -26,8 +26,7 @@ export const Card = ({
   const isMobile = windowWidth <= 768;
 
   if (variant === "display") {
-    // Row layout: desktop large/default and mobile default
-    const isRow = (!isMobile && size !== "small") || (isMobile && size === "default");
+    const isRow = !isMobile && size !== "small";
     // All 4 borders on desktop (all sizes) and mobile small; top+bottom only on mobile large/default
     const allBorders = !isMobile || size === "small";
 
