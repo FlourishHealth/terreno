@@ -1,6 +1,7 @@
 import {describe, expect, it, spyOn} from "bun:test";
 import mongoose from "mongoose";
 
+import {logger} from "./logger";
 import {checkModelsStrict, isValidObjectId, timeout} from "./utils";
 
 describe("utils", () => {
@@ -12,6 +13,20 @@ describe("utils", () => {
       expect(isValidObjectId("1234567890ab")).toBe(false);
       expect(isValidObjectId("microsoft123")).toBe(false);
       expect(isValidObjectId("62c44da0003d9f8ee8cc925x")).toBe(false);
+    });
+
+    it("logs and returns false when ObjectId parsing throws", () => {
+      const loggerErrorSpy = spyOn(logger, "error").mockImplementation(() => logger);
+
+      try {
+        const result = isValidObjectId("invalid-object-id");
+        expect(result).toBe(false);
+        expect(loggerErrorSpy).toHaveBeenCalled();
+        const [firstCall] = loggerErrorSpy.mock.calls;
+        expect(String(firstCall?.[0] ?? "")).toContain("invalid-object-id");
+      } finally {
+        loggerErrorSpy.mockRestore();
+      }
     });
   });
 

@@ -1,5 +1,4 @@
 import {describe, expect, it, mock} from "bun:test";
-import {APIError} from "@terreno/api";
 import type {NextFunction, Request, Response} from "express";
 
 import {requireAdmin} from "./langfuseRoutesMiddleware";
@@ -42,11 +41,16 @@ describe("requireAdmin", () => {
       requireAdmin(req, buildResponse(), next);
       throw new Error("Expected requireAdmin to throw");
     } catch (error) {
-      expect(error).toBeInstanceOf(APIError);
-      const apiError = error as APIError;
+      const apiError = error as {
+        disableExternalErrorTracking?: boolean;
+        message?: string;
+        status?: number;
+        title?: string;
+      };
       expect(apiError.status).toBe(403);
       expect(apiError.title).toBe("Forbidden");
       expect(apiError.disableExternalErrorTracking).toBe(true);
+      expect(apiError.message).toContain("Forbidden");
       expect(next).toHaveBeenCalledTimes(0);
     }
   });
