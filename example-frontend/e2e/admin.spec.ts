@@ -44,10 +44,18 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-create-button").click();
     await page.getByTestId("admin-save-button").waitFor({state: "visible"});
 
-    // Fill in the title field
+    // Fill in the title field with a unique value
     const todoTitle = `Admin Todo ${Date.now()}`;
-    await page.getByTestId("admin-field-title").first().waitFor({state: "visible"});
-    await page.getByTestId("admin-field-title").first().fill(todoTitle);
+    const titleInput = page.getByRole("textbox").first();
+    await titleInput.fill(todoTitle);
+
+    // Select an owner via the ObjectId search picker (ownerId is required)
+    const ownerSearch = page.getByRole("textbox").nth(1);
+    await ownerSearch.fill("admin");
+    // Wait for debounced search results to appear
+    const firstResult = page.locator('[data-testid^="admin-picker-User-result-"]').first();
+    await firstResult.waitFor({state: "visible", timeout: 10000});
+    await firstResult.click();
 
     // Save the form — redirects back to the model table
     await page.getByTestId("admin-save-button").click();
