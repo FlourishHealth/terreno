@@ -16,7 +16,7 @@
   },
   "description": "AI service layer for Terreno apps - GPT chat, request logging, and admin tools.",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.6",
+    "@biomejs/biome": "catalog:",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
     "@types/luxon": "catalog:",
@@ -25,7 +25,7 @@
     "@types/supertest": "^6.0.2",
     "passport-local-mongoose": "^9.0.1",
     "supertest": "^7.0.0",
-    "typescript": "5.8.2",
+    "typescript": "catalog:",
     "winston": "^3.18.3"
   },
   "exports": {
