@@ -32,7 +32,7 @@ interface ConsentHistoryHookState {
   data?: ConsentHistoryEntry[] | ConsentHistoryResponse;
   error: unknown;
   isLoading: boolean;
-  refetch: () => unknown;
+  refetch: () => void | Promise<void>;
 }
 
 interface ConsentHistoryApi {

@@ -38,7 +38,7 @@ interface ConsentFormsHookState {
   data?: ConsentFormPublic[] | ConsentFormsResponse;
   error: unknown;
   isLoading: boolean;
-  refetch: () => unknown;
+  refetch: () => void | Promise<void>;
 }
 
 interface ConsentFormsApiWithTags {

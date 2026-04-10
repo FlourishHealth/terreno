@@ -6,12 +6,48 @@ export interface SubmitConsentBody {
   signature?: string;
 }
 
-export const useSubmitConsent = (api: any, baseUrl?: string) => {
+interface SubmitConsentMutationResult {
+  unwrap: () => Promise<unknown>;
+}
+
+interface SubmitConsentMutationHookState {
+  error: unknown;
+  isLoading: boolean;
+}
+
+interface SubmitConsentMutationBuilder {
+  mutation: (options: {
+    invalidatesTags: string[];
+    query: (body: SubmitConsentBody) => {
+      body: SubmitConsentBody;
+      method: "POST";
+      url: string;
+    };
+  }) => unknown;
+}
+
+interface SubmitConsentApiWithTags {
+  injectEndpoints: (options: {
+    endpoints: (build: SubmitConsentMutationBuilder) => {submitConsentResponse: unknown};
+    overrideExisting: boolean;
+  }) => {
+    useSubmitConsentResponseMutation: () => [
+      (body: SubmitConsentBody) => SubmitConsentMutationResult,
+      SubmitConsentMutationHookState,
+    ];
+  };
+}
+
+interface SubmitConsentApi {
+  enhanceEndpoints: (options: {addTagTypes: string[]}) => SubmitConsentApiWithTags;
+}
+
+export const useSubmitConsent = (api: SubmitConsentApi, baseUrl?: string) => {
   const base = baseUrl || "";
   const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
 
   const enhancedApi = apiWithConsentTags.injectEndpoints({
-    endpoints: (build: any) => ({
+    endpoints: (build) => ({
       submitConsentResponse: build.mutation({
         invalidatesTags: ["PendingConsents"],
         query: (body: SubmitConsentBody) => ({
