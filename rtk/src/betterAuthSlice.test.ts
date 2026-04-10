@@ -1,4 +1,5 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {configureStore} from "@reduxjs/toolkit";
 import {
   type BetterAuthState,
   generateBetterAuthSlice,
@@ -229,6 +230,109 @@ describe("generateBetterAuthSlice", () => {
     // Should dispatch setLoading(true) then setSession
     expect(dispatchedActions.length).toBeGreaterThanOrEqual(2);
     expect(dispatchedActions[0].type).toBe("betterAuth/setLoading");
+  });
+
+  it("syncSession clears state when no user session is returned", async () => {
+    mockAuthClient.getSession = mock(() =>
+      Promise.resolve({
+        data: {
+          session: null,
+          user: null,
+        },
+      })
+    );
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+
+    // biome-ignore lint/suspicious/noExplicitAny: Test mock for dispatched actions
+    const dispatchedActions: any[] = [];
+    // biome-ignore lint/suspicious/noExplicitAny: Test mock dispatch function
+    const mockDispatch = (action: any) => {
+      dispatchedActions.push(action);
+    };
+
+    await betterAuthSlice.syncSession(mockDispatch);
+
+    expect(dispatchedActions.map((action) => action.type)).toEqual([
+      "betterAuth/setLoading",
+      "betterAuth/clearSession",
+    ]);
+  });
+
+  it("syncSession dispatches error and clearSession when getSession throws", async () => {
+    mockAuthClient.getSession = mock(() => Promise.reject(new Error("network error")));
+    const originalConsoleError = console.error;
+    console.error = mock(() => {});
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+
+    // biome-ignore lint/suspicious/noExplicitAny: Test mock for dispatched actions
+    const dispatchedActions: any[] = [];
+    // biome-ignore lint/suspicious/noExplicitAny: Test mock dispatch function
+    const mockDispatch = (action: any) => {
+      dispatchedActions.push(action);
+    };
+
+    await betterAuthSlice.syncSession(mockDispatch);
+
+    expect(dispatchedActions.map((action) => action.type)).toEqual([
+      "betterAuth/setLoading",
+      "betterAuth/setError",
+      "betterAuth/clearSession",
+    ]);
+    console.error = originalConsoleError;
+  });
+
+  it("logout middleware calls signOut for slice logout action", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {
+        betterAuth: betterAuthSlice.reducer,
+      },
+    });
+
+    store.dispatch(betterAuthSlice.actions.logout());
+    await Promise.resolve();
+
+    expect(mockAuthClient.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("global auth/logout action signs out and clears session", async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {
+        betterAuth: betterAuthSlice.reducer,
+      },
+    });
+
+    store.dispatch(
+      betterAuthSlice.actions.setSession({
+        user: {
+          createdAt: new Date(),
+          email: "test@example.com",
+          emailVerified: true,
+          id: "user-123",
+          image: null,
+          name: "Test User",
+          updatedAt: new Date(),
+        },
+        userId: "user-123",
+      })
+    );
+    expect(store.getState().betterAuth.isAuthenticated).toBe(true);
+
+    store.dispatch({type: "auth/logout"});
+    await Promise.resolve();
+
+    expect(mockAuthClient.signOut).toHaveBeenCalledTimes(1);
+    expect(store.getState().betterAuth.isAuthenticated).toBe(false);
+    expect(store.getState().betterAuth.userId).toBeNull();
   });
 });
 
