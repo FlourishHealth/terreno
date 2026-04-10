@@ -40,10 +40,17 @@ test.describe("Admin Panel", () => {
     const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
 
+    // Get the admin user's ID for the required ownerId field
+    const meRes = await request.get(`${API_URL}/auth/me`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+    const meData = (await meRes.json()) as any;
+    const adminUserId = meData._id ?? meData.data?._id;
+
     // Create a todo via the admin API
     const todoTitle = `Admin Todo ${Date.now()}`;
     const createRes = await request.post(`${API_URL}/admin/todos`, {
-      data: {title: todoTitle},
+      data: {title: todoTitle, ownerId: adminUserId},
       headers: {authorization: `Bearer ${token}`},
     });
     expect(createRes.ok()).toBeTruthy();
