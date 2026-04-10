@@ -80,7 +80,7 @@
         "multer": "^1.4.5-lts.1",
       },
       "devDependencies": {
-        "@biomejs/biome": "^2.3.6",
+        "@biomejs/biome": "catalog:",
         "@types/bun": "^1.2.4",
         "@types/express": "^5.0.6",
         "@types/luxon": "catalog:",
@@ -89,7 +89,7 @@
         "@types/supertest": "^6.0.2",
         "passport-local-mongoose": "^9.0.1",
         "supertest": "^7.0.0",
-        "typescript": "5.8.2",
+        "typescript": "catalog:",
         "winston": "^3.18.3",
       },
       "peerDependencies": {
@@ -4228,8 +4228,6 @@
     "@socket.io/mongo-adapter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
 
     "@socket.io/redis-adapter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
-
-    "@terreno/ai/typescript": ["typescript@5.8.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="],
 
     "@terreno/api-health/typescript": ["typescript@5.8.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ=="],
 
