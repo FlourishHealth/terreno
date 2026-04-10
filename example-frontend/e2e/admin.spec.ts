@@ -46,7 +46,7 @@ test.describe("Admin Panel", () => {
 
     // Fill in the title field with a unique value
     const todoTitle = `Admin Todo ${Date.now()}`;
-    const titleInput = page.getByTestId("admin-field-title");
+    const titleInput = page.getByRole("textbox").first();
     await titleInput.fill(todoTitle);
 
     // Save the form — redirects back to the model table
