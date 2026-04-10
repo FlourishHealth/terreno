@@ -79,12 +79,9 @@ mock.module("./langfuseCache", () => ({
 const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
   "./langfusePrompts"
 );
-const {
-  __clearCache,
-  __countKeys,
-  __getSecondsUntilExpiry,
-  __seedCache,
-} = await import("./langfuseCache");
+const {__clearCache, __countKeys, __getSecondsUntilExpiry, __seedCache} = await import(
+  "./langfuseCache"
+);
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},
