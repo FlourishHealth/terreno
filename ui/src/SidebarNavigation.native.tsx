@@ -150,23 +150,16 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
         onPress={handleOpen}
         style={{
           alignItems: "center",
-          backgroundColor: theme.surface.primary,
-          borderRadius: theme.radius.full,
-          elevation: 4,
           height: 44,
           justifyContent: "center",
           left: 16,
           position: "absolute",
-          shadowColor: "#000",
-          shadowOffset: {height: 2, width: 0},
-          shadowOpacity: 0.25,
-          shadowRadius: 4,
           top: 16,
           width: 44,
           zIndex: 10,
         }}
       >
-        <Icon color="inverted" iconName="bars" size="md" />
+        <Icon color="primary" iconName="bars" size="md" />
       </Pressable>
 
       {/* Backdrop */}
