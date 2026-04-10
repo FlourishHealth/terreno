@@ -77,6 +77,9 @@
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "@terreno/api",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "mongoose": "^8.0.0"
   },

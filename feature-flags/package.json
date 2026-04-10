@@ -30,6 +30,9 @@
   },
   "main": "dist/index.js",
   "name": "@terreno/feature-flags",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"

@@ -41,5 +41,8 @@
     "ai",
     "code-generation"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }
