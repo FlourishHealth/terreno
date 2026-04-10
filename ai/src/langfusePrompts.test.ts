@@ -25,30 +25,39 @@ interface CachedPromptEntry {
 
 const promptCache = new Map<string, CachedPromptEntry>();
 
+const clearPromptCache = (): void => {
+  promptCache.clear();
+};
+
+const countPromptCacheKeys = (keyPattern?: string): number => {
+  if (!keyPattern) {
+    return promptCache.size;
+  }
+
+  const regex = new RegExp(keyPattern);
+  return [...promptCache.keys()].filter((key) => regex.test(key)).length;
+};
+
+const getSecondsUntilExpiry = (key: string): number | null => {
+  const cached = promptCache.get(key);
+  if (!cached) {
+    return null;
+  }
+  return (cached.expiresAtMs - Date.now()) / 1000;
+};
+
+const seedPromptCache = (params: {
+  key: string;
+  ttlSeconds: number;
+  value: LangfuseCachedPrompt;
+}): void => {
+  promptCache.set(params.key, {
+    expiresAtMs: Date.now() + params.ttlSeconds * 1000,
+    value: params.value,
+  });
+};
+
 mock.module("./langfuseCache", () => ({
-  __clearCache: () => {
-    promptCache.clear();
-  },
-  __countKeys: (keyPattern?: string) => {
-    if (!keyPattern) {
-      return promptCache.size;
-    }
-    const regex = new RegExp(keyPattern);
-    return [...promptCache.keys()].filter((key) => regex.test(key)).length;
-  },
-  __getSecondsUntilExpiry: (key: string) => {
-    const cached = promptCache.get(key);
-    if (!cached) {
-      return null;
-    }
-    return (cached.expiresAtMs - Date.now()) / 1000;
-  },
-  __seedCache: (params: {key: string; ttlSeconds: number; value: LangfuseCachedPrompt}) => {
-    promptCache.set(params.key, {
-      expiresAtMs: Date.now() + params.ttlSeconds * 1000,
-      value: params.value,
-    });
-  },
   getCached: async (key: string) => {
     const cached = promptCache.get(key);
     if (!cached) {
@@ -78,9 +87,6 @@ mock.module("./langfuseCache", () => ({
 
 const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
   "./langfusePrompts"
-);
-const {__clearCache, __countKeys, __getSecondsUntilExpiry, __seedCache} = await import(
-  "./langfuseCache"
 );
 
 const textPrompt: LangfuseCachedPrompt = {
@@ -150,7 +156,7 @@ describe("compilePrompt", () => {
 
 describe("getPrompt", () => {
   beforeEach(async () => {
-    __clearCache();
+    clearPromptCache();
     mockPromptCreate.mockClear();
     mockPromptGet.mockClear();
     mockPromptGet.mockImplementation(async (name: string, _options?: Record<string, unknown>) => ({
@@ -165,7 +171,7 @@ describe("getPrompt", () => {
   });
 
   afterEach(async () => {
-    __clearCache();
+    clearPromptCache();
   });
 
   it("fetches from Langfuse when cache is empty", async () => {
@@ -199,7 +205,7 @@ describe("getPrompt", () => {
       label: "staging",
     });
 
-    const countAfter = __countKeys("^prompt:test-prompt:staging$");
+    const countAfter = countPromptCacheKeys("^prompt:test-prompt:staging$");
     expect(countAfter).toBe(1);
   });
 
@@ -211,13 +217,13 @@ describe("getPrompt", () => {
 
   it("writes fetched prompt to cache", async () => {
     await getPrompt("test-prompt");
-    const countAfter = __countKeys("^prompt:test-prompt:production$");
+    const countAfter = countPromptCacheKeys("^prompt:test-prompt:production$");
     expect(countAfter).toBe(1);
   });
 
   it("respects a custom prompt cache TTL", async () => {
     await getPrompt("ttl-prompt", {}, {cache: {promptTtlSeconds: 5}});
-    const remainingSeconds = __getSecondsUntilExpiry("prompt:ttl-prompt:production");
+    const remainingSeconds = getSecondsUntilExpiry("prompt:ttl-prompt:production");
     expect(remainingSeconds).not.toBeNull();
     expect(remainingSeconds ?? 0).toBeGreaterThan(0);
     expect(remainingSeconds).toBeLessThanOrEqual(6);
@@ -234,7 +240,7 @@ describe("getPrompt", () => {
 
 describe("createPrompt", () => {
   beforeEach(async () => {
-    __clearCache();
+    clearPromptCache();
     mockPromptCreate.mockClear();
     mockPromptGet.mockClear();
     mockPromptGet.mockImplementation(async (name: string, _options?: Record<string, unknown>) => ({
@@ -249,7 +255,7 @@ describe("createPrompt", () => {
   });
 
   afterEach(async () => {
-    __clearCache();
+    clearPromptCache();
   });
 
   it("creates text prompts with default labels and tags", async () => {
@@ -272,17 +278,17 @@ describe("createPrompt", () => {
   });
 
   it("creates chat prompts, invalidates old cache entries, and refetches", async () => {
-    __seedCache({
+    seedPromptCache({
       key: "prompt:chat-prompt:production",
       ttlSeconds: 60,
       value: textPrompt,
     });
-    __seedCache({
+    seedPromptCache({
       key: "prompt:chat-prompt:staging",
       ttlSeconds: 60,
       value: textPrompt,
     });
-    __seedCache({
+    seedPromptCache({
       key: "prompt:other-prompt:production",
       ttlSeconds: 60,
       value: textPrompt,
@@ -311,9 +317,9 @@ describe("createPrompt", () => {
       type: "chat",
     });
 
-    const remainingStaging = __countKeys("^prompt:chat-prompt:staging$");
-    const remainingProduction = __countKeys("^prompt:chat-prompt:production$");
-    const remainingOther = __countKeys("^prompt:other-prompt:production$");
+    const remainingStaging = countPromptCacheKeys("^prompt:chat-prompt:staging$");
+    const remainingProduction = countPromptCacheKeys("^prompt:chat-prompt:production$");
+    const remainingOther = countPromptCacheKeys("^prompt:other-prompt:production$");
     expect(remainingStaging).toBe(0);
     expect(remainingProduction).toBe(1);
     expect(remainingOther).toBe(1);
@@ -326,25 +332,25 @@ describe("createPrompt", () => {
 
 describe("invalidatePromptCache", () => {
   beforeEach(async () => {
-    __clearCache();
+    clearPromptCache();
   });
 
   afterEach(async () => {
-    __clearCache();
+    clearPromptCache();
   });
 
   it("invalidates all labels for a prompt name", async () => {
-    __seedCache({
+    seedPromptCache({
       key: "prompt:email-template:production",
       ttlSeconds: 60,
       value: textPrompt,
     });
-    __seedCache({
+    seedPromptCache({
       key: "prompt:email-template:staging",
       ttlSeconds: 60,
       value: textPrompt,
     });
-    __seedCache({
+    seedPromptCache({
       key: "prompt:another-template:production",
       ttlSeconds: 60,
       value: textPrompt,
@@ -352,8 +358,8 @@ describe("invalidatePromptCache", () => {
 
     await invalidatePromptCache("email-template");
 
-    const emailTemplateEntries = __countKeys("^prompt:email-template:");
-    const otherTemplateEntries = __countKeys("^prompt:another-template:");
+    const emailTemplateEntries = countPromptCacheKeys("^prompt:email-template:");
+    const otherTemplateEntries = countPromptCacheKeys("^prompt:another-template:");
 
     expect(emailTemplateEntries).toBe(0);
     expect(otherTemplateEntries).toBe(1);
