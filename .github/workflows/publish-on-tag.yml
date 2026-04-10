@@ -912,11 +912,11 @@ jobs:
           assignees: joshgachnang
           reviewers: joshgachnang
 
-      - name: Auto-merge version bump PR
+      - name: Enable auto-merge for version bump PR
         if: steps.create-pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch
+        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --auto
 
   notify:
     needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
