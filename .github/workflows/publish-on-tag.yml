@@ -130,7 +130,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -274,7 +274,7 @@ jobs:
         run: bun run test:ci
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/ui@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -421,7 +421,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -501,7 +501,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/admin-backend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -595,7 +595,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/admin-frontend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -684,7 +684,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/ai@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -767,7 +767,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
