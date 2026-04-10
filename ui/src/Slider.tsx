@@ -152,7 +152,8 @@ export const Slider: FC<SliderProps> = ({
     thumbStyle: {
       backgroundColor: "white",
       borderRadius: 24,
-      ...(Platform.OS === "web" ? {boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)"} : {elevation: 5}),
+      ...(Platform.OS === "web" ? {boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)"} : {}),
+      elevation: 5,
       height: 48,
       width: 48,
     },

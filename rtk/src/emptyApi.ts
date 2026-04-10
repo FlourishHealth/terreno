@@ -22,6 +22,15 @@ import {IsWeb} from "./platform";
 
 const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : (): void => {};
 
+/** Response from Terreno `GET /version-check` (VersionCheckPlugin). */
+export interface VersionCheckResponse {
+  message?: string;
+  requiredVersion?: number;
+  status: "ok" | "warning" | "required";
+  updateUrl?: string;
+  warningVersion?: number;
+}
+
 axiosRetry(axios, {retries: 3, retryDelay: axiosRetry.exponentialDelay});
 
 const mutex = new Mutex();
@@ -205,7 +214,11 @@ export const staggeredBaseQuery = retry(
     await mutex.waitForUnlock();
     let token = await getAuthToken();
 
-    if (["emailLogin", "emailSignUp", "googleLogin", "getZoomSignature"].includes(api.endpoint)) {
+    if (
+      ["emailLogin", "emailSignUp", "getVersionCheck", "getZoomSignature", "googleLogin"].includes(
+        api.endpoint
+      )
+    ) {
       // just pass thru the request without token validation for login/signup requests
       // (even if there's a stale token in storage)
       return getBaseQuery(args, api, extraOptions, token);
@@ -328,8 +341,16 @@ export const staggeredBaseQuery = retry(
 export const emptySplitApi = createApi({
   baseQuery: staggeredBaseQuery,
   endpoints: (builder) => ({
+    getVersionCheck: builder.query<VersionCheckResponse, {platform: string; version: number}>({
+      query: ({platform, version}) => ({
+        params: {platform, version},
+        url: "/version-check",
+      }),
+    }),
     // biome-ignore lint/suspicious/noExplicitAny: Generic
     ...generateProfileEndpoints(builder as any, "users"), // using 'users' here since it is highly intertwined with Users
   }),
   reducerPath: "terreno-rtk",
 });
+
+export const {useGetVersionCheckQuery, useLazyGetVersionCheckQuery} = emptySplitApi;

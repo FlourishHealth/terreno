@@ -30,6 +30,16 @@
     "react": "catalog:",
     "typescript": "catalog:"
   },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./buildNumber": {
+      "default": "./dist/buildNumber.js",
+      "types": "./dist/buildNumber.d.ts"
+    }
+  },
   "files": [
     "dist/**/*",
     "src/**/*"
@@ -47,8 +57,9 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "test:ci": "echo 'No tests'"
+    "test": "bun test",
+    "test:ci": "bun test"
   },
   "types": "dist/index.d.ts",
-  "version": "0.7.0"
+  "version": "0.9.2"
 }

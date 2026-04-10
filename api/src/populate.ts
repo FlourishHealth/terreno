@@ -102,6 +102,37 @@ function getPathInSchema(schema: any, path: string): string {
 }
 
 // Replaces populated properties with the populated schema.
+// Recursively walks a Mongoose schema and fixes any Mixed fields in the
+// OpenAPI properties so they use an empty schema (accepts any type) instead
+// of the `{type: "object", properties: {}}` that mongoose-to-swagger emits.
+export const fixMixedFields = (schema: any, properties: Record<string, any>): void => {
+  if (!properties || !schema) {
+    return;
+  }
+
+  for (const key of Object.keys(properties)) {
+    const schemaPath = schema.path(key);
+    if (!schemaPath) {
+      continue;
+    }
+
+    // Direct Mixed field
+    if (schemaPath.instance === "Mixed") {
+      properties[key] = {description: properties[key]?.description};
+      continue;
+    }
+
+    // Array of sub-documents — check each sub-field for Mixed
+    if (
+      schemaPath.instance === "Array" &&
+      schemaPath.schema &&
+      properties[key]?.items?.properties
+    ) {
+      fixMixedFields(schemaPath.schema, properties[key].items.properties);
+    }
+  }
+};
+
 export function getOpenApiSpecForModel(
   model: any,
   {
@@ -112,6 +143,8 @@ export function getOpenApiSpecForModel(
   const modelSwagger = m2s(model, {
     props: ["required", "enum"],
   });
+
+  fixMixedFields(model.schema, modelSwagger.properties);
 
   if (populatePaths && isArray(populatePaths)) {
     for (const populatePath of populatePaths) {

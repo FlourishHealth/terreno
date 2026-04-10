@@ -1,9 +1,4 @@
 import {logger} from "@terreno/api";
-import type {
-  CreateChatPromptBody,
-  CreateTextPromptBody,
-  GetLangfusePromptSuccessData,
-} from "langfuse-core";
 
 import {getCached, invalidateCache, setCached} from "./langfuseCache";
 import {getLangfuseClient} from "./langfuseClient";
@@ -20,30 +15,6 @@ const DEFAULT_LABEL = "production";
 
 const buildPromptCacheKey = (name: string, label?: string): string => {
   return `prompt:${name}:${label ?? DEFAULT_LABEL}`;
-};
-
-const toLatestVersion = (data: GetLangfusePromptSuccessData): LangfuseCachedPrompt => {
-  const base = {
-    config: (data.config ?? {}) as Record<string, unknown>,
-    labels: data.labels ?? [],
-    name: data.name,
-    tags: data.tags ?? [],
-    version: data.version,
-  };
-
-  if (data.type === "chat") {
-    return {
-      ...base,
-      prompt: data.prompt as ChatMessage[],
-      type: "chat",
-    };
-  }
-
-  return {
-    ...base,
-    prompt: data.prompt as string,
-    type: "text",
-  };
 };
 
 export const getPrompt = async (
@@ -66,16 +37,21 @@ export const getPrompt = async (
     `Langfuse prompt cache miss: fetching "${name}" from API (label: ${options.label ?? DEFAULT_LABEL})`
   );
   const client = getLangfuseClient();
-  const result = await client.getPromptStateless(name, undefined, options.label);
+  const prompt = await client.prompt.get(name, {
+    cacheTtlSeconds: 0,
+    label: options.label ?? DEFAULT_LABEL,
+  });
 
-  if (result.fetchResult !== "success") {
-    logger.warn(
-      `Langfuse prompt fetch failed: "${name}" — ${result.data.message ?? "unknown error"}`
-    );
-    throw new Error(`Failed to fetch prompt "${name}": ${result.data.message ?? "unknown error"}`);
-  }
+  const cachedPrompt: LangfuseCachedPrompt = {
+    config: (prompt.config ?? {}) as Record<string, unknown>,
+    labels: prompt.labels ?? [],
+    name: prompt.name,
+    prompt: prompt.prompt as string | ChatMessage[],
+    tags: prompt.tags ?? [],
+    type: prompt.type as "text" | "chat",
+    version: prompt.version,
+  };
 
-  const cachedPrompt = toLatestVersion(result.data);
   logger.info(`Langfuse prompt fetched: "${name}" v${cachedPrompt.version} (ttl: ${ttl}s)`);
   await setCached(cacheKey, cachedPrompt, ttl);
   return cachedPrompt;
@@ -112,32 +88,27 @@ export const createPrompt = async (params: {
   const client = getLangfuseClient();
 
   if (params.type === "text") {
-    const body: CreateTextPromptBody = {
+    await client.prompt.create({
       config: params.config,
-      isActive: true,
       labels: params.labels ?? [DEFAULT_LABEL],
       name: params.name,
       prompt: params.prompt as string,
       tags: params.tags ?? [],
       type: "text",
-    };
-    await client.createPrompt(body);
+    });
   } else {
     const chatMessages = (params.prompt as ChatMessage[]).map((msg) => ({
       content: msg.content,
       role: msg.role,
-      type: "chatmessage" as const,
     }));
-    const body: CreateChatPromptBody = {
+    await client.prompt.create({
       config: params.config,
-      isActive: true,
       labels: params.labels ?? [DEFAULT_LABEL],
       name: params.name,
       prompt: chatMessages,
       tags: params.tags ?? [],
       type: "chat",
-    };
-    await client.createPrompt(body);
+    });
   }
 
   await invalidatePromptCache(params.name);

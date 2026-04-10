@@ -25,6 +25,7 @@
     "@react-native-community/datetimepicker": "catalog:",
     "@react-native-community/slider": "catalog:",
     "@react-native-picker/picker": "catalog:",
+    "@react-navigation/native": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "~8.0.8",
     "expo-document-picker": "~14.0.8",
@@ -40,6 +41,7 @@
     "expo-splash-screen": "catalog:",
     "expo-updates": "catalog:",
     "expo-web-browser": "catalog:",
+    "jspdf": "^4.2.0",
     "libphonenumber-js": "^1.12.36",
     "linkify-it": "catalog:",
     "lodash": "catalog:",
@@ -95,6 +97,7 @@
     "react-router-dom": "catalog:",
     "react-test-renderer": "catalog:",
     "tsc-watch": "^7.1.1",
+    "typedoc": "~0.28.17",
     "typescript": "catalog:"
   },
   "files": [
@@ -128,7 +131,7 @@
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
-    "types": "bunx typedoc"
+    "types": "bun typedoc"
   },
-  "version": "0.7.1"
+  "version": "0.9.2"
 }

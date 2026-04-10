@@ -7,28 +7,21 @@ exports[`Link renders correctly with href 1`] = `
     {
       "$$typeof": Symbol(react.test.json),
       "children": [
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            "Click me",
-          ],
-          "props": {
-            "numberOfLines": 0,
-            "selectable": undefined,
-            "style": {
-              "color": "#0A7092",
-              "fontFamily": "text-regular",
-              "fontSize": 14,
-              "textAlign": "left",
-              "textDecorationLine": "underline",
-            },
-            "testID": undefined,
-          },
-          "type": "Text",
-        },
+        "Click me",
       ],
-      "props": {},
-      "type": "View",
+      "props": {
+        "numberOfLines": 0,
+        "selectable": undefined,
+        "style": {
+          "color": "#0A7092",
+          "fontFamily": "text-regular",
+          "fontSize": 14,
+          "textAlign": "left",
+          "textDecorationLine": "underline",
+        },
+        "testID": undefined,
+      },
+      "type": "Text",
     },
   ],
   "props": {

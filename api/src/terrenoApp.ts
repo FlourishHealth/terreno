@@ -1,9 +1,7 @@
 import * as Sentry from "@sentry/bun";
-import openapi from "@wesleytodd/openapi";
 import cors from "cors";
 import express from "express";
 import qs from "qs";
-
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
@@ -14,6 +12,7 @@ import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import type {TerrenoPlugin} from "./terrenoPlugin";
+import openapi from "./vendor/wesleytodd-openapi/index";
 
 type CorsOrigin =
   | string
@@ -302,8 +301,6 @@ export class TerrenoApp {
       app.use("/swagger", oapi.swaggerui());
     }
 
-    addMeRoutes(app, options.userModel as any, options.authOptions);
-
     // GitHub OAuth
     if (options.githubAuth) {
       setupGitHubAuth(app, options.userModel as any, options.githubAuth);
@@ -318,14 +315,16 @@ export class TerrenoApp {
     // Mount registered model routers and plugins
     for (const registration of this.registrations) {
       if (this.isModelRouterRegistration(registration)) {
-        app.use(registration.path, registration.router);
+        const router = registration._buildWithOpenApi(oapi);
+        app.use(registration.path, router);
       } else {
-        registration.register(app);
+        registration.register(app, oapi);
       }
     }
 
-    // Inject openApi into model router options for registered routers
-    // The openApi middleware handles this via the oapi instance already mounted on the app
+    // /auth/me must be registered after plugins so that session middleware
+    // (e.g. Better Auth) has a chance to populate req.user first.
+    addMeRoutes(app, options.userModel as any, options.authOptions);
 
     Sentry.setupExpressErrorHandler(app);
 

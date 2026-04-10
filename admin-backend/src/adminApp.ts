@@ -4,6 +4,7 @@ import {
   authenticateMiddleware,
   BackgroundTask,
   type BackgroundTaskDocument,
+  checkPermissions,
   getOpenApiSpecForModel,
   logger,
   type ModelRouterOptions,
@@ -13,6 +14,7 @@ import {
   type ScriptResult,
   type ScriptRunner,
   TaskCancelledError,
+  VersionConfig,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
@@ -40,6 +42,10 @@ export interface AdminModelConfig {
   defaultSort?: string;
   /** Per-field overrides for widget type and other display options */
   fieldOverrides?: Record<string, AdminFieldOverride>;
+  /** Ordered list of field names for the form. Fields not listed are appended at the end. */
+  fieldOrder?: string[];
+  /** Fields to hide from admin forms/responses (e.g., password hash fields). */
+  hiddenFields?: string[];
 }
 
 /**
@@ -74,6 +80,8 @@ interface AdminFieldMeta {
   default?: any;
   ref?: string;
   widget?: string;
+  /** For array fields: metadata about each item's sub-fields */
+  items?: Record<string, AdminFieldMeta>;
 }
 
 interface AdminModelMeta {
@@ -83,6 +91,7 @@ interface AdminModelMeta {
   listFields: string[];
   defaultSort: string;
   fields: Record<string, AdminFieldMeta>;
+  fieldOrder?: string[];
 }
 
 interface AdminScriptMeta {
@@ -91,9 +100,34 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
+  customScreens?: {displayName: string; name: string}[];
   models: AdminModelMeta[];
   scripts: AdminScriptMeta[];
 }
+
+const toPlainObject = (value: any): any => {
+  if (value && typeof value === "object" && typeof value.toObject === "function") {
+    return value.toObject();
+  }
+  return value;
+};
+
+const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknown => {
+  if (Array.isArray(value)) {
+    return value.map((item) => removeHiddenFields(item, hiddenFieldSet));
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const plainValue = toPlainObject(value as any);
+  const nextValue: Record<string, unknown> = {};
+  for (const [key, fieldValue] of Object.entries(plainValue)) {
+    if (!hiddenFieldSet.has(key)) {
+      nextValue[key] = fieldValue;
+    }
+  }
+  return nextValue;
+};
 
 const extractFieldMeta = (
   properties: Record<string, any>,
@@ -109,6 +143,12 @@ const extractFieldMeta = (
       required: required.includes(key),
       type: prop.type ?? "string",
     };
+
+    // For array fields, extract item sub-field metadata
+    if (prop.type === "array" && prop.items?.properties) {
+      const itemRequired: string[] = prop.items.required ?? [];
+      fields[key].items = extractFieldMeta(prop.items.properties, itemRequired);
+    }
 
     // Check for ObjectId references in the raw property
     if (!fields[key].ref && prop.type === "string" && prop.format === "objectid") {
@@ -186,16 +226,21 @@ export class AdminApp {
    *
    * @param app - The Express application instance to register with
    */
-  register(app: express.Application): void {
+  register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/admin";
     const modelConfigs = this.options.models;
 
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
       const {properties, required} = getOpenApiSpecForModel(config.model);
+      const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+      const filteredProperties = Object.fromEntries(
+        Object.entries(properties).filter(([key]) => !hiddenFieldSet.has(key))
+      );
+      const filteredRequired = required.filter((key) => !hiddenFieldSet.has(key));
 
       // Extract ref information directly from the Mongoose schema
-      const fields = extractFieldMeta(properties, required);
+      const fields = extractFieldMeta(filteredProperties, filteredRequired);
       for (const [key, field] of Object.entries(fields)) {
         const schemaPath = config.model.schema.path(key);
         if (schemaPath) {
@@ -222,8 +267,9 @@ export class AdminApp {
       return {
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
+        fieldOrder: config.fieldOrder,
         fields,
-        listFields: config.listFields,
+        listFields: config.listFields.filter((field) => !hiddenFieldSet.has(field)),
         name: config.model.modelName,
         routePath: `${basePath}${config.routePath}`,
       };
@@ -236,16 +282,99 @@ export class AdminApp {
       name: script.name,
     }));
 
-    const configResponse: AdminConfigResponse = {models: configModels, scripts: configScripts};
+    const configResponse: AdminConfigResponse = {
+      customScreens: [
+        {
+          displayName: "Version Config",
+          name: "version-config",
+        },
+      ],
+      models: configModels,
+      scripts: configScripts,
+    };
 
     // GET /admin/config
-    app.get(`${basePath}/config`, (_req, res) => {
-      return res.json(configResponse);
-    });
+    app.get(
+      `${basePath}/config`,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        return res.json(configResponse);
+      })
+    );
+
+    // Version config singleton routes (GET/PUT /admin/version-config)
+    const versionConfigPath = `${basePath}/version-config`;
+    app.get(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const config = await VersionConfig.findOneOrNone({_singleton: "config"});
+        const defaults = {
+          mobileRequiredVersion: 0,
+          mobileWarningVersion: 0,
+          requiredMessage: "This version is no longer supported. Please update to continue.",
+          updateUrl: undefined as string | undefined,
+          warningMessage: "A new version is available. Please update for the best experience.",
+          webRequiredVersion: 0,
+          webWarningVersion: 0,
+        };
+        return res.json(config ?? defaults);
+      })
+    );
+    app.put(
+      versionConfigPath,
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as any))) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const raw = req.body as Record<string, unknown>;
+        const allowedFields = [
+          "mobileRequiredVersion",
+          "mobileWarningVersion",
+          "requiredMessage",
+          "updateUrl",
+          "webRequiredVersion",
+          "webWarningVersion",
+          "warningMessage",
+        ] as const;
+        const setFields: Record<string, unknown> = {};
+        const unsetFields: Record<string, 1> = {};
+        for (const field of allowedFields) {
+          if (raw[field] === null) {
+            unsetFields[field] = 1;
+          } else if (raw[field] !== undefined) {
+            setFields[field] = raw[field];
+          }
+        }
+        const updateOp: Record<string, unknown> = {};
+        if (Object.keys(setFields).length > 0) {
+          updateOp.$set = setFields;
+        }
+        if (Object.keys(unsetFields).length > 0) {
+          updateOp.$unset = unsetFields;
+        }
+        const doc = await VersionConfig.findOneAndUpdate({_singleton: "config"}, updateOp, {
+          new: true,
+          runValidators: true,
+          setDefaultsOnInsert: true,
+          upsert: true,
+        }).lean();
+        return res.json(doc);
+      })
+    );
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
+      const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const routerOptions: ModelRouterOptions<any> = {
+        ...(openApi ? {openApi: openApi as any} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],
@@ -253,6 +382,11 @@ export class AdminApp {
           read: [Permissions.IsAdmin],
           update: [Permissions.IsAdmin],
         },
+        responseHandler:
+          hiddenFieldSet.size > 0
+            ? async (value, _method, _request, _options): Promise<any> =>
+                removeHiddenFields(value, hiddenFieldSet) as any
+            : undefined,
         sort: config.defaultSort ?? "-created",
       };
 

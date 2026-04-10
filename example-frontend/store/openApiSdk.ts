@@ -348,6 +348,8 @@ export const {
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
+  useGetVersionCheckQuery,
+  useLazyGetVersionCheckQuery,
   usePatchGptHistoriesByIdMutation,
   usePostGptHistoriesMutation,
   useGetTodosQuery,

@@ -1,8 +1,9 @@
-import {AdminModelTable, AdminScriptList} from "@terreno/admin-frontend";
+import {AdminModelTable, AdminScriptList, AdminVersionConfig} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React from "react";
 import {useReadProfile} from "@/hooks/useReadProfile";
 import {terrenoApi} from "@/store/sdk";
+import AIAdminScreen from "../AIAdminScreen";
 
 const ADMIN_BASE_URL = "/admin";
 
@@ -12,6 +13,14 @@ const AdminTableScreen: React.FC = () => {
 
   if (model === "__scripts") {
     return <AdminScriptList api={terrenoApi} baseUrl={ADMIN_BASE_URL} isAdmin={!!profile?.admin} />;
+  }
+
+  if (model === "version-config") {
+    return <AdminVersionConfig api={terrenoApi} baseUrl={ADMIN_BASE_URL} />;
+  }
+
+  if (model === "ai-admin") {
+    return <AIAdminScreen />;
   }
 
   return <AdminModelTable api={terrenoApi} baseUrl={ADMIN_BASE_URL} modelName={model} />;

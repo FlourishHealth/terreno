@@ -129,6 +129,17 @@ export function RNPickerSelect({
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
 
+  // On web, blur the active element before the picker modal opens to prevent
+  // "aria-hidden on a focused element" warnings from React Native Web.
+  useEffect(() => {
+    if (showPicker && Platform.OS === "web") {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.blur();
+      }
+    }
+  }, [showPicker]);
+
   const options = useMemo(() => {
     if (isEqual(placeholder, {})) {
       return [...items];
