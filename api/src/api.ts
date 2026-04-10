@@ -73,6 +73,30 @@ const COMPLEX_QUERY_PARAMS = ["$and", "$or"];
 export type RESTMethod = "list" | "create" | "read" | "update" | "delete";
 
 /**
+ * Interface for the vendored @wesleytodd/openapi Express middleware.
+ * Provides methods for building OpenAPI documentation from Express routes.
+ */
+export interface OpenApiMiddleware {
+  /** The middleware itself is callable as Express middleware. */
+  (req: express.Request, res: express.Response, next: express.NextFunction): void;
+  /** Register a path-level OpenAPI schema, returning an Express middleware that attaches the schema to the route. */
+  path: (schema?: Record<string, unknown>) => express.RequestHandler;
+  /** Register or retrieve an OpenAPI component definition (schemas, responses, parameters, etc). */
+  component: (
+    type: string,
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** Shorthand for component("schemas", ...) */
+  schema: (
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** The generated OpenAPI document */
+  document: Record<string, unknown>;
+}
+
+/**
  * This is the main configuration.
  * @param T - the base document type. This should not include Mongoose models, just the types of the object.
  */
@@ -110,8 +134,8 @@ export interface ModelRouterOptions<T> {
    */
   queryFilter?: (
     user?: User,
-    query?: Record<string, any>
-  ) => Record<string, any> | null | Promise<Record<string, any> | null>;
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   /**
    * Transformers allow data to be transformed before actions are executed,
    * and serialized before being returned to the user.
@@ -137,7 +161,7 @@ export interface ModelRouterOptions<T> {
    * list queries. Accepts any Mongoose-style queries, and runs for all user types.
    *    defaultQueryParams: \{hidden: false\} // By default, don't show objects with hidden=true
    * These can be overridden by the user if not disallowed by queryFilter. */
-  defaultQueryParams?: {[key: string]: any};
+  defaultQueryParams?: Record<string, unknown>;
   /**
    * Manages Mongoose populations before returning from all methods (list, read, create, etc).
    * For each population:
@@ -161,14 +185,17 @@ export interface ModelRouterOptions<T> {
    *  or 500. */
   maxLimit?: number; // defaults to 500
   /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
-  endpoints?: (router: any, options?: Partial<ModelRouterOptions<T>>) => void;
+  endpoints?: (router: express.Router, options?: Partial<ModelRouterOptions<T>>) => void;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
    * Return null to return a generic 403 error. Throw an APIError to return a 400 with specific
    * error information.
    */
-  preCreate?: (value: any, request: express.Request) => T | Promise<T> | null;
+  preCreate?: (
+    value: Partial<T> | (Partial<T> | undefined)[] | null | undefined,
+    request: express.Request
+  ) => T | Promise<T> | null;
   /**
    * Hook that runs after `transformer.transform` but before changes are made for update operations.
    * Can update the body fields based on the request or the user.
@@ -250,17 +277,17 @@ export interface ModelRouterOptions<T> {
   /**
    * The OpenAPI generator for this server. This is used to generate the OpenAPI documentation.
    */
-  openApi?: any;
+  openApi?: OpenApiMiddleware;
   /**
    * Overwrite parts of the configuration for the OpenAPI generator.
    * This will be merged with the generated configuration.
    */
   openApiOverwrite?: {
-    get?: any;
-    list?: any;
-    create?: any;
-    update?: any;
-    delete?: any;
+    get?: Record<string, unknown>;
+    list?: Record<string, unknown>;
+    create?: Record<string, unknown>;
+    update?: Record<string, unknown>;
+    delete?: Record<string, unknown>;
   };
   /**
    * Overwrite parts of the model properties for the OpenAPI generator.
@@ -268,7 +295,7 @@ export interface ModelRouterOptions<T> {
    * This is useful if you add custom properties to the model during serialize, for example,
    * that you want to be documented and typed in the SDK.
    */
-  openApiExtraModelProperties?: any;
+  openApiExtraModelProperties?: Record<string, unknown>;
   /**
    * Enable runtime validation of request bodies against the OpenAPI schema.
    * When enabled, requests that don't match the documented schema will return 400 errors.

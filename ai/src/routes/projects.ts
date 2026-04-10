@@ -27,7 +27,7 @@ export const addProjectRoutes = (
         read: [Permissions.IsOwner],
         update: [Permissions.IsOwner],
       },
-      preCreate: (body: Record<string, unknown>, req: express.Request) =>
+      preCreate: (body, req: express.Request) =>
         ({
           ...body,
           userId: (req as any).user?._id,

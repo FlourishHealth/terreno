@@ -42,7 +42,7 @@ export function setupEnvironment(): void {
   }
 }
 
-export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<any>>) => void;
+export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
 const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   const options = (res.locals.loggingOptions ?? {}) as LoggingOptions;
