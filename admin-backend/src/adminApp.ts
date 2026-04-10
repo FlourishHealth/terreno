@@ -387,6 +387,7 @@ export class AdminApp {
           }
         }
       }
+      logger.info(`Admin search fields for ${config.model.modelName}`, {searchableFields});
 
       app.get(
         `${basePath}${config.routePath}/search`,
@@ -417,8 +418,17 @@ export class AdminApp {
           }
 
           const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          logger.debug("Admin search query", {
+            fields,
+            model: config.model.modelName,
+            q,
+          });
           try {
             const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            logger.debug("Admin search results", {
+              count: results.length,
+              model: config.model.modelName,
+            });
             return res.json({data: results});
           } catch (err) {
             logger.error("Admin search failed", {
