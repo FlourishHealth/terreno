@@ -1,7 +1,7 @@
 import {Picker} from "@react-native-picker/picker";
 import range from "lodash/range";
 import {useCallback, useState} from "react";
-import {type StyleProp, type TextStyle} from "react-native";
+import type {StyleProp, TextStyle} from "react-native";
 
 import {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
