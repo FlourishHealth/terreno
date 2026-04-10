@@ -52,11 +52,12 @@ test.describe("Admin Panel", () => {
     // Search for and select an owner via the ObjectId picker
     const ownerSearch = page.getByTestId("admin-picker-User-search");
     await ownerSearch.click();
-    await ownerSearch.pressSequentially("admin", {delay: 50});
-    // Wait for debounced search request to complete and results to render
-    await page.waitForLoadState("networkidle");
+    await ownerSearch.fill("admin");
+    // Trigger input event explicitly for React Native Web compatibility
+    await ownerSearch.dispatchEvent("input");
+    // Wait for debounced search (300ms) + network request to complete
     const firstResult = page.locator('[data-testid^="admin-picker-User-result-"]').first();
-    await firstResult.waitFor({state: "visible"});
+    await firstResult.waitFor({state: "visible", timeout: 10000});
     await firstResult.click();
 
     // Save the form — redirects back to the model table
