@@ -77,6 +77,7 @@ export const WebAddressAutocomplete = ({
         handleAddressChange(value);
       }}
       placeholder="Enter an address"
+      title="Street Address"
       type="text"
       value={inputValue}
     />
