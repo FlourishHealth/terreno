@@ -8,6 +8,7 @@ import {
   getOpenApiSpecForModel,
   logger,
   type ModelRouterOptions,
+  type OpenApiMiddleware,
   modelRouter,
   Permissions,
   type ScriptContext,
@@ -374,7 +375,7 @@ export class AdminApp {
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const routerOptions: ModelRouterOptions<any> = {
-        ...(openApi ? {openApi: openApi as any} : {}),
+        ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],

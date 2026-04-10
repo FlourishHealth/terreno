@@ -3,6 +3,7 @@ import {
   asyncHandler,
   authenticateMiddleware,
   type ModelRouterOptions,
+  type OpenApiMiddleware,
   modelRouter,
   Permissions,
   type TerrenoPlugin,
@@ -42,7 +43,7 @@ export class FeatureFlagsApp implements TerrenoPlugin {
   register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/feature-flags";
     const routerOptions: ModelRouterOptions<any> = {
-      ...(openApi ? ({openApi} as Partial<ModelRouterOptions<any>>) : {}),
+      ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
       permissions: {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],

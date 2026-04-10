@@ -3,7 +3,7 @@ import merge from "lodash/merge";
 import type {Model} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
-import type {ModelRouterOptions} from "./api";
+import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
 
@@ -43,7 +43,7 @@ export const defaultOpenApiErrorResponses = {
 };
 
 // We repeat this constantly, so we make it a component so we only have to define it once.
-function createAPIErrorComponent(openApi: any) {
+function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
   // Create a schema component called APIError
   openApi?.component("schemas", "APIError", {
     properties: {

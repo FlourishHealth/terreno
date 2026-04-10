@@ -283,7 +283,7 @@ export interface OpenApiBuildResult {
  */
 export class OpenApiMiddlewareBuilder {
   /** Router options containing OpenAPI configuration */
-  private options: Partial<ModelRouterOptions<any>>;
+  private options: Partial<ModelRouterOptions<unknown>>;
 
   /** Accumulated OpenAPI configuration from builder methods */
   private config: OpenApiConfig;
@@ -302,7 +302,7 @@ export class OpenApiMiddlewareBuilder {
    *
    * @param options - Router options containing the OpenAPI path configuration
    */
-  constructor(options: Partial<ModelRouterOptions<any>>) {
+  constructor(options: Partial<ModelRouterOptions<unknown>>) {
     this.options = options;
     this.config = {
       responses: {},
@@ -803,7 +803,7 @@ export class OpenApiMiddlewareBuilder {
  * ```
  */
 export function createOpenApiBuilder(
-  options: Partial<ModelRouterOptions<any>>
+  options: Partial<ModelRouterOptions<unknown>>
 ): OpenApiMiddlewareBuilder {
   return new OpenApiMiddlewareBuilder(options);
 }
