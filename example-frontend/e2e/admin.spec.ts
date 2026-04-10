@@ -44,8 +44,9 @@ test.describe("Admin Panel", () => {
     const meRes = await request.get(`${API_URL}/auth/me`, {
       headers: {authorization: `Bearer ${token}`},
     });
-    const meData = (await meRes.json()) as any;
-    const adminUserId = meData._id ?? meData.data?._id;
+    const meData = (await meRes.json()) as Record<string, unknown>;
+    const data = (meData.data ?? meData) as Record<string, unknown>;
+    const adminUserId = data._id as string;
 
     // Create a todo via the admin API
     const todoTitle = `Admin Todo ${Date.now()}`;
