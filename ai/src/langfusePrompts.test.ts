@@ -1,7 +1,8 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
-import {LangfuseCache} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
+
+const mockPromptCreate = mock(async (_params: Record<string, unknown>) => ({}));
 
 const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
   config: {},
@@ -14,10 +15,76 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
 }));
 
 mock.module("./langfuseClient", () => ({
-  getLangfuseClient: () => ({prompt: {get: mockPromptGet}}),
+  getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
 }));
 
-const {compilePrompt, getPrompt} = await import("./langfusePrompts");
+interface CachedPromptEntry {
+  expiresAtMs: number;
+  value: LangfuseCachedPrompt;
+}
+
+const promptCache = new Map<string, CachedPromptEntry>();
+
+mock.module("./langfuseCache", () => ({
+  __clearCache: () => {
+    promptCache.clear();
+  },
+  __countKeys: (keyPattern?: string) => {
+    if (!keyPattern) {
+      return promptCache.size;
+    }
+    const regex = new RegExp(keyPattern);
+    return [...promptCache.keys()].filter((key) => regex.test(key)).length;
+  },
+  __getSecondsUntilExpiry: (key: string) => {
+    const cached = promptCache.get(key);
+    if (!cached) {
+      return null;
+    }
+    return (cached.expiresAtMs - Date.now()) / 1000;
+  },
+  __seedCache: (params: {key: string; ttlSeconds: number; value: LangfuseCachedPrompt}) => {
+    promptCache.set(params.key, {
+      expiresAtMs: Date.now() + params.ttlSeconds * 1000,
+      value: params.value,
+    });
+  },
+  getCached: async (key: string) => {
+    const cached = promptCache.get(key);
+    if (!cached) {
+      return null;
+    }
+    if (cached.expiresAtMs <= Date.now()) {
+      promptCache.delete(key);
+      return null;
+    }
+    return cached.value;
+  },
+  invalidateCache: async (keyPattern: string) => {
+    const regex = new RegExp(keyPattern);
+    for (const key of promptCache.keys()) {
+      if (regex.test(key)) {
+        promptCache.delete(key);
+      }
+    }
+  },
+  setCached: async (key: string, value: LangfuseCachedPrompt, ttlSeconds: number) => {
+    promptCache.set(key, {
+      expiresAtMs: Date.now() + ttlSeconds * 1000,
+      value,
+    });
+  },
+}));
+
+const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
+  "./langfusePrompts"
+);
+const {
+  __clearCache,
+  __countKeys,
+  __getSecondsUntilExpiry,
+  __seedCache,
+} = await import("./langfuseCache");
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},
@@ -86,12 +153,13 @@ describe("compilePrompt", () => {
 
 describe("getPrompt", () => {
   beforeEach(async () => {
-    await LangfuseCache.deleteMany({});
+    __clearCache();
+    mockPromptCreate.mockClear();
     mockPromptGet.mockClear();
-    mockPromptGet.mockImplementation(async (_name: string, _options?: Record<string, unknown>) => ({
+    mockPromptGet.mockImplementation(async (name: string, _options?: Record<string, unknown>) => ({
       config: {},
       labels: ["production"],
-      name: "test-prompt",
+      name,
       prompt: "Hello world",
       tags: [],
       type: "text" as const,
@@ -100,7 +168,7 @@ describe("getPrompt", () => {
   });
 
   afterEach(async () => {
-    await LangfuseCache.deleteMany({});
+    __clearCache();
   });
 
   it("fetches from Langfuse when cache is empty", async () => {
@@ -116,10 +184,46 @@ describe("getPrompt", () => {
     expect(mockPromptGet).toHaveBeenCalledTimes(1);
   });
 
+  it("passes production label by default", async () => {
+    await getPrompt("test-prompt");
+    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {
+      cacheTtlSeconds: 0,
+      label: "production",
+    });
+  });
+
+  it("uses a custom label for both cache key and fetch", async () => {
+    await getPrompt("test-prompt", {label: "staging"});
+    await getPrompt("test-prompt", {label: "staging"});
+
+    expect(mockPromptGet).toHaveBeenCalledTimes(1);
+    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {
+      cacheTtlSeconds: 0,
+      label: "staging",
+    });
+
+    const countAfter = __countKeys("^prompt:test-prompt:staging$");
+    expect(countAfter).toBe(1);
+  });
+
+  it("uses different cache keys for different labels", async () => {
+    await getPrompt("test-prompt", {label: "production"});
+    await getPrompt("test-prompt", {label: "staging"});
+    expect(mockPromptGet).toHaveBeenCalledTimes(2);
+  });
+
   it("writes fetched prompt to cache", async () => {
     await getPrompt("test-prompt");
-    const countAfter = await LangfuseCache.countDocuments({key: "prompt:test-prompt:production"});
+    const countAfter = __countKeys("^prompt:test-prompt:production$");
     expect(countAfter).toBe(1);
+  });
+
+  it("respects a custom prompt cache TTL", async () => {
+    await getPrompt("ttl-prompt", {}, {cache: {promptTtlSeconds: 5}});
+    const remainingSeconds = __getSecondsUntilExpiry("prompt:ttl-prompt:production");
+    expect(remainingSeconds).not.toBeNull();
+    expect(remainingSeconds ?? 0).toBeGreaterThan(0);
+    expect(remainingSeconds).toBeLessThanOrEqual(6);
   });
 
   it("throws when Langfuse fetch fails", async () => {
@@ -128,5 +232,133 @@ describe("getPrompt", () => {
     });
 
     await expect(getPrompt("missing-prompt")).rejects.toThrow("Prompt not found");
+  });
+});
+
+describe("createPrompt", () => {
+  beforeEach(async () => {
+    __clearCache();
+    mockPromptCreate.mockClear();
+    mockPromptGet.mockClear();
+    mockPromptGet.mockImplementation(async (name: string, _options?: Record<string, unknown>) => ({
+      config: {},
+      labels: ["production"],
+      name,
+      prompt: "Hello world",
+      tags: [],
+      type: "text" as const,
+      version: 2,
+    }));
+  });
+
+  afterEach(async () => {
+    __clearCache();
+  });
+
+  it("creates text prompts with default labels and tags", async () => {
+    const result = await createPrompt({
+      name: "new-text-prompt",
+      prompt: "hello there",
+      type: "text",
+    });
+
+    expect(mockPromptCreate).toHaveBeenCalledWith({
+      config: undefined,
+      labels: ["production"],
+      name: "new-text-prompt",
+      prompt: "hello there",
+      tags: [],
+      type: "text",
+    });
+    expect(result.name).toBe("new-text-prompt");
+    expect(result.version).toBe(2);
+  });
+
+  it("creates chat prompts, invalidates old cache entries, and refetches", async () => {
+    __seedCache({
+      key: "prompt:chat-prompt:production",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+    __seedCache({
+      key: "prompt:chat-prompt:staging",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+    __seedCache({
+      key: "prompt:other-prompt:production",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+
+    const chatMessages = [
+      {content: "You are helpful", role: "system"},
+      {content: "Summarize this text", role: "user"},
+    ];
+
+    await createPrompt({
+      config: {temperature: 0.2},
+      labels: ["staging"],
+      name: "chat-prompt",
+      prompt: chatMessages,
+      tags: ["support"],
+      type: "chat",
+    });
+
+    expect(mockPromptCreate).toHaveBeenCalledWith({
+      config: {temperature: 0.2},
+      labels: ["staging"],
+      name: "chat-prompt",
+      prompt: chatMessages,
+      tags: ["support"],
+      type: "chat",
+    });
+
+    const remainingStaging = __countKeys("^prompt:chat-prompt:staging$");
+    const remainingProduction = __countKeys("^prompt:chat-prompt:production$");
+    const remainingOther = __countKeys("^prompt:other-prompt:production$");
+    expect(remainingStaging).toBe(0);
+    expect(remainingProduction).toBe(1);
+    expect(remainingOther).toBe(1);
+    expect(mockPromptGet).toHaveBeenCalledWith("chat-prompt", {
+      cacheTtlSeconds: 0,
+      label: "production",
+    });
+  });
+});
+
+describe("invalidatePromptCache", () => {
+  beforeEach(async () => {
+    __clearCache();
+  });
+
+  afterEach(async () => {
+    __clearCache();
+  });
+
+  it("invalidates all labels for a prompt name", async () => {
+    __seedCache({
+      key: "prompt:email-template:production",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+    __seedCache({
+      key: "prompt:email-template:staging",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+    __seedCache({
+      key: "prompt:another-template:production",
+      ttlSeconds: 60,
+      value: textPrompt,
+    });
+
+    await invalidatePromptCache("email-template");
+
+    const emailTemplateEntries = __countKeys("^prompt:email-template:");
+    const otherTemplateEntries = __countKeys("^prompt:another-template:");
+
+    expect(emailTemplateEntries).toBe(0);
+    expect(otherTemplateEntries).toBe(1);
   });
 });

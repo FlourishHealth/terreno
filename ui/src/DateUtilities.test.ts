@@ -1,5 +1,8 @@
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {
+  convertNullToUndefined,
+  getIsoDate,
+  getTimezoneOptions,
   humanDate,
   humanDateAndTime,
   printDate,
@@ -128,6 +131,10 @@ describe("DateUtilities", () => {
 
     it("should return the month, day, and year if the date is not within the current year", () => {
       expect(humanDateAndTime("2023-12-25T12:00:00.000Z")).toBe("Dec 25, 2023 7:00 AM EST");
+    });
+
+    it("does not include timezone when showTimezone is false", () => {
+      expect(humanDateAndTime("2022-12-24T12:00:00.000Z", {showTimezone: false})).toBe("7:00 AM");
     });
 
     it("should use the timezone properly around the day boundary", () => {
@@ -266,6 +273,27 @@ describe("DateUtilities", () => {
       expect(printDate("2022-12-24T23:59:59.999Z", {ignoreTime: true})).toBe("12/24/2022");
       expect(printDate("2022-12-24T23:59:59.999Z", {ignoreTime: true})).toBe("12/24/2022");
     });
+
+    it("returns custom default value when date is missing", () => {
+      expect(printDate(undefined, {defaultValue: "No Date"})).toBe("No Date");
+    });
+
+    it("warns when showTimezone is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(mock(() => {}));
+
+      try {
+        expect(printDate("2022-12-24T12:00:00.000Z", {showTimezone: true})).toBe("12/24/2022");
+        expect(warnSpy).toHaveBeenCalledWith("showTimezone is not supported for printDate");
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
+
+    it("ignores time in provided timezone", () => {
+      expect(
+        printDate("2022-12-24T02:00:00.000Z", {ignoreTime: true, timezone: "America/New_York"})
+      ).toBe("12/23/2022");
+    });
   });
 
   describe("printOnlyDate", () => {
@@ -367,6 +395,12 @@ describe("DateUtilities", () => {
         "10:00 AM"
       );
     });
+
+    it("returns custom defaultValue for missing date", () => {
+      expect(printTime(undefined, {defaultValue: "No Time", timezone: "America/New_York"})).toBe(
+        "No Time"
+      );
+    });
   });
 
   describe("printDateRange", () => {
@@ -408,6 +442,23 @@ describe("DateUtilities", () => {
         })
       ).toBe("7:00 AM - 1:00 PM");
     });
+
+    it("warns when timeOnly is true across different dates", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(mock(() => {}));
+
+      try {
+        expect(
+          printDateRange("2022-12-24T12:00:00.000Z", "2022-12-25T12:00:00.000Z", {
+            showTimezone: false,
+            timeOnly: true,
+            timezone: "America/New_York",
+          })
+        ).toBe("7:00 AM - 7:00 AM");
+        expect(warnSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        warnSpy.mockRestore();
+      }
+    });
   });
 
   describe("printSince", () => {
@@ -435,6 +486,45 @@ describe("DateUtilities", () => {
       expect(printSince("2019-12-23T11:00:00.000Z")).toBe("3 years ago");
       // print without ago
       expect(printSince("2019-12-23T11:00:00.000Z", {showAgo: false})).toBe("3 years");
+    });
+  });
+
+  describe("convertNullToUndefined", () => {
+    it("converts null to undefined and preserves string values", () => {
+      expect(convertNullToUndefined(null)).toBeUndefined();
+      expect(convertNullToUndefined("hello")).toBe("hello");
+    });
+  });
+
+  describe("getIsoDate", () => {
+    it("returns undefined for empty input", () => {
+      expect(getIsoDate(undefined)).toBeUndefined();
+      expect(getIsoDate("")).toBeUndefined();
+    });
+
+    it("converts date strings to UTC ISO values", () => {
+      expect(getIsoDate("2022-12-24T07:00:00.000-05:00")).toBe("2022-12-24T12:00:00.000Z");
+    });
+  });
+
+  describe("getTimezoneOptions", () => {
+    it("returns USA timezone options using full labels", () => {
+      const options = getTimezoneOptions("USA");
+      expect(options.length).toBe(7);
+      expect(options[0]).toEqual({label: "Eastern", value: "America/New_York"});
+    });
+
+    it("returns short timezone labels and handles Arizona special-case", () => {
+      const options = getTimezoneOptions("USA", true);
+      const arizona = options.find((option) => option.value === "America/Phoenix");
+      expect(arizona?.label).toBe("AZ");
+    });
+
+    it("returns worldwide timezone options", () => {
+      const options = getTimezoneOptions("Worldwide");
+      expect(options.length).toBeGreaterThan(0);
+      expect(typeof options[0]?.label).toBe("string");
+      expect(typeof options[0]?.value).toBe("string");
     });
   });
 });
