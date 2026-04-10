@@ -44,11 +44,10 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-create-button").click();
     await page.getByTestId("admin-save-button").waitFor({state: "visible"});
 
-    // Fill in the title field — use getByRole to target the actual <input>
-    const todoTitle = `AdminE2E${Date.now()}`;
-    const titleInput = page.getByRole("textbox").first();
-    await titleInput.click();
-    await titleInput.pressSequentially(todoTitle, {delay: 20});
+    // Fill in the title field
+    const todoTitle = `Admin Todo ${Date.now()}`;
+    await page.getByTestId("admin-field-title").first().waitFor({state: "visible"});
+    await page.getByTestId("admin-field-title").first().fill(todoTitle);
 
     // Save the form — redirects back to the model table
     await page.getByTestId("admin-save-button").click();
