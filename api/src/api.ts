@@ -76,7 +76,9 @@ export type RESTMethod = "list" | "create" | "read" | "update" | "delete";
  * Interface for the vendored @wesleytodd/openapi Express middleware.
  * Provides methods for building OpenAPI documentation from Express routes.
  */
-export interface OpenApiMiddleware extends express.RequestHandler {
+export interface OpenApiMiddleware {
+  /** The middleware itself is callable as Express middleware. */
+  (req: express.Request, res: express.Response, next: express.NextFunction): void;
   /** Register a path-level OpenAPI schema, returning an Express middleware that attaches the schema to the route. */
   path: (schema?: Record<string, unknown>) => express.RequestHandler;
   /** Register or retrieve an OpenAPI component definition (schemas, responses, parameters, etc). */
@@ -190,7 +192,10 @@ export interface ModelRouterOptions<T> {
    * Return null to return a generic 403 error. Throw an APIError to return a 400 with specific
    * error information.
    */
-  preCreate?: (value: Partial<T>, request: express.Request) => T | Promise<T> | null;
+  preCreate?: (
+    value: Partial<T> | (Partial<T> | undefined)[] | null | undefined,
+    request: express.Request
+  ) => T | Promise<T> | null;
   /**
    * Hook that runs after `transformer.transform` but before changes are made for update operations.
    * Can update the body fields based on the request or the user.
@@ -354,7 +359,7 @@ function checkQueryParamAllowed(
 // When options.validation is not set, returns true — the middleware's own
 // isConfigured check will decide whether to actually validate.
 function shouldValidate(
-  options: ModelRouterOptions<unknown>,
+  options: ModelRouterOptions<any>,
   operation: "create" | "update" | "query"
 ): boolean {
   // Check route-specific validation option first

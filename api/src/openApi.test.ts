@@ -11,7 +11,7 @@ import {Permissions} from "./permissions";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
 function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
-  return options.openApi.path({
+  return options.openApi!.path({
     parameters: [
       {
         in: "query",
@@ -177,7 +177,7 @@ describe("openApi", () => {
 });
 
 function addRoutesPopulate(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
-  options?.openApi.component("schemas", "LimitedUser", {
+  options?.openApi?.component("schemas", "LimitedUser", {
     properties: {
       email: {
         description: "LimitedUser's email",

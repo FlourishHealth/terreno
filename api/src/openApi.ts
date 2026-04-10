@@ -1,3 +1,4 @@
+import type express from "express";
 import flatten from "lodash/flatten";
 import merge from "lodash/merge";
 import type {Model} from "mongoose";
@@ -112,7 +113,7 @@ function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
   });
 }
 
-export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>): express.RequestHandler {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
@@ -154,7 +155,7 @@ export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelR
   );
 }
 
-export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -320,7 +321,7 @@ export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<Model
 export function createOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -372,7 +373,7 @@ export function createOpenApiMiddleware<T>(
 export function patchOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -424,7 +425,7 @@ export function patchOpenApiMiddleware<T>(
 export function deleteOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
