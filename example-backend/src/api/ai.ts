@@ -11,11 +11,28 @@ import {
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
 import {logger} from "@terreno/api";
-import type {Tool} from "ai";
+import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+
+/** A provider that creates language models and image models from model IDs. */
+interface AIProvider {
+  (modelId: string): LanguageModel;
+  image: (modelId: string) => ImageModel;
+}
+
+/** The subset of @ai-sdk/google we use (loaded dynamically). */
+interface GoogleModule {
+  createGoogleGenerativeAI: (opts: {apiKey: string}) => AIProvider;
+  google: AIProvider;
+}
+
+/** The subset of @ai-sdk/google-vertex we use (loaded dynamically). */
+interface VertexModule {
+  createVertex: (opts: {location: string; project: string}) => AIProvider;
+}
 
 let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
@@ -28,13 +45,39 @@ export const setFileStorageService = (service: FileStorageService | undefined): 
   fileStorageServiceInstance = service;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-const getGoogleModule = (): any => {
+const getGoogleModule = (): GoogleModule | undefined => {
   try {
-    return require("@ai-sdk/google");
+    return require("@ai-sdk/google") as GoogleModule;
   } catch {
     return undefined;
   }
+};
+
+const getVertexModule = (): VertexModule | undefined => {
+  try {
+    return require("@ai-sdk/google-vertex") as VertexModule;
+  } catch {
+    return undefined;
+  }
+};
+
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
+let vertexProviderInstance: AIProvider | undefined;
+
+const getVertexProvider = (): AIProvider | undefined => {
+  if (vertexProviderInstance) {
+    return vertexProviderInstance;
+  }
+  const vertexModule = getVertexModule();
+  if (!vertexModule || !process.env.GOOGLE_VERTEX_PROJECT) {
+    return undefined;
+  }
+  vertexProviderInstance = vertexModule.createVertex({
+    location: process.env.GOOGLE_VERTEX_LOCATION ?? "us-central1",
+    project: process.env.GOOGLE_VERTEX_PROJECT,
+  });
+  return vertexProviderInstance;
 };
 
 const getAiService = (): AIService | undefined => {
@@ -42,6 +85,16 @@ const getAiService = (): AIService | undefined => {
     return aiServiceInstance;
   }
 
+  // Prefer Vertex AI (uses Application Default Credentials)
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    aiServiceInstance = new AIService({
+      model: vertexProvider(DEFAULT_MODEL),
+    });
+    return aiServiceInstance;
+  }
+
+  // Fall back to Gemini API key
   const google = getGoogleModule();
   if (!google) {
     return undefined;
@@ -52,19 +105,38 @@ const getAiService = (): AIService | undefined => {
     return undefined;
   }
 
+  const provider = google.createGoogleGenerativeAI({apiKey});
   aiServiceInstance = new AIService({
-    model: google.google("gemini-3-flash-preview"),
+    model: provider(DEFAULT_MODEL),
   });
   return aiServiceInstance;
 };
 
+/** Create a LanguageModel on the server side (Vertex AI or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). */
+const createServerModel = (modelId?: string) => {
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    return vertexProvider(modelId ?? DEFAULT_MODEL);
+  }
+
+  const google = getGoogleModule();
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (google && apiKey) {
+    const provider = google.createGoogleGenerativeAI({apiKey});
+    return provider(modelId ?? DEFAULT_MODEL);
+  }
+
+  return undefined;
+};
+
+/** Create a LanguageModel from a per-request API key (always uses Gemini API). */
 const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider(modelId ?? "gemini-3-flash-preview");
+  return provider(modelId ?? DEFAULT_MODEL);
 };
 
 const getMcpService = (): MCPService | undefined => {
@@ -275,12 +347,23 @@ const generatePdfBytes = async ({
   return pdfDoc.save();
 };
 
-const createImageModel = (apiKey: string) => {
+const createImageModel = (apiKey?: string) => {
+  // Prefer Vertex AI for image generation
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider && !apiKey) {
+    return vertexProvider.image("imagen-4.0-fast-generate-001");
+  }
+
+  // Fall back to Gemini API with the provided key
   const google = getGoogleModule();
   if (!google) {
     throw new Error("Missing @ai-sdk/google dependency.");
   }
-  const provider = google.createGoogleGenerativeAI({apiKey});
+  const effectiveKey = apiKey ?? process.env.GEMINI_API_KEY;
+  if (!effectiveKey) {
+    throw new Error("No API key available for image generation.");
+  }
+  const provider = google.createGoogleGenerativeAI({apiKey: effectiveKey});
   return provider.image("imagen-4.0-fast-generate-001");
 };
 
@@ -290,12 +373,7 @@ const GENERATE_IMAGE_DESCRIPTION =
 const GENERATE_PDF_DESCRIPTION =
   "Generate a PDF document. ONLY use this tool when the user explicitly asks to create or generate a PDF file. Do NOT use for regular text questions. Use markdown-style formatting in content: # for main headings, ## for subheadings, - for bullet points, and blank lines between paragraphs.";
 
-const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
-  const apiKey = req.headers["x-ai-api-key"] as string | undefined;
-  if (!apiKey) {
-    return {};
-  }
-
+const createImageTool = (apiKey?: string): Tool => {
   const imageTool = tool({
     description: GENERATE_IMAGE_DESCRIPTION,
     execute: async ({prompt}: {prompt: string}) => {
@@ -325,12 +403,22 @@ const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
       })
     ),
   });
-  // biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-  (imageTool as any).toModelOutput = ({output}: {output: any}) => [
-    {text: output.description ?? "Image generated.", type: "text"},
-  ];
+  // toModelOutput is an internal AI SDK property for tool output → model message conversion
+  (imageTool as Record<string, unknown>).toModelOutput = ({
+    output,
+  }: {
+    output: Record<string, unknown>;
+  }) => [{text: (output.description as string) ?? "Image generated.", type: "text"}];
+  return imageTool as Tool;
+};
 
-  return {generate_image: imageTool as Tool};
+const createPerRequestTools = (req: express.Request): Record<string, Tool> => {
+  const apiKey = req.headers["x-ai-api-key"] as string | undefined;
+  if (!apiKey) {
+    return {};
+  }
+
+  return {generate_image: createImageTool(apiKey)};
 };
 
 const pdfTool = tool({
@@ -359,10 +447,12 @@ const pdfTool = tool({
     })
   ),
 });
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-(pdfTool as any).toModelOutput = ({output}: {output: any}) => [
-  {text: output.description ?? "PDF generated.", type: "text"},
-];
+// toModelOutput is an internal AI SDK property for tool output → model message conversion
+(pdfTool as Record<string, unknown>).toModelOutput = ({
+  output,
+}: {
+  output: Record<string, unknown>;
+}) => [{text: (output.description as string) ?? "PDF generated.", type: "text"}];
 
 const JOKE_FALLBACK_SYSTEM_PROMPT =
   "You are a witty comedian. Tell a short, clever joke in 1-3 sentences. Be funny and concise.";
@@ -408,28 +498,40 @@ const jokeGeneratorTool = tool({
 });
 
 // Sample tools for demo purposes
-const demoTools = {
-  generate_joke: jokeGeneratorTool,
-  generate_pdf: pdfTool,
-  get_current_time: tool({
-    description: "Get the current date and time",
-    execute: async ({timezone}: {timezone?: string}) => {
-      const now = new Date();
-      return {
-        time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
-        timezone: timezone ?? "UTC",
-      };
-    },
-    inputSchema: zodSchema(
-      z.object({
-        timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
-      })
-    ),
-  }),
+const getDemoTools = (): Record<string, Tool> => {
+  const tools: Record<string, Tool> = {
+    generate_joke: jokeGeneratorTool,
+    generate_pdf: pdfTool,
+    get_current_time: tool({
+      description: "Get the current date and time",
+      execute: async ({timezone}: {timezone?: string}) => {
+        const now = new Date();
+        return {
+          time: now.toLocaleString("en-US", {timeZone: timezone ?? "UTC"}),
+          timezone: timezone ?? "UTC",
+        };
+      },
+      inputSchema: zodSchema(
+        z.object({
+          timezone: z.string().optional().describe("IANA timezone name (e.g., America/New_York)"),
+        })
+      ),
+    }),
+  };
+
+  // Add server-side image generation when Vertex AI or a server API key is available
+  if (getVertexProvider() || process.env.GEMINI_API_KEY) {
+    tools.generate_image = createImageTool();
+  }
+
+  return tools;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: Dynamic import for optional dependency
-export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<any>>): void => {
+export const addAiRoutes = (
+  router: express.Router,
+  // biome-ignore lint/suspicious/noExplicitAny: ModelRouterOptions generic varies per downstream caller
+  options?: Partial<ModelRouterOptions<any>>
+): void => {
   const aiService = getAiService();
   const mcpService = getMcpService();
   const fileStorageService = initFileStorageService();
@@ -440,6 +542,7 @@ export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<an
     createModelFn: createModelFromKey,
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     createRequestTools: createPerRequestTools as any,
+    createServerModelFn: createServerModel,
     demoMode: !aiService,
     langfuseSystemPromptName: "chat-assistant",
     maxSteps: 5,
@@ -447,7 +550,7 @@ export const addAiRoutes = (router: any, options?: Partial<ModelRouterOptions<an
     openApiOptions: options,
     toolChoice: "auto",
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
-    tools: demoTools as any,
+    tools: getDemoTools() as any,
   });
   addAiRequestsExplorerRoutes(router, {openApiOptions: options});
 
