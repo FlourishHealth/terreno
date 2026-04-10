@@ -15,7 +15,7 @@ import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
 const DRAWER_WIDTH = 280;
-const ITEM_HEIGHT = 48;
+const ITEM_HEIGHT = 44;
 const ICON_SIZE = 20;
 const BACKDROP_OPACITY = 0.5;
 const ANIMATION_DURATION = 250;
@@ -40,19 +40,19 @@ const SidebarItem: FC<{
       style={[
         {
           alignItems: "center",
-          backgroundColor: isActive ? theme.surface.secondaryLight : "transparent",
+          backgroundColor: isActive ? theme.surface.neutralLight : "transparent",
           borderRadius: theme.radius.default,
           flexDirection: "row",
-          gap: 14,
+          gap: 12,
           height: ITEM_HEIGHT,
-          marginHorizontal: 12,
-          paddingHorizontal: 14,
+          marginHorizontal: 8,
+          paddingHorizontal: 12,
         },
         itemStyle,
       ]}
     >
       <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
-        <Icon color={isActive ? "primary" : "secondaryDark"} iconName={item.iconName} size="md" />
+        <Icon color={isActive ? "primary" : "secondaryLight"} iconName={item.iconName} size="lg" />
         {Boolean(item.badge) && (
           <View
             style={{
@@ -71,7 +71,7 @@ const SidebarItem: FC<{
           </View>
         )}
       </View>
-      <Text bold={isActive} color={isActive ? "primary" : "secondaryDark"} size="md">
+      <Text bold={isActive} color={isActive ? "primary" : "secondaryLight"} size="md">
         {item.label}
       </Text>
     </Pressable>
@@ -200,7 +200,6 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
             borderColor: theme.border.default,
             borderRightWidth: 1,
             height: screenHeight,
-            justifyContent: "space-between",
             left: 0,
             paddingBottom: 32,
             paddingTop: 20,
@@ -213,41 +212,12 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
           panelStyle,
         ]}
       >
-        {/* Close button */}
-        <View>
-          <Pressable
-            accessibilityLabel="Close navigation menu"
-            accessibilityRole="button"
-            onPress={handleClose}
-            style={{
-              alignItems: "center",
-              alignSelf: "flex-end",
-              height: 40,
-              justifyContent: "center",
-              marginRight: 12,
-              width: 40,
-            }}
-          >
-            <Icon color="secondaryDark" iconName="xmark" size="md" />
-          </Pressable>
-          <View style={{gap: 4, marginTop: 8}}>
-            {topItems.map((item) => (
-              <SidebarItem
-                isActive={activeRoute === item.route}
-                item={item}
-                itemStyle={itemStyle}
-                key={item.route}
-                onPress={handleNavigate}
-              />
-            ))}
-          </View>
-        </View>
-
         <View style={{gap: 4}}>
-          {bottomItems.map((item) => (
+          {[...topItems, ...bottomItems].map((item) => (
             <SidebarItem
               isActive={activeRoute === item.route}
               item={item}
+              itemStyle={itemStyle}
               key={item.route}
               onPress={handleNavigate}
             />
