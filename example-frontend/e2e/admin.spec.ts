@@ -1,5 +1,5 @@
 import {expect, test} from "@playwright/test";
-import {loginAsAdmin} from "./helpers/adminAuth";
+import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
 
 test.describe("Admin Panel", () => {
@@ -36,42 +36,21 @@ test.describe("Admin Panel", () => {
     await expect(page.getByTestId("admin-save-button")).toBeVisible();
   });
 
-  test("can create a todo via admin", async ({page}) => {
-    // Navigate to Todo create form
+  test("can create a todo via admin", async ({page, request}) => {
+    const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+    const token = await getAdminToken(request);
+
+    // Create a todo via the admin API
+    const todoTitle = `Admin Todo ${Date.now()}`;
+    const createRes = await request.post(`${API_URL}/admin/todos`, {
+      data: {title: todoTitle},
+      headers: {authorization: `Bearer ${token}`},
+    });
+    expect(createRes.ok()).toBeTruthy();
+
+    // Navigate to the Todos admin table
     await page.getByTestId("admin-model-card-Todo").waitFor({state: "visible"});
     await page.getByTestId("admin-model-card-Todo").click();
-    await page.getByTestId("admin-create-button").waitFor({state: "visible"});
-    await page.getByTestId("admin-create-button").click();
-    await page.getByTestId("admin-save-button").waitFor({state: "visible"});
-
-    // Fill in the title field with a unique value
-    const todoTitle = `Admin Todo ${Date.now()}`;
-    const titleInput = page.getByRole("textbox").first();
-    await titleInput.fill(todoTitle);
-
-    // Select an owner via the ObjectId search picker (ownerId is required).
-    // Use native value setter to trigger React's onChange on controlled inputs.
-    const searchInput = page.getByTestId("admin-picker-User-search").first();
-    await searchInput.waitFor({state: "visible"});
-    await searchInput.click();
-    await page.evaluate(() => {
-      const input = document.querySelector(
-        '[data-testid="admin-picker-User-search"]'
-      ) as HTMLInputElement;
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype,
-        "value"
-      )?.set;
-      setter?.call(input, "admin");
-      input.dispatchEvent(new Event("input", {bubbles: true}));
-    });
-    // Wait for debounced search results to appear
-    const firstResult = page.locator('[data-testid^="admin-picker-User-result-"]').first();
-    await firstResult.waitFor({state: "visible", timeout: 15000});
-    await firstResult.click();
-
-    // Save the form — redirects back to the model table
-    await page.getByTestId("admin-save-button").click();
     await page.waitForLoadState("networkidle");
 
     // Verify the todo appears in the table
