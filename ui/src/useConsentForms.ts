@@ -19,6 +19,41 @@ export interface ConsentFormPublic {
 
 import {getLocales} from "expo-localization";
 
+interface ConsentFormsResponse {
+  data?: ConsentFormPublic[];
+}
+
+interface ConsentFormsQueryBuilder {
+  query: (options: {
+    async onQueryStarted?(
+      _arg: unknown,
+      helpers: {queryFulfilled: Promise<ConsentFormsResponse>}
+    ): Promise<void>;
+    providesTags: string[];
+    query: () => string;
+  }) => unknown;
+}
+
+interface ConsentFormsHookState {
+  data?: ConsentFormPublic[] | ConsentFormsResponse;
+  error: unknown;
+  isLoading: boolean;
+  refetch: () => unknown;
+}
+
+interface ConsentFormsApiWithTags {
+  injectEndpoints: (options: {
+    endpoints: (build: ConsentFormsQueryBuilder) => {getPendingConsents: unknown};
+    overrideExisting: boolean;
+  }) => {
+    useGetPendingConsentsQuery: () => ConsentFormsHookState;
+  };
+}
+
+interface ConsentFormsApi {
+  enhanceEndpoints: (options: {addTagTypes: string[]}) => ConsentFormsApiWithTags;
+}
+
 export const detectLocale = (): string => {
   // Web
   if (typeof navigator !== "undefined" && navigator.language) {
@@ -38,17 +73,17 @@ export const detectLocale = (): string => {
   return "en";
 };
 
-export const useConsentForms = (api: any, baseUrl?: string) => {
+export const useConsentForms = (api: ConsentFormsApi, baseUrl?: string) => {
   const base = baseUrl || "";
   const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
 
   const enhancedApi = apiWithConsentTags.injectEndpoints({
-    endpoints: (build: any) => ({
+    endpoints: (build) => ({
       getPendingConsents: build.query({
-        async onQueryStarted(_arg: unknown, {queryFulfilled}: {queryFulfilled: Promise<unknown>}) {
+        async onQueryStarted(_arg: unknown, {queryFulfilled}) {
           console.info("[useConsentForms] Fetching pending consent forms");
           try {
-            const result = (await queryFulfilled) as {data?: ConsentFormPublic[]};
+            const result = await queryFulfilled;
             console.info("[useConsentForms] Pending consent forms fetched", {
               count: result?.data?.length ?? 0,
             });
