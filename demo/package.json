@@ -97,6 +97,7 @@
     "compile": "tsc",
     "compile:watch": "tsc -w",
     "doctor": "bunx expo-doctor",
+    "eas-build-post-install": "cd .. && bun run compile",
     "export": "expo export -p web",
     "ios": "NODE_OPTIONS=--openssl-legacy-provider expo start --ios --port 8085",
     "lint": "biome check .",
