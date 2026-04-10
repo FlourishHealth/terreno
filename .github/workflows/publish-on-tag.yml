@@ -42,7 +42,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -131,7 +130,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -157,7 +156,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -276,7 +274,7 @@ jobs:
         run: bun run test:ci
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/ui@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -302,7 +300,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -424,7 +421,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -450,7 +447,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -505,7 +501,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/admin-backend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -531,7 +527,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -600,7 +595,7 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/admin-frontend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -626,7 +621,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -690,7 +684,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/ai@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -716,7 +710,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org/
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -774,7 +767,7 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: npm publish
 
       - name: Summary
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
