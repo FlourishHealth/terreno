@@ -25,10 +25,10 @@ interface ConsentFormsResponse {
 
 interface ConsentFormsQueryBuilder {
   query: (options: {
-    async onQueryStarted?(
+    onQueryStarted?: (
       _arg: unknown,
       helpers: {queryFulfilled: Promise<ConsentFormsResponse>}
-    ): Promise<void>;
+    ) => Promise<void>;
     providesTags: string[];
     query: () => string;
   }) => unknown;
