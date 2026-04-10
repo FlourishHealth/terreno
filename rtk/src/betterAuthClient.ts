@@ -85,7 +85,9 @@ const createStorageAdapter = (): StorageAdapter => {
  * const session = await authClient.getSession();
  * ```
  */
-export const createBetterAuthClient = (config: BetterAuthClientConfig): ReturnType<typeof createAuthClient> => {
+export const createBetterAuthClient = (
+  config: BetterAuthClientConfig
+): ReturnType<typeof createAuthClient> => {
   const storage = createStorageAdapter();
 
   return createAuthClient({

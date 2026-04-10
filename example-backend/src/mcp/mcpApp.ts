@@ -63,31 +63,35 @@ export class McpApp implements TerrenoPlugin {
       return server;
     };
 
-    app.post(this.basePath, authenticateMiddleware(), async (req: express.Request, res: express.Response) => {
-      const server = createServer();
-      const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined});
+    app.post(
+      this.basePath,
+      authenticateMiddleware(),
+      async (req: express.Request, res: express.Response) => {
+        const server = createServer();
+        const transport = new StreamableHTTPServerTransport({sessionIdGenerator: undefined});
 
-      try {
-        logger.debug("Handling MCP request", {method: req.method, url: req.url});
-        await server.connect(transport);
-        await transport.handleRequest(req, res, req.body);
-      } catch (error) {
-        logger.error("Error handling MCP request:", error);
-        if (!res.headersSent) {
-          res.status(500).json({
-            error: {code: -32603, message: "Internal server error"},
-            id: null,
-            jsonrpc: "2.0",
-          });
+        try {
+          logger.debug("Handling MCP request", {method: req.method, url: req.url});
+          await server.connect(transport);
+          await transport.handleRequest(req, res, req.body);
+        } catch (error) {
+          logger.error("Error handling MCP request:", error);
+          if (!res.headersSent) {
+            res.status(500).json({
+              error: {code: -32603, message: "Internal server error"},
+              id: null,
+              jsonrpc: "2.0",
+            });
+          }
+          return;
         }
-        return;
-      }
 
-      res.on("close", () => {
-        transport.close();
-        server.close();
-      });
-    });
+        res.on("close", () => {
+          transport.close();
+          server.close();
+        });
+      }
+    );
 
     app.get(this.basePath, (_req: express.Request, res: express.Response) => {
       res.status(405).json({
