@@ -3,8 +3,8 @@ import {
   asyncHandler,
   authenticateMiddleware,
   type ModelRouterOptions,
-  type OpenApiMiddleware,
   modelRouter,
+  type OpenApiMiddleware,
   Permissions,
   type TerrenoPlugin,
 } from "@terreno/api";
