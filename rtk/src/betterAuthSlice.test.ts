@@ -240,7 +240,7 @@ describe("generateBetterAuthSlice", () => {
           user: null,
         },
       })
-    );
+    ) as unknown as typeof mockAuthClient.getSession;
     // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
@@ -260,7 +260,9 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("syncSession dispatches error and clearSession when getSession throws", async () => {
-    mockAuthClient.getSession = mock(() => Promise.reject(new Error("network error")));
+    mockAuthClient.getSession = mock(
+      () => Promise.reject(new Error("network error"))
+    ) as unknown as typeof mockAuthClient.getSession;
     const originalConsoleError = console.error;
     console.error = mock(() => {});
     // biome-ignore lint/suspicious/noExplicitAny: Mock client type

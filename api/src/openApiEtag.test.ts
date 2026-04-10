@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
 import {describe, expect, it, mock} from "bun:test";
+import crypto from "node:crypto";
 import type {NextFunction, Request, Response} from "express";
 
 import {openApiEtagMiddleware} from "./openApiEtag";
@@ -69,7 +69,7 @@ describe("openApiEtagMiddleware", () => {
 
     openApiEtagMiddleware(req, res, next);
 
-    const result = res.json(body);
+    const result = res.json(body) as unknown as {body: typeof body};
     const expectedEtag = `"${crypto.createHash("sha256").update(JSON.stringify(body)).digest("hex").substring(0, 16)}"`;
 
     expect(next).toHaveBeenCalledTimes(1);
