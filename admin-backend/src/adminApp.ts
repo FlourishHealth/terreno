@@ -79,6 +79,7 @@ interface AdminFieldMeta {
   enum?: string[];
   default?: any;
   ref?: string;
+  searchable?: boolean;
   widget?: string;
   /** For array fields: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldMeta>;
@@ -135,13 +136,15 @@ const extractFieldMeta = (
 ): Record<string, AdminFieldMeta> => {
   const fields: Record<string, AdminFieldMeta> = {};
   for (const [key, prop] of Object.entries(properties)) {
+    const fieldType = prop.type ?? "string";
     fields[key] = {
       default: prop.default,
       description: prop.description,
       enum: prop.enum,
       ref: prop.$ref ? prop.$ref.replace("#/components/schemas/", "") : undefined,
       required: required.includes(key),
-      type: prop.type ?? "string",
+      searchable: fieldType === "string" && !prop.enum,
+      type: fieldType,
     };
 
     // For array fields, extract item sub-field metadata
@@ -369,6 +372,75 @@ export class AdminApp {
         return res.json(doc);
       })
     );
+
+    // Mount search endpoint for each model
+    for (const config of modelConfigs) {
+      // Determine searchable fields from the actual Mongoose schema type,
+      // not the OpenAPI type (which reports ObjectId as "string")
+      const searchableFields: string[] = [];
+      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      if (modelMeta) {
+        for (const key of Object.keys(modelMeta.fields)) {
+          const schemaPath = config.model.schema.path(key);
+          if (schemaPath && schemaPath.instance === "String" && !modelMeta.fields[key].enum) {
+            searchableFields.push(key);
+          }
+        }
+      }
+      logger.info(`Admin search fields for ${config.model.modelName}`, {searchableFields});
+
+      app.get(
+        `${basePath}${config.routePath}/search`,
+        authenticateMiddleware(),
+        asyncHandler(async (req, res) => {
+          if (!(req as any).user?.admin) {
+            throw new APIError({
+              disableExternalErrorTracking: true,
+              status: 403,
+              title: "Forbidden",
+            });
+          }
+          const q = String(req.query.q ?? "");
+          if (!q) {
+            return res.json({data: []});
+          }
+
+          const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(escapedQ, "i");
+
+          const fields =
+            typeof req.query.fields === "string"
+              ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
+              : searchableFields;
+
+          if (fields.length === 0) {
+            return res.json({data: []});
+          }
+
+          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          logger.debug("Admin search query", {
+            fields,
+            model: config.model.modelName,
+            q,
+          });
+          try {
+            const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            logger.debug("Admin search results", {
+              count: results.length,
+              model: config.model.modelName,
+            });
+            return res.json({data: results});
+          } catch (err) {
+            logger.error("Admin search failed", {
+              error: err,
+              fields,
+              model: config.model.modelName,
+            });
+            throw err;
+          }
+        })
+      );
+    }
 
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
