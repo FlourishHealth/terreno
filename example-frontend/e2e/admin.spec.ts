@@ -51,7 +51,7 @@ test.describe("Admin Panel", () => {
     // Create a todo via the admin API
     const todoTitle = `Admin Todo ${Date.now()}`;
     const createRes = await request.post(`${API_URL}/admin/todos`, {
-      data: {title: todoTitle, ownerId: adminUserId},
+      data: {ownerId: adminUserId, title: todoTitle},
       headers: {authorization: `Bearer ${token}`},
     });
     expect(createRes.ok()).toBeTruthy();
