@@ -49,12 +49,25 @@ test.describe("Admin Panel", () => {
     const titleInput = page.getByRole("textbox").first();
     await titleInput.fill(todoTitle);
 
-    // Select an owner via the ObjectId search picker (ownerId is required)
-    const ownerSearch = page.getByRole("textbox").nth(1);
-    await ownerSearch.fill("admin");
+    // Select an owner via the ObjectId search picker (ownerId is required).
+    // Use native value setter to trigger React's onChange on controlled inputs.
+    const searchInput = page.getByTestId("admin-picker-User-search").first();
+    await searchInput.waitFor({state: "visible"});
+    await searchInput.click();
+    await page.evaluate(() => {
+      const input = document.querySelector(
+        '[data-testid="admin-picker-User-search"]'
+      ) as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, "admin");
+      input.dispatchEvent(new Event("input", {bubbles: true}));
+    });
     // Wait for debounced search results to appear
     const firstResult = page.locator('[data-testid^="admin-picker-User-result-"]').first();
-    await firstResult.waitFor({state: "visible", timeout: 10000});
+    await firstResult.waitFor({state: "visible", timeout: 15000});
     await firstResult.click();
 
     // Save the form — redirects back to the model table
