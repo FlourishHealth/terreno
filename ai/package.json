@@ -44,6 +44,9 @@
   "license": "Apache-2.0",
   "main": "dist/index.js",
   "name": "@terreno/ai",
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@terreno/api": "workspace:*",
     "mongoose": "^8.0.0"

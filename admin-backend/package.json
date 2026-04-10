@@ -35,6 +35,9 @@
   },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
