@@ -113,7 +113,10 @@ function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
   });
 }
 
-export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>): express.RequestHandler {
+export function getOpenApiMiddleware<T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
@@ -155,7 +158,10 @@ export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelR
   );
 }
 
-export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>): express.RequestHandler {
+export function listOpenApiMiddleware<T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
