@@ -105,8 +105,9 @@ const getAiService = (): AIService | undefined => {
     return undefined;
   }
 
+  const provider = google.createGoogleGenerativeAI({apiKey});
   aiServiceInstance = new AIService({
-    model: google.google(DEFAULT_MODEL),
+    model: provider(DEFAULT_MODEL),
   });
   return aiServiceInstance;
 };
@@ -121,7 +122,8 @@ const createServerModel = (modelId?: string) => {
   const google = getGoogleModule();
   const apiKey = process.env.GEMINI_API_KEY;
   if (google && apiKey) {
-    return google.google(modelId ?? DEFAULT_MODEL);
+    const provider = google.createGoogleGenerativeAI({apiKey});
+    return provider(modelId ?? DEFAULT_MODEL);
   }
 
   return undefined;
