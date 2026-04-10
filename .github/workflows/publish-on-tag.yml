@@ -26,7 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: api
@@ -42,6 +41,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -130,7 +139,9 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -140,7 +151,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: ui
@@ -156,6 +166,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -274,7 +294,9 @@ jobs:
         run: bun run test:ci
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/ui@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -284,7 +306,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: rtk
@@ -300,6 +321,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -421,7 +452,9 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/rtk@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -431,7 +464,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: admin-backend
@@ -447,6 +479,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -501,7 +543,9 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/admin-backend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -511,7 +555,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: admin-frontend
@@ -527,6 +570,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -595,7 +648,9 @@ jobs:
         run: bun run compile
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/admin-frontend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -605,7 +660,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: ai
@@ -621,6 +675,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -684,7 +748,9 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/ai@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
@@ -694,7 +760,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     defaults:
       run:
         working-directory: api-health
@@ -710,6 +775,16 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
 
       - name: Cache Bun dependencies
         uses: actions/cache@v5
@@ -767,7 +842,9 @@ jobs:
         run: bun run test
 
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Summary
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
