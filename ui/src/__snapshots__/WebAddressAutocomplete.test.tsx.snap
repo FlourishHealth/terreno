@@ -7,6 +7,21 @@ exports[`WebAddressAutocomplete renders correctly without Google API key 1`] = `
     {
       "$$typeof": Symbol(react.test.json),
       "children": [
+        "Street Address",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
         {
           "$$typeof": Symbol(react.test.json),
           "children": [
@@ -100,6 +115,21 @@ exports[`WebAddressAutocomplete renders with input value 1`] = `
     {
       "$$typeof": Symbol(react.test.json),
       "children": [
+        "Street Address",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
         {
           "$$typeof": Symbol(react.test.json),
           "children": [
@@ -190,6 +220,21 @@ exports[`WebAddressAutocomplete renders disabled state 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Street Address",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
     {
       "$$typeof": Symbol(react.test.json),
       "children": [
