@@ -6,7 +6,7 @@
 // Copyright Patryk Jaworski @gerwld
 
 import React, {useMemo, useState} from "react";
-import {Platform, View} from "react-native";
+import {Platform, type StyleProp, type ViewStyle, View} from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -41,7 +41,7 @@ interface DragItemProps {
   renderGrip?: React.ReactElement | (() => React.ReactElement); // Optional drag handle
   passVibration?: () => void; // Optional haptic feedback callback
   itemBorderRadius: number; // Border radius for items
-  itemContainerStyle?: any; // Additional styling for item container
+  itemContainerStyle?: StyleProp<ViewStyle>; // Additional styling for item container
   callbackNewDataIds?: (newIds: string[]) => void; // Callback when items are reordered
   backgroundOnHold?: string; // Background color when item is being dragged
   plainPosition: number; // Current position in the list
@@ -52,10 +52,10 @@ interface DragItemProps {
  */
 interface DragListProps {
   data?: string[]; // Array of item IDs (deprecated, use dataIDs)
-  style?: any; // Style for the list container
+  style?: StyleProp<ViewStyle>; // Style for the list container
   callbackNewDataIds: (newIds: string[]) => void; // Callback when items are reordered
-  contentContainerStyle?: any; // Style for the content container
-  itemContainerStyle?: any; // Style for each item container
+  contentContainerStyle?: StyleProp<ViewStyle>; // Style for the content container
+  itemContainerStyle?: StyleProp<ViewStyle>; // Style for each item container
   renderItem: (props: {item: string}) => React.ReactElement; // Function to render item content
   renderGrip?: React.ReactElement | (() => React.ReactElement); // Optional custom drag handle
   passVibration?: () => void; // Optional haptic feedback callback
