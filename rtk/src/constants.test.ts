@@ -49,6 +49,14 @@ describe("constants", () => {
   let debugMock = mock(() => {});
   let errorMock = mock(() => {});
 
+  const getDebugCalls = (): Array<Array<unknown>> => {
+    return debugMock.mock.calls as Array<Array<unknown>>;
+  };
+
+  const getErrorCalls = (): Array<Array<unknown>> => {
+    return errorMock.mock.calls as Array<Array<unknown>>;
+  };
+
   beforeEach(() => {
     debugMock = mock(() => {});
     errorMock = mock(() => {});
@@ -147,11 +155,10 @@ describe("constants", () => {
     constants.logAuth("auth test message");
     constants.logSocket(undefined, "socket test message");
 
-    expect(debugMock.mock.calls.some((call) => call[0] === "AUTH_DEBUG is enabled")).toBeTrue();
+    const debugCalls = getDebugCalls();
+    expect(debugCalls.some((call) => call[0] === "AUTH_DEBUG is enabled")).toBeTrue();
     expect(
-      debugMock.mock.calls.some(
-        (call) => call[0] === "[websocket]" && call.includes("socket test message")
-      )
+      debugCalls.some((call) => call[0] === "[websocket]" && call.includes("socket test message"))
     ).toBeTrue();
   });
 
@@ -165,10 +172,9 @@ describe("constants", () => {
 
     constants.logSocket({featureFlags: {debugWebsockets: {enabled: true}}}, "feature-flag socket");
 
+    const debugCalls = getDebugCalls();
     expect(
-      debugMock.mock.calls.some(
-        (call) => call[0] === "[websocket]" && call.includes("feature-flag socket")
-      )
+      debugCalls.some((call) => call[0] === "[websocket]" && call.includes("feature-flag socket"))
     ).toBeTrue();
   });
 
@@ -182,6 +188,9 @@ describe("constants", () => {
     });
 
     expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(errorMock.mock.calls[0]?.[0]).toContain("Expo Tunnel is not currently supported");
+    const errorCalls = getErrorCalls();
+    expect((errorCalls[0]?.[0] as string) ?? "").toContain(
+      "Expo Tunnel is not currently supported"
+    );
   });
 });

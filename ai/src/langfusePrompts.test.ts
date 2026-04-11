@@ -35,7 +35,9 @@ mock.module("./langfuseClient", () => ({
   getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
 }));
 
-const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import("./langfusePrompts");
+const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
+  "./langfusePrompts"
+);
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},
@@ -118,7 +120,10 @@ describe("getPrompt", () => {
 
     expect(result.name).toBe("test-prompt");
     expect(mockGetCached).toHaveBeenCalledWith("prompt:test-prompt:production");
-    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {cacheTtlSeconds: 0, label: "production"});
+    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {
+      cacheTtlSeconds: 0,
+      label: "production",
+    });
     expect(mockSetCached).toHaveBeenCalledWith("prompt:test-prompt:production", result, 60);
   });
 
@@ -126,7 +131,10 @@ describe("getPrompt", () => {
     await getPrompt("custom-prompt", {label: "staging"}, {cache: {promptTtlSeconds: 5}});
 
     expect(mockGetCached).toHaveBeenCalledWith("prompt:custom-prompt:staging");
-    expect(mockPromptGet).toHaveBeenCalledWith("custom-prompt", {cacheTtlSeconds: 0, label: "staging"});
+    expect(mockPromptGet).toHaveBeenCalledWith("custom-prompt", {
+      cacheTtlSeconds: 0,
+      label: "staging",
+    });
     expect(mockSetCached.mock.calls[0][2]).toBe(5);
   });
 
@@ -156,7 +164,10 @@ describe("createPrompt", () => {
       type: "text",
     });
     expect(mockInvalidateCache).toHaveBeenCalledWith("prompt:create-text:");
-    expect(mockPromptGet).toHaveBeenCalledWith("create-text", {cacheTtlSeconds: 0, label: "production"});
+    expect(mockPromptGet).toHaveBeenCalledWith("create-text", {
+      cacheTtlSeconds: 0,
+      label: "production",
+    });
   });
 
   it("creates chat prompt with provided metadata", async () => {
