@@ -8,9 +8,7 @@ const noOp = (): void => {};
 
 describe("NumberField", () => {
   it("renders correctly with default props", () => {
-    const {toJSON} = renderWithTheme(
-      <NumberField label="Number" onChange={noOp} type="number" />
-    );
+    const {toJSON} = renderWithTheme(<NumberField label="Number" onChange={noOp} type="number" />);
     expect(toJSON()).toMatchSnapshot();
   });
 
@@ -100,13 +98,7 @@ describe("NumberField", () => {
 
   it("shows custom errorText", () => {
     const {getByText} = renderWithTheme(
-      <NumberField
-        errorText="Custom error"
-        label="Number"
-        onChange={noOp}
-        type="number"
-        value=""
-      />
+      <NumberField errorText="Custom error" label="Number" onChange={noOp} type="number" value="" />
     );
     expect(getByText("Custom error")).toBeTruthy();
   });
