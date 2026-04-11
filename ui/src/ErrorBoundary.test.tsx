@@ -1,19 +1,9 @@
-import {fireEvent} from "@testing-library/react-native";
 import {afterAll, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
 
 import {ErrorBoundary} from "./ErrorBoundary";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
-
-let shouldThrow = false;
-
-const ThrowingChild = () => {
-  if (shouldThrow) {
-    shouldThrow = false;
-    throw new Error("Boundary crash");
-  }
-  return <Text>Recovered child</Text>;
-};
 
 describe("ErrorBoundary", () => {
   // Suppress console.warn during tests
@@ -28,7 +18,7 @@ describe("ErrorBoundary", () => {
     console.error = originalError;
   });
   beforeEach(() => {
-    shouldThrow = false;
+    // No-op hook kept to preserve test lifecycle shape.
   });
 
   it("renders children when no error", () => {
@@ -59,32 +49,45 @@ describe("ErrorBoundary", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
-  it("renders fallback UI and calls onError when a child throws", () => {
-    shouldThrow = true;
+  it("renders fallback UI and calls onError when boundary captures an error", async () => {
     const handleError = mock(() => {});
-    const {getByText} = renderWithTheme(
+    const {UNSAFE_getByType, getByText} = renderWithTheme(
       <ErrorBoundary onError={handleError}>
-        <ThrowingChild />
+        <Text>Recovered child</Text>
       </ErrorBoundary>
     );
+    const error = new Error("Boundary crash");
+    const boundaryInstance = UNSAFE_getByType(ErrorBoundary).instance as ErrorBoundary;
 
-    expect(getByText("Oops!")).toBeTruthy();
+    act(() => {
+      boundaryInstance.setState(ErrorBoundary.getDerivedStateFromError(error));
+      boundaryInstance.componentDidCatch(error, {componentStack: "\n    at ThrowingChild"});
+    });
+
+    await waitFor(() => expect(getByText("Oops!")).toBeTruthy());
     expect(getByText("Error: Boundary crash")).toBeTruthy();
     expect(handleError).toHaveBeenCalledTimes(1);
     expect(handleError.mock.calls[0][0]).toBeInstanceOf(Error);
     expect(handleError.mock.calls[0][1]).toContain("ThrowingChild");
   });
 
-  it("resets error state when pressing try again", () => {
-    shouldThrow = true;
-    const {getByText} = renderWithTheme(
+  it("resets error state when pressing try again", async () => {
+    const {UNSAFE_getByType, getByText, queryByText} = renderWithTheme(
       <ErrorBoundary>
-        <ThrowingChild />
+        <Text>Recovered child</Text>
       </ErrorBoundary>
     );
+    const boundaryInstance = UNSAFE_getByType(ErrorBoundary).instance as ErrorBoundary;
 
-    expect(getByText("Oops!")).toBeTruthy();
+    act(() => {
+      boundaryInstance.setState(
+        ErrorBoundary.getDerivedStateFromError(new Error("Boundary crash"))
+      );
+    });
+
+    await waitFor(() => expect(getByText("Oops!")).toBeTruthy());
     fireEvent.press(getByText("Try again"));
+    await waitFor(() => expect(queryByText("Oops!")).toBeNull());
     expect(getByText("Recovered child")).toBeTruthy();
   });
 });

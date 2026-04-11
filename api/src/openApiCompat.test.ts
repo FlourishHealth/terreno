@@ -4,8 +4,13 @@ import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 
 describe("patchAppUse", () => {
   it("records trimmed mount path on newly-added layers", () => {
+    interface AppLayer {
+      __openApiMountPath?: string;
+      name?: string;
+    }
+
     const app = {
-      router: {stack: [{name: "existing-layer"}]},
+      router: {stack: [{name: "existing-layer"}] as AppLayer[]},
       use(..._args: unknown[]) {
         this.router.stack.push({name: "new-layer-1"}, {name: "new-layer-2"});
         return "ok";
@@ -41,7 +46,7 @@ describe("patchAppUse", () => {
 
 describe("openApiCompatMiddleware", () => {
   it("patches router layers for openapi compatibility", () => {
-    const stack: any[] = [
+    const stack: Array<Record<string, any>> = [
       {keys: [], slash: true},
       {
         __openApiMountPath: "/admin",
@@ -89,7 +94,15 @@ describe("openApiCompatMiddleware", () => {
   });
 
   it("uses app._router when available", () => {
-    const req = {app: {_router: {stack: [{keys: [], path: "/users/:userId"}]}}};
+    const req = {
+      app: {
+        _router: {
+          stack: [{keys: [] as Array<Record<string, unknown>>, path: "/users/:userId"}] as Array<
+            Record<string, any>
+          >,
+        },
+      },
+    };
     const next = mock(() => {});
 
     openApiCompatMiddleware(req, {}, next);
