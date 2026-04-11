@@ -6,7 +6,7 @@
 // Copyright Patryk Jaworski @gerwld
 
 import React, {useMemo, useState} from "react";
-import {Platform, type StyleProp, type ViewStyle, View} from "react-native";
+import {Platform, type StyleProp, View, type ViewStyle} from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
