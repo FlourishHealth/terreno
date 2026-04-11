@@ -71,7 +71,7 @@ const DataTableCell: FC<DataTableCellProps> = ({
   // Default to TextCell
   let Component: React.ComponentType<{
     column: DataTableColumn;
-    cellData: {value: any; highlight?: SurfaceColor};
+    cellData: {value: DataTableCellData["value"]; highlight?: SurfaceColor};
   }> = TextCell;
   if (customColumnComponentMap?.[columnDef.columnType]) {
     Component = customColumnComponentMap[columnDef.columnType];
@@ -401,7 +401,7 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
 };
 
 interface DataTableContentProps {
-  data: any[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   pinnedColumns: number;
   alternateRowBackground: boolean;
@@ -410,11 +410,11 @@ interface DataTableContentProps {
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
   moreContentComponent?: React.ComponentType<{
     column: DataTableColumn;
-    rowData: any[];
+    rowData: DataTableCellData[];
     rowIndex: number;
   }>;
   // Extra props to pass to the more modal, one per row.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Array<Record<string, unknown> | undefined>;
   moreContentSize?: "sm" | "md" | "lg";
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
