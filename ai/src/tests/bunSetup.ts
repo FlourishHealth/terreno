@@ -4,8 +4,14 @@ import {setupEnvironment, winstonLogger} from "@terreno/api";
 import mongoose from "mongoose";
 import winston from "winston";
 
+const shouldConnectToMongo = process.env.SKIP_TEST_MONGO !== "true";
+
 // Connect to MongoDB once for all tests
 beforeAll(async () => {
+  if (!shouldConnectToMongo) {
+    return;
+  }
+
   await mongoose
     .connect("mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000")
     .catch((err) => {
@@ -15,6 +21,10 @@ beforeAll(async () => {
 
 // Close MongoDB connection after all tests
 afterAll(async () => {
+  if (!shouldConnectToMongo) {
+    return;
+  }
+
   await mongoose.connection.close();
 });
 

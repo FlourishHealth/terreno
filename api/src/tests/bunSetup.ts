@@ -6,8 +6,14 @@ import winston from "winston";
 import {setupEnvironment} from "../expressServer";
 import {logger, winstonLogger} from "../logger";
 
+const shouldConnectToMongo = process.env.SKIP_TEST_MONGO !== "true";
+
 // Connect to MongoDB once for all tests
 beforeAll(async () => {
+  if (!shouldConnectToMongo) {
+    return;
+  }
+
   await mongoose
     .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
     .catch(logger.catch);
@@ -15,6 +21,10 @@ beforeAll(async () => {
 
 // Close MongoDB connection after all tests
 afterAll(async () => {
+  if (!shouldConnectToMongo) {
+    return;
+  }
+
   await mongoose.connection.close();
 });
 
