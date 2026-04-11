@@ -4,23 +4,23 @@ import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {NumberField} from "./NumberField";
 import {renderWithTheme} from "./test-utils";
 
+const noOp = (): void => {};
+
 describe("NumberField", () => {
   it("renders correctly with default props", () => {
-    const {toJSON} = renderWithTheme(
-      <NumberField label="Number" onChange={() => {}} type="number" />
-    );
+    const {toJSON} = renderWithTheme(<NumberField label="Number" onChange={noOp} type="number" />);
     expect(toJSON()).toMatchSnapshot();
   });
 
   it("renders with initial value", () => {
     const {getByDisplayValue} = renderWithTheme(
-      <NumberField label="Number" onChange={() => {}} type="number" value="42" />
+      <NumberField label="Number" onChange={noOp} type="number" value="42" />
     );
     expect(getByDisplayValue("42")).toBeTruthy();
   });
 
   it("calls onChange with valid integer", async () => {
-    const handleChange = mock((_value: string) => {});
+    const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="" />
     );
@@ -36,7 +36,7 @@ describe("NumberField", () => {
   });
 
   it("does not call onChange with non-integer for number type", async () => {
-    const handleChange = mock((_value: string) => {});
+    const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="" />
     );
@@ -51,7 +51,7 @@ describe("NumberField", () => {
   });
 
   it("calls onChange with valid decimal", async () => {
-    const handleChange = mock((_value: string) => {});
+    const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Decimal" onChange={handleChange} type="decimal" value="" />
     );
@@ -67,7 +67,7 @@ describe("NumberField", () => {
   });
 
   it("handles leading dot for decimal type", async () => {
-    const handleChange = mock((_value: string) => {});
+    const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue} = renderWithTheme(
       <NumberField label="Decimal" onChange={handleChange} type="decimal" value="" />
     );
@@ -84,40 +84,34 @@ describe("NumberField", () => {
 
   it("validates max value", () => {
     const {getByText} = renderWithTheme(
-      <NumberField label="Number" max={100} onChange={() => {}} type="number" value="150" />
+      <NumberField label="Number" max={100} onChange={noOp} type="number" value="150" />
     );
     expect(getByText("Value must be less than or equal to 100")).toBeTruthy();
   });
 
   it("validates min value", () => {
     const {getByText} = renderWithTheme(
-      <NumberField label="Number" min={10} onChange={() => {}} type="number" value="5" />
+      <NumberField label="Number" min={10} onChange={noOp} type="number" value="5" />
     );
     expect(getByText("Value must be greater than or equal to 10")).toBeTruthy();
   });
 
   it("shows custom errorText", () => {
     const {getByText} = renderWithTheme(
-      <NumberField
-        errorText="Custom error"
-        label="Number"
-        onChange={() => {}}
-        type="number"
-        value=""
-      />
+      <NumberField errorText="Custom error" label="Number" onChange={noOp} type="number" value="" />
     );
     expect(getByText("Custom error")).toBeTruthy();
   });
 
   it("does not show error for valid number within range", () => {
     const {queryByText} = renderWithTheme(
-      <NumberField label="Number" max={100} min={0} onChange={() => {}} type="number" value="50" />
+      <NumberField label="Number" max={100} min={0} onChange={noOp} type="number" value="50" />
     );
     expect(queryByText(/must be/)).toBeNull();
   });
 
   it("syncs value when prop changes", async () => {
-    const handleChange = mock((_value: string) => {});
+    const handleChange = mock((_value: string): void => {});
     const {getByDisplayValue, unmount} = renderWithTheme(
       <NumberField label="Number" onChange={handleChange} type="number" value="10" />
     );
