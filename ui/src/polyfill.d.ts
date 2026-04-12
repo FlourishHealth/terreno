@@ -6,6 +6,6 @@
 //   }
 
 //   interface Object {
-//     values<T>(obj: any): T[];
+//     values<T>(obj: Record<string, unknown>): T[];
 //   }
 // }
