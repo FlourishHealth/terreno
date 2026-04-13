@@ -33,7 +33,7 @@ const createMockApi = (forms: ConsentFormPublic[]) => {
   mockSubmitMutation.mockReturnValue({unwrap: mockUnwrap});
 
   const innerApi = {
-    injectEndpoints: mock((_config: any) => ({
+    injectEndpoints: mock((_config: unknown) => ({
       useGetPendingConsentsQuery: mock(() => ({
         data: {data: forms},
         error: undefined,
@@ -48,13 +48,13 @@ const createMockApi = (forms: ConsentFormPublic[]) => {
   };
 
   return {
-    enhanceEndpoints: mock((_config: any) => innerApi),
+    enhanceEndpoints: mock((_config: unknown) => innerApi),
   };
 };
 
 const createLoadingMockApi = () => {
   const innerApi = {
-    injectEndpoints: mock((_config: any) => ({
+    injectEndpoints: mock((_config: unknown) => ({
       useGetPendingConsentsQuery: mock(() => ({
         data: undefined,
         error: undefined,
@@ -69,7 +69,7 @@ const createLoadingMockApi = () => {
   };
 
   return {
-    enhanceEndpoints: mock((_config: any) => innerApi),
+    enhanceEndpoints: mock((_config: unknown) => innerApi),
   };
 };
 

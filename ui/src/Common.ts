@@ -2066,7 +2066,7 @@ export interface PaginationProps {
  * Data Table
  */
 export interface DataTableCellData {
-  value: any;
+  value: unknown;
   highlight?: SurfaceColor;
   textSize?: "sm" | "md" | "lg";
 }
@@ -2085,7 +2085,7 @@ export interface DataTableColumn {
 }
 
 export interface DataTableProps {
-  data: {value: any; highlight?: SurfaceColor; textSize?: "sm" | "md" | "lg"}[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   alternateRowBackground?: boolean;
   totalPages?: number;
@@ -2102,17 +2102,17 @@ export interface DataTableProps {
    */
   moreContentComponent?: React.ComponentType<{
     column: DataTableColumn;
-    rowData: any[];
+    rowData: DataTableCellData[];
     rowIndex: number;
-  }>;
+  } & Record<string, unknown>>;
   // Extra data to pass to the more modal.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.
   customColumnComponentMap?: DataTableCustomComponentMap;
 }
 
 export interface DataTableCellProps {
-  value: any;
+  value: DataTableCellData;
   columnDef: DataTableColumn;
   colIndex: number;
   isPinnedHorizontal: boolean;

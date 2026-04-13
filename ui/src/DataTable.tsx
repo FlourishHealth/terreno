@@ -32,23 +32,21 @@ import {TableTitle} from "./table/TableTitle";
 // easily.
 
 const TextCell: FC<{
-  cellData: {value: string; textSize?: "sm" | "md" | "lg"};
+  cellData: DataTableCellData;
   column: DataTableColumn;
 }> = ({cellData}) => {
   return (
     <Box flex="grow" justifyContent="center">
-      <Text size={cellData.textSize || "md"}>{cellData.value}</Text>
+      <Text size={cellData.textSize || "md"}>{String(cellData.value ?? "")}</Text>
     </Box>
   );
 };
 
-const CheckedCell: FC<{cellData: {value: boolean}; column: DataTableColumn}> = ({cellData}) => {
+const CheckedCell: FC<{cellData: DataTableCellData; column: DataTableColumn}> = ({cellData}) => {
+  const isChecked = Boolean(cellData.value);
   return (
     <Box flex="grow" justifyContent="center" width="100%">
-      <Icon
-        color={cellData.value ? "success" : "secondaryDark"}
-        iconName={cellData.value ? "check" : "x"}
-      />
+      <Icon color={isChecked ? "success" : "secondaryDark"} iconName={isChecked ? "check" : "x"} />
     </Box>
   );
 };
@@ -71,7 +69,7 @@ const DataTableCell: FC<DataTableCellProps> = ({
   // Default to TextCell
   let Component: React.ComponentType<{
     column: DataTableColumn;
-    cellData: {value: any; highlight?: SurfaceColor};
+    cellData: DataTableCellData;
   }> = TextCell;
   if (customColumnComponentMap?.[columnDef.columnType]) {
     Component = customColumnComponentMap[columnDef.columnType];
@@ -401,7 +399,7 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
 };
 
 interface DataTableContentProps {
-  data: any[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   pinnedColumns: number;
   alternateRowBackground: boolean;
@@ -410,11 +408,11 @@ interface DataTableContentProps {
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
   moreContentComponent?: React.ComponentType<{
     column: DataTableColumn;
-    rowData: any[];
+    rowData: DataTableCellData[];
     rowIndex: number;
-  }>;
+  } & Record<string, unknown>>;
   // Extra props to pass to the more modal, one per row.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   moreContentSize?: "sm" | "md" | "lg";
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
