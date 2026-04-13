@@ -3044,4 +3044,13 @@ export interface SidebarNavigationPanelProps {
    * Additional styles applied to each navigation item.
    */
   itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Controlled open state. When provided, the panel hides its internal hamburger
+   * button and defers open/close to the caller.
+   */
+  isOpen?: boolean;
+  /**
+   * Called when the panel requests an open or close (controlled mode only).
+   */
+  onOpenChange?: (isOpen: boolean) => void;
 }

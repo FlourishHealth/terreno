@@ -1,7 +1,16 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
 import {type FC, useCallback, useEffect, useRef, useState} from "react";
-import {Animated, Dimensions, Pressable, type StyleProp, View, type ViewStyle} from "react-native";
+import {
+  Animated,
+  Dimensions,
+  Pressable,
+  type StyleProp,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
+import {useSafeAreaInsets} from "react-native-safe-area-context";
 
 import {Badge} from "./Badge";
 import type {
@@ -78,8 +87,23 @@ const SidebarItem: FC<{
   );
 };
 
+const SidebarHamburger: FC<{onOpen: () => void}> = ({onOpen}) => (
+  <Pressable
+    accessibilityLabel="Open navigation menu"
+    accessibilityRole="button"
+    onPress={onOpen}
+    style={{alignItems: "center", height: 40, justifyContent: "center", width: 40}}
+  >
+    <Icon color="primary" iconName="bars" size="md" />
+  </Pressable>
+);
+
 /**
- * Renders the hamburger button, drawer overlay, and children. Works without expo-router Navigator context.
+ * Renders the drawer overlay and children. Works without expo-router Navigator context.
+ *
+ * Supports two modes:
+ * - Uncontrolled (default): manages open state internally and shows a floating hamburger button.
+ * - Controlled: caller provides isOpen + onOpenChange and owns the trigger (e.g. a header button).
  */
 export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   topItems,
@@ -89,13 +113,17 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   children,
   panelStyle,
   itemStyle,
+  isOpen: isOpenProp,
+  onOpenChange,
 }) => {
   const {theme} = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  const isControlled = isOpenProp !== undefined;
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isControlled ? isOpenProp : isOpenInternal;
+
   const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
 
-  // Animate drawer open/close
   useEffect(() => {
     if (isOpen) {
       Animated.parallel([
@@ -126,15 +154,28 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
     }
   }, [isOpen, slideAnim, backdropAnim]);
 
-  const handleOpen = useCallback(() => setIsOpen(true), []);
-  const handleClose = useCallback(() => setIsOpen(false), []);
+  const handleOpen = useCallback(() => {
+    if (isControlled) {
+      onOpenChange?.(true);
+    } else {
+      setIsOpenInternal(true);
+    }
+  }, [isControlled, onOpenChange]);
+
+  const handleClose = useCallback(() => {
+    if (isControlled) {
+      onOpenChange?.(false);
+    } else {
+      setIsOpenInternal(false);
+    }
+  }, [isControlled, onOpenChange]);
 
   const handleNavigate = useCallback(
     (route: string) => {
-      setIsOpen(false);
+      handleClose();
       onNavigate(route);
     },
-    [onNavigate]
+    [handleClose, onNavigate]
   );
 
   const screenHeight = Dimensions.get("window").height;
@@ -143,45 +184,35 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
     <View style={{flex: 1}}>
       {children}
 
-      {/* Hamburger button */}
-      <Pressable
-        accessibilityLabel="Open navigation menu"
-        accessibilityRole="button"
-        onPress={handleOpen}
-        style={{
-          alignItems: "center",
-          height: 44,
-          justifyContent: "center",
-          left: 16,
-          position: "absolute",
-          top: 16,
-          width: 44,
-          zIndex: 10,
-        }}
-      >
-        <Icon color="primary" iconName="bars" size="md" />
-      </Pressable>
+      {/* Floating hamburger — only shown in uncontrolled (standalone) mode */}
+      {!isControlled && (
+        <Pressable
+          accessibilityLabel="Open navigation menu"
+          accessibilityRole="button"
+          onPress={handleOpen}
+          style={{
+            alignItems: "center",
+            height: 44,
+            justifyContent: "center",
+            left: 16,
+            position: "absolute",
+            top: 16,
+            width: 44,
+            zIndex: 10,
+          }}
+        >
+          <Icon color="primary" iconName="bars" size="md" />
+        </Pressable>
+      )}
 
       {/* Backdrop */}
       {isOpen && (
         <Pressable
+          accessibilityElementsHidden
           onPress={handleClose}
-          style={{
-            bottom: 0,
-            left: 0,
-            position: "absolute",
-            right: 0,
-            top: 0,
-            zIndex: 100,
-          }}
+          style={{bottom: 0, left: 0, position: "absolute", right: 0, top: 0, zIndex: 100}}
         >
-          <Animated.View
-            style={{
-              backgroundColor: "#000",
-              flex: 1,
-              opacity: backdropAnim,
-            }}
-          />
+          <Animated.View style={{backgroundColor: "#000", flex: 1, opacity: backdropAnim}} />
         </Pressable>
       )}
 
@@ -222,7 +253,9 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
 };
 
 /**
- * Reads active route from Navigator context and renders the drawer + Slot.
+ * Reads active route and screen options from Navigator context.
+ * Renders a native header bar (with safe area, hamburger, title, headerLeft/headerRight)
+ * and passes controlled open state down to SidebarNavigationPanel.
  */
 const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
@@ -231,8 +264,13 @@ const SidebarNavigatorContent: FC<{
   panelStyle?: StyleProp<ViewStyle>;
   itemStyle?: StyleProp<ViewStyle>;
 }> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
-  const {state, navigation} = Navigator.useContext();
-  const activeRoute = state.routes[state.index]?.name;
+  const {theme} = useTheme();
+  const insets = useSafeAreaInsets();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const {state, navigation, descriptors} = Navigator.useContext();
+  const activeRoute = state.routes[state.index];
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
 
   const handleNavigate = useCallback(
     (route: string) => {
@@ -243,21 +281,60 @@ const SidebarNavigatorContent: FC<{
   );
 
   return (
-    <SidebarNavigationPanel
-      activeRoute={activeRoute}
-      bottomItems={bottomItems}
-      itemStyle={itemStyle}
-      onNavigate={handleNavigate}
-      panelStyle={panelStyle}
-      topItems={topItems}
-    >
-      <Slot />
-    </SidebarNavigationPanel>
+    <View style={{flex: 1}}>
+      {/* Header bar */}
+      <View
+        style={{
+          backgroundColor: theme.surface.base,
+          borderBottomColor: theme.border.default,
+          borderBottomWidth: 1,
+          paddingTop: insets.top,
+        }}
+      >
+        <View
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            minHeight: 52,
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          }}
+        >
+          <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
+            <SidebarHamburger onOpen={() => setIsSheetOpen(true)} />
+            {headerLeft?.({})}
+            {Boolean(title) && (
+              <Text bold size="lg">
+                {title}
+              </Text>
+            )}
+          </View>
+          {Boolean(headerRight) && (
+            <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>
+          )}
+        </View>
+      </View>
+
+      {/* Content + drawer */}
+      <SidebarNavigationPanel
+        activeRoute={activeRoute?.name}
+        bottomItems={bottomItems}
+        isOpen={isSheetOpen}
+        itemStyle={itemStyle}
+        onNavigate={handleNavigate}
+        onOpenChange={setIsSheetOpen}
+        panelStyle={panelStyle}
+        topItems={topItems}
+      >
+        <Slot />
+      </SidebarNavigationPanel>
+    </View>
   );
 };
 
 /**
- * Custom expo-router navigator with a hamburger-triggered slide-in drawer.
+ * Custom expo-router navigator with a header bar and hamburger-triggered slide-in drawer.
  * Use in _layout.tsx files:
  *
  * ```tsx
@@ -281,14 +358,20 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   itemStyle,
 }) => {
   return (
-    <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
-      <SidebarNavigatorContent
-        bottomItems={bottomItems}
-        itemStyle={itemStyle}
-        onNavigate={onNavigate}
-        panelStyle={panelStyle}
-        topItems={topItems}
-      />
-    </Navigator>
+    <View style={StyleSheet.absoluteFillObject}>
+      <Navigator
+        initialRouteName={initialRouteName}
+        router={TabRouter}
+        screenOptions={screenOptions}
+      >
+        <SidebarNavigatorContent
+          bottomItems={bottomItems}
+          itemStyle={itemStyle}
+          onNavigate={onNavigate}
+          panelStyle={panelStyle}
+          topItems={topItems}
+        />
+      </Navigator>
+    </View>
   );
 };
