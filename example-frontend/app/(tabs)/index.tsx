@@ -24,11 +24,13 @@ import {
   usePostTodosMutation,
 } from "@/store";
 
-const TodoItem: React.FC<{
+interface TodoItemProps {
   todo: Todo;
   onToggle: (id: string, completed: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-}> = ({todo, onToggle, onDelete}) => {
+}
+
+const TodoItem: React.FC<TodoItemProps> = ({todo, onToggle, onDelete}) => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const handleToggle = useCallback(async (): Promise<void> => {
@@ -138,8 +140,8 @@ const TodosScreen: React.FC = () => {
   }, [refetch]);
 
   const toggleShowCompleted = useCallback((): void => {
-    setShowCompleted(!showCompleted);
-  }, [showCompleted]);
+    setShowCompleted((previousValue) => !previousValue);
+  }, []);
 
   if (isLoading) {
     return (

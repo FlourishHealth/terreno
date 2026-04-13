@@ -1,33 +1,38 @@
 import type React from "react";
-import {View} from "react-native";
 
+import {Box} from "./Box";
 import type {RadioProps} from "./Common";
 import {useTheme} from "./Theme";
 
-export const Radio = ({selected}: RadioProps): React.ReactElement => {
+export const Radio: React.FC<RadioProps> = ({selected}) => {
   const {theme} = useTheme();
+
   return (
-    <View
-      style={{
-        alignItems: "center",
-        borderColor: theme.text.secondaryDark,
-        borderRadius: 12,
-        borderWidth: 1,
-        height: 16,
-        justifyContent: "center",
-        width: 16,
+    <Box
+      alignItems="center"
+      dangerouslySetInlineStyle={{
+        __style: {
+          borderColor: theme.text.secondaryDark,
+          borderWidth: 1,
+        },
       }}
+      height={16}
+      justifyContent="center"
+      rounding="circle"
+      width={16}
     >
       {selected ? (
-        <View
-          style={{
-            backgroundColor: theme.text.secondaryDark,
-            borderRadius: 6,
-            height: 10,
-            width: 10,
+        <Box
+          dangerouslySetInlineStyle={{
+            __style: {
+              backgroundColor: theme.text.secondaryDark,
+            },
           }}
+          height={10}
+          rounding="circle"
+          width={10}
         />
       ) : null}
-    </View>
+    </Box>
   );
 };

@@ -1,4 +1,6 @@
-import React, {useState} from "react";
+import type React from "react";
+import {useCallback, useState} from "react";
+import type {LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent} from "react-native";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -54,63 +56,104 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
 
   // Auto-satisfy scroll requirement when content fits within the viewport
-  const handleContentSizeChange = (_w: number, h: number) => {
-    setContentHeight(h);
-    if (!hasScrolledToBottom && h > 0 && layoutHeight > 0 && h <= layoutHeight) {
-      setHasScrolledToBottom(true);
-    }
-  };
+  const handleContentSizeChange = useCallback(
+    (_: number, contentHeightValue: number): void => {
+      setContentHeight(contentHeightValue);
+      if (
+        !hasScrolledToBottom &&
+        contentHeightValue > 0 &&
+        layoutHeight > 0 &&
+        contentHeightValue <= layoutHeight
+      ) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [hasScrolledToBottom, layoutHeight]
+  );
 
-  const handleLayout = (event: any) => {
-    const h = event.nativeEvent.layout.height;
-    setLayoutHeight(h);
-    if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
-      setHasScrolledToBottom(true);
-    }
-  };
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent): void => {
+      const layoutHeightValue = event.nativeEvent.layout.height;
+      setLayoutHeight(layoutHeightValue);
+      if (
+        !hasScrolledToBottom &&
+        contentHeight > 0 &&
+        layoutHeightValue > 0 &&
+        contentHeight <= layoutHeightValue
+      ) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [contentHeight, hasScrolledToBottom]
+  );
 
-  const handleScroll = (event: any) => {
-    if (hasScrolledToBottom) {
-      return;
-    }
-    const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
-    const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
-    if (distanceFromBottom <= 20) {
-      setHasScrolledToBottom(true);
-    }
-  };
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
+      if (hasScrolledToBottom) {
+        return;
+      }
+      const {contentOffset, contentSize, layoutMeasurement} = event.nativeEvent;
+      const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+      if (distanceFromBottom <= 20) {
+        setHasScrolledToBottom(true);
+      }
+    },
+    [hasScrolledToBottom]
+  );
 
-  const handleCheckboxPress = (index: number) => {
-    const checkbox = form.checkboxes[index];
-    const key = index.toString();
-    const currentValue = checkboxValues[key] ?? false;
+  const handleCheckboxPress = useCallback(
+    (index: number): void => {
+      const checkbox = form.checkboxes[index];
+      const key = index.toString();
+      const currentValue = checkboxValues[key] ?? false;
 
-    if (checkbox.confirmationPrompt && !currentValue) {
-      // Show confirmation modal before toggling on
-      setConfirmModalCheckboxIndex(index);
-      setConfirmModalVisible(true);
-    } else {
-      setCheckboxValues((prev) => ({...prev, [key]: !currentValue}));
-    }
-  };
+      if (checkbox.confirmationPrompt && !currentValue) {
+        // Show confirmation modal before toggling on
+        setConfirmModalCheckboxIndex(index);
+        setConfirmModalVisible(true);
+      } else {
+        setCheckboxValues((prev) => ({...prev, [key]: !currentValue}));
+      }
+    },
+    [checkboxValues, form.checkboxes]
+  );
 
-  const handleConfirmModalConfirm = () => {
+  const handleConfirmModalConfirm = useCallback((): void => {
     if (confirmModalCheckboxIndex !== null) {
       const key = confirmModalCheckboxIndex.toString();
       setCheckboxValues((prev) => ({...prev, [key]: true}));
     }
     setConfirmModalVisible(false);
     setConfirmModalCheckboxIndex(null);
-  };
+  }, [confirmModalCheckboxIndex]);
 
-  const handleConfirmModalDismiss = () => {
+  const handleConfirmModalDismiss = useCallback((): void => {
     setConfirmModalVisible(false);
     setConfirmModalCheckboxIndex(null);
-  };
+  }, []);
 
-  const handleAgree = () => {
+  const handleAgree = useCallback((): void => {
     onAgree({checkboxValues, signature: signatureValue});
-  };
+  }, [checkboxValues, onAgree, signatureValue]);
+
+  const handleDecline = useCallback((): void => {
+    if (!onDecline) {
+      return;
+    }
+    onDecline();
+  }, [onDecline]);
+
+  const handleSignatureChange = useCallback((value: string): void => {
+    setSignatureValue(value);
+  }, []);
+
+  const handleSignatureStart = useCallback((): void => {
+    setScrollEnabled(false);
+  }, []);
+
+  const handleSignatureEnd = useCallback((): void => {
+    setScrollEnabled(true);
+  }, []);
 
   const confirmingCheckbox =
     confirmModalCheckboxIndex !== null ? form.checkboxes[confirmModalCheckboxIndex] : null;
@@ -121,7 +164,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         <Box width="100%">
           <Button
             fullWidth
-            onClick={onDecline!}
+            onClick={handleDecline}
             testID="consent-form-decline-button"
             text={form.declineButtonText}
             variant="muted"
@@ -185,9 +228,9 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           {Boolean(form.captureSignature) && (
             <Box direction="column" gap={2} testID="consent-form-signature">
               <SignatureField
-                onChange={(value) => setSignatureValue(value)}
-                onEnd={() => setScrollEnabled(true)}
-                onStart={() => setScrollEnabled(false)}
+                onChange={handleSignatureChange}
+                onEnd={handleSignatureEnd}
+                onStart={handleSignatureStart}
                 title="Signature"
                 value={signatureValue}
               />
