@@ -322,14 +322,12 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   );
 };
 
-const SidebarHeader: FC<{
-  title?: string;
-  headerLeft?: (props: object) => React.ReactNode;
-  headerRight?: (props: object) => React.ReactNode;
-  onOpen: () => void;
-}> = ({title, headerLeft, headerRight, onOpen}) => {
+const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
+  const {state, descriptors} = Navigator.useContext();
+  const activeRoute = state.routes[state.index];
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
 
   return (
     <View
@@ -365,22 +363,18 @@ const SidebarHeader: FC<{
   );
 };
 
-/**
- * Reads active route and screen options from Navigator context.
- * Renders the header bar and content panel as siblings inside a flex column.
- */
+/** Renders the content panel and bottom sheet for the active screen. */
 const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
   bottomItems: SidebarNavigationItem[];
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
   onNavigate?: (route: string) => void;
   panelStyle?: StyleProp<ViewStyle>;
   itemStyle?: StyleProp<ViewStyle>;
-}> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  const {state, navigation, descriptors} = Navigator.useContext();
+}> = ({topItems, bottomItems, isOpen, onOpenChange, onNavigate, panelStyle, itemStyle}) => {
+  const {state, navigation} = Navigator.useContext();
   const activeRoute = state.routes[state.index];
-  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
 
   const handleNavigate = useCallback(
     (route: string) => {
@@ -391,26 +385,18 @@ const SidebarNavigatorContent: FC<{
   );
 
   return (
-    <View style={{flex: 1}}>
-      <SidebarHeader
-        headerLeft={headerLeft}
-        headerRight={headerRight}
-        onOpen={() => setIsSheetOpen(true)}
-        title={title}
-      />
-      <SidebarNavigationPanel
-        activeRoute={activeRoute?.name}
-        bottomItems={bottomItems}
-        isOpen={isSheetOpen}
-        itemStyle={itemStyle}
-        onNavigate={handleNavigate}
-        onOpenChange={setIsSheetOpen}
-        panelStyle={panelStyle}
-        topItems={topItems}
-      >
-        <Slot />
-      </SidebarNavigationPanel>
-    </View>
+    <SidebarNavigationPanel
+      activeRoute={activeRoute?.name}
+      bottomItems={bottomItems}
+      isOpen={isOpen}
+      itemStyle={itemStyle}
+      onNavigate={handleNavigate}
+      onOpenChange={onOpenChange}
+      panelStyle={panelStyle}
+      topItems={topItems}
+    >
+      <Slot />
+    </SidebarNavigationPanel>
   );
 };
 
@@ -439,15 +425,22 @@ const SidebarNavigationBase: FC<SidebarNavigationProps> = ({
   itemStyle,
   children,
 }) => {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   return (
     <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
-      <SidebarNavigatorContent
-        bottomItems={bottomItems}
-        itemStyle={itemStyle}
-        onNavigate={onNavigate}
-        panelStyle={panelStyle}
-        topItems={topItems}
-      />
+      <View style={{flex: 1}}>
+        <SidebarHeader onOpen={() => setIsSheetOpen(true)} />
+        <SidebarNavigatorContent
+          bottomItems={bottomItems}
+          isOpen={isSheetOpen}
+          itemStyle={itemStyle}
+          onNavigate={onNavigate}
+          onOpenChange={setIsSheetOpen}
+          panelStyle={panelStyle}
+          topItems={topItems}
+        />
+      </View>
       {children}
     </Navigator>
   );
