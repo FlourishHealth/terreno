@@ -2100,11 +2100,13 @@ export interface DataTableProps {
   /**
    * When tapping the eye icon, a modal is shown with more info about the row.
    */
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: DataTableCellData[];
-    rowIndex: number;
-  } & Record<string, unknown>>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra data to pass to the more modal.
   moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.

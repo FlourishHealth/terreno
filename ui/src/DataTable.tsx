@@ -406,11 +406,13 @@ interface DataTableContentProps {
   columnWidths: number[];
   bodyScrollRef: React.RefObject<ScrollView | null>;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: DataTableCellData[];
-    rowIndex: number;
-  } & Record<string, unknown>>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra props to pass to the more modal, one per row.
   moreContentExtraData?: Record<string, unknown>[];
   moreContentSize?: "sm" | "md" | "lg";
