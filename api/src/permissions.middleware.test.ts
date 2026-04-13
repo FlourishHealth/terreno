@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/bun";
 import type express from "express";
 
 import {APIError} from "./errors";
-import {permissionMiddleware, Permissions} from "./permissions";
+import {Permissions, permissionMiddleware} from "./permissions";
 
 describe("permissionMiddleware", () => {
   const allPermissions = {

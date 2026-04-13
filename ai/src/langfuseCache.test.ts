@@ -52,7 +52,8 @@ describe("cache", () => {
       const afterCall = Date.now();
 
       expect(findOneAndUpdate).toHaveBeenCalledTimes(1);
-      const [filter, update, options] = (findOneAndUpdate as {mock: {calls: unknown[][]}}).mock.calls[0];
+      const [filter, update, options] = (findOneAndUpdate as {mock: {calls: unknown[][]}}).mock
+        .calls[0];
       expect(filter).toEqual({key: "prompt:test:production"});
       expect((update as {key: string}).key).toBe("prompt:test:production");
       expect((update as {value: LangfuseCachedPrompt}).value).toEqual(samplePrompt);

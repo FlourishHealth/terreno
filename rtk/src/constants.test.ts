@@ -22,7 +22,7 @@ const loadConstantsModule = async ({
   constantsMock: ExpoConstantsMock;
   isDev?: boolean;
 }): Promise<ConstantsModule> => {
-  const hasApiUrl = Object.prototype.hasOwnProperty.call(process.env, "EXPO_PUBLIC_API_URL");
+  const hasApiUrl = "EXPO_PUBLIC_API_URL" in process.env;
   const previousApiUrl = process.env.EXPO_PUBLIC_API_URL;
   const previousDev = (globalThis as {__DEV__?: boolean}).__DEV__;
 
