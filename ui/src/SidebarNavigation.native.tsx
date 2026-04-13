@@ -243,7 +243,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
             justifyContent: "center",
             left: 16,
             position: "absolute",
-            top: 16,
+            top: insets.top + 16,
             width: 44,
             zIndex: 10,
           }}
