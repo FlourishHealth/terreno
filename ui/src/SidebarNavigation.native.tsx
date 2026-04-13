@@ -322,10 +322,52 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   );
 };
 
+const SidebarHeader: FC<{
+  title?: string;
+  headerLeft?: (props: object) => React.ReactNode;
+  headerRight?: (props: object) => React.ReactNode;
+  onOpen: () => void;
+}> = ({title, headerLeft, headerRight, onOpen}) => {
+  const {theme} = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={{
+        backgroundColor: theme.surface.base,
+        borderBottomColor: theme.border.default,
+        borderBottomWidth: 1,
+        paddingTop: insets.top,
+      }}
+    >
+      <View
+        style={{
+          alignItems: "center",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          minHeight: 52,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+        }}
+      >
+        <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
+          <SidebarHamburger onOpen={onOpen} />
+          {headerLeft?.({})}
+          {Boolean(title) && (
+            <Text bold size="lg">
+              {title}
+            </Text>
+          )}
+        </View>
+        {Boolean(headerRight) && <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>}
+      </View>
+    </View>
+  );
+};
+
 /**
  * Reads active route and screen options from Navigator context.
- * Renders a native header bar (with safe area, hamburger, title, headerLeft/headerRight)
- * and passes controlled open state down to SidebarNavigationPanel.
+ * Renders the header bar and content panel as siblings inside a flex column.
  */
 const SidebarNavigatorContent: FC<{
   topItems: SidebarNavigationItem[];
@@ -334,8 +376,6 @@ const SidebarNavigatorContent: FC<{
   panelStyle?: StyleProp<ViewStyle>;
   itemStyle?: StyleProp<ViewStyle>;
 }> = ({topItems, bottomItems, onNavigate, panelStyle, itemStyle}) => {
-  const {theme} = useTheme();
-  const insets = useSafeAreaInsets();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const {state, navigation, descriptors} = Navigator.useContext();
@@ -352,41 +392,12 @@ const SidebarNavigatorContent: FC<{
 
   return (
     <View style={{flex: 1}}>
-      {/* Header bar */}
-      <View
-        style={{
-          backgroundColor: theme.surface.base,
-          borderBottomColor: theme.border.default,
-          borderBottomWidth: 1,
-          paddingTop: insets.top,
-        }}
-      >
-        <View
-          style={{
-            alignItems: "center",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            minHeight: 52,
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          }}
-        >
-          <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
-            <SidebarHamburger onOpen={() => setIsSheetOpen(true)} />
-            {headerLeft?.({})}
-            {Boolean(title) && (
-              <Text bold size="lg">
-                {title}
-              </Text>
-            )}
-          </View>
-          {Boolean(headerRight) && (
-            <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>
-          )}
-        </View>
-      </View>
-
-      {/* Content + bottom sheet */}
+      <SidebarHeader
+        headerLeft={headerLeft}
+        headerRight={headerRight}
+        onOpen={() => setIsSheetOpen(true)}
+        title={title}
+      />
       <SidebarNavigationPanel
         activeRoute={activeRoute?.name}
         bottomItems={bottomItems}
