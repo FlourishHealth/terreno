@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it, mock} from "bun:test";
 
 import {getCached, invalidateCache, LangfuseCache, setCached} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
@@ -13,7 +13,17 @@ const samplePrompt: LangfuseCachedPrompt = {
   version: 1,
 };
 
+const originalFindOne = LangfuseCache.findOne;
+const originalFindOneAndUpdate = LangfuseCache.findOneAndUpdate;
+const originalDeleteMany = LangfuseCache.deleteMany;
+
 describe("cache", () => {
+  afterEach(() => {
+    LangfuseCache.findOne = originalFindOne;
+    LangfuseCache.findOneAndUpdate = originalFindOneAndUpdate;
+    LangfuseCache.deleteMany = originalDeleteMany;
+  });
+
   describe("getCached", () => {
     it("returns null when no entry exists", async () => {
       const lean = mock(async () => null);
