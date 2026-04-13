@@ -1,5 +1,10 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
+// Screen is not exported from expo-router's public API (exports.d.ts only exposes ScreenProps).
+// Stack.Screen and Tabs.Screen use this same internal path. If expo-router upgrades break this,
+// update the import path here — this is the only place in the codebase that references it.
+// eslint-disable-next-line import/no-internal-modules
+import {Screen} from "expo-router/build/views/Screen";
 import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   Animated,
@@ -7,7 +12,6 @@ import {
   PanResponder,
   Pressable,
   type StyleProp,
-  StyleSheet,
   View,
   type ViewStyle,
 } from "react-native";
@@ -414,7 +418,7 @@ const SidebarNavigatorContent: FC<{
  * }
  * ```
  */
-export const SidebarNavigation: FC<SidebarNavigationProps> = ({
+const SidebarNavigationBase: FC<SidebarNavigationProps> = ({
   topItems,
   bottomItems,
   onNavigate,
@@ -422,22 +426,20 @@ export const SidebarNavigation: FC<SidebarNavigationProps> = ({
   screenOptions,
   panelStyle,
   itemStyle,
+  children,
 }) => {
   return (
-    <View style={StyleSheet.absoluteFillObject}>
-      <Navigator
-        initialRouteName={initialRouteName}
-        router={TabRouter}
-        screenOptions={screenOptions}
-      >
-        <SidebarNavigatorContent
-          bottomItems={bottomItems}
-          itemStyle={itemStyle}
-          onNavigate={onNavigate}
-          panelStyle={panelStyle}
-          topItems={topItems}
-        />
-      </Navigator>
-    </View>
+    <Navigator initialRouteName={initialRouteName} router={TabRouter} screenOptions={screenOptions}>
+      <SidebarNavigatorContent
+        bottomItems={bottomItems}
+        itemStyle={itemStyle}
+        onNavigate={onNavigate}
+        panelStyle={panelStyle}
+        topItems={topItems}
+      />
+      {children}
+    </Navigator>
   );
 };
+
+export const SidebarNavigation = Object.assign(SidebarNavigationBase, {Screen});
