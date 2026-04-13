@@ -1,9 +1,10 @@
 import {TabRouter} from "@react-navigation/native";
 import {Navigator, Slot} from "expo-router";
-import {type FC, useCallback, useEffect, useRef, useState} from "react";
+import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   Animated,
   Dimensions,
+  PanResponder,
   Pressable,
   type StyleProp,
   StyleSheet,
@@ -23,11 +24,11 @@ import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
-const DRAWER_WIDTH = 280;
 const ITEM_HEIGHT = 44;
 const ICON_SIZE = 20;
 const BACKDROP_OPACITY = 0.5;
-const ANIMATION_DURATION = 250;
+const ANIMATION_DURATION = 300;
+const DISMISS_THRESHOLD = 0.3;
 
 const SidebarItem: FC<{
   item: SidebarNavigationItem;
@@ -99,7 +100,7 @@ const SidebarHamburger: FC<{onOpen: () => void}> = ({onOpen}) => (
 );
 
 /**
- * Renders the drawer overlay and children. Works without expo-router Navigator context.
+ * Renders the bottom sheet overlay and children. Works without expo-router Navigator context.
  *
  * Supports two modes:
  * - Uncontrolled (default): manages open state internally and shows a floating hamburger button.
@@ -117,56 +118,64 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
   onOpenChange,
 }) => {
   const {theme} = useTheme();
+  const insets = useSafeAreaInsets();
   const isControlled = isOpenProp !== undefined;
   const [isOpenInternal, setIsOpenInternal] = useState(false);
   const isOpen = isControlled ? isOpenProp : isOpenInternal;
 
-  const slideAnim = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  const sheetHeight = useMemo(() => Dimensions.get("window").height * 0.65, []);
+  const slideAnim = useRef(new Animated.Value(sheetHeight)).current;
   const backdropAnim = useRef(new Animated.Value(0)).current;
+  const capturedSlideValue = useRef(0);
 
+  // Play open animation whenever isOpen becomes true
   useEffect(() => {
-    if (isOpen) {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: BACKDROP_OPACITY,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      Animated.parallel([
-        Animated.timing(slideAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: -DRAWER_WIDTH,
-          useNativeDriver: true,
-        }),
-        Animated.timing(backdropAnim, {
-          duration: ANIMATION_DURATION,
-          toValue: 0,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    if (!isOpen) {
+      return;
     }
-  }, [isOpen, slideAnim, backdropAnim]);
+    slideAnim.setValue(sheetHeight);
+    backdropAnim.setValue(0);
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: BACKDROP_OPACITY,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [isOpen, slideAnim, backdropAnim, sheetHeight]);
+
+  // Play close animation then update state
+  const handleClose = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: sheetHeight,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropAnim, {
+        duration: ANIMATION_DURATION,
+        toValue: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      if (isControlled) {
+        onOpenChange?.(false);
+      } else {
+        setIsOpenInternal(false);
+      }
+    });
+  }, [isControlled, onOpenChange, slideAnim, backdropAnim, sheetHeight]);
 
   const handleOpen = useCallback(() => {
     if (isControlled) {
       onOpenChange?.(true);
     } else {
       setIsOpenInternal(true);
-    }
-  }, [isControlled, onOpenChange]);
-
-  const handleClose = useCallback(() => {
-    if (isControlled) {
-      onOpenChange?.(false);
-    } else {
-      setIsOpenInternal(false);
     }
   }, [isControlled, onOpenChange]);
 
@@ -178,7 +187,45 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
     [handleClose, onNavigate]
   );
 
-  const screenHeight = Dimensions.get("window").height;
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_, {dx, dy}) => Math.abs(dy) > Math.abs(dx) && dy > 4,
+        onPanResponderGrant: () => {
+          slideAnim.stopAnimation((value) => {
+            capturedSlideValue.current = value;
+          });
+          backdropAnim.stopAnimation();
+        },
+        onPanResponderMove: (_, {dy}) => {
+          const next = capturedSlideValue.current + dy;
+          if (next < 0) {
+            return;
+          }
+          slideAnim.setValue(next);
+          backdropAnim.setValue(BACKDROP_OPACITY * Math.max(0, 1 - next / sheetHeight));
+        },
+        onPanResponderRelease: (_, {dy, vy}) => {
+          if (dy > sheetHeight * DISMISS_THRESHOLD || vy > 0.5) {
+            handleClose();
+          } else {
+            Animated.parallel([
+              Animated.timing(slideAnim, {
+                duration: 200,
+                toValue: 0,
+                useNativeDriver: true,
+              }),
+              Animated.timing(backdropAnim, {
+                duration: 200,
+                toValue: BACKDROP_OPACITY,
+                useNativeDriver: true,
+              }),
+            ]).start();
+          }
+        },
+      }),
+    [slideAnim, backdropAnim, sheetHeight, handleClose]
+  );
 
   return (
     <View style={{flex: 1}}>
@@ -205,49 +252,68 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
         </Pressable>
       )}
 
-      {/* Backdrop */}
       {isOpen && (
-        <Pressable
-          accessibilityElementsHidden
-          onPress={handleClose}
-          style={{bottom: 0, left: 0, position: "absolute", right: 0, top: 0, zIndex: 100}}
-        >
-          <Animated.View style={{backgroundColor: "#000", flex: 1, opacity: backdropAnim}} />
-        </Pressable>
-      )}
+        <>
+          {/* Backdrop */}
+          <Pressable
+            accessibilityElementsHidden
+            onPress={handleClose}
+            style={{bottom: 0, left: 0, position: "absolute", right: 0, top: 0, zIndex: 100}}
+          >
+            <Animated.View style={{backgroundColor: "#000", flex: 1, opacity: backdropAnim}} />
+          </Pressable>
 
-      {/* Drawer */}
-      <Animated.View
-        style={[
-          {
-            backgroundColor: theme.surface.base,
-            borderColor: theme.border.default,
-            borderRightWidth: 1,
-            height: screenHeight,
-            left: 0,
-            paddingBottom: 32,
-            paddingTop: 20,
-            position: "absolute",
-            top: 0,
-            transform: [{translateX: slideAnim}],
-            width: DRAWER_WIDTH,
-            zIndex: 200,
-          },
-          panelStyle,
-        ]}
-      >
-        <View style={{gap: 4}}>
-          {[...topItems, ...bottomItems].map((item) => (
-            <SidebarItem
-              isActive={activeRoute === item.route}
-              item={item}
-              itemStyle={itemStyle}
-              key={item.route}
-              onPress={handleNavigate}
-            />
-          ))}
-        </View>
-      </Animated.View>
+          {/* Bottom sheet */}
+          <Animated.View
+            style={[
+              {
+                backgroundColor: theme.surface.base,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+                bottom: 0,
+                height: sheetHeight,
+                left: 0,
+                position: "absolute",
+                right: 0,
+                transform: [{translateY: slideAnim}],
+                zIndex: 200,
+              },
+              panelStyle,
+            ]}
+          >
+            {/* Drag bar */}
+            <View
+              {...panResponder.panHandlers}
+              accessibilityHint="Drag down to close"
+              accessibilityLabel="Navigation menu drag handle"
+              accessibilityRole="adjustable"
+              style={{alignItems: "center", paddingBottom: 8, paddingTop: 12}}
+            >
+              <View
+                style={{
+                  backgroundColor: theme.border.default,
+                  borderRadius: 2,
+                  height: 4,
+                  width: 36,
+                }}
+              />
+            </View>
+
+            {/* Nav items */}
+            <View style={{gap: 4, paddingBottom: insets.bottom + 8}}>
+              {[...topItems, ...bottomItems].map((item) => (
+                <SidebarItem
+                  isActive={activeRoute === item.route}
+                  item={item}
+                  itemStyle={itemStyle}
+                  key={item.route}
+                  onPress={handleNavigate}
+                />
+              ))}
+            </View>
+          </Animated.View>
+        </>
+      )}
     </View>
   );
 };
@@ -316,7 +382,7 @@ const SidebarNavigatorContent: FC<{
         </View>
       </View>
 
-      {/* Content + drawer */}
+      {/* Content + bottom sheet */}
       <SidebarNavigationPanel
         activeRoute={activeRoute?.name}
         bottomItems={bottomItems}
@@ -334,7 +400,7 @@ const SidebarNavigatorContent: FC<{
 };
 
 /**
- * Custom expo-router navigator with a header bar and hamburger-triggered slide-in drawer.
+ * Custom expo-router navigator with a header bar and hamburger-triggered bottom sheet.
  * Use in _layout.tsx files:
  *
  * ```tsx
