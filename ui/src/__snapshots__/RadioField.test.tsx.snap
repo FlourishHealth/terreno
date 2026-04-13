@@ -27,11 +27,19 @@ exports[`RadioField renders correctly with default props 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -97,11 +105,19 @@ exports[`RadioField renders correctly with default props 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -167,11 +183,19 @@ exports[`RadioField renders correctly with default props 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -268,11 +292,19 @@ exports[`RadioField shows selected option 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -341,9 +373,16 @@ exports[`RadioField shows selected option 1`] = `
               "$$typeof": Symbol(react.test.json),
               "children": null,
               "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
                 "style": {
                   "backgroundColor": "#092E3A",
-                  "borderRadius": 6,
+                  "borderRadius": 10,
+                  "dangerouslySetInlineStyle": {
+                    "__style": {
+                      "backgroundColor": "#092E3A",
+                    },
+                  },
                   "height": 10,
                   "width": 10,
                 },
@@ -353,11 +392,19 @@ exports[`RadioField shows selected option 1`] = `
             },
           ],
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -423,11 +470,19 @@ exports[`RadioField shows selected option 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -524,11 +579,19 @@ exports[`RadioField renders with rightText variant (default) 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -594,11 +657,19 @@ exports[`RadioField renders with rightText variant (default) 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -664,11 +735,19 @@ exports[`RadioField renders with rightText variant (default) 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -790,11 +869,19 @@ exports[`RadioField renders with leftText variant 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -848,11 +935,19 @@ exports[`RadioField renders with leftText variant 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
@@ -906,11 +1001,19 @@ exports[`RadioField renders with leftText variant 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
+            "onPointerEnter": [Function: AsyncFunction],
+            "onPointerLeave": [Function: AsyncFunction],
             "style": {
               "alignItems": "center",
               "borderColor": "#092E3A",
-              "borderRadius": 12,
+              "borderRadius": 16,
               "borderWidth": 1,
+              "dangerouslySetInlineStyle": {
+                "__style": {
+                  "borderColor": "#092E3A",
+                  "borderWidth": 1,
+                },
+              },
               "height": 16,
               "justifyContent": "center",
               "width": 16,
