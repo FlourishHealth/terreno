@@ -55,6 +55,62 @@ describe("EmailField", () => {
     expect(handleChange).not.toHaveBeenCalled();
   });
 
+  it("shows validation error and does not call onBlur for invalid email on blur", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const {getByDisplayValue, queryByText} = renderWithTheme(
+      <EmailField label="Email" onBlur={handleBlur} onChange={() => {}} value="" />
+    );
+
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent.changeText(input, "invalid-email");
+    });
+
+    await act(async () => {
+      getByDisplayValue("invalid-email").props.onBlur();
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Invalid email address format")).toBeTruthy();
+    });
+    expect(handleBlur).not.toHaveBeenCalled();
+  });
+
+  it("calls onBlur with valid email", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <EmailField label="Email" onBlur={handleBlur} onChange={() => {}} value="" />
+    );
+
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent.changeText(input, "valid@email.com");
+    });
+
+    await act(async () => {
+      getByDisplayValue("valid@email.com").props.onBlur();
+    });
+
+    await waitFor(() => {
+      expect(handleBlur).toHaveBeenCalledWith("valid@email.com");
+    });
+  });
+
+  it("syncs local state when value prop changes", async () => {
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue, unmount} = renderWithTheme(
+      <EmailField label="Email" onChange={handleChange} value="initial@example.com" />
+    );
+
+    expect(getByDisplayValue("initial@example.com")).toBeTruthy();
+
+    unmount();
+    const {getByDisplayValue: getByDisplayValueUpdated} = renderWithTheme(
+      <EmailField label="Email" onChange={handleChange} value="updated@example.com" />
+    );
+    expect(getByDisplayValueUpdated("updated@example.com")).toBeTruthy();
+  });
+
   it("validates email format and shows error for invalid input", () => {
     // EmailField should show error for invalid email after typing
     const {unmount} = renderWithTheme(
