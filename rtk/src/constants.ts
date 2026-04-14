@@ -70,10 +70,6 @@ export const warnUnsupportedExpoTunnel = (debuggerHost?: string): void => {
 };
 warnUnsupportedExpoTunnel(Constants.expoGoConfig?.debuggerHost);
 
-export let baseUrl: string;
-export let baseWebsocketsUrl: string;
-export let baseTasksUrl: string;
-
 export interface ResolveBaseUrlsOptions {
   apiUrl?: string;
   appEnv?: string;
@@ -97,7 +93,9 @@ const getUrlsFromApiBase = (apiBase: string): Omit<ResolvedBaseUrls, "debugMessa
   baseWebsocketsUrl: `${apiBase.replace("api.", "ws.")}/`,
 });
 
-const getUrlsFromHostUri = (hostUri: string): Omit<ResolvedBaseUrls, "debugContext" | "debugMessage"> => {
+const getUrlsFromHostUri = (
+  hostUri: string
+): Omit<ResolvedBaseUrls, "debugContext" | "debugMessage"> => {
   const host = hostUri.split(`:`).shift() ?? "localhost";
 
   return {
@@ -230,7 +228,7 @@ const resolvedBaseUrls = resolveBaseUrls({
   isDev,
 });
 
-baseUrl = resolvedBaseUrls.baseUrl;
-baseWebsocketsUrl = resolvedBaseUrls.baseWebsocketsUrl;
-baseTasksUrl = resolvedBaseUrls.baseTasksUrl;
+export const baseUrl = resolvedBaseUrls.baseUrl;
+export const baseWebsocketsUrl = resolvedBaseUrls.baseWebsocketsUrl;
+export const baseTasksUrl = resolvedBaseUrls.baseTasksUrl;
 logResolvedBaseUrls(resolvedBaseUrls);

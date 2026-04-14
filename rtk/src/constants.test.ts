@@ -156,7 +156,9 @@ describe("constants", () => {
     it("does not enable websocket logging for falsey triggers", () => {
       expect(shouldLogSocket(undefined, false)).toBe(false);
       expect(shouldLogSocket(false, true)).toBe(false);
-      expect(shouldLogSocket({featureFlags: {debugWebsockets: {enabled: false}}}, false)).toBe(false);
+      expect(shouldLogSocket({featureFlags: {debugWebsockets: {enabled: false}}}, false)).toBe(
+        false
+      );
     });
   });
 
