@@ -1,8 +1,10 @@
-import {describe, expect, it} from "bun:test";
+import {beforeEach, describe, expect, it, type Mock, mock} from "bun:test";
+import * as Sentry from "@sentry/bun";
 import mongoose from "mongoose";
 
 import {
   APIError,
+  apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   errorsPlugin,
   getAPIErrorBody,
@@ -11,6 +13,10 @@ import {
 } from "./errors";
 
 describe("errors module", () => {
+  beforeEach(() => {
+    (Sentry.captureException as Mock<typeof Sentry.captureException>).mockClear();
+  });
+
   describe("APIError", () => {
     it("sets default status to 500 when not provided", () => {
       const error = new APIError({title: "Test error"});
@@ -116,6 +122,83 @@ describe("errors module", () => {
       expect(body.links).toEqual({about: "http://example.com"});
       expect(body.source).toEqual({parameter: "id"});
       expect(body.meta).toEqual({extra: "data"});
+    });
+
+    it("includes disableExternalErrorTracking when true", () => {
+      const error = new APIError({
+        disableExternalErrorTracking: true,
+        status: 409,
+        title: "No external tracking",
+      });
+
+      const body = getAPIErrorBody(error);
+      expect(body.status).toBe(409);
+      expect(body.disableExternalErrorTracking).toBe(true);
+    });
+  });
+
+  describe("apiErrorMiddleware", () => {
+    const createResponse = () => ({
+      json: function (data: any) {
+        (this as any).body = data;
+        return this;
+      },
+      send: function () {
+        (this as any).didSend = true;
+        return this;
+      },
+      status: function (code: number) {
+        (this as any).statusCode = code;
+        return this;
+      },
+    });
+
+    it("captures APIError with external tracking enabled", () => {
+      const res = createResponse();
+      const next = mock((_error?: Error) => {});
+      const err = new APIError({status: 418, title: "Teapot"});
+
+      apiErrorMiddleware(err, {} as any, res as any, next as any);
+
+      expect((res as any).statusCode).toBe(418);
+      expect((res as any).body.title).toBe("Teapot");
+      expect((res as any).didSend).toBe(true);
+      expect(
+        (Sentry.captureException as Mock<typeof Sentry.captureException>).mock.calls.length
+      ).toBe(1);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("does not capture APIError when external tracking is disabled", () => {
+      const res = createResponse();
+      const next = mock((_error?: Error) => {});
+      const err = new APIError({
+        disableExternalErrorTracking: true,
+        status: 400,
+        title: "Handled error",
+      });
+
+      apiErrorMiddleware(err, {} as any, res as any, next as any);
+
+      expect((res as any).statusCode).toBe(400);
+      expect((res as any).body.disableExternalErrorTracking).toBe(true);
+      expect(
+        (Sentry.captureException as Mock<typeof Sentry.captureException>).mock.calls.length
+      ).toBe(0);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("calls next for non-APIError instances", () => {
+      const res = createResponse();
+      const next = mock((_error?: Error) => {});
+      const err = new Error("Not an APIError");
+
+      apiErrorMiddleware(err, {} as any, res as any, next as any);
+
+      expect(next).toHaveBeenCalledWith(err);
+      expect(
+        (Sentry.captureException as Mock<typeof Sentry.captureException>).mock.calls.length
+      ).toBe(0);
     });
   });
 

@@ -79,5 +79,20 @@ describe("cache", () => {
     it("does not throw when no entries match", async () => {
       await expect(invalidateCache("prompt:nonexistent:")).resolves.toBeUndefined();
     });
+
+    it("only removes entries matching a narrow regex pattern", async () => {
+      await setCached("prompt:test-prompt:production", samplePrompt, 60);
+      await setCached("prompt:test-prompt:staging", {...samplePrompt, version: 2}, 60);
+      await setCached("prompt:test-prompt-extra:production", {...samplePrompt, name: "extra"}, 60);
+
+      await invalidateCache("^prompt:test-prompt:production$");
+
+      const remaining = await LangfuseCache.find({}).lean();
+      const remainingKeys = remaining.map((entry) => entry.key).sort();
+      expect(remainingKeys).toEqual([
+        "prompt:test-prompt-extra:production",
+        "prompt:test-prompt:staging",
+      ]);
+    });
   });
 });
