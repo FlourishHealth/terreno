@@ -58,6 +58,33 @@ const inferTagType = (endpointName: string): string => {
 };
 
 /**
+ * Collect all cached query args for a given list endpoint so optimistic
+ * updates are applied to every active cache entry (regardless of the
+ * args the consumer passed to the query hook).
+ */
+const getCachedQueryArgs = (
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API state shape
+  getState: () => any,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
+  api: Api<any, any, any, any>,
+  listEndpointName: string
+): unknown[] => {
+  const state = getState();
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
+  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  const cachedArgs: unknown[] = [];
+  for (const key of Object.keys(queries)) {
+    if (key.startsWith(`${listEndpointName}(`)) {
+      cachedArgs.push(queries[key]?.originalArgs);
+    }
+  }
+  if (cachedArgs.length === 0) {
+    cachedArgs.push(undefined);
+  }
+  return cachedArgs;
+};
+
+/**
  * Apply an optimistic update to the RTK Query cache for a queued mutation.
  */
 const applyOptimisticUpdate = (
@@ -65,14 +92,25 @@ const applyOptimisticUpdate = (
   api: Api<any, any, any, any>,
   // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
   dispatch: any,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
+  getState: () => any,
   mutation: QueuedMutation
 ): void => {
   const tagType = inferTagType(mutation.endpointName);
-
   const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
+  const cachedArgs = getCachedQueryArgs(getState, api, listEndpointName);
+
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
+  const updateAllCacheEntries = (updater: (draft: any) => void): void => {
+    for (const queryArg of cachedArgs) {
+      dispatch(
+        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
+        api.util.updateQueryData(listEndpointName as any, queryArg, updater)
+      );
+    }
+  };
 
   if (mutation.type === "create") {
-    // For creates, add a temp item to list cache entries.
     const args = mutation.args as {body?: Record<string, unknown>};
     const tempItem = {
       _id: `temp-${mutation.id}`,
@@ -81,44 +119,38 @@ const applyOptimisticUpdate = (
       updated: mutation.timestamp,
       ...args?.body,
     };
-    dispatch(
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      api.util.updateQueryData(listEndpointName as any, undefined, (draft: any) => {
-        if (draft?.data && Array.isArray(draft.data)) {
-          draft.data.unshift(tempItem);
-        }
-      })
-    );
+    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
+    updateAllCacheEntries((draft: any) => {
+      if (draft?.data && Array.isArray(draft.data)) {
+        draft.data.unshift(tempItem);
+      }
+    });
   } else if (mutation.type === "update") {
     const args = mutation.args as {id?: string; body?: Record<string, unknown>};
     if (args?.id && args?.body) {
-      dispatch(
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, undefined, (draft: any) => {
-          if (draft?.data && Array.isArray(draft.data)) {
-            const item = draft.data.find(
-              (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
-            );
-            if (item) {
-              Object.assign(item, args.body);
-            }
+      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
+      updateAllCacheEntries((draft: any) => {
+        if (draft?.data && Array.isArray(draft.data)) {
+          const item = draft.data.find(
+            (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
+          );
+          if (item) {
+            Object.assign(item, args.body);
           }
-        })
-      );
+        }
+      });
     }
   } else if (mutation.type === "delete") {
     const args = mutation.args as {id?: string};
     if (args?.id) {
-      dispatch(
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, undefined, (draft: any) => {
-          if (draft?.data && Array.isArray(draft.data)) {
-            draft.data = draft.data.filter(
-              (d: Record<string, unknown>) => d._id !== args.id && d.id !== args.id
-            );
-          }
-        })
-      );
+      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
+      updateAllCacheEntries((draft: any) => {
+        if (draft?.data && Array.isArray(draft.data)) {
+          draft.data = draft.data.filter(
+            (d: Record<string, unknown>) => d._id !== args.id && d.id !== args.id
+          );
+        }
+      });
     }
   }
 };
@@ -138,9 +170,9 @@ const replayMutation = async (
     headers.authorization = `Bearer ${token}`;
   }
 
-  // For update operations, include If-Unmodified-Since for conflict detection
+  // For update operations, send the mutation timestamp for conflict detection
   if (mutation.type === "update") {
-    headers["If-Unmodified-Since"] = new Date(mutation.timestamp).toUTCString();
+    headers["If-Unmodified-Since"] = new Date(mutation.timestamp).toISOString();
   }
 
   const args = mutation.args as {id?: string; body?: unknown};
@@ -291,7 +323,7 @@ export const createOfflineMiddleware = (
       };
 
       listenerApi.dispatch(enqueue(mutation));
-      applyOptimisticUpdate(api, listenerApi.dispatch, mutation);
+      applyOptimisticUpdate(api, listenerApi.dispatch, listenerApi.getState, mutation);
     },
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
     predicate: (action: any) => {
