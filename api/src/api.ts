@@ -840,6 +840,23 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
       }
 
+      // Conflict detection: when the If-Unmodified-Since header is present, compare
+      // against the document's updated timestamp. If the server version is newer, return
+      // 409 Conflict with the current server document so the client can resolve.
+      const ifUnmodifiedSince = req.headers["if-unmodified-since"];
+      if (ifUnmodifiedSince) {
+        const clientTimestamp = new Date(ifUnmodifiedSince);
+        const serverUpdated: Date | undefined = (doc as any).updated ?? (doc as any).created;
+        if (serverUpdated && clientTimestamp < serverUpdated) {
+          const serialized = await responseHandler(doc, "update", req, options);
+          return res.status(409).json({
+            data: serialized,
+            error: "Conflict",
+            message: "Document was modified since your last read",
+          });
+        }
+      }
+
       // Make a copy for passing pre-saved values to hooks.
       const prevDoc = cloneDeep(doc);
 

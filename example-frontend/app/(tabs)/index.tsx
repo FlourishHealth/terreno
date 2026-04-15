@@ -1,6 +1,7 @@
-import {useFeatureFlags} from "@terreno/rtk";
+import {useFeatureFlags, useOfflineStatus} from "@terreno/rtk";
 import {
   Badge,
+  Banner,
   Box,
   Button,
   Card,
@@ -93,6 +94,9 @@ const TodosScreen: React.FC = () => {
   const {getFlag} = useFeatureFlags(terrenoApi);
   const showSummaryCard = getFlag("todo-summary-card");
 
+  const {isOnline, queueLength, isSyncing, undismissedConflicts, dismissConflict} =
+    useOfflineStatus();
+
   const todos = todosData?.data ?? [];
   const incompleteTodos = todos.filter((todo) => !todo.completed);
   const completedTodos = todos.filter((todo) => todo.completed);
@@ -159,6 +163,47 @@ const TodosScreen: React.FC = () => {
     >
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>
+          {/* Offline indicator */}
+          {!isOnline && (
+            <Box marginBottom={4} testID="offline-banner">
+              <Banner
+                id="offline-status"
+                status="warning"
+                text={`You're offline. ${queueLength} pending change${queueLength !== 1 ? "s" : ""} will sync when you reconnect.`}
+              />
+            </Box>
+          )}
+
+          {/* Syncing indicator */}
+          {isSyncing && (
+            <Box marginBottom={4} testID="syncing-banner">
+              <Banner id="syncing-status" status="info" text="Syncing offline changes..." />
+            </Box>
+          )}
+
+          {/* Conflict notifications */}
+          {undismissedConflicts.map((conflict) => (
+            <Box key={conflict.id} marginBottom={4} testID="conflict-notification">
+              <Card color="error">
+                <Box gap={2}>
+                  <Text bold color="error">
+                    Conflict detected
+                  </Text>
+                  <Text color="secondaryDark" size="sm">
+                    Your offline change to this item was overwritten by a newer version on the
+                    server.
+                  </Text>
+                  <Button
+                    onClick={() => dismissConflict(conflict.id)}
+                    testID={`conflict-dismiss-${conflict.id}`}
+                    text="Dismiss"
+                    variant="muted"
+                  />
+                </Box>
+              </Card>
+            </Box>
+          ))}
+
           <Box marginBottom={6}>
             <Heading size="xl">My Todos</Heading>
           </Box>

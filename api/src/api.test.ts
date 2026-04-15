@@ -1901,4 +1901,92 @@ describe("@terreno/api", () => {
       expect(res.body.title).toContain("preUpdate hook error");
     });
   });
+
+  describe("conflict detection (If-Unmodified-Since)", () => {
+    let admin: any;
+    let _notAdmin: any;
+    let agent: TestAgent;
+    let spinach: Food;
+
+    beforeEach(async () => {
+      [admin, _notAdmin] = await setupDb();
+
+      spinach = await FoodModel.create({
+        calories: 10,
+        created: new Date("2025-06-15T12:00:00.000Z"),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+      });
+
+      app = getBaseServer();
+      setupAuth(app, UserModel as any);
+      addAuthRoutes(app, UserModel as any);
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+    });
+
+    it("returns 409 when If-Unmodified-Since is older than doc.updated", async () => {
+      // The doc was updated at 2025-06-15T12:00:00, send a header from before that
+      const staleTimestamp = new Date("2025-06-15T11:00:00.000Z").toUTCString();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", staleTimestamp)
+        .send({name: "Should Fail"})
+        .expect(409);
+
+      expect(res.body.error).toBe("Conflict");
+      expect(res.body.message).toBe("Document was modified since your last read");
+      expect(res.body.data).toBeDefined();
+      // The response should contain the current server version
+      expect(res.body.data.name).toBe("Spinach");
+    });
+
+    it("succeeds when If-Unmodified-Since matches or is newer than doc.updated", async () => {
+      // Send a timestamp that is after the doc's updated time
+      const freshTimestamp = new Date("2025-06-15T13:00:00.000Z").toUTCString();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", freshTimestamp)
+        .send({name: "Updated Spinach"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Updated Spinach");
+    });
+
+    it("succeeds normally when If-Unmodified-Since header is not present", async () => {
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .send({name: "No Header Update"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("No Header Update");
+    });
+
+    it("succeeds when If-Unmodified-Since exactly matches doc.updated", async () => {
+      const exactTimestamp = new Date("2025-06-15T12:00:00.000Z").toUTCString();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", exactTimestamp)
+        .send({name: "Exact Match"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Exact Match");
+    });
+  });
 });
