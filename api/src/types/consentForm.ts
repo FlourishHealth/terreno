@@ -9,14 +9,15 @@ export interface ConsentFormCheckbox {
 
 export type ConsentFormType = "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
 
-// biome-ignore lint/complexity/noBannedTypes: No methods.
-export type ConsentFormMethods = {};
+export type ConsentFormMethods = Record<keyof any, never>;
 
-export type ConsentFormStatics = FindExactlyOnePlugin<ConsentFormDocument> &
-  FindOneOrNonePlugin<ConsentFormDocument>;
+export interface ConsentFormStatics
+  extends FindExactlyOnePlugin<ConsentFormDocument>,
+    FindOneOrNonePlugin<ConsentFormDocument> {}
 
-export type ConsentFormModel = mongoose.Model<ConsentFormDocument, object, ConsentFormMethods> &
-  ConsentFormStatics;
+export interface ConsentFormModel
+  extends mongoose.Model<ConsentFormDocument, object, ConsentFormMethods>,
+    ConsentFormStatics {}
 
 export interface ConsentFormDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;
