@@ -9,7 +9,7 @@ export interface ConsentFormCheckbox {
 
 export type ConsentFormType = "agreement" | "privacy" | "hipaa" | "research" | "terms" | "custom";
 
-export type ConsentFormMethods = Record<keyof any, never>;
+export type ConsentFormMethods = object;
 
 export interface ConsentFormStatics
   extends FindExactlyOnePlugin<ConsentFormDocument>,
