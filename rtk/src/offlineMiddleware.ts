@@ -348,6 +348,8 @@ export const createOfflineMiddleware = (
         return;
       }
 
+      listenerApi.cancelActiveListeners();
+
       const state = listenerApi.getState() as {offline: OfflineState};
       const queue = selectOfflineQueue(state);
 
