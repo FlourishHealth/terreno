@@ -17,7 +17,7 @@ import type {ConsentHistoryEntry} from "./useConsentHistory";
 import {useConsentHistory} from "./useConsentHistory";
 
 interface ConsentHistoryProps {
-  api: any;
+  api: Parameters<typeof useConsentHistory>[0];
   baseUrl?: string;
   title?: string;
 }
