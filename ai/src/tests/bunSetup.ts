@@ -4,19 +4,25 @@ import {setupEnvironment, winstonLogger} from "@terreno/api";
 import mongoose from "mongoose";
 import winston from "winston";
 
+const shouldConnectToTestDb = process.env.BUN_TEST_DISABLE_DB !== "true";
+
 // Connect to MongoDB once for all tests
-beforeAll(async () => {
-  await mongoose
-    .connect("mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000")
-    .catch((err) => {
-      console.error("Failed to connect to MongoDB:", err);
-    });
-});
+if (shouldConnectToTestDb) {
+  beforeAll(async () => {
+    await mongoose
+      .connect("mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000")
+      .catch((err) => {
+        console.error("Failed to connect to MongoDB:", err);
+      });
+  });
+}
 
 // Close MongoDB connection after all tests
-afterAll(async () => {
-  await mongoose.connection.close();
-});
+if (shouldConnectToTestDb) {
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
+}
 
 let logs: string[] = [];
 

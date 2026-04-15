@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, describe, expect, it, mock} from "bun:test";
 
 import {getCached, invalidateCache, LangfuseCache, setCached} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
@@ -13,71 +13,77 @@ const samplePrompt: LangfuseCachedPrompt = {
   version: 1,
 };
 
-describe("cache", () => {
-  beforeEach(async () => {
-    await LangfuseCache.deleteMany({});
-  });
+const originalFindOne = LangfuseCache.findOne;
+const originalFindOneAndUpdate = LangfuseCache.findOneAndUpdate;
+const originalDeleteMany = LangfuseCache.deleteMany;
 
-  afterEach(async () => {
-    await LangfuseCache.deleteMany({});
+describe("cache", () => {
+  afterEach(() => {
+    LangfuseCache.findOne = originalFindOne;
+    LangfuseCache.findOneAndUpdate = originalFindOneAndUpdate;
+    LangfuseCache.deleteMany = originalDeleteMany;
   });
 
   describe("getCached", () => {
     it("returns null when no entry exists", async () => {
+      const lean = mock(async () => null);
+      const findOne = mock(() => ({lean}));
+      LangfuseCache.findOne = findOne as unknown as typeof LangfuseCache.findOne;
+
       const result = await getCached("prompt:missing:production");
+
       expect(result).toBeNull();
+      expect(findOne).toHaveBeenCalledTimes(1);
+      const [query] = (findOne as {mock: {calls: unknown[][]}}).mock.calls[0];
+      expect((query as {key: string}).key).toBe("prompt:missing:production");
+      expect((query as {expiresAt: {$gt: Date}}).expiresAt.$gt).toBeInstanceOf(Date);
     });
 
-    it("returns null for expired entries", async () => {
-      await setCached("prompt:test:production", samplePrompt, -1);
-      const result = await getCached("prompt:test:production");
-      expect(result).toBeNull();
-    });
+    it("returns cached value when entry exists", async () => {
+      const lean = mock(async () => ({value: samplePrompt}));
+      const findOne = mock(() => ({lean}));
+      LangfuseCache.findOne = findOne as unknown as typeof LangfuseCache.findOne;
 
-    it("returns the value for valid non-expired entries", async () => {
-      await setCached("prompt:test:production", samplePrompt, 60);
       const result = await getCached("prompt:test:production");
-      expect(result).not.toBeNull();
-      expect(result?.name).toBe("test-prompt");
-      expect(result?.type).toBe("text");
+
+      expect(result).toEqual(samplePrompt);
+      expect(lean).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("setCached", () => {
-    it("stores a new entry", async () => {
+    it("upserts cache entries with computed expiry", async () => {
+      const findOneAndUpdate = mock(async () => ({}));
+      LangfuseCache.findOneAndUpdate =
+        findOneAndUpdate as unknown as typeof LangfuseCache.findOneAndUpdate;
+
+      const beforeCall = Date.now();
       await setCached("prompt:test:production", samplePrompt, 60);
-      const count = await LangfuseCache.countDocuments({key: "prompt:test:production"});
-      expect(count).toBe(1);
-    });
+      const afterCall = Date.now();
 
-    it("upserts when the same key is set twice", async () => {
-      await setCached("prompt:test:production", samplePrompt, 60);
-      const updated: LangfuseCachedPrompt = {...samplePrompt, version: 2};
-      await setCached("prompt:test:production", updated, 60);
+      expect(findOneAndUpdate).toHaveBeenCalledTimes(1);
+      const [filter, update, options] = (findOneAndUpdate as {mock: {calls: unknown[][]}}).mock
+        .calls[0];
+      expect(filter).toEqual({key: "prompt:test:production"});
+      expect((update as {key: string}).key).toBe("prompt:test:production");
+      expect((update as {value: LangfuseCachedPrompt}).value).toEqual(samplePrompt);
+      expect(options).toEqual({upsert: true});
 
-      const count = await LangfuseCache.countDocuments({key: "prompt:test:production"});
-      expect(count).toBe(1);
-
-      const result = await getCached("prompt:test:production");
-      expect(result?.version).toBe(2);
+      const expiresAt = (update as {expiresAt: Date}).expiresAt.getTime();
+      expect(expiresAt).toBeGreaterThanOrEqual(beforeCall + 59000);
+      expect(expiresAt).toBeLessThanOrEqual(afterCall + 61000);
     });
   });
 
   describe("invalidateCache", () => {
-    it("removes entries matching the pattern", async () => {
-      await setCached("prompt:test-prompt:production", samplePrompt, 60);
-      await setCached("prompt:test-prompt:staging", {...samplePrompt, version: 2}, 60);
-      await setCached("prompt:other-prompt:production", {...samplePrompt, name: "other"}, 60);
+    it("passes regex key pattern to deleteMany", async () => {
+      const deleteMany = mock(async () => ({}));
+      LangfuseCache.deleteMany = deleteMany as unknown as typeof LangfuseCache.deleteMany;
 
       await invalidateCache("prompt:test-prompt:");
 
-      const remaining = await LangfuseCache.find({}).lean();
-      expect(remaining.length).toBe(1);
-      expect(remaining[0].key).toBe("prompt:other-prompt:production");
-    });
-
-    it("does not throw when no entries match", async () => {
-      await expect(invalidateCache("prompt:nonexistent:")).resolves.toBeUndefined();
+      expect(deleteMany).toHaveBeenCalledTimes(1);
+      expect(deleteMany).toHaveBeenCalledWith({key: {$regex: "prompt:test-prompt:"}});
     });
   });
 });

@@ -11,7 +11,11 @@ import {Permissions} from "./permissions";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
 function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
-  return options.openApi!.path({
+  if (!options.openApi) {
+    throw new Error("Expected openApi to be configured for test routes");
+  }
+
+  return options.openApi.path({
     parameters: [
       {
         in: "query",
