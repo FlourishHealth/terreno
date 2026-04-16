@@ -152,12 +152,16 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
     setIsOpen(true);
   }, []);
 
-  const results = searchData?.data ?? [];
+  // emptyApi unwraps `{data: T}` unless the body has `more` (paginated list). Search returns only
+  // `{data: [...]}`, so `searchData` is already the result array.
+  const results = Array.isArray(searchData)
+    ? searchData
+    : ((searchData as {data?: unknown[]} | undefined)?.data ?? []);
 
   return (
     <Box gap={1}>
       {value && selectedDisplay && !isChanging ? (
-        <Box alignItems="end" direction="row" gap={2}>
+        <Box alignItems="center" direction="row" gap={2}>
           <Box flex="grow">
             <TextField
               disabled
