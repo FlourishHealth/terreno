@@ -7,6 +7,7 @@ export interface AdminFieldConfig {
   enum?: string[];
   default?: any;
   ref?: string;
+  searchable?: boolean;
   widget?: string;
   /** For array fields: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldConfig>;
