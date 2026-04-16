@@ -18,8 +18,8 @@ import {
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
-import type mongoose from "mongoose";
 import type {Model} from "mongoose";
+import mongoose from "mongoose";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -378,16 +378,22 @@ export class AdminApp {
       // Determine searchable fields from the actual Mongoose schema type,
       // not the OpenAPI type (which reports ObjectId as "string")
       const searchableFields: string[] = [];
+      const objectIdFields: string[] = [];
       const modelMeta = configModels.find((m) => m.name === config.model.modelName);
       if (modelMeta) {
         for (const key of Object.keys(modelMeta.fields)) {
           const schemaPath = config.model.schema.path(key);
           if (schemaPath && schemaPath.instance === "String" && !modelMeta.fields[key].enum) {
             searchableFields.push(key);
+          } else if (schemaPath && schemaPath.instance === "ObjectID") {
+            objectIdFields.push(key);
           }
         }
       }
-      logger.info(`Admin search fields for ${config.model.modelName}`, {searchableFields});
+      logger.info(`Admin search fields for ${config.model.modelName}`, {
+        objectIdFields,
+        searchableFields,
+      });
 
       app.get(
         `${basePath}${config.routePath}/search`,
@@ -413,11 +419,18 @@ export class AdminApp {
               ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
               : searchableFields;
 
-          if (fields.length === 0) {
-            return res.json({data: []});
+          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+
+          // If the query is a valid ObjectId, also match against ObjectId fields
+          if (mongoose.isValidObjectId(q)) {
+            for (const field of objectIdFields) {
+              orConditions.push({[field]: new mongoose.Types.ObjectId(q)});
+            }
           }
 
-          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+          if (orConditions.length === 0) {
+            return res.json({data: []});
+          }
           logger.debug("Admin search query", {
             fields,
             model: config.model.modelName,
