@@ -75,6 +75,8 @@
   },
   "private": true,
   "scripts": {
+    "bootstrap": "bun install && bun run compile",
+    "bootstrap:update": "bun install && bun run compile",
     "admin-backend:compile": "bun run --filter '@terreno/admin-backend' compile",
     "admin-backend:lint": "bun run --filter '@terreno/admin-backend' lint",
     "admin-backend:test": "bun run --filter '@terreno/admin-backend' test",
