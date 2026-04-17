@@ -12,7 +12,7 @@ export class NumberPickerActionSheet extends React.Component<
   TextFieldPickerActionSheetProps,
   NumberPickerActionSheetState
 > {
-  render() {
+  render(): React.ReactElement {
     return (
       <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
