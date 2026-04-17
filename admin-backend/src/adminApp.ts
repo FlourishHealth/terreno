@@ -459,9 +459,7 @@ export class AdminApp {
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const routerOptions: ModelRouterOptions<any> = {
-        ...(openApi
-          ? {openApi: openApi as NonNullable<ModelRouterOptions<any>["openApi"]>}
-          : {}),
+        ...(openApi ? {openApi: openApi as NonNullable<ModelRouterOptions<any>["openApi"]>} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],
