@@ -55,7 +55,9 @@ export const SidebarNavigationConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: (props: any) => <SidebarNavigationDemo {...props} />,
+  demo: (props: Partial<React.ComponentProps<typeof SidebarNavigationDemo>>) => (
+    <SidebarNavigationDemo {...props} />
+  ),
   demoOptions: {
     size: "lg",
     controls: {
@@ -123,7 +125,9 @@ export const SidebarNavigationExpoRouterConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: (props: any) => <SidebarNavigationDemo {...props} />,
+  demo: (props: Partial<React.ComponentProps<typeof SidebarNavigationDemo>>) => (
+    <SidebarNavigationDemo {...props} />
+  ),
   demoOptions: {
     size: "lg",
     controls: {
