@@ -21,7 +21,7 @@ type UseToastVariantOptions = {
 
 type UseToastOptions = {variant?: ToastProps["variant"]} & UseToastVariantOptions;
 
-export function useToast(): {
+export const useToast = (): {
   hide: (id: string) => void;
   success: (title: string, options?: UseToastVariantOptions) => string;
   info: (title: string, options?: UseToastVariantOptions) => string;
@@ -29,7 +29,7 @@ export function useToast(): {
   error: (title: string, options?: UseToastVariantOptions) => string;
   show: (title: string, options?: UseToastOptions) => string;
   catch: (error: any, message?: string, options?: UseToastVariantOptions) => void;
-} {
+} => {
   const toast = useToastNotifications();
   const show = (title: string, options?: UseToastOptions): string => {
     if (!toast?.show) {
@@ -78,7 +78,7 @@ export function useToast(): {
       return show(title, {...options, variant: "warning"});
     },
   };
-}
+};
 
 // TODO: Support secondary version of Toast.
 // TODO: Support dismissible version of Toast. Currently only persistent are dismissible.
