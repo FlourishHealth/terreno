@@ -310,6 +310,17 @@ export class OpenApiMiddlewareBuilder {
     this.validationConfig = {};
   }
 
+  private describeRoute(): string {
+    const parts: string[] = [];
+    if (this.config.summary) {
+      parts.push(`"${this.config.summary}"`);
+    }
+    if (this.config.tags?.length) {
+      parts.push(`tags=[${this.config.tags.join(", ")}]`);
+    }
+    return parts.length > 0 ? parts.join(" ") : "unnamed route";
+  }
+
   /**
    * Sets the tags for the OpenAPI operation.
    *
@@ -678,7 +689,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in buildWithSchemas for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     const globalConfig = getOpenApiValidatorConfig();
@@ -739,7 +752,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in build for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     // Check if validation should be enabled
