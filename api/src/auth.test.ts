@@ -622,7 +622,7 @@ describe("generateTokens edge cases", () => {
 
   it("throws when TOKEN_SECRET is not set", async () => {
     process.env.TOKEN_SECRET = "";
-    let caught: any;
+    let caught: unknown;
     try {
       await generateTokens({_id: "user-123"});
     } catch (error) {

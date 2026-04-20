@@ -223,14 +223,48 @@ describe("GitHub auth disabled", () => {
   });
 });
 
+interface GitHubProfileLike {
+  id?: string;
+  emails?: Array<{value: string}>;
+  username?: string;
+  displayName?: string;
+  [key: string]: unknown;
+}
+
+interface VerifyError {
+  status?: number;
+  message?: string;
+}
+
+type VerifiedUser = any;
+
+interface VerifyStrategy {
+  _verify: (
+    req: unknown,
+    accessToken: string,
+    refreshToken: string,
+    profile: GitHubProfileLike,
+    done: (err: VerifyError | null, user?: VerifiedUser) => void
+  ) => void;
+}
+
+interface PassportWithStrategies {
+  _strategies?: Record<string, VerifyStrategy | undefined>;
+}
+
 // Helper to extract the strategy verify callback and invoke it directly
-const invokeGitHubVerify = (req: any, accessToken: string, refreshToken: string, profile: any) => {
-  const strategy = (passport as any)._strategies?.github;
+const invokeGitHubVerify = (
+  req: unknown,
+  accessToken: string,
+  refreshToken: string,
+  profile: GitHubProfileLike
+) => {
+  const strategy = (passport as unknown as PassportWithStrategies)._strategies?.github;
   if (!strategy) {
     throw new Error("github strategy not registered");
   }
-  return new Promise<{err: any; user: any}>((resolve) => {
-    const done = (err: any, user?: any) => resolve({err, user});
+  return new Promise<{err: VerifyError | null; user: VerifiedUser}>((resolve) => {
+    const done = (err: VerifyError | null, user?: VerifiedUser) => resolve({err, user});
     strategy._verify(req, accessToken, refreshToken, profile, done);
   });
 };

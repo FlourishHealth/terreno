@@ -1,4 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import type {ErrorObject} from "ajv";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
@@ -248,7 +249,7 @@ describe("openApiValidator", () => {
     it("calls onError callback instead of throwing when provided at option level", () => {
       configureOpenApiValidator();
 
-      let capturedErrors: any[] = [];
+      let capturedErrors: ErrorObject[] = [];
       const middleware = validateRequestBody(
         {name: {required: true, type: "string"}},
         {
@@ -270,7 +271,7 @@ describe("openApiValidator", () => {
     });
 
     it("calls global onValidationError when no per-route handler", () => {
-      let capturedErrors: any[] = [];
+      let capturedErrors: ErrorObject[] = [];
       configureOpenApiValidator({
         onValidationError: (errors) => {
           capturedErrors = errors;
@@ -501,7 +502,7 @@ describe("openApiValidator", () => {
     });
 
     it("propagates body validation error via next", () => {
-      let capturedErrors: any[] = [];
+      let capturedErrors: ErrorObject[] = [];
       configureOpenApiValidator({
         onValidationError: (errors) => {
           capturedErrors = errors;
