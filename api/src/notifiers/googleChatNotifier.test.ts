@@ -111,4 +111,27 @@ describe("sendToGoogleChat", () => {
     await sendToGoogleChat("err", {shouldThrow: false});
     expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
+
+  it("returns early when neither requested channel nor default webhook url is set", async () => {
+    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({ops: "https://chat.example/ops"});
+
+    await sendToGoogleChat("no webhook", {channel: "unknown"});
+
+    expect(mockAxiosPost.mock.calls.length).toBe(0);
+    expect(Sentry.captureException).toHaveBeenCalled();
+  });
+
+  it("prefixes message with [ENV] and posts when channel matches", async () => {
+    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({
+      default: "https://chat.example/default",
+      ops: "https://chat.example/ops",
+    });
+    mockAxiosPost.mockResolvedValue({status: 200});
+
+    await sendToGoogleChat("deploy complete", {channel: "ops", env: "staging"});
+    const callArgs = mockAxiosPost.mock.calls[0];
+    const [url, payload] = callArgs;
+    expect(url).toBe("https://chat.example/ops");
+    expect(payload).toEqual({text: "[STAGING] deploy complete"});
+  });
 });
