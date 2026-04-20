@@ -79,6 +79,87 @@ describe("AIRequest Model", () => {
     });
   });
 
+  describe("logMultiAgentRequest static", () => {
+    it("should create a parent request with sub-request references", async () => {
+      const sub1 = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "sub task 1",
+        requestType: "general",
+        response: "result 1",
+        responseTime: 100,
+        tokensUsed: 10,
+      });
+      const sub2 = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "sub task 2",
+        requestType: "general",
+        response: "result 2",
+        responseTime: 200,
+        tokensUsed: 20,
+      });
+
+      const parent = await AIRequest.logMultiAgentRequest({
+        aiModel: "gpt-4",
+        requestType: "multi-agent",
+        subRequestIds: [sub1._id, sub2._id],
+        totalResponseTime: 300,
+        totalTokensUsed: 30,
+      });
+
+      expect(parent._id).toBeDefined();
+      expect(parent.prompt).toBe("[multi-agent parent request]");
+      expect(parent.requestType).toBe("multi-agent");
+      expect(parent.totalResponseTime).toBe(300);
+      expect(parent.totalTokensUsed).toBe(30);
+      expect(parent.subRequestIds).toHaveLength(2);
+
+      // Verify sub-requests were updated with parentRequestId
+      const updatedSub1 = await AIRequest.findById(sub1._id);
+      const updatedSub2 = await AIRequest.findById(sub2._id);
+      expect(updatedSub1?.parentRequestId?.toString()).toBe(parent._id.toString());
+      expect(updatedSub2?.parentRequestId?.toString()).toBe(parent._id.toString());
+    });
+
+    it("should create a parent request with metadata", async () => {
+      const sub = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "sub",
+        requestType: "general",
+      });
+
+      const parent = await AIRequest.logMultiAgentRequest({
+        aiModel: "gpt-4",
+        metadata: {workflow: "test"},
+        requestType: "multi-agent",
+        subRequestIds: [sub._id],
+        totalResponseTime: 100,
+        totalTokensUsed: 10,
+      });
+
+      expect(parent.metadata).toEqual({workflow: "test"});
+    });
+
+    it("should create a parent request with userId", async () => {
+      const userId = new mongoose.Types.ObjectId();
+      const sub = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "sub",
+        requestType: "general",
+      });
+
+      const parent = await AIRequest.logMultiAgentRequest({
+        aiModel: "gpt-4",
+        requestType: "multi-agent",
+        subRequestIds: [sub._id],
+        totalResponseTime: 50,
+        totalTokensUsed: 5,
+        userId,
+      });
+
+      expect(parent.userId?.toString()).toBe(userId.toString());
+    });
+  });
+
   describe("soft delete", () => {
     it("should filter out deleted records by default", async () => {
       await AIRequest.create({

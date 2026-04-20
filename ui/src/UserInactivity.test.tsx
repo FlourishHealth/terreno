@@ -1,5 +1,6 @@
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act} from "@testing-library/react-native";
+import {Keyboard} from "react-native";
 
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -92,5 +93,76 @@ describe("UserInactivity", () => {
       </UserInactivity>
     );
     expect(toJSON()).toBeTruthy();
+  });
+
+  it("clears any pending timer when unmounted before the timeout fires", () => {
+    const onAction = mock((_active: boolean) => {});
+    const {unmount} = renderWithTheme(
+      <UserInactivity onAction={onAction} timeForInactivity={10_000}>
+        <Text>Test Content</Text>
+      </UserInactivity>
+    );
+
+    act(() => {
+      unmount();
+    });
+
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it("removes keyboard listeners on unmount", () => {
+    const onAction = mock((_active: boolean) => {});
+    const removeHide = mock(() => {});
+    const removeShow = mock(() => {});
+    const addListenerSpy = spyOn(Keyboard, "addListener")
+      .mockReturnValueOnce({remove: removeHide} as any)
+      .mockReturnValueOnce({remove: removeShow} as any);
+
+    const {unmount} = renderWithTheme(
+      <UserInactivity onAction={onAction}>
+        <Text>Test Content</Text>
+      </UserInactivity>
+    );
+
+    act(() => {
+      unmount();
+    });
+
+    expect(addListenerSpy).toHaveBeenCalled();
+    expect(removeHide).toHaveBeenCalled();
+    expect(removeShow).toHaveBeenCalled();
+    addListenerSpy.mockRestore();
+  });
+
+  it("calls onAction with true when activity occurs after inactivity", async () => {
+    const onAction = mock((_active: boolean) => {});
+    let capturedHideCallback: (() => void) | undefined;
+    const addListenerSpy = spyOn(Keyboard, "addListener").mockImplementation(
+      (event: string, callback: () => void) => {
+        if (event === "keyboardDidHide") {
+          capturedHideCallback = callback;
+        }
+        return {remove: mock(() => {})} as any;
+      }
+    );
+
+    renderWithTheme(
+      <UserInactivity onAction={onAction} timeForInactivity={30}>
+        <Text>Test Content</Text>
+      </UserInactivity>
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+    });
+
+    expect(onAction).toHaveBeenCalledWith(false);
+
+    await act(async () => {
+      capturedHideCallback?.();
+    });
+
+    expect(onAction).toHaveBeenCalledWith(true);
+    addListenerSpy.mockRestore();
   });
 });

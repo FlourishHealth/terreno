@@ -86,9 +86,9 @@ const BannerButton = ({
   );
 };
 
-function getKey(id: string): string {
+const getKey = (id: string): string => {
   return `@TerrenoUI:${id}`;
-}
+};
 
 export const hideBanner = (id: string): Promise<void> => {
   console.debug(`[banner] Hiding ${getKey(id)} `);

@@ -11,9 +11,6 @@ exports[`Signature renders correctly 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
-            "ref": {
-              "current": null,
-            },
             "style": {
               "backgroundColor": "#FFFFFF",
             },

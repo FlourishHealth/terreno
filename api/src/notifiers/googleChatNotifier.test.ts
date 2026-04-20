@@ -112,11 +112,12 @@ describe("sendToGoogleChat", () => {
     expect(mockAxiosPost.mock.calls.length).toBe(1);
   });
 
-  it("returns early when neither requested channel nor default webhook url is set", async () => {
-    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({ops: "https://chat.example/ops"});
+  it("returns early when webhook url is missing for channel and no default exists", async () => {
+    process.env.GOOGLE_CHAT_WEBHOOKS = JSON.stringify({
+      ops: "https://chat.example/ops",
+    });
 
-    await sendToGoogleChat("no webhook", {channel: "unknown"});
-
+    await sendToGoogleChat("no default", {channel: "missing"});
     expect(mockAxiosPost.mock.calls.length).toBe(0);
     expect(Sentry.captureException).toHaveBeenCalled();
   });
