@@ -370,5 +370,4 @@ describe("ConsentNavigator", () => {
     });
     expect(submitMutation).toHaveBeenCalled();
   });
-
 });
