@@ -178,6 +178,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -209,6 +210,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -308,6 +310,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -339,6 +342,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -366,6 +370,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -397,6 +402,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -563,6 +569,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "object",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -611,6 +618,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -758,6 +766,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "object",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -806,6 +815,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -877,6 +887,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -925,6 +936,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1131,6 +1143,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1179,6 +1192,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1319,6 +1333,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "object",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -1367,6 +1382,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -1438,6 +1454,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "object",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1486,6 +1503,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1637,6 +1655,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1666,6 +1685,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1793,6 +1813,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -1822,6 +1843,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -1874,6 +1896,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -1903,6 +1926,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2089,6 +2113,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2118,6 +2143,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2238,6 +2264,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -2267,6 +2294,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -2319,6 +2347,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2348,6 +2377,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2482,6 +2512,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -2559,6 +2590,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -2675,6 +2707,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -2752,6 +2785,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -2796,6 +2830,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -2873,6 +2908,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3048,6 +3084,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3125,6 +3162,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3234,6 +3272,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -3311,6 +3350,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -3355,6 +3395,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3432,6 +3473,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3575,6 +3617,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3591,6 +3634,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3687,6 +3731,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -3703,6 +3748,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -3727,6 +3773,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3743,6 +3790,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3898,6 +3946,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -3914,6 +3963,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4003,6 +4053,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4019,6 +4070,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4043,6 +4095,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4059,6 +4112,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4185,6 +4239,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -4216,6 +4271,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -4315,6 +4371,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4346,6 +4403,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4373,6 +4431,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4404,6 +4463,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4562,6 +4622,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4593,6 +4654,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4685,6 +4747,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4716,6 +4779,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -4743,6 +4807,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -4774,6 +4839,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -5133,6 +5199,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -5210,6 +5277,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -5326,6 +5394,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -5403,6 +5472,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -5447,6 +5517,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -5524,6 +5595,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -5699,6 +5771,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -5776,6 +5849,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -5885,6 +5959,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -5962,6 +6037,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -6006,6 +6082,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -6083,6 +6160,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -6888,6 +6966,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -6919,6 +6998,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -7011,6 +7091,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "created": {
+                    "description": "When this document was created",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -7042,6 +7123,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "updated": {
+                    "description": "When this document was last updated",
                     "format": "date-time",
                     "type": "string",
                   },
@@ -7069,6 +7151,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "created": {
+                      "description": "When this document was created",
                       "format": "date-time",
                       "type": "string",
                     },
@@ -7100,6 +7183,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "updated": {
+                      "description": "When this document was last updated",
                       "format": "date-time",
                       "type": "string",
                     },
