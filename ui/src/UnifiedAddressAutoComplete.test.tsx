@@ -25,7 +25,7 @@ describe("UnifiedAddressAutoCompleteField", () => {
     const {toJSON} = renderWithTheme(
       <UnifiedAddressAutoCompleteField
         {...defaultProps}
-        googleMapsApiKey="AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY"
+        googleMapsApiKey="test-dummy-key-not-real-0123456789"
       />
     );
     expect(toJSON()).toMatchSnapshot();

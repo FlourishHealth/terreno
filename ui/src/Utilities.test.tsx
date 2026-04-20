@@ -344,7 +344,7 @@ describe("Utilities", () => {
 
   describe("isValidGoogleApiKey", () => {
     it("returns true for valid-looking API key", () => {
-      expect(isValidGoogleApiKey("AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY")).toBe(true);
+      expect(isValidGoogleApiKey("test-dummy-key-not-real-0123456789")).toBe(true);
     });
 
     it("returns false for empty string", () => {
