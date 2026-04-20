@@ -120,7 +120,9 @@ export function getOpenApiMiddleware<T>(
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      `No options.openApi provided for model "${model.modelName}" in getOpenApiMiddleware, skipping *OpenApiMiddleware`
+    );
     return noop;
   }
 
@@ -466,7 +468,9 @@ export function readOpenApiMiddleware<T>(
 ): any {
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      "No options.openApi provided in readOpenApiMiddleware, skipping *OpenApiMiddleware"
+    );
     return noop;
   }
 
