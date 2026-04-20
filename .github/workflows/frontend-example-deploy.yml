@@ -20,14 +20,18 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_changes: ${{ steps.check.outputs.has_changes }}
+      has_backend_changes: ${{ steps.check.outputs.has_backend_changes }}
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check PR diff for frontend-related changes
+      - name: Check PR diff for relevant changes
         id: check
         run: |
-          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
+          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          CHANGES=$(echo "$FILES" | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
+          BACKEND_CHANGES=$(echo "$FILES" | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
+          echo "has_backend_changes=$( [ "$BACKEND_CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -35,6 +39,7 @@ jobs:
     name: Build Example Frontend
     needs: [check-changes]
     if: always() && (github.event_name == 'push' || needs.check-changes.outputs.has_changes == 'true')
+    # check-changes outputs are consumed by the "Set BASE_URL for deploy" step below
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -68,13 +73,18 @@ jobs:
         working-directory: ai
 
       - name: Set BASE_URL for deploy
+        env:
+          HAS_BACKEND_CHANGES: ${{ needs.check-changes.outputs.has_backend_changes }}
         run: |
+          PROD_URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           if [ "${{ github.ref }}" = "refs/heads/master" ]; then
-            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
-          elif [ -n "${{ github.event.pull_request.number }}" ]; then
+            URL="$PROD_URL"
+          elif [ -n "${{ github.event.pull_request.number }}" ] && [ "$HAS_BACKEND_CHANGES" = "true" ]; then
+            # Backend preview is only deployed when the PR touches backend files
+            # (see deploy-example-gcp.yml check-changes). Otherwise fall back to prod.
             URL="https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
           else
-            URL="https://prod---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+            URL="$PROD_URL"
           fi
           jq --arg url "$URL" '.expo.extra.BASE_URL = $url' app.json > app.json.tmp && mv app.json.tmp app.json
           echo "BASE_URL set to $URL"

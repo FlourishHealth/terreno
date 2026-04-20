@@ -1,4 +1,4 @@
-import {useFeatureFlags} from "@terreno/rtk";
+import {useFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Badge,
   Box,
@@ -85,12 +85,14 @@ const TodosScreen: React.FC = () => {
   const [newTodoTitle, setNewTodoTitle] = useState<string>("");
   const [showCompleted, setShowCompleted] = useState<boolean>(true);
 
-  const {data: todosData, isLoading, refetch, isFetching} = useGetTodosQuery({});
+  const userId = useSelectCurrentUserId();
+
+  const {data: todosData, isLoading, refetch, isFetching} = useGetTodosQuery({}, {skip: !userId});
   const [createTodo, {isLoading: isCreating}] = usePostTodosMutation();
   const [updateTodo] = usePatchTodosByIdMutation();
   const [deleteTodo] = useDeleteTodosByIdMutation();
 
-  const {getFlag} = useFeatureFlags(terrenoApi);
+  const {getFlag} = useFeatureFlags(terrenoApi, {skip: !userId});
   const showSummaryCard = getFlag("todo-summary-card");
 
   const todos = todosData?.data ?? [];
