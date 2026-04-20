@@ -1,8 +1,10 @@
 import {describe, expect, it} from "bun:test";
 
 import {
+  bind,
   concat,
   findAddressComponent,
+  formattedCountyCode,
   fromClassName,
   fromInlineStyle,
   iconNumberToSize,
@@ -11,10 +13,16 @@ import {
   isNative,
   isTestUser,
   isValidGoogleApiKey,
+  mapClassName,
+  mapping,
   mergeInlineStyles,
   printAPIError,
   processAddressComponents,
+  range,
+  rangeWithoutZero,
+  toggle,
   toProps,
+  union,
 } from "./Utilities";
 
 describe("Utilities", () => {
@@ -28,6 +36,11 @@ describe("Utilities", () => {
 
     it("handles undefined existing style", () => {
       const result = mergeInlineStyles(undefined, {color: "red"});
+      expect(result.__style).toEqual({color: "red"});
+    });
+
+    it("handles undefined new style", () => {
+      const result = mergeInlineStyles({__style: {color: "red"}}, undefined);
       expect(result.__style).toEqual({color: "red"});
     });
   });
@@ -47,6 +60,10 @@ describe("Utilities", () => {
 
     it("returns falsy for undefined profile", () => {
       expect(isTestUser(undefined)).toBeFalsy();
+    });
+
+    it("returns falsy for profile without email", () => {
+      expect(isTestUser({} as any)).toBeFalsy();
     });
   });
 
@@ -74,6 +91,10 @@ describe("Utilities", () => {
     it("returns lg for default size (16)", () => {
       expect(iconNumberToSize()).toBe("lg");
     });
+
+    it("returns xs for zero", () => {
+      expect(iconNumberToSize(0)).toBe("xs");
+    });
   });
 
   describe("Style utilities", () => {
@@ -90,6 +111,11 @@ describe("Utilities", () => {
         const result = fromClassName("class1", "class2");
         expect(result.className.has("class1")).toBe(true);
         expect(result.className.has("class2")).toBe(true);
+      });
+
+      it("supports empty className list", () => {
+        const result = fromClassName();
+        expect(result.className.size).toBe(0);
       });
     });
 
@@ -108,6 +134,29 @@ describe("Utilities", () => {
         const result = concat([style1, style2, style3]);
         expect(result.className.has("class1")).toBe(true);
         expect(result.className.has("class2")).toBe(true);
+        expect(result.inlineStyle.color).toBe("red");
+      });
+
+      it("concatenates with identity element", () => {
+        const style = fromClassName("a");
+        const result = concat([identity(), style]);
+        expect(result.className.has("a")).toBe(true);
+      });
+    });
+
+    describe("mapClassName", () => {
+      it("maps class names through a function", () => {
+        const prefix = mapClassName((name: string) => `prefix-${name}`);
+        const style = fromClassName("foo", "bar");
+        const result = prefix(style);
+        expect(result.className.has("prefix-foo")).toBe(true);
+        expect(result.className.has("prefix-bar")).toBe(true);
+      });
+
+      it("preserves inline styles", () => {
+        const prefix = mapClassName((name: string) => `prefix-${name}`);
+        const style = fromInlineStyle({color: "red"});
+        const result = prefix(style);
         expect(result.inlineStyle.color).toBe("red");
       });
     });
@@ -130,6 +179,88 @@ describe("Utilities", () => {
         const style = fromClassName("class1");
         const props = toProps(style);
         expect(props.style).toBeUndefined();
+      });
+    });
+
+    describe("toggle", () => {
+      it("returns style with classnames when val is true", () => {
+        const toggleFn = toggle("active", "enabled");
+        const result = toggleFn(true);
+        expect(result.className.has("active")).toBe(true);
+        expect(result.className.has("enabled")).toBe(true);
+      });
+
+      it("returns identity when val is false", () => {
+        const toggleFn = toggle("active");
+        const result = toggleFn(false);
+        expect(result.className.size).toBe(0);
+      });
+
+      it("returns identity when val is undefined", () => {
+        const toggleFn = toggle("active");
+        const result = toggleFn();
+        expect(result.className.size).toBe(0);
+      });
+    });
+
+    describe("mapping", () => {
+      it("maps string to classname", () => {
+        const map = mapping({large: "size-large", small: "size-small"});
+        const result = map("small");
+        expect(result.className.has("size-small")).toBe(true);
+      });
+
+      it("returns identity for unknown key", () => {
+        const map = mapping({small: "size-small"});
+        const result = map("unknown");
+        expect(result.className.size).toBe(0);
+      });
+    });
+
+    describe("range", () => {
+      it("creates classname from positive number", () => {
+        const result = range("padding")(3);
+        expect(result.className.has("padding3")).toBe(true);
+      });
+
+      it("creates classname from negative number with N prefix", () => {
+        const result = range("margin")(-2);
+        expect(result.className.has("marginN2")).toBe(true);
+      });
+
+      it("creates classname from zero", () => {
+        const result = range("padding")(0);
+        expect(result.className.has("padding0")).toBe(true);
+      });
+    });
+
+    describe("rangeWithoutZero", () => {
+      it("creates classname for non-zero", () => {
+        const result = rangeWithoutZero("padding")(2);
+        expect(result.className.has("padding2")).toBe(true);
+      });
+
+      it("returns identity for zero", () => {
+        const result = rangeWithoutZero("padding")(0);
+        expect(result.className.size).toBe(0);
+      });
+    });
+
+    describe("bind", () => {
+      it("binds a functor to a scope", () => {
+        const scope: {[key: string]: string} = {padding2: "scoped-padding"};
+        const bound = bind(range("padding"), scope);
+        const result = bound(2);
+        expect(result.className.has("scoped-padding")).toBe(true);
+      });
+    });
+
+    describe("union", () => {
+      it("combines multiple functors", () => {
+        const combined = union(toggle("a"), toggle("b"));
+        const result = combined(true);
+        expect(result.className.has("a")).toBe(true);
+        expect(result.className.has("b")).toBe(true);
       });
     });
   });
@@ -155,6 +286,10 @@ describe("Utilities", () => {
     it("returns empty string for missing type", () => {
       expect(findAddressComponent(components, "country")).toBe("");
     });
+
+    it("returns empty string when components is empty", () => {
+      expect(findAddressComponent([], "locality")).toBe("");
+    });
   });
 
   describe("processAddressComponents", () => {
@@ -163,6 +298,7 @@ describe("Utilities", () => {
       {long_name: "Main Street", short_name: "Main St", types: ["route"]},
       {long_name: "Boston", short_name: "Boston", types: ["locality"]},
       {long_name: "Massachusetts", short_name: "MA", types: ["administrative_area_level_1"]},
+      {long_name: "Suffolk County", short_name: "Suffolk", types: ["administrative_area_level_2"]},
       {long_name: "02101", short_name: "02101", types: ["postal_code"]},
     ];
 
@@ -183,6 +319,27 @@ describe("Utilities", () => {
       const result = processAddressComponents(undefined);
       expect(result.address1).toBe("");
     });
+
+    it("handles empty components with includeCounty", () => {
+      const result = processAddressComponents([], {includeCounty: true}) as any;
+      expect(result.countyName).toBe("");
+      expect(result.countyCode).toBe("");
+    });
+
+    it("handles components with includeCounty when county is present", () => {
+      const result = processAddressComponents(components, {includeCounty: true}) as any;
+      expect(result.countyName).toBe("Suffolk County");
+    });
+
+    it("handles components with includeCounty when county is missing", () => {
+      const componentsWithoutCounty = components.filter(
+        (c) => !c.types.includes("administrative_area_level_2")
+      );
+      const result = processAddressComponents(componentsWithoutCounty, {
+        includeCounty: true,
+      }) as any;
+      expect(result.countyName).toBe("");
+    });
   });
 
   describe("isValidGoogleApiKey", () => {
@@ -198,8 +355,30 @@ describe("Utilities", () => {
       expect(isValidGoogleApiKey("short")).toBe(false);
     });
 
+    it("returns false for too long key", () => {
+      expect(isValidGoogleApiKey("a".repeat(51))).toBe(false);
+    });
+
     it("returns false for key with invalid characters", () => {
-      expect(isValidGoogleApiKey("invalid key with spaces!!!")).toBe(false);
+      expect(isValidGoogleApiKey("invalid key with spaces and special!!!!")).toBe(false);
+    });
+
+    it("returns false when passed a non-string value", () => {
+      expect(isValidGoogleApiKey(123 as any)).toBe(false);
+    });
+
+    it("returns false for whitespace-only key", () => {
+      expect(isValidGoogleApiKey("                                  ")).toBe(false);
+    });
+  });
+
+  describe("formattedCountyCode", () => {
+    it("returns empty string for unknown state/county", () => {
+      expect(formattedCountyCode("Nowhere", "Nothing")).toBe("");
+    });
+
+    it("handles missing county data gracefully", () => {
+      expect(formattedCountyCode("Massachusetts", "Fake County")).toBe("");
     });
   });
 
@@ -215,6 +394,10 @@ describe("Utilities", () => {
 
     it("returns falsy for null", () => {
       expect(isAPIError(null)).toBeFalsy();
+    });
+
+    it("returns falsy for undefined", () => {
+      expect(isAPIError(undefined)).toBeFalsy();
     });
   });
 
@@ -232,6 +415,11 @@ describe("Utilities", () => {
     it("omits detail when details is false", () => {
       const error = {data: {detail: "Resource does not exist", title: "Not Found"}};
       expect(printAPIError(error as any, false)).toBe("Not Found");
+    });
+
+    it("prints title when detail is missing", () => {
+      const error = {data: {title: "Not Found"}};
+      expect(printAPIError(error as any, true)).toBe("Not Found");
     });
   });
 });
