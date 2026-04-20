@@ -178,9 +178,11 @@ describe("SplitPage", () => {
   });
 
   describe("desktop viewport (mediaQueryLargerThan('sm') true)", () => {
-    const mobileImpl = () => ({fontScale: 1, height: 812, scale: 2, width: 375}) as any;
     const desktopImpl = () => ({fontScale: 1, height: 1000, scale: 2, width: 1400}) as any;
+    const mobileImpl = () => ({fontScale: 1, height: 812, scale: 2, width: 375}) as any;
+    let originalGet: typeof Dimensions.get;
     beforeAll(() => {
+      originalGet = Dimensions.get;
       if (typeof (Dimensions.get as any).mockImplementation === "function") {
         (Dimensions.get as any).mockImplementation(desktopImpl);
       } else {
@@ -191,7 +193,7 @@ describe("SplitPage", () => {
       if (typeof (Dimensions.get as any).mockImplementation === "function") {
         (Dimensions.get as any).mockImplementation(mobileImpl);
       } else {
-        (Dimensions.get as any) = mobileImpl;
+        (Dimensions.get as any) = originalGet;
       }
     });
 

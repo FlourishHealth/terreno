@@ -358,21 +358,17 @@ describe("ConsentNavigator", () => {
       })),
     };
 
-    const {queryByTestId} = renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <ConsentNavigator api={api as any}>
         <Text>App Content</Text>
       </ConsentNavigator>
     );
 
-    const declineBtn = queryByTestId("consent-form-decline-button");
-    if (declineBtn) {
-      await act(async () => {
-        fireEvent.press(declineBtn);
-      });
-      expect(submitMutation).toHaveBeenCalled();
-    } else {
-      expect(submitMutation).not.toHaveBeenCalled();
-    }
+    const declineBtn = getByTestId("consent-form-decline-button");
+    await act(async () => {
+      fireEvent.press(declineBtn);
+    });
+    expect(submitMutation).toHaveBeenCalled();
   });
 
   it("advances past an extra screen that does not accept onNext injection", async () => {
