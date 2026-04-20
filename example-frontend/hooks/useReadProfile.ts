@@ -1,3 +1,4 @@
+import {useSelectCurrentUserId} from "@terreno/rtk";
 import {useGetMeQuery} from "@/store";
 
 export interface ProfileData {
@@ -9,7 +10,8 @@ export interface ProfileData {
 }
 
 export const useReadProfile = (): ProfileData | undefined => {
-  const {data: profile} = useGetMeQuery();
+  const userId = useSelectCurrentUserId();
+  const {data: profile} = useGetMeQuery(undefined, {skip: !userId});
 
   if (!profile) {
     return undefined;

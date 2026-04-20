@@ -1,3 +1,4 @@
+import {useSelectCurrentUserId} from "@terreno/rtk";
 import {AIRequestExplorer, type AIRequestExplorerData, Page} from "@terreno/ui";
 import React, {useCallback, useState} from "react";
 import {useGetAiRequestsExplorerQuery} from "@/store";
@@ -10,13 +11,18 @@ const AIAdminScreen: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const {data: explorerData, isLoading} = useGetAiRequestsExplorerQuery({
-    endDate: endDate || undefined,
-    limit: EXPLORER_LIMIT,
-    page,
-    requestType: requestTypeFilter.length === 1 ? requestTypeFilter[0] : undefined,
-    startDate: startDate || undefined,
-  });
+  const userId = useSelectCurrentUserId();
+
+  const {data: explorerData, isLoading} = useGetAiRequestsExplorerQuery(
+    {
+      endDate: endDate || undefined,
+      limit: EXPLORER_LIMIT,
+      page,
+      requestType: requestTypeFilter.length === 1 ? requestTypeFilter[0] : undefined,
+      startDate: startDate || undefined,
+    },
+    {skip: !userId}
+  );
 
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
