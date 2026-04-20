@@ -136,7 +136,7 @@ describe("fixMixedFields", () => {
 
   it("replaces Mixed fields with only description", () => {
     const schema = new Schema({data: {description: "any data", type: Schema.Types.Mixed}});
-    const properties = {data: {description: "any data", type: "object"}};
+    const properties: any = {data: {description: "any data", type: "object"}};
     fixMixedFields(schema, properties);
     expect(properties.data).toEqual({description: "any data"});
   });
@@ -144,7 +144,7 @@ describe("fixMixedFields", () => {
   it("recurses into arrays of sub-documents", () => {
     const subSchema = new Schema({meta: {type: Schema.Types.Mixed}});
     const schema = new Schema({items: [subSchema]});
-    const properties = {
+    const properties: any = {
       items: {
         items: {
           properties: {

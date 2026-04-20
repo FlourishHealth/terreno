@@ -124,7 +124,7 @@ describe("syncConsents", () => {
 
   it("publishes new version when type changes", async () => {
     await syncConsents({terms: baseDef});
-    const updated = {...baseDef, type: "privacy"};
+    const updated: ConsentFormDefinition = {...baseDef, type: "privacy"};
     const result = await syncConsents({terms: updated});
     expect(result.updated).toEqual(["terms"]);
   });
