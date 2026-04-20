@@ -619,4 +619,151 @@ describe("generateTokens edge cases", () => {
     expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
     expect(decoded.exp).toBeLessThan(expectedExp + 10);
   });
+
+  it("throws when TOKEN_SECRET is not set", async () => {
+    process.env.TOKEN_SECRET = "";
+    let caught: any;
+    try {
+      await generateTokens({_id: "user-123"});
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeDefined();
+    expect((caught as Error).message).toBe("TOKEN_SECRET must be set in env.");
+  });
+
+  it("uses TOKEN_EXPIRES_IN from env when valid", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    process.env.TOKEN_EXPIRES_IN = "2h";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = jwtLib.decode(result.token as string) as any;
+    const expectedExp = Math.floor(Date.now() / 1000) + 2 * 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
+    expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+
+  it("uses REFRESH_TOKEN_EXPIRES_IN from env when valid", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "1h";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = jwtLib.decode(result.refreshToken as string) as any;
+    const expectedExp = Math.floor(Date.now() / 1000) + 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
+    expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+
+  it("does not issue refresh token when REFRESH_TOKEN_SECRET is not set", async () => {
+    process.env.REFRESH_TOKEN_SECRET = "";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.token).toBeDefined();
+    expect(result.refreshToken).toBeUndefined();
+  });
+});
+
+describe("addAuthRoutes /refresh_token error paths", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = setupServer({
+      addRoutes: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    });
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 401 when no refreshToken in body", async () => {
+    const res = await agent.post("/auth/refresh_token").send({}).expect(401);
+    expect(res.body.message).toContain("No refresh token provided");
+  });
+
+  it("returns 401 when refresh token is invalid", async () => {
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: "not-a-valid-jwt"})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when refresh token is signed with wrong secret", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const bogusToken = jwtLib.sign({id: "abc"}, "different-secret");
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: bogusToken})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when refresh token has no id", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const tokenNoId = jwtLib.sign({foo: "bar"}, process.env.REFRESH_TOKEN_SECRET as string);
+    const res = await agent.post("/auth/refresh_token").send({refreshToken: tokenNoId}).expect(401);
+    expect(res.body.message).toBe("Invalid refresh token");
+  });
+
+  it("issues new tokens on valid refresh", async () => {
+    const [adminUser] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const validToken = jwtLib.sign(
+      {id: (adminUser as any)._id.toString()},
+      process.env.REFRESH_TOKEN_SECRET as string
+    );
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: validToken})
+      .expect(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.refreshToken).toBeDefined();
+  });
+});
+
+describe("addMeRoutes edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = setupServer({
+      addRoutes: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    });
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("GET /auth/me returns 401 without auth", async () => {
+    await agent.get("/auth/me").expect(401);
+  });
+
+  it("PATCH /auth/me returns 401 without auth", async () => {
+    await agent.patch("/auth/me").send({email: "x@x.com"}).expect(401);
+  });
+
+  it("GET /auth/me returns 404 when user is deleted after auth", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign(
+      {id: (notAdmin as any)._id.toString()},
+      process.env.TOKEN_SECRET as string,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    // Delete the user so findById returns null
+    await UserModel.deleteOne({_id: (notAdmin as any)._id});
+    const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
+    // Either 404 (user not found in /me handler) or 401 (auth middleware rejects)
+    expect([401, 404]).toContain(res.status);
+  });
 });

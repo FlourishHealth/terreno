@@ -121,4 +121,149 @@ describe("syncConsents", () => {
     expect(forms[0].slug).toBe("terms");
     expect(forms[1].slug).toBe("privacy");
   });
+
+  it("publishes new version when type changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, type: "privacy"};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when order changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, order: 99};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when required changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, required: false};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when requireScrollToBottom changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, requireScrollToBottom: true};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when captureSignature changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, captureSignature: true};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when agreeButtonText changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, agreeButtonText: "Consent"};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when allowDecline changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, allowDecline: true};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when declineButtonText changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, allowDecline: true, declineButtonText: "No Thanks"};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when defaultLocale changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, defaultLocale: "es"};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when content locale count changes", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, content: {en: baseDef.content.en, es: "# Términos"}};
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when checkbox count changes", async () => {
+    await syncConsents({
+      terms: {
+        ...baseDef,
+        checkboxes: [{label: "Agree", required: true}],
+      },
+    });
+    const updated = {
+      ...baseDef,
+      checkboxes: [
+        {label: "Agree", required: true},
+        {label: "Also agree", required: false},
+      ],
+    };
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when checkbox label changes", async () => {
+    await syncConsents({
+      terms: {
+        ...baseDef,
+        checkboxes: [{label: "Agree", required: true}],
+      },
+    });
+    const updated = {
+      ...baseDef,
+      checkboxes: [{label: "I Agree", required: true}],
+    };
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("publishes new version when checkbox confirmationPrompt changes", async () => {
+    await syncConsents({
+      terms: {
+        ...baseDef,
+        checkboxes: [{confirmationPrompt: "Sure?", label: "Agree", required: true}],
+      },
+    });
+    const updated = {
+      ...baseDef,
+      checkboxes: [{confirmationPrompt: "Are you sure?", label: "Agree", required: true}],
+    };
+    const result = await syncConsents({terms: updated});
+    expect(result.updated).toEqual(["terms"]);
+  });
+
+  it("leaves unchanged forms alone with checkboxes present", async () => {
+    const withCheckboxes = {
+      ...baseDef,
+      checkboxes: [{confirmationPrompt: "Sure?", label: "Agree", required: true}],
+    };
+    await syncConsents({terms: withCheckboxes});
+    const result = await syncConsents({terms: withCheckboxes});
+    expect(result.unchanged).toEqual(["terms"]);
+  });
+
+  it("dry run does not create new versions", async () => {
+    await syncConsents({terms: baseDef});
+    const updated = {...baseDef, title: "Updated"};
+    const result = await syncConsents({terms: updated}, {dryRun: true});
+    expect(result.updated).toEqual(["terms"]);
+    const forms = await ConsentForm.find({slug: "terms"});
+    expect(forms).toHaveLength(1); // No new version created
+  });
+
+  it("dry run does not deactivate forms", async () => {
+    await syncConsents({privacy: {...baseDef, title: "Privacy", type: "privacy"}, terms: baseDef});
+    const result = await syncConsents({terms: baseDef}, {deactivateRemoved: true, dryRun: true});
+    expect(result.deactivated).toEqual(["privacy"]);
+    const privacy = await ConsentForm.findOne({slug: "privacy"});
+    expect(privacy?.active).toBe(true); // Still active
+  });
 });
