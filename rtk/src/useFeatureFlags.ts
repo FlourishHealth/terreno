@@ -27,7 +27,7 @@ interface UseFeatureFlagsResult {
  * const variant = getVariant("checkout-experiment");           // "control" | "variant-a" | null
  * ```
  */
-interface UseFeatureFlagsOptions {
+export interface UseFeatureFlagsOptions {
   /**
    * Base path for the feature-flags endpoint. Defaults to "/feature-flags".
    */
@@ -39,6 +39,29 @@ interface UseFeatureFlagsOptions {
   skip?: boolean;
 }
 
+interface ResolvedFeatureFlagsOptions {
+  basePath: string;
+  skip: boolean;
+}
+
+/**
+ * Normalizes the legacy-compatible `basePathOrOptions` argument into a
+ * `{basePath, skip}` pair with defaults applied.
+ *
+ * - `undefined` -> `{basePath: "/feature-flags", skip: false}`
+ * - `string`    -> `{basePath: <string>, skip: false}` (legacy form)
+ * - `object`    -> `{basePath: opts.basePath ?? "/feature-flags", skip: opts.skip ?? false}`
+ */
+export const resolveFeatureFlagsOptions = (
+  basePathOrOptions?: string | UseFeatureFlagsOptions
+): ResolvedFeatureFlagsOptions => {
+  const {basePath = "/feature-flags", skip = false} =
+    typeof basePathOrOptions === "string"
+      ? {basePath: basePathOrOptions, skip: false}
+      : (basePathOrOptions ?? {});
+  return {basePath, skip};
+};
+
 // Overloaded signature preserves backwards compatibility with callers that
 // pass a string basePath as the second argument.
 export function useFeatureFlags(
@@ -46,10 +69,7 @@ export function useFeatureFlags(
   api: Api<any, any, any, any>,
   basePathOrOptions?: string | UseFeatureFlagsOptions
 ): UseFeatureFlagsResult {
-  const {basePath = "/feature-flags", skip = false} =
-    typeof basePathOrOptions === "string"
-      ? {basePath: basePathOrOptions, skip: false}
-      : (basePathOrOptions ?? {});
+  const {basePath, skip} = resolveFeatureFlagsOptions(basePathOrOptions);
 
   const enhancedApi = useMemo(
     () =>
