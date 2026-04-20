@@ -7,6 +7,14 @@ import type TestAgent from "supertest/lib/agent";
 import {type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
+import {
+  createOpenApiMiddleware,
+  deleteOpenApiMiddleware,
+  getOpenApiMiddleware,
+  listOpenApiMiddleware,
+  patchOpenApiMiddleware,
+  readOpenApiMiddleware,
+} from "./openApi";
 import {Permissions} from "./permissions";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
@@ -334,5 +342,149 @@ describe("openApi populate", () => {
     });
 
     expect(res.body).toMatchSnapshot();
+  });
+});
+
+describe("openApi middleware no-op paths", () => {
+  it("getOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = getOpenApiMiddleware(FoodModel as any, {});
+    expect(typeof mw).toBe("function");
+    expect(mw.length).toBe(3);
+  });
+
+  it("getOpenApiMiddleware returns noop when read permissions are empty", () => {
+    const mw = getOpenApiMiddleware(FoodModel as any, {
+      openApi: {component: () => {}, path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(typeof mw).toBe("function");
+    expect(mw.length).toBe(3);
+  });
+
+  it("listOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = listOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("listOpenApiMiddleware returns noop when list permissions are empty", () => {
+    const mw = listOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("createOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = createOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("createOpenApiMiddleware returns noop when create permissions are empty", () => {
+    const mw = createOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("patchOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = patchOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("patchOpenApiMiddleware returns noop when update permissions are empty", () => {
+    const mw = patchOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("deleteOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = deleteOpenApiMiddleware(FoodModel as any, {});
+    expect(mw.length).toBe(3);
+  });
+
+  it("deleteOpenApiMiddleware returns noop when delete permissions are empty", () => {
+    const mw = deleteOpenApiMiddleware(FoodModel as any, {
+      openApi: {path: () => (() => {}) as any} as any,
+      permissions: {
+        create: [],
+        delete: [],
+        list: [],
+        read: [],
+        update: [],
+      },
+    });
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns noop when openApi not configured", () => {
+    const mw = readOpenApiMiddleware({}, {}, [], []);
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns noop when read permissions are empty", () => {
+    const mw = readOpenApiMiddleware(
+      {
+        openApi: {path: () => (() => {}) as any} as any,
+        permissions: {
+          create: [],
+          delete: [],
+          list: [],
+          read: [],
+          update: [],
+        },
+      },
+      {id: {type: "string"}},
+      ["id"],
+      []
+    );
+    expect(mw.length).toBe(3);
+  });
+
+  it("readOpenApiMiddleware returns middleware when configured with permissions", () => {
+    // Use a simple path stub that returns a middleware function
+    const pathFn = () => ((_req: any, _res: any, next: any) => next()) as any;
+    const mw = readOpenApiMiddleware(
+      {
+        openApi: {path: pathFn} as any,
+        permissions: {
+          create: [],
+          delete: [],
+          list: [],
+          read: [Permissions.IsAny],
+          update: [],
+        },
+      },
+      {name: {type: "string"}},
+      ["name"],
+      [{in: "query", name: "search", schema: {type: "string"}}]
+    );
+    expect(typeof mw).toBe("function");
   });
 });
