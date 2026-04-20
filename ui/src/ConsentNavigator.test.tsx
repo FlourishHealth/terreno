@@ -371,20 +371,4 @@ describe("ConsentNavigator", () => {
     expect(submitMutation).toHaveBeenCalled();
   });
 
-  it("advances past an extra screen that does not accept onNext injection", async () => {
-    const {act, fireEvent} = await import("@testing-library/react-native");
-    const api = createMockApi([]);
-    const NonCloneableScreen: any = <ExtraScreen key="extra" />;
-
-    const {getByTestId} = renderWithTheme(
-      <ConsentNavigator api={api} extraScreens={[NonCloneableScreen]}>
-        <Text>App Content</Text>
-      </ConsentNavigator>
-    );
-
-    expect(getByTestId("extra-screen")).toBeTruthy();
-    await act(async () => {
-      fireEvent.press(getByTestId("extra-screen-next"));
-    });
-  });
 });

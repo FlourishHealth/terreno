@@ -248,7 +248,7 @@ describe("SplitPage", () => {
   describe("item selection callbacks", () => {
     it("onItemSelect runs onSelectionChange when item clicked via Box press", async () => {
       const {fireEvent} = await import("@testing-library/react-native");
-      const onSelectionChange = mock(async (_arg: any) => {});
+      const onSelectionChange = mock(async (_arg: unknown) => {});
       const {getAllByLabelText} = renderWithTheme(
         <SplitPage
           {...defaultProps}

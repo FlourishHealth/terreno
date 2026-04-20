@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 
+import type {AddressInterface} from "./Common";
 import {renderWithTheme} from "./test-utils";
 import {WebAddressAutocomplete} from "./WebAddressAutocomplete";
 
@@ -33,7 +34,7 @@ describe("WebAddressAutocomplete", () => {
   });
 
   it("renders without calling handleAutoCompleteChange until a place is selected", () => {
-    const handleAutoCompleteChange = mock((_arg: any) => {});
+    const handleAutoCompleteChange = mock((_arg: AddressInterface) => {});
     renderWithTheme(
       <WebAddressAutocomplete
         {...defaultProps}
