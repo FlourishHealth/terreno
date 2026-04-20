@@ -449,6 +449,85 @@ describe("listener middleware side effects", () => {
     }
   });
 
+  it("re-throws and logs when AsyncStorage.setItem fails on web login", async () => {
+    const {store} = createTestStore();
+    const originalSetItem = AsyncStorage.setItem;
+    const originalConsoleError = console.error;
+    const globalWithWindow = globalThis as {window?: unknown};
+    const originalWindow = globalWithWindow.window;
+    const errorCalls: unknown[][] = [];
+
+    console.error = (...args: unknown[]): void => {
+      errorCalls.push(args);
+    };
+    AsyncStorage.setItem = async (): Promise<void> => {
+      throw new Error("storage quota exceeded");
+    };
+    globalWithWindow.window = {};
+
+    try {
+      store.dispatch({
+        meta: {
+          arg: {endpointName: "emailLogin", type: "mutation"},
+          requestId: "listener-login-error",
+        },
+        payload: {refreshToken: "refresh-token", token: "auth-token", userId: "user-err"},
+        type: "terreno-rtk/executeMutation/fulfilled",
+      });
+
+      await flushAsyncListeners();
+
+      const loggedErrorMessage = errorCalls.find((args) =>
+        args.some(
+          (value) => typeof value === "string" && value.includes("Error setting auth token")
+        )
+      );
+      expect(loggedErrorMessage).toBeDefined();
+    } finally {
+      AsyncStorage.setItem = originalSetItem;
+      console.error = originalConsoleError;
+      if (typeof originalWindow === "undefined") {
+        delete globalWithWindow.window;
+      } else {
+        globalWithWindow.window = originalWindow;
+      }
+    }
+  });
+
+  it("skips storing auth tokens when window is undefined (SSR context)", async () => {
+    const {store} = createTestStore();
+    const setItemCalls: Array<[string, string]> = [];
+    const originalSetItem = AsyncStorage.setItem;
+    const globalWithWindow = globalThis as {window?: unknown};
+    const originalWindow = globalWithWindow.window;
+
+    AsyncStorage.setItem = async (key: string, value: string): Promise<void> => {
+      setItemCalls.push([key, value]);
+    };
+    delete globalWithWindow.window;
+
+    try {
+      store.dispatch({
+        meta: {
+          arg: {endpointName: "emailSignUp", type: "mutation"},
+          requestId: "listener-ssr-1",
+        },
+        payload: {refreshToken: "r", token: "t", userId: "user-ssr"},
+        type: "terreno-rtk/executeMutation/fulfilled",
+      });
+
+      await flushAsyncListeners();
+
+      expect(setItemCalls).toEqual([]);
+      expect(store.getState().auth.userId).toBe("user-ssr");
+    } finally {
+      AsyncStorage.setItem = originalSetItem;
+      if (typeof originalWindow !== "undefined") {
+        globalWithWindow.window = originalWindow;
+      }
+    }
+  });
+
   it("removes tokens from AsyncStorage on web logout when window exists", async () => {
     const {store, authSlice} = createTestStore();
     const removeItemCalls: string[] = [];
