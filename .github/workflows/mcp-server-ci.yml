@@ -6,10 +6,12 @@ on:
       - main
     paths:
       - "mcp-server/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/mcp-server-ci.yml"
   pull_request:
     paths:
       - "mcp-server/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/mcp-server-ci.yml"
 
 defaults:

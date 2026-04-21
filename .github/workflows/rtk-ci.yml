@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "rtk/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/rtk-ci.yml"
 
 jobs:

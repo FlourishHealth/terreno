@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "api/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/api-ci.yml"
 
 defaults:
