@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
 import {AdminScriptList} from "./AdminScriptList";
 
 // Mock useAdminConfig to control returned data
@@ -14,9 +15,24 @@ mock.module("./useAdminConfig", () => ({
   useAdminConfig: (...args: any[]) => mockUseAdminConfig(...args),
 }));
 
-// Mock AdminScriptRunModal since it depends on useAdminScripts
+const modalCallbacks: {
+  scriptName: string | null;
+  visible: boolean;
+  onDismiss: () => void;
+} = {onDismiss: () => undefined, scriptName: null, visible: false};
+
+// Mock AdminScriptRunModal so we can observe its props and invoke onDismiss
 mock.module("./AdminScriptRunModal", () => ({
-  AdminScriptRunModal: () => null,
+  AdminScriptRunModal: (props: {
+    scriptName: string | null;
+    visible: boolean;
+    onDismiss: () => void;
+  }) => {
+    modalCallbacks.scriptName = props.scriptName;
+    modalCallbacks.visible = props.visible;
+    modalCallbacks.onDismiss = props.onDismiss;
+    return null;
+  },
 }));
 
 const mockApi = {} as any;
@@ -101,6 +117,37 @@ describe("AdminScriptList", () => {
     const {getByTestId} = renderWithTheme(<AdminScriptList api={mockApi} baseUrl="/admin" />);
 
     expect(getByTestId("admin-script-run-test-script")).toBeTruthy();
+  });
+
+  it("opens modal when Run button is pressed and dismisses it", async () => {
+    mockUseAdminConfig.mockReturnValue({
+      config: {
+        models: [],
+        scripts: [{description: "Test script", name: "test-script"}],
+      },
+      error: null,
+      isLoading: false,
+    });
+
+    const {getByTestId} = renderWithTheme(<AdminScriptList api={mockApi} baseUrl="/admin" />);
+
+    expect(modalCallbacks.visible).toBe(false);
+    expect(modalCallbacks.scriptName).toBeNull();
+
+    const runBtn = getByTestId("admin-script-run-test-script");
+    await act(async () => {
+      fireEvent.press(runBtn);
+    });
+
+    expect(modalCallbacks.visible).toBe(true);
+    expect(modalCallbacks.scriptName).toBe("test-script");
+
+    await act(async () => {
+      modalCallbacks.onDismiss();
+    });
+
+    expect(modalCallbacks.visible).toBe(false);
+    expect(modalCallbacks.scriptName).toBeNull();
   });
 
   it("disables Run button when isAdmin is false", () => {

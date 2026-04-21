@@ -1,7 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
-import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import React from "react";
+import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 
 mock.module("../AdminNestedArrayField", () => ({
   AdminNestedArrayField: ({title}: {title: string}) =>
@@ -197,7 +197,7 @@ describe("AdminFieldRenderer", () => {
       />
     );
     const input = getByTestId("admin-field-meta");
-    fireEvent.changeText(input, "{\"a\":2}");
+    fireEvent.changeText(input, '{"a":2}');
     fireEvent.changeText(input, "not-json");
     fireEvent.changeText(input, "");
     expect(changes).toEqual([{a: 2}, "not-json", undefined]);
