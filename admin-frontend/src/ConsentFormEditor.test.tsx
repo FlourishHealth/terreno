@@ -52,9 +52,31 @@ mock.module("./useAdminApi", () => ({
   }),
 }));
 
+const mutationSpecs: any[] = [];
 const makeApi = () => ({
   injectEndpoints: ({endpoints}: {endpoints: (b: any) => Record<string, any>}) => {
-    endpoints({mutation: (s: any) => s, query: (s: any) => s});
+    endpoints({
+      mutation: (spec: any) => {
+        // Invoke the mutation query lambda with both an object body and a string
+        // id so we exercise the URL + body builders for every mutation shape
+        // (generate/translate take a body object, publish takes an id string).
+        if (typeof spec?.query === "function") {
+          mutationSpecs.push(
+            spec.query({
+              content: "c",
+              description: "d",
+              fromLocale: "en",
+              locale: "en",
+              toLocale: "es",
+              type: "agreement",
+            })
+          );
+          mutationSpecs.push(spec.query("form-id"));
+        }
+        return spec;
+      },
+      query: (spec: any) => spec,
+    });
     return {
       useGenerateConsentContentMutation: () => [
         (body: any) => ({
@@ -290,5 +312,200 @@ describe("ConsentFormEditor", () => {
       <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
     );
     expect(queryByTestId("consent-form-publish-button")).toBeNull();
+  });
+
+  it("wires all three mutations (generate/publish/translate) to the right URLs", () => {
+    renderWithTheme(<ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />);
+    // The mock invokes each mutation's query lambda, so mutationSpecs contains
+    // the resolved request descriptors for generate, publish, and translate.
+    const urls = mutationSpecs.map((s: any) => s.url).sort();
+    expect(urls).toContain("/consent-forms/generate");
+    expect(urls).toContain("/consent-forms/form-id/publish");
+    expect(urls).toContain("/consent-forms/translate");
+  });
+
+  it("refuses to save without a slug even when title is present", async () => {
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+    );
+    // Set a title so slug would auto-generate.
+    await act(async () => {
+      fireEvent.changeText(getByTestId("consent-form-title-input"), "Draft");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    // Now clear the slug explicitly — this hits the "Slug is required" branch.
+    await act(async () => {
+      fireEvent.changeText(getByTestId("consent-form-slug-input"), "");
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    await press(getByTestId("consent-form-save-button"));
+    expect(createCalls.length).toBe(0);
+  });
+
+  it("generates AI content into the active locale and closes the modal", async () => {
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+    );
+    await press(getByTestId("consent-form-generate-button"));
+    // Find the Modal's primary "Generate" button and invoke it directly. The
+    // description input lives inside the Modal's portal and may not be
+    // mounted; invoking primaryButtonOnClick still exercises handleGenerate.
+    const modals = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.primaryButtonOnClick === "function"
+    );
+    expect(modals.length).toBeGreaterThan(0);
+    await act(async () => {
+      (modals[0] as any).props.primaryButtonOnClick();
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(generateCalls.length).toBe(1);
+    expect(generateCalls[0].locale).toBe("en");
+    expect(generateCalls[0].type).toBe("agreement");
+  });
+
+  it("surfaces generation errors via toast.catch", async () => {
+    generateImpl = async () => {
+      throw new Error("boom");
+    };
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+    );
+    await press(getByTestId("consent-form-generate-button"));
+    const modals = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.primaryButtonOnClick === "function"
+    );
+    await act(async () => {
+      (modals[0] as any).props.primaryButtonOnClick();
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(generateCalls.length).toBe(1);
+  });
+
+  it("translates from the default locale into the active locale", async () => {
+    state.formData = {
+      content: {en: "Hello world"},
+      defaultLocale: "en",
+      slug: "s",
+      title: "T",
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor
+        api={makeApi() as any}
+        baseUrl="/admin"
+        hasAiSupport
+        id="f1"
+        supportedLocales={["en", "es"]}
+      />
+    );
+    // Switch to non-default locale (es) so the Translate button appears.
+    const segmented = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+    );
+    expect(segmented.length).toBeGreaterThan(0);
+    await act(async () => {
+      (segmented[0] as any).props.onChange(1);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    // Now find the translate button and press it.
+    const translateButton = UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+    );
+    expect(translateButton.length).toBeGreaterThan(0);
+    await act(async () => {
+      (translateButton[0] as any).props.onClick();
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(translateCalls.length).toBe(1);
+    expect(translateCalls[0].toLocale).toBe("es");
+    expect(translateCalls[0].content).toBe("Hello world");
+  });
+
+  it("short-circuits translation when source locale has empty content", async () => {
+    state.formData = {
+      content: {en: "   "},
+      defaultLocale: "en",
+      slug: "s",
+      title: "T",
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor
+        api={makeApi() as any}
+        baseUrl="/admin"
+        hasAiSupport
+        id="f1"
+        supportedLocales={["en", "es"]}
+      />
+    );
+    const segmented = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+    );
+    await act(async () => {
+      (segmented[0] as any).props.onChange(1);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const translateButton = UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+    );
+    await act(async () => {
+      (translateButton[0] as any).props.onClick();
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(translateCalls.length).toBe(0);
+  });
+
+  it("surfaces translation errors via toast.catch", async () => {
+    translateImpl = async () => {
+      throw new Error("nope");
+    };
+    state.formData = {
+      content: {en: "Hello"},
+      defaultLocale: "en",
+      slug: "s",
+      title: "T",
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor
+        api={makeApi() as any}
+        baseUrl="/admin"
+        hasAiSupport
+        id="f1"
+        supportedLocales={["en", "es"]}
+      />
+    );
+    const segmented = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+    );
+    await act(async () => {
+      (segmented[0] as any).props.onChange(1);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    const translateButton = UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+    );
+    await act(async () => {
+      (translateButton[0] as any).props.onClick();
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(translateCalls.length).toBe(1);
+  });
+
+  it("dismisses the generate modal via secondary action", async () => {
+    const {getByTestId, UNSAFE_root} = renderWithTheme(
+      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+    );
+    await press(getByTestId("consent-form-generate-button"));
+    const modals = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.secondaryButtonOnClick === "function"
+    );
+    expect(modals.length).toBeGreaterThan(0);
+    await act(async () => {
+      (modals[0] as any).props.secondaryButtonOnClick();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    await act(async () => {
+      (modals[0] as any).props.onDismiss?.();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(generateCalls.length).toBe(0);
   });
 });

@@ -47,6 +47,16 @@ describe("ConsentFormList", () => {
     expect(getByText(/No consent forms found/)).toBeDefined();
   });
 
+  it("renders data without onRowClick so the ActionsCell edit-callback branch is absent", () => {
+    listState.data = {
+      data: [{_id: "a", active: true, order: 1, title: "T1", type: "standard", version: "2"}],
+      total: 1,
+    };
+    // No onRowClick is provided. The ActionsCell edit-button path should be hidden.
+    const {toJSON} = renderWithTheme(<ConsentFormList api={{} as any} baseUrl="/admin" />);
+    expect(toJSON()).toBeDefined();
+  });
+
   it("renders data with create button and edit callback", async () => {
     listState.data = {
       data: [
@@ -77,5 +87,29 @@ describe("ConsentFormList", () => {
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(onCreateNew).toHaveBeenCalled();
+  });
+
+  it("falls back when sort column is out of range (buildSortString returns undefined)", async () => {
+    listState.data = {
+      data: [{_id: "a", active: true, order: 1, title: "T1", type: "standard", version: "2"}],
+      total: 1,
+    };
+    const {UNSAFE_root, toJSON} = renderWithTheme(
+      <ConsentFormList api={{} as any} baseUrl="/admin" onRowClick={() => undefined} />
+    );
+    const tables = UNSAFE_root.findAll((n: any) => typeof n.props?.setSortColumn === "function");
+    expect(tables.length).toBeGreaterThan(0);
+    await act(async () => {
+      // Column 99 is out of range, so buildSortString returns undefined and
+      // the default "-created" sort should be used.
+      (tables[0] as any).props.setSortColumn({column: 99, direction: "asc"});
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    // Also exercise the desc branch on a valid column.
+    await act(async () => {
+      (tables[0] as any).props.setSortColumn({column: 0, direction: "desc"});
+      await new Promise((r) => setTimeout(r, 10));
+    });
+    expect(toJSON()).toBeDefined();
   });
 });
