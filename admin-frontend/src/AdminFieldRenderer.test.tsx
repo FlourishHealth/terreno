@@ -6,26 +6,6 @@ import {AdminFieldRenderer} from "./AdminFieldRenderer";
 const api = {} as any;
 const base = {api, baseUrl: "/admin", onChange: () => {}};
 
-// Renders and returns the deep JSON and onChange prop of the top child.
-const findFirstByProp = (json: any, predicate: (n: any) => boolean): any => {
-  if (!json) return null;
-  if (predicate(json)) return json;
-  if (Array.isArray(json)) {
-    for (const c of json) {
-      const r = findFirstByProp(c, predicate);
-      if (r) return r;
-    }
-    return null;
-  }
-  if (json.children) {
-    for (const c of json.children) {
-      const r = findFirstByProp(c, predicate);
-      if (r) return r;
-    }
-  }
-  return null;
-};
-
 describe("AdminFieldRenderer (main)", () => {
   it("renders boolean", () => {
     const {toJSON} = renderWithTheme(
