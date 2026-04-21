@@ -63,6 +63,11 @@ describe("AdminFieldRenderer", () => {
     ["widget textarea", {required: false, type: "string", widget: "textarea"}, "some text"],
     ["widget checkbox-list", {required: false, type: "array", widget: "checkbox-list"}, []],
     [
+      "widget checkbox-list non-array",
+      {required: false, type: "string", widget: "checkbox-list"},
+      ["x"],
+    ],
+    [
       "widget locale-content",
       {required: false, type: "object", widget: "locale-content"},
       {en: "hi"},

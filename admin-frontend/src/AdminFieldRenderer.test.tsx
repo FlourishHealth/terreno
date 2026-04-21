@@ -256,6 +256,33 @@ describe("AdminFieldRenderer (main)", () => {
     expect(toJSON()).toBeDefined();
   });
 
+  it("renders checkbox-list widget when type is not array (falls through to CheckboxListEditor)", () => {
+    // With type "array" the earlier array branches catch the render before the
+    // checkbox-list widget branch is reached. A non-array type hits line 328.
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        errorText="oops"
+        fieldConfig={{required: false, type: "string", widget: "checkbox-list"} as any}
+        fieldKey="tags"
+        value={["a"]}
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("renders checkbox-list widget with null value defaulting to []", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "string", widget: "checkbox-list"} as any}
+        fieldKey="tags"
+        value={null}
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
   it("renders locale-content widget", () => {
     const {toJSON} = renderWithTheme(
       <AdminFieldRenderer

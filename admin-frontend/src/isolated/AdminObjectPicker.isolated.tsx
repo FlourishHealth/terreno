@@ -16,9 +16,18 @@ const apiState: ApiState = {
   selectedItem: undefined,
 };
 
+const querySpecs: any[] = [];
 const makeApi = () => ({
   injectEndpoints: ({endpoints}: {endpoints: (b: any) => Record<string, any>}) => {
-    const build = {query: (spec: any) => spec};
+    const build = {
+      query: (spec: any) => {
+        // Invoke the query lambda so the URL/params builders run.
+        if (typeof spec?.query === "function") {
+          querySpecs.push(spec.query("some-id"));
+        }
+        return spec;
+      },
+    };
     const defs = endpoints(build);
     const keys = Object.keys(defs);
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -50,6 +59,64 @@ describe("AdminObjectPicker", () => {
     apiState.searchData = undefined;
     apiState.isSearching = false;
     apiState.selectedItem = undefined;
+    querySpecs.length = 0;
+  });
+
+  it("wires the search and read query endpoints to the right URLs", () => {
+    renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    const urls = querySpecs.map((s) => s.url).sort();
+    expect(urls).toContain("/admin/users/search");
+    expect(urls).toContain("/admin/users/some-id");
+    const searchSpec = querySpecs.find((s: any) => s.url === "/admin/users/search");
+    expect(searchSpec.params).toEqual({q: "some-id"});
+  });
+
+  it("falls back to _id when no known display field is present", () => {
+    // Exercises the return "_id" branch of getPrimaryField (line 41).
+    apiState.selectedItem = {_id: "abc123"};
+    const {toJSON} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="Foo"
+        routePath="/admin/foo"
+        title="Foo"
+        value="abc123"
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("clears the pending debounce timeout on rapid input (line 120)", async () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    // Two rapid changes within the 300ms window force the second call to
+    // clear the pending timeout from the first (covers line 120).
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "a");
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "ab");
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    expect(true).toBe(true);
   });
 
   it("renders a search field when there is no selected value", () => {

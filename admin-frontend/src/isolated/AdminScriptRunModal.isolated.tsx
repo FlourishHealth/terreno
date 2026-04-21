@@ -3,6 +3,29 @@ import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act} from "../../../ui/node_modules/@testing-library/react-native";
 
+// Mock @terreno/ui so the Modal renders its children inline. The real Modal
+// portal isn't mounted by the test renderer, which hides the cancel button.
+mock.module("@terreno/ui", () => {
+  const RN = require("react-native");
+  const ReactMod = require("react");
+  const Box = ({children, ...rest}: any) => ReactMod.createElement(RN.View, rest, children);
+  const Button = ({text, onClick, testID}: any) =>
+    ReactMod.createElement(
+      RN.Pressable,
+      {onPress: onClick, testID},
+      ReactMod.createElement(RN.Text, {}, text)
+    );
+  const Heading = ({children}: any) => ReactMod.createElement(RN.Text, {}, children);
+  const Icon = () => ReactMod.createElement(RN.View, {});
+  const Modal = ({children, visible}: any) => {
+    if (!visible) return null;
+    return ReactMod.createElement(RN.View, {testID: "mock-modal"}, children);
+  };
+  const Spinner = () => ReactMod.createElement(RN.View, {testID: "spinner"});
+  const Text = ({children, ...rest}: any) => ReactMod.createElement(RN.Text, rest, children);
+  return {Box, Button, Heading, Icon, Modal, Spinner, Text};
+});
+
 interface TaskState {
   data: {task: any} | undefined;
   error: any;

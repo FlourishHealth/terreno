@@ -433,6 +433,91 @@ describe("AdminModelForm", () => {
     expect(nameField).toBeDefined();
   });
 
+  it("uses boolean/number/string field defaults when default is not provided", () => {
+    // Ensure getFieldDefault returns the right fallbacks for each type when no
+    // default is set on the config. This hits the boolean and number branches.
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["flag", "count", "name"],
+          fields: {
+            count: {required: false, type: "number"},
+            flag: {required: false, type: "boolean"},
+            name: {required: false, type: "string"},
+          },
+        },
+      ],
+    };
+    const {toJSON} = renderWithTheme(
+      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("deletes an existing item via direct handler invocation on the delete button", async () => {
+    configState.config = config;
+    readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
+    // Ensure no leftover mockImplementationOnce from earlier test runs.
+    deleteFn.mockReset();
+    deleteFn.mockImplementation(() => ({unwrap: async () => ({})}));
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: any) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    // Invoke the delete Button's onClick callback directly so we exercise
+    // handleDelete's success branch (calls deleteItem + router.back).
+    const deleteBtns = header.UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "admin-delete-button"
+    );
+    expect(deleteBtns.length).toBeGreaterThan(0);
+    await act(async () => {
+      (deleteBtns[0] as any).props.onClick();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(deleteFn).toHaveBeenCalledWith("u1");
+    expect(routerBack).toHaveBeenCalled();
+    // Silence unused-warning for UNSAFE_root root var of main render.
+    expect(UNSAFE_root).toBeDefined();
+  });
+
+  it("surfaces delete errors via toast.catch without navigating", async () => {
+    configState.config = config;
+    readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
+    deleteFn.mockImplementationOnce(() => ({
+      unwrap: async () => {
+        throw new Error("delete failed");
+      },
+    }));
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: any) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    const deleteBtns = header.UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "admin-delete-button"
+    );
+    await act(async () => {
+      (deleteBtns[0] as any).props.onClick();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(deleteFn).toHaveBeenCalled();
+    // Router should not navigate away because an error was thrown.
+    expect(routerBack).not.toHaveBeenCalled();
+  });
+
   it("updates an existing item in edit mode", async () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
