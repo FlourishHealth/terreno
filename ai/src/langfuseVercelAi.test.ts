@@ -1,38 +1,35 @@
-import {describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 
-const realLangfusePrompts = await import("./langfusePrompts");
+import {LangfuseCache} from "./langfuseCache";
 
-const getPromptMock = mock(
-  async (name: string, _options?: any, _appOptions?: any): Promise<any> => ({
-    config: {temperature: 0.5},
-    labels: [],
-    name,
-    prompt: "Hi {{name}}",
-    tags: [],
-    type: "text" as const,
-    version: 3,
-  })
-);
+const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
+  config: {temperature: 0.5},
+  labels: [],
+  name: "welcome",
+  prompt: "Hi {{name}}",
+  tags: [],
+  type: "text" as const,
+  version: 3,
+}));
 
-// Spread the real module so that other tests loaded later (e.g. langfusePrompts.test.ts)
-// still see the real `createPrompt`, `invalidatePromptCache`, etc. through the module cache.
-mock.module("./langfusePrompts", () => ({
-  ...realLangfusePrompts,
-  compilePrompt: (cached: any, variables: Record<string, string> = {}) => {
-    if (cached.type === "text") {
-      return (cached.prompt as string).replace(/\{\{(\w+)\}\}/g, (_m, k) => variables[k] ?? "");
-    }
-    return (cached.prompt as Array<{content: string; role: string}>).map((m) => ({
-      content: m.content,
-      role: m.role,
-    }));
-  },
-  getPrompt: getPromptMock,
+// Mock the langfuse SDK client so the real `getPrompt`/`compilePrompt` from
+// `./langfusePrompts` can be exercised without network access. We intentionally
+// do NOT mock `./langfusePrompts` directly because that would leak into other
+// test suites that share the module cache in the same bun process.
+const realLangfuseClient = await import("./langfuseClient");
+mock.module("./langfuseClient", () => ({
+  ...realLangfuseClient,
+  getLangfuseClient: () => ({prompt: {get: mockPromptGet}}),
 }));
 
 const {createTelemetryConfig, preparePromptForAI} = await import("./langfuseVercelAi");
 
 describe("langfuseVercelAi", () => {
+  beforeEach(async () => {
+    mockPromptGet.mockClear();
+    await LangfuseCache.deleteMany({});
+  });
+
   describe("preparePromptForAI", () => {
     it("returns a compiled text prompt with telemetry", async () => {
       const result = await preparePromptForAI({
@@ -52,11 +49,11 @@ describe("langfuseVercelAi", () => {
     });
 
     it("returns chat messages for chat prompts", async () => {
-      getPromptMock.mockImplementationOnce(async (name: string) => ({
+      mockPromptGet.mockImplementationOnce(async (name: string) => ({
         config: {},
         labels: [],
         name,
-        prompt: [{content: "Hello", role: "user"}],
+        prompt: [{content: "Hello", role: "user"}] as any,
         tags: [],
         type: "chat" as const,
         version: 1,
