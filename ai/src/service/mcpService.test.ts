@@ -6,7 +6,7 @@ const clientImpl = {
 };
 const createMCPClientMock = mock(async () => clientImpl);
 mock.module("@ai-sdk/mcp", () => ({
-  createMCPClient: (opts: any) => createMCPClientMock(opts),
+  createMCPClient: (opts: Record<string, unknown>) => createMCPClientMock(opts),
 }));
 
 const {MCPService} = await import("./mcpService");

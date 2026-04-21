@@ -5,7 +5,7 @@ import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 const scoreCreate = mock(() => {});
-const promptCreate = mock(async (_params: any) => ({}));
+const promptCreate = mock(async (_params: Record<string, unknown>) => ({}));
 const promptGet = mock(async (name: string) => ({
   config: {temperature: 0.5},
   labels: ["production"],

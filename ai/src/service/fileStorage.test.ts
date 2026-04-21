@@ -5,9 +5,9 @@ import {FileAttachment} from "../models/fileAttachment";
 
 // Mock @google-cloud/storage so the service doesn't try to authenticate
 const bucketFileMock = {
-  delete: mock(async (_opts?: any) => [undefined]),
+  delete: mock(async (_opts?: Record<string, unknown>) => [undefined]),
   getSignedUrl: mock(async () => ["https://example.com/signed-url"]),
-  save: mock(async (_buffer: Buffer, _opts: any) => [undefined]),
+  save: mock(async (_buffer: Buffer, _opts: Record<string, unknown>) => [undefined]),
 };
 const bucketObj = {
   file: mock((_key: string) => bucketFileMock),

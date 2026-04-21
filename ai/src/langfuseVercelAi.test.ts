@@ -53,7 +53,7 @@ describe("langfuseVercelAi", () => {
         config: {},
         labels: [],
         name,
-        prompt: [{content: "Hello", role: "user"}] as any,
+        prompt: [{content: "Hello", role: "user" as const}],
         tags: [],
         type: "chat" as const,
         version: 1,

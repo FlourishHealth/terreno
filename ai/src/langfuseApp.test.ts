@@ -1,32 +1,41 @@
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 import {LangfuseApp} from "./langfuseApp";
 
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+
 const userSchema = new mongoose.Schema({
   admin: {default: false, type: Boolean},
   email: {index: true, type: String},
   name: String,
 });
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (
+    schema: mongoose.Schema,
+    options: {usernameField: string}
+  ) => void,
+  {usernameField: "email"}
+);
 userSchema.plugin(createdUpdatedPlugin);
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
 const buildApp = (plugin: LangfuseApp) =>
   setupServer({
-    addRoutes: (router) => plugin.register(router as any),
+    addRoutes: (router) => plugin.register(router as unknown as express.Application),
     skipListen: true,
-    userModel: UserModel as any,
+    userModel: UserModel,
   });
 
 describe("LangfuseApp", () => {
   beforeAll(async () => {
     await UserModel.deleteMany({});
     const u = await UserModel.create({email: "lf@example.com", name: "User"});
-    await (u as any).setPassword("password");
+    await (u as unknown as PasswordedUser).setPassword("password");
     await u.save();
   });
 

@@ -3,7 +3,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 const shutdownMock = mock(async () => {});
 let ctorCalls = 0;
 class FakeLangfuseClient {
-  constructor(public opts: any) {
+  constructor(public opts: {baseUrl?: string; publicKey: string; secretKey: string}) {
     ctorCalls += 1;
   }
   async shutdown(): Promise<void> {

@@ -13,9 +13,17 @@ const userSchema = new mongoose.Schema({
   email: {index: true, type: String},
   name: String,
 });
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (
+    schema: mongoose.Schema,
+    options: {usernameField: string}
+  ) => void,
+  {usernameField: "email"}
+);
 userSchema.plugin(createdUpdatedPlugin);
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
+
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
 
 const authAsUser = async (appInstance: express.Application, type: "admin" | "notAdmin") => {
   const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
@@ -27,16 +35,16 @@ const authAsUser = async (appInstance: express.Application, type: "admin" | "not
 };
 
 describe("Project Routes", () => {
-  let app: any;
+  let app: express.Application;
   let notAdminId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
     await UserModel.deleteMany({});
     const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PasswordedUser).setPassword("securePassword");
     await admin.save();
     const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as any).setPassword("password");
+    await (user as unknown as PasswordedUser).setPassword("password");
     await user.save();
     notAdminId = user._id as mongoose.Types.ObjectId;
   });
@@ -48,7 +56,7 @@ describe("Project Routes", () => {
         addProjectRoutes(router, {openApiOptions: options});
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel,
     });
   });
 
@@ -70,7 +78,7 @@ describe("Project Routes", () => {
 
     it("defaults source to user when not specified", async () => {
       const project = await Project.create({
-        memories: [{text: "No source"} as any],
+        memories: [{text: "No source"} as unknown as {source: "user"; text: string}],
         name: "Defaults",
         userId: notAdminId,
       });
@@ -94,7 +102,7 @@ describe("Project Routes", () => {
       const agent = await authAsUser(app, "notAdmin");
       const res = await agent.get("/gpt/projects");
       expect(res.status).toBe(200);
-      const names = res.body.data.map((p: any) => p.name);
+      const names = (res.body.data as Array<{name: string}>).map((p) => p.name);
       expect(names).toContain("Mine");
       expect(names).not.toContain("Theirs");
     });

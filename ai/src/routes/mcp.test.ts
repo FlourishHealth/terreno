@@ -5,14 +5,24 @@ import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
+import type {MCPService} from "../service/mcpService";
 import {addMcpRoutes} from "./mcp";
+
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+type MockMcpService = Pick<MCPService, "getServerStatus" | "getTools" | "reconnectServer">;
 
 const userSchema = new mongoose.Schema({
   admin: {default: false, type: Boolean},
   email: {index: true, type: String},
   name: String,
 });
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (
+    schema: mongoose.Schema,
+    options: {usernameField: string}
+  ) => void,
+  {usernameField: "email"}
+);
 userSchema.plugin(createdUpdatedPlugin);
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
@@ -26,16 +36,16 @@ const authAsUser = async (appInstance: express.Application, type: "admin" | "not
 };
 
 describe("MCP Routes", () => {
-  let app: any;
-  let mcpService: any;
+  let app: express.Application;
+  let mcpService: MockMcpService;
 
   beforeAll(async () => {
     await UserModel.deleteMany({});
     const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PasswordedUser).setPassword("securePassword");
     await admin.save();
     const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as any).setPassword("password");
+    await (user as unknown as PasswordedUser).setPassword("password");
     await user.save();
   });
 
@@ -46,13 +56,13 @@ describe("MCP Routes", () => {
         search: {description: "Search", parameters: {type: "object"}},
       })),
       reconnectServer: mock(async () => true),
-    };
+    } as unknown as MockMcpService;
     app = setupServer({
       addRoutes: (router, options) => {
-        addMcpRoutes(router, {mcpService, openApiOptions: options});
+        addMcpRoutes(router, {mcpService: mcpService as MCPService, openApiOptions: options});
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel,
     });
   });
 
@@ -99,17 +109,19 @@ describe("MCP Routes", () => {
       const res = await agent.post("/mcp/servers/test-server/reconnect");
       expect(res.status).toBe(200);
       expect(res.body.data).toEqual({connected: true, name: "test-server"});
-      expect(mcpService.reconnectServer).toHaveBeenCalledWith("test-server");
+      expect(mcpService.reconnectServer as ReturnType<typeof mock>).toHaveBeenCalledWith(
+        "test-server"
+      );
     });
 
     it("returns connected=false when reconnect fails", async () => {
       mcpService.reconnectServer = mock(async () => false);
       const customApp = setupServer({
         addRoutes: (router, options) => {
-          addMcpRoutes(router, {mcpService, openApiOptions: options});
+          addMcpRoutes(router, {mcpService: mcpService as MCPService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "admin");
       const res = await agent.post("/mcp/servers/unknown/reconnect");

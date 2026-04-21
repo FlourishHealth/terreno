@@ -1,11 +1,16 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
+interface FakeSdkOptions {
+  serviceName?: string;
+  spanProcessors?: unknown[];
+}
+
 const sdkStart = mock(() => {});
 const sdkShutdown = mock(async () => {});
-let lastSdkOptions: any = null;
+let lastSdkOptions: FakeSdkOptions | null = null;
 
 class FakeNodeSDK {
-  constructor(public opts: any) {
+  constructor(public opts: FakeSdkOptions) {
     lastSdkOptions = opts;
   }
   start() {
@@ -17,7 +22,7 @@ class FakeNodeSDK {
 }
 
 class FakeLangfuseSpanProcessor {
-  constructor(public opts: any) {}
+  constructor(public opts: Record<string, unknown>) {}
 }
 
 mock.module("@opentelemetry/sdk-node", () => ({NodeSDK: FakeNodeSDK}));
@@ -36,8 +41,8 @@ describe("langfuseTracing", () => {
   it("initializes a NodeSDK with default service name", () => {
     initTracing({publicKey: "pk", secretKey: "sk"});
     expect(sdkStart).toHaveBeenCalled();
-    expect(lastSdkOptions.serviceName).toBe("terreno-app");
-    expect(lastSdkOptions.spanProcessors).toHaveLength(1);
+    expect(lastSdkOptions?.serviceName).toBe("terreno-app");
+    expect(lastSdkOptions?.spanProcessors).toHaveLength(1);
   });
 
   it("respects serviceName and baseUrl", () => {
@@ -47,7 +52,7 @@ describe("langfuseTracing", () => {
       secretKey: "sk",
       serviceName: "my-service",
     });
-    expect(lastSdkOptions.serviceName).toBe("my-service");
+    expect(lastSdkOptions?.serviceName).toBe("my-service");
   });
 
   it("shuts down the SDK", async () => {

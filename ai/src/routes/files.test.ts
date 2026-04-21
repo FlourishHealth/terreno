@@ -6,14 +6,24 @@ import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
 import {FileAttachment} from "../models/fileAttachment";
+import type {FileStorageService, UploadFileParams, UploadFileResult} from "../service/fileStorage";
 import {addFileRoutes} from "./files";
+
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+type MockFileStorageService = Pick<FileStorageService, "upload" | "delete" | "getSignedUrl">;
 
 const userSchema = new mongoose.Schema({
   admin: {default: false, type: Boolean},
   email: {index: true, type: String},
   name: String,
 });
-userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (
+    schema: mongoose.Schema,
+    options: {usernameField: string}
+  ) => void,
+  {usernameField: "email"}
+);
 userSchema.plugin(createdUpdatedPlugin);
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
@@ -27,16 +37,16 @@ const authAsUser = async (appInstance: express.Application, type: "admin" | "not
 };
 
 describe("File Routes", () => {
-  let app: any;
-  let fileStorageService: any;
+  let app: express.Application;
+  let fileStorageService: MockFileStorageService;
 
   beforeAll(async () => {
     await UserModel.deleteMany({});
     const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PasswordedUser).setPassword("securePassword");
     await admin.save();
     const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as any).setPassword("password");
+    await (user as unknown as PasswordedUser).setPassword("password");
     await user.save();
   });
 
@@ -45,20 +55,25 @@ describe("File Routes", () => {
     fileStorageService = {
       delete: mock(async () => {}),
       getSignedUrl: mock(async () => "https://example.com/signed"),
-      upload: mock(async (params: any) => ({
-        filename: params.filename,
-        gcsKey: `uploads/${params.userId.toString()}/${params.filename}`,
-        mimeType: params.mimeType,
-        size: params.buffer.length,
-        url: `https://example.com/${params.filename}`,
-      })),
+      upload: mock(
+        async (params: UploadFileParams): Promise<UploadFileResult> => ({
+          filename: params.filename,
+          gcsKey: `uploads/${params.userId.toString()}/${params.filename}`,
+          mimeType: params.mimeType,
+          size: params.buffer.length,
+          url: `https://example.com/${params.filename}`,
+        })
+      ),
     };
     app = setupServer({
       addRoutes: (router, options) => {
-        addFileRoutes(router, {fileStorageService, openApiOptions: options});
+        addFileRoutes(router, {
+          fileStorageService: fileStorageService as FileStorageService,
+          openApiOptions: options,
+        });
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel,
     });
   });
 
@@ -70,7 +85,7 @@ describe("File Routes", () => {
         .attach("file", Buffer.from("hello"), {contentType: "text/plain", filename: "hi.txt"});
       expect(res.status).toBe(200);
       expect(res.body.data.filename).toBe("hi.txt");
-      expect(fileStorageService.upload).toHaveBeenCalledTimes(1);
+      expect(fileStorageService.upload as ReturnType<typeof mock>).toHaveBeenCalledTimes(1);
     });
 
     it("rejects when no file is provided", async () => {

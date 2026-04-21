@@ -108,7 +108,7 @@ describe("getPrompt", () => {
       label: "production",
     });
     const cached = await LangfuseCache.findOne({key: "prompt:test-prompt:production"});
-    expect(cached?.value).toEqual(result as any);
+    expect(cached?.value).toEqual(result as unknown as LangfuseCachedPrompt);
   });
 
   it("fetches and caches prompts with custom ttl/label", async () => {
@@ -138,7 +138,7 @@ describe("createPrompt", () => {
   it("creates text prompts with default labels/tags", async () => {
     await createPrompt({name: "new-prompt", prompt: "Hello", type: "text"});
     expect(mockPromptCreate).toHaveBeenCalled();
-    const call = (mockPromptCreate.mock.calls[0] as any[])[0];
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
     expect(call.name).toBe("new-prompt");
     expect(call.type).toBe("text");
   });
@@ -151,7 +151,7 @@ describe("createPrompt", () => {
       type: "chat",
     });
     expect(mockPromptCreate).toHaveBeenCalled();
-    const call = (mockPromptCreate.mock.calls[0] as any[])[0];
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
     expect(call.type).toBe("chat");
     expect(Array.isArray(call.prompt)).toBe(true);
     expect(call.tags).toEqual(["x"]);

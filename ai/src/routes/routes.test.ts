@@ -1,5 +1,6 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import type {LanguageModel, Tool} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -9,8 +10,12 @@ import {AIRequest} from "../models/aiRequest";
 import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
+import type {MCPService} from "../service/mcpService";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
 import {addGptHistoryRoutes} from "./gptHistories";
+
+type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+type SseResponse = supertest.Response & {body: string};
 
 // Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests.
 // Spread the real module so later-loaded test files still see the real exports.
@@ -29,9 +34,13 @@ const userSchema = new mongoose.Schema({
   email: {index: true, type: String},
   name: String,
 });
-userSchema.plugin(passportLocalMongoose as any, {
-  usernameField: "email",
-});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (
+    schema: mongoose.Schema,
+    options: {usernameField: string}
+  ) => void,
+  {usernameField: "email"}
+);
 userSchema.plugin(createdUpdatedPlugin);
 
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
@@ -114,8 +123,8 @@ const createErrorModel = () => ({
   supportedUrls: {},
 });
 
-let app: any;
-let aiService: any;
+let app: express.Application;
+let aiService: AIService;
 
 const authAsUser = async (appInstance: express.Application, type: "admin" | "notAdmin") => {
   const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
@@ -134,17 +143,17 @@ describe("AI Routes", () => {
     await GptHistory.deleteMany({});
 
     const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PasswordedUser).setPassword("securePassword");
     await admin.save();
 
     const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
-    await (user as any).setPassword("password");
+    await (user as unknown as PasswordedUser).setPassword("password");
     await user.save();
   });
 
   beforeEach(() => {
     const mockModel = createMockModel();
-    aiService = new AIService({model: mockModel as any});
+    aiService = new AIService({model: mockModel as unknown as LanguageModel});
 
     app = setupServer({
       addRoutes: (router, options) => {
@@ -153,7 +162,7 @@ describe("AI Routes", () => {
         addAiRequestsExplorerRoutes(router, {openApiOptions: options});
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel,
     });
   });
 
@@ -205,7 +214,7 @@ describe("AI Routes", () => {
           addGptRoutes(router, {openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(demoApp, "notAdmin");
       const res = await agent.post("/gpt/remix").send({text: "Hello"});
@@ -214,7 +223,8 @@ describe("AI Routes", () => {
     });
   });
 
-  const sseCollect = (r: any, cb: (err: Error | null, data: string) => void) => {
+  type SseStream = {on: (event: string, handler: (arg: Buffer) => void) => void};
+  const sseCollect = (r: SseStream, cb: (err: Error | null, data: string) => void) => {
     let data = "";
     r.on("data", (chunk: Buffer) => {
       data += chunk.toString();
@@ -241,7 +251,7 @@ describe("AI Routes", () => {
         .parse(sseCollect);
 
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("data:");
       expect(body).toContain("done");
 
@@ -255,7 +265,7 @@ describe("AI Routes", () => {
           addGptRoutes(router, {openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(demoApp, "notAdmin");
       const res = await agent
@@ -264,20 +274,20 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("demo mode");
     });
 
     it("uses per-request api key via x-ai-api-key header", async () => {
       const createModelFn = mock((_apiKey: string, _modelId?: string) => {
-        return createMockModel() as any;
+        return createMockModel() as unknown as LanguageModel;
       });
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {createModelFn, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -291,13 +301,15 @@ describe("AI Routes", () => {
     });
 
     it("uses createServerModelFn when model requested", async () => {
-      const createServerModelFn = mock((_modelId?: string) => createMockModel() as any);
+      const createServerModelFn = mock(
+        (_modelId?: string) => createMockModel() as unknown as LanguageModel
+      );
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {createServerModelFn, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -396,13 +408,15 @@ describe("AI Routes", () => {
     });
 
     it("streams inline image events from the model", async () => {
-      const imageService = new (AIService as any)({model: createImageModel()});
+      const imageService = new AIService({
+        model: createImageModel() as unknown as LanguageModel,
+      });
       const imgApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService: imageService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(imgApp, "notAdmin");
       const res = await agent
@@ -411,18 +425,20 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("image");
     });
 
     it("writes an SSE error event when the model stream throws", async () => {
-      const errService = new (AIService as any)({model: createErrorModel()});
+      const errService = new AIService({
+        model: createErrorModel() as unknown as LanguageModel,
+      });
       const errApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService: errService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(errApp, "notAdmin");
       const res = await agent
@@ -431,7 +447,7 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("error");
     });
 
@@ -440,13 +456,13 @@ describe("AI Routes", () => {
         getTools: mock(async () => {
           throw new Error("mcp unavailable");
         }),
-      } as any;
+      } as unknown as MCPService;
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -463,13 +479,13 @@ describe("AI Routes", () => {
         getTools: mock(async () => ({
           search: {description: "web search"},
         })),
-      } as any;
+      } as unknown as MCPService;
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -481,8 +497,8 @@ describe("AI Routes", () => {
     });
 
     it("generates titles via a dedicated title model factory", async () => {
-      const mainFn = mock(() => createMockModel("main") as any);
-      const titleFn = mock(() => createMockModel("title-model") as any);
+      const mainFn = mock(() => createMockModel("main") as unknown as LanguageModel);
+      const titleFn = mock(() => createMockModel("title-model") as unknown as LanguageModel);
       // createServerModelFn routes by id so we can differentiate main vs. title model.
       const createServerModelFn = mock((modelId?: string) => {
         if (modelId === "title-model") {
@@ -499,7 +515,7 @@ describe("AI Routes", () => {
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -513,7 +529,7 @@ describe("AI Routes", () => {
 
     it("generates titles via per-request api key title model", async () => {
       const createModelFn = mock((_apiKey: string, _modelId?: string) => {
-        return createMockModel() as any;
+        return createMockModel() as unknown as LanguageModel;
       });
       const customApp = setupServer({
         addRoutes: (router, options) => {
@@ -524,7 +540,7 @@ describe("AI Routes", () => {
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -536,24 +552,28 @@ describe("AI Routes", () => {
       expect(res.status).toBe(200);
       // First call is the main model, subsequent call should be the title model.
       expect(createModelFn).toHaveBeenCalled();
-      const titleCalls = (createModelFn as any).mock.calls.filter(
-        (args: any[]) => args[1] === "title-small"
-      );
+      const titleCalls = (
+        createModelFn as unknown as {mock: {calls: Array<[string, string?]>}}
+      ).mock.calls.filter((args) => args[1] === "title-small");
       expect(titleCalls.length).toBeGreaterThanOrEqual(1);
     });
 
     it("applies image provider options for image-capable models", async () => {
-      const imageService = new (AIService as any)({model: createImageModel()});
+      const imageService = new AIService({
+        model: createImageModel() as unknown as LanguageModel,
+      });
       const imgApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {
             aiService: imageService,
             openApiOptions: options,
-            tools: {dummy: {description: "ignored for image models"}} as any,
+            tools: {
+              dummy: {description: "ignored for image models"} as unknown as Tool,
+            },
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(imgApp, "notAdmin");
       const res = await agent
@@ -574,7 +594,7 @@ describe("AI Routes", () => {
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -638,15 +658,15 @@ describe("AI Routes", () => {
       const toolApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {
-            aiService: new (AIService as any)({model: toolModel}),
+            aiService: new AIService({model: toolModel as unknown as LanguageModel}),
             openApiOptions: options,
             tools: {
-              search: {description: "Web search"},
-            } as any,
+              search: {description: "Web search"} as unknown as Tool,
+            },
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(toolApp, "notAdmin");
       const res = await agent
@@ -655,7 +675,7 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("toolCall");
       expect(body).toContain("toolResult");
     });
@@ -694,12 +714,14 @@ describe("AI Routes", () => {
       const errApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {
-            aiService: new (AIService as any)({model: errEventModel}),
+            aiService: new AIService({
+              model: errEventModel as unknown as LanguageModel,
+            }),
             openApiOptions: options,
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(errApp, "notAdmin");
       const res = await agent
@@ -708,7 +730,7 @@ describe("AI Routes", () => {
         .buffer(true)
         .parse(sseCollect);
       expect(res.status).toBe(200);
-      const body = (res as any).body as string;
+      const body = (res as SseResponse).body;
       expect(body).toContain("mid-stream failure");
     });
 
@@ -739,9 +761,9 @@ describe("AI Routes", () => {
       };
       const createServerModelFn = mock((id?: string) => {
         if (id === "title-throw-model") {
-          return throwingTitleModel as any;
+          return throwingTitleModel as unknown as LanguageModel;
         }
-        return createMockModel() as any;
+        return createMockModel() as unknown as LanguageModel;
       });
       const customApp = setupServer({
         addRoutes: (router, options) => {
@@ -752,7 +774,7 @@ describe("AI Routes", () => {
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -791,7 +813,7 @@ describe("AI Routes", () => {
 
     it("uses per-request tools via createRequestTools", async () => {
       const createRequestTools = mock(() => ({
-        localLookup: {description: "Per-request tool"} as any,
+        localLookup: {description: "Per-request tool"} as unknown as Tool,
       }));
       const customApp = setupServer({
         addRoutes: (router, options) => {
@@ -802,7 +824,7 @@ describe("AI Routes", () => {
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent
@@ -929,11 +951,11 @@ describe("AI Routes", () => {
           addGptRoutes(router, {
             aiService,
             openApiOptions: options,
-            tools: {echo: {description: "Echo tool"} as any},
+            tools: {echo: {description: "Echo tool"} as unknown as Tool},
           });
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
@@ -943,14 +965,14 @@ describe("AI Routes", () => {
 
     it("includes per-request tools when createRequestTools is set", async () => {
       const createRequestTools = mock(() => ({
-        now: {description: "Current time"} as any,
+        now: {description: "Current time"} as unknown as Tool,
       }));
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService, createRequestTools, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
@@ -961,13 +983,13 @@ describe("AI Routes", () => {
     it("includes MCP tools when mcpService is set", async () => {
       const mcpService = {
         getTools: mock(async () => ({search: {description: "web search"}})),
-      } as any;
+      } as unknown as MCPService;
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
@@ -980,13 +1002,13 @@ describe("AI Routes", () => {
         getTools: mock(async () => {
           throw new Error("boom");
         }),
-      } as any;
+      } as unknown as MCPService;
       const customApp = setupServer({
         addRoutes: (router, options) => {
           addGptRoutes(router, {aiService, mcpService, openApiOptions: options});
         },
         skipListen: true,
-        userModel: UserModel as any,
+        userModel: UserModel,
       });
       const agent = await authAsUser(customApp, "notAdmin");
       const res = await agent.get("/gpt/tools");
