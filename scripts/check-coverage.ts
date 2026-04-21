@@ -13,13 +13,13 @@
  */
 import {spawn} from "node:child_process";
 
-interface ParsedArgs {
+export interface ParsedArgs {
   threshold: number;
 }
 
-const parseArgs = (): ParsedArgs => {
+export const parseArgs = (argv: readonly string[]): ParsedArgs => {
   let threshold = 95;
-  for (const arg of process.argv.slice(2)) {
+  for (const arg of argv) {
     const match = arg.match(/^--threshold=(\d+(?:\.\d+)?)$/);
     if (match) {
       threshold = Number(match[1]);
@@ -28,9 +28,55 @@ const parseArgs = (): ParsedArgs => {
   return {threshold};
 };
 
-const stripAnsi = (value: string): string =>
-  // eslint-disable-next-line no-control-regex
-  value.replace(/\u001b\[[0-9;]*m/g, "");
+const ESC = String.fromCharCode(27);
+const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;]*m`, "g");
+
+export const stripAnsi = (value: string): string => value.replace(ANSI_PATTERN, "");
+
+export interface CoverageSummary {
+  functions: number;
+  lines: number;
+}
+
+export const parseAllFilesRow = (output: string): CoverageSummary | null => {
+  const cleaned = stripAnsi(output);
+  for (const rawLine of cleaned.split("\n")) {
+    const line = rawLine.trim();
+    if (!line.startsWith("All files")) {
+      continue;
+    }
+    const parts = line.split("|").map((segment) => segment.trim());
+    if (parts.length < 3) {
+      continue;
+    }
+    const functions = Number(parts[1]);
+    const lines = Number(parts[2]);
+    if (Number.isFinite(functions) && Number.isFinite(lines)) {
+      return {functions, lines};
+    }
+  }
+  return null;
+};
+
+export interface CoverageFailure {
+  metric: "functions" | "lines";
+  actual: number;
+  threshold: number;
+}
+
+export const evaluateCoverage = (
+  summary: CoverageSummary,
+  threshold: number
+): CoverageFailure[] => {
+  const failures: CoverageFailure[] = [];
+  if (summary.functions < threshold) {
+    failures.push({metric: "functions", actual: summary.functions, threshold});
+  }
+  if (summary.lines < threshold) {
+    failures.push({metric: "lines", actual: summary.lines, threshold});
+  }
+  return failures;
+};
 
 const runBunTest = async (): Promise<{exitCode: number; output: string}> => {
   return new Promise((resolve, reject) => {
@@ -56,28 +102,8 @@ const runBunTest = async (): Promise<{exitCode: number; output: string}> => {
   });
 };
 
-const parseAllFilesRow = (output: string): {functions: number; lines: number} | null => {
-  const cleaned = stripAnsi(output);
-  for (const rawLine of cleaned.split("\n")) {
-    const line = rawLine.trim();
-    if (!line.startsWith("All files")) {
-      continue;
-    }
-    const parts = line.split("|").map((segment) => segment.trim());
-    if (parts.length < 3) {
-      continue;
-    }
-    const functions = Number(parts[1]);
-    const lines = Number(parts[2]);
-    if (Number.isFinite(functions) && Number.isFinite(lines)) {
-      return {functions, lines};
-    }
-  }
-  return null;
-};
-
 const main = async (): Promise<void> => {
-  const {threshold} = parseArgs();
+  const {threshold} = parseArgs(process.argv.slice(2));
   const {exitCode, output} = await runBunTest();
 
   if (exitCode !== 0) {
@@ -91,26 +117,23 @@ const main = async (): Promise<void> => {
     process.exit(1);
   }
 
-  const {functions, lines} = summary;
   console.info(
-    `\nCoverage summary: functions=${functions.toFixed(2)}%, lines=${lines.toFixed(2)}% ` +
-      `(threshold=${threshold}%)`
+    `\nCoverage summary: functions=${summary.functions.toFixed(2)}%, ` +
+      `lines=${summary.lines.toFixed(2)}% (threshold=${threshold}%)`
   );
 
-  const failures: string[] = [];
-  if (functions < threshold) {
-    failures.push(`functions ${functions.toFixed(2)}% < ${threshold}%`);
-  }
-  if (lines < threshold) {
-    failures.push(`lines ${lines.toFixed(2)}% < ${threshold}%`);
-  }
-
+  const failures = evaluateCoverage(summary, threshold);
   if (failures.length > 0) {
-    console.error(`\nCoverage below threshold: ${failures.join(", ")}`);
+    const message = failures
+      .map((f) => `${f.metric} ${f.actual.toFixed(2)}% < ${f.threshold}%`)
+      .join(", ");
+    console.error(`\nCoverage below threshold: ${message}`);
     process.exit(1);
   }
 
   console.info("Coverage meets the minimum threshold.");
 };
 
-void main();
+if (import.meta.main) {
+  void main();
+}
