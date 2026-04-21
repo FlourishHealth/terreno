@@ -221,6 +221,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "type": "number",
                                 },
                                 "created": {
+                                  "description": "When this document was created",
                                   "format": "date-time",
                                   "type": "string",
                                 },
@@ -247,6 +248,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                   "type": "string",
                                 },
                                 "updated": {
+                                  "description": "When this document was last updated",
                                   "format": "date-time",
                                   "type": "string",
                                 },
@@ -325,6 +327,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "type": "number",
                               },
                               "created": {
+                                "description": "When this document was created",
                                 "format": "date-time",
                                 "type": "string",
                               },
@@ -351,6 +354,7 @@ exports[`openApi gets the openapi.json 1`] = `
                                 "type": "string",
                               },
                               "updated": {
+                                "description": "When this document was last updated",
                                 "format": "date-time",
                                 "type": "string",
                               },
@@ -536,6 +540,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -562,6 +567,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -640,6 +646,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "number",
                       },
                       "created": {
+                        "description": "When this document was created",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -666,6 +673,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                       "updated": {
+                        "description": "When this document was last updated",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -780,6 +788,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -806,6 +815,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -884,6 +894,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -910,6 +921,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1154,6 +1166,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1180,6 +1193,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1258,6 +1272,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1284,6 +1299,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1462,6 +1478,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1488,6 +1505,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1566,6 +1584,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "number",
                       },
                       "created": {
+                        "description": "When this document was created",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -1592,6 +1611,7 @@ exports[`openApi gets the openapi.json 1`] = `
                         "type": "string",
                       },
                       "updated": {
+                        "description": "When this document was last updated",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -1706,6 +1726,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1732,6 +1753,7 @@ exports[`openApi gets the openapi.json 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -1810,6 +1832,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -1836,6 +1859,7 @@ exports[`openApi gets the openapi.json 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -2157,6 +2181,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "type": "number",
                                 },
                                 "created": {
+                                  "description": "When this document was created",
                                   "format": "date-time",
                                   "type": "string",
                                 },
@@ -2183,6 +2208,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                   "type": "string",
                                 },
                                 "updated": {
+                                  "description": "When this document was last updated",
                                   "format": "date-time",
                                   "type": "string",
                                 },
@@ -2261,6 +2287,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "type": "number",
                               },
                               "created": {
+                                "description": "When this document was created",
                                 "format": "date-time",
                                 "type": "string",
                               },
@@ -2287,6 +2314,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                                 "type": "string",
                               },
                               "updated": {
+                                "description": "When this document was last updated",
                                 "format": "date-time",
                                 "type": "string",
                               },
@@ -2472,6 +2500,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -2498,6 +2527,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -2576,6 +2606,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "number",
                       },
                       "created": {
+                        "description": "When this document was created",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -2602,6 +2633,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                       "updated": {
+                        "description": "When this document was last updated",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -2716,6 +2748,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -2742,6 +2775,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -2820,6 +2854,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -2846,6 +2881,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3090,6 +3126,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3116,6 +3153,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3194,6 +3232,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3220,6 +3259,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3398,6 +3438,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3424,6 +3465,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3502,6 +3544,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "number",
                       },
                       "created": {
+                        "description": "When this document was created",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -3528,6 +3571,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                         "type": "string",
                       },
                       "updated": {
+                        "description": "When this document was last updated",
                         "format": "date-time",
                         "type": "string",
                       },
@@ -3642,6 +3686,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "number",
                           },
                           "created": {
+                            "description": "When this document was created",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3668,6 +3713,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                             "type": "string",
                           },
                           "updated": {
+                            "description": "When this document was last updated",
                             "format": "date-time",
                             "type": "string",
                           },
@@ -3746,6 +3792,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "number",
                         },
                         "created": {
+                          "description": "When this document was created",
                           "format": "date-time",
                           "type": "string",
                         },
@@ -3772,6 +3819,7 @@ exports[`openApi gets the openapi.json with custom endpoint 1`] = `
                           "type": "string",
                         },
                         "updated": {
+                          "description": "When this document was last updated",
                           "format": "date-time",
                           "type": "string",
                         },

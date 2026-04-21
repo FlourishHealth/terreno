@@ -2,6 +2,6 @@
 preload = ["./src/tests/bunSetup.ts"]
 root = "./src"
 coverage = true
-coveragePathIgnorePatterns = ["dist/**", "**/*.test.ts", "**/tests/**", "**/vendor/**"]
-coverageThreshold = { line = 80, function = 80 }
+coveragePathIgnorePatterns = ["dist/**", "**/*.test.ts", "**/tests/**", "**/vendor/**", "../**"]
+coverageThreshold = { line = 95, function = 95 }
 

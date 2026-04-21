@@ -46,3 +46,9 @@ jobs:
         run: bun run compile
         working-directory: rtk
 
+      - name: Test with coverage threshold
+        run: bun run test:coverage
+        working-directory: rtk
+        env:
+          CI: true
+
