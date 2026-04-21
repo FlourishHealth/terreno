@@ -54,8 +54,16 @@ describe("WebAddressAutocomplete", () => {
     const originalWindow = global.window;
     const originalDocument = global.document;
 
+    interface PlaceResult {
+      address_components: {
+        long_name: string;
+        short_name: string;
+        types: string[];
+      }[];
+    }
+
     let listeners: Record<string, () => void>;
-    let placeResult: any;
+    let placeResult: PlaceResult | null;
     let autocompleteConstructor: ReturnType<typeof mock>;
 
     beforeEach(() => {

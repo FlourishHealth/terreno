@@ -1,5 +1,6 @@
 import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import React, {type ReactNode} from "react";
 import {Pressable, Text as RNText} from "react-native";
 
 // Override the IconButton mock so the inline onClick arrows fire when pressed.
@@ -26,21 +27,68 @@ mock.module("./IconButton", () => ({
   ),
 }));
 
+// Override the expo-router mock so we can observe router.back() calls, but
+// preserve the full shape provided by bunSetup.ts (Link, Stack, Tabs, hooks,
+// and the rest of the router object) so other components that import from
+// "expo-router" don't see `undefined` for those exports.
 const routerBack = mock(() => {});
+interface MockChildrenProps {
+  children?: ReactNode;
+}
 mock.module("expo-router", () => ({
-  router: {back: routerBack},
+  Link: ({children, ...props}: MockChildrenProps) => React.createElement("Link", props, children),
+  router: {
+    back: routerBack,
+    canGoBack: mock(() => true),
+    navigate: mock(() => {}),
+    push: mock(() => {}),
+    replace: mock(() => {}),
+  },
+  Stack: ({children, ...props}: MockChildrenProps) => React.createElement("Stack", props, children),
+  Tabs: ({children, ...props}: MockChildrenProps) => React.createElement("Tabs", props, children),
+  useLocalSearchParams: mock(() => ({})),
+  useRouter: mock(() => ({
+    back: mock(() => {}),
+    canGoBack: mock(() => true),
+    navigate: mock(() => {}),
+    push: mock(() => {}),
+    replace: mock(() => {}),
+  })),
+  useSegments: mock(() => []),
 }));
 
 import {Page} from "./Page";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
-// Restore the global null IconButton mock after this file finishes so that other
-// test files that expect the bunSetup.ts mock (e.g. IconButton.test.tsx) are not
-// affected by the override above.
+// Restore the global mocks set up by bunSetup.ts after this file finishes so
+// that other test files (e.g. IconButton.test.tsx, ConsentFormScreen.test.tsx)
+// are not affected by the overrides above.
 afterAll(() => {
   mock.module("./IconButton", () => ({
     IconButton: mock(() => null),
+  }));
+  mock.module("expo-router", () => ({
+    Link: ({children, ...props}: MockChildrenProps) => React.createElement("Link", props, children),
+    router: {
+      back: mock(() => {}),
+      canGoBack: mock(() => true),
+      navigate: mock(() => {}),
+      push: mock(() => {}),
+      replace: mock(() => {}),
+    },
+    Stack: ({children, ...props}: MockChildrenProps) =>
+      React.createElement("Stack", props, children),
+    Tabs: ({children, ...props}: MockChildrenProps) => React.createElement("Tabs", props, children),
+    useLocalSearchParams: mock(() => ({})),
+    useRouter: mock(() => ({
+      back: mock(() => {}),
+      canGoBack: mock(() => true),
+      navigate: mock(() => {}),
+      push: mock(() => {}),
+      replace: mock(() => {}),
+    })),
+    useSegments: mock(() => []),
   }));
 });
 

@@ -8,12 +8,31 @@ import {renderWithTheme} from "./test-utils";
 
 // Capture the props passed to GooglePlacesAutocomplete so we can exercise the inline
 // callbacks (onPress, onFocus, onBlur, onChange, textInputProps, etc.)
-let lastGooglePlacesProps: any = null;
+interface CapturedGooglePlacesProps {
+  placeholder?: string;
+  textInputProps?: {
+    onFocus?: () => void;
+    onBlur?: () => void;
+    onChange?: (event: {nativeEvent: {text: string}}) => void;
+  };
+  onPress?: (
+    data: {description: string},
+    details: {
+      address_components: {
+        long_name: string;
+        short_name: string;
+        types: string[];
+      }[];
+    }
+  ) => void;
+}
+
+let lastGooglePlacesProps: CapturedGooglePlacesProps | null = null;
 const setAddressTextSpy = mock(() => {});
 
 // Mock react-native-google-places-autocomplete
 mock.module("react-native-google-places-autocomplete", () => ({
-  GooglePlacesAutocomplete: forwardRef((props: any, ref) => {
+  GooglePlacesAutocomplete: forwardRef((props: CapturedGooglePlacesProps, ref) => {
     lastGooglePlacesProps = props;
     const innerRef = useRef<any>({});
     useImperativeHandle(ref, () => ({
@@ -114,7 +133,7 @@ describe("MobileAddressAutocomplete", () => {
     );
     fireEvent.press(getByTestId("mock-google-places-select"));
     expect(handleAutoCompleteChange).toHaveBeenCalled();
-    const payload = handleAutoCompleteChange.mock.calls[0][0] as any;
+    const payload = handleAutoCompleteChange.mock.calls[0][0] as {address1?: string};
     expect(payload.address1).toContain("Main St");
     expect(setAddressTextSpy).toHaveBeenCalled();
   });
@@ -129,13 +148,13 @@ describe("MobileAddressAutocomplete", () => {
         inputValue=""
       />
     );
-    const tip = lastGooglePlacesProps.textInputProps;
-    expect(typeof tip.onFocus).toBe("function");
-    expect(typeof tip.onBlur).toBe("function");
-    expect(typeof tip.onChange).toBe("function");
-    tip.onFocus();
-    tip.onBlur();
-    tip.onChange({nativeEvent: {text: "456 Oak Ave"}});
+    const tip = lastGooglePlacesProps?.textInputProps;
+    expect(typeof tip?.onFocus).toBe("function");
+    expect(typeof tip?.onBlur).toBe("function");
+    expect(typeof tip?.onChange).toBe("function");
+    tip?.onFocus?.();
+    tip?.onBlur?.();
+    tip?.onChange?.({nativeEvent: {text: "456 Oak Ave"}});
     expect(handleAddressChange).toHaveBeenCalledWith("456 Oak Ave");
   });
 

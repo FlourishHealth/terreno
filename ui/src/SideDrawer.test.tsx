@@ -1,10 +1,18 @@
 import {describe, expect, it, mock} from "bun:test";
+import type {ReactNode} from "react";
 import {Pressable, Text as RNText, View} from "react-native";
 
 // Capture the props passed to Drawer so we can exercise the render callbacks.
-let lastDrawerProps: any = null;
+interface CapturedDrawerProps {
+  onOpen?: () => void;
+  onClose?: () => void;
+  renderDrawerContent?: () => ReactNode;
+  children?: ReactNode;
+}
+
+let lastDrawerProps: CapturedDrawerProps | null = null;
 mock.module("react-native-drawer-layout", () => ({
-  Drawer: (props: any) => {
+  Drawer: (props: CapturedDrawerProps) => {
     lastDrawerProps = props;
     return (
       <View testID="mock-drawer">
@@ -131,8 +139,8 @@ describe("SideDrawer", () => {
         <Text>Content</Text>
       </SideDrawer>
     );
-    lastDrawerProps.onOpen();
-    lastDrawerProps.onClose();
+    lastDrawerProps?.onOpen?.();
+    lastDrawerProps?.onClose?.();
     expect(handleOpen).toHaveBeenCalledTimes(1);
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
@@ -153,8 +161,8 @@ describe("SideDrawer", () => {
       </SideDrawer>
     );
     expect(() => {
-      lastDrawerProps.onOpen();
-      lastDrawerProps.onClose();
+      lastDrawerProps?.onOpen?.();
+      lastDrawerProps?.onClose?.();
     }).not.toThrow();
   });
 });
