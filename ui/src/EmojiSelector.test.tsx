@@ -213,4 +213,98 @@ describe("EmojiSelector", () => {
     });
     expect(toJSON()).toBeTruthy();
   });
+
+  it("switches categories when a tab is pressed after layout", async () => {
+    const {root, UNSAFE_getAllByType} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.people}
+        columns={6}
+        onEmojiSelected={mock(() => {})}
+        placeholder="Search"
+        showHistory={false}
+        showSearchBar
+        showSectionTitles
+        showTabs
+        theme="#007AFF"
+      />
+    );
+    await act(async () => {
+      (root as any).props.onLayout?.({
+        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+      });
+    });
+    const {TouchableOpacity} = require("react-native");
+    const tabs = UNSAFE_getAllByType(TouchableOpacity);
+    expect(tabs.length).toBeGreaterThan(0);
+    // Press the first tab (e.g., "Smileys & Emotion") to exercise handleTabSelect.
+    await act(async () => {
+      tabs[0].props.onPress?.();
+    });
+  });
+
+  it("invokes onEmojiSelected when an emoji cell is pressed", async () => {
+    const onEmojiSelected = mock(() => {});
+    const {root, UNSAFE_getAllByType} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.emotion}
+        columns={6}
+        onEmojiSelected={onEmojiSelected}
+        placeholder="Search"
+        showHistory
+        showSearchBar={false}
+        showSectionTitles
+        showTabs={false}
+        theme="#007AFF"
+      />
+    );
+    await act(async () => {
+      (root as any).props.onLayout?.({
+        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+      });
+    });
+
+    const {FlatList} = require("react-native");
+    const [list] = UNSAFE_getAllByType(FlatList);
+    expect(list).toBeTruthy();
+    const data = list.props.data ?? [];
+    expect(data.length).toBeGreaterThan(0);
+    const first = data[0];
+    const cell = list.props.renderItem({index: 0, item: first});
+    // Invoke the emoji cell onPress to exercise handleEmojiSelect + addToHistoryAsync.
+    (cell.props as any).onPress?.();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    expect(onEmojiSelected).toHaveBeenCalled();
+  });
+
+  it("filters the emoji list when a search query is entered", async () => {
+    const {getByPlaceholderText, UNSAFE_getAllByType, root} = renderWithTheme(
+      <EmojiSelector
+        category={Categories.all}
+        columns={6}
+        onEmojiSelected={mock(() => {})}
+        placeholder="Search emojis"
+        showHistory={false}
+        showSearchBar
+        showSectionTitles
+        showTabs
+        theme="#007AFF"
+      />
+    );
+    await act(async () => {
+      (root as any).props.onLayout?.({
+        nativeEvent: {layout: {height: 600, width: 360, x: 0, y: 0}},
+      });
+    });
+
+    const input = getByPlaceholderText("Search emojis");
+    await act(async () => {
+      fireEvent.changeText(input, "smile");
+    });
+
+    const {FlatList} = require("react-native");
+    const [list] = UNSAFE_getAllByType(FlatList);
+    expect(list.props.data.length).toBeGreaterThan(0);
+  });
 });

@@ -1,8 +1,20 @@
-import {describe, expect, it} from "bun:test";
-import {render} from "@testing-library/react-native";
+import {beforeAll, describe, expect, it, mock} from "bun:test";
+import {act, render} from "@testing-library/react-native";
 import {Text, View} from "react-native";
 
 import {TerrenoProvider} from "./TerrenoProvider";
+import {useToast} from "./Toast";
+
+beforeAll(() => {
+  if (!(global as any).requestAnimationFrame) {
+    (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
+      return setTimeout(() => callback(Date.now()), 0) as unknown as number;
+    };
+    (global as any).cancelAnimationFrame = (id: number) => {
+      clearTimeout(id);
+    };
+  }
+});
 
 describe("TerrenoProvider", () => {
   it("renders children correctly", () => {
@@ -32,5 +44,30 @@ describe("TerrenoProvider", () => {
       </TerrenoProvider>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders a toast via the configured renderToast prop", async () => {
+    const dismissSpy = mock(() => {});
+    let toastApi: ReturnType<typeof useToast> | null = null;
+
+    const ToastCaller = () => {
+      toastApi = useToast();
+      return <Text>App</Text>;
+    };
+
+    const {queryByText} = render(
+      <TerrenoProvider>
+        <ToastCaller />
+      </TerrenoProvider>
+    );
+
+    expect(toastApi).not.toBeNull();
+
+    await act(async () => {
+      toastApi?.info("Hello from toast", {onDismiss: dismissSpy});
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(queryByText("Hello from toast")).toBeTruthy();
   });
 });

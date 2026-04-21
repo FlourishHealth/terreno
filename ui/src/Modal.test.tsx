@@ -291,4 +291,55 @@ describe("Modal", () => {
 
     expect(handleSecondary).toHaveBeenCalled();
   });
+
+  it("dismisses when the backdrop is pressed and persistOnBackgroundClick is false", () => {
+    const handleDismiss = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <Modal onDismiss={handleDismiss} title="Title" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    // Find the backdrop Pressable (first Pressable in tree with a style that includes backgroundColor).
+    const {Pressable} = require("react-native");
+    const pressables = UNSAFE_getAllByType(Pressable);
+    const backdrop = pressables.find((node: any) =>
+      Array.isArray(node.props.style)
+        ? node.props.style.some((s: any) => s?.backgroundColor?.includes?.("rgba"))
+        : node.props.style?.backgroundColor?.includes?.("rgba")
+    );
+    expect(backdrop).toBeTruthy();
+    backdrop.props.onPress?.();
+    expect(handleDismiss).toHaveBeenCalled();
+  });
+
+  it("stops propagation on the inner backdrop wrapper press", () => {
+    const stopPropagation = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Title" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    const {Pressable} = require("react-native");
+    const pressables = UNSAFE_getAllByType(Pressable);
+    // Inner wrapper is the pressable with style {cursor: "auto"}.
+    const inner = pressables.find((node: any) => node.props.style?.cursor === "auto");
+    expect(inner).toBeTruthy();
+    inner.props.onPress?.({stopPropagation});
+    expect(stopPropagation).toHaveBeenCalled();
+  });
+
+  it("does not stop propagation on the inner wrapper when persistOnBackgroundClick is true", () => {
+    const stopPropagation = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <Modal onDismiss={() => {}} persistOnBackgroundClick title="Title" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    const {Pressable} = require("react-native");
+    const pressables = UNSAFE_getAllByType(Pressable);
+    const inner = pressables.find((node: any) => node.props.style?.cursor === "auto");
+    expect(inner).toBeTruthy();
+    inner.props.onPress?.({stopPropagation});
+    expect(stopPropagation).not.toHaveBeenCalled();
+  });
 });

@@ -224,5 +224,20 @@ describe("Theme", () => {
       });
       expect(captured?.theme).toBeDefined();
     });
+
+    it("invokes the no-op default context setters when rendered without a provider", () => {
+      let captured: ThemeContextValue | undefined;
+      const Capture = () => {
+        captured = useTheme();
+        return null;
+      };
+      render(<Capture />);
+      // Exercise the default no-op callbacks on the context.
+      expect(() => {
+        captured?.resetTheme();
+        captured?.setPrimitives({neutral000: "#000000"});
+        captured?.setTheme({surface: {base: "neutral000"}});
+      }).not.toThrow();
+    });
   });
 });

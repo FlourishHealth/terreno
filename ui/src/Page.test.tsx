@@ -1,9 +1,48 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {Pressable, Text as RNText} from "react-native";
+
+// Override the IconButton mock so the inline onClick arrows fire when pressed.
+mock.module("./IconButton", () => ({
+  IconButton: ({
+    accessibilityLabel,
+    accessibilityHint,
+    iconName,
+    onClick,
+  }: {
+    accessibilityLabel?: string;
+    accessibilityHint?: string;
+    iconName: string;
+    onClick?: () => void;
+  }) => (
+    <Pressable
+      accessibilityHint={accessibilityHint}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onClick}
+      testID={`icon-button-${iconName}`}
+    >
+      <RNText>{iconName}</RNText>
+    </Pressable>
+  ),
+}));
+
+const routerBack = mock(() => {});
+mock.module("expo-router", () => ({
+  router: {back: routerBack},
+}));
 
 import {Page} from "./Page";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
+
+// Restore the global null IconButton mock after this file finishes so that other
+// test files that expect the bunSetup.ts mock (e.g. IconButton.test.tsx) are not
+// affected by the override above.
+afterAll(() => {
+  mock.module("./IconButton", () => ({
+    IconButton: mock(() => null),
+  }));
+});
 
 describe("Page", () => {
   const mockNavigation = {
@@ -162,5 +201,41 @@ describe("Page", () => {
       </Page>
     );
     expect(getByText("Loading data...")).toBeTruthy();
+  });
+
+  it("invokes router.back when the back button is pressed", () => {
+    routerBack.mockClear();
+    const {getByTestId} = renderWithTheme(
+      <Page backButton navigation={mockNavigation} title="Page">
+        <Text>Content</Text>
+      </Page>
+    );
+    fireEvent.press(getByTestId("icon-button-chevron-left"));
+    expect(routerBack).toHaveBeenCalled();
+  });
+
+  it("invokes router.back when the close button is pressed", () => {
+    routerBack.mockClear();
+    const {getByTestId} = renderWithTheme(
+      <Page closeButton navigation={mockNavigation} title="Page">
+        <Text>Content</Text>
+      </Page>
+    );
+    fireEvent.press(getByTestId("icon-button-xmark"));
+    expect(routerBack).toHaveBeenCalled();
+  });
+
+  it("safely handles a missing rightButtonOnClick callback", async () => {
+    const {getByText} = renderWithTheme(
+      <Page navigation={mockNavigation} rightButton="Go" title="Page">
+        <Text>Content</Text>
+      </Page>
+    );
+    await act(async () => {
+      fireEvent.press(getByText("Go"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    // No crash; the optional-chained call handles the missing prop.
+    expect(getByText("Go")).toBeTruthy();
   });
 });

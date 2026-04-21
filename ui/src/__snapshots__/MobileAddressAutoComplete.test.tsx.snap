@@ -20,11 +20,28 @@ exports[`MobileAddressAutocomplete renders correctly with Google API key 1`] = `
               },
               "type": "Text",
             },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select",
+                  ],
+                  "props": {
+                    "style": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "onPress": [Function],
+                "testID": "mock-google-places-select",
+              },
+              "type": "Pressable",
+            },
           ],
           "props": {
-            "ref": {
-              "current": null,
-            },
             "style": undefined,
             "testID": "google-places-autocomplete",
           },
@@ -163,11 +180,28 @@ exports[`MobileAddressAutocomplete renders disabled state 1`] = `
               },
               "type": "Text",
             },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select",
+                  ],
+                  "props": {
+                    "style": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "onPress": [Function],
+                "testID": "mock-google-places-select",
+              },
+              "type": "Pressable",
+            },
           ],
           "props": {
-            "ref": {
-              "current": null,
-            },
             "style": undefined,
             "testID": "google-places-autocomplete",
           },
@@ -213,11 +247,28 @@ exports[`MobileAddressAutocomplete renders with input value 1`] = `
               },
               "type": "Text",
             },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select",
+                  ],
+                  "props": {
+                    "style": undefined,
+                  },
+                  "type": "Text",
+                },
+              ],
+              "props": {
+                "onPress": [Function],
+                "testID": "mock-google-places-select",
+              },
+              "type": "Pressable",
+            },
           ],
           "props": {
-            "ref": {
-              "current": null,
-            },
             "style": undefined,
             "testID": "google-places-autocomplete",
           },

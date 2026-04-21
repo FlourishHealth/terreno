@@ -1,4 +1,6 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
+
 import {renderWithTheme} from "./test-utils";
 import {UnifiedAddressAutoCompleteField} from "./UnifiedAddressAutoComplete";
 
@@ -50,5 +52,21 @@ describe("UnifiedAddressAutoCompleteField", () => {
       <UnifiedAddressAutoCompleteField {...defaultProps} testID="address-field" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("forwards typing to handleAddressChange via the fallback TextField", () => {
+    const handleAddressChange = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <UnifiedAddressAutoCompleteField
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+      />
+    );
+    const {TextInput} = require("react-native");
+    const inputs = UNSAFE_getAllByType(TextInput);
+    expect(inputs.length).toBeGreaterThan(0);
+    fireEvent.changeText(inputs[0], "1600 Amphitheatre Pkwy");
+    expect(handleAddressChange).toHaveBeenCalledWith("1600 Amphitheatre Pkwy");
   });
 });

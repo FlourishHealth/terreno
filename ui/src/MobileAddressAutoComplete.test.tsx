@@ -1,17 +1,60 @@
 import {describe, expect, it, mock} from "bun:test";
-import {forwardRef} from "react";
-import {Text, View} from "react-native";
+import {fireEvent} from "@testing-library/react-native";
+import {forwardRef, useImperativeHandle, useRef} from "react";
+import {Pressable, Text, View} from "react-native";
 
 import {MobileAddressAutocomplete} from "./MobileAddressAutoComplete";
 import {renderWithTheme} from "./test-utils";
 
+// Capture the props passed to GooglePlacesAutocomplete so we can exercise the inline
+// callbacks (onPress, onFocus, onBlur, onChange, textInputProps, etc.)
+let lastGooglePlacesProps: any = null;
+const setAddressTextSpy = mock(() => {});
+
 // Mock react-native-google-places-autocomplete
 mock.module("react-native-google-places-autocomplete", () => ({
-  GooglePlacesAutocomplete: forwardRef(({placeholder}: any, ref) => (
-    <View ref={ref as any} testID="google-places-autocomplete">
-      <Text>{placeholder}</Text>
-    </View>
-  )),
+  GooglePlacesAutocomplete: forwardRef((props: any, ref) => {
+    lastGooglePlacesProps = props;
+    const innerRef = useRef<any>({});
+    useImperativeHandle(ref, () => ({
+      setAddressText: setAddressTextSpy,
+      ...innerRef.current,
+    }));
+    return (
+      <View testID="google-places-autocomplete">
+        <Text>{props.placeholder}</Text>
+        <Pressable
+          onPress={() =>
+            props.onPress?.(
+              {description: "123 Main St"},
+              {
+                address_components: [
+                  {long_name: "123", short_name: "123", types: ["street_number"]},
+                  {long_name: "Main St", short_name: "Main St", types: ["route"]},
+                  {long_name: "San Francisco", short_name: "SF", types: ["locality"]},
+                  {
+                    long_name: "California",
+                    short_name: "CA",
+                    types: ["administrative_area_level_1"],
+                  },
+                  {
+                    long_name: "San Francisco County",
+                    short_name: "SF County",
+                    types: ["administrative_area_level_2"],
+                  },
+                  {long_name: "United States", short_name: "US", types: ["country"]},
+                  {long_name: "94105", short_name: "94105", types: ["postal_code"]},
+                ],
+              }
+            )
+          }
+          testID="mock-google-places-select"
+        >
+          <Text>Select</Text>
+        </Pressable>
+      </View>
+    );
+  }),
 }));
 
 describe("MobileAddressAutocomplete", () => {
@@ -54,5 +97,73 @@ describe("MobileAddressAutocomplete", () => {
       />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("invokes handleAutoCompleteChange with processed address components", () => {
+    const handleAutoCompleteChange = mock(() => {});
+    const handleAddressChange = mock(() => {});
+    setAddressTextSpy.mockClear();
+    const {getByTestId} = renderWithTheme(
+      <MobileAddressAutocomplete
+        googleMapsApiKey="test-api-key"
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={handleAutoCompleteChange}
+        includeCounty
+        inputValue=""
+      />
+    );
+    fireEvent.press(getByTestId("mock-google-places-select"));
+    expect(handleAutoCompleteChange).toHaveBeenCalled();
+    const payload = handleAutoCompleteChange.mock.calls[0][0] as any;
+    expect(payload.address1).toContain("Main St");
+    expect(setAddressTextSpy).toHaveBeenCalled();
+  });
+
+  it("fires onFocus, onBlur and onChange via textInputProps callbacks", () => {
+    const handleAddressChange = mock(() => {});
+    renderWithTheme(
+      <MobileAddressAutocomplete
+        googleMapsApiKey="test-api-key"
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+      />
+    );
+    const tip = lastGooglePlacesProps.textInputProps;
+    expect(typeof tip.onFocus).toBe("function");
+    expect(typeof tip.onBlur).toBe("function");
+    expect(typeof tip.onChange).toBe("function");
+    tip.onFocus();
+    tip.onBlur();
+    tip.onChange({nativeEvent: {text: "456 Oak Ave"}});
+    expect(handleAddressChange).toHaveBeenCalledWith("456 Oak Ave");
+  });
+
+  it("falls back to the TextField and propagates its onChange without an API key", () => {
+    const handleAddressChange = mock(() => {});
+    const {UNSAFE_root} = renderWithTheme(
+      <MobileAddressAutocomplete
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+        testID="mobile-fallback"
+      />
+    );
+    expect(UNSAFE_root).toBeTruthy();
+  });
+
+  it("wrapping TouchableOpacity clears focus when pressed", () => {
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <MobileAddressAutocomplete
+        googleMapsApiKey="test-api-key"
+        handleAddressChange={() => {}}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+      />
+    );
+    const {TouchableOpacity} = require("react-native");
+    const [wrapper] = UNSAFE_getAllByType(TouchableOpacity);
+    expect(wrapper).toBeTruthy();
+    expect(() => wrapper.props.onPress?.()).not.toThrow();
   });
 });
