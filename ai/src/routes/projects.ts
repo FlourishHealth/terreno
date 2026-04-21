@@ -35,7 +35,7 @@ export const addProjectRoutes = (
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {id} = req.params;
       const {text, category} = req.body;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});
@@ -71,7 +71,7 @@ export const addProjectRoutes = (
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {id, memoryId} = req.params;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       const project = await Project.findById(id);
       if (!project) {
@@ -107,10 +107,10 @@ export const addProjectRoutes = (
       preCreate: (body, req: express.Request) =>
         ({
           ...body,
-          userId: (req as any).user?._id,
+          userId: (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id,
         }) as unknown as ProjectDocument,
       queryFields: ["userId"],
-      queryFilter: (user: any) => ({userId: user?.id}),
+      queryFilter: (user?: {id?: string}) => ({userId: user?.id}),
       sort: "-updated",
     })
   );
