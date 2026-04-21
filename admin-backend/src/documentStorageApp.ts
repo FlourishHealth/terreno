@@ -29,6 +29,20 @@ export interface DocumentListResponse {
   prefix: string;
 }
 
+// Express 5 wildcard route params (e.g. `*filepath`) come through as string[]
+// when the URL has one or more path segments. Older signatures (and manual
+// calls) may still provide a string. Normalize both shapes to a single
+// forward-slash separated path.
+const normalizePathParam = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value.filter((segment): segment is string => typeof segment === "string").join("/");
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return "";
+};
+
 const DEFAULT_ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -200,7 +214,7 @@ export class DocumentStorageApp {
       `${basePath}/download/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = req.params.filepath as string;
+        const filePath = normalizePathParam(req.params.filepath);
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }
@@ -318,7 +332,7 @@ export class DocumentStorageApp {
       `${basePath}/folder/*folderpath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const folderPath = req.params.folderpath as string;
+        const folderPath = normalizePathParam(req.params.folderpath);
         if (!folderPath) {
           throw new APIError({status: 400, title: "Folder path is required"});
         }
@@ -336,7 +350,7 @@ export class DocumentStorageApp {
       `${basePath}/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = req.params.filepath as string;
+        const filePath = normalizePathParam(req.params.filepath);
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }

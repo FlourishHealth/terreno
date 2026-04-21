@@ -330,7 +330,9 @@ export class AdminApp {
       `${basePath}/config`,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))) {
+        if (
+          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         return res.json(configResponse);
@@ -343,7 +345,9 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))) {
+        if (
+          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const config = await VersionConfig.findOneOrNone({_singleton: "config"});
@@ -363,7 +367,9 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))) {
+        if (
+          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const raw = req.body as Record<string, unknown>;

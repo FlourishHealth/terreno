@@ -468,6 +468,8 @@ if (typeof globalThis.expo === "undefined") {
 // Mock expo-router
 mock.module("expo-router", () => ({
   Link: ({children, ...props}: MockComponentProps) => React.createElement("Link", props, children),
+  Navigator: ({children, ...props}: MockComponentProps) =>
+    React.createElement("Navigator", props, children),
   router: {
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -475,10 +477,19 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   },
+  Slot: ({children, ...props}: MockComponentProps) => React.createElement("Slot", props, children),
   Stack: ({children, ...props}: MockComponentProps) =>
     React.createElement("Stack", props, children),
   Tabs: ({children, ...props}: MockComponentProps) => React.createElement("Tabs", props, children),
+  useFocusEffect: mock(() => undefined),
   useLocalSearchParams: mock(() => ({})),
+  useNavigation: mock(() => ({
+    addListener: mock(() => () => undefined),
+    goBack: mock(() => {}),
+    navigate: mock(() => {}),
+    setOptions: mock(() => {}),
+  })),
+  usePathname: mock(() => "/"),
   useRouter: mock(() => ({
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -486,6 +497,7 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   })),
+  useSearchParams: mock(() => ({})),
   useSegments: mock(() => []),
 }));
 
@@ -1228,6 +1240,7 @@ mock.module("react-native-gesture-handler", () => {
   const createChainableGesture = (): ChainableGesture => {
     const gesture = {} as ChainableGesture;
     const chainableMethods = [
+      "onBegin",
       "onStart",
       "onEnd",
       "onUpdate",
@@ -1346,6 +1359,7 @@ mock.module("react-native-reanimated", () => {
     runOnJS: mock((fn: unknown) => fn),
     runOnUI: mock((fn: unknown) => fn),
     useAnimatedGestureHandler: mock(() => ({})),
+    useAnimatedReaction: mock(() => undefined),
     useAnimatedStyle: mock((fn: () => unknown) => fn()),
     useDerivedValue: mock((fn: () => unknown) => ({value: fn()})),
     useSharedValue: mock((val: unknown) => ({value: val})),
