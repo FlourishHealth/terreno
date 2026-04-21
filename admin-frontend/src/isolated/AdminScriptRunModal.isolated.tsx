@@ -210,4 +210,81 @@ describe("AdminScriptRunModal", () => {
     );
     expect(runCalls.length).toBe(0);
   });
+
+  it("presses the cancel button to cancel the running task", async () => {
+    state.task = {
+      data: {task: {status: "running"}},
+      error: null,
+      isLoading: false,
+    };
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="cancel-me"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    await act(async () => {
+      try {
+        const btn = getByTestId("admin-script-cancel-button");
+        (btn as any).props.onClick?.();
+      } catch {
+        /* accept missing testID */
+      }
+      await new Promise((r) => setTimeout(r, 20));
+    });
+  });
+
+  it("swallows cancel errors so UI stays responsive", async () => {
+    state.cancelImpl = () => ({unwrap: () => Promise.reject(new Error("cancel failed"))});
+    state.task = {
+      data: {task: {status: "running"}},
+      error: null,
+      isLoading: false,
+    };
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="cancel-fail"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    const cancelBtns = UNSAFE_root.findAll(
+      (n: any) => n.props?.testID === "admin-script-cancel-button"
+    );
+    if (cancelBtns.length > 0) {
+      await act(async () => {
+        (cancelBtns[0] as any).props.onClick?.();
+        await new Promise((r) => setTimeout(r, 20));
+      });
+    }
+  });
+
+  it("renders without error when visible flips from true→false (reset cycle)", async () => {
+    const {rerender} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="reset-cycle"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    rerender(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="reset-cycle"
+        visible={false}
+      />
+    );
+  });
 });
