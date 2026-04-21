@@ -145,6 +145,159 @@ describe("AIService", () => {
       });
       expect(result).toBe("Hola mundo");
     });
+
+    it("should translate text with explicit sourceLanguage", async () => {
+      const model = createMockModel("Bonjour le monde");
+      const service = new AIService({model: model as any});
+
+      const result = await service.translateText({
+        sourceLanguage: "English",
+        targetLanguage: "French",
+        text: "Hello world",
+      });
+      expect(result).toBe("Bonjour le monde");
+    });
+  });
+
+  describe("modelId getter", () => {
+    it("should return the model id from the underlying model", () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+
+      expect(service.modelId).toBe("mock-model");
+    });
+
+    it("should return 'unknown' when model has no modelId", () => {
+      const model = {
+        doGenerate: mock(async () => ({
+          content: [],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 0, outputTokens: 0},
+        })),
+        doStream: mock(async () => ({stream: new ReadableStream()})),
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const service = new AIService({model: model as any});
+
+      expect(service.modelId).toBe("unknown");
+    });
+  });
+
+  describe("generateTextStream", () => {
+    it("should log errors when the stream throws", async () => {
+      const model = createMockModel();
+      model.doStream = mock(async () => {
+        throw new Error("Stream API error");
+      });
+      const service = new AIService({model: model as any});
+
+      const run = async () => {
+        const chunks: string[] = [];
+        for await (const chunk of service.generateTextStream({prompt: "stream test"})) {
+          chunks.push(chunk);
+        }
+      };
+
+      await expect(run()).rejects.toThrow();
+
+      const logs = await AIRequest.find({prompt: "stream test"});
+      expect(logs.length).toBe(1);
+      expect(logs[0].error).toBeTruthy();
+    });
+  });
+
+  describe("buildMessages file content", () => {
+    it("should convert multi-modal user prompts with file content", () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+
+      const messages = service.buildMessages([
+        {
+          content: [
+            {text: "Please review this file", type: "text" as const},
+            {
+              filename: "report.pdf",
+              mimeType: "application/pdf",
+              type: "file" as const,
+              url: "https://example.com/report.pdf",
+            },
+          ],
+          text: "Please review this file",
+          type: "user",
+        },
+      ]);
+
+      expect(messages.length).toBe(1);
+      const content = (messages[0] as any).content;
+      expect(content.length).toBe(2);
+      expect(content[1].type).toBe("file");
+      expect(content[1].filename).toBe("report.pdf");
+      expect(content[1].mediaType).toBe("application/pdf");
+    });
+  });
+
+  describe("generateChatStream", () => {
+    it("should stream chat responses and log the request", async () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+      const userId = new mongoose.Types.ObjectId();
+
+      const chunks: string[] = [];
+      for await (const chunk of service.generateChatStream({
+        messages: [{content: "Hello", role: "user"}],
+        userId,
+      })) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.join("")).toBe("Mock response");
+
+      const logs = await AIRequest.find({userId});
+      expect(logs.length).toBe(1);
+      expect(logs[0].prompt).toContain("user: Hello");
+      expect(logs[0].response).toBe("Mock response");
+      expect(logs[0].aiModel).toBe("mock-model");
+    });
+
+    it("should log errors when chat stream fails", async () => {
+      const model = createMockModel();
+      model.doStream = mock(async () => {
+        throw new Error("Chat stream failed");
+      });
+      const service = new AIService({model: model as any});
+
+      const run = async () => {
+        const chunks: string[] = [];
+        for await (const chunk of service.generateChatStream({
+          messages: [{content: "Hi", role: "user"}],
+        })) {
+          chunks.push(chunk);
+        }
+      };
+
+      await expect(run()).rejects.toThrow();
+
+      const logs = await AIRequest.find({});
+      const errLog = logs.find((log) => Boolean(log.error));
+      expect(errLog).toBeDefined();
+    });
+
+    it("should accept systemPrompt override", async () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+
+      const chunks: string[] = [];
+      for await (const chunk of service.generateChatStream({
+        messages: [{content: "Hi", role: "user"}],
+        systemPrompt: "You are a test assistant",
+      })) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.join("")).toBe("Mock response");
+    });
   });
 
   describe("buildMessages", () => {
