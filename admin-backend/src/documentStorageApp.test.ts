@@ -357,7 +357,8 @@ describe("DocumentStorageApp", () => {
       if (caught) {
         expect(String(caught)).toMatch(/ECONNRESET|socket|aborted/i);
       } else {
-        expect([200, 500]).toContain(status);
+        expect(status).toBeDefined();
+        expect([200, 500]).toContain(status as number);
       }
       expect(createReadStreamMock).toHaveBeenCalled();
     });
