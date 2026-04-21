@@ -1,6 +1,5 @@
 [test]
 preload = ["../api/src/tests/bunSetup.ts"]
 root = "./src"
-coverage = true
 coveragePathIgnorePatterns = ["**/dist/**", "**/*.test.ts", "**/tests/**", "**/node_modules/**", "../**"]
 coverageThreshold = { line = 95, function = 95 }

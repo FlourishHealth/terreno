@@ -1,7 +1,6 @@
 [test]
 preload = ["./src/bunSetup.ts"]
 root = "./src"
-coverage = true
 coveragePathIgnorePatterns = [
   "dist/**",
   "src/bunSetup.ts",

@@ -1,5 +1,4 @@
 [test]
 preload = "./src/__tests__/preload.ts"
 coveragePathIgnorePatterns = ["**/__tests__/**", "**/dist/**"]
-coverage = true
 coverageThreshold = { line = 95, function = 95 }
