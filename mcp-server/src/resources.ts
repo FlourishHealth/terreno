@@ -73,7 +73,7 @@ interface ComponentDoc {
   }[];
 }
 
-const loadTypeDocJson = (): TypeDocRoot | null => {
+export const loadTypeDocJson = (): TypeDocRoot | null => {
   const filePath = join(getDocsRoot(), "ui-types-documentation.json");
   if (!existsSync(filePath)) {
     return null;
@@ -81,7 +81,7 @@ const loadTypeDocJson = (): TypeDocRoot | null => {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 };
 
-const extractTypeString = (typeObj: any): string => {
+export const extractTypeString = (typeObj: any): string => {
   if (!typeObj) {
     return "unknown";
   }
@@ -120,7 +120,7 @@ const extractTypeString = (typeObj: any): string => {
   return typeObj.name ?? "unknown";
 };
 
-const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
+export const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
   const commonModule = typeDoc.children?.find((m) => m.name === "Common");
   if (!commonModule?.children) {
     return [];
@@ -163,11 +163,11 @@ const parseComponentsFromTypeDoc = (typeDoc: TypeDocRoot): ComponentDoc[] => {
   });
 };
 
-const componentToSlug = (name: string): string => {
+export const componentToSlug = (name: string): string => {
   return name.toLowerCase().replace(/\s+/g, "-");
 };
 
-const formatComponentMarkdown = (component: ComponentDoc): string => {
+export const formatComponentMarkdown = (component: ComponentDoc): string => {
   const lines: string[] = [
     `# ${component.name}`,
     "",
@@ -193,7 +193,7 @@ const formatComponentMarkdown = (component: ComponentDoc): string => {
   return lines.join("\n");
 };
 
-const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
+export const generateComponentListMarkdown = (components: ComponentDoc[]): string => {
   const lines: string[] = [
     "# @terreno/ui Component Reference",
     "",
