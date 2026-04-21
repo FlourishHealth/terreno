@@ -172,5 +172,122 @@ describe("AI Routes", () => {
       expect(res.body.total).toBeGreaterThanOrEqual(1);
       expect(res.body.page).toBe(1);
     });
+
+    it("filters by requestType query parameter", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "remix prompt",
+        requestType: "remix",
+        response: "remix response",
+      });
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "general prompt",
+        requestType: "general",
+        response: "general response",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?requestType=remix");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+      expect(res.body.data[0].requestType).toBe("remix");
+    });
+
+    it("filters by model query parameter", async () => {
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "p1",
+        requestType: "general",
+        response: "r1",
+      });
+      await AIRequest.create({
+        aiModel: "claude-3",
+        prompt: "p2",
+        requestType: "general",
+        response: "r2",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?model=claude-3");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+      expect(res.body.data[0].aiModel).toBe("claude-3");
+    });
+
+    it("filters by startDate query parameter", async () => {
+      const old = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "old",
+        requestType: "general",
+        response: "r",
+      });
+      await AIRequest.updateOne({_id: old._id}, {created: new Date("2020-01-01T00:00:00Z")});
+
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "new",
+        requestType: "general",
+        response: "r",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?startDate=2024-01-01T00:00:00Z");
+
+      expect(res.status).toBe(200);
+      // Only the recently-created record should be returned
+      expect(res.body.total).toBe(1);
+    });
+
+    it("filters by endDate query parameter", async () => {
+      const old = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "old",
+        requestType: "general",
+        response: "r",
+      });
+      await AIRequest.updateOne({_id: old._id}, {created: new Date("2020-01-01T00:00:00Z")});
+
+      await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "new",
+        requestType: "general",
+        response: "r",
+      });
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?endDate=2021-01-01T00:00:00Z");
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+    });
+
+    it("filters by startDate and endDate range", async () => {
+      const a = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "a",
+        requestType: "general",
+        response: "r",
+      });
+      await AIRequest.updateOne({_id: a._id}, {created: new Date("2022-06-01T00:00:00Z")});
+
+      const b = await AIRequest.create({
+        aiModel: "gpt-4",
+        prompt: "b",
+        requestType: "general",
+        response: "r",
+      });
+      await AIRequest.updateOne({_id: b._id}, {created: new Date("2020-01-01T00:00:00Z")});
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get(
+        "/aiRequestsExplorer?startDate=2022-01-01T00:00:00Z&endDate=2023-01-01T00:00:00Z"
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.total).toBe(1);
+    });
   });
 });

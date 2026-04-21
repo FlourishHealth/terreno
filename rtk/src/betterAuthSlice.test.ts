@@ -6,6 +6,7 @@ import {
   selectBetterAuthError,
   selectBetterAuthIsAuthenticated,
   selectBetterAuthIsLoading,
+  selectBetterAuthState,
   selectBetterAuthUser,
   selectBetterAuthUserId,
 } from "./betterAuthSlice";
@@ -302,6 +303,66 @@ describe("generateBetterAuthSlice", () => {
     expect(mockAuthClient.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it("logs and swallows signOut errors triggered by the slice logout action", async () => {
+    mockAuthClient.signOut = mock(() =>
+      Promise.reject(new Error("slice-signout-fail"))
+    ) as unknown as typeof mockAuthClient.signOut;
+    const originalError = console.error;
+    const errorCalls: unknown[][] = [];
+    console.error = (...args: unknown[]): void => {
+      errorCalls.push(args);
+    };
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {betterAuth: betterAuthSlice.reducer},
+    });
+
+    try {
+      store.dispatch(betterAuthSlice.actions.logout());
+      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const logged = errorCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("Error signing out"))
+      );
+      expect(logged).toBeDefined();
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  it("logs and swallows signOut errors triggered by the global auth/logout action", async () => {
+    mockAuthClient.signOut = mock(() =>
+      Promise.reject(new Error("global-signout-fail"))
+    ) as unknown as typeof mockAuthClient.signOut;
+    const originalError = console.error;
+    const errorCalls: unknown[][] = [];
+    console.error = (...args: unknown[]): void => {
+      errorCalls.push(args);
+    };
+    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {betterAuth: betterAuthSlice.reducer},
+    });
+
+    try {
+      store.dispatch({type: "auth/logout"});
+      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const logged = errorCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("Error signing out"))
+      );
+      expect(logged).toBeDefined();
+    } finally {
+      console.error = originalError;
+    }
+  });
+
   it("global auth/logout action signs out and clears session", async () => {
     // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
@@ -396,6 +457,12 @@ describe("Better Auth selectors", () => {
     expect(selectBetterAuthUser(emptyState)).toBeNull();
     expect(selectBetterAuthIsLoading(emptyState)).toBe(false);
     expect(selectBetterAuthError(emptyState)).toBeNull();
+  });
+
+  it("selectBetterAuthState returns the raw betterAuth slice of state", () => {
+    expect(selectBetterAuthState(createMockState({userId: "user-zzz"}))?.userId).toBe("user-zzz");
+    // biome-ignore lint/suspicious/noExplicitAny: Test empty state
+    expect(selectBetterAuthState({} as any)).toBeUndefined();
   });
 });
 

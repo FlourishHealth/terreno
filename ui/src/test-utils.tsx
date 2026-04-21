@@ -5,7 +5,7 @@ import type React from "react";
 import {ThemeProvider} from "./Theme";
 
 export const renderWithTheme = (ui: React.ReactElement) => {
-  return render(<ThemeProvider>{ui}</ThemeProvider>);
+  return render(ui, {wrapper: ThemeProvider});
 };
 
 export const createCommonMocks = () => ({

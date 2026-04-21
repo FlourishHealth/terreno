@@ -4,7 +4,9 @@ import {
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  type ScriptRunner,
   setupAuth,
+  type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/src/tests";
 import type express from "express";
@@ -13,7 +15,7 @@ import type TestAgent from "supertest/lib/agent";
 
 import {AdminApp} from "./adminApp";
 
-const createTestScript = (overrides?: {runner?: any; name?: string; description?: string}) => ({
+const createTestScript = (overrides?: {runner?: ScriptRunner; name?: string; description?: string}) => ({
   description: overrides?.description ?? "A test script",
   name: overrides?.name ?? "test-script",
   runner:
@@ -43,8 +45,8 @@ const createFailingScript = () => ({
 
 const buildApp = (scripts = [createTestScript()]): express.Application => {
   const app = getBaseServer();
-  setupAuth(app, UserModel as any);
-  addAuthRoutes(app, UserModel as any);
+  setupAuth(app, UserModel as unknown as UserModelType);
+  addAuthRoutes(app, UserModel as unknown as UserModelType);
 
   const admin = new AdminApp({
     basePath: "/admin",
@@ -241,7 +243,7 @@ describe("AdminApp script routes", () => {
       const res = await adminAgent.delete(`/admin/scripts/tasks/${res1.body.taskId}`).expect(200);
 
       const logs = res.body.task.logs;
-      const cancelLog = logs.find((l: any) => l.message.includes("cancelled"));
+      const cancelLog = logs.find((l: {message: string; level: string}) => l.message.includes("cancelled"));
       expect(cancelLog).toBeDefined();
       expect(cancelLog.level).toBe("info");
     });

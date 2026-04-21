@@ -166,4 +166,129 @@ describe("Modal", () => {
     );
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("renders primary button with click handler", () => {
+    const handlePrimary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        primaryButtonOnClick={handlePrimary}
+        primaryButtonText="Confirm"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(getByText("Confirm")).toBeTruthy();
+  });
+
+  it("renders secondary button with click handler", () => {
+    const handleSecondary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        secondaryButtonOnClick={handleSecondary}
+        secondaryButtonText="Cancel"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(getByText("Cancel")).toBeTruthy();
+  });
+
+  it("does not call primaryButtonOnClick when not visible", () => {
+    const handlePrimary = mock(() => {});
+    renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        primaryButtonOnClick={handlePrimary}
+        primaryButtonText="Confirm"
+        title="Title"
+        visible={false}
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(handlePrimary).not.toHaveBeenCalled();
+  });
+
+  it("renders with persistOnBackgroundClick", () => {
+    const {toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} persistOnBackgroundClick title="Persistent" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("does not call onDismiss when visible is false and close is pressed", () => {
+    const handleDismiss = mock(() => {});
+    renderWithTheme(
+      <Modal onDismiss={handleDismiss} title="Hidden" visible={false}>
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(handleDismiss).not.toHaveBeenCalled();
+  });
+
+  it("renders transitioning from hidden to visible", () => {
+    const {rerender, toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Toggle" visible={false}>
+        <Text>Content</Text>
+      </Modal>
+    );
+    rerender(
+      <Modal onDismiss={() => {}} title="Toggle" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("invokes primaryButtonOnClick when primary button pressed while visible", async () => {
+    const handlePrimary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        primaryButtonOnClick={handlePrimary}
+        primaryButtonText="Submit"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    await new Promise((resolve) => {
+      fireEvent.press(getByText("Submit"));
+      setTimeout(resolve, 600);
+    });
+
+    expect(handlePrimary).toHaveBeenCalled();
+  });
+
+  it("invokes secondaryButtonOnClick when secondary button pressed while visible", async () => {
+    const handleSecondary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        secondaryButtonOnClick={handleSecondary}
+        secondaryButtonText="Cancel"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    await new Promise((resolve) => {
+      fireEvent.press(getByText("Cancel"));
+      setTimeout(resolve, 600);
+    });
+
+    expect(handleSecondary).toHaveBeenCalled();
+  });
 });

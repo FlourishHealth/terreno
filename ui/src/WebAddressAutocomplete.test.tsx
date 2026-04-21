@@ -1,4 +1,6 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
+
+import type {AddressInterface} from "./Common";
 import {renderWithTheme} from "./test-utils";
 import {WebAddressAutocomplete} from "./WebAddressAutocomplete";
 
@@ -28,6 +30,22 @@ describe("WebAddressAutocomplete", () => {
 
   it("renders disabled state", () => {
     const {toJSON} = renderWithTheme(<WebAddressAutocomplete {...defaultProps} disabled />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders without calling handleAutoCompleteChange until a place is selected", () => {
+    const handleAutoCompleteChange = mock((_arg: AddressInterface) => {});
+    renderWithTheme(
+      <WebAddressAutocomplete
+        {...defaultProps}
+        handleAutoCompleteChange={handleAutoCompleteChange}
+      />
+    );
+    expect(handleAutoCompleteChange).not.toHaveBeenCalled();
+  });
+
+  it("renders with includeCounty flag", () => {
+    const {toJSON} = renderWithTheme(<WebAddressAutocomplete {...defaultProps} includeCounty />);
     expect(toJSON()).toMatchSnapshot();
   });
 });
