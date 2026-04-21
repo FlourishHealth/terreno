@@ -117,4 +117,53 @@ describe("AddressField", () => {
     expect(address1Input.props.accessibilityState.disabled).toBe(true);
     expect(cityInput.props.accessibilityState.disabled).toBe(true);
   });
+
+  it("calls onChange when address2 changes", () => {
+    const {getByTestId} = renderWithTheme(
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
+    );
+    fireEvent.changeText(getByTestId("test-address-address2"), "Suite 500");
+    expect(mockOnChange).toHaveBeenCalledWith({...defaultValue, address2: "Suite 500"});
+  });
+
+  it("calls onChange when countyName and countyCode change", () => {
+    const {getByTestId} = renderWithTheme(
+      <AddressField {...defaultProps} includeCounty onBlur={mockOnBlur} onChange={mockOnChange} />
+    );
+    fireEvent.changeText(getByTestId("test-address-county"), "Clark");
+    expect(mockOnChange).toHaveBeenCalledWith({...defaultValue, countyName: "Clark"});
+    fireEvent.changeText(getByTestId("test-address-county-code"), "999");
+    expect(mockOnChange).toHaveBeenCalledWith({...defaultValue, countyCode: "999"});
+  });
+
+  it("renders without throwing when value is undefined", () => {
+    expect(() =>
+      renderWithTheme(
+        <AddressField onBlur={mockOnBlur} onChange={mockOnChange} testID="no-value" />
+      )
+    ).not.toThrow();
+  });
+
+  it("invokes autocomplete callbacks with merged values", () => {
+    const {UNSAFE_getAllByProps} = renderWithTheme(
+      <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
+    );
+    const autocompletes = UNSAFE_getAllByProps({}).filter(
+      (el: any) =>
+        typeof el.props?.handleAutoCompleteChange === "function" &&
+        typeof el.props?.handleAddressChange === "function"
+    );
+    expect(autocompletes.length).toBeGreaterThan(0);
+    const ac = autocompletes[0];
+    // Trigger handleAddressChange for address1
+    ac.props.handleAddressChange("456 Oak Ave");
+    expect(mockOnChange).toHaveBeenCalledWith({...defaultValue, address1: "456 Oak Ave"});
+    // Trigger handleAutoCompleteChange with a new address object
+    ac.props.handleAutoCompleteChange({city: "Chicago", state: "IL"});
+    expect(mockOnChange).toHaveBeenCalledWith({
+      ...defaultValue,
+      city: "Chicago",
+      state: "IL",
+    });
+  });
 });

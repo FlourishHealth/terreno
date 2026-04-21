@@ -19,4 +19,15 @@ describe("InfoTooltipButton", () => {
     // The component renders an IconButton with exclamation icon
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("is defined and is a function component", () => {
+    expect(InfoTooltipButton).toBeDefined();
+    expect(typeof InfoTooltipButton).toBe("function");
+  });
+
+  it("accepts a text prop without throwing", () => {
+    expect(() =>
+      renderWithTheme(<InfoTooltipButton text="Some details that explain the field" />)
+    ).not.toThrow();
+  });
 });

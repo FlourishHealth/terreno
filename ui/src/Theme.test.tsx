@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {render} from "@testing-library/react-native";
+import {act, render} from "@testing-library/react-native";
 import {Text, View} from "react-native";
 
 import {ThemeProvider, useTheme} from "./Theme";
@@ -148,6 +148,78 @@ describe("Theme", () => {
       expect(theme.radius).toBeDefined();
       expect(theme.radius.default).toBeDefined();
       expect(theme.radius.rounded).toBeDefined();
+    });
+
+    it("updates theme when setTheme is called", () => {
+      let captured: any;
+      const Capture = () => {
+        captured = useTheme();
+        return null;
+      };
+      render(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      act(() => {
+        captured.setTheme({surface: {base: "error100"}});
+      });
+      expect(captured.theme.surface.base).toBe("#D33232");
+    });
+
+    it("updates primitives when setPrimitives is called", () => {
+      let captured: any;
+      const Capture = () => {
+        captured = useTheme();
+        return null;
+      };
+      render(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      act(() => {
+        captured.setPrimitives({neutral000: "#AABBCC"});
+      });
+      expect(captured.theme.surface.base).toBe("#AABBCC");
+    });
+
+    it("resets theme to default when resetTheme is called", () => {
+      let captured: any;
+      const Capture = () => {
+        captured = useTheme();
+        return null;
+      };
+      render(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      act(() => {
+        captured.setTheme({surface: {base: "error100"}});
+        captured.setPrimitives({neutral000: "#123456"});
+      });
+      act(() => {
+        captured.resetTheme();
+      });
+      expect(captured.theme.surface.base).toBe("#FFFFFF");
+    });
+
+    it("supports non-object top-level values when setTheme is called", () => {
+      let captured: any;
+      const Capture = () => {
+        captured = useTheme();
+        return null;
+      };
+      render(
+        <ThemeProvider>
+          <Capture />
+        </ThemeProvider>
+      );
+      act(() => {
+        captured.setTheme({primitives: undefined as any});
+      });
+      expect(captured.theme).toBeDefined();
     });
   });
 });
