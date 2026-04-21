@@ -2,6 +2,10 @@ import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {Text as RNText} from "react-native";
 
+// Capture the real MarkdownView export before mocking so we can restore it in
+// afterAll and avoid leaking a test-only mock to sibling test files.
+const RealMarkdownViewModule = require("./MarkdownView");
+
 // Mock MarkdownView with a simple Text passthrough so we can assert on the
 // rendered (variable-substituted) content without depending on
 // react-native-markdown-display's tokenization.
@@ -15,11 +19,10 @@ import {ConsentFormScreen} from "./ConsentFormScreen";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
-// Restore a no-op mock so other tests aren't affected.
+// Restore the real MarkdownView so downstream test files (e.g.
+// MarkdownView.test.tsx) see the un-mocked module regardless of test order.
 afterAll(() => {
-  mock.module("./MarkdownView", () => ({
-    MarkdownView: mock(() => null),
-  }));
+  mock.module("./MarkdownView", () => RealMarkdownViewModule);
 });
 
 const baseForm: ConsentFormPublic = {

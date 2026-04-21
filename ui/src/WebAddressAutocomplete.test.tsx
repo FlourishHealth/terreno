@@ -51,9 +51,6 @@ describe("WebAddressAutocomplete", () => {
   });
 
   describe("with Google Maps available", () => {
-    const originalWindow = global.window;
-    const originalDocument = global.document;
-
     interface PlaceResult {
       address_components: {
         long_name: string;
@@ -61,6 +58,31 @@ describe("WebAddressAutocomplete", () => {
         types: string[];
       }[];
     }
+
+    interface GoogleMapsWindow {
+      google?: {
+        maps?: {
+          places?: {
+            Autocomplete?: unknown;
+          };
+        };
+      };
+      [key: string]: unknown;
+    }
+
+    interface MinimalDocument {
+      createElement: (tag: string) => HTMLScriptElement;
+      head: {appendChild: (node: unknown) => void};
+    }
+
+    interface TestGlobals {
+      window?: GoogleMapsWindow;
+      document?: MinimalDocument;
+    }
+
+    const testGlobal = globalThis as TestGlobals;
+    const originalWindow = testGlobal.window;
+    const originalDocument = testGlobal.document;
 
     let listeners: Record<string, () => void>;
     let placeResult: PlaceResult | null;
@@ -77,7 +99,7 @@ describe("WebAddressAutocomplete", () => {
         getPlace: () => placeResult,
       }));
 
-      (global as any).window = {
+      testGlobal.window = {
         google: {
           maps: {
             places: {
@@ -86,17 +108,19 @@ describe("WebAddressAutocomplete", () => {
           },
         },
       };
-      (global as any).document = originalDocument ?? {
-        createElement: () => ({}) as HTMLScriptElement,
-        head: {appendChild: () => {}},
-      };
+      testGlobal.document =
+        originalDocument ??
+        ({
+          createElement: () => ({}) as HTMLScriptElement,
+          head: {appendChild: () => {}},
+        } satisfies MinimalDocument);
     });
 
     afterEach(() => {
       // Leave a minimal window so React's effect cleanup (which assigns
       // `window[callbackName] = null`) does not blow up after teardown.
-      (global as any).window = originalWindow ?? {};
-      (global as any).document = originalDocument;
+      testGlobal.window = originalWindow ?? {};
+      testGlobal.document = originalDocument;
     });
 
     it("initializes the Autocomplete and wires up the place_changed listener", async () => {

@@ -5,14 +5,17 @@ import {Text, View} from "react-native";
 import {TerrenoProvider} from "./TerrenoProvider";
 import {useToast} from "./Toast";
 
+interface RafGlobal {
+  requestAnimationFrame?: (callback: FrameRequestCallback) => number;
+  cancelAnimationFrame?: (id: number) => void;
+}
+
 beforeAll(() => {
-  if (!(global as any).requestAnimationFrame) {
-    (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
-      return setTimeout(() => callback(Date.now()), 0) as unknown as number;
-    };
-    (global as any).cancelAnimationFrame = (id: number) => {
-      clearTimeout(id);
-    };
+  const g = globalThis as RafGlobal;
+  if (!g.requestAnimationFrame) {
+    g.requestAnimationFrame = (callback) =>
+      setTimeout(() => callback(Date.now()), 0) as unknown as number;
+    g.cancelAnimationFrame = (id) => clearTimeout(id);
   }
 });
 
