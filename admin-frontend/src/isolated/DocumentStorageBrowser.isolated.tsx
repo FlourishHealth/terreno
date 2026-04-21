@@ -677,19 +677,4 @@ describe("DocumentStorageBrowser (isolated)", () => {
     expect(captured.length).toBe(1);
     unmount();
   });
-
-  it("invokes cleanup (revokeObjectURL) when the viewer blob url is active on unmount", async () => {
-    // This exercises the useEffect cleanup at line 95. The ref is only set
-    // when the web viewer path runs, so we populate it via handleFileChange
-    // (which itself doesn't hit that ref). To trigger the cleanup branch we
-    // create + revoke an URL directly on URL.* so the test isn't a no-op.
-    const revokeObjectURL = mock(() => undefined);
-    (globalThis as any).URL.revokeObjectURL = revokeObjectURL;
-    listState.data = {files: [], folders: []};
-    const {unmount} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
-    );
-    unmount();
-    expect(true).toBe(true);
-  });
 });
