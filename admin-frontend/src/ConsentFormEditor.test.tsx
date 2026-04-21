@@ -127,6 +127,7 @@ describe("ConsentFormEditor", () => {
     publishCalls.length = 0;
     generateCalls.length = 0;
     translateCalls.length = 0;
+    mutationSpecs.length = 0;
     createImpl = async (b) => ({_id: "new-id", ...b});
     updateImpl = async (a) => ({_id: a.id});
     publishImpl = async () => ({});
