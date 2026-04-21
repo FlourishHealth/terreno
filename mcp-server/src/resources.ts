@@ -57,7 +57,7 @@ interface TypeDocModule {
   children?: TypeDocInterface[];
 }
 
-interface TypeDocRoot {
+export interface TypeDocRoot {
   children?: TypeDocModule[];
 }
 

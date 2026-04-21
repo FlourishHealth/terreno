@@ -7,6 +7,7 @@ import {
   loadTypeDocJson,
   parseComponentsFromTypeDoc,
   resources,
+  type TypeDocRoot,
 } from "../resources.js";
 
 describe("resources", () => {
@@ -251,21 +252,23 @@ describe("componentToSlug", () => {
 
 describe("parseComponentsFromTypeDoc", () => {
   test("returns empty array when Common module is missing", () => {
-    expect(parseComponentsFromTypeDoc({children: [{children: [], name: "Other"}]} as any)).toEqual(
-      []
-    );
+    expect(
+      parseComponentsFromTypeDoc({
+        children: [{children: [], id: 0, name: "Other"}],
+      })
+    ).toEqual([]);
   });
 
   test("returns empty array when typedoc has no children", () => {
-    expect(parseComponentsFromTypeDoc({} as any)).toEqual([]);
+    expect(parseComponentsFromTypeDoc({})).toEqual([]);
   });
 
   test("returns empty array when Common has no children", () => {
-    expect(parseComponentsFromTypeDoc({children: [{name: "Common"}]} as any)).toEqual([]);
+    expect(parseComponentsFromTypeDoc({children: [{id: 0, name: "Common"}]})).toEqual([]);
   });
 
   test("filters to only *Props interfaces and extracts props", () => {
-    const typeDoc: any = {
+    const typeDoc = {
       children: [
         {
           children: [
@@ -314,7 +317,7 @@ describe("parseComponentsFromTypeDoc", () => {
       ],
     };
 
-    const components = parseComponentsFromTypeDoc(typeDoc);
+    const components = parseComponentsFromTypeDoc(typeDoc as unknown as TypeDocRoot);
     expect(components.length).toBe(2);
     const button = components.find((c) => c.name === "Button");
     expect(button).toBeDefined();
@@ -333,10 +336,11 @@ describe("parseComponentsFromTypeDoc", () => {
   });
 
   test("handles interface with no children", () => {
-    const typeDoc: any = {
+    const typeDoc = {
       children: [
         {
-          children: [{kind: 256, name: "EmptyProps"}],
+          children: [{id: 1, kind: 256, name: "EmptyProps", variant: "declaration"}],
+          id: 0,
           name: "Common",
         },
       ],
