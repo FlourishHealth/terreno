@@ -1,5 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {AddressField} from "./AddressField";
 import {renderWithTheme} from "./test-utils";
@@ -149,7 +150,7 @@ describe("AddressField", () => {
       <AddressField {...defaultProps} onBlur={mockOnBlur} onChange={mockOnChange} />
     );
     const autocompletes = UNSAFE_getAllByProps({}).filter(
-      (el: any) =>
+      (el: ReactTestInstance) =>
         typeof el.props?.handleAutoCompleteChange === "function" &&
         typeof el.props?.handleAddressChange === "function"
     );

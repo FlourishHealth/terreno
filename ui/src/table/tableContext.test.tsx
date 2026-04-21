@@ -3,18 +3,33 @@ import {render} from "@testing-library/react-native";
 import {useEffect} from "react";
 import {Text} from "react-native";
 
+import type {TableContextType} from "../Common";
 import {renderWithTheme} from "../test-utils";
 import {TableContextProvider, useTableContext} from "./tableContext";
 
+const captureContext = (): {
+  getContext: () => TableContextType;
+  Consumer: () => React.ReactElement;
+} => {
+  let captured: TableContextType | undefined;
+  const Consumer = () => {
+    captured = useTableContext();
+    return <Text>ok</Text>;
+  };
+  const getContext = (): TableContextType => {
+    if (!captured) {
+      throw new Error("Context was not captured");
+    }
+    return captured;
+  };
+  return {Consumer, getContext};
+};
+
 describe("tableContext", () => {
   it("exposes default values from useTableContext when no provider is present", () => {
-    let ctx: any;
-    const Consumer = () => {
-      ctx = useTableContext();
-      return <Text>ok</Text>;
-    };
+    const {getContext, Consumer} = captureContext();
     renderWithTheme(<Consumer />);
-    expect(ctx).toBeTruthy();
+    const ctx = getContext();
     expect(ctx.columns).toEqual([]);
     expect(ctx.stickyHeader).toBe(true);
     expect(ctx.alternateRowBackground).toBe(true);
@@ -27,11 +42,7 @@ describe("tableContext", () => {
 
   it("passes provided values through the provider", () => {
     const setSortColumn = mock(() => {});
-    let ctx: any;
-    const Consumer = () => {
-      ctx = useTableContext();
-      return <Text>ok</Text>;
-    };
+    const {getContext, Consumer} = captureContext();
     render(
       <TableContextProvider
         alternateRowBackground={false}
@@ -46,6 +57,7 @@ describe("tableContext", () => {
         <Consumer />
       </TableContextProvider>
     );
+    const ctx = getContext();
     expect(ctx.columns).toEqual([100, 200]);
     expect(ctx.hasDrawerContents).toBe(true);
     expect(ctx.stickyHeader).toBe(false);

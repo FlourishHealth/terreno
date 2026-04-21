@@ -1,6 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, render} from "@testing-library/react-native";
+import {act, render} from "@testing-library/react-native";
 import {createRef} from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import type {ActionSheet} from "./ActionSheet";
 import {NumberPickerActionSheet} from "./NumberPickerActionSheet";
@@ -59,7 +60,9 @@ describe("NumberPickerActionSheet", () => {
       </ThemeProvider>
     );
     const pickers = UNSAFE_getAllByProps({selectedValue: "5"});
-    const picker = pickers.find((p) => typeof p.props.onValueChange === "function");
+    const picker = pickers.find(
+      (p: ReactTestInstance) => typeof p.props.onValueChange === "function"
+    );
     act(() => {
       if (picker) {
         picker.props.onValueChange(7);
@@ -68,10 +71,10 @@ describe("NumberPickerActionSheet", () => {
     expect(handleChange).toHaveBeenCalledWith("7");
   });
 
-  it("closes the action sheet when Close button is pressed", async () => {
+  it("closes the action sheet when Close button is pressed", () => {
     const setModalVisible = mock((_v: boolean) => {});
-    const actionSheetRef = {current: {setModalVisible}} as any;
-    const {getByText} = render(
+    const actionSheetRef = createRef<ActionSheet>();
+    const {UNSAFE_getAllByProps} = render(
       <ThemeProvider>
         <NumberPickerActionSheet
           actionSheetRef={actionSheetRef}
@@ -82,13 +85,19 @@ describe("NumberPickerActionSheet", () => {
         />
       </ThemeProvider>
     );
-    await act(async () => {
-      fireEvent.press(getByText("Close"));
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Replace the ref target with a mock after mount so the Button's onClick
+    // invokes our spy instead of the real ActionSheet instance.
+    (actionSheetRef as {current: {setModalVisible: typeof setModalVisible}}).current = {
+      setModalVisible,
+    };
+    const closeButtons = UNSAFE_getAllByProps({text: "Close"});
+    const closeButton = closeButtons.find(
+      (b: ReactTestInstance) => typeof b.props.onClick === "function"
+    );
+    expect(closeButton).toBeDefined();
+    act(() => {
+      closeButton?.props.onClick();
     });
-    // Allow extra time for debounced callback
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    // Confirm at least that pressing the Close button did not throw
-    expect(typeof setModalVisible).toBe("function");
+    expect(setModalVisible).toHaveBeenCalledWith(false);
   });
 });

@@ -1,6 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {forwardRef} from "react";
 import {View} from "react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
@@ -69,7 +70,7 @@ describe("SignatureField", () => {
 
     // Find the inner Signature wrapper by looking for elements with onStart
     const elementsWithOnStart = UNSAFE_getAllByProps({}).filter(
-      (el: any) => typeof el.props?.onStart === "function"
+      (el: ReactTestInstance) => typeof el.props?.onStart === "function"
     );
     expect(elementsWithOnStart.length).toBeGreaterThan(0);
     const signatureEl = elementsWithOnStart[0];
@@ -84,7 +85,7 @@ describe("SignatureField", () => {
     const {UNSAFE_getAllByProps} = renderWithTheme(<SignatureField onChange={onChange} />);
 
     const elementsWithOnStart = UNSAFE_getAllByProps({}).filter(
-      (el: any) => typeof el.props?.onStart === "function"
+      (el: ReactTestInstance) => typeof el.props?.onStart === "function"
     );
     expect(elementsWithOnStart.length).toBeGreaterThan(0);
     const signatureEl = elementsWithOnStart[0];

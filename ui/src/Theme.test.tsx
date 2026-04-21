@@ -4,6 +4,8 @@ import {Text, View} from "react-native";
 
 import {ThemeProvider, useTheme} from "./Theme";
 
+type ThemeContextValue = ReturnType<typeof useTheme>;
+
 const ThemeConsumer = () => {
   const {theme} = useTheme();
   return (
@@ -151,7 +153,7 @@ describe("Theme", () => {
     });
 
     it("updates theme when setTheme is called", () => {
-      let captured: any;
+      let captured: ThemeContextValue | undefined;
       const Capture = () => {
         captured = useTheme();
         return null;
@@ -162,13 +164,13 @@ describe("Theme", () => {
         </ThemeProvider>
       );
       act(() => {
-        captured.setTheme({surface: {base: "error100"}});
+        captured?.setTheme({surface: {base: "error100"}});
       });
-      expect(captured.theme.surface.base).toBe("#D33232");
+      expect(captured?.theme.surface.base).toBe("#D33232");
     });
 
     it("updates primitives when setPrimitives is called", () => {
-      let captured: any;
+      let captured: ThemeContextValue | undefined;
       const Capture = () => {
         captured = useTheme();
         return null;
@@ -179,13 +181,13 @@ describe("Theme", () => {
         </ThemeProvider>
       );
       act(() => {
-        captured.setPrimitives({neutral000: "#AABBCC"});
+        captured?.setPrimitives({neutral000: "#AABBCC"});
       });
-      expect(captured.theme.surface.base).toBe("#AABBCC");
+      expect(captured?.theme.surface.base).toBe("#AABBCC");
     });
 
     it("resets theme to default when resetTheme is called", () => {
-      let captured: any;
+      let captured: ThemeContextValue | undefined;
       const Capture = () => {
         captured = useTheme();
         return null;
@@ -196,17 +198,17 @@ describe("Theme", () => {
         </ThemeProvider>
       );
       act(() => {
-        captured.setTheme({surface: {base: "error100"}});
-        captured.setPrimitives({neutral000: "#123456"});
+        captured?.setTheme({surface: {base: "error100"}});
+        captured?.setPrimitives({neutral000: "#123456"});
       });
       act(() => {
-        captured.resetTheme();
+        captured?.resetTheme();
       });
-      expect(captured.theme.surface.base).toBe("#FFFFFF");
+      expect(captured?.theme.surface.base).toBe("#FFFFFF");
     });
 
     it("supports non-object top-level values when setTheme is called", () => {
-      let captured: any;
+      let captured: ThemeContextValue | undefined;
       const Capture = () => {
         captured = useTheme();
         return null;
@@ -217,9 +219,9 @@ describe("Theme", () => {
         </ThemeProvider>
       );
       act(() => {
-        captured.setTheme({primitives: undefined as any});
+        captured?.setTheme({primitives: undefined});
       });
-      expect(captured.theme).toBeDefined();
+      expect(captured?.theme).toBeDefined();
     });
   });
 });
