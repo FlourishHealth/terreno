@@ -58,25 +58,20 @@ const api = createApi({
   reducerPath: "terreno-rtk",
 });
 
-const createTestStore = (): {
-  authSlice: ReturnType<typeof auth.generateAuthSlice>["authSlice"];
-  store: ReturnType<typeof configureStore>;
-} => {
+const createTestStore = () => {
   const {authReducer, middleware, authSlice} = auth.generateAuthSlice(
     // biome-ignore lint/suspicious/noExplicitAny: Test mock
     api as any
   );
-  return {
-    authSlice,
-    store: configureStore({
-      middleware: (getDefault) =>
-        getDefault({serializableCheck: false}).concat(api.middleware, ...middleware),
-      reducer: {
-        [api.reducerPath]: api.reducer,
-        auth: authReducer,
-      },
-    }),
-  };
+  const store = configureStore({
+    middleware: (getDefault) =>
+      getDefault({serializableCheck: false}).concat(api.middleware, ...middleware),
+    reducer: {
+      [api.reducerPath]: api.reducer,
+      auth: authReducer,
+    },
+  });
+  return {authSlice, store};
 };
 
 const flushAsyncListeners = async (): Promise<void> => {

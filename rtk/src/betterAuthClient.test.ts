@@ -132,6 +132,11 @@ describe("createStorageAdapter (native)", () => {
 });
 
 describe("createBetterAuthClient", () => {
+  beforeEach(() => {
+    captured.auth = null;
+    captured.expo = null;
+  });
+
   afterAll(() => {
     // Restore the test-preload mocks so later test files aren't polluted.
     mock.module("@better-auth/expo/client", () => ({
@@ -148,8 +153,6 @@ describe("createBetterAuthClient", () => {
   });
 
   it("passes baseURL and scheme through to the Better Auth client", () => {
-    captured.auth = null;
-    captured.expo = null;
     const client = createBetterAuthClient({
       baseURL: "http://localhost:3000",
       scheme: "terreno",
@@ -163,8 +166,6 @@ describe("createBetterAuthClient", () => {
   });
 
   it("uses a custom storagePrefix when provided", () => {
-    captured.auth = null;
-    captured.expo = null;
     createBetterAuthClient({
       baseURL: "http://localhost:3000",
       scheme: "terreno",
