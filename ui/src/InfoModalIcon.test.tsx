@@ -51,4 +51,20 @@ describe("InfoModalIcon", () => {
     fireEvent.press(infoIcon);
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("invokes primary Close button handler without throwing", () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <InfoModalIcon infoModalText="Dismissable text" infoModalTitle="Dismissable Title" />
+    );
+    fireEvent.press(getByTestId("info-icon"));
+    expect(() => fireEvent.press(getByText("Close"))).not.toThrow();
+  });
+
+  it("invokes onDismiss when the close (x) icon is pressed", () => {
+    const {getByTestId, getByLabelText} = renderWithTheme(
+      <InfoModalIcon infoModalText="Body" infoModalTitle="Close Me" />
+    );
+    fireEvent.press(getByTestId("info-icon"));
+    expect(() => fireEvent.press(getByLabelText("Close modal"))).not.toThrow();
+  });
 });

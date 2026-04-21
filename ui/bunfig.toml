@@ -1,5 +1,11 @@
 [test]
 preload = ["./src/bunSetup.ts"]
 root = "./src"
-coverageExclude = ["dist/**"]
+coveragePathIgnorePatterns = [
+  "dist/**",
+  "src/bunSetup.ts",
+  "src/test-utils.tsx",
+  "**/*.test.ts",
+  "**/*.test.tsx",
+]
 

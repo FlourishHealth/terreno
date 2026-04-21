@@ -27,11 +27,50 @@ interface UseFeatureFlagsResult {
  * const variant = getVariant("checkout-experiment");           // "control" | "variant-a" | null
  * ```
  */
-export const useFeatureFlags = (
+export interface UseFeatureFlagsOptions {
+  /**
+   * Base path for the feature-flags endpoint. Defaults to "/feature-flags".
+   */
+  basePath?: string;
+  /**
+   * When true, the underlying evaluate query is not fired. Use this to avoid
+   * fetching before the user is authenticated.
+   */
+  skip?: boolean;
+}
+
+interface ResolvedFeatureFlagsOptions {
+  basePath: string;
+  skip: boolean;
+}
+
+/**
+ * Normalizes the legacy-compatible `basePathOrOptions` argument into a
+ * `{basePath, skip}` pair with defaults applied.
+ *
+ * - `undefined` -> `{basePath: "/feature-flags", skip: false}`
+ * - `string`    -> `{basePath: <string>, skip: false}` (legacy form)
+ * - `object`    -> `{basePath: opts.basePath ?? "/feature-flags", skip: opts.skip ?? false}`
+ */
+export const resolveFeatureFlagsOptions = (
+  basePathOrOptions?: string | UseFeatureFlagsOptions
+): ResolvedFeatureFlagsOptions => {
+  const {basePath = "/feature-flags", skip = false} =
+    typeof basePathOrOptions === "string"
+      ? {basePath: basePathOrOptions, skip: false}
+      : (basePathOrOptions ?? {});
+  return {basePath, skip};
+};
+
+// Overloaded signature preserves backwards compatibility with callers that
+// pass a string basePath as the second argument.
+export function useFeatureFlags(
   // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
   api: Api<any, any, any, any>,
-  basePath = "/feature-flags"
-): UseFeatureFlagsResult => {
+  basePathOrOptions?: string | UseFeatureFlagsOptions
+): UseFeatureFlagsResult {
+  const {basePath, skip} = resolveFeatureFlagsOptions(basePathOrOptions);
+
   const enhancedApi = useMemo(
     () =>
       api.injectEndpoints({
@@ -50,7 +89,7 @@ export const useFeatureFlags = (
 
   // biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
   const useEvaluateQuery = (enhancedApi as any).useEvaluateFeatureFlagsQuery;
-  const {data, isLoading, error, refetch} = useEvaluateQuery();
+  const {data, isLoading, error, refetch} = useEvaluateQuery(undefined, {skip});
   const evaluateStartedAtRef = useRef<number | null>(null);
 
   const flags: FlagValues = data ?? {};
@@ -118,4 +157,4 @@ export const useFeatureFlags = (
   );
 
   return {error, flags, getFlag, getVariant, isLoading, refetch};
-};
+}

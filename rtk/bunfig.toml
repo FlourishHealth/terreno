@@ -1,3 +1,5 @@
 [test]
-preload = ["./src/test-preload.ts"]
+preload = ["./test-preload.ts"]
 root = "./src"
+coverageSkipTestFiles = true
+coverageExclude = ["**/*.test.ts", "./test-preload.ts"]

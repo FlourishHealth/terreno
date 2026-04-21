@@ -1,6 +1,6 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`UnifiedAddressAutoCompleteField renders correctly without Google API key (fallback to TextField) 1`] = `
+exports[`UnifiedAddressAutoCompleteField renders plain TextField when no API key provided 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -108,7 +108,7 @@ exports[`UnifiedAddressAutoCompleteField renders correctly without Google API ke
 }
 `;
 
-exports[`UnifiedAddressAutoCompleteField renders with input value 1`] = `
+exports[`UnifiedAddressAutoCompleteField renders plain TextField when API key is invalid 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -173,7 +173,115 @@ exports[`UnifiedAddressAutoCompleteField renders with input value 1`] = `
                 "testID": undefined,
                 "textContentType": "none",
                 "underlineColorAndroid": "transparent",
-                "value": "123 Main St",
+                "value": "",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 0,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`UnifiedAddressAutoCompleteField renders WebAddressAutocomplete when valid API key provided on web 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Street Address",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": undefined,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": "Enter an address",
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 24,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": undefined,
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "",
               },
               "type": "TextInput",
             },
@@ -324,7 +432,7 @@ exports[`UnifiedAddressAutoCompleteField renders disabled state 1`] = `
 }
 `;
 
-exports[`UnifiedAddressAutoCompleteField renders with invalid Google API key (falls back to TextField) 1`] = `
+exports[`UnifiedAddressAutoCompleteField renders with input value 1`] = `
 {
   "$$typeof": Symbol(react.test.json),
   "children": [
@@ -387,6 +495,114 @@ exports[`UnifiedAddressAutoCompleteField renders with invalid Google API key (fa
                   "width": "100%",
                 },
                 "testID": undefined,
+                "textContentType": "none",
+                "underlineColorAndroid": "transparent",
+                "value": "123 Main St",
+              },
+              "type": "TextInput",
+            },
+          ],
+          "props": {
+            "style": {
+              "alignItems": "center",
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#9A9A9A",
+          "borderRadius": 4,
+          "borderWidth": 1,
+          "flexDirection": "column",
+          "gap": 0,
+          "overflow": "hidden",
+          "paddingHorizontal": 12,
+          "paddingVertical": 8,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "flexDirection": "column",
+      "width": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;
+
+exports[`UnifiedAddressAutoCompleteField renders with testID 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Street Address",
+      ],
+      "props": {
+        "style": {
+          "color": "#1C1C1C",
+          "fontSize": 14,
+          "fontWeight": 600,
+          "lineHeight": 22.4,
+        },
+      },
+      "type": "Text",
+    },
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": null,
+              "props": {
+                "accessibilityHint": "Enter text here",
+                "accessibilityState": {
+                  "disabled": undefined,
+                },
+                "aria-label": "Text input field",
+                "autoCapitalize": "sentences",
+                "autoCorrect": true,
+                "blurOnSubmit": true,
+                "enterKeyHint": undefined,
+                "keyboardType": "default",
+                "multiline": undefined,
+                "nativeID": undefined,
+                "numberOfLines": 1,
+                "onBlur": [Function],
+                "onChangeText": [Function],
+                "onContentSizeChange": [Function],
+                "onFocus": [Function],
+                "onSubmitEditing": [Function],
+                "placeholder": "Enter an address",
+                "placeholderTextColor": "#686868",
+                "readOnly": undefined,
+                "ref": [Function],
+                "secureTextEntry": false,
+                "style": {
+                  "color": "#1C1C1C",
+                  "flex": 1,
+                  "fontFamily": "text",
+                  "fontSize": 16,
+                  "gap": 10,
+                  "height": 24,
+                  "paddingVertical": 0,
+                  "width": "100%",
+                },
+                "testID": "address-field",
                 "textContentType": "none",
                 "underlineColorAndroid": "transparent",
                 "value": "",

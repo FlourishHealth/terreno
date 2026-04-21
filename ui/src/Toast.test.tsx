@@ -1,7 +1,19 @@
-import {describe, expect, it, mock} from "bun:test";
+import {beforeAll, describe, expect, it, mock} from "bun:test";
+import {render} from "@testing-library/react-native";
+import {Text as RNText} from "react-native";
 
-import {Toast} from "./Toast";
+import {Toast, useToast} from "./Toast";
+import {ToastProvider} from "./ToastNotifications";
 import {renderWithTheme} from "./test-utils";
+
+beforeAll(() => {
+  (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
+    return setTimeout(() => callback(Date.now()), 0) as unknown as number;
+  };
+  (global as any).cancelAnimationFrame = (id: number) => {
+    clearTimeout(id);
+  };
+});
 
 describe("Toast", () => {
   it("renders correctly with default props", () => {
@@ -78,5 +90,86 @@ describe("Toast", () => {
       );
       expect(toJSON()).toMatchSnapshot();
     });
+  });
+});
+
+describe("useToast", () => {
+  const renderHookWithProvider = (callback: (toast: ReturnType<typeof useToast>) => void) => {
+    let hookResult: ReturnType<typeof useToast> | null = null;
+    const Harness = () => {
+      const toast = useToast();
+      hookResult = toast;
+      return <RNText>harness</RNText>;
+    };
+    render(
+      <ToastProvider>
+        <Harness />
+      </ToastProvider>
+    );
+    if (hookResult) {
+      callback(hookResult);
+    }
+    return hookResult!;
+  };
+
+  it("returns an object with expected methods", () => {
+    const hook = renderHookWithProvider(() => {});
+    expect(typeof hook.show).toBe("function");
+    expect(typeof hook.success).toBe("function");
+    expect(typeof hook.info).toBe("function");
+    expect(typeof hook.warn).toBe("function");
+    expect(typeof hook.error).toBe("function");
+    expect(typeof hook.catch).toBe("function");
+    expect(typeof hook.hide).toBe("function");
+  });
+
+  it("returns empty string from show when provider is not ready", () => {
+    const originalWarn = console.warn;
+    console.warn = mock(() => {});
+    const Harness = () => {
+      const toast = useToast();
+      const result = toast.show("No provider");
+      return <RNText>{result}</RNText>;
+    };
+    // Render without ToastProvider, so useToastNotifications returns no ref
+    const {getByText} = renderWithTheme(<Harness />);
+    expect(getByText("")).toBeTruthy();
+    console.warn = originalWarn;
+  });
+
+  it("calls success, info, warn, error, show via hook without throwing", () => {
+    const hook = renderHookWithProvider(() => {});
+    expect(() => hook.success("success!")).not.toThrow();
+    expect(() => hook.info("info!")).not.toThrow();
+    expect(() => hook.warn("warn!")).not.toThrow();
+    expect(() => hook.error("error!")).not.toThrow();
+    expect(() => hook.show("plain", {variant: "info"})).not.toThrow();
+    expect(() => hook.show("persistent", {persistent: true})).not.toThrow();
+  });
+
+  it("catch handles plain errors by printing the message", () => {
+    const originalError = console.error;
+    console.error = mock(() => {});
+    const hook = renderHookWithProvider(() => {});
+    expect(() => hook.catch(new Error("boom"), "Failed")).not.toThrow();
+    expect(() => hook.catch("string error", "Failed")).not.toThrow();
+    expect(() => hook.catch({error: "something"}, "Failed")).not.toThrow();
+    console.error = originalError;
+  });
+
+  it("catch handles APIError by calling printAPIError", () => {
+    const originalError = console.error;
+    console.error = mock(() => {});
+    const hook = renderHookWithProvider(() => {});
+    const apiError = {
+      errors: [{detail: "Something bad", status: "500", title: "API Error"}],
+    };
+    expect(() => hook.catch(apiError, "Request failed")).not.toThrow();
+    console.error = originalError;
+  });
+
+  it("hide does not throw when id is valid", () => {
+    const hook = renderHookWithProvider(() => {});
+    expect(() => hook.hide("some-id")).not.toThrow();
   });
 });

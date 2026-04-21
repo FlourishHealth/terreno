@@ -29,6 +29,20 @@ export interface DocumentListResponse {
   prefix: string;
 }
 
+// Express 5 wildcard route params (e.g. `*filepath`) come through as string[]
+// when the URL has one or more path segments. Older signatures (and manual
+// calls) may still provide a string. Normalize both shapes to a single
+// forward-slash separated path.
+const normalizePathParam = (value: unknown): string => {
+  if (Array.isArray(value)) {
+    return value.filter((segment): segment is string => typeof segment === "string").join("/");
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return "";
+};
+
 const DEFAULT_ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -48,7 +62,7 @@ const DEFAULT_ALLOWED_MIME_TYPES = new Set([
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const isAdmin = (req: express.Request): boolean => {
-  const user = (req as any).user;
+  const user = req.user as {admin?: boolean} | undefined;
   return user?.admin === true;
 };
 
@@ -144,7 +158,8 @@ export class DocumentStorageApp {
             updated: file.metadata.updated as string,
           }));
 
-        const prefixes = ((apiResponse as any)?.prefixes as string[] | undefined) ?? [];
+        const prefixes =
+          ((apiResponse as {prefixes?: string[]})?.prefixes as string[] | undefined) ?? [];
         const folders = prefixes.map((p) => {
           const relative = p.slice(this.prefix.length);
           return relative;
@@ -164,9 +179,10 @@ export class DocumentStorageApp {
     app.post(
       `${basePath}/`,
       ...adminGuard,
+      // noExplicitAny: multer's RequestHandler type is incompatible with Express 5's middleware signature.
       upload.single("file") as any,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const file = (req as any).file as Express.Multer.File | undefined;
+        const file = (req as unknown as {file?: Express.Multer.File}).file;
         if (!file) {
           throw new APIError({status: 400, title: "No file provided"});
         }
@@ -198,7 +214,7 @@ export class DocumentStorageApp {
       `${basePath}/download/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = req.params.filepath as string;
+        const filePath = normalizePathParam(req.params.filepath);
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }
@@ -213,12 +229,20 @@ export class DocumentStorageApp {
           const [meta] = await gcsFile.getMetadata();
           metadata = meta as Record<string, unknown>;
           console.info("[documentStorage] getMetadata success", {
-            contentType: (meta as any)?.contentType,
-            etag: (meta as any)?.etag,
-            size: (meta as any)?.size,
+            contentType: metadata.contentType,
+            etag: metadata.etag,
+            size: metadata.size,
           });
-        } catch (err: any) {
-          if (err?.code === 404) {
+        } catch (err: unknown) {
+          const storageErr = err as {
+            code?: number;
+            message?: string;
+            stack?: string;
+            errors?: unknown[];
+            response?: unknown;
+            status?: number;
+          };
+          if (storageErr?.code === 404) {
             throw new APIError({
               detail: filePath,
               disableExternalErrorTracking: true,
@@ -227,21 +251,21 @@ export class DocumentStorageApp {
             });
           }
           console.error("[documentStorage] getMetadata error", {
-            code: err?.code,
-            errors: err?.errors,
-            message: err?.message,
-            response: err?.response,
-            stack: err?.stack,
-            status: err?.status,
+            code: storageErr?.code,
+            errors: storageErr?.errors,
+            message: storageErr?.message,
+            response: storageErr?.response,
+            stack: storageErr?.stack,
+            status: storageErr?.status,
           });
           logger.error("[documentStorage] getMetadata error", {
-            code: err?.code,
-            errors: err?.errors,
-            message: err?.message,
-            status: err?.status,
+            code: storageErr?.code,
+            errors: storageErr?.errors,
+            message: storageErr?.message,
+            status: storageErr?.status,
           });
           throw new APIError({
-            detail: err?.message ?? String(err),
+            detail: storageErr?.message ?? String(err),
             status: 500,
             title: "Failed to access file",
           });
@@ -259,20 +283,21 @@ export class DocumentStorageApp {
 
         try {
           await pipeline(gcsFile.createReadStream(), res);
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const pipelineErr = err as {code?: number; message?: string; stack?: string};
           console.error("[documentStorage] pipeline error", {
-            code: err?.code,
-            message: err?.message,
-            stack: err?.stack,
+            code: pipelineErr?.code,
+            message: pipelineErr?.message,
+            stack: pipelineErr?.stack,
           });
           logger.error("[documentStorage] pipeline error", {
-            code: err?.code,
-            message: err?.message,
-            stack: err?.stack,
+            code: pipelineErr?.code,
+            message: pipelineErr?.message,
+            stack: pipelineErr?.stack,
           });
           if (!res.headersSent) {
             throw new APIError({
-              detail: err?.message ?? String(err),
+              detail: pipelineErr?.message ?? String(err),
               status: 500,
               title: "Failed to stream file",
             });
@@ -307,7 +332,7 @@ export class DocumentStorageApp {
       `${basePath}/folder/*folderpath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const folderPath = req.params.folderpath as string;
+        const folderPath = normalizePathParam(req.params.folderpath);
         if (!folderPath) {
           throw new APIError({status: 400, title: "Folder path is required"});
         }
@@ -325,7 +350,7 @@ export class DocumentStorageApp {
       `${basePath}/*filepath`,
       ...adminGuard,
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const filePath = req.params.filepath as string;
+        const filePath = normalizePathParam(req.params.filepath);
         if (!filePath) {
           throw new APIError({status: 400, title: "File path is required"});
         }
