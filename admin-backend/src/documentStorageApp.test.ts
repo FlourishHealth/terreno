@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {PassThrough, Readable} from "node:stream";
+import {PassThrough} from "node:stream";
 
 // Mock @google-cloud/storage BEFORE importing anything that depends on it.
 interface MockedFile {
@@ -230,41 +230,38 @@ describe("DocumentStorageApp", () => {
 
   describe("GET /documents/download/*filepath", () => {
     it("handles a successful download request by invoking pipeline", async () => {
-      // Use a PassThrough that emits data synchronously, matching how GCS
-      // file streams behave in practice.
-      bucketBehavior.fileFactory = (path: string) => {
-        const stream = new PassThrough();
-        const createReadStream = mock(() => {
-          process.nextTick(() => {
-            stream.write("DOWNLOADED");
-            stream.end();
-          });
-          return stream;
-        });
-        return {
-          createReadStream,
+      // Use Readable.from so pipeline() sees a well-behaved stream that emits
+      // a single buffer and ends cleanly, giving a deterministic 200.
+      bucketBehavior.fileFactory = (path: string) =>
+        ({
+          createReadStream: mock(() => {
+            const stream = new PassThrough();
+            setImmediate(() => {
+              stream.end(Buffer.from("DOWNLOADED"));
+            });
+            return stream;
+          }),
           delete: mock(async () => [{}]),
           getMetadata: mock(async () => [{contentType: "text/plain", size: 10, updated: "now"}]),
           metadata: {},
           name: path,
           save: mock(async () => undefined),
-        } as unknown as MockedFile;
-      };
+        }) as unknown as MockedFile;
 
-      // Either 200 with content or a 500 from pipeline depending on stream
-      // behavior; both paths exercise the download route.
-      const res = await adminAgent.get("/documents/download/readme.txt");
-      expect([200, 500]).toContain(res.status);
+      const res = await adminAgent.get("/documents/download/readme.txt").expect(200);
+      expect(res.headers["content-type"]).toInclude("text/plain");
+      expect(res.headers["content-disposition"]).toInclude("readme.txt");
+      expect(res.headers["content-length"]).toBe("10");
+      expect(res.text).toBe("DOWNLOADED");
     });
 
     it("defaults content-type to application/octet-stream when not provided", async () => {
-      bucketBehavior.fileFactory = () => {
-        const stream = new PassThrough();
-        return {
+      bucketBehavior.fileFactory = () =>
+        ({
           createReadStream: mock(() => {
-            process.nextTick(() => {
-              stream.write("blob");
-              stream.end();
+            const stream = new PassThrough();
+            setImmediate(() => {
+              stream.end(Buffer.from("blob"));
             });
             return stream;
           }),
@@ -273,11 +270,12 @@ describe("DocumentStorageApp", () => {
           metadata: {},
           name: "blob",
           save: mock(async () => undefined),
-        } as unknown as MockedFile;
-      };
+        }) as unknown as MockedFile;
 
-      const res = await adminAgent.get("/documents/download/some.bin");
-      expect([200, 500]).toContain(res.status);
+      const res = await adminAgent.get("/documents/download/some.bin").expect(200);
+      expect(res.headers["content-type"]).toInclude("application/octet-stream");
+      // No Content-Length header when size is missing from metadata
+      expect(res.headers["content-length"]).toBeUndefined();
     });
 
     it("returns 404 when metadata lookup fails with code 404", async () => {
@@ -318,14 +316,25 @@ describe("DocumentStorageApp", () => {
       expect(res.body.title).toInclude("Failed to access file");
     });
 
-    it("returns 500 when streaming fails before headers are sent", async () => {
+    it("logs and swallows stream errors once headers have been flushed", async () => {
+      // When bytes have already started streaming, res.headersSent is true by
+      // the time pipeline() rejects and the route must NOT attempt to throw a
+      // new APIError. We exercise that branch by writing a chunk before
+      // destroying the source; the connection is forcibly closed mid-response
+      // so supertest may surface ECONNRESET — both a completed status and a
+      // socket error prove the pipeline-error catch ran without re-sending
+      // headers.
+      const createReadStreamMock = mock(() => {
+        const stream = new PassThrough();
+        setImmediate(() => {
+          stream.write(Buffer.from("partial"));
+          setImmediate(() => stream.destroy(new Error("pipe broken")));
+        });
+        return stream;
+      });
       bucketBehavior.fileFactory = () =>
         ({
-          createReadStream: mock(() => {
-            const stream = new PassThrough();
-            setImmediate(() => stream.destroy(new Error("pipe broken")));
-            return stream;
-          }),
+          createReadStream: createReadStreamMock,
           delete: mock(async () => [{}]),
           getMetadata: mock(async () => [{contentType: "text/plain", updated: "now"}]),
           metadata: {},
@@ -333,9 +342,24 @@ describe("DocumentStorageApp", () => {
           save: mock(async () => undefined),
         }) as unknown as MockedFile;
 
-      // No size header, so Content-Length isn't set
-      const res = await adminAgent.get("/documents/download/problem.txt");
-      expect([200, 500]).toContain(res.status);
+      let status: number | undefined;
+      let caught: unknown;
+      try {
+        const res = await adminAgent.get("/documents/download/problem.txt");
+        status = res.status;
+      } catch (err: unknown) {
+        caught = err;
+      }
+
+      // Either supertest sees a completed response (200/500) or the socket is
+      // reset after partial data. Both outcomes prove we exercised the route
+      // and its pipeline-error catch branch without crashing the process.
+      if (caught) {
+        expect(String(caught)).toMatch(/ECONNRESET|socket|aborted/i);
+      } else {
+        expect([200, 500]).toContain(status);
+      }
+      expect(createReadStreamMock).toHaveBeenCalled();
     });
 
     it("returns 403 for non-admins", async () => {
