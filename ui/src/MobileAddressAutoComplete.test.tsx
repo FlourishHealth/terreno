@@ -34,7 +34,7 @@ const setAddressTextSpy = mock(() => {});
 mock.module("react-native-google-places-autocomplete", () => ({
   GooglePlacesAutocomplete: forwardRef((props: CapturedGooglePlacesProps, ref) => {
     lastGooglePlacesProps = props;
-    const innerRef = useRef<any>({});
+    const innerRef = useRef<Record<string, unknown>>({});
     useImperativeHandle(ref, () => ({
       setAddressText: setAddressTextSpy,
       ...innerRef.current,

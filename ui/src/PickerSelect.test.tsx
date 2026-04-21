@@ -197,16 +197,19 @@ describe("PickerSelect", () => {
         fireEvent.press(getByTestId("ios_touchable_wrapper"));
       });
       const {TouchableOpacity} = require("react-native");
-      const touchables = UNSAFE_getAllByType(TouchableOpacity).filter(
-        (t: any) => typeof t.props.onPress === "function"
+      interface TouchableTestInstance {
+        props: {onPress?: () => void};
+      }
+      const touchables: TouchableTestInstance[] = UNSAFE_getAllByType(TouchableOpacity).filter(
+        (t: TouchableTestInstance) => typeof t.props.onPress === "function"
       );
       // The accessory view renders an up-arrow TouchableOpacity then a down-arrow one.
       expect(touchables.length).toBeGreaterThanOrEqual(2);
       await act(async () => {
-        touchables[0].props.onPress();
+        touchables[0].props.onPress?.();
       });
       await act(async () => {
-        touchables[1].props.onPress();
+        touchables[1].props.onPress?.();
       });
       expect(onUpArrow).toHaveBeenCalled();
       expect(onDownArrow).toHaveBeenCalled();

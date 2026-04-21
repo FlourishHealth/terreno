@@ -5,6 +5,16 @@ import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
 
+// Minimal shape of a test instance returned by UNSAFE_getAllByType that we rely on here.
+interface PressableTestInstance {
+  props: {
+    style?:
+      | {backgroundColor?: string; cursor?: string}
+      | {backgroundColor?: string; cursor?: string}[];
+    onPress?: (event?: {stopPropagation?: () => void}) => void;
+  };
+}
+
 describe("Modal", () => {
   it("renders correctly when visible", () => {
     const {toJSON} = renderWithTheme(
@@ -301,14 +311,16 @@ describe("Modal", () => {
     );
     // Find the backdrop Pressable (first Pressable in tree with a style that includes backgroundColor).
     const {Pressable} = require("react-native");
-    const pressables = UNSAFE_getAllByType(Pressable);
-    const backdrop = pressables.find((node: any) =>
-      Array.isArray(node.props.style)
-        ? node.props.style.some((s: any) => s?.backgroundColor?.includes?.("rgba"))
-        : node.props.style?.backgroundColor?.includes?.("rgba")
-    );
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+    const backdrop = pressables.find((node) => {
+      const style = node.props.style;
+      if (Array.isArray(style)) {
+        return style.some((s) => s?.backgroundColor?.includes?.("rgba"));
+      }
+      return style?.backgroundColor?.includes?.("rgba");
+    });
     expect(backdrop).toBeTruthy();
-    backdrop.props.onPress?.();
+    backdrop?.props.onPress?.();
     expect(handleDismiss).toHaveBeenCalled();
   });
 
@@ -320,11 +332,11 @@ describe("Modal", () => {
       </Modal>
     );
     const {Pressable} = require("react-native");
-    const pressables = UNSAFE_getAllByType(Pressable);
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
     // Inner wrapper is the pressable with style {cursor: "auto"}.
-    const inner = pressables.find((node: any) => node.props.style?.cursor === "auto");
+    const inner = pressables.find((node) => node.props.style?.cursor === "auto");
     expect(inner).toBeTruthy();
-    inner.props.onPress?.({stopPropagation});
+    inner?.props.onPress?.({stopPropagation});
     expect(stopPropagation).toHaveBeenCalled();
   });
 
@@ -336,10 +348,10 @@ describe("Modal", () => {
       </Modal>
     );
     const {Pressable} = require("react-native");
-    const pressables = UNSAFE_getAllByType(Pressable);
-    const inner = pressables.find((node: any) => node.props.style?.cursor === "auto");
+    const pressables: PressableTestInstance[] = UNSAFE_getAllByType(Pressable);
+    const inner = pressables.find((node) => node.props.style?.cursor === "auto");
     expect(inner).toBeTruthy();
-    inner.props.onPress?.({stopPropagation});
+    inner?.props.onPress?.({stopPropagation});
     expect(stopPropagation).not.toHaveBeenCalled();
   });
 });

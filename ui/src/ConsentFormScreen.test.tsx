@@ -1,9 +1,26 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {Text as RNText} from "react-native";
+
+// Mock MarkdownView with a simple Text passthrough so we can assert on the
+// rendered (variable-substituted) content without depending on
+// react-native-markdown-display's tokenization.
+mock.module("./MarkdownView", () => ({
+  MarkdownView: ({children}: {children: string}) => (
+    <RNText testID="markdown-view">{children}</RNText>
+  ),
+}));
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
+
+// Restore a no-op mock so other tests aren't affected.
+afterAll(() => {
+  mock.module("./MarkdownView", () => ({
+    MarkdownView: mock(() => null),
+  }));
+});
 
 const baseForm: ConsentFormPublic = {
   active: true,
@@ -38,8 +55,8 @@ describe("ConsentFormScreen", () => {
     expect(getByText("I agree")).toBeTruthy();
   });
 
-  it("substitutes variables in content", () => {
-    const {getByText} = renderWithTheme(
+  it("substitutes variables in content and preserves unknown placeholders", () => {
+    const {getByTestId} = renderWithTheme(
       <ConsentFormScreen
         form={{...baseForm, content: {en: "Hello {{name}}, {{missing}} stays"}}}
         locale="en"
@@ -47,12 +64,7 @@ describe("ConsentFormScreen", () => {
         variables={{name: "Ada"}}
       />
     );
-    // MarkdownView likely renders text children; fall back to checking testID if not.
-    try {
-      expect(getByText(/Hello Ada/)).toBeTruthy();
-    } catch {
-      // Some environments render markdown differently; the branch still executed.
-    }
+    expect(getByTestId("markdown-view").props.children).toBe("Hello Ada, {{missing}} stays");
   });
 
   it("invokes onAgree with signature and checkbox values", () => {
