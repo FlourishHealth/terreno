@@ -37,6 +37,65 @@ export const logSocket = (
   }
 };
 
+export interface ExpoConstantsShape {
+  experienceUrl?: string;
+  expoConfig?: {
+    extra?: Record<string, string | undefined>;
+    hostUri?: string;
+  };
+  expoGoConfig?: {
+    debuggerHost?: string;
+  };
+}
+
+export interface BaseUrls {
+  baseUrl: string;
+  baseWebsocketsUrl: string;
+  baseTasksUrl: string;
+}
+
+const LOCALHOST: BaseUrls = {
+  baseTasksUrl: "http://localhost:4000/tasks",
+  baseUrl: "http://localhost:4000",
+  baseWebsocketsUrl: "ws://localhost:4000/",
+};
+
+/**
+ * Pure resolver for the base URLs used throughout the RTK package.
+ * Decoupled from the Expo-constants module so it can be unit tested.
+ */
+export const resolveBaseUrls = (args: {
+  envApiUrl?: string;
+  expoConstants: ExpoConstantsShape;
+  isDev: boolean;
+}): BaseUrls => {
+  const hostUriPrefix = args.expoConstants.expoConfig?.hostUri?.split(":").shift();
+  const experiencePrefix = args.expoConstants.experienceUrl?.split(":")[1];
+  const baseFromExtra = args.expoConstants.expoConfig?.extra?.BASE_URL;
+  const base = args.envApiUrl ?? (!args.isDev ? baseFromExtra : undefined);
+  const host = args.isDev ? hostUriPrefix : !base ? hostUriPrefix : undefined;
+  const experience = !base && !host ? experiencePrefix : undefined;
+  if (base !== undefined)
+    return {
+      baseTasksUrl: `${base.replace("api.", "tasks.")}/tasks`,
+      baseUrl: base,
+      baseWebsocketsUrl: `${base.replace("api.", "ws.")}/`,
+    };
+  if (host !== undefined)
+    return {
+      baseTasksUrl: `http://${host}:4000/tasks`,
+      baseUrl: `http://${host}:4000`,
+      baseWebsocketsUrl: `ws://${host}:4000/`,
+    };
+  if (experience !== undefined)
+    return {
+      baseTasksUrl: `http:${experience}:4000/tasks`,
+      baseUrl: `http:${experience}:4000`,
+      baseWebsocketsUrl: `ws:${experience}:4000/`,
+    };
+  return LOCALHOST;
+};
+
 // When we use "expo publish", we want to point the API at the prod API. In the future,
 // we'll want to point at the staging API, and probably have a development release channel.
 if (Constants.expoGoConfig?.debuggerHost?.includes("exp.direct")) {
@@ -45,77 +104,20 @@ if (Constants.expoGoConfig?.debuggerHost?.includes("exp.direct")) {
   );
 }
 
-export let baseUrl: string;
-export let baseWebsocketsUrl: string;
-export let baseTasksUrl: string;
-
 const isDev = typeof __DEV__ !== "undefined" && __DEV__;
 
-if (process.env.EXPO_PUBLIC_API_URL) {
-  // Explicit override (e.g. .env)
-  baseUrl = process.env.EXPO_PUBLIC_API_URL;
-  baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
-  baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
+const resolved = resolveBaseUrls({
+  envApiUrl: process.env.EXPO_PUBLIC_API_URL,
+  expoConstants: Constants as ExpoConstantsShape,
+  isDev,
+});
 
-  console.debug(
-    `Base URL set to apiUrl ${baseUrl} for env ${
-      Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
-    }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
-  );
-} else if (isDev && Constants.expoConfig?.hostUri) {
-  // Dev simulator/device
-  baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}`;
-  baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/`;
-  baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/tasks`;
-  console.debug(
-    `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
-    Constants.expoConfig?.hostUri
-  );
-} else if (isDev && Constants.experienceUrl) {
-  // Dev web (experienceUrl)
-  baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}`;
-  baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/`;
-  baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/tasks`;
-  console.debug(
-    `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
-    Constants.expoConfig?.hostUri
-  );
-} else if (isDev) {
-  // Dev web fallback
-  baseUrl = `http://localhost:4000`;
-  baseWebsocketsUrl = `ws://localhost:4000/`;
-  baseTasksUrl = `http://localhost:4000/tasks`;
-  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
-} else if (Constants.expoConfig?.extra?.BASE_URL) {
-  // Prod/staging
-  baseUrl = Constants.expoConfig?.extra?.BASE_URL;
-  baseWebsocketsUrl = `${baseUrl.replace("api.", "ws.")}/`;
-  baseTasksUrl = `${baseUrl.replace("api.", "tasks.")}/tasks`;
+export const baseUrl = resolved.baseUrl;
+export const baseWebsocketsUrl = resolved.baseWebsocketsUrl;
+export const baseTasksUrl = resolved.baseTasksUrl;
 
-  console.debug(
-    `Base URL set to apiUrl ${baseUrl} for env ${
-      Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
-    }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
-  );
-} else if (Constants.expoConfig?.hostUri) {
-  baseUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}`;
-  baseWebsocketsUrl = `ws://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/`;
-  baseTasksUrl = `http://${Constants.expoConfig?.hostUri?.split(`:`).shift()?.concat(":4000")}/tasks`;
-  console.debug(
-    `Base URL set to hostUri ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
-    Constants.expoConfig?.hostUri
-  );
-} else if (Constants.experienceUrl) {
-  baseUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}`;
-  baseWebsocketsUrl = `ws:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/`;
-  baseTasksUrl = `http:${Constants.experienceUrl?.split(`:`)[1]?.concat(":4000")}/tasks`;
-  console.debug(
-    `Base URL set to experienceUrl ${baseUrl}, websocket to ${baseWebsocketsUrl}`,
-    Constants.expoConfig?.hostUri
-  );
-} else {
-  baseUrl = `http://localhost:4000`;
-  baseWebsocketsUrl = `ws://localhost:4000/`;
-  baseTasksUrl = `http://localhost:4000/tasks`;
-  console.debug(`Base URL set to localhost ${baseUrl}, websocket to ${baseWebsocketsUrl}`);
-}
+console.debug(
+  `Base URL set to ${baseUrl} for env ${
+    Constants.expoConfig?.extra?.APP_ENV ?? "unknown"
+  }, websocket to ${baseWebsocketsUrl}, tasks to ${baseTasksUrl}`
+);
