@@ -88,7 +88,6 @@ describe("AiApp", () => {
       skipListen: true,
       userModel: UserModel as any,
     });
-    const agent = await authAsUser(app);
     // Unauthenticated access to upload route: ensure it exists (returns 401, not 404).
     const upload = await supertest(app).post("/files/upload");
     expect(upload.status).not.toBe(404);
