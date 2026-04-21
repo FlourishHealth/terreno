@@ -229,6 +229,77 @@ describe("AIService", () => {
     });
   });
 
+  describe("generateChatStream", () => {
+    it("streams chat responses and logs usage", async () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+      const userId = new mongoose.Types.ObjectId();
+
+      const chunks: string[] = [];
+      for await (const chunk of service.generateChatStream({
+        messages: [{content: "Hi", role: "user"}],
+        systemPrompt: "You are helpful",
+        userId,
+      })) {
+        chunks.push(chunk);
+      }
+      expect(chunks.join("")).toBe("Mock response");
+
+      const logs = await AIRequest.find({userId});
+      expect(logs.length).toBe(1);
+      expect(logs[0].response).toBe("Mock response");
+    });
+
+    it("logs errors from the stream", async () => {
+      const model = createMockModel();
+      model.doStream = mock(async () => {
+        throw new Error("stream failure");
+      });
+      const service = new AIService({model: model as any});
+      let threw = false;
+      try {
+        for await (const _chunk of service.generateChatStream({
+          messages: [{content: "Hi", role: "user"}],
+        })) {
+          // consume
+        }
+      } catch (err) {
+        threw = true;
+        expect(err).toBeDefined();
+      }
+      expect(threw).toBe(true);
+
+      const logs = await AIRequest.find({});
+      const errored = logs.find((l) => !!l.error);
+      expect(errored).toBeDefined();
+    });
+  });
+
+  describe("buildMessages file parts", () => {
+    it("includes file parts from multi-modal user prompts", () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as any});
+      const messages = service.buildMessages([
+        {
+          content: [
+            {text: "Look", type: "text" as const},
+            {
+              filename: "doc.pdf",
+              mimeType: "application/pdf",
+              type: "file" as const,
+              url: "https://example.com/doc.pdf",
+            },
+          ],
+          text: "Look",
+          type: "user",
+        },
+      ]);
+      const content = (messages[0] as any).content;
+      expect(content[1].type).toBe("file");
+      expect(content[1].filename).toBe("doc.pdf");
+    });
+  });
+
   describe("TemperaturePresets", () => {
     it("should have correct values", () => {
       expect(TemperaturePresets.DETERMINISTIC).toBe(0);

@@ -16,29 +16,7 @@ export const addProjectRoutes = (
   router: any,
   options?: {openApiOptions?: Record<string, unknown>}
 ): void => {
-  router.use(
-    "/gpt/projects",
-    modelRouter(Project, {
-      ...options?.openApiOptions,
-      permissions: {
-        create: [Permissions.IsAuthenticated],
-        delete: [Permissions.IsOwner],
-        list: [Permissions.IsAuthenticated],
-        read: [Permissions.IsOwner],
-        update: [Permissions.IsOwner],
-      },
-      preCreate: (body, req: express.Request) =>
-        ({
-          ...body,
-          userId: (req as any).user?._id,
-        }) as unknown as ProjectDocument,
-      queryFields: ["userId"],
-      queryFilter: (user: any) => ({userId: user?.id}),
-      sort: "-updated",
-    })
-  );
-
-  // Add memory to a project
+  // Add memory to a project (registered before modelRouter so it isn't shadowed)
   router.post(
     "/gpt/projects/:id/memories",
     [
@@ -112,6 +90,28 @@ export const addProjectRoutes = (
       await project.save();
 
       return res.json({data: {deleted: true}});
+    })
+  );
+
+  router.use(
+    "/gpt/projects",
+    modelRouter(Project, {
+      ...options?.openApiOptions,
+      permissions: {
+        create: [Permissions.IsAuthenticated],
+        delete: [Permissions.IsOwner],
+        list: [Permissions.IsAuthenticated],
+        read: [Permissions.IsOwner],
+        update: [Permissions.IsOwner],
+      },
+      preCreate: (body, req: express.Request) =>
+        ({
+          ...body,
+          userId: (req as any).user?._id,
+        }) as unknown as ProjectDocument,
+      queryFields: ["userId"],
+      queryFilter: (user: any) => ({userId: user?.id}),
+      sort: "-updated",
     })
   );
 };
