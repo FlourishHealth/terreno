@@ -251,9 +251,9 @@ describe("componentToSlug", () => {
 
 describe("parseComponentsFromTypeDoc", () => {
   test("returns empty array when Common module is missing", () => {
-    expect(
-      parseComponentsFromTypeDoc({children: [{children: [], name: "Other"}]} as any)
-    ).toEqual([]);
+    expect(parseComponentsFromTypeDoc({children: [{children: [], name: "Other"}]} as any)).toEqual(
+      []
+    );
   });
 
   test("returns empty array when typedoc has no children", () => {
