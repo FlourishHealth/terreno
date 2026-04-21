@@ -368,6 +368,9 @@
         "@types/bun": "^1.2.4",
         "@types/express": "^5.0.6",
         "@types/lodash": "catalog:",
+        "@types/supertest": "^6.0.2",
+        "passport-local-mongoose": "^9.0.1",
+        "supertest": "^7.0.0",
         "typescript": "catalog:",
       },
       "peerDependencies": {

@@ -1,6 +1,6 @@
 import {describe, expect, it} from "bun:test";
-import {deterministicHash, evaluateFlag} from "../evaluate";
-import type {FeatureFlagDocument, SegmentFunction} from "../types";
+import {deterministicHash, evaluateAllFlags, evaluateFlag} from "../evaluate";
+import type {FeatureFlagDocument, FeatureFlagModel, SegmentFunction} from "../types";
 
 const createFlag = (overrides: Partial<FeatureFlagDocument> = {}): FeatureFlagDocument => {
   return {
@@ -330,5 +330,274 @@ describe("evaluateFlag", () => {
 
       expect(evaluateFlag(flag, "user1", {}, noSegments)).toBe(false);
     });
+
+    it("returns false when segment function throws", () => {
+      const segments: Record<string, SegmentFunction> = {
+        "throwing-segment": (): boolean => {
+          throw new Error("boom");
+        },
+      };
+
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, segment: "throwing-segment"}],
+      });
+
+      expect(evaluateFlag(flag, "user1", {}, segments)).toBe(false);
+    });
+
+    it("uses segment rule for variant flags", () => {
+      const segments: Record<string, SegmentFunction> = {
+        "pro-users": (user: unknown) => (user as {plan: string}).plan === "pro",
+      };
+
+      const flag = createFlag({
+        rules: [{segment: "pro-users", variant: "variant-a"}],
+        type: "variant",
+        variants: [
+          {key: "control", weight: 50},
+          {key: "variant-a", weight: 50},
+        ],
+      });
+
+      expect(evaluateFlag(flag, "user1", {plan: "pro"}, segments)).toBe("variant-a");
+    });
+  });
+
+  describe("malformed field rules", () => {
+    it("does not match a rule with no field and no segment", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true}],
+      });
+
+      expect(evaluateFlag(flag, "user1", {anything: true}, noSegments)).toBe(false);
+    });
+
+    it("does not match a rule with a field but no operator", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "admin"}],
+      });
+
+      expect(evaluateFlag(flag, "user1", {admin: true}, noSegments)).toBe(false);
+    });
+
+    it("does not match a rule with an unknown operator", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [
+          {
+            enabled: true,
+            field: "admin",
+            operator: "bogus" as unknown as "eq",
+            value: true,
+          },
+        ],
+      });
+
+      expect(evaluateFlag(flag, "user1", {admin: true}, noSegments)).toBe(false);
+    });
+
+    it("does not match gt/lt when values are not numbers", () => {
+      const gtFlag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "age", operator: "gt", value: 18}],
+      });
+      expect(evaluateFlag(gtFlag, "user1", {age: "twenty"}, noSegments)).toBe(false);
+
+      const ltFlag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "age", operator: "lt", value: 18}],
+      });
+      expect(evaluateFlag(ltFlag, "user1", {age: undefined}, noSegments)).toBe(false);
+    });
+
+    it("does not match contains when values are not strings", () => {
+      const flag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "email", operator: "contains", value: "@company.com"}],
+      });
+
+      expect(evaluateFlag(flag, "user1", {email: 42}, noSegments)).toBe(false);
+    });
+
+    it("does not match in/nin when rule.value is not an array", () => {
+      const inFlag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "plan", operator: "in", value: "pro"}],
+      });
+      expect(evaluateFlag(inFlag, "user1", {plan: "pro"}, noSegments)).toBe(false);
+
+      const ninFlag = createFlag({
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "plan", operator: "nin", value: "pro"}],
+      });
+      expect(evaluateFlag(ninFlag, "user1", {plan: "pro"}, noSegments)).toBe(false);
+    });
+
+    it("treats rule.enabled as false by default when undefined on a matching boolean rule", () => {
+      const flag = createFlag({
+        rolloutPercentage: 100,
+        rules: [{field: "admin", operator: "eq", value: true}],
+      });
+
+      // rule matches, but rule.enabled is undefined → evaluates to false
+      expect(evaluateFlag(flag, "user1", {admin: true}, noSegments)).toBe(false);
+    });
+
+    it("treats rule.variant as null when undefined on a matching variant rule", () => {
+      const flag = createFlag({
+        rules: [{field: "admin", operator: "eq", value: true}],
+        type: "variant",
+        variants: [
+          {key: "control", weight: 50},
+          {key: "variant-a", weight: 50},
+        ],
+      });
+
+      expect(evaluateFlag(flag, "user1", {admin: true}, noSegments)).toBeNull();
+    });
+  });
+
+  describe("variant fallback behavior", () => {
+    it("falls back to the last variant when weights do not sum to 100", () => {
+      const flag = createFlag({
+        type: "variant",
+        // Weights only sum to 10 — the hash will always exceed cumulative weight
+        variants: [
+          {key: "a", weight: 5},
+          {key: "b", weight: 5},
+        ],
+      });
+
+      // Pick a user whose hash is guaranteed >= 10
+      const userId = "this-user-hashes-high";
+      const hash = deterministicHash(`${userId}:${flag.key}`);
+      // Make sure our assumption holds before asserting the fallback
+      expect(hash).toBeGreaterThanOrEqual(10);
+
+      expect(evaluateFlag(flag, userId, {}, noSegments)).toBe("b");
+    });
+
+    it("returns null when an enabled variant flag has no variants defined", () => {
+      const flag = createFlag({
+        type: "variant",
+        variants: [],
+      });
+
+      expect(evaluateFlag(flag, "user1", {}, noSegments)).toBeNull();
+    });
+  });
+
+  describe("debug logging toggle", () => {
+    it("runs without logging when FEATURE_FLAGS_DEBUG is 'false'", () => {
+      const original = process.env.FEATURE_FLAGS_DEBUG;
+      process.env.FEATURE_FLAGS_DEBUG = "false";
+      try {
+        const flag = createFlag({
+          rolloutPercentage: 100,
+          rules: [{enabled: true, field: "admin", operator: "eq", value: true}],
+        });
+        expect(evaluateFlag(flag, "user1", {admin: true}, noSegments)).toBe(true);
+        expect(evaluateFlag(flag, "user2", {admin: false}, noSegments)).toBe(true);
+
+        const disabledFlag = createFlag({enabled: false});
+        expect(evaluateFlag(disabledFlag, "user3", {}, noSegments)).toBe(false);
+      } finally {
+        if (original === undefined) {
+          delete process.env.FEATURE_FLAGS_DEBUG;
+        } else {
+          process.env.FEATURE_FLAGS_DEBUG = original;
+        }
+      }
+    });
+  });
+});
+
+describe("evaluateAllFlags", () => {
+  const makeMockModel = (flags: FeatureFlagDocument[]): FeatureFlagModel => {
+    return {
+      find: async (query: Record<string, unknown>) => {
+        return flags.filter((flag) => {
+          if (
+            query.archived &&
+            typeof query.archived === "object" &&
+            "$ne" in (query.archived as Record<string, unknown>)
+          ) {
+            if (flag.archived) {
+              return false;
+            }
+          }
+          if (query.enabled !== undefined && flag.enabled !== query.enabled) {
+            return false;
+          }
+          return true;
+        });
+      },
+    } as unknown as FeatureFlagModel;
+  };
+
+  it("returns an empty object when there are no flags", async () => {
+    const model = makeMockModel([]);
+    const result = await evaluateAllFlags(model, "user1", {}, noSegments);
+    expect(result).toEqual({});
+  });
+
+  it("evaluates each enabled flag and keys results by flag key", async () => {
+    const flags = [
+      createFlag({key: "flag-a", rolloutPercentage: 100}),
+      createFlag({key: "flag-b", rolloutPercentage: 0}),
+      createFlag({
+        key: "flag-c",
+        rolloutPercentage: 0,
+        rules: [{enabled: true, field: "admin", operator: "eq", value: true}],
+      }),
+    ];
+
+    const model = makeMockModel(flags);
+    const result = await evaluateAllFlags(model, "user1", {admin: true}, noSegments);
+
+    expect(result["flag-a"]).toBe(true);
+    expect(result["flag-b"]).toBe(false);
+    expect(result["flag-c"]).toBe(true);
+  });
+
+  it("supports variant flags in the aggregate evaluation", async () => {
+    const flags = [
+      createFlag({
+        key: "variant-flag",
+        rules: [{segment: "pros", variant: "variant-a"}],
+        type: "variant",
+        variants: [
+          {key: "control", weight: 50},
+          {key: "variant-a", weight: 50},
+        ],
+      }),
+    ];
+
+    const segments: Record<string, SegmentFunction> = {
+      pros: (user: unknown) => (user as {pro: boolean}).pro === true,
+    };
+
+    const model = makeMockModel(flags);
+    const result = await evaluateAllFlags(model, "user1", {pro: true}, segments);
+    expect(result["variant-flag"]).toBe("variant-a");
+  });
+
+  it("runs with debug logging disabled", async () => {
+    const original = process.env.FEATURE_FLAGS_DEBUG;
+    process.env.FEATURE_FLAGS_DEBUG = "false";
+    try {
+      const model = makeMockModel([createFlag({key: "flag-a"})]);
+      const result = await evaluateAllFlags(model, "user1", {}, noSegments);
+      expect(result["flag-a"]).toBe(true);
+    } finally {
+      if (original === undefined) {
+        delete process.env.FEATURE_FLAGS_DEBUG;
+      } else {
+        process.env.FEATURE_FLAGS_DEBUG = original;
+      }
+    }
   });
 });
