@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {Platform} from "react-native";
@@ -95,6 +95,8 @@ const press = async (el: any): Promise<void> => {
 };
 
 describe("DocumentStorageBrowser", () => {
+  const originalPlatformOS = Platform.OS;
+
   beforeEach(() => {
     listState.data = undefined;
     listState.isLoading = false;
@@ -111,6 +113,10 @@ describe("DocumentStorageBrowser", () => {
     deleteFolderImpl = async () => ({});
     createFolderImpl = async () => ({});
     downloadImpl = async () => new Blob(["hi"]);
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Platform, "OS", {configurable: true, value: originalPlatformOS});
   });
 
   it("renders loading state", () => {
