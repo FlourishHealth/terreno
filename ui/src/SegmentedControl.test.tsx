@@ -81,4 +81,42 @@ describe("SegmentedControl", () => {
     expect(getByText("Tab 3")).toBeTruthy();
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("invokes handleNext when next scroll button is pressed", () => {
+    const manyItems = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Tab 6"];
+    const {UNSAFE_getAllByProps, queryByText} = renderWithTheme(
+      <SegmentedControl items={manyItems} maxItems={3} selectedIndex={0} />
+    );
+    // Find the right chevron (next button) by its icon prop
+    const nextIcons = UNSAFE_getAllByProps({iconName: "chevron-right"});
+    expect(nextIcons.length).toBeGreaterThan(0);
+    const pressable = nextIcons[0].parent;
+    expect(pressable).toBeTruthy();
+    if (pressable) {
+      fireEvent.press(pressable);
+    }
+    // After pressing next, should display items starting at Tab 4
+    expect(queryByText("Tab 4")).toBeTruthy();
+    expect(queryByText("Tab 1")).toBeNull();
+  });
+
+  it("invokes handlePrevious when previous scroll button is pressed", () => {
+    const manyItems = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Tab 6"];
+    const {UNSAFE_getAllByProps, queryByText} = renderWithTheme(
+      <SegmentedControl items={manyItems} maxItems={3} selectedIndex={0} />
+    );
+    const nextIcons = UNSAFE_getAllByProps({iconName: "chevron-right"});
+    const nextPressable = nextIcons[0].parent;
+    if (nextPressable) {
+      fireEvent.press(nextPressable);
+    }
+    // Now scrolled forward; press previous to go back
+    const prevIcons = UNSAFE_getAllByProps({iconName: "chevron-left"});
+    const prevPressable = prevIcons[0].parent;
+    if (prevPressable) {
+      fireEvent.press(prevPressable);
+    }
+    // Should be back to Tab 1
+    expect(queryByText("Tab 1")).toBeTruthy();
+  });
 });

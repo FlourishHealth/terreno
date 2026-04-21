@@ -103,4 +103,26 @@ describe("Banner", () => {
       expect(handleClick).toHaveBeenCalled();
     });
   });
+
+  it("invokes buttonOnClick when icon button is pressed", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(
+      <Banner
+        buttonIconName="arrow-right"
+        buttonOnClick={handleClick}
+        buttonText="Go"
+        id="test-icon-banner"
+        text="Banner"
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Go"));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    await waitFor(() => {
+      expect(handleClick).toHaveBeenCalled();
+    });
+  });
 });

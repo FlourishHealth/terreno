@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
 
 import {Page} from "./Page";
 import {Text} from "./Text";
@@ -124,5 +125,42 @@ describe("Page", () => {
       </Page>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("invokes rightButtonOnClick when right button is pressed", async () => {
+    const handleRightClick = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Page
+        navigation={mockNavigation}
+        rightButton="Save"
+        rightButtonOnClick={handleRightClick}
+        title="Page"
+      >
+        <Text>Content</Text>
+      </Page>
+    );
+    await act(async () => {
+      fireEvent.press(getByText("Save"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    await waitFor(() => expect(handleRightClick).toHaveBeenCalled());
+  });
+
+  it("renders without header when title and backButton are both absent", () => {
+    const {queryByText} = renderWithTheme(
+      <Page navigation={mockNavigation}>
+        <Text>Plain page</Text>
+      </Page>
+    );
+    expect(queryByText("Plain page")).toBeTruthy();
+  });
+
+  it("renders loading state with loadingText", () => {
+    const {getByText} = renderWithTheme(
+      <Page loading loadingText="Loading data..." navigation={mockNavigation}>
+        <Text>Content</Text>
+      </Page>
+    );
+    expect(getByText("Loading data...")).toBeTruthy();
   });
 });
