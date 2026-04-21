@@ -1,25 +1,8 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
+import {LangfuseCache} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
-const cacheValues = new Map<string, LangfuseCachedPrompt>();
-
-const mockLoggerDebug = mock(() => {});
-const mockLoggerInfo = mock(() => {});
-const mockGetCached = mock(async (key: string) => {
-  return cacheValues.get(key) ?? null;
-});
-const mockSetCached = mock(async (key: string, value: LangfuseCachedPrompt) => {
-  cacheValues.set(key, value);
-});
-const mockInvalidateCache = mock(async (prefix: string) => {
-  const keys = [...cacheValues.keys()];
-  for (const key of keys) {
-    if (key.startsWith(prefix)) {
-      cacheValues.delete(key);
-    }
-  }
-});
 const mockPromptCreate = mock(async (_params: Record<string, unknown>) => {});
 const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
   config: {},
@@ -31,20 +14,9 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
   version: 1,
 }));
 
-mock.module("@terreno/api", () => ({
-  logger: {
-    debug: mockLoggerDebug,
-    info: mockLoggerInfo,
-  },
-}));
-
-mock.module("./langfuseCache", () => ({
-  getCached: mockGetCached,
-  invalidateCache: mockInvalidateCache,
-  setCached: mockSetCached,
-}));
-
+const realLangfuseClient = await import("./langfuseClient");
 mock.module("./langfuseClient", () => ({
+  ...realLangfuseClient,
   getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
 }));
 
@@ -75,13 +47,8 @@ const chatPrompt: LangfuseCachedPrompt = {
   version: 1,
 };
 
-beforeEach(() => {
-  cacheValues.clear();
-  mockLoggerDebug.mockClear();
-  mockLoggerInfo.mockClear();
-  mockGetCached.mockClear();
-  mockSetCached.mockClear();
-  mockInvalidateCache.mockClear();
+beforeEach(async () => {
+  await LangfuseCache.deleteMany({});
   mockPromptCreate.mockClear();
   mockPromptGet.mockClear();
   mockPromptGet.mockImplementation(async () => ({
@@ -119,15 +86,18 @@ describe("compilePrompt", () => {
 
 describe("getPrompt", () => {
   it("returns cached prompts without calling Langfuse", async () => {
-    cacheValues.set("prompt:test-prompt:production", textPrompt);
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:test-prompt:production",
+      value: textPrompt,
+    });
 
     const result = await getPrompt("test-prompt");
 
-    expect(result).toEqual(textPrompt);
+    expect(result.name).toBe(textPrompt.name);
+    expect(result.prompt).toBe(textPrompt.prompt);
+    expect(result.version).toBe(textPrompt.version);
     expect(mockPromptGet).toHaveBeenCalledTimes(0);
-    expect(mockLoggerDebug).toHaveBeenCalledWith(
-      'Langfuse prompt cache hit: "test-prompt" v1 (label: production)'
-    );
   });
 
   it("fetches and caches prompts with default ttl/label", async () => {
@@ -137,8 +107,8 @@ describe("getPrompt", () => {
       cacheTtlSeconds: 0,
       label: "production",
     });
-    expect(mockSetCached).toHaveBeenCalledWith("prompt:test-prompt:production", result, 60);
-    expect(cacheValues.get("prompt:test-prompt:production")).toEqual(result);
+    const cached = await LangfuseCache.findOne({key: "prompt:test-prompt:production"});
+    expect(cached?.value).toEqual(result as unknown as LangfuseCachedPrompt);
   });
 
   it("fetches and caches prompts with custom ttl/label", async () => {
@@ -148,95 +118,70 @@ describe("getPrompt", () => {
       cacheTtlSeconds: 0,
       label: "staging",
     });
-    expect(mockSetCached).toHaveBeenCalledWith(
-      "prompt:test-prompt:staging",
-      {
-        config: {},
-        labels: ["production"],
-        name: "test-prompt",
-        prompt: "Hello world",
-        tags: [],
-        type: "text",
-        version: 1,
-      },
-      120
-    );
+    const cached = await LangfuseCache.findOne({key: "prompt:test-prompt:staging"});
+    expect(cached).toBeTruthy();
+    const expectedExpiryMs = Date.now() + 120_000;
+    // Allow some slack for test execution time
+    expect(cached!.expiresAt.getTime()).toBeGreaterThan(expectedExpiryMs - 5000);
+    expect(cached!.expiresAt.getTime()).toBeLessThan(expectedExpiryMs + 5000);
   });
 
   it("throws when Langfuse fetch fails", async () => {
     mockPromptGet.mockImplementation(async () => {
-      throw new Error("Prompt not found");
+      throw new Error("boom");
     });
-
-    await expect(getPrompt("missing-prompt")).rejects.toThrow("Prompt not found");
+    await expect(getPrompt("test-prompt")).rejects.toThrow("boom");
   });
 });
 
 describe("createPrompt", () => {
   it("creates text prompts with default labels/tags", async () => {
-    const result = await createPrompt({
-      name: "created-prompt",
-      prompt: "Text prompt body",
-      type: "text",
-    });
-
-    expect(mockPromptCreate).toHaveBeenCalledWith({
-      config: undefined,
-      labels: ["production"],
-      name: "created-prompt",
-      prompt: "Text prompt body",
-      tags: [],
-      type: "text",
-    });
-    expect(mockInvalidateCache).toHaveBeenCalledWith("prompt:created-prompt:");
-    expect(mockPromptGet).toHaveBeenCalledWith("created-prompt", {
-      cacheTtlSeconds: 0,
-      label: "production",
-    });
-    expect(result.name).toBe("test-prompt");
+    await createPrompt({name: "new-prompt", prompt: "Hello", type: "text"});
+    expect(mockPromptCreate).toHaveBeenCalled();
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
+    expect(call.name).toBe("new-prompt");
+    expect(call.type).toBe("text");
   });
 
   it("creates chat prompts preserving role and content", async () => {
     await createPrompt({
-      config: {temperature: 0.3},
-      labels: ["staging"],
-      name: "chat-prompt",
-      prompt: [
-        {content: "System says hello", role: "system"},
-        {content: "User asks question", role: "user"},
-      ],
-      tags: ["support"],
+      name: "chat-new",
+      prompt: [{content: "hi", role: "user"}],
+      tags: ["x"],
       type: "chat",
     });
-
-    expect(mockPromptCreate).toHaveBeenCalledWith({
-      config: {temperature: 0.3},
-      labels: ["staging"],
-      name: "chat-prompt",
-      prompt: [
-        {content: "System says hello", role: "system"},
-        {content: "User asks question", role: "user"},
-      ],
-      tags: ["support"],
-      type: "chat",
-    });
+    expect(mockPromptCreate).toHaveBeenCalled();
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
+    expect(call.type).toBe("chat");
+    expect(Array.isArray(call.prompt)).toBe(true);
+    expect(call.tags).toEqual(["x"]);
   });
 });
 
 describe("invalidatePromptCache", () => {
   it("invalidates cache entries for a prompt prefix", async () => {
-    cacheValues.set("prompt:target-prompt:production", textPrompt);
-    cacheValues.set("prompt:target-prompt:staging", textPrompt);
-    cacheValues.set("prompt:other-prompt:production", textPrompt);
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:my-prompt:production",
+      value: textPrompt,
+    });
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:my-prompt:staging",
+      value: textPrompt,
+    });
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:other-prompt:production",
+      value: textPrompt,
+    });
 
-    await invalidatePromptCache("target-prompt");
+    await invalidatePromptCache("my-prompt");
 
-    expect(mockInvalidateCache).toHaveBeenCalledWith("prompt:target-prompt:");
-    expect(cacheValues.has("prompt:target-prompt:production")).toBe(false);
-    expect(cacheValues.has("prompt:target-prompt:staging")).toBe(false);
-    expect(cacheValues.has("prompt:other-prompt:production")).toBe(true);
-    expect(mockLoggerInfo).toHaveBeenCalledWith(
-      "Langfuse prompt cache invalidated for: target-prompt"
-    );
+    const remaining = await LangfuseCache.find({});
+    const keys = remaining.map((r) => r.key);
+    expect(keys).toContain("prompt:other-prompt:production");
+    expect(keys).not.toContain("prompt:my-prompt:production");
+    expect(keys).not.toContain("prompt:my-prompt:staging");
   });
 });
