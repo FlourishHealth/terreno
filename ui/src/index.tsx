@@ -259,8 +259,8 @@ export interface LayoutRoot {
    * Set the root
    */
   root: Layout;
-  modals?: any;
-  overlays?: any;
+  modals?: Layout[];
+  overlays?: Layout[];
 }
 export interface ExternalComponent {
   /**
