@@ -92,7 +92,13 @@ describe("AiApp", () => {
     const fileStorageService = {
       delete: mock(async () => {}),
       getSignedUrl: mock(async () => "https://gcs/signed"),
-      uploadFile: mock(async () => "https://gcs/file"),
+      upload: mock(async () => ({
+        filename: "file",
+        gcsKey: "uploads/file",
+        mimeType: "application/octet-stream",
+        size: 0,
+        url: "https://gcs/file",
+      })),
     } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService, gcsBucket: "test-bucket"});
     const app = setupServer({
@@ -106,7 +112,15 @@ describe("AiApp", () => {
   });
 
   it("skips file routes when only fileStorageService is provided", async () => {
-    const fileStorageService = {uploadFile: mock(async () => "x")} as unknown as FileStorageService;
+    const fileStorageService = {
+      upload: mock(async () => ({
+        filename: "x",
+        gcsKey: "uploads/x",
+        mimeType: "application/octet-stream",
+        size: 0,
+        url: "x",
+      })),
+    } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService});
     const app = setupServer({
       addRoutes: (router) => plugin.register(router as unknown as express.Application),
@@ -119,9 +133,9 @@ describe("AiApp", () => {
 
   it("registers mcp routes when mcpService is provided", async () => {
     const mcpService = {
-      getMCPStatus: mock(() => []),
+      getServerStatus: mock(() => []),
       getTools: mock(async () => ({})),
-      reconnect: mock(async () => {}),
+      reconnectServer: mock(async () => {}),
     } as unknown as MCPService;
     const plugin = new AiApp({mcpService});
     const app = setupServer({
