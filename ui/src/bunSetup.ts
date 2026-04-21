@@ -435,6 +435,7 @@ if (typeof globalThis.expo === "undefined") {
 // Mock expo-router
 mock.module("expo-router", () => ({
   Link: ({children, ...props}: any) => React.createElement("Link", props, children),
+  Navigator: ({children, ...props}: any) => React.createElement("Navigator", props, children),
   router: {
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -442,9 +443,18 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   },
+  Slot: ({children, ...props}: any) => React.createElement("Slot", props, children),
   Stack: ({children, ...props}: any) => React.createElement("Stack", props, children),
   Tabs: ({children, ...props}: any) => React.createElement("Tabs", props, children),
+  useFocusEffect: mock(() => undefined),
   useLocalSearchParams: mock(() => ({})),
+  useNavigation: mock(() => ({
+    addListener: mock(() => () => undefined),
+    goBack: mock(() => {}),
+    navigate: mock(() => {}),
+    setOptions: mock(() => {}),
+  })),
+  usePathname: mock(() => "/"),
   useRouter: mock(() => ({
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -452,6 +462,7 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   })),
+  useSearchParams: mock(() => ({})),
   useSegments: mock(() => []),
 }));
 
@@ -1159,6 +1170,7 @@ mock.module("react-native-gesture-handler", () => {
   const createChainableGesture = (): any => {
     const gesture: any = {};
     const chainableMethods = [
+      "onBegin",
       "onStart",
       "onEnd",
       "onUpdate",
@@ -1277,6 +1289,7 @@ mock.module("react-native-reanimated", () => {
     runOnJS: mock((fn: any) => fn),
     runOnUI: mock((fn: any) => fn),
     useAnimatedGestureHandler: mock(() => ({})),
+    useAnimatedReaction: mock(() => undefined),
     useAnimatedStyle: mock((fn: any) => fn()),
     useDerivedValue: mock((fn: any) => ({value: fn()})),
     useSharedValue: mock((val: any) => ({value: val})),

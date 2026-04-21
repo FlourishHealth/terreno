@@ -46,8 +46,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
-    "test": "bun test",
-    "test:ci": "bun test"
+    "test": "bun test && bun test ./src/isolated/AdminFieldRenderer.isolated.tsx && bun test ./src/isolated/AdminNestedArrayField.isolated.tsx && bun test ./src/isolated/AdminObjectPicker.isolated.tsx && bun test ./src/isolated/AdminRefField.isolated.tsx && bun test ./src/isolated/AdminScriptRunModal.isolated.tsx && bun test ./src/isolated/DocumentStorageBrowser.isolated.tsx && bun test ./src/isolated/generateConsentPdf.isolated.ts && bun test ./src/isolated/hooks.isolated.tsx",
+    "test:ci": "bun test && bun test ./src/isolated/AdminFieldRenderer.isolated.tsx && bun test ./src/isolated/AdminNestedArrayField.isolated.tsx && bun test ./src/isolated/AdminObjectPicker.isolated.tsx && bun test ./src/isolated/AdminRefField.isolated.tsx && bun test ./src/isolated/AdminScriptRunModal.isolated.tsx && bun test ./src/isolated/DocumentStorageBrowser.isolated.tsx && bun test ./src/isolated/generateConsentPdf.isolated.ts && bun test ./src/isolated/hooks.isolated.tsx"
   },
   "types": "dist/index.d.ts",
   "version": "0.10.0"

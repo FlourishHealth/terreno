@@ -1,0 +1,255 @@
+import {beforeEach, describe, expect, it, mock} from "bun:test";
+
+interface JsPDFCall {
+  method: string;
+  args: unknown[];
+}
+
+const calls: JsPDFCall[] = [];
+
+class MockJsPDF {
+  constructor(_opts?: unknown) {
+    calls.push({args: [_opts], method: "ctor"});
+  }
+  addImage(...args: unknown[]) {
+    calls.push({args, method: "addImage"});
+  }
+  addPage() {
+    calls.push({args: [], method: "addPage"});
+  }
+  line(...args: unknown[]) {
+    calls.push({args, method: "line"});
+  }
+  save(...args: unknown[]) {
+    calls.push({args, method: "save"});
+  }
+  setDrawColor(...args: unknown[]) {
+    calls.push({args, method: "setDrawColor"});
+  }
+  setFont(...args: unknown[]) {
+    calls.push({args, method: "setFont"});
+  }
+  setFontSize(...args: unknown[]) {
+    calls.push({args, method: "setFontSize"});
+  }
+  setTextColor(...args: unknown[]) {
+    calls.push({args, method: "setTextColor"});
+  }
+  splitTextToSize(text: string, _width: number): string[] {
+    // Split the snapshot text into multiple simulated lines so we exercise the
+    // ensureSpace branch that adds a new page when content runs long.
+    return text.split("\n");
+  }
+  text(...args: unknown[]) {
+    calls.push({args, method: "text"});
+  }
+}
+
+mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
+
+import {generateConsentPdf} from "../generateConsentPdf";
+
+describe("generateConsentPdf", () => {
+  beforeEach(() => {
+    calls.length = 0;
+  });
+
+  it("generates a pdf with a populated consent response (object form + signature + checkboxes + audit trail)", async () => {
+    const longContent = Array.from({length: 120}, (_, i) => `line ${i}`).join("\n");
+
+    await generateConsentPdf({
+      _id: "response-123",
+      agreed: true,
+      agreedAt: "2024-01-15T12:00:00Z",
+      checkboxValues: {"0": true, "1": false},
+      consentFormId: {
+        slug: "privacy",
+        title: "Privacy Policy",
+        type: "legal",
+        version: 2,
+      },
+      contentSnapshot: longContent,
+      formVersionSnapshot: 2,
+      ipAddress: "127.0.0.1",
+      locale: "en",
+      signature: "data:image/png;base64,AAA",
+      signedAt: "2024-01-15T12:01:00Z",
+      userAgent: "Mozilla",
+      userId: {_id: "user-1", email: "u@x.com", name: "User"},
+    });
+
+    const methods = calls.map((c) => c.method);
+    expect(methods).toContain("ctor");
+    expect(methods).toContain("save");
+    expect(methods).toContain("addImage");
+    // Long content should force at least one additional page.
+    expect(methods).toContain("addPage");
+
+    // Filename starts with "consent-<slug>-<last6 of id>-"
+    const saveCall = calls.find((c) => c.method === "save");
+    expect(String(saveCall?.args[0])).toMatch(/^consent-privacy-user-1-/);
+  });
+
+  it("handles declined responses and string-based consentFormId/userId", async () => {
+    await generateConsentPdf({
+      agreed: false,
+      consentFormId: "legacy-string",
+      userId: "legacy-user",
+    });
+    const saveCall = calls.find((c) => c.method === "save");
+    expect(String(saveCall?.args[0])).toMatch(/^consent-response-/);
+  });
+
+  it("falls back gracefully when signature addImage throws", async () => {
+    class FailingJsPDF extends MockJsPDF {
+      addImage() {
+        throw new Error("bad image");
+      }
+    }
+    mock.module("jspdf", () => ({jsPDF: FailingJsPDF}));
+    const {generateConsentPdf: gen} = await import("../generateConsentPdf?fresh-fail");
+    await gen({
+      agreed: true,
+      signature: "data:image/jpeg;base64,BBB",
+      userId: "u1",
+    });
+    const textCalls = calls.filter((c) => c.method === "text" && typeof c.args[0] === "string");
+    const messages = textCalls.map((c) => c.args[0]);
+    expect(
+      messages.some((m) => String(m).includes("(Signature image could not be embedded)"))
+    ).toBe(true);
+
+    // Restore the default mock so other tests use the passing variant.
+    mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
+  });
+
+  it("formats invalid dates by returning the raw value", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      agreedAt: "not-a-date",
+      userId: "user-short",
+    });
+
+    const textCalls = calls.filter((c) => c.method === "text");
+    const rendered = textCalls.map((c) => String(c.args[0]));
+    expect(rendered.some((t) => t === "not-a-date")).toBe(true);
+  });
+
+  it("formats empty date value as empty string", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      agreedAt: "",
+      userId: "u",
+    });
+    expect(calls.find((c) => c.method === "save")).toBeDefined();
+  });
+
+  it("covers audit trail branches independently (ipAddress only)", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      ipAddress: "10.0.0.1",
+      userId: "u",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t.includes("Audit Trail"))).toBe(true);
+    expect(textArgs.some((t) => t === "10.0.0.1")).toBe(true);
+  });
+
+  it("covers audit trail branches independently (userAgent only)", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      userAgent: "Mozilla",
+      userId: "u",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t === "Mozilla")).toBe(true);
+  });
+
+  it("covers audit trail branches independently (signedAt valid date)", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      formVersionSnapshot: 3,
+      signedAt: "2024-02-01T10:00:00Z",
+      userId: "u",
+    });
+    expect(calls.find((c) => c.method === "save")).toBeDefined();
+  });
+
+  it("covers contentSnapshot without audit trail", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      contentSnapshot: "paragraph one\nparagraph two\nparagraph three",
+      userId: "u",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t === "paragraph one")).toBe(true);
+  });
+
+  it("covers checkboxValues with only falsy entries and no other optional fields", async () => {
+    await generateConsentPdf({
+      agreed: false,
+      checkboxValues: {"0": false, "1": false},
+      userId: "user",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t.startsWith("[ ] Checkbox"))).toBe(true);
+  });
+
+  it("handles consentFormId object with missing optional fields", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      consentFormId: {} as any,
+      userId: {} as any,
+    });
+    expect(calls.find((c) => c.method === "save")).toBeDefined();
+  });
+
+  it("renders a JPEG signature successfully (no throw)", async () => {
+    await generateConsentPdf({
+      _id: "id-final",
+      agreed: true,
+      signature: "data:image/jpeg;base64,ZZZ",
+      userId: "u",
+    });
+    const imgCalls = calls.filter((c) => c.method === "addImage");
+    expect(imgCalls.length).toBe(1);
+    expect(imgCalls[0].args[1]).toBe("JPEG");
+  });
+
+  it("renders a PNG signature successfully (no throw)", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      signature: "data:image/png;base64,AAA",
+      userId: "u",
+    });
+    const imgCalls = calls.filter((c) => c.method === "addImage");
+    expect(imgCalls[0].args[1]).toBe("PNG");
+  });
+
+  it("adds a new page when ensureSpace needs space for content snapshot that overflows", async () => {
+    class OverflowPDF extends MockJsPDF {
+      splitTextToSize(_text: string, _width: number): string[] {
+        // Return a huge amount of lines to force ensureSpace to addPage repeatedly.
+        return Array.from({length: 200}, (_v, i) => `overflow-line-${i}`);
+      }
+    }
+    mock.module("jspdf", () => ({jsPDF: OverflowPDF}));
+    const {generateConsentPdf: gen} = await import("../generateConsentPdf?overflow");
+    await gen({
+      agreed: true,
+      checkboxValues: Object.fromEntries(
+        Array.from({length: 40}, (_v, i) => [String(i), i % 2 === 0])
+      ),
+      consentFormId: {slug: "x", title: "T", type: "t", version: 1},
+      contentSnapshot: "content",
+      ipAddress: "a",
+      signedAt: "2024-01-01T00:00:00Z",
+      userAgent: "a",
+      userId: {_id: "u", email: "e@x", name: "N"},
+    });
+    const pageBreaks = calls.filter((c) => c.method === "addPage");
+    expect(pageBreaks.length).toBeGreaterThan(0);
+
+    mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
+  });
+});

@@ -15,7 +15,11 @@ import type TestAgent from "supertest/lib/agent";
 
 import {AdminApp} from "./adminApp";
 
-const createTestScript = (overrides?: {runner?: ScriptRunner; name?: string; description?: string}) => ({
+const createTestScript = (overrides?: {
+  runner?: ScriptRunner;
+  name?: string;
+  description?: string;
+}) => ({
   description: overrides?.description ?? "A test script",
   name: overrides?.name ?? "test-script",
   runner:
@@ -243,7 +247,9 @@ describe("AdminApp script routes", () => {
       const res = await adminAgent.delete(`/admin/scripts/tasks/${res1.body.taskId}`).expect(200);
 
       const logs = res.body.task.logs;
-      const cancelLog = logs.find((l: {message: string; level: string}) => l.message.includes("cancelled"));
+      const cancelLog = logs.find((l: {message: string; level: string}) =>
+        l.message.includes("cancelled")
+      );
       expect(cancelLog).toBeDefined();
       expect(cancelLog.level).toBe("info");
     });
@@ -294,7 +300,7 @@ describe("AdminApp script routes", () => {
     });
 
     it("includes scripts in config response", async () => {
-      const res = await supertest(app).get("/admin/config").expect(200);
+      const res = await adminAgent.get("/admin/config").expect(200);
 
       expect(res.body.scripts).toHaveLength(2);
       expect(res.body.scripts[0].name).toBe("migrate-data");
@@ -305,7 +311,8 @@ describe("AdminApp script routes", () => {
 
     it("returns empty scripts array when no scripts configured", async () => {
       app = buildApp([]);
-      const res = await supertest(app).get("/admin/config").expect(200);
+      const freshAdmin = await authAsUser(app, "admin");
+      const res = await freshAdmin.get("/admin/config").expect(200);
 
       expect(res.body.scripts).toHaveLength(0);
     });
