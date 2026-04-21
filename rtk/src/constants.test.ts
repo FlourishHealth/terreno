@@ -11,6 +11,25 @@ import {
 } from "./constants";
 
 describe("resolveBaseUrls", () => {
+  it("treats an empty envApiUrl as unset and falls back to localhost", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "",
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
+    expect(urls.baseTasksUrl).toBe("http://localhost:4000/tasks");
+  });
+
+  it("treats an empty BASE_URL extra as unset and falls back to localhost in non-dev", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {BASE_URL: ""}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+  });
+
   it("uses env override when provided", () => {
     const urls = resolveBaseUrls({
       envApiUrl: "https://api.example.com",

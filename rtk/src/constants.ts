@@ -72,22 +72,22 @@ export const resolveBaseUrls = (args: {
   const hostUriPrefix = args.expoConstants.expoConfig?.hostUri?.split(":").shift();
   const experiencePrefix = args.expoConstants.experienceUrl?.split(":")[1];
   const baseFromExtra = args.expoConstants.expoConfig?.extra?.BASE_URL;
-  const base = args.envApiUrl ?? (!args.isDev ? baseFromExtra : undefined);
+  const base = args.envApiUrl || (!args.isDev ? baseFromExtra : undefined);
   const host = args.isDev ? hostUriPrefix : !base ? hostUriPrefix : undefined;
   const experience = !base && !host ? experiencePrefix : undefined;
-  if (base !== undefined)
+  if (base)
     return {
       baseTasksUrl: `${base.replace("api.", "tasks.")}/tasks`,
       baseUrl: base,
       baseWebsocketsUrl: `${base.replace("api.", "ws.")}/`,
     };
-  if (host !== undefined)
+  if (host)
     return {
       baseTasksUrl: `http://${host}:4000/tasks`,
       baseUrl: `http://${host}:4000`,
       baseWebsocketsUrl: `ws://${host}:4000/`,
     };
-  if (experience !== undefined)
+  if (experience)
     return {
       baseTasksUrl: `http:${experience}:4000/tasks`,
       baseUrl: `http:${experience}:4000`,
