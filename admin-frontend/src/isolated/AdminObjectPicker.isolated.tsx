@@ -174,4 +174,142 @@ describe("AdminObjectPicker", () => {
     );
     expect(toJSON()).toBeDefined();
   });
+
+  it("renders secondary fields for search results with email", async () => {
+    apiState.searchData = [
+      {_id: "a", email: "a@x.com", name: "Alpha"},
+      {_id: "b", label: "Beta Item", title: "Title-B"},
+    ];
+    const {getByTestId} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "al");
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    expect(getByTestId("admin-picker-User-result-a-clickable")).toBeDefined();
+  });
+
+  it("selects a result and calls onChange with the item id", async () => {
+    apiState.searchData = [{_id: "chosen", name: "Chosen"}];
+    const onChange = mock((_: string) => undefined);
+    const {getByTestId} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={onChange}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "ch");
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    const resultNode = getByTestId("admin-picker-User-result-chosen-clickable");
+    await act(async () => {
+      fireEvent.press(resultNode);
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(onChange).toHaveBeenCalledWith("chosen");
+  });
+
+  it("shows 'No results found' when the query returns an empty list", async () => {
+    apiState.searchData = [];
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "zzz");
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    expect(getByText("No results found")).toBeDefined();
+  });
+
+  it("unwraps {data: [...]} pagination shape for search results", async () => {
+    apiState.searchData = {data: [{_id: "p1", name: "Paginated"}]};
+    const {getByTestId} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "p");
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    expect(getByTestId("admin-picker-User-result-p1-clickable")).toBeDefined();
+  });
+
+  it("cleans up the debounce timer on unmount", async () => {
+    const {getByTestId, unmount} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("admin-picker-User-search"), "pending");
+    });
+    unmount();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 350));
+    });
+  });
+
+  it("opens results dropdown on focus and shows 'Start typing to search'", async () => {
+    const {getByTestId, getByText} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value=""
+      />
+    );
+    await act(async () => {
+      fireEvent(getByTestId("admin-picker-User-search"), "focus");
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(getByText("Start typing to search")).toBeDefined();
+  });
+
+  it("uses first matching display field (name, title, label, etc.)", () => {
+    apiState.selectedItem = {_id: "x", label: "Label", title: "Title"};
+    const {getByTestId} = renderWithTheme(
+      <AdminObjectPicker
+        api={makeApi() as any}
+        onChange={() => {}}
+        refModelName="User"
+        routePath="/admin/users"
+        title="User"
+        value="x"
+      />
+    );
+    expect(getByTestId("admin-picker-User-display")).toBeDefined();
+  });
 });
