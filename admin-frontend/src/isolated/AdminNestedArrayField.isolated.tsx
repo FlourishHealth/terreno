@@ -147,6 +147,31 @@ describe("AdminNestedArrayField", () => {
     expect(onChange.mock.calls[0][0][0].description).toBe("");
   });
 
+  it("builds default item for boolean/number/array types without default values", () => {
+    const onChange = mock(() => {});
+    const items = {
+      enabled: {required: false, type: "boolean"},
+      qty: {required: false, type: "number"},
+      tags: {required: false, type: "array"},
+    };
+    const {getByTestId} = renderWithTheme(
+      <AdminNestedArrayField
+        api={{} as any}
+        baseUrl="/admin"
+        items={items as any}
+        onChange={onChange}
+        title="Items"
+        value={[]}
+      />
+    );
+    fireEvent.press(getByTestId("btn-plus"));
+    const added = onChange.mock.calls[0][0][0];
+    expect(added.enabled).toBe(false);
+    expect(added.qty).toBe(0);
+    expect(Array.isArray(added.tags)).toBe(true);
+    expect(added.tags.length).toBe(0);
+  });
+
   it("removes an item via IconButton", () => {
     const onChange = mock(() => {});
     const {getAllByTestId} = renderWithTheme(

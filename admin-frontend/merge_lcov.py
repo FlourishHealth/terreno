@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Proper LCOV merge: take MAX hits per line across all runs, and for each
 source file use the widest line set (most lines instrumented by any run)."""
-import os, sys, glob
+import glob
+import os
 
 def parse(lcov_path):
     files = {}
