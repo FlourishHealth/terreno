@@ -247,4 +247,48 @@ describe("Modal", () => {
     );
     expect(toJSON()).toBeTruthy();
   });
+
+  it("invokes primaryButtonOnClick when primary button pressed while visible", async () => {
+    const handlePrimary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        primaryButtonOnClick={handlePrimary}
+        primaryButtonText="Submit"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    await new Promise((resolve) => {
+      fireEvent.press(getByText("Submit"));
+      setTimeout(resolve, 600);
+    });
+
+    expect(handlePrimary).toHaveBeenCalled();
+  });
+
+  it("invokes secondaryButtonOnClick when secondary button pressed while visible", async () => {
+    const handleSecondary = mock(() => {});
+    const {getByText} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        secondaryButtonOnClick={handleSecondary}
+        secondaryButtonText="Cancel"
+        title="Title"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+
+    await new Promise((resolve) => {
+      fireEvent.press(getByText("Cancel"));
+      setTimeout(resolve, 600);
+    });
+
+    expect(handleSecondary).toHaveBeenCalled();
+  });
 });
