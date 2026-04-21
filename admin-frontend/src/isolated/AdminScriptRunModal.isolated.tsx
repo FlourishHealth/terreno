@@ -23,23 +23,24 @@ const state: MockState = {
 const runCalls: any[] = [];
 const cancelCalls: any[] = [];
 
+// Stable function references so useEffect deps are reference-equal across
+// renders (avoids re-firing the auto-start effect on every setState).
+const stableRunScript = (arg: any): {unwrap: () => Promise<any>} => {
+  runCalls.push(arg);
+  return state.runImpl(arg);
+};
+const stableCancelTask = (arg: any): {unwrap: () => Promise<any>} => {
+  cancelCalls.push(arg);
+  return state.cancelImpl(arg);
+};
+const stableRunTuple = [stableRunScript, {isLoading: false}] as const;
+const stableCancelTuple = [stableCancelTask, {isLoading: false}] as const;
+
 mock.module("../useAdminScripts", () => ({
   useAdminScripts: () => ({
-    useCancelScriptTaskMutation: () => [
-      (arg: any) => {
-        cancelCalls.push(arg);
-        return state.cancelImpl(arg);
-      },
-      {isLoading: false},
-    ],
+    useCancelScriptTaskMutation: () => stableCancelTuple,
     useGetScriptTaskQuery: () => state.task,
-    useRunScriptMutation: () => [
-      (arg: any) => {
-        runCalls.push(arg);
-        return state.runImpl(arg);
-      },
-      {isLoading: false},
-    ],
+    useRunScriptMutation: () => stableRunTuple,
   }),
 }));
 
@@ -264,6 +265,106 @@ describe("AdminScriptRunModal", () => {
         await new Promise((r) => setTimeout(r, 20));
       });
     }
+  });
+
+  it("handles runScript rejection with error.data.detail", async () => {
+    state.runImpl = () => ({
+      unwrap: () => Promise.reject({data: {detail: "Detailed failure"}}),
+    });
+    renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="failing"
+        visible={true}
+      />
+    );
+    await waitTicks(200);
+    expect(runCalls.length).toBe(1);
+  });
+
+  it("handles runScript rejection with error.data.title (no detail)", async () => {
+    state.runImpl = () => ({
+      unwrap: () => Promise.reject({data: {title: "Title failure"}}),
+    });
+    renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="title-only"
+        visible={true}
+      />
+    );
+    await waitTicks(200);
+    expect(runCalls.length).toBe(1);
+  });
+
+  it("handles runScript rejection with empty payload (default message path)", async () => {
+    state.runImpl = () => ({
+      unwrap: () => Promise.reject(new Error("network boom")),
+    });
+    renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="no-payload"
+        visible={true}
+      />
+    );
+    await waitTicks(200);
+    expect(runCalls.length).toBe(1);
+  });
+
+  it("renders results with many lines (exercises long-result branch)", async () => {
+    state.task = {
+      data: {
+        task: {
+          result: Array.from({length: 25}, (_v, i) => `line-${i}`),
+          status: "completed",
+        },
+      },
+      error: null,
+      isLoading: false,
+    };
+    const {toJSON} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="long-results"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("returns early from handleCancel when taskId is still null", async () => {
+    // Never set a taskId: runImpl never resolves to set one.
+    state.runImpl = () => ({unwrap: () => new Promise(() => {})});
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => {}}
+        scriptName="pending"
+        visible={true}
+      />
+    );
+    await waitTicks();
+    const cancelBtns = UNSAFE_root.findAll(
+      (n) => (n.props as {testID?: string})?.testID === "admin-script-cancel-button"
+    );
+    if (cancelBtns.length > 0) {
+      await act(async () => {
+        (cancelBtns[0].props as {onClick?: () => void}).onClick?.();
+      });
+    }
+    // No cancel mutation should have been called since taskId was null
+    expect(cancelCalls.length).toBe(0);
   });
 
   it("renders without error when visible flips from true→false (reset cycle)", async () => {

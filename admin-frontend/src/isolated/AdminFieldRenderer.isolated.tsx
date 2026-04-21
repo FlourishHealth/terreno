@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
+import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import React from "react";
 
 mock.module("../AdminNestedArrayField", () => ({
@@ -138,6 +139,143 @@ describe("AdminFieldRenderer", () => {
         fieldConfig={{required: false, type: "string", widget: "locale-default"}}
         fieldKey="defaultLocale"
         parentFormState={{}}
+        value=""
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("number field onChange converts numeric text to Number, falls back to raw text for NaN", () => {
+    const changes: unknown[] = [];
+    const {getByTestId} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "number"}}
+        fieldKey="qty"
+        onChange={(v) => changes.push(v)}
+        value={1}
+      />
+    );
+    const input = getByTestId("admin-field-qty");
+    fireEvent.changeText(input, "42");
+    fireEvent.changeText(input, "abc");
+    expect(changes).toEqual([42, "abc"]);
+  });
+
+  it("enum onChange maps empty string to undefined", () => {
+    const changes: unknown[] = [];
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{enum: [null, "a", "b"], required: false, type: "string"}}
+        fieldKey="status"
+        onChange={(v) => changes.push(v)}
+        value=""
+      />
+    );
+    // Pull the first element that has an `options` prop (SelectField) and
+    // invoke its onChange directly to exercise the empty-string → undefined
+    // wrapper.
+    const candidates = UNSAFE_root.findAll(
+      (n) => n.props && Array.isArray((n.props as {options?: unknown}).options)
+    );
+    const select = candidates[0];
+    (select.props as {onChange?: (v: string) => void}).onChange?.("");
+    (select.props as {onChange?: (v: string) => void}).onChange?.("a");
+    expect(changes).toEqual([undefined, "a"]);
+  });
+
+  it("object field onChange parses JSON text and falls back to raw string", () => {
+    const changes: unknown[] = [];
+    const {getByTestId} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "object"}}
+        fieldKey="meta"
+        onChange={(v) => changes.push(v)}
+        value={{a: 1}}
+      />
+    );
+    const input = getByTestId("admin-field-meta");
+    fireEvent.changeText(input, "{\"a\":2}");
+    fireEvent.changeText(input, "not-json");
+    fireEvent.changeText(input, "");
+    expect(changes).toEqual([{a: 2}, "not-json", undefined]);
+  });
+
+  it("array without items onChange parses JSON array then falls back to raw text", () => {
+    const changes: unknown[] = [];
+    const {getByTestId} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "array"}}
+        fieldKey="tags"
+        onChange={(v) => changes.push(v)}
+        value={[1, 2, 3]}
+      />
+    );
+    const input = getByTestId("admin-field-tags");
+    fireEvent.changeText(input, "[4,5]");
+    fireEvent.changeText(input, "oops");
+    expect(changes).toEqual([[4, 5], "oops"]);
+  });
+
+  it("renders mixed type with null value (serializes to empty string)", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "mixed"}}
+        fieldKey="anything"
+        value={null}
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("renders mixed type with string value (serializes as-is)", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "mixed"}}
+        fieldKey="anything"
+        value="plain string"
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("array without items uses raw string when value is already a string", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "array"}}
+        fieldKey="raw"
+        value="[already,string]"
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("dynamic enum skips rendering when sibling plural exists but has no .key values", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "string"}}
+        fieldKey="variant"
+        parentFormState={{variants: [{key: ""}, {key: null}]}}
+        value=""
+      />
+    );
+    expect(toJSON()).toBeDefined();
+  });
+
+  it("dynamic enum ignores sibling when first item has no .key", () => {
+    const {toJSON} = renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{required: false, type: "string"}}
+        fieldKey="variant"
+        parentFormState={{variants: [{notKey: "x"}]}}
         value=""
       />
     );

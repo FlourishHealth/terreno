@@ -5,7 +5,12 @@ interface JsPDFCall {
   args: unknown[];
 }
 
+// All tests share this single calls array and single mock module. We toggle
+// behavior via closure flags so the generateConsentPdf module is imported
+// once and its coverage counters accumulate across every test.
 const calls: JsPDFCall[] = [];
+let imageMode: "success" | "throw" = "success";
+let splitMode: "default" | "overflow" = "default";
 
 class MockJsPDF {
   constructor(_opts?: unknown) {
@@ -13,6 +18,9 @@ class MockJsPDF {
   }
   addImage(...args: unknown[]) {
     calls.push({args, method: "addImage"});
+    if (imageMode === "throw") {
+      throw new Error("bad image");
+    }
   }
   addPage() {
     calls.push({args: [], method: "addPage"});
@@ -36,8 +44,9 @@ class MockJsPDF {
     calls.push({args, method: "setTextColor"});
   }
   splitTextToSize(text: string, _width: number): string[] {
-    // Split the snapshot text into multiple simulated lines so we exercise the
-    // ensureSpace branch that adds a new page when content runs long.
+    if (splitMode === "overflow") {
+      return Array.from({length: 200}, (_v, i) => `overflow-line-${i}`);
+    }
     return text.split("\n");
   }
   text(...args: unknown[]) {
@@ -47,11 +56,14 @@ class MockJsPDF {
 
 mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
 
+// Single import of the module-under-test so all tests share coverage counters.
 import {generateConsentPdf} from "../generateConsentPdf";
 
 describe("generateConsentPdf", () => {
   beforeEach(() => {
     calls.length = 0;
+    imageMode = "success";
+    splitMode = "default";
   });
 
   it("generates a pdf with a populated consent response (object form + signature + checkboxes + audit trail)", async () => {
@@ -88,6 +100,12 @@ describe("generateConsentPdf", () => {
     // Filename starts with "consent-<slug>-<last6 of id>-"
     const saveCall = calls.find((c) => c.method === "save");
     expect(String(saveCall?.args[0])).toMatch(/^consent-privacy-user-1-/);
+
+    // Response ID footer rendered (uses _id)
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t.startsWith("Response ID: response-123"))).toBe(true);
+    // Locale label rendered
+    expect(textArgs.some((t) => t === "en")).toBe(true);
   });
 
   it("handles declined responses and string-based consentFormId/userId", async () => {
@@ -98,17 +116,14 @@ describe("generateConsentPdf", () => {
     });
     const saveCall = calls.find((c) => c.method === "save");
     expect(String(saveCall?.args[0])).toMatch(/^consent-response-/);
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    // Decision rendered as "Declined"
+    expect(textArgs.some((t) => t === "Declined")).toBe(true);
   });
 
   it("falls back gracefully when signature addImage throws", async () => {
-    class FailingJsPDF extends MockJsPDF {
-      addImage() {
-        throw new Error("bad image");
-      }
-    }
-    mock.module("jspdf", () => ({jsPDF: FailingJsPDF}));
-    const {generateConsentPdf: gen} = await import("../generateConsentPdf?fresh-fail");
-    await gen({
+    imageMode = "throw";
+    await generateConsentPdf({
       agreed: true,
       signature: "data:image/jpeg;base64,BBB",
       userId: "u1",
@@ -118,9 +133,6 @@ describe("generateConsentPdf", () => {
     expect(
       messages.some((m) => String(m).includes("(Signature image could not be embedded)"))
     ).toBe(true);
-
-    // Restore the default mock so other tests use the passing variant.
-    mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
   });
 
   it("formats invalid dates by returning the raw value", async () => {
@@ -135,13 +147,23 @@ describe("generateConsentPdf", () => {
     expect(rendered.some((t) => t === "not-a-date")).toBe(true);
   });
 
-  it("formats empty date value as empty string", async () => {
+  it("formats empty/undefined date values as empty string", async () => {
     await generateConsentPdf({
       agreed: true,
       agreedAt: "",
       userId: "u",
     });
     expect(calls.find((c) => c.method === "save")).toBeDefined();
+  });
+
+  it("renders agreedAt with a valid date", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      agreedAt: "2024-06-15T10:30:00Z",
+      userId: "u",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t.includes("Agreed At:"))).toBe(true);
   });
 
   it("covers audit trail branches independently (ipAddress only)", async () => {
@@ -172,7 +194,10 @@ describe("generateConsentPdf", () => {
       signedAt: "2024-02-01T10:00:00Z",
       userId: "u",
     });
-    expect(calls.find((c) => c.method === "save")).toBeDefined();
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    expect(textArgs.some((t) => t.includes("Signed At:"))).toBe(true);
+    // formVersionSnapshot renders inside the audit trail
+    expect(textArgs.some((t) => t === "3")).toBe(true);
   });
 
   it("covers contentSnapshot without audit trail", async () => {
@@ -198,8 +223,8 @@ describe("generateConsentPdf", () => {
   it("handles consentFormId object with missing optional fields", async () => {
     await generateConsentPdf({
       agreed: true,
-      consentFormId: {} as any,
-      userId: {} as any,
+      consentFormId: {} as unknown as {title?: string},
+      userId: {} as unknown as {_id?: string},
     });
     expect(calls.find((c) => c.method === "save")).toBeDefined();
   });
@@ -226,16 +251,33 @@ describe("generateConsentPdf", () => {
     expect(imgCalls[0].args[1]).toBe("PNG");
   });
 
+  it("handles object-form userId missing _id by falling back to String(userId)", async () => {
+    const userIdObj = {email: "only@email.com"};
+    await generateConsentPdf({
+      agreed: true,
+      userId: userIdObj as unknown as {_id?: string},
+    });
+    // No crash and a save is produced; filename uses last 6 chars of
+    // String({email:...}) which is "[object Object]" → "Object]".
+    expect(calls.find((c) => c.method === "save")).toBeDefined();
+  });
+
+  it("renders formVersionSnapshot as Form Version when consentFormId is a string", async () => {
+    await generateConsentPdf({
+      agreed: true,
+      consentFormId: "legacy",
+      formVersionSnapshot: 7,
+      userId: "u",
+    });
+    const textArgs = calls.filter((c) => c.method === "text").map((c) => String(c.args[0]));
+    // "Form Version:" label appears in Response Details (from formVersionSnapshot)
+    expect(textArgs.some((t) => t === "Form Version:")).toBe(true);
+    expect(textArgs.some((t) => t === "7")).toBe(true);
+  });
+
   it("adds a new page when ensureSpace needs space for content snapshot that overflows", async () => {
-    class OverflowPDF extends MockJsPDF {
-      splitTextToSize(_text: string, _width: number): string[] {
-        // Return a huge amount of lines to force ensureSpace to addPage repeatedly.
-        return Array.from({length: 200}, (_v, i) => `overflow-line-${i}`);
-      }
-    }
-    mock.module("jspdf", () => ({jsPDF: OverflowPDF}));
-    const {generateConsentPdf: gen} = await import("../generateConsentPdf?overflow");
-    await gen({
+    splitMode = "overflow";
+    await generateConsentPdf({
       agreed: true,
       checkboxValues: Object.fromEntries(
         Array.from({length: 40}, (_v, i) => [String(i), i % 2 === 0])
@@ -249,7 +291,5 @@ describe("generateConsentPdf", () => {
     });
     const pageBreaks = calls.filter((c) => c.method === "addPage");
     expect(pageBreaks.length).toBeGreaterThan(0);
-
-    mock.module("jspdf", () => ({jsPDF: MockJsPDF}));
   });
 });
