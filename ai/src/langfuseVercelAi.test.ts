@@ -1,5 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 
+const realLangfusePrompts = await import("./langfusePrompts");
+
 const getPromptMock = mock(
   async (name: string, _options?: any, _appOptions?: any): Promise<any> => ({
     config: {temperature: 0.5},
@@ -12,7 +14,10 @@ const getPromptMock = mock(
   })
 );
 
+// Spread the real module so that other tests loaded later (e.g. langfusePrompts.test.ts)
+// still see the real `createPrompt`, `invalidatePromptCache`, etc. through the module cache.
 mock.module("./langfusePrompts", () => ({
+  ...realLangfusePrompts,
   compilePrompt: (cached: any, variables: Record<string, string> = {}) => {
     if (cached.type === "text") {
       return (cached.prompt as string).replace(/\{\{(\w+)\}\}/g, (_m, k) => variables[k] ?? "");

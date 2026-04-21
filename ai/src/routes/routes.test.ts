@@ -12,8 +12,11 @@ import {AIService} from "../service/aiService";
 import {addAiRequestsExplorerRoutes} from "./aiRequestsExplorer";
 import {addGptHistoryRoutes} from "./gptHistories";
 
-// Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests
+// Mock langfuseVercelAi to avoid transitive langfuse SDK import in tests.
+// Spread the real module so later-loaded test files still see the real exports.
+const realLangfuseVercelAi = await import("../langfuseVercelAi");
 mock.module("../langfuseVercelAi", () => ({
+  ...realLangfuseVercelAi,
   createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
   preparePromptForAI: async () => ({config: {}, prompt: "test", telemetry: {isEnabled: false}}),
 }));

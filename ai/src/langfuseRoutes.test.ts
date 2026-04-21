@@ -26,7 +26,9 @@ const traceList = mock(async () => ({
 const traceGet = mock(async (traceId: string) => ({id: traceId, name: "Trace"}));
 const flush = mock(async () => {});
 
+const realLangfuseClient = await import("./langfuseClient");
 mock.module("./langfuseClient", () => ({
+  ...realLangfuseClient,
   getLangfuseClient: () => ({
     api: {
       prompts: {list: promptsList},

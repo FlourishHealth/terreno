@@ -14,7 +14,9 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
   version: 1,
 }));
 
+const realLangfuseClient = await import("./langfuseClient");
 mock.module("./langfuseClient", () => ({
+  ...realLangfuseClient,
   getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
 }));
 
