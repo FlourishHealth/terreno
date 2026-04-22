@@ -2,19 +2,45 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "fullstack",
+      "dependsOn": ["compile", "backend (example)", "frontend (example)"],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "compile",
       "type": "shell",
       "command": "bun run compile:watch",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "terreno",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(?!(?:.*))"
+        }
+      },
       "presentation": {
-        "reveal": "silent",
-        "panel": "shared"
+        "group": "terreno-example",
+        "reveal": "always",
+        "panel": "dedicated"
       }
     },
     {
       "label": "bun install",
       "type": "shell",
       "command": "bun install",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -25,6 +51,9 @@
       "label": "lint",
       "type": "shell",
       "command": "bun run lint",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "presentation": {
         "reveal": "silent",
@@ -35,6 +64,9 @@
       "label": "lint:fix",
       "type": "shell",
       "command": "bun run lint:fix",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "presentation": {
         "reveal": "silent",
@@ -44,7 +76,10 @@
     {
       "label": "frontend (example)",
       "type": "shell",
-      "command": "cd example-frontend && bun run web",
+      "command": "bun run frontend:web",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "isBackground": true,
       "problemMatcher": {
@@ -57,6 +92,7 @@
         }
       },
       "presentation": {
+        "group": "terreno-example",
         "reveal": "always",
         "panel": "dedicated"
       }
@@ -64,7 +100,10 @@
     {
       "label": "backend (example)",
       "type": "shell",
-      "command": "cd example-backend && bun run dev",
+      "command": "bun run backend:dev",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "isBackground": true,
       "problemMatcher": {
@@ -77,6 +116,7 @@
         }
       },
       "presentation": {
+        "group": "terreno-example",
         "reveal": "always",
         "panel": "dedicated"
       }
@@ -85,6 +125,9 @@
       "label": "demo",
       "type": "shell",
       "command": "bun run demo:start",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "group": "build",
       "isBackground": true,
       "problemMatcher": {

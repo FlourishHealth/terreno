@@ -307,7 +307,30 @@ exports[`Page renders with back button 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "chevron-left",
+                              ],
+                              "props": {
+                                "style": undefined,
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "accessibilityHint": "Navigate back",
+                            "accessibilityLabel": "",
+                            "onPress": [Function],
+                            "testID": "icon-button-chevron-left",
+                          },
+                          "type": "Pressable",
+                        },
+                      ],
                       "props": {
                         "onPointerEnter": [Function: AsyncFunction],
                         "onPointerLeave": [Function: AsyncFunction],
@@ -496,7 +519,30 @@ exports[`Page renders with close button 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": null,
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "xmark",
+                              ],
+                              "props": {
+                                "style": undefined,
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "accessibilityHint": "Close page",
+                            "accessibilityLabel": "",
+                            "onPress": [Function],
+                            "testID": "icon-button-xmark",
+                          },
+                          "type": "Pressable",
+                        },
+                      ],
                       "props": {
                         "onPointerEnter": [Function: AsyncFunction],
                         "onPointerLeave": [Function: AsyncFunction],

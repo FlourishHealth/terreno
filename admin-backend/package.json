@@ -35,6 +35,9 @@
   },
   "main": "dist/index.js",
   "name": "@terreno/admin-backend",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
@@ -46,8 +49,9 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
-    "test:ci": "bun test"
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.9.0"
+  "version": "0.10.0"
 }

@@ -15,10 +15,12 @@ export interface BaseUser {
   email: string;
 }
 
-export function baseUserPlugin(schema: Schema<any, any, any, any>) {
-  schema.add({admin: {default: false, type: Boolean}});
-  schema.add({email: {index: true, type: String}});
-}
+export const baseUserPlugin = (schema: Schema<any, any, any, any>): void => {
+  schema.add({
+    admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+  });
+  schema.add({email: {description: "The user's email address", index: true, type: String}});
+};
 
 /** For models with the isDeletedPlugin, extend this interface to add the appropriate fields. */
 export interface IsDeleted {
@@ -26,7 +28,7 @@ export interface IsDeleted {
   deleted: boolean;
 }
 
-export function isDeletedPlugin(schema: Schema<any, any, any, any>, defaultValue = false) {
+export const isDeletedPlugin = (schema: Schema<any, any, any, any>, defaultValue = false): void => {
   schema.add({
     deleted: {
       default: defaultValue,
@@ -37,21 +39,24 @@ export function isDeletedPlugin(schema: Schema<any, any, any, any>, defaultValue
       type: Boolean,
     },
   });
-  function applyDeleteFilter(q: Query<any, any>) {
+  const applyDeleteFilter = (q: Query<any, any>): void => {
     const query = q.getQuery();
     if (query && query.deleted === undefined) {
       void q.where({deleted: {$ne: true}});
     }
-  }
+  };
   schema.pre("find", function () {
     applyDeleteFilter(this);
   });
   schema.pre("findOne", function () {
     applyDeleteFilter(this);
   });
-}
+};
 
-export function isDisabledPlugin(schema: Schema<any, any, any, any>, defaultValue = false) {
+export const isDisabledPlugin = (
+  schema: Schema<any, any, any, any>,
+  defaultValue = false
+): void => {
   schema.add({
     disabled: {
       default: defaultValue,
@@ -60,16 +65,18 @@ export function isDisabledPlugin(schema: Schema<any, any, any, any>, defaultValu
       type: Boolean,
     },
   });
-}
+};
 
 export interface CreatedDeleted {
   updated: {type: Date; required: true};
   created: {type: Date; required: true};
 }
 
-export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
-  schema.add({updated: {index: true, type: Date}});
-  schema.add({created: {index: true, type: Date}});
+export const createdUpdatedPlugin = (schema: Schema<any, any, any, any>): void => {
+  schema.add({
+    updated: {description: "When this document was last updated", index: true, type: Date},
+  });
+  schema.add({created: {description: "When this document was created", index: true, type: Date}});
 
   schema.pre("save", function () {
     if (this.disableCreatedUpdatedPlugin === true) {
@@ -86,11 +93,13 @@ export function createdUpdatedPlugin(schema: Schema<any, any, any, any>) {
   schema.pre(/save|updateOne|insertMany/, function () {
     void this.updateOne({}, {$set: {updated: new Date()}});
   });
-}
+};
 
-export function firebaseJWTPlugin(schema: Schema) {
-  schema.add({firebaseId: {index: true, type: String}});
-}
+export const firebaseJWTPlugin = (schema: Schema): void => {
+  schema.add({
+    firebaseId: {description: "The user's Firebase authentication ID", index: true, type: String},
+  });
+};
 
 /**
  * This adds a static method `Model.findOneOrNone` to the schema. This should replace `Model.findOne` in most instances.
@@ -99,7 +108,7 @@ export function firebaseJWTPlugin(schema: Schema) {
  * document, or throws an exception if multiple are found.
  * @param schema Mongoose Schema
  */
-export function findOneOrNone<T>(schema: Schema<T>) {
+export const findOneOrNone = <T>(schema: Schema<T>): void => {
   schema.statics.findOneOrNone = async function (
     query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
@@ -118,7 +127,7 @@ export function findOneOrNone<T>(schema: Schema<T>) {
     }
     return results[0];
   };
-}
+};
 
 /**
  * This adds a static method `Model.findExactlyOne` to the schema. This or findOneOrNone should replace `Model.findOne`
@@ -128,7 +137,7 @@ export function findOneOrNone<T>(schema: Schema<T>) {
  * multiple or none are found.
  * @param schema Mongoose Schema
  */
-export function findExactlyOne<T>(schema: Schema<T>) {
+export const findExactlyOne = <T>(schema: Schema<T>): void => {
   schema.statics.findExactlyOne = async function (
     query: Record<string, any>,
     errorArgs?: Partial<APIErrorConstructor>
@@ -152,7 +161,7 @@ export function findExactlyOne<T>(schema: Schema<T>) {
     }
     return results[0];
   };
-}
+};
 
 /**
  * This adds a static method `Model.upsert` to the schema. This method will either update an existing document
@@ -160,7 +169,7 @@ export function findExactlyOne<T>(schema: Schema<T>) {
  * match the conditions to prevent ambiguous updates.
  * @param schema Mongoose Schema
  */
-export function upsertPlugin<T>(schema: Schema<any, any, any, any>) {
+export const upsertPlugin = <T>(schema: Schema<any, any, any, any>): void => {
   schema.statics.upsert = async function (
     conditions: Record<string, any>,
     update: Record<string, any>
@@ -187,7 +196,7 @@ export function upsertPlugin<T>(schema: Schema<any, any, any, any>) {
     const newDoc = new this(combinedData);
     return newDoc.save();
   };
-}
+};
 
 /** For models with the upsertPlugin, extend this interface to add the upsert static method. */
 export interface HasUpsert<T> {

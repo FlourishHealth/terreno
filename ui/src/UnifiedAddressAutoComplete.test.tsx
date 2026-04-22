@@ -1,17 +1,8 @@
 import {describe, expect, it, mock} from "bun:test";
-import {forwardRef} from "react";
-import {Text, View} from "react-native";
+import {fireEvent} from "@testing-library/react-native";
+
 import {renderWithTheme} from "./test-utils";
 import {UnifiedAddressAutoCompleteField} from "./UnifiedAddressAutoComplete";
-
-// Mock react-native-google-places-autocomplete (used by MobileAddressAutocomplete)
-mock.module("react-native-google-places-autocomplete", () => ({
-  GooglePlacesAutocomplete: forwardRef(({placeholder}: any, ref) => (
-    <View ref={ref as any} testID="google-places-autocomplete">
-      <Text>{placeholder}</Text>
-    </View>
-  )),
-}));
 
 describe("UnifiedAddressAutoCompleteField", () => {
   const defaultProps = {
@@ -20,19 +11,24 @@ describe("UnifiedAddressAutoCompleteField", () => {
     inputValue: "",
   };
 
-  it("renders correctly without Google API key (fallback to TextField)", () => {
+  it("renders plain TextField when no API key provided", () => {
     const {toJSON} = renderWithTheme(<UnifiedAddressAutoCompleteField {...defaultProps} />);
     expect(toJSON()).toMatchSnapshot();
   });
 
-  it("component is defined", () => {
-    expect(UnifiedAddressAutoCompleteField).toBeDefined();
-    expect(typeof UnifiedAddressAutoCompleteField).toBe("function");
+  it("renders plain TextField when API key is invalid", () => {
+    const {toJSON} = renderWithTheme(
+      <UnifiedAddressAutoCompleteField {...defaultProps} googleMapsApiKey="invalid!key" />
+    );
+    expect(toJSON()).toMatchSnapshot();
   });
 
-  it("renders with input value", () => {
+  it("renders WebAddressAutocomplete when valid API key provided on web", () => {
     const {toJSON} = renderWithTheme(
-      <UnifiedAddressAutoCompleteField {...defaultProps} inputValue="123 Main St" />
+      <UnifiedAddressAutoCompleteField
+        {...defaultProps}
+        googleMapsApiKey="test-dummy-key-not-real-0123456789"
+      />
     );
     expect(toJSON()).toMatchSnapshot();
   });
@@ -44,10 +40,33 @@ describe("UnifiedAddressAutoCompleteField", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
-  it("renders with invalid Google API key (falls back to TextField)", () => {
+  it("renders with input value", () => {
     const {toJSON} = renderWithTheme(
-      <UnifiedAddressAutoCompleteField {...defaultProps} googleMapsApiKey="invalid" />
+      <UnifiedAddressAutoCompleteField {...defaultProps} inputValue="123 Main St" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with testID", () => {
+    const {toJSON} = renderWithTheme(
+      <UnifiedAddressAutoCompleteField {...defaultProps} testID="address-field" />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("forwards typing to handleAddressChange via the fallback TextField", () => {
+    const handleAddressChange = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <UnifiedAddressAutoCompleteField
+        handleAddressChange={handleAddressChange}
+        handleAutoCompleteChange={() => {}}
+        inputValue=""
+      />
+    );
+    const {TextInput} = require("react-native");
+    const inputs = UNSAFE_getAllByType(TextInput);
+    expect(inputs.length).toBeGreaterThan(0);
+    fireEvent.changeText(inputs[0], "1600 Amphitheatre Pkwy");
+    expect(handleAddressChange).toHaveBeenCalledWith("1600 Amphitheatre Pkwy");
   });
 });

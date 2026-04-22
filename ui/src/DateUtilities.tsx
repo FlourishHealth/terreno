@@ -1,5 +1,12 @@
 import {DateTime} from "luxon";
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
 function getDate(date: string, {timezone}: {timezone?: string} = {}): DateTime {
   if (!date) {
     throw new Error("Passed undefined");
@@ -57,8 +64,8 @@ export function humanDate(
   let clonedDate;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`humanDate: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`humanDate: ${getErrorMessage(error)}`);
   }
   if (isTomorrow(date, {timezone})) {
     return "Tomorrow";
@@ -91,8 +98,8 @@ export function humanDateAndTime(
   let clonedDate;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`humanDateAndTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`humanDateAndTime: ${getErrorMessage(error)}`);
   }
   // This should maybe use printTime()
   let time: string = "";
@@ -158,8 +165,8 @@ export const printDate = (
   let clonedDate;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printDate: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printDate: ${getErrorMessage(error)}`);
   }
 
   return clonedDate.toLocaleString(DateTime.DATE_SHORT);
@@ -213,8 +220,8 @@ export function printTime(
   }
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printTime: ${getErrorMessage(error)}`);
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
@@ -246,8 +253,8 @@ export function printDateAndTime(
   let clonedDate;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printDateAndTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printDateAndTime: ${getErrorMessage(error)}`);
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
@@ -304,8 +311,8 @@ export function printSince(
   const ago = showAgo ? " ago" : "";
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printSince: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printSince: ${getErrorMessage(error)}`);
   }
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.diff(clonedDate, "months");
@@ -349,7 +356,11 @@ export function getTimezoneOptions(location: "USA" | "Worldwide", shortTimezone 
   if (location === "USA") {
     timezones = usTimezoneOptions.map((tz) => [tz.label, tz.value]);
   } else {
-    timezones = (Intl as any).supportedValuesOf("timeZone").map((tz: any) => {
+    const intlWithSupportedValuesOf = Intl as typeof Intl & {
+      supportedValuesOf?: (key: "timeZone") => string[];
+    };
+    const supportedValues = intlWithSupportedValuesOf.supportedValuesOf?.("timeZone") ?? [];
+    timezones = supportedValues.map((tz) => {
       return [tz, tz];
     });
   }

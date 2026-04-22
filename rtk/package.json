@@ -22,12 +22,14 @@
   "description": "Redux Toolkit Query utilities for @terreno/api backends",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@testing-library/react-native": "^13.2.0",
     "@types/bun": "^1.2.4",
     "@types/luxon": "catalog:",
     "@types/node": "^25.0.3",
     "@types/qs": "^6.14.0",
     "@types/react": "catalog:",
     "react": "catalog:",
+    "react-test-renderer": "catalog:",
     "typescript": "catalog:"
   },
   "exports": {
@@ -50,6 +52,9 @@
   "peerDependencies": {
     "react": "catalog:"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -58,8 +63,9 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test",
-    "test:ci": "bun test"
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.9.0"
+  "version": "0.10.0"
 }

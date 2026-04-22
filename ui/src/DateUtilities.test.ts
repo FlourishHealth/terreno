@@ -25,9 +25,11 @@ describe("DateUtilities", () => {
 
   describe("humanDate", () => {
     it("should return invalid date if date is undefined", () => {
-      expect(() => humanDate(undefined as any, {timezone: "America/New_York"})).toThrow(
-        "humanDate: Passed undefined"
-      );
+      expect(() =>
+        humanDate(undefined as unknown as Parameters<typeof humanDate>[0], {
+          timezone: "America/New_York",
+        })
+      ).toThrow("humanDate: Passed undefined");
     });
 
     it("should throw an error if date is invalid", () => {
@@ -95,9 +97,11 @@ describe("DateUtilities", () => {
 
   describe("humanDateTime", () => {
     it("should return invalid date if date is undefined", () => {
-      expect(() => humanDateAndTime(undefined as any, {timezone: "America/New_York"})).toThrow(
-        "humanDateAndTime: Passed undefined"
-      );
+      expect(() =>
+        humanDateAndTime(undefined as unknown as Parameters<typeof humanDateAndTime>[0], {
+          timezone: "America/New_York",
+        })
+      ).toThrow("humanDateAndTime: Passed undefined");
     });
 
     it("should throw an error if date is invalid", () => {
@@ -232,7 +236,9 @@ describe("DateUtilities", () => {
 
   describe("printDate", () => {
     it("should throw an error if date is undefined", () => {
-      expect(printDate(undefined as any)).toBe("Invalid Date");
+      expect(printDate(undefined as unknown as Parameters<typeof printDate>[0])).toBe(
+        "Invalid Date"
+      );
     });
 
     it("should throw an error if date is invalid", () => {
@@ -270,11 +276,17 @@ describe("DateUtilities", () => {
 
   describe("printOnlyDate", () => {
     it("should print invalid if no date and no default", () => {
-      expect(printOnlyDate(undefined as any)).toBe("Invalid Date");
+      expect(printOnlyDate(undefined as unknown as Parameters<typeof printOnlyDate>[0])).toBe(
+        "Invalid Date"
+      );
     });
 
     it("should print default if no date and default", () => {
-      expect(printOnlyDate(undefined as any, {defaultValue: "default"})).toBe("default");
+      expect(
+        printOnlyDate(undefined as unknown as Parameters<typeof printOnlyDate>[0], {
+          defaultValue: "default",
+        })
+      ).toBe("default");
     });
 
     it("should print the date in the default format", () => {
@@ -287,9 +299,11 @@ describe("DateUtilities", () => {
 
   describe("printDateTime", () => {
     it("should return invalid date if date is undefined", () => {
-      expect(printDateAndTime(undefined as any, {timezone: "America/New_York"})).toBe(
-        "Invalid Datetime"
-      );
+      expect(
+        printDateAndTime(undefined as unknown as Parameters<typeof printDateAndTime>[0], {
+          timezone: "America/New_York",
+        })
+      ).toBe("Invalid Datetime");
     });
 
     it("should throw an error if date is invalid", () => {
@@ -339,7 +353,11 @@ describe("DateUtilities", () => {
 
   describe("printTime", () => {
     it("should return invalid date if date is undefined", () => {
-      expect(printTime(undefined as any, {timezone: "America/New_York"})).toBe("Invalid Date");
+      expect(
+        printTime(undefined as unknown as Parameters<typeof printTime>[0], {
+          timezone: "America/New_York",
+        })
+      ).toBe("Invalid Date");
     });
 
     it("should throw an error if date is invalid", () => {
@@ -349,9 +367,9 @@ describe("DateUtilities", () => {
     });
 
     it("should throw an error with no timezone", () => {
-      expect(() => printTime("2022-12-24T12:00:00.000Z", {} as any)).toThrow(
-        "printTime: timezone is required"
-      );
+      expect(() =>
+        printTime("2022-12-24T12:00:00.000Z", {} as unknown as Parameters<typeof printTime>[1])
+      ).toThrow("printTime: timezone is required");
     });
 
     it("should return the time in the default format", () => {

@@ -138,8 +138,8 @@ export function getOpenApiSpecForModel(
   {
     populatePaths,
     extraModelProperties,
-  }: {populatePaths?: PopulatePath[]; extraModelProperties?: any} = {}
-): {properties: any; required: string[]} {
+  }: {populatePaths?: PopulatePath[]; extraModelProperties?: Record<string, unknown>} = {}
+): {properties: Record<string, unknown>; required: string[]} {
   const modelSwagger = m2s(model, {
     props: ["required", "enum"],
   });

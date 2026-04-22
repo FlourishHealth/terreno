@@ -283,7 +283,7 @@ export interface OpenApiBuildResult {
  */
 export class OpenApiMiddlewareBuilder {
   /** Router options containing OpenAPI configuration */
-  private options: Partial<ModelRouterOptions<any>>;
+  private options: Partial<ModelRouterOptions<unknown>>;
 
   /** Accumulated OpenAPI configuration from builder methods */
   private config: OpenApiConfig;
@@ -302,12 +302,23 @@ export class OpenApiMiddlewareBuilder {
    *
    * @param options - Router options containing the OpenAPI path configuration
    */
-  constructor(options: Partial<ModelRouterOptions<any>>) {
+  constructor(options: Partial<ModelRouterOptions<unknown>>) {
     this.options = options;
     this.config = {
       responses: {},
     };
     this.validationConfig = {};
+  }
+
+  private describeRoute(): string {
+    const parts: string[] = [];
+    if (this.config.summary) {
+      parts.push(`"${this.config.summary}"`);
+    }
+    if (this.config.tags?.length) {
+      parts.push(`tags=[${this.config.tags.join(", ")}]`);
+    }
+    return parts.length > 0 ? parts.join(" ") : "unnamed route";
   }
 
   /**
@@ -678,7 +689,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in buildWithSchemas for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     const globalConfig = getOpenApiValidatorConfig();
@@ -739,7 +752,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in build for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     // Check if validation should be enabled
@@ -803,7 +818,7 @@ export class OpenApiMiddlewareBuilder {
  * ```
  */
 export function createOpenApiBuilder(
-  options: Partial<ModelRouterOptions<any>>
+  options: Partial<ModelRouterOptions<unknown>>
 ): OpenApiMiddlewareBuilder {
   return new OpenApiMiddlewareBuilder(options);
 }

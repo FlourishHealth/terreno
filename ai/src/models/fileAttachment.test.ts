@@ -86,7 +86,9 @@ describe("FileAttachment Model", () => {
         userId,
       });
 
-      expect((attachment as any).ownerId.toString()).toBe(userId.toString());
+      expect((attachment as unknown as {ownerId: mongoose.Types.ObjectId}).ownerId.toString()).toBe(
+        userId.toString()
+      );
     });
   });
 

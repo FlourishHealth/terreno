@@ -932,3 +932,71 @@ exports[`Button renders with confirmation modal props 1`] = `
   "type": "Pressable",
 }
 `;
+
+exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Hover me",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "aria-label": "Hover me",
+    "aria-role": "button",
+    "disabled": undefined,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "Pressable",
+}
+`;

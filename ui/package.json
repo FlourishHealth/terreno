@@ -121,6 +121,9 @@
     "trailingComma": "es5",
     "useTabs": false
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -131,7 +134,8 @@
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
+    "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.9.0"
+  "version": "0.10.0"
 }

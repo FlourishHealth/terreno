@@ -1,0 +1,64 @@
+name: EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Select the app to build"
+        required: true
+        type: choice
+        options:
+          - demo
+          - example-frontend
+      environment:
+        description: "Select the environment"
+        required: true
+        type: choice
+        options:
+          - development
+          - preview
+          - production
+      platform:
+        description: "Select the platform"
+        required: true
+        type: choice
+        options:
+          - iOS
+          - Android
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile workspace packages
+        run: bun run compile
+
+      - name: Run EAS Build
+        working-directory: ${{ github.event.inputs.app }}
+        run: |
+          PROFILE="${{ github.event.inputs.environment }}"
+          PLATFORM="${{ github.event.inputs.platform }}"
+
+          if [ "$PLATFORM" == "iOS" ]; then
+            eas build --profile "$PROFILE" --platform ios --non-interactive
+          elif [ "$PLATFORM" == "Android" ]; then
+            eas build --profile "$PROFILE" --platform android --non-interactive
+          fi
