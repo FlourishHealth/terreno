@@ -16,7 +16,7 @@ mock.module("@langfuse/client", () => ({
 }));
 
 const {getLangfuseClient, initLangfuseClient, isLangfuseInitialized, shutdownLangfuseClient} =
-  await import("./langfuseClient");
+  await import("../langfuseClient");
 
 describe("langfuseClient", () => {
   beforeEach(async () => {

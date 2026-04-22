@@ -47,7 +47,8 @@
     "lint:fix": "biome check --write .",
     "lint:unsafefix": "biome check --write --unsafe .",
     "test": "bun test && for f in ./src/isolated/*.isolated.tsx ./src/isolated/*.isolated.ts; do bun test \"$f\" || exit 1; done",
-    "test:ci": "bun run test"
+    "test:ci": "bun run test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
   "version": "0.10.0"
