@@ -556,9 +556,14 @@ export function RNPickerSelect({
   // Build the dropdown option list AND track each option's original index in
   // `options` so `onValueChange` receives the same index that the native
   // Picker would have reported (needed when a placeholder is present).
-  const webMenuOptions = useMemo<WebDropdownMenuOption[]>(() => {
+  const {menuOptions: webMenuOptions, originalIndexes: webMenuOptionIndexes} = useMemo<{
+    menuOptions: WebDropdownMenuOption[];
+    originalIndexes: number[];
+  }>(() => {
     const menuOptions: WebDropdownMenuOption[] = [];
-    for (const item of options) {
+    const originalIndexes: number[] = [];
+    for (let i = 0; i < options.length; i++) {
+      const item = options[i];
       if (!item || typeof item !== "object" || typeof item.label !== "string") {
         continue;
       }
@@ -568,20 +573,9 @@ export function RNPickerSelect({
         label: item.label,
         value: String(item.value ?? ""),
       });
+      originalIndexes.push(i);
     }
-    return menuOptions;
-  }, [options]);
-
-  const webMenuOptionIndexes = useMemo<number[]>(() => {
-    const indexes: number[] = [];
-    for (let i = 0; i < options.length; i++) {
-      const item = options[i];
-      if (!item || typeof item !== "object" || typeof item.label !== "string") {
-        continue;
-      }
-      indexes.push(i);
-    }
-    return indexes;
+    return {menuOptions, originalIndexes};
   }, [options]);
 
   const renderWeb = () => {
