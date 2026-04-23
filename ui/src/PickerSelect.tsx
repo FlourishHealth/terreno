@@ -629,9 +629,13 @@ export function RNPickerSelect({
         <WebDropdownMenu
           anchor={webAnchor}
           onClose={closeWebMenu}
-          onSelect={(val, idx) => {
+          onSelect={(_val, idx) => {
             const originalIndex = webMenuOptionIndexes[idx] ?? idx;
-            onValueChangeEvent(val, originalIndex);
+            // Pass the original (non-stringified) value through so lodash
+            // `isEqual` matching in `getSelectedItem` works for number /
+            // object values.
+            const originalValue = options[originalIndex]?.value;
+            onValueChangeEvent(originalValue, originalIndex);
             closeWebMenu();
           }}
           options={webMenuOptions}
