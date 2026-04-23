@@ -580,6 +580,8 @@ export function RNPickerSelect({
 
   const renderWeb = () => {
     const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
+    const webSelectedIndex = webMenuOptionIndexes.indexOf(selectedOriginalIdx);
     return (
       <View
         ref={webTriggerRef}
@@ -639,7 +641,7 @@ export function RNPickerSelect({
             closeWebMenu();
           }}
           options={webMenuOptions}
-          selectedValue={String(selectedItem?.value ?? "")}
+          selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
           testIDPrefix="web_dropdown"
           visible={showPicker}
         />

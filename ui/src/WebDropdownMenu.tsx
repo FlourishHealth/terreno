@@ -34,6 +34,13 @@ export interface WebDropdownMenuProps {
   options: WebDropdownMenuOption[];
   /** Currently selected value (used to highlight the matching option). */
   selectedValue?: string;
+  /**
+   * Optional index of the currently selected option. When provided, takes
+   * precedence over `selectedValue` — useful when option values aren't
+   * unique (e.g. a placeholder with an empty value sharing the same string
+   * representation as another option).
+   */
+  selectedIndex?: number;
   /** Called when an option is chosen. */
   onSelect: (value: string, index: number) => void;
   /** Called when the backdrop is pressed or Escape is hit. */
@@ -65,6 +72,7 @@ export const WebDropdownMenu = ({
   anchor,
   options,
   selectedValue,
+  selectedIndex,
   onSelect,
   onClose,
   width,
@@ -110,11 +118,14 @@ export const WebDropdownMenu = ({
       >
         <ScrollView>
           {options.map((item, idx) => {
-            const isSelected = item.value === selectedValue;
+            const isSelected =
+              selectedIndex !== undefined
+                ? idx === selectedIndex
+                : item.value === selectedValue;
             return (
               <Pressable
                 aria-role="button"
-                key={item.key ?? item.value ?? idx}
+                key={item.key ?? idx}
                 onPress={() => onSelect(item.value, idx)}
                 style={(state: PressableWebState) => ({
                   backgroundColor:

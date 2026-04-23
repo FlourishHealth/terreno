@@ -1,8 +1,8 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {act, fireEvent, renderHook} from "@testing-library/react-native";
 
 import {renderWithTheme} from "./test-utils";
-import {WebDropdownMenu} from "./WebDropdownMenu";
+import {useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
 
 describe("WebDropdownMenu", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
@@ -119,5 +119,64 @@ describe("WebDropdownMenu", () => {
     expect(getByTestId("badge_menu_backdrop")).toBeTruthy();
     expect(getByTestId("badge_menu_option_a")).toBeTruthy();
     expect(queryByTestId("web_dropdown_menu")).toBeNull();
+  });
+
+  it("highlights the option matched by selectedIndex regardless of duplicated values", () => {
+    const dupOptions = [
+      {label: "Placeholder", value: ""},
+      {label: "Blank option", value: ""},
+      {label: "Real", value: "real"},
+    ];
+    const {getByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={dupOptions}
+        selectedIndex={1}
+        visible
+      />
+    );
+    expect(getByText("Blank option").props.style.fontWeight).toBe("600");
+    expect(getByText("Placeholder").props.style.fontWeight).toBe("400");
+    expect(getByText("Real").props.style.fontWeight).toBe("400");
+  });
+});
+
+describe("useWebDropdownAnchor", () => {
+  it("exposes a default zero-sized anchor before measuring", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    expect(result.current.anchor).toEqual({height: 0, width: 0, x: 0, y: 0});
+    expect(result.current.triggerRef.current).toBeNull();
+  });
+
+  it("invokes the callback synchronously with the existing anchor when the ref is empty", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    const onMeasured = mock(() => {});
+    act(() => {
+      result.current.measure(onMeasured);
+    });
+    expect(onMeasured).toHaveBeenCalledTimes(1);
+    expect(onMeasured.mock.calls[0][0]).toEqual({height: 0, width: 0, x: 0, y: 0});
+  });
+
+  it("measures the trigger and updates anchor state when the ref has measureInWindow", () => {
+    const {result} = renderHook(() => useWebDropdownAnchor());
+    // Simulate a mounted native View by assigning a measureInWindow shim to the
+    // ref. The hook does not care whether the node is a real View instance.
+    const measureInWindow = mock(
+      (cb: (x: number, y: number, w: number, h: number) => void) => {
+        cb(10, 20, 100, 40);
+      }
+    );
+    (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
+    const onMeasured = mock(() => {});
+    act(() => {
+      result.current.measure(onMeasured);
+    });
+    expect(measureInWindow).toHaveBeenCalledTimes(1);
+    expect(onMeasured).toHaveBeenCalledTimes(1);
+    expect(onMeasured.mock.calls[0][0]).toEqual({height: 40, width: 100, x: 10, y: 20});
+    expect(result.current.anchor).toEqual({height: 40, width: 100, x: 10, y: 20});
   });
 });
