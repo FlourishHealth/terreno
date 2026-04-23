@@ -63,11 +63,9 @@ const mockReload = mock(() => {});
 // ---------------------------------------------------------------------------
 const originalSetInterval = globalThis.setInterval;
 const originalClearInterval = globalThis.clearInterval;
-let capturedIntervalCallback: (() => void) | undefined;
 let capturedIntervalMs: number | undefined;
 let intervalIdCounter = 0;
-const mockSetInterval = mock((cb: () => void, ms: number) => {
-  capturedIntervalCallback = cb;
+const mockSetInterval = mock((_cb: () => void, ms: number) => {
   capturedIntervalMs = ms;
   return ++intervalIdCounter as unknown as ReturnType<typeof setInterval>;
 });
@@ -77,7 +75,6 @@ const mockClearInterval = mock((_id: unknown) => {});
 // console capture
 // ---------------------------------------------------------------------------
 const debugCalls: unknown[][] = [];
-const warnCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
@@ -121,24 +118,19 @@ beforeEach(() => {
   globalThis.setInterval = mockSetInterval as unknown as typeof setInterval;
   globalThis.clearInterval = mockClearInterval as unknown as typeof clearInterval;
   mockSetInterval.mockClear();
-  mockSetInterval.mockImplementation((cb: () => void, ms: number) => {
-    capturedIntervalCallback = cb;
+  mockSetInterval.mockImplementation((_cb: () => void, ms: number) => {
     capturedIntervalMs = ms;
     return ++intervalIdCounter as unknown as ReturnType<typeof setInterval>;
   });
   mockClearInterval.mockClear();
-  capturedIntervalCallback = undefined;
   capturedIntervalMs = undefined;
 
   // Console capture
   debugCalls.length = 0;
-  warnCalls.length = 0;
   console.debug = (...args: unknown[]): void => {
     debugCalls.push(args);
   };
-  console.warn = (...args: unknown[]): void => {
-    warnCalls.push(args);
-  };
+  console.warn = (): void => {};
 });
 
 afterEach(() => {
@@ -232,10 +224,14 @@ describe("useUpgradeCheck", () => {
 
       await act(async () => {
         // Simulate background → active transition to trigger runCheck
-        appStateListeners.forEach((listener) => listener("background"));
+        appStateListeners.forEach((listener) => {
+          listener("background");
+        });
       });
       await act(async () => {
-        appStateListeners.forEach((listener) => listener("active"));
+        appStateListeners.forEach((listener) => {
+          listener("active");
+        });
         await flushPromises();
       });
 
@@ -341,10 +337,14 @@ describe("useUpgradeCheck", () => {
 
       // Simulate a foreground return to trigger another check
       await act(async () => {
-        appStateListeners.forEach((listener) => listener("background"));
+        appStateListeners.forEach((listener) => {
+          listener("background");
+        });
       });
       await act(async () => {
-        appStateListeners.forEach((listener) => listener("active"));
+        appStateListeners.forEach((listener) => {
+          listener("active");
+        });
         await flushPromises();
       });
 
@@ -372,10 +372,14 @@ describe("useUpgradeCheck", () => {
 
       // Simulate going to background, then back to active
       act(() => {
-        appStateListeners.forEach((listener) => listener("background"));
+        appStateListeners.forEach((listener) => {
+          listener("background");
+        });
       });
       act(() => {
-        appStateListeners.forEach((listener) => listener("active"));
+        appStateListeners.forEach((listener) => {
+          listener("active");
+        });
       });
 
       expect(mockTrigger.mock.calls.length).toBeGreaterThan(initialCallCount);
@@ -387,7 +391,9 @@ describe("useUpgradeCheck", () => {
       const initialCallCount = mockTrigger.mock.calls.length;
 
       act(() => {
-        appStateListeners.forEach((listener) => listener("active"));
+        appStateListeners.forEach((listener) => {
+          listener("active");
+        });
       });
 
       expect(mockTrigger.mock.calls.length).toBe(initialCallCount);
