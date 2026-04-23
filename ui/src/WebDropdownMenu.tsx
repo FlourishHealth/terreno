@@ -119,9 +119,7 @@ export const WebDropdownMenu = ({
         <ScrollView>
           {options.map((item, idx) => {
             const isSelected =
-              selectedIndex !== undefined
-                ? idx === selectedIndex
-                : item.value === selectedValue;
+              selectedIndex !== undefined ? idx === selectedIndex : item.value === selectedValue;
             return (
               <Pressable
                 aria-role="button"
