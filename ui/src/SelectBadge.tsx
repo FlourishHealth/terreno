@@ -241,6 +241,9 @@ export const SelectBadge = ({
   }, [showPicker, webAnchor, webMenuOptions, value, handleOnChange]);
 
   const openWebMenu = (): void => {
+    if (disabled) {
+      return;
+    }
     measureWebAnchor(() => {
       setShowPicker(true);
     });
