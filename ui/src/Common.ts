@@ -1447,8 +1447,10 @@ export interface BannerButtonProps {
 export interface BannerPropsBase {
   /**
    * Used to identify if banner has been dismissed by the user.
+   * When provided, dismissal state is persisted to AsyncStorage.
+   * When omitted, dismissal is ephemeral (resets on remount).
    */
-  id: string;
+  id?: string;
   /**
    * The text to display in the main body of the banner.
    */

@@ -112,9 +112,9 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
 
   const [show, setShow] = useState(true);
 
-  // Load seen from async storage.
+  // Load seen from async storage (only when id is provided).
   useEffect(() => {
-    if (dismissible) {
+    if (dismissible && id) {
       void Unifier.storage.getItem(getKey(id)).then((isSeen) => {
         console.debug(`[banner] ${getKey(id)} seen? ${isSeen}`);
         setShow(!isSeen);
@@ -126,7 +126,9 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
     if (!dismissible) {
       return;
     }
-    await hideBanner(id);
+    if (id) {
+      await hideBanner(id);
+    }
     setShow(false);
   };
 

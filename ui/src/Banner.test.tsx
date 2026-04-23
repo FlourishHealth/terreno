@@ -1,8 +1,10 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import React from "react";
 
 import {Banner} from "./Banner";
 import {renderWithTheme} from "./test-utils";
+import {Unifier} from "./Unifier";
 
 describe("Banner", () => {
   it("renders correctly with default props", () => {
@@ -123,6 +125,47 @@ describe("Banner", () => {
 
     await waitFor(() => {
       expect(handleClick).toHaveBeenCalled();
+    });
+  });
+
+  // Tests for optional id prop
+  it("renders without id prop", () => {
+    const {getByText} = renderWithTheme(<Banner text="No id banner" />);
+    expect(getByText("No id banner")).toBeTruthy();
+  });
+
+  it("renders without id and without dismissible", () => {
+    const {getByText, queryByLabelText} = renderWithTheme(<Banner text="Simple banner no id" />);
+    expect(getByText("Simple banner no id")).toBeTruthy();
+    expect(queryByLabelText("Dismiss")).toBeNull();
+  });
+
+  it("hides dismissible banner without id when dismissed", async () => {
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <Banner dismissible text="Ephemeral banner" />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByLabelText("Dismiss"));
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Ephemeral banner")).toBeNull();
+    });
+  });
+
+  it("does not persist dismissal to storage when id is omitted", async () => {
+    const setItemMock = Unifier.storage.setItem as ReturnType<typeof mock>;
+    setItemMock.mockClear();
+
+    const {getByLabelText} = renderWithTheme(<Banner dismissible text="No persist banner" />);
+
+    await act(async () => {
+      fireEvent.press(getByLabelText("Dismiss"));
+    });
+
+    await waitFor(() => {
+      expect(setItemMock).not.toHaveBeenCalled();
     });
   });
 });

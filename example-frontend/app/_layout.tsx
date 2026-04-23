@@ -5,7 +5,7 @@ import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
 import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
-import {ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
+import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
@@ -74,7 +74,15 @@ function RootLayoutNav(): React.ReactElement {
   const dispatch = useAppDispatch();
   const segments = useSegments();
   const router = useRouter();
-  const {canUpdate, isRequired, requiredMessage, onUpdate} = useUpgradeCheck();
+  const {
+    canUpdate,
+    isRequired,
+    isWarning,
+    onUpdate,
+    requiredMessage,
+    warningCheckCount,
+    warningMessage,
+  } = useUpgradeCheck({pollingIntervalMs: 300_000, recheckOnForeground: true});
 
   // Validate stored auth token on mount
   useEffect(() => {
@@ -113,6 +121,17 @@ function RootLayoutNav(): React.ReactElement {
     );
   }
 
+  const warningBanner = isWarning ? (
+    <Banner
+      buttonOnClick={onUpdate}
+      buttonText="Update"
+      dismissible
+      key={warningCheckCount}
+      status="warning"
+      text={warningMessage ?? "A new version is available. Please update for the best experience."}
+    />
+  ) : null;
+
   const stack = (
     <Stack screenOptions={{headerShown: false}}>
       <Stack.Screen name="(tabs)" />
@@ -122,13 +141,20 @@ function RootLayoutNav(): React.ReactElement {
     </Stack>
   );
 
+  const content = (
+    <>
+      {warningBanner}
+      {stack}
+    </>
+  );
+
   if (userId && !profile?.admin) {
     console.info("[RootLayout] Non-admin user, wrapping with ConsentNavigator", {
       admin: profile?.admin,
       profileLoaded: !!profile,
       userId,
     });
-    return <ConsentNavigator api={terrenoApi}>{stack}</ConsentNavigator>;
+    return <ConsentNavigator api={terrenoApi}>{content}</ConsentNavigator>;
   }
 
   console.debug("[RootLayout] Skipping ConsentNavigator", {
@@ -136,5 +162,5 @@ function RootLayoutNav(): React.ReactElement {
     profileLoaded: !!profile,
     userId: userId ?? "none",
   });
-  return stack;
+  return content;
 }
