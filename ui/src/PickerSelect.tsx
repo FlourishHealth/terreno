@@ -25,12 +25,13 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   Keyboard,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -128,6 +129,17 @@ export function RNPickerSelect({
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
+
+  // Web-only: anchor the custom dropdown menu to the trigger element so that
+  // Safari/Firefox/Chrome all render the same styled menu instead of the
+  // browser's native <select> UI.
+  const webTriggerRef = useRef<View>(null);
+  const [webAnchor, setWebAnchor] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>({height: 0, width: 0, x: 0, y: 0});
 
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
@@ -520,8 +532,39 @@ export function RNPickerSelect({
     );
   };
 
-  // TODO: Create custom React component for web in order to apply library style rules
+  // Custom web dropdown. Rendering the native <Picker> on web delegates
+  // styling to each browser (Safari in particular looks very different from
+  // Chrome/Firefox). Instead, we render a styled trigger + popup menu so the
+  // dropdown looks identical across browsers and matches the Terreno design.
+  const openWebMenu = () => {
+    if (disabled) {
+      return;
+    }
+    if (webTriggerRef.current && typeof webTriggerRef.current.measureInWindow === "function") {
+      webTriggerRef.current.measureInWindow((x, y, width, height) => {
+        setWebAnchor({height, width, x, y});
+        setShowPicker(true);
+        if (onOpen) {
+          onOpen();
+        }
+      });
+      return;
+    }
+    setShowPicker(true);
+    if (onOpen) {
+      onOpen();
+    }
+  };
+
+  const closeWebMenu = () => {
+    setShowPicker(false);
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const renderWeb = () => {
+    const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
     return (
       <View
         style={[
@@ -535,31 +578,109 @@ export function RNPickerSelect({
           },
         ]}
       >
-        <Picker
-          enabled={!disabled}
-          onValueChange={onValueChangeEvent}
-          selectedValue={selectedItem?.value}
-          style={[
-            {
-              backgroundColor: theme.surface.base,
-              borderColor: "black",
-              borderRadius: 4,
-              borderWidth: 0,
-              height: "100%",
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-              width: "100%",
-            },
-            disabled && {
-              backgroundColor: theme.surface.neutralLight,
-              color: theme.text.secondaryLight,
-              opacity: 1,
-            },
-          ]}
+        <Pressable
+          aria-role="button"
+          disabled={disabled}
+          onPress={openWebMenu}
+          ref={webTriggerRef}
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            minHeight: 40,
+            paddingHorizontal: 8,
+            width: "100%",
+          }}
           testID="web_picker"
+          {...touchableWrapperProps}
         >
-          {renderPickerItems()}
-        </Picker>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: disabled ? theme.text.secondaryLight : theme.text.primary,
+              flex: 1,
+              paddingRight: 8,
+            }}
+            testID="text_input"
+          >
+            {displayLabel}
+          </Text>
+          <Icon
+            color={disabled ? "secondaryLight" : "primary"}
+            iconName={showPicker ? "angle-up" : "angle-down"}
+            size="sm"
+          />
+        </Pressable>
+        <Modal
+          animationType="none"
+          onRequestClose={closeWebMenu}
+          testID="web_modal"
+          transparent
+          visible={showPicker}
+        >
+          <Pressable
+            aria-role="button"
+            onPress={closeWebMenu}
+            style={{flex: 1}}
+            testID="web_modal_backdrop"
+          />
+          <View
+            style={{
+              backgroundColor: theme.surface.base,
+              borderColor: theme.border.dark,
+              borderRadius: 4,
+              borderWidth: 1,
+              left: webAnchor.x,
+              maxHeight: 300,
+              overflow: "hidden",
+              position: "absolute",
+              shadowColor: "#000",
+              shadowOffset: {height: 2, width: 0},
+              shadowOpacity: 0.15,
+              shadowRadius: 8,
+              top: webAnchor.y + webAnchor.height + 4,
+              width: webAnchor.width,
+            }}
+            testID="web_dropdown_menu"
+          >
+            <ScrollView>
+              {options.map((item: any, idx: number) => {
+                if (!item || item.label === undefined) {
+                  return null;
+                }
+                const isSelected = isEqual(item.value, selectedItem?.value);
+                return (
+                  <Pressable
+                    aria-role="button"
+                    key={item.key ?? item.label ?? idx}
+                    onPress={() => {
+                      onValueChangeEvent(item.value, idx);
+                      closeWebMenu();
+                    }}
+                    style={({hovered, pressed}: any) => ({
+                      backgroundColor:
+                        isSelected || hovered || pressed
+                          ? theme.surface.neutralLight
+                          : theme.surface.base,
+                      paddingHorizontal: 12,
+                      paddingVertical: 10,
+                    })}
+                    testID={`web_dropdown_option_${item.value}`}
+                  >
+                    <Text
+                      style={{
+                        color: item.color ?? theme.text.primary,
+                        fontWeight: isSelected ? "600" : "400",
+                      }}
+                    >
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </Modal>
       </View>
     );
   };
