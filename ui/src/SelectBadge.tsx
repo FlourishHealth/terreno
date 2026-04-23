@@ -1,11 +1,12 @@
 import {Picker} from "@react-native-picker/picker";
 import type React from "react";
-import {useCallback, useMemo, useRef, useState} from "react";
-import {Modal, Platform, Pressable, ScrollView, Text, TouchableOpacity, View} from "react-native";
+import {useCallback, useMemo, useState} from "react";
+import {Modal, Platform, Text, TouchableOpacity, View} from "react-native";
 
 import type {FieldOption, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
 
 export const SelectBadge = ({
   value,
@@ -27,13 +28,11 @@ export const SelectBadge = ({
   // Web-only: anchor the custom dropdown menu to the trigger element so that
   // Safari/Firefox/Chrome all render the same styled menu instead of the
   // browser's native <select> UI.
-  const webTriggerRef = useRef<View>(null);
-  const [webAnchor, setWebAnchor] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }>({height: 0, width: 0, x: 0, y: 0});
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
 
   const secondaryBorderColors = {
     custom: "#AAAAAA",
@@ -219,85 +218,32 @@ export const SelectBadge = ({
   // styling to each browser (Safari in particular looks very different from
   // Chrome/Firefox). Instead, we render a styled popup menu anchored to the
   // badge so the dropdown looks identical across browsers.
+  const webMenuOptions = useMemo<WebDropdownMenuOption[]>(
+    () => options.map((item) => ({key: item.key, label: item.label, value: item.value})),
+    [options]
+  );
+
   const renderWebPicker = useCallback(() => {
     return (
-      <Modal
-        animationType="none"
-        onRequestClose={() => setShowPicker(false)}
-        transparent
+      <WebDropdownMenu
+        anchor={webAnchor}
+        minWidth={160}
+        onClose={() => setShowPicker(false)}
+        onSelect={(val) => handleOnChange(val)}
+        options={webMenuOptions}
+        optionTextStyle={{fontFamily: "text", fontSize: 12}}
+        selectedValue={value}
+        testIDPrefix="web_badge"
         visible={showPicker}
-      >
-        <Pressable
-          aria-role="button"
-          onPress={() => setShowPicker(false)}
-          style={{flex: 1}}
-          testID="web_badge_backdrop"
-        />
-        <View
-          style={{
-            backgroundColor: theme.surface.base,
-            borderColor: theme.border.dark,
-            borderRadius: 4,
-            borderWidth: 1,
-            left: webAnchor.x,
-            maxHeight: 300,
-            minWidth: 160,
-            overflow: "hidden",
-            position: "absolute",
-            shadowColor: "#000",
-            shadowOffset: {height: 2, width: 0},
-            shadowOpacity: 0.15,
-            shadowRadius: 8,
-            top: webAnchor.y + webAnchor.height + 4,
-          }}
-          testID="web_badge_dropdown"
-        >
-          <ScrollView>
-            {options.map((item, idx) => {
-              const isSelected = item.value === value;
-              return (
-                <Pressable
-                  aria-role="button"
-                  disabled={disabled}
-                  key={item.key ?? item.value ?? idx}
-                  onPress={() => handleOnChange(item.value)}
-                  style={({hovered, pressed}: any) => ({
-                    backgroundColor:
-                      isSelected || hovered || pressed
-                        ? theme.surface.neutralLight
-                        : theme.surface.base,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                  })}
-                >
-                  <Text
-                    style={{
-                      color: theme.text.primary,
-                      fontFamily: "text",
-                      fontSize: 12,
-                      fontWeight: isSelected ? "700" : "400",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
+        width={undefined}
+      />
     );
-  }, [showPicker, webAnchor, theme, options, value, disabled, handleOnChange]);
+  }, [showPicker, webAnchor, webMenuOptions, value, handleOnChange]);
 
-  const openWebMenu = () => {
-    if (webTriggerRef.current && typeof webTriggerRef.current.measureInWindow === "function") {
-      webTriggerRef.current.measureInWindow((x, y, width, height) => {
-        setWebAnchor({height, width, x, y});
-        setShowPicker(true);
-      });
-      return;
-    }
-    setShowPicker(true);
+  const openWebMenu = (): void => {
+    measureWebAnchor(() => {
+      setShowPicker(true);
+    });
   };
 
   return (

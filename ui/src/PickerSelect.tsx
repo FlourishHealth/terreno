@@ -25,13 +25,12 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   Keyboard,
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -41,6 +40,7 @@ import {
 
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
 
 export const defaultStyles = StyleSheet.create({
   chevron: {
@@ -133,13 +133,11 @@ export function RNPickerSelect({
   // Web-only: anchor the custom dropdown menu to the trigger element so that
   // Safari/Firefox/Chrome all render the same styled menu instead of the
   // browser's native <select> UI.
-  const webTriggerRef = useRef<View>(null);
-  const [webAnchor, setWebAnchor] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }>({height: 0, width: 0, x: 0, y: 0});
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
 
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
@@ -536,32 +534,40 @@ export function RNPickerSelect({
   // styling to each browser (Safari in particular looks very different from
   // Chrome/Firefox). Instead, we render a styled trigger + popup menu so the
   // dropdown looks identical across browsers and matches the Terreno design.
-  const openWebMenu = () => {
+  const openWebMenu = (): void => {
     if (disabled) {
       return;
     }
-    if (webTriggerRef.current && typeof webTriggerRef.current.measureInWindow === "function") {
-      webTriggerRef.current.measureInWindow((x, y, width, height) => {
-        setWebAnchor({height, width, x, y});
-        setShowPicker(true);
-        if (onOpen) {
-          onOpen();
-        }
-      });
-      return;
-    }
-    setShowPicker(true);
-    if (onOpen) {
-      onOpen();
-    }
+    measureWebAnchor(() => {
+      setShowPicker(true);
+      if (onOpen) {
+        onOpen();
+      }
+    });
   };
 
-  const closeWebMenu = () => {
+  const closeWebMenu = (): void => {
     setShowPicker(false);
     if (onClose) {
       onClose();
     }
   };
+
+  const webMenuOptions = useMemo<WebDropdownMenuOption[]>(() => {
+    const menuOptions: WebDropdownMenuOption[] = [];
+    for (const item of options) {
+      if (!item || typeof item !== "object" || typeof item.label !== "string") {
+        continue;
+      }
+      menuOptions.push({
+        color: item.color,
+        key: item.key,
+        label: item.label,
+        value: String(item.value ?? ""),
+      });
+    }
+    return menuOptions;
+  }, [options]);
 
   const renderWeb = () => {
     const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
@@ -611,76 +617,18 @@ export function RNPickerSelect({
             size="sm"
           />
         </Pressable>
-        <Modal
-          animationType="none"
-          onRequestClose={closeWebMenu}
-          testID="web_modal"
-          transparent
+        <WebDropdownMenu
+          anchor={webAnchor}
+          onClose={closeWebMenu}
+          onSelect={(val, idx) => {
+            onValueChangeEvent(val, idx);
+            closeWebMenu();
+          }}
+          options={webMenuOptions}
+          selectedValue={String(selectedItem?.value ?? "")}
+          testIDPrefix="web_dropdown"
           visible={showPicker}
-        >
-          <Pressable
-            aria-role="button"
-            onPress={closeWebMenu}
-            style={{flex: 1}}
-            testID="web_modal_backdrop"
-          />
-          <View
-            style={{
-              backgroundColor: theme.surface.base,
-              borderColor: theme.border.dark,
-              borderRadius: 4,
-              borderWidth: 1,
-              left: webAnchor.x,
-              maxHeight: 300,
-              overflow: "hidden",
-              position: "absolute",
-              shadowColor: "#000",
-              shadowOffset: {height: 2, width: 0},
-              shadowOpacity: 0.15,
-              shadowRadius: 8,
-              top: webAnchor.y + webAnchor.height + 4,
-              width: webAnchor.width,
-            }}
-            testID="web_dropdown_menu"
-          >
-            <ScrollView>
-              {options.map((item: any, idx: number) => {
-                if (!item || item.label === undefined) {
-                  return null;
-                }
-                const isSelected = isEqual(item.value, selectedItem?.value);
-                return (
-                  <Pressable
-                    aria-role="button"
-                    key={item.key ?? item.label ?? idx}
-                    onPress={() => {
-                      onValueChangeEvent(item.value, idx);
-                      closeWebMenu();
-                    }}
-                    style={({hovered, pressed}: any) => ({
-                      backgroundColor:
-                        isSelected || hovered || pressed
-                          ? theme.surface.neutralLight
-                          : theme.surface.base,
-                      paddingHorizontal: 12,
-                      paddingVertical: 10,
-                    })}
-                    testID={`web_dropdown_option_${item.value}`}
-                  >
-                    <Text
-                      style={{
-                        color: item.color ?? theme.text.primary,
-                        fontWeight: isSelected ? "600" : "400",
-                      }}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </Modal>
+        />
       </View>
     );
   };
