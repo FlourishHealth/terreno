@@ -164,11 +164,9 @@ describe("useWebDropdownAnchor", () => {
     const {result} = renderHook(() => useWebDropdownAnchor());
     // Simulate a mounted native View by assigning a measureInWindow shim to the
     // ref. The hook does not care whether the node is a real View instance.
-    const measureInWindow = mock(
-      (cb: (x: number, y: number, w: number, h: number) => void) => {
-        cb(10, 20, 100, 40);
-      }
-    );
+    const measureInWindow = mock((cb: (x: number, y: number, w: number, h: number) => void) => {
+      cb(10, 20, 100, 40);
+    });
     (result.current.triggerRef as {current: unknown}).current = {measureInWindow};
     const onMeasured = mock(() => {});
     act(() => {
