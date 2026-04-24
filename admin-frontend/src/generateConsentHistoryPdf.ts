@@ -1,35 +1,17 @@
 import {buildConsentPdfHtml, type PdfTemplateData, sharePdfFromHtml} from "@terreno/ui";
-import type {jsPDF} from "jspdf";
 import {DateTime} from "luxon";
 import {Platform} from "react-native";
 
+import {
+  CONTENT_WIDTH,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  ensureSpace,
+  formatDate,
+} from "./pdfUtils";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
-
-const PAGE_WIDTH = 210;
-const MARGIN_LEFT = 20;
-const MARGIN_RIGHT = 20;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-const PAGE_HEIGHT = 297;
-const MARGIN_BOTTOM = 20;
-
-const formatDate = (value: unknown): string => {
-  if (!value) {
-    return "";
-  }
-  const dt = DateTime.fromISO(String(value));
-  if (!dt.isValid) {
-    return String(value);
-  }
-  return dt.toLocaleString(DateTime.DATETIME_FULL);
-};
-
-const ensureSpace = (doc: jsPDF, y: number, needed: number): number => {
-  if (y + needed > PAGE_HEIGHT - MARGIN_BOTTOM) {
-    doc.addPage();
-    return 20;
-  }
-  return y;
-};
 
 const buildTemplateData = (entry: ConsentHistoryEntry): PdfTemplateData => {
   const formTitle = entry.form?.title ?? "Unknown Form";
