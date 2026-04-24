@@ -101,7 +101,7 @@ export const buildConsentPdfHtml = (data: PdfTemplateData): string => {
   <style>
     body {
       font-family: Helvetica, Arial, sans-serif;
-      margin: 20mm;
+      margin: 0;
       color: #000;
       font-size: 10pt;
       line-height: 1.4;
