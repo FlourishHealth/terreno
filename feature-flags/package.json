@@ -14,6 +14,9 @@
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
     "@types/lodash": "catalog:",
+    "@types/supertest": "^6.0.2",
+    "passport-local-mongoose": "^9.0.1",
+    "supertest": "^7.0.0",
     "typescript": "catalog:"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -30,6 +33,9 @@
   },
   "main": "dist/index.js",
   "name": "@terreno/feature-flags",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
@@ -41,7 +47,8 @@
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "test": "bun test",
-    "test:ci": "bun test"
+    "test:ci": "bun test",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
   "version": "0.7.0"

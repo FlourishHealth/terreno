@@ -103,4 +103,85 @@ describe("EmailField", () => {
     );
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("calls onBlur with valid email", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <EmailField label="Email" onBlur={handleBlur} onChange={() => {}} value="valid@email.com" />
+    );
+
+    const input = getByDisplayValue("valid@email.com");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "valid@email.com"}});
+    });
+
+    await waitFor(() => {
+      expect(handleBlur).toHaveBeenCalledWith("valid@email.com");
+    });
+  });
+
+  it("does not call onBlur with invalid email", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <EmailField label="Email" onBlur={handleBlur} onChange={() => {}} value="" />
+    );
+
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent.changeText(input, "invalid-email");
+    });
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "invalid-email"}});
+    });
+
+    expect(handleBlur).not.toHaveBeenCalled();
+  });
+
+  it("clears local error when typing a valid email after invalid", async () => {
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue, queryByText} = renderWithTheme(
+      <EmailField label="Email" onChange={handleChange} value="" />
+    );
+
+    const input = getByDisplayValue("");
+
+    // Type invalid email first
+    await act(async () => {
+      fireEvent.changeText(input, "bad");
+    });
+    // Trigger blur to set the error
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "bad"}});
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Invalid email address format")).toBeTruthy();
+    });
+
+    // Now type a valid email to clear the error
+    await act(async () => {
+      fireEvent.changeText(input, "good@email.com");
+    });
+
+    await waitFor(() => {
+      expect(queryByText("Invalid email address format")).toBeFalsy();
+      expect(handleChange).toHaveBeenCalledWith("good@email.com");
+    });
+  });
+
+  it("validates empty string as valid on blur", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <EmailField label="Email" onBlur={handleBlur} onChange={() => {}} value="" />
+    );
+
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: ""}});
+    });
+
+    await waitFor(() => {
+      expect(handleBlur).toHaveBeenCalledWith("");
+    });
+  });
 });

@@ -6,20 +6,23 @@ import {
   type BackgroundTaskDocument,
   checkPermissions,
   getOpenApiSpecForModel,
+  type JSONValue,
   logger,
   type ModelRouterOptions,
   modelRouter,
+  type OpenApiMiddleware,
   Permissions,
   type ScriptContext,
   type ScriptResult,
   type ScriptRunner,
   TaskCancelledError,
+  type User,
   VersionConfig,
 } from "@terreno/api";
 import express from "express";
 import {DateTime} from "luxon";
-import type mongoose from "mongoose";
 import type {Model} from "mongoose";
+import mongoose from "mongoose";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -30,6 +33,8 @@ export interface AdminFieldOverride {
 }
 
 export interface AdminModelConfig {
+  // noExplicitAny: Model must accept any document type for the generic admin panel;
+  // Model<unknown> breaks callers since Model<T> is invariant in T.
   /** The Mongoose model to expose in the admin panel */
   model: Model<any>;
   /** Route path for this model's endpoints, relative to basePath (e.g., "/users") */
@@ -77,8 +82,9 @@ interface AdminFieldMeta {
   required: boolean;
   description?: string;
   enum?: string[];
-  default?: any;
+  default?: unknown;
   ref?: string;
+  searchable?: boolean;
   widget?: string;
   /** For array fields: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldMeta>;
@@ -105,11 +111,16 @@ interface AdminConfigResponse {
   scripts: AdminScriptMeta[];
 }
 
-const toPlainObject = (value: any): any => {
-  if (value && typeof value === "object" && typeof value.toObject === "function") {
-    return value.toObject();
+const toPlainObject = (value: unknown): Record<string, unknown> => {
+  if (
+    value &&
+    typeof value === "object" &&
+    "toObject" in value &&
+    typeof value.toObject === "function"
+  ) {
+    return (value as {toObject: () => Record<string, unknown>}).toObject();
   }
-  return value;
+  return value as Record<string, unknown>;
 };
 
 const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknown => {
@@ -119,7 +130,7 @@ const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknow
   if (!value || typeof value !== "object") {
     return value;
   }
-  const plainValue = toPlainObject(value as any);
+  const plainValue = toPlainObject(value);
   const nextValue: Record<string, unknown> = {};
   for (const [key, fieldValue] of Object.entries(plainValue)) {
     if (!hiddenFieldSet.has(key)) {
@@ -129,25 +140,43 @@ const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknow
   return nextValue;
 };
 
+interface OpenApiProperty {
+  default?: unknown;
+  description?: string;
+  enum?: string[];
+  $ref?: string;
+  type?: string;
+  format?: string;
+  items?: {
+    properties?: Record<string, OpenApiProperty>;
+    required?: string[];
+  };
+}
+
 const extractFieldMeta = (
-  properties: Record<string, any>,
+  properties: Record<string, OpenApiProperty>,
   required: string[]
 ): Record<string, AdminFieldMeta> => {
   const fields: Record<string, AdminFieldMeta> = {};
   for (const [key, prop] of Object.entries(properties)) {
+    const fieldType = prop.type ?? "string";
     fields[key] = {
       default: prop.default,
       description: prop.description,
       enum: prop.enum,
       ref: prop.$ref ? prop.$ref.replace("#/components/schemas/", "") : undefined,
       required: required.includes(key),
-      type: prop.type ?? "string",
+      searchable: fieldType === "string" && !prop.enum,
+      type: fieldType,
     };
 
     // For array fields, extract item sub-field metadata
     if (prop.type === "array" && prop.items?.properties) {
       const itemRequired: string[] = prop.items.required ?? [];
-      fields[key].items = extractFieldMeta(prop.items.properties, itemRequired);
+      fields[key].items = extractFieldMeta(
+        prop.items.properties as Record<string, OpenApiProperty>,
+        itemRequired
+      );
     }
 
     // Check for ObjectId references in the raw property
@@ -232,7 +261,10 @@ export class AdminApp {
 
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
-      const {properties, required} = getOpenApiSpecForModel(config.model);
+      const {properties, required} = getOpenApiSpecForModel(config.model) as {
+        properties: Record<string, OpenApiProperty>;
+        required: string[];
+      };
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
       const filteredProperties = Object.fromEntries(
         Object.entries(properties).filter(([key]) => !hiddenFieldSet.has(key))
@@ -298,7 +330,9 @@ export class AdminApp {
       `${basePath}/config`,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+        if (
+          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         return res.json(configResponse);
@@ -311,7 +345,9 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("read", [Permissions.IsAdmin], req.user as any))) {
+        if (
+          !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const config = await VersionConfig.findOneOrNone({_singleton: "config"});
@@ -331,7 +367,9 @@ export class AdminApp {
       versionConfigPath,
       authenticateMiddleware(),
       asyncHandler(async (req, res) => {
-        if (!(await checkPermissions("update", [Permissions.IsAdmin], req.user as any))) {
+        if (
+          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         const raw = req.body as Record<string, unknown>;
@@ -370,11 +408,94 @@ export class AdminApp {
       })
     );
 
+    // Mount search endpoint for each model
+    for (const config of modelConfigs) {
+      // Determine searchable fields from the actual Mongoose schema type,
+      // not the OpenAPI type (which reports ObjectId as "string")
+      const searchableFields: string[] = [];
+      const objectIdFields: string[] = [];
+      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      if (modelMeta) {
+        for (const key of Object.keys(modelMeta.fields)) {
+          const schemaPath = config.model.schema.path(key);
+          if (schemaPath && schemaPath.instance === "String" && !modelMeta.fields[key].enum) {
+            searchableFields.push(key);
+          } else if (schemaPath && schemaPath.instance === "ObjectID") {
+            objectIdFields.push(key);
+          }
+        }
+      }
+      logger.info(`Admin search fields for ${config.model.modelName}`, {
+        objectIdFields,
+        searchableFields,
+      });
+
+      app.get(
+        `${basePath}${config.routePath}/search`,
+        authenticateMiddleware(),
+        asyncHandler(async (req, res) => {
+          if (!(req as any).user?.admin) {
+            throw new APIError({
+              disableExternalErrorTracking: true,
+              status: 403,
+              title: "Forbidden",
+            });
+          }
+          const q = String(req.query.q ?? "");
+          if (!q) {
+            return res.json({data: []});
+          }
+
+          const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const regex = new RegExp(escapedQ, "i");
+
+          const fields =
+            typeof req.query.fields === "string"
+              ? req.query.fields.split(",").filter((f: string) => searchableFields.includes(f))
+              : searchableFields;
+
+          const orConditions = fields.map((field: string) => ({[field]: {$regex: regex}}));
+
+          // If the query is a valid ObjectId, also match against ObjectId fields
+          if (mongoose.isValidObjectId(q)) {
+            for (const field of objectIdFields) {
+              orConditions.push({[field]: new mongoose.Types.ObjectId(q)});
+            }
+          }
+
+          if (orConditions.length === 0) {
+            return res.json({data: []});
+          }
+          logger.debug("Admin search query", {
+            fields,
+            model: config.model.modelName,
+            q,
+          });
+          try {
+            const results = await config.model.find({$or: orConditions}).limit(20).lean();
+            logger.debug("Admin search results", {
+              count: results.length,
+              model: config.model.modelName,
+            });
+            return res.json({data: results});
+          } catch (err) {
+            logger.error("Admin search failed", {
+              error: err,
+              fields,
+              model: config.model.modelName,
+            });
+            throw err;
+          }
+        })
+      );
+    }
+
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+      // noExplicitAny: ModelRouterOptions<any> matches the Model<any> from AdminModelConfig.
       const routerOptions: ModelRouterOptions<any> = {
-        ...(openApi ? {openApi: openApi as any} : {}),
+        ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
         permissions: {
           create: [Permissions.IsAdmin],
           delete: [Permissions.IsAdmin],
@@ -384,8 +505,8 @@ export class AdminApp {
         },
         responseHandler:
           hiddenFieldSet.size > 0
-            ? async (value, _method, _request, _options): Promise<any> =>
-                removeHiddenFields(value, hiddenFieldSet) as any
+            ? async (value, _method, _request, _options): Promise<JSONValue> =>
+                removeHiddenFields(value, hiddenFieldSet) as JSONValue
             : undefined,
         sort: config.defaultSort ?? "-created",
       };

@@ -45,6 +45,7 @@
   "private": true,
   "scripts": {
     "android": "bun expo start --android --port 8082",
+    "eas-build-post-install": "cd .. && bun run compile",
     "export": "bun expo export --platform web",
     "ios": "bun expo start --ios --port 8082",
     "lint": "bun biome check .",

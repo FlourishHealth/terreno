@@ -310,21 +310,14 @@ describe("expressServer", () => {
       );
     });
 
-    // Note: The "hourly" and "minutely" aliases have a bug - they convert the
-    // schedule to a cron expression but then use the original schedule string.
-    // This test documents that current (buggy) behavior.
-    it("hourly alias fails due to bug in implementation", () => {
+    it("accepts hourly alias", () => {
       const callback = () => {};
-      expect(() => cronjob("test-hourly-alias", "hourly", callback)).toThrow(
-        "Failed to create cronjob"
-      );
+      expect(() => cronjob("test-hourly-alias", "hourly", callback)).not.toThrow();
     });
 
-    it("minutely alias fails due to bug in implementation", () => {
+    it("accepts minutely alias", () => {
       const callback = () => {};
-      expect(() => cronjob("test-minutely-alias", "minutely", callback)).toThrow(
-        "Failed to create cronjob"
-      );
+      expect(() => cronjob("test-minutely-alias", "minutely", callback)).not.toThrow();
     });
   });
 

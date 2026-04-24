@@ -1,8 +1,9 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 
 import {LangfuseCache} from "./langfuseCache";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
+const mockPromptCreate = mock(async (_params: Record<string, unknown>) => {});
 const mockPromptGet = mock(async (_name: string, _options?: Record<string, unknown>) => ({
   config: {},
   labels: ["production"],
@@ -13,11 +14,15 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
   version: 1,
 }));
 
+const realLangfuseClient = await import("./langfuseClient");
 mock.module("./langfuseClient", () => ({
-  getLangfuseClient: () => ({prompt: {get: mockPromptGet}}),
+  ...realLangfuseClient,
+  getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
 }));
 
-const {compilePrompt, getPrompt} = await import("./langfusePrompts");
+const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
+  "./langfusePrompts"
+);
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},
@@ -42,91 +47,141 @@ const chatPrompt: LangfuseCachedPrompt = {
   version: 1,
 };
 
+beforeEach(async () => {
+  await LangfuseCache.deleteMany({});
+  mockPromptCreate.mockClear();
+  mockPromptGet.mockClear();
+  mockPromptGet.mockImplementation(async () => ({
+    config: {},
+    labels: ["production"],
+    name: "test-prompt",
+    prompt: "Hello world",
+    tags: [],
+    type: "text" as const,
+    version: 1,
+  }));
+});
+
 describe("compilePrompt", () => {
-  describe("text prompts", () => {
-    it("replaces variables in a text prompt", () => {
-      const result = compilePrompt(textPrompt, {age: "30", name: "Alice"});
-      expect(result).toBe("Hello Alice, you are 30 years old.");
-    });
-
-    it("leaves unreplaced variables as-is when not provided", () => {
-      const result = compilePrompt(textPrompt, {name: "Alice"});
-      expect(result).toBe("Hello Alice, you are {{age}} years old.");
-    });
-
-    it("returns prompt unchanged when no variables provided", () => {
-      const noVarPrompt: LangfuseCachedPrompt = {
-        ...textPrompt,
-        prompt: "Hello world.",
-      };
-      const result = compilePrompt(noVarPrompt);
-      expect(result).toBe("Hello world.");
-    });
+  it("replaces variables in text prompts", () => {
+    const result = compilePrompt(textPrompt, {age: "30", name: "Alice"});
+    expect(result).toBe("Hello Alice, you are 30 years old.");
   });
 
-  describe("chat prompts", () => {
-    it("replaces variables in all chat messages", () => {
-      const result = compilePrompt(chatPrompt, {company: "Acme", name: "Bob"});
-      expect(Array.isArray(result)).toBe(true);
-      const messages = result as Array<{role: string; content: string}>;
-      expect(messages[0].content).toBe("You are a helpful assistant for Acme.");
-      expect(messages[1].content).toBe("My name is Bob.");
-    });
+  it("keeps missing text variables unreplaced", () => {
+    const result = compilePrompt(textPrompt, {name: "Alice"});
+    expect(result).toBe("Hello Alice, you are {{age}} years old.");
+  });
 
-    it("preserves roles in chat messages", () => {
-      const result = compilePrompt(chatPrompt, {company: "X", name: "Y"}) as Array<{
-        role: string;
-        content: string;
-      }>;
-      expect(result[0].role).toBe("system");
-      expect(result[1].role).toBe("user");
-    });
+  it("replaces variables in chat prompts", () => {
+    const result = compilePrompt(chatPrompt, {company: "Acme", name: "Bob"}) as Array<{
+      content: string;
+      role: string;
+    }>;
+
+    expect(result[0]).toEqual({content: "You are a helpful assistant for Acme.", role: "system"});
+    expect(result[1]).toEqual({content: "My name is Bob.", role: "user"});
   });
 });
 
 describe("getPrompt", () => {
-  beforeEach(async () => {
-    await LangfuseCache.deleteMany({});
-    mockPromptGet.mockClear();
-    mockPromptGet.mockImplementation(async (_name: string, _options?: Record<string, unknown>) => ({
-      config: {},
-      labels: ["production"],
-      name: "test-prompt",
-      prompt: "Hello world",
-      tags: [],
-      type: "text" as const,
-      version: 1,
-    }));
-  });
+  it("returns cached prompts without calling Langfuse", async () => {
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:test-prompt:production",
+      value: textPrompt,
+    });
 
-  afterEach(async () => {
-    await LangfuseCache.deleteMany({});
-  });
-
-  it("fetches from Langfuse when cache is empty", async () => {
     const result = await getPrompt("test-prompt");
-    expect(result.name).toBe("test-prompt");
-    expect(result.type).toBe("text");
-    expect(mockPromptGet).toHaveBeenCalledTimes(1);
+
+    expect(result.name).toBe(textPrompt.name);
+    expect(result.prompt).toBe(textPrompt.prompt);
+    expect(result.version).toBe(textPrompt.version);
+    expect(mockPromptGet).toHaveBeenCalledTimes(0);
   });
 
-  it("returns cached result on second call", async () => {
-    await getPrompt("test-prompt");
-    await getPrompt("test-prompt");
-    expect(mockPromptGet).toHaveBeenCalledTimes(1);
+  it("fetches and caches prompts with default ttl/label", async () => {
+    const result = await getPrompt("test-prompt");
+
+    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {
+      cacheTtlSeconds: 0,
+      label: "production",
+    });
+    const cached = await LangfuseCache.findOne({key: "prompt:test-prompt:production"});
+    expect(cached?.value).toEqual(result as unknown as LangfuseCachedPrompt);
   });
 
-  it("writes fetched prompt to cache", async () => {
-    await getPrompt("test-prompt");
-    const countAfter = await LangfuseCache.countDocuments({key: "prompt:test-prompt:production"});
-    expect(countAfter).toBe(1);
+  it("fetches and caches prompts with custom ttl/label", async () => {
+    await getPrompt("test-prompt", {label: "staging"}, {cache: {promptTtlSeconds: 120}});
+
+    expect(mockPromptGet).toHaveBeenCalledWith("test-prompt", {
+      cacheTtlSeconds: 0,
+      label: "staging",
+    });
+    const cached = await LangfuseCache.findOne({key: "prompt:test-prompt:staging"});
+    expect(cached).toBeTruthy();
+    const expectedExpiryMs = Date.now() + 120_000;
+    // Allow some slack for test execution time
+    expect(cached!.expiresAt.getTime()).toBeGreaterThan(expectedExpiryMs - 5000);
+    expect(cached!.expiresAt.getTime()).toBeLessThan(expectedExpiryMs + 5000);
   });
 
   it("throws when Langfuse fetch fails", async () => {
     mockPromptGet.mockImplementation(async () => {
-      throw new Error("Prompt not found");
+      throw new Error("boom");
+    });
+    await expect(getPrompt("test-prompt")).rejects.toThrow("boom");
+  });
+});
+
+describe("createPrompt", () => {
+  it("creates text prompts with default labels/tags", async () => {
+    await createPrompt({name: "new-prompt", prompt: "Hello", type: "text"});
+    expect(mockPromptCreate).toHaveBeenCalled();
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
+    expect(call.name).toBe("new-prompt");
+    expect(call.type).toBe("text");
+  });
+
+  it("creates chat prompts preserving role and content", async () => {
+    await createPrompt({
+      name: "chat-new",
+      prompt: [{content: "hi", role: "user"}],
+      tags: ["x"],
+      type: "chat",
+    });
+    expect(mockPromptCreate).toHaveBeenCalled();
+    const call = (mockPromptCreate.mock.calls[0] as Array<Record<string, unknown>>)[0];
+    expect(call.type).toBe("chat");
+    expect(Array.isArray(call.prompt)).toBe(true);
+    expect(call.tags).toEqual(["x"]);
+  });
+});
+
+describe("invalidatePromptCache", () => {
+  it("invalidates cache entries for a prompt prefix", async () => {
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:my-prompt:production",
+      value: textPrompt,
+    });
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:my-prompt:staging",
+      value: textPrompt,
+    });
+    await LangfuseCache.create({
+      expiresAt: new Date(Date.now() + 60_000),
+      key: "prompt:other-prompt:production",
+      value: textPrompt,
     });
 
-    await expect(getPrompt("missing-prompt")).rejects.toThrow("Prompt not found");
+    await invalidatePromptCache("my-prompt");
+
+    const remaining = await LangfuseCache.find({});
+    const keys = remaining.map((r) => r.key);
+    expect(keys).toContain("prompt:other-prompt:production");
+    expect(keys).not.toContain("prompt:my-prompt:production");
+    expect(keys).not.toContain("prompt:my-prompt:staging");
   });
 });

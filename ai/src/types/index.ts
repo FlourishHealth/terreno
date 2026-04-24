@@ -212,6 +212,8 @@ export interface GptRouteOptions {
   aiService?: import("../service/aiService").AIService;
   /** Factory to create a LanguageModel from a per-request API key (x-ai-api-key header). */
   createModelFn?: (apiKey: string, modelId?: string) => import("ai").LanguageModel;
+  /** Factory to create a LanguageModel on the server side without a per-request key (e.g. Vertex AI with ADC). Used for model switching when no x-ai-api-key header is present. Returns undefined if no provider is configured (falls through to demo mode). */
+  createServerModelFn?: (modelId?: string) => import("ai").LanguageModel | undefined;
   /** Factory to create per-request tools (e.g. tools that need the request's API key). Merged with static tools. */
   createRequestTools?: (req: import("express").Request) => Record<string, import("ai").Tool>;
   /** Return canned responses when no AI service is available. */

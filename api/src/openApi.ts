@@ -1,9 +1,10 @@
+import type express from "express";
 import flatten from "lodash/flatten";
 import merge from "lodash/merge";
 import type {Model} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
-import type {ModelRouterOptions} from "./api";
+import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
 
@@ -43,7 +44,7 @@ export const defaultOpenApiErrorResponses = {
 };
 
 // We repeat this constantly, so we make it a component so we only have to define it once.
-function createAPIErrorComponent(openApi: any) {
+function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
   // Create a schema component called APIError
   openApi?.component("schemas", "APIError", {
     properties: {
@@ -112,11 +113,16 @@ function createAPIErrorComponent(openApi: any) {
   });
 }
 
-export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export function getOpenApiMiddleware<T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      `No options.openApi provided for model "${model.modelName}" in getOpenApiMiddleware, skipping *OpenApiMiddleware`
+    );
     return noop;
   }
 
@@ -154,7 +160,10 @@ export function getOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelR
   );
 }
 
-export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<ModelRouterOptions<T>>) {
+export function listOpenApiMiddleware<T>(
+  model: Model<T>,
+  options: Partial<ModelRouterOptions<T>>
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -320,7 +329,7 @@ export function listOpenApiMiddleware<T>(model: Model<T>, options: Partial<Model
 export function createOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -372,7 +381,7 @@ export function createOpenApiMiddleware<T>(
 export function patchOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -424,7 +433,7 @@ export function patchOpenApiMiddleware<T>(
 export function deleteOpenApiMiddleware<T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-) {
+): express.RequestHandler {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -459,7 +468,9 @@ export function readOpenApiMiddleware<T>(
 ): any {
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
-    logger.debug("No options.openApi provided, skipping *OpenApiMiddleware");
+    logger.debug(
+      "No options.openApi provided in readOpenApiMiddleware, skipping *OpenApiMiddleware"
+    );
     return noop;
   }
 

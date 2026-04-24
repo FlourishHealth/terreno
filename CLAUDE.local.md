@@ -17,6 +17,20 @@ A monorepo containing shared packages for building full-stack applications with 
 
 Uses [Bun](https://bun.sh/) as the package manager.
 
+### Bootstrap
+
+Run these commands when setting up or updating the project:
+
+```bash
+bun run bootstrap        # Initial setup: install deps + compile all packages
+bun run bootstrap:update # Update after changes: install deps + recompile all packages
+```
+
+- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment (e.g. a container image). Installs all dependencies and compiles every package.
+- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed. Reinstalls dependencies and recompiles to pick up any changes.
+
+### Common Commands
+
 ```bash
 bun install              # Install dependencies
 bun run compile          # Compile all packages

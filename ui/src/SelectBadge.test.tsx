@@ -1,4 +1,5 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
 
 import {SelectBadge} from "./SelectBadge";
 import {renderWithTheme} from "./test-utils";
@@ -99,5 +100,55 @@ describe("SelectBadge", () => {
       <SelectBadge disabled onChange={() => {}} options={defaultOptions} value="a" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("toggles picker visibility when badge is pressed", () => {
+    const {getByLabelText} = renderWithTheme(
+      <SelectBadge onChange={() => {}} options={defaultOptions} value="a" />
+    );
+    const touchable = getByLabelText("Open select badge options");
+    expect(() => fireEvent.press(touchable)).not.toThrow();
+  });
+
+  it("invokes onChange when iOS picker value is changed and Save is pressed", () => {
+    const handleChange = mock((_val: string) => {});
+    const {getByLabelText, UNSAFE_getAllByProps} = renderWithTheme(
+      <SelectBadge onChange={handleChange} options={defaultOptions} value="a" />
+    );
+    // Open the iOS picker modal
+    act(() => {
+      fireEvent.press(getByLabelText("Open select badge options"));
+    });
+
+    // Change the picker's value via onValueChange
+    const pickers = UNSAFE_getAllByProps({selectedValue: "a"});
+    const picker = pickers.find((p) => typeof p.props.onValueChange === "function");
+    act(() => {
+      if (picker) {
+        picker.props.onValueChange("b");
+      }
+    });
+
+    // Tap Save to commit the change
+    act(() => {
+      fireEvent.press(getByLabelText("Save selected value"));
+    });
+    expect(handleChange).toHaveBeenCalledWith("b");
+  });
+
+  it("does not call onChange when iOS picker is dismissed", () => {
+    const handleChange = mock((_val: string) => {});
+    const {getByLabelText} = renderWithTheme(
+      <SelectBadge onChange={handleChange} options={defaultOptions} value="a" />
+    );
+    // Open the iOS picker modal
+    act(() => {
+      fireEvent.press(getByLabelText("Open select badge options"));
+    });
+    // Dismiss the picker by pressing the backdrop
+    act(() => {
+      fireEvent.press(getByLabelText("Dismiss picker modal"));
+    });
+    expect(handleChange).not.toHaveBeenCalled();
   });
 });

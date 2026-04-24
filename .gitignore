@@ -21,6 +21,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Code coverage
 coverage/
+coverage-main/
+coverage-iso-*/
 *.lcov
 .nyc_output/
 

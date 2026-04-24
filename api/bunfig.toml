@@ -2,6 +2,9 @@
 preload = ["./src/tests/bunSetup.ts"]
 root = "./src"
 coverage = true
-coverageExclude = ["dist/**", "**/*.test.ts", "**/tests/**"]
-coverageThreshold = { line = 80, function = 80 }
+coveragePathIgnorePatterns = ["dist/**", "**/*.test.ts", "**/tests/**", "**/vendor/**", "../**"]
+# Enforced by scripts/check-coverage.ts; Bun parses this key but does not
+# fail the run when coverage is below threshold. See
+# https://github.com/oven-sh/bun/issues/7367 and https://github.com/oven-sh/bun/pull/27933.
+coverageThreshold = { line = 95, function = 95 }
 

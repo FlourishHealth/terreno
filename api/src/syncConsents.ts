@@ -237,7 +237,7 @@ export const syncConsents = async (
 
   // Deactivate forms that are no longer in definitions
   if (deactivateRemoved) {
-    for (const [slug, form] of activeBySlug) {
+    for (const [slug] of activeBySlug) {
       if (!definitions[slug]) {
         logger.info(`syncConsents: deactivating "${slug}"`, {dryRun});
         if (!dryRun) {

@@ -412,4 +412,194 @@ describe("tools", () => {
       expect(result.content[0].text).toContain("Unknown tool");
     });
   });
+
+  describe("generate_model edge cases", () => {
+    test("should generate interface types for non-string fields", () => {
+      const result = handleToolCall("generate_model", {
+        fields: [
+          {name: "count", required: true, type: "Number"},
+          {name: "isActive", required: true, type: "Boolean"},
+          {name: "startDate", required: false, type: "Date"},
+          {name: "ownerId", ref: "User", required: true, type: "ObjectId"},
+          {name: "tags", required: false, type: "Array"},
+        ],
+        name: "Event",
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("count: number");
+      expect(content).toContain("isActive: boolean");
+      expect(content).toContain("startDate?: Date");
+      expect(content).toContain("ownerId: mongoose.Types.ObjectId");
+      expect(content).toContain("tags?: unknown[]");
+      expect(content).toContain('ref: "User"');
+    });
+
+    test("should support hasOwner and softDelete options", () => {
+      const result = handleToolCall("generate_model", {
+        fields: [{name: "title", required: true, type: "String"}],
+        hasOwner: true,
+        name: "Article",
+        softDelete: true,
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("ownerId: mongoose.Types.ObjectId");
+      expect(content).toContain('ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User"');
+      expect(content).toContain("isDeletedPlugin");
+      expect(content).toContain("articleSchema.plugin(isDeletedPlugin)");
+    });
+
+    test("should support unique and default field props", () => {
+      const result = handleToolCall("generate_model", {
+        fields: [
+          {name: "email", required: true, type: "String", unique: true},
+          {default: "0", name: "count", required: false, type: "Number"},
+        ],
+        name: "Account",
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("unique: true");
+      expect(content).toContain("default: 0");
+    });
+  });
+
+  describe("generate_route edge cases", () => {
+    test("should generate route with ownerFiltered", () => {
+      const result = handleToolCall("generate_route", {
+        modelName: "Task",
+        ownerFiltered: true,
+        permissions: {
+          create: "owner",
+          delete: "admin",
+          list: "any",
+          read: "authOrReadOnly",
+          update: "authenticated",
+        },
+        queryFields: ["title", "status"],
+        routePath: "/tasks",
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("OwnerQueryFilter");
+      expect(content).toContain("UserDocument");
+      expect(content).toContain("Permissions.IsOwner");
+      expect(content).toContain("Permissions.IsAdmin");
+      expect(content).toContain("Permissions.IsAny");
+      expect(content).toContain("Permissions.IsAuthenticatedOrReadOnly");
+      expect(content).toContain('queryFields: ["title","status"]');
+      expect(content).toContain("preCreate");
+    });
+  });
+
+  describe("generate_screen edge cases", () => {
+    test("should fall back to empty template when type needs modelName but none given", () => {
+      const result = handleToolCall("generate_screen", {
+        name: "Orphan",
+        type: "list",
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain('Screen type "list" not fully supported');
+      expect(content).toContain("OrphanScreen");
+    });
+  });
+
+  describe("generate_form_fields edge cases", () => {
+    test("should generate password field", () => {
+      const result = handleToolCall("generate_form_fields", {
+        fields: [{label: "Password", name: "password", required: true, type: "password"}],
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("PasswordField");
+      expect(content).toContain('label="Password"');
+      expect(content).toContain("error={errors.password}");
+    });
+
+    test("should generate textarea field", () => {
+      const result = handleToolCall("generate_form_fields", {
+        fields: [{name: "bio", type: "textarea"}],
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("TextArea");
+    });
+
+    test("should generate datetime field", () => {
+      const result = handleToolCall("generate_form_fields", {
+        fields: [{name: "scheduledAt", type: "datetime"}],
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("DateTimeField");
+      expect(content).toContain('mode="datetime"');
+    });
+
+    test("should generate select field with empty options", () => {
+      const result = handleToolCall("generate_form_fields", {
+        fields: [{name: "category", type: "select"}],
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("SelectField");
+      expect(content).toContain("options={[]}");
+    });
+  });
+
+  describe("install_admin", () => {
+    test("should generate admin panel files and instructions", () => {
+      const result = handleToolCall("install_admin", {
+        models: [
+          {
+            displayName: "Todos",
+            listFields: ["title", "completed"],
+            modelName: "Todo",
+            routePath: "/todos",
+          },
+          {
+            displayName: "Users",
+            listFields: ["email"],
+            modelName: "User",
+            routePath: "/users",
+          },
+        ],
+      });
+      const content = result.content[0].text;
+
+      expect(content).toContain("# Install Admin Panel");
+      expect(content).toContain("frontend/app/(tabs)/admin/index.tsx");
+      expect(content).toContain("frontend/app/(tabs)/admin/[model].tsx");
+      expect(content).toContain("frontend/app/(tabs)/admin/[model]/create.tsx");
+      expect(content).toContain("frontend/app/(tabs)/admin/[model]/[id].tsx");
+      expect(content).toContain("AdminModelList");
+      expect(content).toContain("AdminModelTable");
+      expect(content).toContain("AdminModelForm");
+      expect(content).toContain("@terreno/admin-backend");
+      expect(content).toContain("@terreno/admin-frontend");
+      expect(content).toContain("import {Todo, User} from");
+      expect(content).toContain('displayName: "Todos"');
+      expect(content).toContain('routePath: "/todos"');
+      expect(content).toContain('["title","completed"]');
+    });
+  });
+
+  describe("handleToolCall - bootstrap dispatch", () => {
+    test("should delegate bootstrap_app to bootstrap handler", () => {
+      const result = handleToolCall("bootstrap_app", {
+        appDisplayName: "Dispatch App",
+        appName: "dispatch-app",
+      });
+      expect(result.content[0].text).toContain("# Bootstrap Dispatch App");
+    });
+
+    test("should delegate bootstrap_ai_rules to bootstrap handler", () => {
+      const result = handleToolCall("bootstrap_ai_rules", {
+        appDisplayName: "Rules App",
+        appName: "rules-app",
+      });
+      expect(result.content[0].text).toContain("Bootstrap AI Rules for Rules App");
+    });
+  });
 });
