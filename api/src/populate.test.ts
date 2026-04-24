@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it} from "bun:test";
-import mongoose, {Schema} from "mongoose";
+import mongoose, {model, Schema} from "mongoose";
 
 import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
 import {FoodModel, setupDb, UserModel} from "./tests";
@@ -195,5 +195,85 @@ describe("getOpenApiSpecForModel edge cases", () => {
       populatePaths: [{fields: ["name"], path: "ownerId"}],
     });
     expect(result.properties).toBeDefined();
+  });
+
+  it("populates an array ref path (eatenBy)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "eatenBy"}],
+    });
+    expect(result.properties).toBeDefined();
+    expect(result.properties.eatenBy).toBeDefined();
+  });
+
+  it("uses openApiComponent $ref when provided", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{openApiComponent: "User", path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
+
+  it("includes virtuals from child schemas", () => {
+    const result = getOpenApiSpecForModel(FoodModel);
+    expect(result.properties.description).toBeDefined();
+  });
+
+  it("handles nested populate path within sub-document arrays (likesIds.userId)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "likesIds.userId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
+});
+
+describe("filterKeys via populate fields", () => {
+  it("filters with multiple flat fields", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name", "admin"], path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
+
+  it("filters with __proto__ key safely returns early", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["__proto__.evil"], path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
+});
+
+describe("child schema virtuals", () => {
+  it("adds virtuals from child schemas to the spec", () => {
+    const profileSchema = new Schema({bio: {type: String}});
+    profileSchema.virtual("displayBio").get(() => "display");
+    const personSchema = new Schema({
+      name: {type: String},
+      profile: profileSchema,
+    });
+    const PersonModel = mongoose.models.PersonVirtuals || model("PersonVirtuals", personSchema);
+    const result = getOpenApiSpecForModel(PersonModel);
+    expect(result.properties).toBeDefined();
+    expect(result.properties.profile).toBeDefined();
+  });
+});
+
+describe("unpopulate nested single object path", () => {
+  it("unpopulates a nested single object field", () => {
+    const doc = {
+      name: "test",
+      nested: {
+        owner: {_id: "owner-1", name: "Owner"},
+      },
+    };
+    const result = unpopulate(doc as any, "nested.owner") as any;
+    expect(result.nested.owner).toBe("owner-1");
+  });
+
+  it("returns doc when nested path does not exist", () => {
+    const doc = {
+      name: "test",
+      nested: {},
+    };
+    const result = unpopulate(doc as any, "nested.missing") as any;
+    expect(result).toEqual(doc);
   });
 });
