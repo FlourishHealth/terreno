@@ -1666,7 +1666,7 @@ export interface DateTimeActionSheetProps {
   // Returns an ISO 8601 string. If mode is "time", the date portion is today.
   onChange: OnChangeCallback;
   // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
-  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  actionSheetRef: React.RefObject<any>;
   visible: boolean;
   onDismiss: () => void;
   timezone?: string;
@@ -1678,7 +1678,7 @@ export interface DecimalRangeActionSheetProps {
   max: number;
   onChange: OnChangeCallback;
   // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
-  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  actionSheetRef: React.RefObject<any>;
 }
 
 export interface DecimalRangeActionSheetState {
@@ -1738,7 +1738,7 @@ export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
   // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
-  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  actionSheetRef: React.RefObject<any>;
   /** Minimum height in total inches */
   min?: number;
   /** Maximum height in total inches */
@@ -1925,7 +1925,7 @@ export interface NumberPickerActionSheetProps {
   max: number;
   onChange: OnChangeCallback;
   // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
-  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  actionSheetRef: React.RefObject<any>;
 }
 
 export interface PageProps {
@@ -2250,7 +2250,7 @@ export interface TextFieldPickerActionSheetProps {
   mode?: "date" | "time";
   onChange: OnChangeCallback;
   // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
-  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  actionSheetRef: React.RefObject<any>;
 }
 
 export interface ToastProps {
@@ -2370,19 +2370,19 @@ export type TapToEditProps =
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
   // noExplicitAny: value type varies by TapToEdit variant (string, number, address, etc.); a discriminated union would require a major refactor of TapToEdit consumers
-  value: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  value: any;
 
   /**
    * Not required if not editable.
    */
   // noExplicitAny: must match flexible value type above
-  setValue?: (value: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+  setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
   // noExplicitAny: must match flexible value type above
-  onSave?: (value: any) => void | Promise<void>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  onSave?: (value: any) => void | Promise<void>;
 
   /**
    * If false, the field will not be editable and will be disabled
@@ -2395,7 +2395,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    */
   isEditing?: boolean;
   // noExplicitAny: must match flexible value type above
-  transform?: (value: any) => string; // eslint-disable-line @typescript-eslint/no-explicit-any
+  transform?: (value: any) => string;
   /**
    * Show a confirmation modal before saving the value.
    * @default false
@@ -2484,7 +2484,7 @@ export interface ModelFields {
 export interface OpenAPISpec {
   paths: {
     // noExplicitAny: OpenAPI path items have deeply nested dynamic structure; fully typing would require duplicating the OpenAPI 3.0 spec
-    [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
   };
 }
 
