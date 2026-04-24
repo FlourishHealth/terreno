@@ -3,7 +3,7 @@ import {User} from "../models/user";
 import type {UserDocument} from "../types";
 
 export const userService = {
-  createUser: async (email: string, name: string): Promise<UserDocument> => {
+  createUser: async ({email, name}: {email: string; name: string}): Promise<UserDocument> => {
     if (!email || !name) {
       throw new APIError({status: 400, title: "Email and name are required"});
     }
@@ -24,7 +24,7 @@ export const userService = {
     return user;
   },
 
-  getUserById: async (userId: string): Promise<UserDocument> => {
+  getUserById: async ({userId}: {userId: string}): Promise<UserDocument> => {
     const user = await User.findExactlyOne({_id: userId});
     return user;
   },
