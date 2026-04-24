@@ -3629,6 +3629,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "The user who owns this todo",
                             "type": "schemaobjectid",
                           },
+                          "priority": {
+                            "description": "Priority level of the todo",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                            ],
+                            "type": "string",
+                          },
+                          "tags": {
+                            "description": "Free-form tags for categorization",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
                           "title": {
                             "description": "The title of the todo item",
                             "type": "string",
@@ -3743,6 +3759,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user who owns this todo",
                     "type": "schemaobjectid",
                   },
+                  "priority": {
+                    "description": "Priority level of the todo",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                    ],
+                    "type": "string",
+                  },
+                  "tags": {
+                    "description": "Free-form tags for categorization",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "title": {
                     "description": "The title of the todo item",
                     "type": "string",
@@ -3784,6 +3816,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "ownerId": {
                       "description": "The user who owns this todo",
                       "type": "schemaobjectid",
+                    },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "title": {
                       "description": "The title of the todo item",
@@ -3958,6 +4006,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "The user who owns this todo",
                       "type": "schemaobjectid",
                     },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
                     "title": {
                       "description": "The title of the todo item",
                       "type": "string",
@@ -4065,6 +4129,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "description": "The user who owns this todo",
                     "type": "schemaobjectid",
                   },
+                  "priority": {
+                    "description": "Priority level of the todo",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                    ],
+                    "type": "string",
+                  },
+                  "tags": {
+                    "description": "Free-form tags for categorization",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
                   "title": {
                     "description": "The title of the todo item",
                     "type": "string",
@@ -4106,6 +4186,22 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "ownerId": {
                       "description": "The user who owns this todo",
                       "type": "schemaobjectid",
+                    },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
                     },
                     "title": {
                       "description": "The title of the todo item",
