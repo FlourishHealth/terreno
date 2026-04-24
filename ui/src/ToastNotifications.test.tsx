@@ -603,6 +603,291 @@ describe("ToastNotifications", () => {
     });
   });
 
+  describe("Toast update and hide", () => {
+    it("should call update method without throwing", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.update).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Original", {id: "upd-1"});
+      });
+
+      expect(toastId).toBe("upd-1");
+
+      await act(async () => {
+        toastRef?.update("upd-1", "Updated");
+      });
+    });
+
+    it("should call hideAll method without throwing", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Toast 1", {id: "ha-1"});
+      });
+
+      await act(async () => {
+        toastRef?.hideAll();
+      });
+    });
+  });
+
+  describe("Toast with icons", () => {
+    it("should render success toast with custom successIcon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider successIcon={<Text>✓</Text>} swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Success with icon", {type: "success"});
+      });
+    });
+
+    it("should render danger toast with custom dangerIcon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider dangerIcon={<Text>✗</Text>} swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Danger with icon", {type: "danger"});
+      });
+    });
+
+    it("should render warning toast with custom warningIcon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false} warningIcon={<Text>⚠</Text>}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Warning with icon", {type: "warning"});
+      });
+    });
+  });
+
+  describe("Toast placement rendering", () => {
+    it("should render toast at top placement", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider placement="top" swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Top toast", {placement: "top"});
+      });
+    });
+
+    it("should render toast at center placement", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider placement="center" swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Center toast", {placement: "center"});
+      });
+    });
+
+    it("should render with zoom-in animation when active", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider animationType="zoom-in" swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Zoom toast", {animationType: "zoom-in"});
+      });
+    });
+
+    it("should render with custom offset props", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider offset={20} offsetBottom={30} offsetTop={40} swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Offset toast");
+      });
+    });
+
+    it("should render toast with onPress callback", async () => {
+      let toastRef: ToastType | null = null;
+      const onPressMock = mock(() => {});
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Pressable toast", {onPress: onPressMock});
+      });
+    });
+
+    it("should render with custom renderType", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider
+          renderType={{custom: (t) => <Text>{String(t.message)}</Text>}}
+          swipeEnabled={false}
+        >
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Custom render", {type: "custom"});
+      });
+    });
+  });
+
   describe("Type exports", () => {
     it("should export ToastOptions type", () => {
       const options: ToastOptions = {

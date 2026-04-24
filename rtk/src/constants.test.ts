@@ -226,3 +226,68 @@ describe("AUTH_DEBUG enabled path", () => {
     }
   });
 });
+
+describe("resolveBaseUrls return value verification", () => {
+  it("base path returns correct tasks and websocket URLs", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://api.test.io",
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: false,
+    });
+    expect(urls.baseTasksUrl).toBe("https://tasks.test.io/tasks");
+    expect(urls.baseUrl).toBe("https://api.test.io");
+    expect(urls.baseWebsocketsUrl).toBe("https://ws.test.io/");
+  });
+
+  it("host path returns correct tasks and websocket URLs", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {}, hostUri: "172.16.0.1:8081"}},
+      isDev: true,
+    });
+    expect(urls.baseTasksUrl).toBe("http://172.16.0.1:4000/tasks");
+    expect(urls.baseUrl).toBe("http://172.16.0.1:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://172.16.0.1:4000/");
+  });
+
+  it("experience path returns correct tasks and websocket URLs", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        experienceUrl: "exp://10.10.10.10:19000",
+        expoConfig: {extra: {}},
+      },
+      isDev: true,
+    });
+    expect(urls.baseTasksUrl).toBe("http://10.10.10.10:4000/tasks");
+    expect(urls.baseUrl).toBe("http://10.10.10.10:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://10.10.10.10:4000/");
+  });
+
+  it("envApiUrl takes precedence over BASE_URL in non-dev", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://api.override.com",
+      expoConstants: {expoConfig: {extra: {BASE_URL: "https://api.fromextra.com"}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("https://api.override.com");
+  });
+
+  it("in non-dev mode ignores hostUri when base is set", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        expoConfig: {extra: {BASE_URL: "https://api.prod.io"}, hostUri: "10.0.0.1:8081"},
+      },
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("https://api.prod.io");
+  });
+
+  it("in dev mode ignores BASE_URL and uses hostUri", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        expoConfig: {extra: {BASE_URL: "https://api.prod.io"}, hostUri: "10.0.0.1:8081"},
+      },
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://10.0.0.1:4000");
+  });
+});
