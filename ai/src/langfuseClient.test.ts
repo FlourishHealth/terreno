@@ -25,12 +25,17 @@ describe("langfuseClient", () => {
       expect(client).toBeDefined();
     });
 
-    it("uses the default baseUrl when none is provided", () => {
-      const client = initLangfuseClient({
+    it("overwrites the previous client on re-initialization", () => {
+      const first = initLangfuseClient({
         publicKey: "pk-test",
         secretKey: "sk-test",
       });
-      expect(client).toBeDefined();
+      const second = initLangfuseClient({
+        publicKey: "pk-test-2",
+        secretKey: "sk-test-2",
+      });
+      expect(second).not.toBe(first);
+      expect(getLangfuseClient()).toBe(second);
     });
 
     it("accepts a custom baseUrl", () => {
