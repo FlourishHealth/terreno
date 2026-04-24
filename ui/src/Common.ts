@@ -1,7 +1,7 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
 import type {ReactElement, ReactNode} from "react";
-import type {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
+import type {ImageStyle, ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
 import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {Styles} from "react-native-google-places-autocomplete";
 import type {SvgProps} from "react-native-svg";
@@ -455,9 +455,7 @@ export interface BoxPropsBase {
   mdColumn?: UnsignedUpTo12;
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
-    __style: {
-      [key: string]: any;
-    };
+    __style: Record<string, string | number>;
   };
   direction?: "row" | "column";
   smDirection?: "row" | "column";
@@ -528,7 +526,7 @@ export interface BoxPropsBase {
 
   onClick?: () => void | Promise<void>;
   className?: string;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   onHoverStart?: () => void | Promise<void>;
   onHoverEnd?: () => void | Promise<void>;
   scroll?: boolean;
@@ -554,7 +552,7 @@ export type BoxProps =
 export type BoxColor = SurfaceColor | "transparent";
 
 export interface ErrorBoundaryProps {
-  onError?: (error: Error, stack: any) => void;
+  onError?: (error: Error, stack: string) => void;
   children?: ReactNode;
 }
 
@@ -652,7 +650,7 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
   multiline?: boolean;
   rows?: number;
 
-  inputRef?: any;
+  inputRef?: (instance: unknown) => void;
   trimOnBlur?: boolean;
 
   aiSuggestion?: AiSuggestionProps;
@@ -782,7 +780,7 @@ export interface ImageProps {
   size?: string;
   srcSet?: string;
   fullWidth?: boolean;
-  style?: any;
+  style?: ImageStyle;
 }
 
 export interface BackButtonInterface {
@@ -830,6 +828,11 @@ export interface LayoutChangeEvent {
   };
 }
 
+export interface SplitPageListItem {
+  id: string;
+  [key: string]: unknown;
+}
+
 export interface SplitPageProps {
   /**
    * can accept either one React Child or any array of ReactChild. If this is not provided,
@@ -850,15 +853,15 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
-  renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
+  renderListViewItem: (itemInfo: ListRenderItemInfo<SplitPageListItem>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
-  listViewData: any[];
-  listViewExtraData?: any;
+  listViewData: SplitPageListItem[];
+  listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
-  onSelectionChange?: (value?: any) => void | Promise<void>;
+  onSelectionChange?: (value?: unknown) => void | Promise<void>;
 }
 
 export type PermissionKind =
@@ -896,7 +899,7 @@ export interface AddressInterface {
 export interface TransformValueOptions {
   func?: (value: string) => string;
   options?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -1662,7 +1665,8 @@ export interface DateTimeActionSheetProps {
   type?: "date" | "time" | "datetime";
   // Returns an ISO 8601 string. If mode is "time", the date portion is today.
   onChange: OnChangeCallback;
-  actionSheetRef: React.RefObject<any>;
+  // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
+  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   visible: boolean;
   onDismiss: () => void;
   timezone?: string;
@@ -1673,7 +1677,8 @@ export interface DecimalRangeActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
-  actionSheetRef: React.RefObject<any>;
+  // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
+  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface DecimalRangeActionSheetState {
@@ -1732,7 +1737,8 @@ export type FieldProps =
 export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
-  actionSheetRef: React.RefObject<any>;
+  // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
+  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   /** Minimum height in total inches */
   min?: number;
   /** Maximum height in total inches */
@@ -1743,14 +1749,21 @@ export interface HeightActionSheetProps {
 
 export interface HyperlinkProps {
   linkDefault?: boolean;
-  linkify?: any;
-  linkStyle?: StyleProp<any>;
+  // noExplicitAny: linkify-it has no resolvable type declarations in this tsconfig (types: [])
+  linkify?: {
+    pretest: (text: string) => boolean;
+    test: (text: string) => boolean;
+    match: (
+      text: string
+    ) => Array<{index: number; lastIndex: number; text: string; url: string}> | null;
+  };
+  linkStyle?: StyleProp<TextStyle>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
-  injectViewProps?: (url: string) => any;
+  injectViewProps?: (url: string) => Record<string, unknown>;
   children?: React.ReactNode;
-  style?: StyleProp<any>;
+  style?: StyleProp<ViewStyle>;
 }
 
 export interface IconButtonProps {
@@ -1899,11 +1912,11 @@ export interface ModalProps {
   /**
    * The function to call when the primary button is clicked.
    */
-  primaryButtonOnClick?: (value?: any) => void | Promise<void>;
+  primaryButtonOnClick?: (value?: unknown) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
-  secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
+  secondaryButtonOnClick?: (value?: unknown) => void | Promise<void>;
 }
 
 export interface NumberPickerActionSheetProps {
@@ -1911,11 +1924,12 @@ export interface NumberPickerActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
-  actionSheetRef: React.RefObject<any>;
+  // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
+  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface PageProps {
-  navigation?: any;
+  navigation?: unknown;
   scroll?: boolean;
   loading?: boolean;
   loadingText?: string;
@@ -1928,11 +1942,11 @@ export interface PageProps {
   color?: SurfaceColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
-  footer?: any;
+  footer?: ReactNode;
   rightButton?: string;
   rightButtonOnClick?: () => void;
-  children?: any;
-  onError?: (error: Error, stack: any) => void;
+  children?: ReactNode;
+  onError?: (error: Error, stack: string) => void;
 }
 
 export interface ProgressBarProps {
@@ -1955,7 +1969,7 @@ export interface RadioFieldProps {
 export interface SignatureFieldProps {
   disabled?: boolean; // default "default"
   value?: string;
-  onChange: (value: any) => void;
+  onChange: (value: string) => void;
   title?: string; // default "Signature"
   onStart?: () => void;
   onEnd?: () => void;
@@ -2235,7 +2249,8 @@ export interface TextFieldPickerActionSheetProps {
   value?: string;
   mode?: "date" | "time";
   onChange: OnChangeCallback;
-  actionSheetRef: React.RefObject<any>;
+  // noExplicitAny: ActionSheet is a local class component; importing it here would create a circular dependency
+  actionSheetRef: React.RefObject<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export interface ToastProps {
@@ -2354,17 +2369,20 @@ export type TapToEditProps =
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
-  value: any;
+  // noExplicitAny: value type varies by TapToEdit variant (string, number, address, etc.); a discriminated union would require a major refactor of TapToEdit consumers
+  value: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   /**
    * Not required if not editable.
    */
-  setValue?: (value: any) => void;
+  // noExplicitAny: must match flexible value type above
+  setValue?: (value: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   /**
    * Not required if not editable.
    */
-  onSave?: (value: any) => void | Promise<void>;
+  // noExplicitAny: must match flexible value type above
+  onSave?: (value: any) => void | Promise<void>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   /**
    * If false, the field will not be editable and will be disabled
@@ -2376,7 +2394,8 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
-  transform?: (value: any) => string;
+  // noExplicitAny: must match flexible value type above
+  transform?: (value: any) => string; // eslint-disable-line @typescript-eslint/no-explicit-any
   /**
    * Show a confirmation modal before saving the value.
    * @default false
@@ -2431,7 +2450,7 @@ export interface APIError {
     source?: string;
     pointer?: string;
     parameter?: string;
-    meta?: {[id: string]: any};
+    meta?: {[id: string]: unknown};
   };
 }
 
@@ -2464,7 +2483,8 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
-    [key: string]: any;
+    // noExplicitAny: OpenAPI path items have deeply nested dynamic structure; fully typing would require duplicating the OpenAPI 3.0 spec
+    [key: string]: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 }
 
@@ -2496,7 +2516,7 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
-  doc: any; // The rest of the document.
+  doc: Record<string, unknown>;
   fieldKey: string; // Dot notation representation of the field.
   // user: User;
   editing: boolean; // Allow for inline editing of the field.
