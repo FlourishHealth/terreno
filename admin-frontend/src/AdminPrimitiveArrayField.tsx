@@ -20,14 +20,17 @@ interface AdminPrimitiveArrayFieldProps {
   itemType: string;
   itemEnum?: string[];
   itemRef?: string;
-  value: any[];
-  onChange: (value: any[]) => void;
+  value: PrimitiveItem[];
+  onChange: (value: PrimitiveItem[]) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api type is generic; admin code is type-erased here
   api: Api<any, any, any, any>;
   baseUrl: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
 }
 
-const defaultForType = (itemType: string): any => {
+type PrimitiveItem = string | number | boolean;
+
+const defaultForType = (itemType: string): PrimitiveItem => {
   if (itemType === "boolean") {
     return false;
   }
@@ -69,7 +72,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
   );
 
   const handleUpdate = useCallback(
-    (index: number, itemValue: any) => {
+    (index: number, itemValue: PrimitiveItem) => {
       onChange(arrayValue.map((item, i) => (i === index ? itemValue : item)));
     },
     [arrayValue, onChange]
@@ -80,7 +83,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
       ? modelConfigs.find((m) => m.name === itemRef)
       : undefined;
 
-  const renderItemInput = (item: any, index: number): React.ReactElement => {
+  const renderItemInput = (item: PrimitiveItem, index: number): React.ReactElement => {
     if (itemType === "boolean") {
       return (
         <BooleanField
@@ -96,7 +99,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
           onChange={(val: string) => handleUpdate(index, val)}
           options={itemEnum.map((v) => ({label: startCase(v), value: v}))}
           title=""
-          value={item ?? ""}
+          value={item != null ? String(item) : ""}
         />
       );
     }
@@ -109,7 +112,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
           refModelName={refModel.name}
           routePath={refModel.routePath}
           title=""
-          value={item ?? ""}
+          value={item != null ? String(item) : ""}
         />
       );
     }
@@ -132,7 +135,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         onChange={(val: string) => handleUpdate(index, val)}
         testID={`admin-array-item-${index}`}
         title=""
-        value={item ?? ""}
+        value={item != null ? String(item) : ""}
       />
     );
   };

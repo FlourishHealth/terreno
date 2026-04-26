@@ -318,6 +318,8 @@ export class AdminApp {
                 Boolean: "boolean",
                 Number: "number",
                 ObjectID: "objectid",
+                ObjectId: "objectid",
+                SchemaObjectId: "objectid",
                 String: "string",
               };
               const mapped = instanceToType[caster.instance];

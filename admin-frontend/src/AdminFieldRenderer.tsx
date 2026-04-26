@@ -124,8 +124,8 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     }
   }
 
-  // ObjectId with ref -> reference field
-  if (fieldConfig.ref && modelConfigs) {
+  // ObjectId with ref -> reference field (skip arrays — those go to AdminPrimitiveArrayField)
+  if (fieldConfig.ref && modelConfigs && fieldConfig.type !== "array") {
     const refModel = modelConfigs.find((m) => m.name === fieldConfig.ref);
     if (refModel) {
       return (
