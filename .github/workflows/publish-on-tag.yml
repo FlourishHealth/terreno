@@ -916,7 +916,23 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --auto
+        run: |
+          set +e
+          output=$(gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --auto 2>&1)
+          exit_code=$?
+          set -e
+          if [ $exit_code -ne 0 ]; then
+            if [[ "$output" == *"Auto merge is not allowed for this repository"* ]]; then
+              echo "::warning::Repository auto-merge is disabled, skipping auto-merge setup for version bump PR."
+              echo "$output"
+              exit 0
+            fi
+
+            echo "$output"
+            exit $exit_code
+          fi
+
+          echo "$output"
 
   notify:
     needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
