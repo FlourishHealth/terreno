@@ -8,6 +8,7 @@ import {
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminNestedArrayField} from "./AdminNestedArrayField";
+import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import {AdminRefField} from "./AdminRefField";
 import {CheckboxListEditor} from "./CheckboxListEditor";
 import {LocaleContentEditor} from "./LocaleContentEditor";
@@ -123,8 +124,8 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     }
   }
 
-  // ObjectId with ref -> reference field
-  if (fieldConfig.ref && modelConfigs) {
+  // ObjectId with ref -> reference field (skip arrays — those go to AdminPrimitiveArrayField)
+  if (fieldConfig.ref && modelConfigs && fieldConfig.type !== "array") {
     const refModel = modelConfigs.find((m) => m.name === fieldConfig.ref);
     if (refModel) {
       return (
@@ -263,6 +264,25 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         value={displayValue}
+      />
+    );
+  }
+
+  // Array of primitives (string, number, boolean) or ObjectId refs
+  if (fieldConfig.type === "array" && fieldConfig.itemType && !fieldConfig.items) {
+    return (
+      <AdminPrimitiveArrayField
+        api={api}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        helperText={helperText}
+        itemEnum={fieldConfig.itemEnum}
+        itemRef={fieldConfig.itemRef}
+        itemType={fieldConfig.itemType}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        title={label}
+        value={value ?? []}
       />
     );
   }

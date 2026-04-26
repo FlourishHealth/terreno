@@ -15,6 +15,16 @@ const todoSchema = new mongoose.Schema<TodoDocument, TodoModel>(
       required: true,
       type: mongoose.Schema.Types.ObjectId,
     },
+    priority: {
+      description: "Priority level of the todo",
+      enum: ["low", "medium", "high"],
+      type: String,
+    },
+    tags: {
+      default: [],
+      description: "Free-form tags for categorization",
+      type: [String],
+    },
     title: {
       description: "The title of the todo item",
       required: true,

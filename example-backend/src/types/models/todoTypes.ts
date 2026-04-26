@@ -15,4 +15,6 @@ export type TodoDocument = BaseDocument &
     title: string;
     completed: boolean;
     ownerId: mongoose.Types.ObjectId;
+    tags: string[];
+    priority?: "low" | "medium" | "high";
   };

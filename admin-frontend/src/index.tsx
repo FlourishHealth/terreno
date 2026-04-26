@@ -4,6 +4,7 @@ export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";
 export {AdminNestedArrayField} from "./AdminNestedArrayField";
 export {AdminObjectPicker} from "./AdminObjectPicker";
+export {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 export {AdminRefField} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";

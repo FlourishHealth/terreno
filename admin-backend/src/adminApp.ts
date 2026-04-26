@@ -86,8 +86,14 @@ interface AdminFieldMeta {
   ref?: string;
   searchable?: boolean;
   widget?: string;
-  /** For array fields: metadata about each item's sub-fields */
+  /** For array fields of sub-documents: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldMeta>;
+  /** For array fields of primitives: the item type (string/number/boolean/objectid) */
+  itemType?: string;
+  /** For array fields of primitives: enum values for each item */
+  itemEnum?: string[];
+  /** For array fields of ObjectId refs: the referenced model name */
+  itemRef?: string;
 }
 
 interface AdminModelMeta {
@@ -150,6 +156,10 @@ interface OpenApiProperty {
   items?: {
     properties?: Record<string, OpenApiProperty>;
     required?: string[];
+    type?: string;
+    enum?: string[];
+    format?: string;
+    $ref?: string;
   };
 }
 
@@ -177,6 +187,17 @@ const extractFieldMeta = (
         prop.items.properties as Record<string, OpenApiProperty>,
         itemRequired
       );
+    }
+
+    // For array fields of primitives, capture the item type and enum
+    if (prop.type === "array" && prop.items && !prop.items.properties) {
+      const itemProp = prop.items as OpenApiProperty;
+      if (itemProp.type) {
+        fields[key].itemType = itemProp.type;
+      }
+      if (itemProp.enum) {
+        fields[key].itemEnum = itemProp.enum;
+      }
     }
 
     // Check for ObjectId references in the raw property
@@ -280,9 +301,38 @@ export class AdminApp {
           if (pathOptions?.ref) {
             field.ref = pathOptions.ref;
           }
-          // Handle array of refs
+          // Handle array of refs (legacy: also set ref for back-compat)
           if (Array.isArray(pathOptions?.type) && pathOptions.type[0]?.ref) {
             field.ref = pathOptions.type[0].ref;
+          }
+          // For arrays, use the caster to infer the primitive item type/ref.
+          // Mongoose caster.instance is "String" | "Number" | "Boolean" | "ObjectID".
+          if (schemaPath.instance === "Array") {
+            const caster = (
+              schemaPath as unknown as {
+                caster?: {instance?: string; options?: {ref?: string; enum?: string[]}};
+              }
+            ).caster;
+            if (caster?.instance && !field.items) {
+              const instanceToType: Record<string, string> = {
+                Boolean: "boolean",
+                Number: "number",
+                ObjectID: "objectid",
+                ObjectId: "objectid",
+                SchemaObjectId: "objectid",
+                String: "string",
+              };
+              const mapped = instanceToType[caster.instance];
+              if (mapped) {
+                field.itemType = mapped;
+              }
+              if (caster.options?.ref) {
+                field.itemRef = caster.options.ref;
+              }
+              if (caster.options?.enum) {
+                field.itemEnum = caster.options.enum;
+              }
+            }
           }
         }
       }

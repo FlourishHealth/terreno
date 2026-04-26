@@ -9,8 +9,14 @@ export interface AdminFieldConfig {
   ref?: string;
   searchable?: boolean;
   widget?: string;
-  /** For array fields: metadata about each item's sub-fields */
+  /** For array fields of sub-documents: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldConfig>;
+  /** For array fields of primitives: the item type (string/number/boolean/objectid) */
+  itemType?: string;
+  /** For array fields of primitives: enum values for each item */
+  itemEnum?: string[];
+  /** For array fields of ObjectId refs: the referenced model name */
+  itemRef?: string;
 }
 
 export interface AdminModelConfig {

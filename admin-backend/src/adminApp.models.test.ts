@@ -126,6 +126,24 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.fields.eatenBy.ref).toBe("User");
   });
 
+  it("extracts itemType for primitive string arrays", async () => {
+    const res = await adminAgent.get("/admin/config").expect(200);
+    const [foodMeta] = res.body.models;
+    // tags is [String] — should expose itemType so the frontend renders a primitive list
+    expect(foodMeta.fields.tags.type).toBe("array");
+    expect(foodMeta.fields.tags.itemType).toBe("string");
+    expect(foodMeta.fields.tags.items).toBeUndefined();
+  });
+
+  it("extracts itemType and itemRef for arrays of ObjectId references", async () => {
+    const res = await adminAgent.get("/admin/config").expect(200);
+    const [foodMeta] = res.body.models;
+    // eatenBy is [{type: ObjectId, ref: "User"}] — should expose both itemType and itemRef
+    expect(foodMeta.fields.eatenBy.type).toBe("array");
+    expect(foodMeta.fields.eatenBy.itemType).toBe("objectid");
+    expect(foodMeta.fields.eatenBy.itemRef).toBe("User");
+  });
+
   it("returns 403 for non-admin users", async () => {
     const res = await notAdminAgent.get("/admin/config").expect(403);
     expect(res.body.title).toInclude("Admin access required");
