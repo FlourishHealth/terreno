@@ -1,4 +1,3 @@
-import {useToast} from "@terreno/ui";
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {AppState, Linking} from "react-native";
@@ -25,6 +24,8 @@ interface UseUpgradeCheckResult {
   isWarning: boolean;
   requiredMessage?: string;
   warningMessage?: string;
+  /** Increments each time a poll returns "warning" status. Useful as a React key to force remount. */
+  warningCheckCount: number;
   onUpdate: () => void;
 }
 
@@ -51,17 +52,44 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
   const [requiredMessage, setRequiredMessage] = useState<string>();
   const [warningMessage, setWarningMessage] = useState<string>();
   const [updateUrl, setUpdateUrl] = useState<string>();
-  const toast = useToast();
-  const [triggerVersionCheck, result] = useLazyGetVersionCheckQuery();
+  const [warningCheckCount, setWarningCheckCount] = useState(0);
+  const [triggerVersionCheck] = useLazyGetVersionCheckQuery();
   const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
   const appState = useRef(AppState.currentState);
 
+  // Process version-check response inline via .unwrap() so every poll trigger
+  // is handled, even when RTK Query returns a structurally-shared cached response
+  // (which would prevent a useEffect from re-firing).
   const runCheck = useCallback(() => {
     if (buildNumber === undefined || buildNumber === null) {
       return;
     }
     const platform = IsWeb ? "web" : "mobile";
-    void triggerVersionCheck({platform, version: buildNumber});
+    triggerVersionCheck({platform, version: buildNumber})
+      .unwrap()
+      .then((data) => {
+        const {message, status, updateUrl: responseUpdateUrl} = data;
+
+        if (status === "required") {
+          setIsRequired(true);
+          setRequiredMessage(message);
+          setIsWarning(false);
+        } else if (status === "warning") {
+          setIsWarning(true);
+          setWarningMessage(message);
+          setWarningCheckCount((c) => c + 1);
+        } else {
+          setIsWarning(false);
+          setIsRequired(false);
+        }
+
+        if (responseUpdateUrl) {
+          setUpdateUrl(responseUpdateUrl);
+        }
+      })
+      .catch((error: unknown) => {
+        console.debug("Version check failed, continuing normally", error);
+      });
   }, [buildNumber, triggerVersionCheck]);
 
   const onUpdate = useCallback(() => {
@@ -111,50 +139,15 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     return () => subscription.remove();
   }, [runCheck, recheckOnForeground]);
 
-  // Show warning toast in a separate effect. ToastProvider initializes its ref
-  // in useEffect, so we may need to retry when toast becomes available.
-  useEffect(() => {
-    if (!warningMessage) {
-      return;
-    }
-    const toastId = toast.warn(warningMessage, {persistent: true});
-    if (toastId) {
-      setWarningMessage(undefined);
-    } else {
-      console.warn("useUpgradeCheck: toast not yet available, will retry on next render");
-    }
-  }, [warningMessage, toast]);
-
-  // Process version-check response — update warning/required state
-  useEffect(() => {
-    if (result.isError) {
-      console.debug("Version check failed, continuing normally", result.error);
-      return;
-    }
-    if (!result.isSuccess || !result.data) {
-      return;
-    }
-
-    const {message, status, updateUrl: responseUpdateUrl} = result.data;
-
-    if (status === "required") {
-      setIsRequired(true);
-      setRequiredMessage(message);
-      setIsWarning(false);
-    } else if (status === "warning") {
-      setIsWarning(true);
-      setWarningMessage(message);
-    } else {
-      setIsWarning(false);
-      setIsRequired(false);
-    }
-
-    if (responseUpdateUrl) {
-      setUpdateUrl(responseUpdateUrl);
-    }
-  }, [result.data, result.error, result.isError, result.isSuccess]);
-
   const canUpdate = IsWeb || !!updateUrl;
 
-  return {canUpdate, isRequired, isWarning, onUpdate, requiredMessage, warningMessage};
+  return {
+    canUpdate,
+    isRequired,
+    isWarning,
+    onUpdate,
+    requiredMessage,
+    warningCheckCount,
+    warningMessage,
+  };
 };

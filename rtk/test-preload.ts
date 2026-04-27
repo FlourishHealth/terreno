@@ -1,6 +1,11 @@
 import {mock} from "bun:test";
 
 mock.module("react-native", () => ({
+  AppState: {
+    addEventListener: () => ({remove: () => {}}),
+    currentState: "active",
+  },
+  Linking: {openURL: async () => true},
   Platform: {OS: "web"},
   StyleSheet: {create: (s: unknown) => s},
 }));
