@@ -257,16 +257,13 @@ describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
   });
 
   it("rejects prototype pollution keys in nested dot-notation", () => {
-    const pristinePolluted = (Object.prototype as any).polluted;
     const result = getOpenApiSpecForModel(FoodModel, {
       populatePaths: [{fields: ["__proto__.polluted"], path: "ownerId"}],
     });
     expect(result.properties).toBeDefined();
-    expect((Object.prototype as any).polluted).toBe(pristinePolluted);
+    expect((Object.prototype as any).polluted).toBeUndefined();
     const ownerProps = (result.properties.ownerId as any).properties;
     expect(ownerProps).toBeDefined();
-    expect("__proto__" in ownerProps === false || ownerProps.__proto__ === Object.prototype).toBe(
-      true
-    );
+    expect(Object.keys(ownerProps)).not.toContain("__proto__");
   });
 });
