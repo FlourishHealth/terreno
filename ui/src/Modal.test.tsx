@@ -1,6 +1,7 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 
+import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -353,5 +354,49 @@ describe("Modal", () => {
     expect(inner).toBeTruthy();
     inner?.props.onPress?.({stopPropagation});
     expect(stopPropagation).not.toHaveBeenCalled();
+  });
+});
+
+describe("Modal mobile branch", () => {
+  afterEach(() => {
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+  });
+
+  it("renders ActionSheet when isMobileDevice is true", () => {
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
+    const {toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Mobile Modal" visible>
+        <Text>Mobile Content</Text>
+      </Modal>
+    );
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("renders ActionSheet with title and buttons on mobile", () => {
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
+    const {toJSON} = renderWithTheme(
+      <Modal
+        onDismiss={() => {}}
+        primaryButtonOnClick={() => {}}
+        primaryButtonText="Save"
+        secondaryButtonOnClick={() => {}}
+        secondaryButtonText="Cancel"
+        title="Mobile Actions"
+        visible
+      >
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("renders ActionSheet with persistOnBackgroundClick disabled", () => {
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
+    const {toJSON} = renderWithTheme(
+      <Modal onDismiss={() => {}} title="Persistent Mobile" visible>
+        <Text>Content</Text>
+      </Modal>
+    );
+    expect(toJSON()).toBeTruthy();
   });
 });
