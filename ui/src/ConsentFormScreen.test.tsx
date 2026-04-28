@@ -1,29 +1,9 @@
-import {afterAll, describe, expect, it, mock} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
-import {Text as RNText} from "react-native";
-
-// Capture the real MarkdownView export before mocking so we can restore it in
-// afterAll and avoid leaking a test-only mock to sibling test files.
-const RealMarkdownViewModule = require("./MarkdownView");
-
-// Mock MarkdownView with a simple Text passthrough so we can assert on the
-// rendered (variable-substituted) content without depending on
-// react-native-markdown-display's tokenization.
-mock.module("./MarkdownView", () => ({
-  MarkdownView: ({children}: {children: string}) => (
-    <RNText testID="markdown-view">{children}</RNText>
-  ),
-}));
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
-
-// Restore the real MarkdownView so downstream test files (e.g.
-// MarkdownView.test.tsx) see the un-mocked module regardless of test order.
-afterAll(() => {
-  mock.module("./MarkdownView", () => RealMarkdownViewModule);
-});
 
 const baseForm: ConsentFormPublic = {
   active: true,
@@ -59,7 +39,7 @@ describe("ConsentFormScreen", () => {
   });
 
   it("substitutes variables in content and preserves unknown placeholders", () => {
-    const {getByTestId} = renderWithTheme(
+    const {getByText} = renderWithTheme(
       <ConsentFormScreen
         form={{...baseForm, content: {en: "Hello {{name}}, {{missing}} stays"}}}
         locale="en"
@@ -67,7 +47,7 @@ describe("ConsentFormScreen", () => {
         variables={{name: "Ada"}}
       />
     );
-    expect(getByTestId("markdown-view").props.children).toBe("Hello Ada, {{missing}} stays");
+    expect(getByText("Hello Ada, {{missing}} stays")).toBeTruthy();
   });
 
   it("invokes onAgree with signature and checkbox values", () => {
