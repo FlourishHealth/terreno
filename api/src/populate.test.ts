@@ -249,16 +249,24 @@ describe("getOpenApiSpecForModel edge cases", () => {
 describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
   it("filters populated fields using dot-notation keys", () => {
     const result = getOpenApiSpecForModel(FoodModel, {
-      populatePaths: [{fields: ["name"], path: "ownerId"}],
+      populatePaths: [{fields: ["name.nested"], path: "ownerId"}],
     });
-    const ownerProps = (result.properties.ownerId as any).properties || result.properties.ownerId;
+    const ownerProps = (result.properties.ownerId as any).properties;
     expect(ownerProps.name).toBeDefined();
+    expect(typeof ownerProps.name).toBe("object");
   });
 
   it("rejects prototype pollution keys in nested dot-notation", () => {
+    const pristinePolluted = (Object.prototype as any).polluted;
     const result = getOpenApiSpecForModel(FoodModel, {
       populatePaths: [{fields: ["__proto__.polluted"], path: "ownerId"}],
     });
     expect(result.properties).toBeDefined();
+    expect((Object.prototype as any).polluted).toBe(pristinePolluted);
+    const ownerProps = (result.properties.ownerId as any).properties;
+    expect(ownerProps).toBeDefined();
+    expect("__proto__" in ownerProps === false || ownerProps.__proto__ === Object.prototype).toBe(
+      true
+    );
   });
 });
