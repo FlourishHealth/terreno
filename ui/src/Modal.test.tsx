@@ -390,10 +390,10 @@ describe("Modal mobile branch", () => {
     expect(toJSON()).toBeTruthy();
   });
 
-  it("renders ActionSheet with persistOnBackgroundClick disabled", () => {
+  it("renders ActionSheet with persistOnBackgroundClick enabled", () => {
     (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
     const {toJSON} = renderWithTheme(
-      <Modal onDismiss={() => {}} title="Persistent Mobile" visible>
+      <Modal onDismiss={() => {}} persistOnBackgroundClick title="Persistent Mobile" visible>
         <Text>Content</Text>
       </Modal>
     );
