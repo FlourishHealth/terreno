@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 
 import {
   getLangfuseClient,
@@ -8,6 +8,10 @@ import {
 } from "./langfuseClient";
 
 describe("langfuseClient", () => {
+  beforeEach(async () => {
+    await shutdownLangfuseClient();
+  });
+
   afterEach(async () => {
     await shutdownLangfuseClient();
   });
