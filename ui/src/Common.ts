@@ -864,8 +864,7 @@ export interface SplitPageProps {
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
   // noExplicitAny: list data type varies by consumer's data model
   listViewData: any[];
-  // noExplicitAny: FlatList extraData accepts varying types
-  listViewExtraData?: any;
+  listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
@@ -908,8 +907,7 @@ export interface AddressInterface {
 export interface TransformValueOptions {
   func?: (value: string) => string;
   options?: {
-    // noExplicitAny: transform option values have varying types depending on the transform function
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -2454,8 +2452,7 @@ export interface APIError {
     source?: string;
     pointer?: string;
     parameter?: string;
-    // noExplicitAny: API error meta field has no fixed schema
-    meta?: {[id: string]: any};
+    meta?: {[id: string]: unknown};
   };
 }
 
@@ -2488,7 +2485,7 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
-    // noExplicitAny: OpenAPI spec path items have complex nested structures
+    // noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
