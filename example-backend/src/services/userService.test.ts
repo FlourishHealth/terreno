@@ -14,7 +14,7 @@ describe("User Service", () => {
       const email = generateTestEmail();
       const name = "John Doe";
 
-      const user = await userService.createUser(email, name);
+      const user = await userService.createUser({email, name});
 
       expect(user._id).toBeDefined();
       expect(user.email).toBe(email);
@@ -23,7 +23,7 @@ describe("User Service", () => {
 
     it("should throw error when email is missing", async () => {
       try {
-        await userService.createUser("", "John Doe");
+        await userService.createUser({email: "", name: "John Doe"});
         throw new Error("Should have thrown error");
       } catch (error: any) {
         expect(error.status).toBeDefined();
@@ -35,7 +35,7 @@ describe("User Service", () => {
 
     it("should throw error when name is missing", async () => {
       try {
-        await userService.createUser(generateTestEmail(), "");
+        await userService.createUser({email: generateTestEmail(), name: ""});
         throw new Error("Should have thrown error");
       } catch (error: any) {
         expect(error.status).toBeDefined();
@@ -50,7 +50,7 @@ describe("User Service", () => {
       await createTestUser({email});
 
       try {
-        await userService.createUser(email, "New User");
+        await userService.createUser({email, name: "New User"});
         throw new Error("Should have thrown error");
       } catch (error: any) {
         expect(error.status).toBeDefined();
@@ -65,7 +65,7 @@ describe("User Service", () => {
     it("should get user by id successfully", async () => {
       const testUser = await createTestUser();
 
-      const user = await userService.getUserById(testUser._id.toString());
+      const user = await userService.getUserById({userId: testUser._id.toString()});
 
       expect(user).toBeDefined();
       if (user) {
@@ -78,7 +78,7 @@ describe("User Service", () => {
       const fakeId = "507f1f77bcf86cd799439011";
 
       try {
-        await userService.getUserById(fakeId);
+        await userService.getUserById({userId: fakeId});
         throw new Error("Should have thrown error");
       } catch (error: unknown) {
         expect(error).toBeDefined();
