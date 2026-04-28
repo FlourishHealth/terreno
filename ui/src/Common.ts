@@ -1,7 +1,14 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
 import type {ReactElement, ReactNode} from "react";
-import type {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
+import type {
+  ImageStyle,
+  ListRenderItemInfo,
+  StyleProp,
+  TextInput,
+  TextStyle,
+  ViewStyle,
+} from "react-native";
 import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {Styles} from "react-native-google-places-autocomplete";
 import type {SvgProps} from "react-native-svg";
@@ -456,6 +463,7 @@ export interface BoxPropsBase {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
+      // noExplicitAny: escape hatch for arbitrary inline style values
       [key: string]: any;
     };
   };
@@ -528,7 +536,7 @@ export interface BoxPropsBase {
 
   onClick?: () => void | Promise<void>;
   className?: string;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   onHoverStart?: () => void | Promise<void>;
   onHoverEnd?: () => void | Promise<void>;
   scroll?: boolean;
@@ -554,7 +562,7 @@ export type BoxProps =
 export type BoxColor = SurfaceColor | "transparent";
 
 export interface ErrorBoundaryProps {
-  onError?: (error: Error, stack: any) => void;
+  onError?: (error: Error, stack: string) => void;
   children?: ReactNode;
 }
 
@@ -652,7 +660,7 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
   multiline?: boolean;
   rows?: number;
 
-  inputRef?: any;
+  inputRef?: (ref: TextInput | null) => void;
   trimOnBlur?: boolean;
 
   aiSuggestion?: AiSuggestionProps;
@@ -782,7 +790,7 @@ export interface ImageProps {
   size?: string;
   srcSet?: string;
   fullWidth?: boolean;
-  style?: any;
+  style?: ImageStyle;
 }
 
 export interface BackButtonInterface {
@@ -850,14 +858,17 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
+  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
   renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
+  // noExplicitAny: list data type varies by consumer's data model
   listViewData: any[];
-  listViewExtraData?: any;
+  listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
+  // noExplicitAny: callback value type varies by consumer's data model
   onSelectionChange?: (value?: any) => void | Promise<void>;
 }
 
@@ -896,7 +907,7 @@ export interface AddressInterface {
 export interface TransformValueOptions {
   func?: (value: string) => string;
   options?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -1745,6 +1756,7 @@ export interface HeightActionSheetProps {
 
 export interface HyperlinkProps {
   linkDefault?: boolean;
+  // noExplicitAny: type comes from external linkify-it library which lacks an exported type
   linkify?: any;
   linkStyle?: StyleProp<any>;
   linkText?: string | ((url: string) => string);
@@ -1901,10 +1913,12 @@ export interface ModalProps {
   /**
    * The function to call when the primary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   primaryButtonOnClick?: (value?: any) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
 }
 
@@ -1917,6 +1931,7 @@ export interface NumberPickerActionSheetProps {
 }
 
 export interface PageProps {
+  // noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
@@ -1930,11 +1945,11 @@ export interface PageProps {
   color?: SurfaceColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
-  footer?: any;
+  footer?: ReactNode;
   rightButton?: string;
   rightButtonOnClick?: () => void;
-  children?: any;
-  onError?: (error: Error, stack: any) => void;
+  children?: ReactChildren;
+  onError?: (error: Error, stack: string) => void;
 }
 
 export interface ProgressBarProps {
@@ -1957,7 +1972,7 @@ export interface RadioFieldProps {
 export interface SignatureFieldProps {
   disabled?: boolean; // default "default"
   value?: string;
-  onChange: (value: any) => void;
+  onChange: (value: string) => void;
   title?: string; // default "Signature"
   onStart?: () => void;
   onEnd?: () => void;
@@ -2356,16 +2371,19 @@ export type TapToEditProps =
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
+  // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   value: any;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   onSave?: (value: any) => void | Promise<void>;
 
   /**
@@ -2378,6 +2396,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
+  // noExplicitAny: input value type varies across TapToEdit field types
   transform?: (value: any) => string;
   /**
    * Show a confirmation modal before saving the value.
@@ -2433,7 +2452,7 @@ export interface APIError {
     source?: string;
     pointer?: string;
     parameter?: string;
-    meta?: {[id: string]: any};
+    meta?: {[id: string]: unknown};
   };
 }
 
@@ -2466,6 +2485,7 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
+    // noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
@@ -2498,7 +2518,8 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
-  doc: any; // The rest of the document.
+  // noExplicitAny: document shape varies by model used with ModelAdmin
+  doc: any;
   fieldKey: string; // Dot notation representation of the field.
   // user: User;
   editing: boolean; // Allow for inline editing of the field.
