@@ -437,7 +437,7 @@ const emitter = async (change: ChangeStreamDocument): Promise<void> => {
   }
 };
 
-type EventDataMapping = {
+interface EventDataMapping {
   notificationEvent: {conversationId?: string; sound: string};
   invalidateTagEvent: {collection: string};
   messageNotificationEvent: {
@@ -455,7 +455,7 @@ type EventDataMapping = {
     unreadCount: number;
     tagCount: number;
   };
-};
+}
 type EventData<T extends keyof EventDataMapping> = EventDataMapping[T];
 
 export const emitEvent = <T extends keyof EventDataMapping>(
