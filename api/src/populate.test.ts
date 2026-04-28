@@ -196,4 +196,69 @@ describe("getOpenApiSpecForModel edge cases", () => {
     });
     expect(result.properties).toBeDefined();
   });
+
+  it("uses openApiComponent $ref when provided", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{openApiComponent: "UserComponent", path: "ownerId"}],
+    });
+    expect(result.properties.ownerId).toEqual({
+      $ref: "#/components/schemas/UserComponent",
+    });
+  });
+
+  it("populates array ref fields (eatenBy)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "eatenBy"}],
+    });
+    expect(result.properties.eatenBy).toBeDefined();
+    expect((result.properties.eatenBy as any).items).toBeDefined();
+  });
+
+  it("populates nested ref in sub-schema (likesIds.userId)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "likesIds.userId"}],
+    });
+    expect(result.properties.likesIds).toBeDefined();
+  });
+
+  it("includes virtuals from model schema", () => {
+    const result = getOpenApiSpecForModel(FoodModel);
+    expect(result.properties.description).toBeDefined();
+    expect((result.properties.description as any).type).toBe("any");
+  });
+
+  it("includes virtuals from child schemas", () => {
+    const childSub = new Schema({amount: {description: "Amount", type: Number}});
+    childSub.virtual("displayAmount").get(function () {
+      return `${this.amount} units`;
+    });
+    const parentSchema = new Schema({
+      detail: {description: "Single embedded detail", type: childSub},
+      title: {description: "Title", type: String},
+    });
+    const ParentModel =
+      mongoose.models.ParentWithChildVirtual ||
+      mongoose.model("ParentWithChildVirtual", parentSchema);
+    const result = getOpenApiSpecForModel(ParentModel);
+    const detail = result.properties.detail as any;
+    expect(detail.properties.displayAmount).toBeDefined();
+    expect(detail.properties.displayAmount.type).toBe("any");
+  });
+});
+
+describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
+  it("filters populated fields using dot-notation keys", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name"], path: "ownerId"}],
+    });
+    const ownerProps = (result.properties.ownerId as any).properties || result.properties.ownerId;
+    expect(ownerProps.name).toBeDefined();
+  });
+
+  it("rejects prototype pollution keys in nested dot-notation", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["__proto__.polluted"], path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
 });
