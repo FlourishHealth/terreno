@@ -92,6 +92,9 @@
   },
   "scripts": {
     "android": "NODE_OPTIONS=--openssl-legacy-provider expo start --android --port 8085",
+    "eas:android": "eas build --profile development --platform android",
+    "eas:ios": "eas build --profile development --platform ios",
+    "eas:ios-sim": "eas build --profile development:simulator --platform ios",
     "build-preview": "NODE_OPTIONS=--openssl-legacy-provider bun run build-web",
     "build-web": "NODE_OPTIONS=--openssl-legacy-provider bunx expo export",
     "compile": "tsc",
