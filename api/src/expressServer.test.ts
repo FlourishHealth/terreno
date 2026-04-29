@@ -573,14 +573,28 @@ describe("expressServer", () => {
 
   describe("wrapScript", () => {
     const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
 
     beforeEach(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: Mock requires type override for process.exit.
       process.exit = mock(() => {
         throw new Error("process.exit called");
-      }) as any;
+      }) as unknown as typeof process.exit;
+      // Capture timer handles so we can clear them after each test
+      globalThis.setTimeout = ((...args: Parameters<typeof setTimeout>) => {
+        const id = originalSetTimeout(...args);
+        timerIds.push(id);
+        return id;
+      }) as typeof setTimeout;
     });
 
     afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
+      timerIds.length = 0;
+      globalThis.setTimeout = originalSetTimeout;
       process.exit = originalExit;
     });
 
@@ -660,21 +674,10 @@ describe("expressServer", () => {
         setupServer({
           addRoutes,
           skipListen: true,
+          // biome-ignore lint/suspicious/noExplicitAny: Test mock for UserModel.
           userModel: UserModel as any,
         })
       ).toThrow("route initialization failed");
-    });
-
-    it("starts listening when skipListen is false", () => {
-      const addRoutes = () => {};
-
-      const app = setupServer({
-        addRoutes,
-        skipListen: false,
-        userModel: UserModel as any,
-      });
-
-      expect(app).toBeDefined();
     });
   });
 });

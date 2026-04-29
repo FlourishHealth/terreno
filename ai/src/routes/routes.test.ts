@@ -996,9 +996,10 @@ describe("AI Routes", () => {
 
     it("handles AIRequest.logRequest failure gracefully", async () => {
       const originalLogRequest = AIRequest.logRequest;
+      // biome-ignore lint/suspicious/noExplicitAny: Override static method for test mock.
       AIRequest.logRequest = mock(async () => {
         throw new Error("database write failed");
-      }) as any;
+      }) as unknown as typeof AIRequest.logRequest;
       try {
         const agent = await authAsUser(app, "notAdmin");
         const res = await agent
