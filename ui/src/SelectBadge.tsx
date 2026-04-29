@@ -6,6 +6,7 @@ import {Modal, Platform, Text, TouchableOpacity, View} from "react-native";
 import type {FieldOption, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
 
 export const SelectBadge = ({
   value,
@@ -23,6 +24,15 @@ export const SelectBadge = ({
   // Temporary state to manage value changes for ios picker
   // Assures the badge display value persists when user scrolls through options
   const [iosDisplayValue, setIosDisplayValue] = useState<string | undefined>(value);
+
+  // Web-only: anchor the custom dropdown menu to the trigger element so that
+  // Safari/Firefox/Chrome all render the same styled menu instead of the
+  // browser's native <select> UI.
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
 
   const secondaryBorderColors = {
     custom: "#AAAAAA",
@@ -190,14 +200,13 @@ export const SelectBadge = ({
         selectedValue={findSelectedItem(value)?.value ?? undefined}
         style={[
           {
+            backgroundColor: "transparent",
             color: "transparent",
             height: "100%",
             opacity: 0,
             position: "absolute",
             width: "100%",
           },
-          // Android headless picker: transparent overlay to capture touches without visible UI.
-          Platform.OS !== "web" && {backgroundColor: "transparent"},
         ]}
       >
         {renderPickerItems()}
@@ -205,14 +214,59 @@ export const SelectBadge = ({
     );
   }, [disabled, findSelectedItem, value, handleOnChange, renderPickerItems]);
 
+  // Custom web dropdown. Rendering the native <Picker> on web delegates
+  // styling to each browser (Safari in particular looks very different from
+  // Chrome/Firefox). Instead, we render a styled popup menu anchored to the
+  // badge so the dropdown looks identical across browsers.
+  const webMenuOptions = useMemo<WebDropdownMenuOption[]>(
+    () => options.map((item) => ({key: item.key, label: item.label, value: item.value})),
+    [options]
+  );
+
+  const renderWebPicker = useCallback(() => {
+    return (
+      <WebDropdownMenu
+        anchor={webAnchor}
+        minWidth={160}
+        onClose={() => setShowPicker(false)}
+        onSelect={(val) => handleOnChange(val)}
+        options={webMenuOptions}
+        optionTextStyle={{fontFamily: "text", fontSize: 12}}
+        selectedValue={value}
+        testIDPrefix="web_badge"
+        visible={showPicker}
+        width={undefined}
+      />
+    );
+  }, [showPicker, webAnchor, webMenuOptions, value, handleOnChange]);
+
+  const openWebMenu = (): void => {
+    if (disabled) {
+      return;
+    }
+    measureWebAnchor(() => {
+      setShowPicker(true);
+    });
+  };
+
   return (
-    <View style={{alignItems: "flex-start", opacity: disabled ? 0.5 : 1}}>
+    <View ref={webTriggerRef} style={{alignItems: "flex-start", opacity: disabled ? 0.5 : 1}}>
       <TouchableOpacity
         accessibilityHint="Opens the options picker"
         accessibilityLabel="Open select badge options"
         aria-role="button"
         disabled={disabled}
-        onPress={() => setShowPicker(!showPicker)}
+        onPress={() => {
+          if (Platform.OS === "web") {
+            if (showPicker) {
+              setShowPicker(false);
+            } else {
+              openWebMenu();
+            }
+            return;
+          }
+          setShowPicker(!showPicker);
+        }}
       >
         <View
           style={{
@@ -274,7 +328,11 @@ export const SelectBadge = ({
           </View>
         </View>
       </TouchableOpacity>
-      {Platform.OS === "ios" ? renderIosPicker() : renderPicker()}
+      {Platform.OS === "ios"
+        ? renderIosPicker()
+        : Platform.OS === "web"
+          ? renderWebPicker()
+          : renderPicker()}
     </View>
   );
 };
