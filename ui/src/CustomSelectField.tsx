@@ -109,7 +109,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           />
         </View>
       )}
-      {helperText && <FieldHelperText text={helperText} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
     </View>
   );
 };

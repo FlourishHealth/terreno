@@ -58,7 +58,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
 
   return (
     <View testID={testID}>
-      {title && <FieldTitle text={title} />}
+      {Boolean(title) && <FieldTitle text={title!} />}
       <Box
         border={errorText ? "error" : "default"}
         direction={isWeb ? "row" : "column"}
@@ -151,8 +151,8 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
           </Box>
         </ScrollView>
       </Box>
-      {errorText && <FieldError text={errorText} />}
-      {helperText && <FieldHelperText text={helperText} />}
+      {Boolean(errorText) && <FieldError text={errorText!} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
     </View>
   );
 };
