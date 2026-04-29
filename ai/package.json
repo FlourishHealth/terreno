@@ -30,16 +30,22 @@
   },
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./langfuseClient": {
-      "default": "./dist/langfuseClient.js",
-      "types": "./dist/langfuseClient.d.ts"
+      "types": "./dist/langfuseClient.d.ts",
+      "import": "./dist/langfuseClient.js",
+      "require": "./dist/langfuseClient.js",
+      "default": "./dist/langfuseClient.js"
     },
     "./langfuseApp": {
-      "default": "./dist/langfuseApp.js",
-      "types": "./dist/langfuseApp.d.ts"
+      "types": "./dist/langfuseApp.d.ts",
+      "import": "./dist/langfuseApp.js",
+      "require": "./dist/langfuseApp.js",
+      "default": "./dist/langfuseApp.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
