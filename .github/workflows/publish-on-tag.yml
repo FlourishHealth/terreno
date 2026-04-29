@@ -916,7 +916,10 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --auto
+        run: |
+          if ! gh pr merge ${{ steps.create-pr.outputs.pull-request-number }} --squash --delete-branch --auto; then
+            echo "::warning::Could not enable auto-merge for the version bump PR. The PR was created and can be merged manually."
+          fi
 
   notify:
     needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
