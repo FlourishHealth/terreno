@@ -342,10 +342,9 @@ const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
         style={{
           alignItems: "center",
           flexDirection: "row",
+          height: 44,
           justifyContent: "space-between",
-          minHeight: 52,
           paddingHorizontal: 16,
-          paddingVertical: 12,
         }}
       >
         <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
