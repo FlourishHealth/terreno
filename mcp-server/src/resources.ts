@@ -39,7 +39,6 @@ interface TypeDocType {
   typeArguments?: TypeDocType[];
   declaration?: {signatures?: unknown[]};
 }
-
 interface TypeDocProp {
   id: number;
   name: string;
