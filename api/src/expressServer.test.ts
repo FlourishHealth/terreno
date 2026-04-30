@@ -1,4 +1,4 @@
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 import supertest from "supertest";
 
@@ -9,6 +9,7 @@ import {
   logRequests,
   setupEnvironment,
   setupServer,
+  wrapScript,
 } from "./expressServer";
 import {UserModel} from "./tests";
 
@@ -567,6 +568,98 @@ describe("expressServer", () => {
       });
 
       await supertest(app).get("/test").expect(200);
+    });
+
+    it("re-throws when addRoutes throws during route initialization", () => {
+      const addRoutes = () => {
+        throw new Error("Route init boom");
+      };
+
+      expect(() =>
+        setupServer({
+          addRoutes,
+          skipListen: true,
+          userModel: UserModel as any,
+        })
+      ).toThrow("Route init boom");
+    });
+
+    it("starts listening on PORT when skipListen is not set", () => {
+      const port = "19876";
+      const prevPort = process.env.PORT;
+      process.env.PORT = port;
+      try {
+        const addRoutes = () => {};
+        const app = setupServer({
+          addRoutes,
+          userModel: UserModel as any,
+        });
+        expect(app).toBeDefined();
+      } finally {
+        process.env.PORT = prevPort;
+      }
+    });
+  });
+
+  describe("wrapScript", () => {
+    const originalExit = process.exit;
+
+    beforeEach(() => {
+      process.env = {
+        ...process.env,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+      // Prevent process.exit from killing the test runner
+      process.exit = mock(() => {
+        throw new Error("__EXIT__");
+      }) as any;
+    });
+
+    afterEach(() => {
+      process.exit = originalExit;
+    });
+
+    it("calls process.exit(0) on success", async () => {
+      const func = async () => "done";
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("calls process.exit(1) on error", async () => {
+      const func = async () => {
+        throw new Error("script failed");
+      };
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it("calls onFinish with the result", async () => {
+      let finishResult: any;
+      const func = async () => "result-value";
+      const onFinish = async (r: any) => {
+        finishResult = r;
+      };
+      await expect(wrapScript(func, {onFinish, terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(finishResult).toBe("result-value");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("sets up warn and terminate timeouts when terminateTimeout is not 0", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 600})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("passes slackChannel option through", async () => {
+      const func = async () => "ok";
+      await expect(
+        wrapScript(func, {slackChannel: "test-channel", terminateTimeout: 0})
+      ).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
     });
   });
 });
