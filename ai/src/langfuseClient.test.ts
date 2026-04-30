@@ -53,7 +53,7 @@ describe("langfuseClient", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    expect((client as any).baseUrl).toBe("https://cloud.langfuse.com");
+    expect((client as unknown as {baseUrl: string}).baseUrl).toBe("https://cloud.langfuse.com");
   });
 
   it("uses custom baseUrl when provided", () => {
@@ -62,7 +62,7 @@ describe("langfuseClient", () => {
       publicKey: "pk-test",
       secretKey: "sk-test",
     });
-    expect((client as any).baseUrl).toBe("https://custom.langfuse.com");
+    expect((client as unknown as {baseUrl: string}).baseUrl).toBe("https://custom.langfuse.com");
   });
 
   it("isLangfuseInitialized returns true after init", () => {

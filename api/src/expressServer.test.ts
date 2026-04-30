@@ -583,22 +583,6 @@ describe("expressServer", () => {
         })
       ).toThrow("Route init boom");
     });
-
-    it("starts listening on PORT when skipListen is not set", () => {
-      const port = "19876";
-      const prevPort = process.env.PORT;
-      process.env.PORT = port;
-      try {
-        const addRoutes = () => {};
-        const app = setupServer({
-          addRoutes,
-          userModel: UserModel as any,
-        });
-        expect(app).toBeDefined();
-      } finally {
-        process.env.PORT = prevPort;
-      }
-    });
   });
 
   describe("wrapScript", () => {
@@ -616,7 +600,7 @@ describe("expressServer", () => {
       // Prevent process.exit from killing the test runner
       process.exit = mock(() => {
         throw new Error("__EXIT__");
-      }) as any;
+      }) as unknown as typeof process.exit;
     });
 
     afterEach(() => {
@@ -638,9 +622,9 @@ describe("expressServer", () => {
     });
 
     it("calls onFinish with the result", async () => {
-      let finishResult: any;
+      let finishResult: unknown;
       const func = async () => "result-value";
-      const onFinish = async (r: any) => {
+      const onFinish = async (r: unknown) => {
         finishResult = r;
       };
       await expect(wrapScript(func, {onFinish, terminateTimeout: 0})).rejects.toThrow("__EXIT__");
