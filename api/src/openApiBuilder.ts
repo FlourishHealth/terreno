@@ -75,7 +75,7 @@ import {
  * };
  * ```
  */
-export type OpenApiSchemaProperty = {
+export interface OpenApiSchemaProperty {
   /** The JSON Schema type (e.g., "string", "number", "boolean", "object", "array") */
   type: string;
   /** Human-readable description of the property */
@@ -90,7 +90,7 @@ export type OpenApiSchemaProperty = {
   additionalProperties?: OpenApiSchemaProperty | boolean;
   /** Whether this property is required in the parent object */
   required?: boolean;
-};
+}
 
 /**
  * Defines the top-level schema for request bodies and responses.
@@ -151,7 +151,7 @@ export type OpenApiSchema = {
  * };
  * ```
  */
-export type OpenApiParameter = {
+export interface OpenApiParameter {
   /** Location of the parameter */
   in: "query" | "path" | "header";
   /** Name of the parameter */
@@ -162,7 +162,7 @@ export type OpenApiParameter = {
   schema: OpenApiSchemaProperty;
   /** Human-readable description of the parameter */
   description?: string;
-};
+}
 
 /**
  * Defines a response in an OpenAPI operation.
@@ -188,7 +188,7 @@ export type OpenApiParameter = {
  * };
  * ```
  */
-export type OpenApiResponse = {
+export interface OpenApiResponse {
   /** Human-readable description of the response */
   description: string;
   /** Content definitions keyed by media type */
@@ -197,7 +197,7 @@ export type OpenApiResponse = {
       schema: OpenApiSchema;
     };
   };
-};
+}
 
 /**
  * Internal configuration object for the OpenAPI middleware builder.
@@ -817,8 +817,8 @@ export class OpenApiMiddlewareBuilder {
  * router.get("/analytics/stats", statsMiddleware, getStatsHandler);
  * ```
  */
-export function createOpenApiBuilder(
+export const createOpenApiBuilder = (
   options: Partial<ModelRouterOptions<unknown>>
-): OpenApiMiddlewareBuilder {
+): OpenApiMiddlewareBuilder => {
   return new OpenApiMiddlewareBuilder(options);
-}
+};
