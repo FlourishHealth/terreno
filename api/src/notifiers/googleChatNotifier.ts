@@ -4,10 +4,10 @@ import axios from "axios";
 import {APIError} from "../errors";
 import {logger} from "../logger";
 
-export async function sendToGoogleChat(
+export const sendToGoogleChat = async (
   messageText: string,
   {channel, shouldThrow = false, env}: {channel?: string; shouldThrow?: boolean; env?: string} = {}
-) {
+) => {
   const chatWebhooksString = process.env.GOOGLE_CHAT_WEBHOOKS;
   if (!chatWebhooksString) {
     const msg = "GOOGLE_CHAT_WEBHOOKS not set. Google Chat message not sent";
@@ -44,4 +44,4 @@ export async function sendToGoogleChat(
       });
     }
   }
-}
+};
