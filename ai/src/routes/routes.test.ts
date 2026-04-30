@@ -944,6 +944,78 @@ describe("AI Routes", () => {
     });
   });
 
+  describe("GPT Prompt error handling", () => {
+    it("catches errors thrown mid-stream iteration and sends SSE error", async () => {
+      const streamIterationErrorModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({
+                delta: "partial",
+                id: "t1",
+                type: "text-delta" as const,
+              });
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.error(new Error("stream iteration failure"));
+            },
+          }),
+        })),
+        modelId: "stream-iter-error",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const errApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({
+              model: streamIterationErrorModel as unknown as LanguageModel,
+            }),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(errApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("error");
+    });
+
+    it("handles AIRequest.logRequest failure gracefully", async () => {
+      const originalLogRequest = AIRequest.logRequest;
+      // biome-ignore lint/suspicious/noExplicitAny: Override static method for test mock.
+      AIRequest.logRequest = mock(async () => {
+        throw new Error("database write failed");
+      }) as unknown as typeof AIRequest.logRequest;
+      try {
+        const agent = await authAsUser(app, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("done");
+      } finally {
+        AIRequest.logRequest = originalLogRequest;
+      }
+    });
+  });
+
   describe("GPT tools route", () => {
     it("lists built-in tools from route config", async () => {
       const customApp = setupServer({

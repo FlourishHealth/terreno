@@ -646,4 +646,114 @@ describe("expressServer", () => {
       expect(process.exit).toHaveBeenCalledWith(0);
     });
   });
+
+  describe("wrapScript", () => {
+    const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
+
+    beforeEach(() => {
+      // biome-ignore lint/suspicious/noExplicitAny: Mock requires type override for process.exit.
+      process.exit = mock(() => {
+        throw new Error("process.exit called");
+      }) as unknown as typeof process.exit;
+      // Capture timer handles so we can clear them after each test
+      globalThis.setTimeout = ((...args: Parameters<typeof setTimeout>) => {
+        const id = originalSetTimeout(...args);
+        timerIds.push(id);
+        return id;
+      }) as typeof setTimeout;
+    });
+
+    afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
+      timerIds.length = 0;
+      globalThis.setTimeout = originalSetTimeout;
+      process.exit = originalExit;
+    });
+
+    it("runs a successful script and calls process.exit(0)", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("process.exit called");
+
+      expect(func).toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("calls onFinish callback on success", async () => {
+      const onFinish = mock(async () => {});
+      const func = mock(async () => "result");
+
+      await expect(wrapScript(func, {onFinish, terminateTimeout: 0})).rejects.toThrow(
+        "process.exit called"
+      );
+
+      expect(onFinish).toHaveBeenCalledWith("result");
+    });
+
+    it("calls process.exit(1) when script throws", async () => {
+      const func = mock(async () => {
+        throw new Error("script failure");
+      });
+
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("process.exit called");
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it("sets up timeout warnings when terminateTimeout is not 0", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func, {terminateTimeout: 600})).rejects.toThrow(
+        "process.exit called"
+      );
+
+      expect(func).toHaveBeenCalled();
+    });
+
+    it("uses default terminateTimeout when not specified", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func)).rejects.toThrow("process.exit called");
+
+      expect(func).toHaveBeenCalled();
+    });
+  });
+
+  describe("setupServer error handling", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("catches and rethrows errors from initializeRoutes", () => {
+      const addRoutes = () => {
+        throw new Error("route initialization failed");
+      };
+
+      expect(() =>
+        setupServer({
+          addRoutes,
+          skipListen: true,
+          // biome-ignore lint/suspicious/noExplicitAny: Test mock for UserModel.
+          userModel: UserModel as any,
+        })
+      ).toThrow("route initialization failed");
+    });
+  });
 });
