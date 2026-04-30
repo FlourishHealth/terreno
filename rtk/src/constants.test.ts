@@ -112,6 +112,34 @@ describe("resolveBaseUrls", () => {
     });
     expect(urls.baseUrl).toBe("http://localhost:4000");
   });
+
+  it("envApiUrl takes priority over BASE_URL in non-dev", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://api.override.com",
+      expoConstants: {expoConfig: {extra: {BASE_URL: "https://api.from-extra.com"}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("https://api.override.com");
+  });
+
+  it("envApiUrl takes priority over hostUri in dev mode", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://api.override.com",
+      expoConstants: {expoConfig: {extra: {}, hostUri: "10.0.0.5:8081"}},
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("https://api.override.com");
+    expect(urls.baseWebsocketsUrl).toBe("https://ws.override.com/");
+    expect(urls.baseTasksUrl).toBe("https://tasks.override.com/tasks");
+  });
+
+  it("falls back to localhost when expoConfig is undefined", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+  });
 });
 
 describe("module-level exports", () => {

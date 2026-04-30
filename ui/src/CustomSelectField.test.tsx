@@ -1,4 +1,5 @@
-import {describe, expect, it} from "bun:test";
+import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
 
 import {CustomSelectField} from "./CustomSelectField";
 import {renderWithTheme} from "./test-utils";
@@ -81,5 +82,56 @@ describe("CustomSelectField", () => {
       <CustomSelectField onChange={() => {}} options={defaultOptions} />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("shows custom input when 'custom' is selected from dropdown", async () => {
+    const onChange = mock(() => {});
+    const {getByTestId, queryByPlaceholderText} = renderWithTheme(
+      <CustomSelectField onChange={onChange} options={defaultOptions} value="a" />
+    );
+
+    const picker = getByTestId("ios_picker");
+    await act(async () => {
+      fireEvent(picker, "onValueChange", "custom", 4);
+    });
+
+    // onChange should be called with empty string when custom is selected
+    expect(onChange).toHaveBeenCalledWith("");
+
+    // The custom input field should now be visible
+    expect(queryByPlaceholderText("None selected")).toBeTruthy();
+  });
+
+  it("hides custom input and updates value when a non-custom option is selected after custom", async () => {
+    const onChange = mock(() => {});
+    // Start with a custom value so custom input is already shown
+    const {getByTestId, queryByPlaceholderText} = renderWithTheme(
+      <CustomSelectField onChange={onChange} options={defaultOptions} value="my-custom-value" />
+    );
+
+    // Custom input should be visible because value is not in options
+    expect(queryByPlaceholderText("None selected")).toBeTruthy();
+
+    const picker = getByTestId("ios_picker");
+    await act(async () => {
+      fireEvent(picker, "onValueChange", "a", 1);
+    });
+
+    // onChange should be called with the option value
+    expect(onChange).toHaveBeenCalledWith("a");
+  });
+
+  it("calls onChange with selected value for a regular option", async () => {
+    const onChange = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <CustomSelectField onChange={onChange} options={defaultOptions} value="" />
+    );
+
+    const picker = getByTestId("ios_picker");
+    await act(async () => {
+      fireEvent(picker, "onValueChange", "b", 2);
+    });
+
+    expect(onChange).toHaveBeenCalledWith("b");
   });
 });
