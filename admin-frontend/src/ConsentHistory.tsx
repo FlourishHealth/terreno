@@ -1,18 +1,20 @@
+import {
+  Badge,
+  Box,
+  Button,
+  Card,
+  Icon,
+  IconButton,
+  MarkdownView,
+  Page,
+  Spinner,
+  Text,
+} from "@terreno/ui";
 import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Image, Pressable} from "react-native";
 
-import {Badge} from "./Badge";
-import {Box} from "./Box";
-import {Button} from "./Button";
-import {Card} from "./Card";
 import {generateConsentHistoryPdf} from "./generateConsentHistoryPdf";
-import {Icon} from "./Icon";
-import {IconButton} from "./IconButton";
-import {MarkdownView} from "./MarkdownView";
-import {Page} from "./Page";
-import {Spinner} from "./Spinner";
-import {Text} from "./Text";
 import type {ConsentHistoryEntry} from "./useConsentHistory";
 import {useConsentHistory} from "./useConsentHistory";
 

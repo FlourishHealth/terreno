@@ -154,6 +154,7 @@ export async function start(skipListen = false): Promise<express.Application> {
     const betterAuthConfig = buildBetterAuthConfig();
 
     const terraApp = new TerrenoApp({
+      corsOrigin: true,
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
