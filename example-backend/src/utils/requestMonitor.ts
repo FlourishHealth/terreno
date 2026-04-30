@@ -17,13 +17,10 @@ interface RequestTiming {
   }>;
 }
 
-// Store timing data per request
 const requestTimings = new WeakMap<Request, RequestTiming>();
 
-// AsyncLocalStorage for request-scoped context (prevents race conditions)
 const requestContext = new AsyncLocalStorage<Request>();
 
-// Only log slow requests to avoid noise
 const SLOW_REQUEST_THRESHOLD_MS = process.env.SLOW_REQUEST_THRESHOLD_MS
   ? Number.parseInt(process.env.SLOW_REQUEST_THRESHOLD_MS, 10)
   : 1000;
@@ -34,8 +31,43 @@ const SLOW_DB_QUERY_THRESHOLD_MS = process.env.SLOW_DB_QUERY_THRESHOLD_MS
   ? Number.parseInt(process.env.SLOW_DB_QUERY_THRESHOLD_MS, 10)
   : 250;
 
+const getCurrentRequest = (): Request | null => {
+  return requestContext.getStore() || null;
+};
+
+const logSlowRequest = (
+  req: Request,
+  res: Response,
+  timing: RequestTiming,
+  totalMs: number
+): void => {
+  const reqUser = req.user as {id?: string} | undefined;
+  const userId = reqUser?.id || "anonymous";
+
+  const memoryDelta =
+    timing.memorySnapshots.length > 1
+      ? timing.memorySnapshots[timing.memorySnapshots.length - 1].heapUsed -
+        timing.memorySnapshots[0].heapUsed
+      : 0;
+
+  const logData = {
+    dbQueries: timing.dbQueries,
+    dbQueryCount: timing.dbQueries.length,
+    memoryDeltaMB: memoryDelta,
+    method: req.method,
+    middlewareTimes: timing.middlewareTimes,
+    statusCode: res.statusCode,
+    totalDbTime: timing.dbQueries.reduce((sum, q) => sum + q.duration, 0),
+    totalMs,
+    url: req.url,
+    userAgent: req.get("user-agent")?.substring(0, 100),
+    userId,
+  };
+
+  logger.warn(`[lag] SLOW_REQUEST: ${JSON.stringify(logData)}`);
+};
+
 export const requestMonitorMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  // Skip health check requests
   if (req.path === "/health") {
     next();
     return;
@@ -51,9 +83,7 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
 
   requestTimings.set(req, timing);
 
-  // Run the rest of the request in the AsyncLocalStorage context
   requestContext.run(req, () => {
-    // Sample memory usage periodically during request
     const memoryInterval = setInterval(() => {
       const memUsage = process.memoryUsage();
       timing.memorySnapshots.push({
@@ -63,7 +93,6 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
       });
     }, MEMORY_SAMPLE_INTERVAL_MS);
 
-    // Override res.end to capture final timing
     const originalEnd = res.end;
     // biome-ignore lint/suspicious/noExplicitAny: Express Response.end has multiple overload signatures with varying types
     res.end = function (chunk?: any, encoding?: any): Response {
@@ -72,7 +101,6 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
       const diff = process.hrtime(startTime);
       const totalMs = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
-      // Only log if request was slow
       if (totalMs > SLOW_REQUEST_THRESHOLD_MS) {
         logSlowRequest(req, res, timing, totalMs);
       }
@@ -116,54 +144,17 @@ export const trackDbQuery = (req: Request, query: string, startTime: [number, nu
 
   timing.dbQueries.push({
     duration,
-    query: query.substring(0, 100) + (query.length > 100 ? "..." : ""), // Truncate long queries
+    query: query.substring(0, 100) + (query.length > 100 ? "..." : ""),
     timestamp: Date.now(),
   });
 };
 
-// Helper function to get current request from AsyncLocalStorage
-const getCurrentRequest = (): Request | null => {
-  return requestContext.getStore() || null;
-};
-
-function logSlowRequest(req: Request, res: Response, timing: RequestTiming, totalMs: number): void {
-  // User type from Express.Request.user - may have id property
-  const reqUser = req.user as {id?: string} | undefined;
-  const userId = reqUser?.id || "anonymous";
-
-  // Calculate memory delta
-  const memoryDelta =
-    timing.memorySnapshots.length > 1
-      ? timing.memorySnapshots[timing.memorySnapshots.length - 1].heapUsed -
-        timing.memorySnapshots[0].heapUsed
-      : 0;
-
-  const logData = {
-    dbQueries: timing.dbQueries,
-    dbQueryCount: timing.dbQueries.length,
-    memoryDeltaMB: memoryDelta,
-    method: req.method,
-    middlewareTimes: timing.middlewareTimes,
-    statusCode: res.statusCode,
-    totalDbTime: timing.dbQueries.reduce((sum, q) => sum + q.duration, 0),
-    totalMs,
-    url: req.url,
-    userAgent: req.get("user-agent")?.substring(0, 100),
-    userId,
-  };
-
-  logger.warn(`[lag] SLOW_REQUEST: ${JSON.stringify(logData)}`);
-}
-
-// Mongoose query monitoring using a simpler approach
 export const setupMongooseMonitoring = (): void => {
   const mongoose = require("mongoose");
 
-  // Store original methods
   const originalExec = mongoose.Query.prototype.exec;
   const originalAggregate = mongoose.Model.aggregate;
 
-  // Override exec method to catch all query executions
   // biome-ignore lint/suspicious/noExplicitAny: Mongoose callback can be undefined or have various signatures
   mongoose.Query.prototype.exec = function (callback: any): any {
     const startTime = process.hrtime();
@@ -180,7 +171,6 @@ export const setupMongooseMonitoring = (): void => {
             const diff = process.hrtime(startTime);
             const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
-            // Track query in current request if available
             const currentRequest = getCurrentRequest();
             if (currentRequest) {
               trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
@@ -196,7 +186,6 @@ export const setupMongooseMonitoring = (): void => {
             const diff = process.hrtime(startTime);
             const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
-            // Track query in current request if available
             const currentRequest = getCurrentRequest();
             if (currentRequest) {
               trackDbQuery(currentRequest, `${operation}: ${queryString}`, startTime);
@@ -214,7 +203,6 @@ export const setupMongooseMonitoring = (): void => {
     return result;
   };
 
-  // Override aggregate method
   // biome-ignore lint/suspicious/noExplicitAny: Aggregate pipeline and options have complex dynamic structure
   mongoose.Model.aggregate = function (pipeline: any, options: any): any {
     const startTime = process.hrtime();
@@ -228,7 +216,6 @@ export const setupMongooseMonitoring = (): void => {
           const diff = process.hrtime(startTime);
           const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
-          // Track query in current request if available
           const currentRequest = getCurrentRequest();
           if (currentRequest) {
             trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
@@ -244,7 +231,6 @@ export const setupMongooseMonitoring = (): void => {
           const diff = process.hrtime(startTime);
           const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
 
-          // Track query in current request if available
           const currentRequest = getCurrentRequest();
           if (currentRequest) {
             trackDbQuery(currentRequest, `aggregate: ${queryString}`, startTime);
