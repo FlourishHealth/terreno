@@ -481,9 +481,10 @@ const ${name}Screen: React.FC = () => {
     try {
       await ${endpoint}({ /* fields */ }).unwrap();
       // Success handling
-    } catch (err: any) {
-      if (err.data?.fields) {
-        setErrors(err.data.fields);
+    } catch (err: unknown) {
+      const apiError = err as {data?: {fields?: FormErrors}};
+      if (apiError.data?.fields) {
+        setErrors(apiError.data.fields);
       }
     }
   }, [validate, ${endpoint}]);
