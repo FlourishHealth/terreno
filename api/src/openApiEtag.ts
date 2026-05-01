@@ -6,7 +6,7 @@ import type {NextFunction, Request, Response} from "express";
  * This middleware should be added before the @wesleytodd/openapi middleware
  * to intercept requests to /openapi.json and add conditional request support.
  */
-export function openApiEtagMiddleware(req: Request, res: Response, next: NextFunction): void {
+export const openApiEtagMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   // Only handle GET requests to /openapi.json
   if (req.method !== "GET" || req.path !== "/openapi.json") {
     next();
@@ -37,4 +37,4 @@ export function openApiEtagMiddleware(req: Request, res: Response, next: NextFun
   };
 
   next();
-}
+};
