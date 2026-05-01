@@ -122,8 +122,8 @@ describe("getPrompt", () => {
     expect(cached).toBeTruthy();
     const expectedExpiryMs = Date.now() + 120_000;
     // Allow some slack for test execution time
-    expect(cached!.expiresAt.getTime()).toBeGreaterThan(expectedExpiryMs - 5000);
-    expect(cached!.expiresAt.getTime()).toBeLessThan(expectedExpiryMs + 5000);
+    expect(cached?.expiresAt.getTime()).toBeGreaterThan(expectedExpiryMs - 5000);
+    expect(cached?.expiresAt.getTime()).toBeLessThan(expectedExpiryMs + 5000);
   });
 
   it("throws when Langfuse fetch fails", async () => {

@@ -451,9 +451,9 @@ describe("AdminApp with scripts that use context", () => {
           description: "Exercises ctx",
           name: "ctx-script",
           runner: async (_wetRun, ctx) => {
-            await ctx!.addLog("info", "hello");
-            await ctx!.updateProgress(50, "Halfway", "Processing");
-            await ctx!.checkCancellation();
+            await ctx?.addLog("info", "hello");
+            await ctx?.updateProgress(50, "Halfway", "Processing");
+            await ctx?.checkCancellation();
             return {results: ["ok"], success: true};
           },
         },
