@@ -1,6 +1,15 @@
 import type {SecretProvider} from "./configurationPlugin";
 import {logger} from "./logger";
 
+interface SecretManagerClient {
+  accessSecretVersion(request: {name: string}): Promise<[{payload?: {data?: string | Uint8Array}}]>;
+}
+
+interface SecretManagerModule {
+  SecretManagerServiceClient?: new () => SecretManagerClient;
+  default?: {SecretManagerServiceClient?: new () => SecretManagerClient};
+}
+
 /**
  * Secret provider that reads secrets from environment variables.
  * Useful for local development and testing.
@@ -53,26 +62,32 @@ export interface GcpSecretProviderOptions {
 export class GcpSecretProvider implements SecretProvider {
   name = "gcp";
   private projectId: string;
-  private client: any = null;
+  private client: SecretManagerClient | null = null;
 
   constructor(options: GcpSecretProviderOptions) {
     this.projectId = options.projectId;
   }
 
-  private async getClient(): Promise<any> {
+  private async getClient(): Promise<SecretManagerClient> {
     if (!this.client) {
+      let mod: SecretManagerModule;
       try {
         // Dynamic import — @google-cloud/secret-manager is an optional peer dependency
         const moduleName = "@google-cloud/secret-manager";
-        const mod: any = await import(/* webpackIgnore: true */ moduleName);
-        const SecretManagerServiceClient =
-          mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
-        this.client = new SecretManagerServiceClient();
+        mod = await import(/* webpackIgnore: true */ moduleName);
       } catch {
         throw new Error(
           "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager"
         );
       }
+      const SecretManagerServiceClient =
+        mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
+      if (!SecretManagerServiceClient) {
+        throw new Error(
+          "SecretManagerServiceClient not found in @google-cloud/secret-manager module"
+        );
+      }
+      this.client = new SecretManagerServiceClient();
     }
     return this.client;
   }
@@ -97,8 +112,8 @@ export class GcpSecretProvider implements SecretProvider {
         return null;
       }
       return typeof payload === "string" ? payload : new TextDecoder().decode(payload);
-    } catch (error: any) {
-      if (error?.code === 5) {
+    } catch (error: unknown) {
+      if (error instanceof Error && "code" in error && (error as {code: number}).code === 5) {
         // NOT_FOUND
         logger.warn(`GcpSecretProvider: secret ${secretName} not found`);
         return null;
