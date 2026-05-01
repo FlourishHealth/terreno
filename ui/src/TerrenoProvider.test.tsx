@@ -1,5 +1,5 @@
 import {beforeAll, describe, expect, it, mock} from "bun:test";
-import {act, render} from "@testing-library/react-native";
+import {act, fireEvent, render} from "@testing-library/react-native";
 import {Text, View} from "react-native";
 
 import {TerrenoProvider} from "./TerrenoProvider";
@@ -72,5 +72,41 @@ describe("TerrenoProvider", () => {
     });
 
     expect(queryByText("Hello from toast")).toBeTruthy();
+  });
+
+  it("invokes data onDismiss via handleDismiss when persistent toast is dismissed", async () => {
+    const dismissSpy = mock(() => {});
+    let toastApi: ReturnType<typeof useToast> | null = null;
+
+    const ToastCaller = () => {
+      toastApi = useToast();
+      return <Text>App</Text>;
+    };
+
+    const {UNSAFE_getAllByProps} = render(
+      <TerrenoProvider>
+        <ToastCaller />
+      </TerrenoProvider>
+    );
+
+    expect(toastApi).not.toBeNull();
+
+    await act(async () => {
+      toastApi?.info("Dismissible toast", {onDismiss: dismissSpy, persistent: true});
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // Find the dismiss Pressable via its aria-role="button" that wraps the xmark icon.
+    const buttons = UNSAFE_getAllByProps({"aria-role": "button"});
+    // The dismiss button is the one without an accessibilityLabel
+    const dismissBtn = buttons.find((b) => !b.props.accessibilityLabel && b.props.onPress);
+    expect(dismissBtn).toBeDefined();
+
+    await act(async () => {
+      fireEvent.press(dismissBtn!);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    expect(dismissSpy).toHaveBeenCalled();
   });
 });
