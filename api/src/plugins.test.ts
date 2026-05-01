@@ -8,10 +8,12 @@ import {addAuthRoutes, setupAuth} from "./auth";
 import type {APIErrorConstructor} from "./errors";
 import {Permissions} from "./permissions";
 import {
+  baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
   findExactlyOne,
   findOneOrNone,
+  firebaseJWTPlugin,
   type IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
@@ -51,6 +53,33 @@ stuffSchema.plugin(upsertPlugin);
 stuffSchema.plugin(createdUpdatedPlugin);
 
 const StuffModel = model<Stuff>("Stuff", stuffSchema) as unknown as StuffModelType;
+
+describe("baseUserPlugin", () => {
+  it("adds admin and email fields to the schema", () => {
+    const testSchema = new Schema({});
+    // biome-ignore lint/suspicious/noExplicitAny: test schema
+    baseUserPlugin(testSchema as Schema<any, any, any, any>);
+
+    const adminPath = testSchema.path("admin");
+    expect(adminPath).toBeDefined();
+    expect((adminPath as unknown as {options: {default: boolean}}).options.default).toBe(false);
+
+    const emailPath = testSchema.path("email");
+    expect(emailPath).toBeDefined();
+    expect((emailPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+});
+
+describe("firebaseJWTPlugin", () => {
+  it("adds firebaseId field to the schema", () => {
+    const testSchema = new Schema({});
+    firebaseJWTPlugin(testSchema);
+
+    const firebaseIdPath = testSchema.path("firebaseId");
+    expect(firebaseIdPath).toBeDefined();
+    expect((firebaseIdPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+});
 
 describe("createdUpdate", () => {
   it("sets created and updated on save", async () => {
