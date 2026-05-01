@@ -1,4 +1,5 @@
 import type {SecretProvider} from "./configurationPlugin";
+import {APIError} from "./errors";
 import {logger} from "./logger";
 
 /**
@@ -69,9 +70,11 @@ export class GcpSecretProvider implements SecretProvider {
           mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
         this.client = new SecretManagerServiceClient();
       } catch {
-        throw new Error(
-          "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager"
-        );
+        throw new APIError({
+          status: 500,
+          title:
+            "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager",
+        });
       }
     }
     return this.client;
