@@ -1,5 +1,4 @@
-import type {SidebarNavigationItem} from "@terreno/ui";
-import {SidebarNavigation} from "@terreno/ui";
+import {SidebarNavigation, type SidebarNavigationItem} from "@terreno/ui";
 import {router} from "expo-router";
 import {Pressable, StyleSheet, Text} from "react-native";
 

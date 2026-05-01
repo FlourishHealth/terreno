@@ -9,10 +9,18 @@
       "distribution": "internal",
       "bun": "1.3.10",
       "ios": {
-        "simulator": true,
         "image": "latest"
       },
       "android": {
+        "image": "latest"
+      }
+    },
+    "development:simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "bun": "1.3.10",
+      "ios": {
+        "simulator": true,
         "image": "latest"
       }
     },
