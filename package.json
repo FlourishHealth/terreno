@@ -94,7 +94,7 @@
     "backend:dev": "bun run --filter '@terreno/example-backend' dev",
     "backend:lint": "bun run --filter '@terreno/example-backend' lint",
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
-    "compile": "bun run --filter '*' compile",
+    "compile": "bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
     "demo:android": "bun run --filter 'terreno-demo' android",
     "demo:compile": "bun run --filter 'terreno-demo' compile",
