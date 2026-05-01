@@ -321,6 +321,27 @@ describe("AI Routes", () => {
       expect(createServerModelFn).toHaveBeenCalledWith("gemini-2.5-pro");
     });
 
+    it("falls back to default aiService when createServerModelFn returns null", async () => {
+      const createServerModelFn = mock((_modelId?: string) => null);
+      const customApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {aiService, createServerModelFn, openApiOptions: options});
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(customApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({model: "unsupported-model", prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      expect(createServerModelFn).toHaveBeenCalledWith("unsupported-model");
+      const body = (res as SseResponse).body;
+      expect(body).toContain("done");
+    });
+
     it("rejects history from another user", async () => {
       const otherUserId = new mongoose.Types.ObjectId();
       const other = await GptHistory.create({
