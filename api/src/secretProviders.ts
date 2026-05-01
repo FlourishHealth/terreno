@@ -70,21 +70,24 @@ export class GcpSecretProvider implements SecretProvider {
 
   private async getClient(): Promise<SecretManagerClient> {
     if (!this.client) {
+      let mod: SecretManagerModule;
       try {
         // Dynamic import — @google-cloud/secret-manager is an optional peer dependency
         const moduleName = "@google-cloud/secret-manager";
-        const mod: SecretManagerModule = await import(/* webpackIgnore: true */ moduleName);
-        const SecretManagerServiceClient =
-          mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
-        if (!SecretManagerServiceClient) {
-          throw new Error("SecretManagerServiceClient not found in module");
-        }
-        this.client = new SecretManagerServiceClient();
+        mod = await import(/* webpackIgnore: true */ moduleName);
       } catch {
         throw new Error(
           "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager"
         );
       }
+      const SecretManagerServiceClient =
+        mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
+      if (!SecretManagerServiceClient) {
+        throw new Error(
+          "SecretManagerServiceClient not found in @google-cloud/secret-manager module"
+        );
+      }
+      this.client = new SecretManagerServiceClient();
     }
     return this.client;
   }
