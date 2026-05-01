@@ -1,11 +1,8 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
 const shutdownMock = mock(async () => {});
-let ctorCalls = 0;
 class FakeLangfuseClient {
-  constructor(public opts: {baseUrl?: string; publicKey: string; secretKey: string}) {
-    ctorCalls += 1;
-  }
+  constructor(public opts: {baseUrl?: string; publicKey: string; secretKey: string}) {}
   async shutdown(): Promise<void> {
     return shutdownMock();
   }
@@ -21,7 +18,6 @@ const {getLangfuseClient, initLangfuseClient, isLangfuseInitialized, shutdownLan
 describe("langfuseClient", () => {
   beforeEach(async () => {
     await shutdownLangfuseClient();
-    ctorCalls = 0;
   });
 
   it("throws when accessing client before initialization", () => {

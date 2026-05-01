@@ -97,8 +97,8 @@ describe("AdminApp script routes", () => {
       // Verify the task was created in the database
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.taskType).toBe("test-script");
-      expect(task!.isDryRun).toBe(true);
+      expect(task?.taskType).toBe("test-script");
+      expect(task?.isDryRun).toBe(true);
     });
 
     it("creates a wet run task when wetRun=true", async () => {
@@ -106,7 +106,7 @@ describe("AdminApp script routes", () => {
 
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.isDryRun).toBe(false);
+      expect(task?.isDryRun).toBe(false);
     });
 
     it("creates a dry run task by default", async () => {
@@ -114,7 +114,7 @@ describe("AdminApp script routes", () => {
 
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.isDryRun).toBe(true);
+      expect(task?.isDryRun).toBe(true);
     });
 
     it("returns 404 for unknown script", async () => {
@@ -138,9 +138,9 @@ describe("AdminApp script routes", () => {
       const res = await adminAgent.post("/admin/scripts/test-script/run").expect(201);
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.logs).toHaveLength(1);
-      expect(task!.logs[0].level).toBe("info");
-      expect(task!.logs[0].message).toInclude("Script started by");
+      expect(task?.logs).toHaveLength(1);
+      expect(task?.logs[0].level).toBe("info");
+      expect(task?.logs[0].message).toInclude("Script started by");
     });
 
     it("completes the task asynchronously with results", async () => {
@@ -150,10 +150,10 @@ describe("AdminApp script routes", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.status).toBe("completed");
-      expect(task!.result).toContain("Ran in dry mode");
-      expect(task!.completedAt).toBeDefined();
-      expect(task!.progress?.percentage).toBe(100);
+      expect(task?.status).toBe("completed");
+      expect(task?.result).toContain("Ran in dry mode");
+      expect(task?.completedAt).toBeDefined();
+      expect(task?.progress?.percentage).toBe(100);
     });
 
     it("marks task as failed when script throws", async () => {
@@ -165,9 +165,9 @@ describe("AdminApp script routes", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.status).toBe("failed");
+      expect(task?.status).toBe("failed");
       expect(task?.error).toBe("Script exploded");
-      expect(task!.result).toContain("Script exploded");
+      expect(task?.result).toContain("Script exploded");
     });
   });
 
