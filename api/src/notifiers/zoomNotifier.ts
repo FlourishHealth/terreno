@@ -95,13 +95,14 @@ export const sendToZoom = async (
         },
       }
     );
-  } catch (error: any) {
-    logger.error(`Error posting to Zoom: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Error posting to Zoom: ${errorMessage}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Zoom: ${error.text ?? error.message}`,
+        title: `Error posting to Zoom: ${errorMessage}`,
       });
     }
   }
