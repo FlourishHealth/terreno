@@ -95,6 +95,37 @@ describe("HeightField (desktop/web path)", () => {
       expect(mockOnChange).toHaveBeenCalledWith("");
     });
 
+    it("calls onChange with empty string when feet is cleared from already-empty state", () => {
+      const {getAllByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getAllByLabelText("ft input")[0];
+      fireEvent.changeText(feetInput, "");
+      expect(mockOnChange).toHaveBeenCalledWith("");
+    });
+
+    it("calls onChange with empty string when inches is cleared from already-empty state", () => {
+      const {getAllByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const inchesInput = getAllByLabelText("in input")[0];
+      fireEvent.changeText(inchesInput, "");
+      expect(mockOnChange).toHaveBeenCalledWith("");
+    });
+
+    it("calls onChange on blur when feet has a value", () => {
+      const {getAllByLabelText} = renderWithTheme(
+        <HeightField onChange={mockOnChange} value="70" />
+      );
+      const feetInput = getAllByLabelText("ft input")[0];
+      fireEvent(feetInput, "blur");
+      // 5ft 10in = 70 inches
+      expect(mockOnChange).toHaveBeenCalledWith("70");
+    });
+
+    it("does not call onChange on blur when both feet and inches are empty", () => {
+      const {getAllByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="" />);
+      const feetInput = getAllByLabelText("ft input")[0];
+      fireEvent(feetInput, "blur");
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
     it("does not call onChange with values exceeding max feet", () => {
       const {getAllByLabelText} = renderWithTheme(
         <HeightField max={95} onChange={mockOnChange} value="" />
