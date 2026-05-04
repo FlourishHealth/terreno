@@ -177,6 +177,10 @@ export interface ToastOptions {
   /**
    * Payload data for custom toasts. You can pass whatever you want
    */
+  // noExplicitAny: Vendored from react-native-toast-notifications; this is a public extension point
+  // for arbitrary user-supplied payload data (`renderToast` consumers spread it directly), so a
+  // narrower type would force every consumer to add casts and would break the library's contract.
+  // biome-ignore lint/suspicious/noExplicitAny: see noExplicitAny comment above.
   data?: any;
 
   swipeEnabled?: boolean;

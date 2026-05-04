@@ -1,6 +1,7 @@
 import {beforeAll, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 import {View} from "react-native";
+import type {ReactTestRendererJSON} from "react-test-renderer";
 
 import {Text} from "./Text";
 import {Tooltip} from "./Tooltip";
@@ -13,10 +14,10 @@ mock.module("react-native-portalize", () => ({
 }));
 
 beforeAll(() => {
-  (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
+  global.requestAnimationFrame = (callback: FrameRequestCallback) => {
     return setTimeout(() => callback(Date.now()), 0) as unknown as number;
   };
-  (global as any).cancelAnimationFrame = (id: number) => {
+  global.cancelAnimationFrame = (id: number) => {
     clearTimeout(id);
   };
 });
@@ -111,14 +112,14 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const wrapper = toJSON() as any;
+    const wrapper = toJSON() as ReactTestRendererJSON;
     expect(wrapper).toBeTruthy();
     expect(queryByTestId("tooltip-container")).toBeNull();
 
     const tree = toJSON();
     await act(async () => {
       // Trigger pointer enter on the wrapper
-      const root = (tree as any).children?.[0];
+      const root = (tree as ReactTestRendererJSON).children?.[0] as ReactTestRendererJSON;
       if (root?.props?.onPointerEnter) {
         root.props.onPointerEnter();
       }
@@ -138,8 +139,8 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const tree = toJSON() as any;
-    const root = tree.children?.[0];
+    const tree = toJSON() as ReactTestRendererJSON;
+    const root = tree.children?.[0] as ReactTestRendererJSON;
 
     await act(async () => {
       root.props.onTouchStart?.({nativeEvent: {}});
@@ -151,8 +152,10 @@ describe("Tooltip", () => {
     expect(queryByTestId("tooltip-container")).toBeTruthy();
 
     // Second touch should hide
-    const treeAfterShow = toJSON() as any;
-    const updatedRoot = treeAfterShow.children?.[treeAfterShow.children.length - 1];
+    const treeAfterShow = toJSON() as ReactTestRendererJSON;
+    const updatedRoot = treeAfterShow.children?.[
+      treeAfterShow.children.length - 1
+    ] as ReactTestRendererJSON;
     await act(async () => {
       updatedRoot.props.onTouchStart?.({nativeEvent: {}});
     });
@@ -167,8 +170,8 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const tree = toJSON() as any;
-    const root = tree.children?.[0];
+    const tree = toJSON() as ReactTestRendererJSON;
+    const root = tree.children?.[0] as ReactTestRendererJSON;
 
     await act(async () => {
       root.props.onPointerEnter?.();
@@ -179,8 +182,8 @@ describe("Tooltip", () => {
 
     expect(queryByTestId("tooltip-container")).toBeTruthy();
 
-    const treeAfter = toJSON() as any;
-    const wrapper = treeAfter.children?.[treeAfter.children.length - 1];
+    const treeAfter = toJSON() as ReactTestRendererJSON;
+    const wrapper = treeAfter.children?.[treeAfter.children.length - 1] as ReactTestRendererJSON;
     await act(async () => {
       wrapper.props.onPointerLeave?.();
     });
@@ -206,8 +209,8 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const tree = toJSON() as any;
-    const root = tree.children?.[0];
+    const tree = toJSON() as ReactTestRendererJSON;
+    const root = tree.children?.[0] as ReactTestRendererJSON;
 
     await act(async () => {
       root.props.onPointerEnter?.();
@@ -227,8 +230,8 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const tree = toJSON() as any;
-    const root = tree.children?.[0];
+    const tree = toJSON() as ReactTestRendererJSON;
+    const root = tree.children?.[0] as ReactTestRendererJSON;
 
     // Show the tooltip
     await act(async () => {
@@ -240,12 +243,11 @@ describe("Tooltip", () => {
     expect(queryByTestId("tooltip-container")).toBeTruthy();
 
     // Find any views with onLayout to simulate layout event
-    const {View: ViewComp} = await import("react-native");
-    const allViews = UNSAFE_getAllByType(ViewComp as any);
+    const allViews = UNSAFE_getAllByType(View);
     for (const v of allViews) {
-      if ((v.props as any).onLayout) {
+      if (v.props.onLayout) {
         await act(async () => {
-          (v.props as any).onLayout({
+          v.props.onLayout({
             nativeEvent: {
               layout: {height: 100, width: 200, x: 0, y: 0},
             },
@@ -280,8 +282,8 @@ describe("Tooltip", () => {
       </Tooltip>
     );
 
-    const tree = toJSON() as any;
-    const root = tree.children?.[0];
+    const tree = toJSON() as ReactTestRendererJSON;
+    const root = tree.children?.[0] as ReactTestRendererJSON;
     await act(async () => {
       root.props.onPointerEnter?.();
     });
