@@ -5,8 +5,9 @@ import {Pressable, StyleSheet, Text} from "react-native";
 const topItems: SidebarNavigationItem[] = [
   {iconName: "house", label: "Home", route: "index"},
   {iconName: "chart-line", label: "Dashboard", route: "dashboard"},
-  {iconName: "folder", label: "Projects", route: "projects"},
-  {iconName: "envelope", label: "Messages", route: "messages"},
+  {badge: 5, iconName: "folder", label: "Projects", route: "projects"},
+  {badge: 142, iconName: "envelope", label: "Messages", route: "messages"},
+  {badge: true, iconName: "code", label: "Tools", route: "projects"},
 ];
 
 const bottomItems: SidebarNavigationItem[] = [
