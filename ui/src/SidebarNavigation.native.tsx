@@ -11,26 +11,72 @@ import {
   Dimensions,
   PanResponder,
   Pressable,
+  Text as RNText,
   type StyleProp,
   View,
   type ViewStyle,
 } from "react-native";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-import {Badge} from "./Badge";
 import type {
+  SidebarBadgeStatus,
   SidebarNavigationItem,
   SidebarNavigationPanelProps,
   SidebarNavigationProps,
+  SurfaceTheme,
 } from "./Common";
-import {SIDEBAR_BADGE_STATUS_MAP} from "./Common";
 import {Icon} from "./Icon";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 
 const ITEM_HEIGHT = 44;
-const ICON_SIZE = 20;
 const BACKDROP_OPACITY = 0.5;
+
+const SIDEBAR_BADGE_SURFACE: Record<SidebarBadgeStatus, keyof SurfaceTheme> = {
+  error: "error",
+  info: "secondaryDark",
+  neutral: "neutralDark",
+  success: "success",
+  warning: "warning",
+};
+
+const SidebarBadge: FC<{badge: number | true; status: SidebarBadgeStatus}> = ({badge, status}) => {
+  const {theme} = useTheme();
+  const backgroundColor = theme.surface[SIDEBAR_BADGE_SURFACE[status]];
+  const isDot = badge === true;
+
+  if (isDot) {
+    return <View style={{backgroundColor, borderRadius: 999, height: 18, width: 18}} />;
+  }
+
+  const value = Number(badge) > 9 ? "9+" : String(badge);
+
+  return (
+    <View
+      style={{
+        alignItems: "center",
+        backgroundColor,
+        borderRadius: 999,
+        height: 18,
+        justifyContent: "center",
+        minWidth: 18,
+        paddingHorizontal: 4,
+      }}
+    >
+      <RNText
+        style={{
+          color: "#FFFFFF",
+          fontSize: 11,
+          fontWeight: "700",
+          lineHeight: 12,
+        }}
+      >
+        {value}
+      </RNText>
+    </View>
+  );
+};
+
 const ANIMATION_DURATION = 300;
 const DISMISS_THRESHOLD = 0.3;
 
@@ -65,27 +111,15 @@ const SidebarItem: FC<{
         itemStyle,
       ]}
     >
-      <View style={{alignItems: "center", justifyContent: "center", width: ICON_SIZE}}>
-        <Icon color={isActive ? "primary" : "secondaryLight"} iconName={item.iconName} size="lg" />
-        {Boolean(item.badge) && (
-          <View
-            style={{
-              bottom: item.badge === true ? -4 : undefined,
-              position: "absolute",
-              right: -6,
-              top: item.badge === true ? undefined : -4,
-            }}
-          >
-            <Badge
-              maxValue={99}
-              status={SIDEBAR_BADGE_STATUS_MAP[item.badgeStatus ?? "error"]}
-              value={item.badge === true ? undefined : String(item.badge)}
-              variant={item.badge === true ? "iconOnly" : "numberOnly"}
-            />
+      <View style={{alignItems: "center", height: 40, justifyContent: "center", width: 40}}>
+        <Icon color={isActive ? "primary" : "secondaryLight"} iconName={item.iconName} size="xl" />
+        {item.badge !== undefined && item.badge !== false && (
+          <View style={{bottom: 0, position: "absolute", right: 0}}>
+            <SidebarBadge badge={item.badge} status={item.badgeStatus ?? "success"} />
           </View>
         )}
       </View>
-      <Text bold={isActive} color={isActive ? "primary" : "secondaryLight"} size="md">
+      <Text bold={isActive} color={isActive ? "primary" : "secondaryLight"} size="lg">
         {item.label}
       </Text>
     </Pressable>
@@ -310,7 +344,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
                   isActive={activeRoute === item.route}
                   item={item}
                   itemStyle={itemStyle}
-                  key={item.route}
+                  key={item.label}
                   onPress={handleNavigate}
                 />
               ))}
@@ -350,12 +384,25 @@ const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
         <View style={{alignItems: "center", flexDirection: "row", gap: 12}}>
           <SidebarHamburger onOpen={onOpen} />
           {headerLeft?.({})}
-          {Boolean(title) && (
+        </View>
+        {Boolean(title) && (
+          <View
+            pointerEvents="none"
+            style={{
+              alignItems: "center",
+              bottom: 0,
+              justifyContent: "center",
+              left: 0,
+              position: "absolute",
+              right: 0,
+              top: 0,
+            }}
+          >
             <Text bold size="lg">
               {title}
             </Text>
-          )}
-        </View>
+          </View>
+        )}
         {Boolean(headerRight) && <View style={{alignItems: "flex-end"}}>{headerRight?.({})}</View>}
       </View>
     </View>
