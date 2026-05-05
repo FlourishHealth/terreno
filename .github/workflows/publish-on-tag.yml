@@ -851,9 +851,11 @@ jobs:
 
   create-version-pr:
     needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
-    # Run if any package was published (always() ensures this runs even if some publish jobs were skipped)
+    # Run if any package was published and this is not a prerelease (beta/alpha) tag
     if: |
       always() &&
+      !contains(needs.check-changes.outputs.version, '-beta') &&
+      !contains(needs.check-changes.outputs.version, '-alpha') &&
       (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success')
     runs-on: ubuntu-latest
     permissions:
