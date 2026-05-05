@@ -10,6 +10,7 @@ import type {FileStorageService, UploadFileParams, UploadFileResult} from "../se
 import {addFileRoutes} from "./files";
 
 type PasswordedUser = {setPassword: (password: string) => Promise<void>};
+type UserWithId = {_id: mongoose.Types.ObjectId};
 type MockFileStorageService = Pick<FileStorageService, "upload" | "delete" | "getSignedUrl">;
 
 const userSchema = new mongoose.Schema({
@@ -109,6 +110,25 @@ describe("File Routes", () => {
       const res = await supertest(app).get("/files/missing/key.txt");
       expect(res.status).toBe(404);
     });
+
+    it("returns the signed url when the attachment exists", async () => {
+      const owner = (await UserModel.findOne({
+        email: "notAdmin@example.com",
+      })) as unknown as UserWithId;
+      await FileAttachment.create({
+        filename: "hi.txt",
+        gcsKey: "single-key.txt",
+        mimeType: "text/plain",
+        size: 5,
+        url: "https://example.com/hi.txt",
+        userId: owner._id,
+      });
+
+      const res = await supertest(app).get("/files/single-key.txt");
+      expect(res.status).toBe(200);
+      expect(res.body.data.url).toBe("https://example.com/signed");
+      expect(fileStorageService.getSignedUrl as ReturnType<typeof mock>).toHaveBeenCalled();
+    });
   });
 
   describe("DELETE /files/*gcsKey", () => {
@@ -121,6 +141,45 @@ describe("File Routes", () => {
     it("requires authentication", async () => {
       const res = await supertest(app).delete("/files/any/thing.txt");
       expect(res.status).toBe(401);
+    });
+
+    it("deletes the file when owned by the requesting user", async () => {
+      const owner = (await UserModel.findOne({
+        email: "notAdmin@example.com",
+      })) as unknown as UserWithId;
+      await FileAttachment.create({
+        filename: "owned.txt",
+        gcsKey: "owned-key.txt",
+        mimeType: "text/plain",
+        size: 5,
+        url: "https://example.com/owned.txt",
+        userId: owner._id,
+      });
+
+      const agent = await authAsUser(app, "notAdmin");
+      const res = await agent.delete("/files/owned-key.txt");
+      expect(res.status).toBe(200);
+      expect(res.body.data.success).toBe(true);
+      expect(fileStorageService.delete as ReturnType<typeof mock>).toHaveBeenCalled();
+    });
+
+    it("returns 403 when attempting to delete another user's file", async () => {
+      const otherOwner = (await UserModel.findOne({
+        email: "admin@example.com",
+      })) as unknown as UserWithId;
+      await FileAttachment.create({
+        filename: "adminFile.txt",
+        gcsKey: "admin-key.txt",
+        mimeType: "text/plain",
+        size: 5,
+        url: "https://example.com/adminFile.txt",
+        userId: otherOwner._id,
+      });
+
+      const agent = await authAsUser(app, "notAdmin");
+      const res = await agent.delete("/files/admin-key.txt");
+      expect(res.status).toBe(403);
+      expect(fileStorageService.delete as ReturnType<typeof mock>).not.toHaveBeenCalled();
     });
   });
 });
