@@ -10,7 +10,6 @@
     "@langfuse/otel": "^5.0.1",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/sdk-node": "^0.213.0",
-    "@terreno/api": "workspace:*",
     "ai": "catalog:",
     "multer": "^1.4.5-lts.1"
   },
@@ -23,6 +22,8 @@
     "@types/multer": "^1.4.12",
     "@types/passport-local-mongoose": "^6.1.5",
     "@types/supertest": "^6.0.2",
+    "@terreno/api": "workspace:*",
+    "mongoose": "catalog:",
     "passport-local-mongoose": "^9.0.1",
     "supertest": "^7.0.0",
     "typescript": "5.8.2",
