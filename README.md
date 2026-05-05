@@ -108,6 +108,7 @@ bun run demo:compile
 bun run demo:lint
 bun run demo:start     # Start dev server
 ```
+**Note:** Make sure to run `bun run ui:compile` or `bun run ui:dev` when running the demo app to ensure you have the latest changes in ui while testing or in development
 
 You can also use Bun's filter syntax directly:
 

@@ -22,7 +22,6 @@ interface AdminPrimitiveArrayFieldProps {
   itemRef?: string;
   value: PrimitiveItem[];
   onChange: (value: PrimitiveItem[]) => void;
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api type is generic; admin code is type-erased here
   api: Api<any, any, any, any>;
   baseUrl: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
