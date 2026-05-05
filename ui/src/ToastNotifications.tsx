@@ -177,6 +177,10 @@ export interface ToastOptions {
   /**
    * Payload data for custom toasts. You can pass whatever you want
    */
+  // noExplicitAny: Generic payload field for vendored toast library; consumers
+  // pass arbitrary shapes (e.g. ToastProps) and spread them into custom render
+  // functions. Narrowing to unknown breaks downstream spreads/property access.
+  // biome-ignore lint/suspicious/noExplicitAny: Vendored generic payload type.
   data?: any;
 
   swipeEnabled?: boolean;

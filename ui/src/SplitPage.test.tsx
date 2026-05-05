@@ -1,6 +1,6 @@
 import {afterAll, beforeAll, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
-import {Dimensions, View} from "react-native";
+import {Dimensions, type ScaledSize, View} from "react-native";
 
 import {SplitPage} from "./SplitPage";
 import {renderWithTheme} from "./test-utils";
@@ -178,22 +178,25 @@ describe("SplitPage", () => {
   });
 
   describe("desktop viewport (mediaQueryLargerThan('sm') true)", () => {
-    const desktopImpl = () => ({fontScale: 1, height: 1000, scale: 2, width: 1400}) as any;
-    const mobileImpl = () => ({fontScale: 1, height: 812, scale: 2, width: 375}) as any;
+    type DimensionsGetMock = {mockImplementation?: (impl: () => ScaledSize) => void};
+    const desktopImpl = (): ScaledSize => ({fontScale: 1, height: 1000, scale: 2, width: 1400});
+    const mobileImpl = (): ScaledSize => ({fontScale: 1, height: 812, scale: 2, width: 375});
     let originalGet: typeof Dimensions.get;
     beforeAll(() => {
       originalGet = Dimensions.get;
-      if (typeof (Dimensions.get as any).mockImplementation === "function") {
-        (Dimensions.get as any).mockImplementation(desktopImpl);
+      const mockable = Dimensions.get as DimensionsGetMock;
+      if (typeof mockable.mockImplementation === "function") {
+        mockable.mockImplementation(desktopImpl);
       } else {
-        (Dimensions.get as any) = desktopImpl;
+        (Dimensions as {get: typeof Dimensions.get}).get = desktopImpl as typeof Dimensions.get;
       }
     });
     afterAll(() => {
-      if (typeof (Dimensions.get as any).mockImplementation === "function") {
-        (Dimensions.get as any).mockImplementation(mobileImpl);
+      const mockable = Dimensions.get as DimensionsGetMock;
+      if (typeof mockable.mockImplementation === "function") {
+        mockable.mockImplementation(mobileImpl);
       } else {
-        (Dimensions.get as any) = originalGet;
+        (Dimensions as {get: typeof Dimensions.get}).get = originalGet;
       }
     });
 
