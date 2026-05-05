@@ -1,12 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
+import type {HydratedDocument} from "mongoose";
 import mongoose, {model, Schema} from "mongoose";
 import passport from "passport";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {generateTokens} from "./auth";
+import {generateTokens, type UserModel} from "./auth";
 import {setupServer} from "./expressServer";
 import {type GitHubUserFields, githubUserPlugin, setupGitHubAuth} from "./githubAuth";
 import {logger} from "./logger";
@@ -19,6 +20,12 @@ interface TestUser extends GitHubUserFields {
   email: string;
   disabled?: boolean;
 }
+
+interface TestUserMethods {
+  setPassword: (password: string) => Promise<void>;
+}
+
+type TestUserDoc = HydratedDocument<TestUser, TestUserMethods>;
 
 // Create schema for GitHub-enabled user
 const testUserSchema = new Schema<TestUser>({
@@ -444,11 +451,11 @@ describe("GitHub strategy verify callback", () => {
   });
 
   it("returns 404 when linking and the existing user can no longer be found", async () => {
-    const existingUser = await GitHubTestUserModel.create({
+    const existingUser = (await GitHubTestUserModel.create({
       email: "missing-link@example.com",
-    } as any);
+    } as Partial<TestUser> as TestUser)) as unknown as TestUserDoc;
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: true,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -456,7 +463,7 @@ describe("GitHub strategy verify callback", () => {
     });
 
     // Delete the user before invoking verify so findById returns null.
-    await GitHubTestUserModel.deleteOne({_id: (existingUser as any)._id});
+    await GitHubTestUserModel.deleteOne({_id: existingUser._id});
 
     const req = {user: existingUser};
     const result = await invokeGitHubVerify(req, "access", "refresh", {id: "gh-missing-1"});
@@ -550,10 +557,10 @@ describe("addGitHubAuthRoutes link endpoints", () => {
   });
 
   it("GET /auth/github/link with a valid JWT proceeds to GitHub", async () => {
-    const user = await GitHubTestUserModel.create({
+    const user = (await GitHubTestUserModel.create({
       email: "linkable@example.com",
-    } as any);
-    await (user as any).setPassword("password123");
+    } as Partial<TestUser> as TestUser)) as unknown as TestUserDoc;
+    await user.setPassword("password123");
     await user.save();
 
     const tokens = await generateTokens(user);
@@ -565,11 +572,11 @@ describe("addGitHubAuthRoutes link endpoints", () => {
   });
 
   it("DELETE /auth/github/unlink rejects users without another auth method", async () => {
-    const user = await GitHubTestUserModel.create({
+    const user = (await GitHubTestUserModel.create({
       email: "nopassword@example.com",
       githubId: "gh-nopassword-1",
       githubUsername: "nopassword",
-    } as any);
+    } as Partial<TestUser> as TestUser)) as unknown as TestUserDoc;
 
     const tokens = await generateTokens(user);
     const res = await agent
@@ -632,7 +639,7 @@ describe("GitHub OAuth callback handler", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     });
     agent = supertest.agent(app);
   });
@@ -642,10 +649,10 @@ describe("GitHub OAuth callback handler", () => {
   });
 
   it("returns JSON tokens after successful authentication", async () => {
-    const user = await GitHubTestUserModel.create({
+    const user = (await GitHubTestUserModel.create({
       email: "callback@example.com",
       githubId: "gh-callback-1",
-    } as any);
+    } as Partial<TestUser> as TestUser)) as unknown as TestUserDoc;
     installStub({user});
 
     const res = await agent.get("/auth/github/callback").expect(200);
