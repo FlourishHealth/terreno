@@ -97,8 +97,8 @@ export class GcpSecretProvider implements SecretProvider {
         return null;
       }
       return typeof payload === "string" ? payload : new TextDecoder().decode(payload);
-    } catch (error: any) {
-      if (error?.code === 5) {
+    } catch (error: unknown) {
+      if ((error as {code?: number} | null)?.code === 5) {
         // NOT_FOUND
         logger.warn(`GcpSecretProvider: secret ${secretName} not found`);
         return null;
