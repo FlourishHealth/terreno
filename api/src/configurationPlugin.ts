@@ -177,15 +177,18 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
   // Static: get the singleton configuration document or a value at a path (race-safe via upsert)
   schema.statics.getConfig = async function (key?: string): Promise<unknown> {
-    const findSingleton = (): Promise<any> =>
-      (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone({});
-    let config = await findSingleton();
+    const findSingleton = (): Promise<Document | null> =>
+      (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone({}) as Promise<
+        Document | null
+      >;
+    let config: Document | null = await findSingleton();
     if (!config) {
       try {
         // Use `new` + `save` instead of `create({})` so Mongoose initializes
         // nested subdocument defaults (create({}) skips them).
-        config = new this();
-        await config.save();
+        const created = new this();
+        await created.save();
+        config = created;
       } catch (err: unknown) {
         // If another process created the document between the lookup and create,
         // the pre-save hook will throw a 409. Just fetch the existing one.
@@ -203,7 +206,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
     // Resolve dot-notation key into the document
     const parts = key.split(".");
-    let value: unknown = config.toObject();
+    let value: unknown = config?.toObject();
     for (const part of parts) {
       if (value == null || typeof value !== "object") {
         return undefined;
