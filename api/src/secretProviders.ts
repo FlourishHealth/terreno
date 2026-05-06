@@ -1,4 +1,5 @@
 import type {SecretProvider} from "./configurationPlugin";
+import {APIError} from "./errors";
 import {logger} from "./logger";
 
 interface SecretManagerClient {
@@ -76,9 +77,11 @@ export class GcpSecretProvider implements SecretProvider {
         const moduleName = "@google-cloud/secret-manager";
         mod = await import(/* webpackIgnore: true */ moduleName);
       } catch {
-        throw new Error(
-          "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager"
-        );
+        throw new APIError({
+          status: 500,
+          title:
+            "GcpSecretProvider requires @google-cloud/secret-manager. Install it with: bun add @google-cloud/secret-manager",
+        });
       }
       const SecretManagerServiceClient =
         mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
