@@ -172,4 +172,30 @@ describe("useUpgradeCheck (mobile)", () => {
     );
     expect(noUrlWarn).toBeDefined();
   });
+
+  it("onUpdate logs a warning when Linking.openURL rejects", async () => {
+    const openError = new Error("link failed");
+    mockOpenURL.mockImplementation(() => Promise.reject(openError));
+
+    const {result} = renderHook(() => useUpgradeCheck());
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await waitFor(() => {
+      expect(result.current.canUpdate).toBe(true);
+    });
+
+    await act(async () => {
+      result.current.onUpdate();
+      await flushPromises();
+    });
+
+    expect(mockOpenURL).toHaveBeenCalledWith("https://example.com/update");
+    const failureWarn = warnCalls.find(
+      (args) => typeof args[0] === "string" && args[0].includes("Failed to open update URL")
+    );
+    expect(failureWarn).toBeDefined();
+  });
 });
