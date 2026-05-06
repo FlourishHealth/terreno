@@ -9,9 +9,10 @@ import {
   type TerrenoPlugin,
 } from "@terreno/api";
 import type express from "express";
+import type {Model} from "mongoose";
 import {evaluateAllFlags} from "./evaluate";
 import {FeatureFlag} from "./featureFlagModel";
-import type {FeatureFlagsOptions, SegmentFunction} from "./types";
+import type {FeatureFlagDocument, FeatureFlagsOptions, SegmentFunction} from "./types";
 
 /**
  * TerrenoPlugin that provides feature flags and A/B testing.
@@ -42,7 +43,7 @@ export class FeatureFlagsApp implements TerrenoPlugin {
 
   register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/feature-flags";
-    const routerOptions: ModelRouterOptions<any> = {
+    const routerOptions: ModelRouterOptions<FeatureFlagDocument> = {
       ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
       permissions: {
         create: [Permissions.IsAdmin],
@@ -55,7 +56,10 @@ export class FeatureFlagsApp implements TerrenoPlugin {
     };
 
     // Admin CRUD routes for flags
-    app.use(`${basePath}/flags`, modelRouter(FeatureFlag as any, routerOptions));
+    app.use(
+      `${basePath}/flags`,
+      modelRouter(FeatureFlag as Model<FeatureFlagDocument>, routerOptions)
+    );
 
     // GET /feature-flags/evaluate — evaluate all flags for current user
     app.get(
