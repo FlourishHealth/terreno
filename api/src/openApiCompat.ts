@@ -110,7 +110,7 @@ const patchRouterStack = (stack: any[]): void => {
  */
 export const patchAppUse = (app: any): void => {
   const originalUse = app.use.bind(app);
-  app.use = function patchedUse(...args: any[]) {
+  const patchedUse = (...args: any[]): unknown => {
     // Track stack length before the call
     const router = app._router || app.router;
     const stackBefore = router?.stack?.length ?? 0;
@@ -132,6 +132,7 @@ export const patchAppUse = (app: any): void => {
 
     return result;
   };
+  app.use = patchedUse;
 };
 
 /**
