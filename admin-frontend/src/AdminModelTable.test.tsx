@@ -238,6 +238,71 @@ describe("AdminModelTable", () => {
     expect(deleteFn).toHaveBeenCalled();
   });
 
+  it("applies columnWidths prop overrides to DataTable columns", () => {
+    configState.config = fullConfig;
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable
+        api={{} as any}
+        baseUrl="/admin"
+        columnWidths={{email: 999}}
+        modelName="User"
+      />
+    );
+    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
+    expect(tables.length).toBeGreaterThan(0);
+    const cols = (tables[0] as any).props.columns;
+    const emailCol = cols.find((c: any) => c.title === "Email");
+    expect(emailCol?.width).toBe(999);
+  });
+
+  it("falls back to listColumnWidths from backend config when columnWidths prop is absent", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          listColumnWidths: {email: 555},
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+    );
+    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
+    const cols = (tables[0] as any).props.columns;
+    const emailCol = cols.find((c: any) => c.title === "Email");
+    expect(emailCol?.width).toBe(555);
+  });
+
+  it("prefers columnWidths prop over backend listColumnWidths", () => {
+    configState.config = {
+      customScreens: [],
+      models: [
+        {
+          ...fullConfig.models[0],
+          listColumnWidths: {email: 100},
+        },
+      ],
+      scripts: [],
+    };
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable
+        api={{} as any}
+        baseUrl="/admin"
+        columnWidths={{email: 200}}
+        modelName="User"
+      />
+    );
+    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
+    const cols = (tables[0] as any).props.columns;
+    const emailCol = cols.find((c: any) => c.title === "Email");
+    expect(emailCol?.width).toBe(200);
+  });
+
   it("builds a descending sort string and falls back when column is out of range", async () => {
     configState.config = fullConfig;
     // Render data so DataTable mounts; then capture the setSortColumn via a dummy
