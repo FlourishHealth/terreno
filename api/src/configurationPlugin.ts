@@ -178,9 +178,9 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
   // Static: get the singleton configuration document or a value at a path (race-safe via upsert)
   schema.statics.getConfig = async function (key?: string): Promise<unknown> {
     const findSingleton = (): Promise<Document | null> =>
-      (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone({}) as Promise<
-        Document | null
-      >;
+      (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone(
+        {}
+      ) as Promise<Document | null>;
     let config: Document | null = await findSingleton();
     if (!config) {
       try {
