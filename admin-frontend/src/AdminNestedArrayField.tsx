@@ -2,7 +2,7 @@ import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, Card, DraggableList, Heading, IconButton, Text} from "@terreno/ui";
 import React, {useCallback, useMemo, useRef} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
-import type {AdminFieldConfig} from "./types";
+import type {AdminFieldConfig, RefRendererMap} from "./types";
 
 const FIELD_HEIGHT_ESTIMATE = 76;
 const CARD_HEADER_HEIGHT = 44;
@@ -21,6 +21,8 @@ interface AdminNestedArrayFieldProps {
   modelConfigs?: Array<{name: string; routePath: string}>;
   /** Parent document form state, used to derive dynamic options for sub-fields */
   parentFormState?: Record<string, any>;
+  /** Forwarded to nested {@link AdminFieldRenderer} so refs in sub-documents can use custom renderers. */
+  refRenderers?: RefRendererMap;
 }
 
 const buildDefaultItem = (items: Record<string, AdminFieldConfig>): Record<string, any> => {
@@ -57,6 +59,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
   baseUrl,
   modelConfigs,
   parentFormState,
+  refRenderers,
 }) => {
   const arrayValue = useMemo((): Record<string, any>[] => {
     return Array.isArray(value) ? value : [];
@@ -170,6 +173,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
                 modelConfigs={modelConfigs}
                 onChange={(val: any) => handleSubFieldChange(index, fieldKey, val)}
                 parentFormState={parentFormState}
+                refRenderers={refRenderers}
                 value={itemData[fieldKey]}
               />
             ))}
@@ -185,6 +189,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       baseUrl,
       modelConfigs,
       parentFormState,
+      refRenderers,
       handleRemoveItem,
       handleSubFieldChange,
     ]

@@ -1,4 +1,5 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
+import type React from "react";
 
 export interface AdminFieldConfig {
   type: string;
@@ -27,6 +28,8 @@ export interface AdminModelConfig {
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
   fieldOrder?: string[];
+  /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
+  listColumnWidths?: Record<string, number>;
 }
 
 export interface AdminCustomScreen {
@@ -77,6 +80,31 @@ export interface AdminScreenProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
 }
+
+/**
+ * Props passed to a custom ref-field renderer. Matches AdminRefField's interface so a
+ * custom renderer is a drop-in replacement.
+ */
+export interface RefFieldRendererProps {
+  api: Api<any, any, any, any>;
+  baseUrl: string;
+  routePath: string;
+  refModelName: string;
+  title: string;
+  value: string;
+  onChange: (value: string) => void;
+  errorText?: string;
+  helperText?: string;
+}
+
+/**
+ * Map from referenced model name (e.g. "User") to a custom component used to render
+ * fields that reference that model. When a key matches `fieldConfig.ref` (single ref)
+ * or `fieldConfig.itemRef` (primitive array of refs), the custom component renders in
+ * place of the built-in {@link AdminRefField}. Falls back to AdminRefField when no
+ * key matches.
+ */
+export type RefRendererMap = Record<string, React.ComponentType<RefFieldRendererProps>>;
 
 // System fields that should be skipped in forms
 export const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);

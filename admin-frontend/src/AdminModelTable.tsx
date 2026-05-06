@@ -26,6 +26,13 @@ interface AdminModelTableProps {
   api: Api<any, any, any, any>;
   modelName: string;
   columns?: string[];
+  /**
+   * Optional pixel widths for individual list columns, keyed by field name. Falls
+   * back to {@link AdminModelConfig.listColumnWidths} from the backend, then to the
+   * built-in column-type defaults. Useful when the default heuristics pick the wrong
+   * width for a given model.
+   */
+  columnWidths?: Record<string, number>;
 }
 
 const ACTIONS_COLUMN_TYPE = "adminActions";
@@ -192,6 +199,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   api,
   modelName,
   columns: columnsProp,
+  columnWidths,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
   const [page, setPage] = useState(1);
@@ -274,11 +282,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const fieldConfig = modelConfig.fields[fieldKey];
     const isFirst = index === 0;
     const columnType = getColumnType(fieldKey, fieldConfig);
+    const widthOverride = columnWidths?.[fieldKey] ?? modelConfig.listColumnWidths?.[fieldKey];
     return {
       columnType: isFirst ? LINK_COLUMN_TYPE : columnType,
       sortable: true,
       title: startCase(fieldKey),
-      width: getColumnWidth(fieldKey, columnType),
+      width: widthOverride ?? getColumnWidth(fieldKey, columnType),
     };
   });
 
