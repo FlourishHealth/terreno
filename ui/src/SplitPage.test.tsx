@@ -1,9 +1,15 @@
 import {afterAll, beforeAll, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
+import type {ScaledSize} from "react-native";
 import {Dimensions, View} from "react-native";
 
 import {SplitPage} from "./SplitPage";
 import {renderWithTheme} from "./test-utils";
+
+type DimensionsGetImpl = (dim: "window" | "screen") => ScaledSize;
+type MockableDimensionsGet = DimensionsGetImpl & {
+  mockImplementation?: (impl: DimensionsGetImpl) => void;
+};
 
 // Mock react-native-swiper-flatlist
 mock.module("react-native-swiper-flatlist", () => ({
@@ -178,22 +184,34 @@ describe("SplitPage", () => {
   });
 
   describe("desktop viewport (mediaQueryLargerThan('sm') true)", () => {
-    const desktopImpl = () => ({fontScale: 1, height: 1000, scale: 2, width: 1400}) as any;
-    const mobileImpl = () => ({fontScale: 1, height: 812, scale: 2, width: 375}) as any;
+    const desktopImpl: DimensionsGetImpl = () => ({
+      fontScale: 1,
+      height: 1000,
+      scale: 2,
+      width: 1400,
+    });
+    const mobileImpl: DimensionsGetImpl = () => ({
+      fontScale: 1,
+      height: 812,
+      scale: 2,
+      width: 375,
+    });
     let originalGet: typeof Dimensions.get;
     beforeAll(() => {
       originalGet = Dimensions.get;
-      if (typeof (Dimensions.get as any).mockImplementation === "function") {
-        (Dimensions.get as any).mockImplementation(desktopImpl);
+      const dimGet = Dimensions.get as MockableDimensionsGet;
+      if (typeof dimGet.mockImplementation === "function") {
+        dimGet.mockImplementation(desktopImpl);
       } else {
-        (Dimensions.get as any) = desktopImpl;
+        (Dimensions as {get: DimensionsGetImpl}).get = desktopImpl;
       }
     });
     afterAll(() => {
-      if (typeof (Dimensions.get as any).mockImplementation === "function") {
-        (Dimensions.get as any).mockImplementation(mobileImpl);
+      const dimGet = Dimensions.get as MockableDimensionsGet;
+      if (typeof dimGet.mockImplementation === "function") {
+        dimGet.mockImplementation(mobileImpl);
       } else {
-        (Dimensions.get as any) = originalGet;
+        (Dimensions as {get: DimensionsGetImpl}).get = originalGet;
       }
     });
 
