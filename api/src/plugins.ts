@@ -1,6 +1,7 @@
 import {DateTime} from "luxon";
 import mongoose, {
   type Document,
+  type FilterQuery,
   Error as MongooseError,
   type Query,
   type Schema,
@@ -127,6 +128,40 @@ export const findOneOrNone = <T>(schema: Schema<T>): void => {
     }
     return results[0];
   };
+};
+
+/**
+ * Helper that performs a `findOneOrNone` lookup against any Mongoose model. Returns the matching
+ * document, `null` if none match, or throws if more than one matches. If the model's schema has
+ * the {@link findOneOrNone} plugin applied, the plugin static is used; otherwise the lookup is
+ * performed directly via `model.find(...)`. Prefer this helper from framework code where the
+ * consumer's model may or may not have the plugin installed.
+ * @param model Mongoose Model
+ * @param query Mongoose query object
+ * @param errorArgs Optional overrides for the thrown {@link APIError} when multiple match
+ */
+export const findOneOrNoneFor = async <T>(
+  model: mongoose.Model<T>,
+  query: FilterQuery<T>,
+  errorArgs?: Partial<APIErrorConstructor>
+): Promise<(Document & T) | null> => {
+  const withStatic = model as mongoose.Model<T> & Partial<FindOneOrNonePlugin<T>>;
+  if (typeof withStatic.findOneOrNone === "function") {
+    return withStatic.findOneOrNone(query, errorArgs);
+  }
+  const results = await model.find(query);
+  if (results.length === 0) {
+    return null;
+  }
+  if (results.length > 1) {
+    throw new APIError({
+      detail: `query: ${JSON.stringify(query)}`,
+      status: 500,
+      title: `${model.modelName}.findOne query returned multiple documents`,
+      ...errorArgs,
+    });
+  }
+  return results[0] as unknown as Document & T;
 };
 
 /**
