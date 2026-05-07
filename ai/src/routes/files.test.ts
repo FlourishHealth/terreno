@@ -39,15 +39,19 @@ const authAsUser = async (appInstance: express.Application, type: "admin" | "not
 describe("File Routes", () => {
   let app: express.Application;
   let fileStorageService: MockFileStorageService;
+  let adminId: mongoose.Types.ObjectId;
+  let userId: mongoose.Types.ObjectId;
 
   beforeAll(async () => {
     await UserModel.deleteMany({});
     const admin = await UserModel.create({admin: true, email: "admin@example.com", name: "Admin"});
     await (admin as unknown as PasswordedUser).setPassword("securePassword");
     await admin.save();
+    adminId = admin._id;
     const user = await UserModel.create({email: "notAdmin@example.com", name: "User"});
     await (user as unknown as PasswordedUser).setPassword("password");
     await user.save();
+    userId = user._id;
   });
 
   beforeEach(async () => {
@@ -111,14 +115,13 @@ describe("File Routes", () => {
     });
 
     it("returns the signed URL when the file exists", async () => {
-      const owner = await UserModel.findOne({email: "notAdmin@example.com"});
       const attachment = await FileAttachment.create({
         filename: "hi.txt",
         gcsKey: "hi-single.txt",
         mimeType: "text/plain",
         size: 5,
         url: "https://example.com/hi.txt",
-        userId: owner?._id,
+        userId,
       });
       const res = await supertest(app).get(`/files/${attachment.gcsKey}`);
       expect(res.status).toBe(200);
@@ -140,14 +143,13 @@ describe("File Routes", () => {
     });
 
     it("deletes the file when the requester owns it", async () => {
-      const owner = await UserModel.findOne({email: "notAdmin@example.com"});
       const attachment = await FileAttachment.create({
         filename: "mine.txt",
         gcsKey: "mine-single.txt",
         mimeType: "text/plain",
         size: 4,
         url: "https://example.com/mine.txt",
-        userId: owner?._id,
+        userId,
       });
       const agent = await authAsUser(app, "notAdmin");
       const res = await agent.delete(`/files/${attachment.gcsKey}`);
@@ -157,14 +159,13 @@ describe("File Routes", () => {
     });
 
     it("returns 403 when the requester does not own the file", async () => {
-      const owner = await UserModel.findOne({email: "admin@example.com"});
       const attachment = await FileAttachment.create({
         filename: "theirs.txt",
         gcsKey: "theirs-single.txt",
         mimeType: "text/plain",
         size: 6,
         url: "https://example.com/theirs.txt",
-        userId: owner?._id,
+        userId: adminId,
       });
       const agent = await authAsUser(app, "notAdmin");
       const res = await agent.delete(`/files/${attachment.gcsKey}`);
