@@ -1,12 +1,8 @@
-import {beforeEach, describe, expect, it, type Mock, mock, spyOn} from "bun:test";
+import {beforeEach, describe, expect, it, type Mock, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
 
 import {sentryAppVersionMiddleware} from "./middleware";
-
-interface MockScope {
-  setTag: Mock<(key: string, value: string) => void>;
-}
 
 const buildReq = (headers: Record<string, string | undefined>): Request => {
   return {
@@ -17,14 +13,16 @@ const buildReq = (headers: Record<string, string | undefined>): Request => {
 const buildNext = (): Mock<() => void> => mock(() => {});
 
 describe("sentryAppVersionMiddleware", () => {
-  let scope: MockScope;
-  let getCurrentScopeSpy: Mock<typeof Sentry.getCurrentScope>;
+  let setTagMock: Mock<(key: string, value: string) => void>;
 
   beforeEach(() => {
-    scope = {setTag: mock(() => {})};
-    getCurrentScopeSpy = spyOn(Sentry, "getCurrentScope").mockReturnValue(
-      scope as unknown as ReturnType<typeof Sentry.getCurrentScope>
-    );
+    // bunSetup.ts mocks @sentry/bun so that getCurrentScope() returns a scope
+    // with a Bun mock setTag. Clear that mock between tests so each assertion
+    // sees only its own calls.
+    setTagMock = Sentry.getCurrentScope().setTag as unknown as Mock<
+      (key: string, value: string) => void
+    >;
+    setTagMock.mockClear();
   });
 
   it("sets the app_version tag when the App-Version header is present", () => {
@@ -33,9 +31,8 @@ describe("sentryAppVersionMiddleware", () => {
 
     sentryAppVersionMiddleware(req, {} as Response, next as unknown as NextFunction);
 
-    expect(getCurrentScopeSpy).toHaveBeenCalledTimes(1);
-    expect(scope.setTag).toHaveBeenCalledTimes(1);
-    expect(scope.setTag.mock.calls[0]).toEqual(["app_version", "1.2.3"]);
+    expect(setTagMock).toHaveBeenCalledTimes(1);
+    expect(setTagMock.mock.calls[0]).toEqual(["app_version", "1.2.3"]);
     expect(next).toHaveBeenCalledTimes(1);
   });
 
@@ -45,7 +42,7 @@ describe("sentryAppVersionMiddleware", () => {
 
     sentryAppVersionMiddleware(req, {} as Response, next as unknown as NextFunction);
 
-    expect(scope.setTag).not.toHaveBeenCalled();
+    expect(setTagMock).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
   });
 
@@ -55,7 +52,7 @@ describe("sentryAppVersionMiddleware", () => {
 
     sentryAppVersionMiddleware(req, {} as Response, next as unknown as NextFunction);
 
-    expect(scope.setTag).not.toHaveBeenCalled();
+    expect(setTagMock).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
   });
 
