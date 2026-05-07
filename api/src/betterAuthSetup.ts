@@ -13,22 +13,7 @@ import mongoose from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {logger} from "./logger";
-import {findOneOrNone as applyFindOneOrNonePlugin, type FindOneOrNonePlugin} from "./plugins";
-
-const findOneOrNoneApplied = new WeakSet<UserModel>();
-
-const ensureFindOneOrNone = (userModel: UserModel): UserModel & FindOneOrNonePlugin<unknown> => {
-  if (!findOneOrNoneApplied.has(userModel)) {
-    applyFindOneOrNonePlugin(userModel.schema);
-    const typed = userModel as UserModel & Partial<FindOneOrNonePlugin<unknown>>;
-    if (typeof typed.findOneOrNone !== "function") {
-      typed.findOneOrNone = userModel.schema.statics
-        .findOneOrNone as FindOneOrNonePlugin<unknown>["findOneOrNone"];
-    }
-    findOneOrNoneApplied.add(userModel);
-  }
-  return userModel as UserModel & FindOneOrNonePlugin<unknown>;
-};
+import {findOneOrNoneFor} from "./plugins";
 
 /**
  * The Better Auth instance type.
@@ -125,7 +110,7 @@ export const createBetterAuthSessionMiddleware = (
 
         if (userModel) {
           // Look up the application user by betterAuthId
-          const appUser = await ensureFindOneOrNone(userModel).findOneOrNone({
+          const appUser = await findOneOrNoneFor(userModel, {
             betterAuthId: betterAuthUser.id,
           });
           if (appUser) {
@@ -169,7 +154,7 @@ export const syncBetterAuthUser = async (
   oauthProvider?: string
 ): Promise<any> => {
   try {
-    const existingUser: any = await ensureFindOneOrNone(userModel).findOneOrNone({
+    const existingUser: any = await findOneOrNoneFor(userModel, {
       betterAuthId: betterAuthUser.id,
     });
 
@@ -184,7 +169,7 @@ export const syncBetterAuthUser = async (
     }
 
     // Check if user exists by email (migration case)
-    const userByEmail: any = await ensureFindOneOrNone(userModel).findOneOrNone({
+    const userByEmail: any = await findOneOrNoneFor(userModel, {
       email: betterAuthUser.email,
     });
     if (userByEmail) {

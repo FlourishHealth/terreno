@@ -5,22 +5,7 @@ import {generateTokens, type UserModel} from "./auth";
 import {APIError} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
-import {findOneOrNone as applyFindOneOrNonePlugin, type FindOneOrNonePlugin} from "./plugins";
-
-const findOneOrNoneApplied = new WeakSet<UserModel>();
-
-const ensureFindOneOrNone = (userModel: UserModel): UserModel & FindOneOrNonePlugin<unknown> => {
-  if (!findOneOrNoneApplied.has(userModel)) {
-    applyFindOneOrNonePlugin(userModel.schema);
-    const typed = userModel as UserModel & Partial<FindOneOrNonePlugin<unknown>>;
-    if (typeof typed.findOneOrNone !== "function") {
-      typed.findOneOrNone = userModel.schema.statics
-        .findOneOrNone as FindOneOrNonePlugin<unknown>["findOneOrNone"];
-    }
-    findOneOrNoneApplied.add(userModel);
-  }
-  return userModel as UserModel & FindOneOrNonePlugin<unknown>;
-};
+import {findOneOrNoneFor} from "./plugins";
 
 /** Options for configuring GitHub OAuth authentication */
 export interface GitHubAuthOptions {
@@ -128,9 +113,7 @@ export const setupGitHubAuth = (
           const githubId = profile.id;
 
           // Check if user with this GitHub ID already exists
-          const existingGitHubUser = await ensureFindOneOrNone(userModel).findOneOrNone({
-            githubId,
-          });
+          const existingGitHubUser = await findOneOrNoneFor(userModel, {githubId});
 
           // Case 1: User is authenticated and wants to link GitHub account
           if (existingUser) {
@@ -173,9 +156,7 @@ export const setupGitHubAuth = (
 
           // Check if user with this email already exists
           if (email) {
-            const existingEmailUser = await ensureFindOneOrNone(userModel).findOneOrNone({
-              email,
-            });
+            const existingEmailUser = await findOneOrNoneFor(userModel, {email});
             if (existingEmailUser) {
               // If account linking is allowed, link GitHub to existing email account
               if (githubOptions.allowAccountLinking !== false) {
