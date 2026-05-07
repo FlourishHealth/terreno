@@ -1,6 +1,7 @@
 import {DateTime} from "luxon";
 import mongoose, {
   type Document,
+  type FilterQuery,
   Error as MongooseError,
   type Query,
   type Schema,
@@ -141,7 +142,7 @@ export const findOneOrNone = <T>(schema: Schema<T>): void => {
  */
 export const findOneOrNoneFor = async <T>(
   model: mongoose.Model<T>,
-  query: Record<string, any>,
+  query: FilterQuery<T>,
   errorArgs?: Partial<APIErrorConstructor>
 ): Promise<(Document & T) | null> => {
   const withStatic = model as mongoose.Model<T> & Partial<FindOneOrNonePlugin<T>>;
