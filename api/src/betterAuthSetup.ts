@@ -20,8 +20,10 @@ const findOneOrNoneApplied = new WeakSet<UserModel>();
 const ensureFindOneOrNone = (userModel: UserModel): UserModel & FindOneOrNonePlugin<unknown> => {
   if (!findOneOrNoneApplied.has(userModel)) {
     applyFindOneOrNonePlugin(userModel.schema);
-    if (typeof (userModel as any).findOneOrNone !== "function") {
-      (userModel as any).findOneOrNone = (userModel.schema.statics as any).findOneOrNone;
+    const typed = userModel as UserModel & Partial<FindOneOrNonePlugin<unknown>>;
+    if (typeof typed.findOneOrNone !== "function") {
+      typed.findOneOrNone = userModel.schema.statics
+        .findOneOrNone as FindOneOrNonePlugin<unknown>["findOneOrNone"];
     }
     findOneOrNoneApplied.add(userModel);
   }
