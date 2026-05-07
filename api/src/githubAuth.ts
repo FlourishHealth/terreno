@@ -5,6 +5,20 @@ import {generateTokens, type UserModel} from "./auth";
 import {APIError} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {findOneOrNone as applyFindOneOrNonePlugin, type FindOneOrNonePlugin} from "./plugins";
+
+const findOneOrNoneApplied = new WeakSet<UserModel>();
+
+const ensureFindOneOrNone = (userModel: UserModel): UserModel & FindOneOrNonePlugin<unknown> => {
+  if (!findOneOrNoneApplied.has(userModel)) {
+    applyFindOneOrNonePlugin(userModel.schema);
+    if (typeof (userModel as any).findOneOrNone !== "function") {
+      (userModel as any).findOneOrNone = (userModel.schema.statics as any).findOneOrNone;
+    }
+    findOneOrNoneApplied.add(userModel);
+  }
+  return userModel as UserModel & FindOneOrNonePlugin<unknown>;
+};
 
 /** Options for configuring GitHub OAuth authentication */
 export interface GitHubAuthOptions {
@@ -57,24 +71,24 @@ export interface GitHubUserFields {
  * userSchema.plugin(githubUserPlugin);
  * ```
  */
-export function githubUserPlugin(schema: any) {
+export const githubUserPlugin = (schema: any): void => {
   schema.add({
     githubAvatarUrl: {type: String},
     githubId: {index: true, sparse: true, type: String, unique: true},
     githubProfileUrl: {type: String},
     githubUsername: {type: String},
   });
-}
+};
 
 /**
  * Sets up GitHub OAuth authentication strategy.
  * Call this after setupAuth() in your server initialization.
  */
-export function setupGitHubAuth(
+export const setupGitHubAuth = (
   _app: express.Application,
   userModel: UserModel,
   githubOptions: GitHubAuthOptions
-) {
+): void => {
   const scope = githubOptions.scope ?? ["user:email"];
 
   passport.use(
@@ -112,7 +126,9 @@ export function setupGitHubAuth(
           const githubId = profile.id;
 
           // Check if user with this GitHub ID already exists
-          const existingGitHubUser = await userModel.findOne({githubId} as any);
+          const existingGitHubUser = await ensureFindOneOrNone(userModel).findOneOrNone({
+            githubId,
+          });
 
           // Case 1: User is authenticated and wants to link GitHub account
           if (existingUser) {
@@ -155,7 +171,9 @@ export function setupGitHubAuth(
 
           // Check if user with this email already exists
           if (email) {
-            const existingEmailUser = await userModel.findOne({email} as any);
+            const existingEmailUser = await ensureFindOneOrNone(userModel).findOneOrNone({
+              email,
+            });
             if (existingEmailUser) {
               // If account linking is allowed, link GitHub to existing email account
               if (githubOptions.allowAccountLinking !== false) {
@@ -195,7 +213,7 @@ export function setupGitHubAuth(
       }) as any
     ) as passport.Strategy
   );
-}
+};
 
 /**
  * Adds GitHub OAuth routes to the Express application.
@@ -206,12 +224,12 @@ export function setupGitHubAuth(
  * - POST /auth/github/link - Links GitHub account to authenticated user (requires JWT auth)
  * - DELETE /auth/github/unlink - Unlinks GitHub account from authenticated user (requires JWT auth)
  */
-export function addGitHubAuthRoutes(
+export const addGitHubAuthRoutes = (
   app: express.Application,
   userModel: UserModel,
   githubOptions: GitHubAuthOptions,
   authOptions?: AuthOptions
-): void {
+): void => {
   const router = require("express").Router();
 
   // Initiate GitHub OAuth flow
@@ -332,4 +350,4 @@ export function addGitHubAuthRoutes(
   }
 
   app.use("/auth", router);
-}
+};
