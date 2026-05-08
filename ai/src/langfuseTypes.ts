@@ -45,17 +45,28 @@ export interface LangfuseCachedPrompt {
   version: number;
 }
 
+/**
+ * Telemetry configuration for AI SDK calls with Langfuse integration.
+ *
+ * The `functionId`, `isEnabled`, and `metadata` fields are passed directly to the
+ * Vercel AI SDK's `experimental_telemetry`. The remaining fields (`sessionId`, `tags`,
+ * `traceId`, `updateParent`) are **only consumed by `createTelemetryConfig` /
+ * `createLangfuseTrace`**, which map them into the appropriate `metadata` keys
+ * (e.g. `langfuseTraceId`, `langfuseSessionId`). Setting them on a raw object passed
+ * directly to `experimental_telemetry` will have no effect — always use the builder
+ * functions.
+ */
 export interface TelemetrySettings {
   functionId?: string;
   isEnabled?: boolean;
   metadata?: Record<string, string | number | boolean | string[]>;
-  /** Langfuse session ID for grouping related traces (e.g. a chart review session). */
+  /** Only used by `createTelemetryConfig` — mapped to `metadata.langfuseSessionId`. */
   sessionId?: string;
-  /** Tags for categorizing traces in Langfuse (e.g. ["chart-review", "patient-summary"]). */
+  /** Only used by `createTelemetryConfig` — mapped to `metadata.langfuseTags`. */
   tags?: string[];
-  /** Existing Langfuse trace ID to nest this generation under. */
+  /** Only used by `createTelemetryConfig` — mapped to `metadata.langfuseTraceId`. */
   traceId?: string;
-  /** Whether to update the parent Langfuse trace with this generation's input/output. */
+  /** Only used by `createTelemetryConfig` — mapped to `metadata.langfuseUpdateParent`. */
   updateParent?: boolean;
 }
 
