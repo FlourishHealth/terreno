@@ -114,6 +114,61 @@ describe("AIService", () => {
     });
   });
 
+  describe("telemetry passthrough", () => {
+    it("should accept telemetry config in generateText without error", async () => {
+      const model = createMockModel("Hello");
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const telemetry = {
+        functionId: "chart-review",
+        isEnabled: true,
+        metadata: {langfuseTraceId: "trace-123", userId: "user-1"},
+      };
+
+      const result = await service.generateText({prompt: "test", telemetry});
+      expect(result).toBe("Hello");
+      expect(model.doGenerate).toHaveBeenCalledTimes(1);
+    });
+
+    it("should accept telemetry config in generateTextStream without error", async () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const telemetry = {
+        functionId: "chart-stream",
+        isEnabled: true,
+        metadata: {langfuseTraceId: "trace-456"},
+      };
+
+      const chunks: string[] = [];
+      for await (const chunk of service.generateTextStream({prompt: "test", telemetry})) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.join("")).toBe("Mock response");
+      expect(model.doStream).toHaveBeenCalledTimes(1);
+    });
+
+    it("should accept telemetry config in generateChatStream without error", async () => {
+      const model = createMockModel();
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const telemetry = {
+        functionId: "chat-review",
+        isEnabled: true,
+        metadata: {langfuseSessionId: "session-1", langfuseTraceId: "trace-789"},
+      };
+
+      const chunks: string[] = [];
+      for await (const chunk of service.generateChatStream({
+        messages: [{content: "Hi", role: "user"}],
+        telemetry,
+      })) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks.join("")).toBe("Mock response");
+      expect(model.doStream).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe("generateRemix", () => {
     it("should remix text", async () => {
       const model = createMockModel("Remixed text");

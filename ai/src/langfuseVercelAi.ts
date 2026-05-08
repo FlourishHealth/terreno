@@ -75,7 +75,7 @@ export const createTelemetryConfig = (params: {
       ...(params.userId ? {userId: params.userId} : {}),
       ...(params.traceId ? {langfuseTraceId: params.traceId} : {}),
       ...(params.sessionId ? {langfuseSessionId: params.sessionId} : {}),
-      ...(params.tags ? {langfuseTags: params.tags as unknown as string} : {}),
+      ...(params.tags ? {langfuseTags: params.tags} : {}),
       ...(params.updateParent !== undefined ? {langfuseUpdateParent: params.updateParent} : {}),
     },
   };

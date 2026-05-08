@@ -47,10 +47,8 @@ export interface LangfuseCachedPrompt {
 
 export interface TelemetrySettings {
   functionId?: string;
-  /** Input context to attach to the Langfuse trace (e.g. patient chart data). Stored as the trace's input. */
-  input?: unknown;
   isEnabled?: boolean;
-  metadata?: Record<string, string | number | boolean>;
+  metadata?: Record<string, string | number | boolean | string[]>;
   /** Langfuse session ID for grouping related traces (e.g. a chart review session). */
   sessionId?: string;
   /** Tags for categorizing traces in Langfuse (e.g. ["chart-review", "patient-summary"]). */
