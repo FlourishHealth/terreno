@@ -69,12 +69,12 @@ export class AIService {
   }
 
   async generateText(options: GenerateTextOptions): Promise<string> {
-    const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
+    const {prompt, systemPrompt, temperature, maxOutputTokens, telemetry, userId} = options;
     const startTime = Date.now();
 
     try {
       const result = await aiGenerateText({
-        experimental_telemetry: {functionId: "generate-text", isEnabled: true},
+        experimental_telemetry: telemetry ?? {functionId: "generate-text", isEnabled: true},
         maxOutputTokens,
         model: this.model,
         prompt,
@@ -109,13 +109,13 @@ export class AIService {
   }
 
   async *generateTextStream(options: GenerateStreamOptions): AsyncGenerator<string> {
-    const {prompt, systemPrompt, temperature, maxOutputTokens, userId} = options;
+    const {prompt, systemPrompt, temperature, maxOutputTokens, telemetry, userId} = options;
     const startTime = Date.now();
     let fullResponse = "";
 
     try {
       const result = streamText({
-        experimental_telemetry: {functionId: "generate-text-stream", isEnabled: true},
+        experimental_telemetry: telemetry ?? {functionId: "generate-text-stream", isEnabled: true},
         maxOutputTokens,
         model: this.model,
         prompt,
@@ -238,7 +238,7 @@ export class AIService {
   }
 
   async *generateChatStream(options: GenerateChatStreamOptions): AsyncGenerator<string> {
-    const {messages, systemPrompt, tools, toolChoice, stopWhen, userId} = options;
+    const {messages, systemPrompt, tools, toolChoice, stopWhen, telemetry, userId} = options;
     const startTime = Date.now();
     let fullResponse = "";
 
@@ -246,7 +246,7 @@ export class AIService {
 
     try {
       const result = streamText({
-        experimental_telemetry: {functionId: "generate-chat-stream", isEnabled: true},
+        experimental_telemetry: telemetry ?? {functionId: "generate-chat-stream", isEnabled: true},
         messages: messages.map((m) => ({content: m.content, role: m.role})),
         model: this.model,
         stopWhen: stopWhen ?? stepCountIs(1),

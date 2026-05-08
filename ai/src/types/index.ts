@@ -163,6 +163,7 @@ export interface GenerateTextOptions {
   prompt: string;
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
+  telemetry?: import("../langfuseTypes").TelemetrySettings;
   temperature?: number;
   toolChoice?: "auto" | "none" | "required";
   tools?: Record<string, import("ai").Tool>;
@@ -173,6 +174,7 @@ export interface GenerateStreamOptions {
   maxOutputTokens?: number;
   prompt: string;
   systemPrompt?: string;
+  telemetry?: import("../langfuseTypes").TelemetrySettings;
   temperature?: number;
   userId?: mongoose.Types.ObjectId;
 }
@@ -181,6 +183,7 @@ export interface GenerateChatStreamOptions {
   messages: Array<{content: string; role: "user" | "assistant" | "system"}>;
   stopWhen?: import("ai").StopCondition<any>;
   systemPrompt?: string;
+  telemetry?: import("../langfuseTypes").TelemetrySettings;
   toolChoice?: "auto" | "none" | "required";
   tools?: Record<string, import("ai").Tool>;
   userId?: mongoose.Types.ObjectId;

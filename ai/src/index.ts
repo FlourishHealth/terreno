@@ -4,6 +4,7 @@ export {LangfuseApp} from "./langfuseApp";
 export {getCached, invalidateCache, LangfuseCache, setCached} from "./langfuseCache";
 export {
   getLangfuseClient,
+  getLangfuseOptions,
   initLangfuseClient,
   isLangfuseInitialized,
   shutdownLangfuseClient,
@@ -23,7 +24,7 @@ export type {
   TelemetrySettings,
   TraceListItem,
 } from "./langfuseTypes";
-export {createTelemetryConfig, preparePromptForAI} from "./langfuseVercelAi";
+export {createLangfuseTrace, createTelemetryConfig, preparePromptForAI} from "./langfuseVercelAi";
 export * from "./models";
 export * from "./routes";
 export * from "./service";
