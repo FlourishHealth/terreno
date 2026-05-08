@@ -268,7 +268,9 @@ exports[`SelectField renders correctly with default props 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -558,7 +560,9 @@ exports[`SelectField renders with title 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -833,7 +837,9 @@ exports[`SelectField renders with selected value 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1108,7 +1114,9 @@ exports[`SelectField renders with custom placeholder 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1385,7 +1393,9 @@ exports[`SelectField renders disabled state 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1650,7 +1660,9 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
