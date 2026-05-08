@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -36,6 +36,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
   const content = variables
@@ -51,7 +52,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
 
-  const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
+  const canAgree = allRequiredCheckboxesChecked && signatureProvided;
 
   // Auto-satisfy scroll requirement when content fits within the viewport
   const handleContentSizeChange = (_w: number, h: number) => {
@@ -109,6 +110,10 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   };
 
   const handleAgree = () => {
+    if (!hasScrolledToBottom) {
+      scrollViewRef.current?.scrollToEnd({animated: true});
+      return;
+    }
     onAgree({checkboxValues, signature: signatureValue});
   };
 
@@ -116,9 +121,9 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     confirmModalCheckboxIndex !== null ? form.checkboxes[confirmModalCheckboxIndex] : null;
 
   const footer = (
-    <Box direction="column" gap={2} paddingY={2} testID="consent-form-footer" width="100%">
+    <Box direction="row" gap={2} paddingY={2} testID="consent-form-footer" width="100%">
       {Boolean(form.allowDecline && onDecline) && (
-        <Box width="100%">
+        <Box flex="grow">
           <Button
             fullWidth
             onClick={onDecline!}
@@ -128,7 +133,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           />
         </Box>
       )}
-      <Box width="100%">
+      <Box flex="grow">
         <Button
           disabled={!canAgree}
           fullWidth
@@ -147,6 +152,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
         onScroll={handleScroll}
+        ref={scrollViewRef}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
         style={{flex: 1}}
