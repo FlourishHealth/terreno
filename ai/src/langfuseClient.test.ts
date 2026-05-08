@@ -2,6 +2,7 @@ import {afterEach, describe, expect, it, mock} from "bun:test";
 
 import {
   getLangfuseClient,
+  getLangfuseOptions,
   initLangfuseClient,
   isLangfuseInitialized,
   shutdownLangfuseClient,
@@ -88,5 +89,24 @@ describe("langfuseClient", () => {
     expect(isLangfuseInitialized()).toBe(false);
     await shutdownLangfuseClient();
     expect(isLangfuseInitialized()).toBe(false);
+  });
+
+  it("getLangfuseOptions returns null before init", () => {
+    expect(getLangfuseOptions()).toBeNull();
+  });
+
+  it("getLangfuseOptions returns options after init", () => {
+    initLangfuseClient({publicKey: "pk-test", secretKey: "sk-test"});
+    const opts = getLangfuseOptions();
+    expect(opts).toBeDefined();
+    expect(opts?.publicKey).toBe("pk-test");
+    expect(opts?.secretKey).toBe("sk-test");
+  });
+
+  it("getLangfuseOptions returns null after shutdown", async () => {
+    initLangfuseClient({publicKey: "pk-test", secretKey: "sk-test"});
+    expect(getLangfuseOptions()).not.toBeNull();
+    await shutdownLangfuseClient();
+    expect(getLangfuseOptions()).toBeNull();
   });
 });

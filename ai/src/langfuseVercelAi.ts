@@ -163,9 +163,15 @@ export const createLangfuseTrace = async (params: {
         "Content-Type": "application/json",
       },
       method: "POST",
-    }).catch((err) => {
-      logger.warn(`Failed to send Langfuse trace: ${err}`);
-    });
+    })
+      .then((res) => {
+        if (!res.ok) {
+          logger.warn(`Langfuse trace API returned ${res.status} ${res.statusText}`);
+        }
+      })
+      .catch((err) => {
+        logger.warn(`Failed to send Langfuse trace: ${err}`);
+      });
 
     logger.debug(`Langfuse trace created: ${traceId} (${params.name})`);
 
