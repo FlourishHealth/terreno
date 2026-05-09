@@ -116,27 +116,29 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     confirmModalCheckboxIndex !== null ? form.checkboxes[confirmModalCheckboxIndex] : null;
 
   const footer = (
-    <Box direction="row" gap={2} paddingY={2} testID="consent-form-footer" width="100%">
-      {Boolean(form.allowDecline && onDecline) && (
+    <Box alignSelf="center" maxWidth={800} testID="consent-form-footer" width="100%">
+      <Box direction="row" gap={4} paddingY={2} width="100%">
+        {Boolean(form.allowDecline && onDecline) && (
+          <Box flex="grow">
+            <Button
+              fullWidth
+              onClick={onDecline!}
+              testID="consent-form-decline-button"
+              text={form.declineButtonText}
+              variant="muted"
+            />
+          </Box>
+        )}
         <Box flex="grow">
           <Button
+            disabled={!canAgree}
             fullWidth
-            onClick={onDecline!}
-            testID="consent-form-decline-button"
-            text={form.declineButtonText}
-            variant="muted"
+            loading={isSubmitting}
+            onClick={handleAgree}
+            testID="consent-form-agree-button"
+            text={form.agreeButtonText}
           />
         </Box>
-      )}
-      <Box flex="grow">
-        <Button
-          disabled={!canAgree}
-          fullWidth
-          loading={isSubmitting}
-          onClick={handleAgree}
-          testID="consent-form-agree-button"
-          text={form.agreeButtonText}
-        />
       </Box>
     </Box>
   );
@@ -149,7 +151,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         onScroll={handleScroll}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
-        style={{flex: 1}}
+        style={{alignSelf: "center", flex: 1, maxWidth: 800}}
         testID="consent-form-scroll-view"
       >
         <Box direction="column" gap={3} paddingY={2}>
