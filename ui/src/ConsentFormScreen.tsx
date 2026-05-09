@@ -151,7 +151,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
         onScroll={handleScroll}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
-        style={{alignSelf: "center", flex: 1, maxWidth: 800}}
+        style={{alignSelf: "center", flex: 1, maxWidth: 800, width: "100%"}}
         testID="consent-form-scroll-view"
       >
         <Box direction="column" gap={3} paddingY={2}>
