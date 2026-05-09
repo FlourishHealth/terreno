@@ -1,4 +1,4 @@
-import React, {useRef, useState} from "react";
+import React, {useState} from "react";
 import {Pressable, ScrollView} from "react-native";
 
 import {Box} from "./Box";
@@ -36,7 +36,6 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [contentHeight, setContentHeight] = useState(0);
   const [layoutHeight, setLayoutHeight] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const rawContent = form.content[locale] ?? form.content[form.defaultLocale] ?? "";
   const content = variables
@@ -52,7 +51,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
 
-  const canAgree = allRequiredCheckboxesChecked && signatureProvided;
+  const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
 
   // Auto-satisfy scroll requirement when content fits within the viewport
   const handleContentSizeChange = (_w: number, h: number) => {
@@ -110,10 +109,6 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   };
 
   const handleAgree = () => {
-    if (!hasScrolledToBottom) {
-      scrollViewRef.current?.scrollToEnd({animated: true});
-      return;
-    }
     onAgree({checkboxValues, signature: signatureValue});
   };
 
@@ -147,12 +142,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   );
 
   return (
-    <Page footer={footer} scroll={false} title={form.title}>
+    <Page color="base" footer={footer} maxWidth="100%" scroll={false} title={form.title}>
       <ScrollView
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
         onScroll={handleScroll}
-        ref={scrollViewRef}
         scrollEnabled={scrollEnabled}
         scrollEventThrottle={16}
         style={{flex: 1}}
