@@ -45,7 +45,7 @@ export class FeatureFlagsApp implements TerrenoPlugin {
     const basePath = this.options.basePath ?? "/feature-flags";
     const routerOptions: ModelRouterOptions<FeatureFlagDocument> = {
       ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
-      permissions: {
+      permissions: this.options.permissions ?? {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],
         list: [Permissions.IsAdmin],
@@ -83,8 +83,11 @@ export class FeatureFlagsApp implements TerrenoPlugin {
       `${basePath}/segments`,
       authenticateMiddleware(),
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        const user = req.user as {admin?: boolean} | undefined;
-        if (!user?.admin) {
+        const user = req.user;
+        const allowed = this.options.segmentsPermission
+          ? this.options.segmentsPermission(user)
+          : Boolean((user as {admin?: boolean} | undefined)?.admin);
+        if (!allowed) {
           throw new APIError({status: 403, title: "Only admins can view segments"});
         }
 
