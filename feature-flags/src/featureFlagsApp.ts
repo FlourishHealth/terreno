@@ -4,7 +4,6 @@ import {
   authenticateMiddleware,
   type ModelRouterOptions,
   modelRouter,
-  type OpenApiMiddleware,
   Permissions,
   type TerrenoPlugin,
 } from "@terreno/api";
@@ -44,7 +43,7 @@ export class FeatureFlagsApp implements TerrenoPlugin {
   register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/feature-flags";
     const routerOptions: ModelRouterOptions<FeatureFlagDocument> = {
-      ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
+      ...(openApi ? {openApi: openApi as ModelRouterOptions<FeatureFlagDocument>["openApi"]} : {}),
       permissions: {
         create: [Permissions.IsAdmin],
         delete: [Permissions.IsAdmin],
