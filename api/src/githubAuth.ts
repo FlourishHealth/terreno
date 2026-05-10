@@ -1,4 +1,5 @@
 import type express from "express";
+import {Router} from "express";
 import passport from "passport";
 import {Strategy as GitHubStrategy, type Profile} from "passport-github2";
 import {generateTokens, type UserModel} from "./auth";
@@ -213,7 +214,7 @@ export const addGitHubAuthRoutes = (
   githubOptions: GitHubAuthOptions,
   authOptions?: AuthOptions
 ): void => {
-  const router = require("express").Router();
+  const router = Router();
 
   // Initiate GitHub OAuth flow
   router.get(
