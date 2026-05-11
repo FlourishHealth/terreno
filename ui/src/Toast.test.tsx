@@ -6,11 +6,17 @@ import {Toast, useToast} from "./Toast";
 import {ToastProvider} from "./ToastNotifications";
 import {renderWithTheme} from "./test-utils";
 
+interface RafGlobal {
+  requestAnimationFrame: (callback: FrameRequestCallback) => number;
+  cancelAnimationFrame: (id: number) => void;
+}
+
 beforeAll(() => {
-  (global as any).requestAnimationFrame = (callback: FrameRequestCallback) => {
+  const g = globalThis as unknown as RafGlobal;
+  g.requestAnimationFrame = (callback: FrameRequestCallback) => {
     return setTimeout(() => callback(Date.now()), 0) as unknown as number;
   };
-  (global as any).cancelAnimationFrame = (id: number) => {
+  g.cancelAnimationFrame = (id: number) => {
     clearTimeout(id);
   };
 });
