@@ -1,14 +1,16 @@
-import {type ReactElement, useRef, useState} from "react";
+import {type ReactElement, useEffect, useRef, useState} from "react";
 import {
   type DimensionValue,
   Modal,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   type TextStyle,
   View,
 } from "react-native";
 
+import type {TextStyleWithOutline} from "./Common";
 import {useTheme} from "./Theme";
 
 export interface WebDropdownMenuOption {
@@ -53,6 +55,8 @@ export interface WebDropdownMenuProps {
   optionTextStyle?: TextStyle;
   /** Prefix for the testIDs on the menu / backdrop / option nodes. */
   testIDPrefix?: string;
+  /** Whether to show a search input at the top of the dropdown for filtering options. */
+  searchable?: boolean;
 }
 
 interface PressableWebState {
@@ -79,8 +83,26 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
+  searchable = false,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
+  const [searchText, setSearchText] = useState("");
+  const searchInputRef = useRef<TextInput>(null);
+
+  // Reset search text when the menu opens/closes and auto-focus the input
+  useEffect(() => {
+    if (visible) {
+      setSearchText("");
+      if (searchable) {
+        setTimeout(() => searchInputRef.current?.focus(), 50);
+      }
+    }
+  }, [visible, searchable]);
+
+  const filteredOptions =
+    searchable && searchText
+      ? options.filter((item) => item.label.toLowerCase().includes(searchText.toLowerCase()))
+      : options;
 
   return (
     <Modal
@@ -116,37 +138,79 @@ export const WebDropdownMenu = ({
         }}
         testID={`${testIDPrefix}_menu`}
       >
-        <ScrollView>
-          {options.map((item, idx) => {
-            const isSelected =
-              selectedIndex !== undefined ? idx === selectedIndex : item.value === selectedValue;
-            return (
-              <Pressable
-                aria-role="button"
-                key={item.key ?? idx}
-                onPress={() => onSelect(item.value, idx)}
-                style={(state: PressableWebState) => ({
-                  backgroundColor:
-                    isSelected || state.hovered || state.pressed
-                      ? theme.surface.neutralLight
-                      : theme.surface.base,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                })}
-                testID={`${testIDPrefix}_option_${item.value}`}
-              >
-                <Text
-                  style={{
-                    color: item.color ?? theme.text.primary,
-                    fontWeight: isSelected ? "600" : "400",
-                    ...optionTextStyle,
-                  }}
+        {searchable && (
+          <View
+            style={{
+              borderBottomColor: theme.border.dark,
+              borderBottomWidth: 1,
+              paddingHorizontal: 8,
+              paddingVertical: 6,
+            }}
+          >
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              onChangeText={setSearchText}
+              placeholder="Search…"
+              placeholderTextColor={theme.text.secondaryLight}
+              ref={searchInputRef}
+              style={
+                {
+                  color: theme.text.primary,
+                  fontSize: 14,
+                  minHeight: 32,
+                  outline: "none",
+                  paddingHorizontal: 4,
+                  paddingVertical: 4,
+                } as TextStyleWithOutline
+              }
+              testID={`${testIDPrefix}_search_input`}
+              value={searchText}
+            />
+          </View>
+        )}
+        <ScrollView keyboardShouldPersistTaps="handled">
+          {filteredOptions.length === 0 && searchable && searchText ? (
+            <View style={{paddingHorizontal: 12, paddingVertical: 10}}>
+              <Text style={{color: theme.text.secondaryLight, fontStyle: "italic"}}>
+                No matching options
+              </Text>
+            </View>
+          ) : (
+            filteredOptions.map((item) => {
+              const originalIdx = options.indexOf(item);
+              const isSelected =
+                selectedIndex !== undefined
+                  ? originalIdx === selectedIndex
+                  : item.value === selectedValue;
+              return (
+                <Pressable
+                  aria-role="button"
+                  key={item.key ?? originalIdx}
+                  onPress={() => onSelect(item.value, originalIdx)}
+                  style={(state: PressableWebState) => ({
+                    backgroundColor:
+                      isSelected || state.hovered || state.pressed
+                        ? theme.surface.neutralLight
+                        : theme.surface.base,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                  })}
+                  testID={`${testIDPrefix}_option_${item.value}`}
                 >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={{
+                      color: item.color ?? theme.text.primary,
+                      fontWeight: isSelected ? "600" : "400",
+                      ...optionTextStyle,
+                    }}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })
+          )}
         </ScrollView>
       </View>
     </Modal>

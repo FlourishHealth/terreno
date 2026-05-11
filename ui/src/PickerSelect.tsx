@@ -78,6 +78,8 @@ export interface RNPickerSelectProps {
   onOpen?: () => void;
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
+  /** Enable type-to-filter search in the web dropdown. */
+  searchable?: boolean;
 
   // Custom Modal props (iOS only)
   doneText?: string;
@@ -111,6 +113,7 @@ export function RNPickerSelect({
   children,
   useNativeAndroidPickerStyle = true,
   fixAndroidTouchableBug = false,
+  searchable = false,
   doneText = "Done",
   onDonePress,
   onUpArrow,
@@ -641,6 +644,7 @@ export function RNPickerSelect({
             closeWebMenu();
           }}
           options={webMenuOptions}
+          searchable={searchable}
           selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
           testIDPrefix="web_dropdown"
           visible={showPicker}
