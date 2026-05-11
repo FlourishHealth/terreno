@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it} from "bun:test";
-import {FeatureFlag} from "../featureFlagModel";
+import {FeatureFlag, featureFlagAdminConfig} from "../featureFlagModel";
 
 describe("FeatureFlag model", () => {
   afterEach(async () => {
@@ -201,5 +201,21 @@ describe("FeatureFlag model", () => {
 
     const maybe = await FeatureFlag.findOneOrNone({key: "missing-flag"});
     expect(maybe).toBeNull();
+  });
+});
+
+describe("featureFlagAdminConfig", () => {
+  it("has the expected shape for AdminApp registration", () => {
+    expect(featureFlagAdminConfig.model).toBe(FeatureFlag);
+    expect(featureFlagAdminConfig.routePath).toBe("/feature-flags");
+    expect(featureFlagAdminConfig.displayName).toBe("Feature Flags");
+    expect(featureFlagAdminConfig.listFields).toEqual([
+      "key",
+      "name",
+      "type",
+      "enabled",
+      "archived",
+      "created",
+    ]);
   });
 });
