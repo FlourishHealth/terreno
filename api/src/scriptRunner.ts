@@ -86,7 +86,7 @@ const progressSchema = new Schema(
     percentage: {description: "Progress percentage from 0 to 100", max: 100, min: 0, type: Number},
     stage: {description: "Current stage of the task", type: String},
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const logSchema = new Schema(
@@ -100,7 +100,7 @@ const logSchema = new Schema(
     message: {description: "Log message", required: true, type: String},
     timestamp: {description: "When this log entry was created", required: true, type: Date},
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const backgroundTaskSchema = new Schema<

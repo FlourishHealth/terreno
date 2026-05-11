@@ -139,7 +139,13 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
   // Add a sentinel field with a unique index to enforce singleton at the DB level.
   // All config documents get _singleton: "config", and the unique index prevents duplicates.
   schema.add({
-    _singleton: {default: "config", immutable: true, select: false, type: String},
+    _singleton: {
+      default: "config",
+      description: "Sentinel field enforcing singleton constraint",
+      immutable: true,
+      select: false,
+      type: String,
+    },
   });
   schema.index({_singleton: 1}, {unique: true});
 
