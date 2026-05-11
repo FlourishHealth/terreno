@@ -2,6 +2,7 @@ import {type ReactElement, useLayoutEffect, useRef, useState} from "react";
 import {
   type DimensionValue,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -91,12 +92,18 @@ export const WebDropdownMenu = ({
 
   // Reset search text before paint to avoid a stale-query flash on re-open
   useLayoutEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (visible) {
       setSearchText("");
       if (searchable) {
-        setTimeout(() => searchInputRef.current?.focus(), 50);
+        timer = setTimeout(() => searchInputRef.current?.focus(), 50);
       }
     }
+    return () => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    };
   }, [visible, searchable]);
 
   const filteredOptions =
@@ -159,7 +166,7 @@ export const WebDropdownMenu = ({
                   color: theme.text.primary,
                   fontSize: 14,
                   minHeight: 32,
-                  outline: "none",
+                  ...(Platform.OS === "web" ? {outline: "none"} : {}),
                   paddingHorizontal: 4,
                   paddingVertical: 4,
                 } as TextStyleWithOutline
