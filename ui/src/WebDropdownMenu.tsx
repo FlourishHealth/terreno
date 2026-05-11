@@ -1,4 +1,4 @@
-import {type ReactElement, useEffect, useRef, useState} from "react";
+import {type ReactElement, useLayoutEffect, useRef, useState} from "react";
 import {
   type DimensionValue,
   Modal,
@@ -89,8 +89,8 @@ export const WebDropdownMenu = ({
   const [searchText, setSearchText] = useState("");
   const searchInputRef = useRef<TextInput>(null);
 
-  // Reset search text when the menu opens/closes and auto-focus the input
-  useEffect(() => {
+  // Reset search text before paint to avoid a stale-query flash on re-open
+  useLayoutEffect(() => {
     if (visible) {
       setSearchText("");
       if (searchable) {
