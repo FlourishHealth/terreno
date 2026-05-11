@@ -1,6 +1,6 @@
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act} from "@testing-library/react-native";
-import {Keyboard} from "react-native";
+import {type EmitterSubscription, Keyboard} from "react-native";
 
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -115,8 +115,8 @@ describe("UserInactivity", () => {
     const removeHide = mock(() => {});
     const removeShow = mock(() => {});
     const addListenerSpy = spyOn(Keyboard, "addListener")
-      .mockReturnValueOnce({remove: removeHide} as any)
-      .mockReturnValueOnce({remove: removeShow} as any);
+      .mockReturnValueOnce({remove: removeHide} as unknown as EmitterSubscription)
+      .mockReturnValueOnce({remove: removeShow} as unknown as EmitterSubscription);
 
     const {unmount} = renderWithTheme(
       <UserInactivity onAction={onAction}>
@@ -142,7 +142,7 @@ describe("UserInactivity", () => {
         if (event === "keyboardDidHide") {
           capturedHideCallback = callback;
         }
-        return {remove: mock(() => {})} as any;
+        return {remove: mock(() => {})} as unknown as EmitterSubscription;
       }
     );
 

@@ -8,8 +8,8 @@ import {renderWithTheme} from "./test-utils";
 
 // Mock react-signature-canvas (used by Signature component)
 mock.module("react-signature-canvas", () => ({
-  default: forwardRef(({backgroundColor}: any, ref) => (
-    <View ref={ref as any} style={{backgroundColor}} testID="signature-canvas" />
+  default: forwardRef<View, {backgroundColor?: string}>(({backgroundColor}, ref) => (
+    <View ref={ref} style={{backgroundColor}} testID="signature-canvas" />
   )),
 }));
 

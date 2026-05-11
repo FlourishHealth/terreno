@@ -8,7 +8,6 @@
  * Dry run:  DRY_RUN=true bun run src/scripts/syncConsents.ts
  */
 
-import "dotenv/config";
 import {logger, syncConsents} from "@terreno/api";
 import mongoose from "mongoose";
 import {consentDefinitions} from "../consentDefinitions";

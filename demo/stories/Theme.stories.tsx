@@ -92,8 +92,10 @@ const darkPrimitives = {
   warning200: "#FFE3C6",
 };
 
+type ThemeName = "default" | "pink" | "dark";
+
 export const ThemeComponentStories = () => {
-  const [themeName, setThemeName] = useState<"default" | "pink" | "dark">("default");
+  const [themeName, setThemeName] = useState<ThemeName>("default");
   const {resetTheme, setPrimitives} = useContext(ThemeContext);
 
   return (
@@ -109,15 +111,16 @@ export const ThemeComponentStories = () => {
     >
       <Box paddingY={2}>
         <SelectField
-          onChange={(value: any) => {
-            setThemeName(value);
-            if (value === "pink") {
+          onChange={(value: string) => {
+            const nextTheme = value as ThemeName;
+            setThemeName(nextTheme);
+            if (nextTheme === "pink") {
               setPrimitives({
                 primary400: "#e0218a",
                 secondary100: "#ed5c9b",
                 secondary500: "#f18dbc",
               });
-            } else if (value === "dark") {
+            } else if (nextTheme === "dark") {
               setPrimitives(darkPrimitives);
             } else {
               resetTheme();

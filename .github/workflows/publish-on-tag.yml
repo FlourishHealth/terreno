@@ -849,14 +849,114 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/api-health@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-feature-flags:
+    needs: [check-changes, publish-api]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: feature-flags
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: 6.0
+          mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog and workspace references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+
+      - name: Install dependencies after replacement
+        run: bun install
+
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/feature-flags@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   create-version-pr:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
+    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
     # Run if any package was published and this is not a prerelease (beta/alpha) tag
     if: |
       always() &&
       !contains(needs.check-changes.outputs.version, '-beta') &&
       !contains(needs.check-changes.outputs.version, '-alpha') &&
-      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success')
+      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -889,6 +989,7 @@ jobs:
           update_version admin-frontend "${{ needs.publish-admin-frontend.result }}"
           update_version ai "${{ needs.publish-ai.result }}"
           update_version api-health "${{ needs.publish-api-health.result }}"
+          update_version feature-flags "${{ needs.publish-feature-flags.result }}"
 
 
       - name: Create Pull Request
@@ -911,6 +1012,7 @@ jobs:
             ${{ needs.publish-admin-frontend.result == 'success' && '- ✅ @terreno/admin-frontend' || '- ⏭️ @terreno/admin-frontend (no changes)' }}
             ${{ needs.publish-ai.result == 'success' && '- ✅ @terreno/ai' || '- ⏭️ @terreno/ai (no changes)' }}
             ${{ needs.publish-api-health.result == 'success' && '- ✅ @terreno/api-health' || '- ⏭️ @terreno/api-health (no changes)' }}
+            ${{ needs.publish-feature-flags.result == 'success' && '- ✅ @terreno/feature-flags' || '- ⏭️ @terreno/feature-flags (no changes)' }}
           assignees: joshgachnang
           reviewers: joshgachnang
 
@@ -924,7 +1026,7 @@ jobs:
           fi
 
   notify:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health]
+    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -953,6 +1055,7 @@ jobs:
           add_status "@terreno/admin-frontend" "${{ needs.publish-admin-frontend.result }}"
           add_status "@terreno/ai" "${{ needs.publish-ai.result }}"
           add_status "@terreno/api-health" "${{ needs.publish-api-health.result }}"
+          add_status "@terreno/feature-flags" "${{ needs.publish-feature-flags.result }}"
           echo "message=$MESSAGE" >> $GITHUB_OUTPUT
 
       - name: Zoom Chat Notification

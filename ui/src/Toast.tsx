@@ -28,7 +28,7 @@ export const useToast = (): {
   warn: (title: string, options?: UseToastVariantOptions) => string;
   error: (title: string, options?: UseToastVariantOptions) => string;
   show: (title: string, options?: UseToastOptions) => string;
-  catch: (error: any, message?: string, options?: UseToastVariantOptions) => void;
+  catch: (error: unknown, message?: string, options?: UseToastVariantOptions) => void;
 } => {
   const toast = useToastNotifications();
   const show = (title: string, options?: UseToastOptions): string => {
@@ -47,14 +47,15 @@ export const useToast = (): {
     });
   };
   return {
-    catch: (error: any, message?: string, options?: UseToastVariantOptions): void => {
+    catch: (error: unknown, message?: string, options?: UseToastVariantOptions): void => {
       let exceptionMsg;
       if (isAPIError(error)) {
         // Get the error without details.
         exceptionMsg = `${message}: ${printAPIError(error)}`;
         console.error(exceptionMsg);
       } else {
-        exceptionMsg = error?.message ?? error?.error ?? String(error);
+        const errorObj = error as {message?: string; error?: string} | null | undefined;
+        exceptionMsg = errorObj?.message ?? errorObj?.error ?? String(error);
         console.error(`${message}: ${exceptionMsg}`);
       }
       show(exceptionMsg, {...options, variant: "error"});

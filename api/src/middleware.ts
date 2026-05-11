@@ -9,10 +9,14 @@ import type {NextFunction, Request, Response} from "express";
  *
  * Expected header: `App-Version`
  */
-export function sentryAppVersionMiddleware(req: Request, _res: Response, next: NextFunction): void {
+export const sentryAppVersionMiddleware = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
   const appVersion = req.get("App-Version");
   if (appVersion) {
     Sentry.getCurrentScope().setTag("app_version", appVersion);
   }
   next();
-}
+};

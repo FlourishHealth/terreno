@@ -137,7 +137,7 @@ export class APIError extends Error {
 
 // Create an errors field for storing error information in a JSONAPI compatible form directly on a
 // model.
-export function errorsPlugin(schema: Schema): void {
+export const errorsPlugin = (schema: Schema): void => {
   const errorSchema = new Schema({
     code: {description: "Application-specific error code", type: String},
     detail: {description: "Human-readable explanation of the error", type: String},
@@ -160,18 +160,18 @@ export function errorsPlugin(schema: Schema): void {
   });
 
   schema.add({apiErrors: errorSchema});
-}
+};
 
-export function isAPIError(error: Error): error is APIError {
+export const isAPIError = (error: Error): error is APIError => {
   return error.name === "APIError";
-}
+};
 
 /**
  * Safely extracts the disableExternalErrorTracking property from an error.
  * Works with both APIError instances and regular Error objects that may have
  * this property attached.
  */
-export function getDisableExternalErrorTracking(error: unknown): boolean | undefined {
+export const getDisableExternalErrorTracking = (error: unknown): boolean | undefined => {
   if (error instanceof Error) {
     if (isAPIError(error)) {
       return error.disableExternalErrorTracking;
@@ -181,12 +181,12 @@ export function getDisableExternalErrorTracking(error: unknown): boolean | undef
     return (error as {disableExternalErrorTracking?: boolean}).disableExternalErrorTracking;
   }
   return undefined;
-}
+};
 
 // Creates an APIError body to send to clients as JSON. Errors don't have a toJSON defined,
 // and we want to strip out things like message, name, and stack for the client.
 // There is almost certainly a more elegant solution to this.
-export function getAPIErrorBody(error: APIError): {[id: string]: any} {
+export const getAPIErrorBody = (error: APIError): {[id: string]: any} => {
   const errorData = {status: error.status, title: error.title};
   for (const key of [
     "id",
@@ -203,23 +203,28 @@ export function getAPIErrorBody(error: APIError): {[id: string]: any} {
     }
   }
   return errorData;
-}
+};
 
-export function apiUnauthorizedMiddleware(
+export const apiUnauthorizedMiddleware = (
   err: Error,
   _req: Request,
   res: Response,
   next: NextFunction
-) {
+) => {
   if (err.message === "Unauthorized") {
     // not using the actual APIError class here because we don't want to log it as an error.
     res.status(401).json({status: 401, title: "Unauthorized"}).send();
   } else {
     next(err);
   }
-}
+};
 
-export function apiErrorMiddleware(err: Error, _req: Request, res: Response, next: NextFunction) {
+export const apiErrorMiddleware = (
+  err: Error,
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (isAPIError(err)) {
     if (!err.disableExternalErrorTracking) {
       Sentry.captureException(err);
@@ -228,4 +233,4 @@ export function apiErrorMiddleware(err: Error, _req: Request, res: Response, nex
   } else {
     next(err);
   }
-}
+};

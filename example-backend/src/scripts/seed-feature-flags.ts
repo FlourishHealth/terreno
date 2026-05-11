@@ -79,7 +79,7 @@ export const seedFeatureFlags = async (): Promise<{results: string[]; success: b
   const results: string[] = [];
 
   for (const flag of SEED_FLAGS) {
-    const existing = await FeatureFlag.findOne({key: flag.key});
+    const existing = await FeatureFlag.findOneOrNone({key: flag.key});
     if (existing) {
       results.push(`Skipped (already exists): ${flag.key}`);
       skipped++;

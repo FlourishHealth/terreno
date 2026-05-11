@@ -34,13 +34,14 @@ export const sendToGoogleChat = async (
 
   try {
     await axios.post(chatWebhookUrl, {text: formattedMessageText});
-  } catch (error: any) {
-    logger.error(`Error posting to Google Chat: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const errorObj = error as {text?: string; message?: string};
+    logger.error(`Error posting to Google Chat: ${errorObj.text ?? errorObj.message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Google Chat: ${error.text ?? error.message}`,
+        title: `Error posting to Google Chat: ${errorObj.text ?? errorObj.message}`,
       });
     }
   }
