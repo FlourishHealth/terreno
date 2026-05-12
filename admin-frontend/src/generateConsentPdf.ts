@@ -1,5 +1,16 @@
-import {jsPDF} from "jspdf";
+import {buildConsentPdfHtml, type PdfTemplateData, sharePdfFromHtml} from "@terreno/ui";
 import {DateTime} from "luxon";
+import {Platform} from "react-native";
+
+import {
+  CONTENT_WIDTH,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  ensureSpace,
+  formatDate,
+} from "./pdfUtils";
 
 interface ConsentResponseData {
   _id?: string;
@@ -17,35 +28,7 @@ interface ConsentResponseData {
   userId?: {_id?: string; email?: string; name?: string} | string;
 }
 
-const PAGE_WIDTH = 210;
-const MARGIN_LEFT = 20;
-const MARGIN_RIGHT = 20;
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
-const PAGE_HEIGHT = 297;
-const MARGIN_BOTTOM = 20;
-
-const formatDate = (value: unknown): string => {
-  if (!value) {
-    return "";
-  }
-  const dt = DateTime.fromISO(String(value));
-  if (!dt.isValid) {
-    return String(value);
-  }
-  return dt.toLocaleString(DateTime.DATETIME_FULL);
-};
-
-const ensureSpace = (doc: jsPDF, y: number, needed: number): number => {
-  if (y + needed > PAGE_HEIGHT - MARGIN_BOTTOM) {
-    doc.addPage();
-    return 20;
-  }
-  return y;
-};
-
-export const generateConsentPdf = async (response: ConsentResponseData): Promise<void> => {
-  const doc = new jsPDF({format: "a4", orientation: "portrait", unit: "mm"});
-
+const extractResponseFields = (response: ConsentResponseData) => {
   const formTitle =
     typeof response.consentFormId === "object"
       ? (response.consentFormId?.title ?? "Unknown Form")
@@ -70,6 +53,75 @@ export const generateConsentPdf = async (response: ConsentResponseData): Promise
   const userEmail = typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
 
   const userName = typeof response.userId === "object" ? (response.userId?.name ?? "") : "";
+
+  return {formSlug, formTitle, formType, formVersion, userEmail, userId, userName};
+};
+
+const buildTemplateData = (response: ConsentResponseData): PdfTemplateData => {
+  const {formTitle, formSlug, formType, formVersion, userId, userEmail, userName} =
+    extractResponseFields(response);
+
+  const fields: PdfTemplateData["fields"] = [];
+  if (formSlug) {
+    fields.push({label: "Form Slug:", value: formSlug});
+  }
+  if (formType) {
+    fields.push({label: "Form Type:", value: formType});
+  }
+  if (formVersion !== undefined) {
+    fields.push({label: "Form Version:", value: String(formVersion)});
+  }
+  fields.push({label: "Decision:", value: response.agreed ? "Agreed" : "Declined"});
+  if (response.agreedAt) {
+    fields.push({label: "Agreed At:", value: formatDate(response.agreedAt)});
+  }
+  if (response.locale) {
+    fields.push({label: "Locale:", value: response.locale});
+  }
+
+  const checkboxEntries =
+    response.checkboxValues && typeof response.checkboxValues === "object"
+      ? Object.entries(response.checkboxValues)
+      : [];
+
+  const checkboxes = checkboxEntries.map(([index, checked]) => ({
+    checked: Boolean(checked),
+    label: `Checkbox ${index}`,
+  }));
+
+  const auditTrail: PdfTemplateData["fields"] = [];
+  if (response.ipAddress) {
+    auditTrail.push({label: "IP Address:", value: response.ipAddress});
+  }
+  if (response.userAgent) {
+    auditTrail.push({label: "User Agent:", value: response.userAgent});
+  }
+  if (response.formVersionSnapshot !== undefined) {
+    auditTrail.push({label: "Form Version:", value: String(response.formVersionSnapshot)});
+  }
+  if (response.signedAt) {
+    auditTrail.push({label: "Signed At:", value: formatDate(response.signedAt)});
+  }
+
+  return {
+    auditTrail: auditTrail.length > 0 ? auditTrail : undefined,
+    checkboxes: checkboxes.length > 0 ? checkboxes : undefined,
+    contentSnapshot: response.contentSnapshot,
+    fields,
+    formTitle,
+    responseId: response._id,
+    signature: response.signature,
+    title: "Consent Record",
+    userInfo: {email: userEmail || undefined, name: userName || undefined, userId},
+  };
+};
+
+const generatePdfWeb = async (response: ConsentResponseData): Promise<void> => {
+  const {jsPDF: JsPDF} = await import("jspdf");
+  const doc = new JsPDF({format: "a4", orientation: "portrait", unit: "mm"});
+
+  const {formTitle, formSlug, formType, formVersion, userId, userEmail, userName} =
+    extractResponseFields(response);
 
   let y = 20;
 
@@ -209,7 +261,6 @@ export const generateConsentPdf = async (response: ConsentResponseData): Promise
     y += 6;
 
     try {
-      // signature is a base64 data URI (e.g. data:image/png;base64,...)
       const sigData = response.signature;
       const format = sigData.includes("image/png") ? "PNG" : "JPEG";
       doc.addImage(sigData, format, MARGIN_LEFT, y, 80, 30);
@@ -261,4 +312,19 @@ export const generateConsentPdf = async (response: ConsentResponseData): Promise
   // Download
   const filename = `consent-${formSlug || "response"}-${userId.slice(-6)}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
   doc.save(filename);
+};
+
+const generatePdfMobile = async (response: ConsentResponseData): Promise<void> => {
+  const templateData = buildTemplateData(response);
+  const html = buildConsentPdfHtml(templateData);
+  const {formSlug, userId} = extractResponseFields(response);
+  const filename = `consent-${formSlug || "response"}-${userId.slice(-6)}-${DateTime.now().toFormat("yyyy-MM-dd")}.pdf`;
+  await sharePdfFromHtml({filename, html});
+};
+
+export const generateConsentPdf = async (response: ConsentResponseData): Promise<void> => {
+  if (Platform.OS === "web") {
+    return generatePdfWeb(response);
+  }
+  return generatePdfMobile(response);
 };
