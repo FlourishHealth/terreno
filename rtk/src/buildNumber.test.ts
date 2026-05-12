@@ -117,4 +117,16 @@ describe("resolveBuildNumber", () => {
     process.env.EXPO_PUBLIC_BUILD_NUMBER = "999";
     expect(resolveBuildNumber({override: 1})).toBe(1);
   });
+
+  it("returns undefined when git rev-list fails (no git, detached HEAD, etc.)", () => {
+    // Run from a non-git directory so `git rev-list --count HEAD` exits non-zero
+    // and execSync throws, exercising the catch branch that returns undefined.
+    const originalCwd = process.cwd();
+    process.chdir("/tmp");
+    try {
+      expect(resolveBuildNumber()).toBeUndefined();
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
 });
