@@ -6,7 +6,7 @@
  * endpoints for fetching pending consents and submitting responses.
  */
 
-import type express from "express";
+import {type Application, Router} from "express";
 import {DateTime} from "luxon";
 import {asyncHandler, modelRouter} from "./api";
 import type {User} from "./auth";
@@ -47,7 +47,7 @@ export class ConsentApp implements TerrenoPlugin {
     this.options = options;
   }
 
-  register(app: express.Application): void {
+  register(app: Application): void {
     const {auditTrail, resolveConsentForms, aiConfig} = this.options;
 
     // Admin CRUD for consent forms
@@ -192,7 +192,7 @@ export class ConsentApp implements TerrenoPlugin {
     );
 
     // User-facing consent endpoints
-    const router = require("express").Router() as express.Router;
+    const router = Router();
 
     // GET /consents/pending - fetch pending consent forms for the current user
     router.get(

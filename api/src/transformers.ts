@@ -78,11 +78,9 @@ export function AdminOwnerTransformer<T>(options: {
       }
       const unallowedFields = Object.keys(obj).filter((k) => !allowedFields.includes(k));
       if (unallowedFields.length) {
-        throw new APIError({
-          disableExternalErrorTracking: true,
-          status: 403,
-          title: `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`,
-        });
+        throw new Error(
+          `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`
+        );
       }
       return obj;
     },
