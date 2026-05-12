@@ -143,6 +143,52 @@ describe("ConsentFormEditor", () => {
     expect(toJSON()).toBeDefined();
   });
 
+  // Regression: hooks (useMemo) used to run after the early-return spinner branch,
+  // which produced React error #310 ("Rendered more hooks than during the previous
+  // render") the moment loading flipped to loaded. This test exercises both renders.
+  // Pass a stable supportedLocales reference so the data-hydration useEffect's deps
+  // don't churn between renders.
+  it("survives the loading → loaded transition without a hook-order error", async () => {
+    const supportedLocales = ["en"];
+    state.isFormLoading = true;
+    const {rerender, getByTestId} = renderWithTheme(
+      <ConsentFormEditor
+        api={makeApi() as any}
+        baseUrl="/admin"
+        id="f1"
+        supportedLocales={supportedLocales}
+      />
+    );
+    await act(async () => {
+      state.isFormLoading = false;
+      state.formData = {
+        active: true,
+        agreeButtonText: "I Agree",
+        allowDecline: false,
+        captureSignature: false,
+        checkboxes: [],
+        content: {en: "Body"},
+        defaultLocale: "en",
+        order: 0,
+        required: false,
+        requireScrollToBottom: false,
+        slug: "loaded-form",
+        title: "Loaded Form",
+        type: "agreement",
+        version: 1,
+      };
+      rerender(
+        <ConsentFormEditor
+          api={makeApi() as any}
+          baseUrl="/admin"
+          id="f1"
+          supportedLocales={supportedLocales}
+        />
+      );
+    });
+    expect(getByTestId("consent-form-title-input")).toBeDefined();
+  });
+
   it("renders create mode with default values", () => {
     const {getByTestId} = renderWithTheme(
       <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />

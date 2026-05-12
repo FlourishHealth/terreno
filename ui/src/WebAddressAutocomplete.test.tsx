@@ -177,4 +177,141 @@ describe("WebAddressAutocomplete", () => {
       expect(handleAddressChange).toHaveBeenCalledWith("321 Pine");
     });
   });
+
+  describe("when Google Maps script is not yet loaded", () => {
+    interface ScriptElementShape {
+      src?: string;
+      async?: boolean;
+      defer?: boolean;
+      onerror?: () => void;
+    }
+
+    interface GoogleMapsWindow {
+      google?: {
+        maps?: {
+          places?: {
+            Autocomplete?: unknown;
+          };
+        };
+      };
+      [key: string]: unknown;
+    }
+
+    interface MinimalDocument {
+      createElement: (tag: string) => ScriptElementShape;
+      head: {appendChild: (node: ScriptElementShape) => void};
+    }
+
+    interface TestGlobals {
+      window?: GoogleMapsWindow;
+      document?: MinimalDocument;
+    }
+
+    const testGlobal = globalThis as TestGlobals;
+    const originalWindow = testGlobal.window;
+    const originalDocument = testGlobal.document;
+
+    let createdScript: ScriptElementShape;
+    let appendedScripts: ScriptElementShape[];
+    let originalConsoleWarn: typeof console.warn;
+    let warnings: unknown[][];
+
+    beforeEach(() => {
+      createdScript = {};
+      appendedScripts = [];
+      warnings = [];
+      originalConsoleWarn = console.warn;
+      console.warn = (...args: unknown[]): void => {
+        warnings.push(args);
+      };
+
+      testGlobal.window = {};
+      testGlobal.document = {
+        createElement: (_tag: string) => {
+          createdScript = {};
+          return createdScript;
+        },
+        head: {
+          appendChild: (node) => {
+            appendedScripts.push(node);
+          },
+        },
+      };
+    });
+
+    afterEach(() => {
+      console.warn = originalConsoleWarn;
+      testGlobal.window = originalWindow ?? {};
+      testGlobal.document = originalDocument;
+    });
+
+    it("loads the Google Maps script and resolves via the global callback", async () => {
+      const handleAutoCompleteChange = mock((_arg: AddressInterface) => {});
+
+      renderWithTheme(
+        <WebAddressAutocomplete
+          googleMapsApiKey="my-api-key"
+          handleAddressChange={() => {}}
+          handleAutoCompleteChange={handleAutoCompleteChange}
+          inputValue=""
+        />
+      );
+
+      // Effect runs synchronously during render, which pushes the script tag to head.
+      expect(appendedScripts.length).toBe(1);
+      expect(createdScript.src).toContain(
+        "https://maps.googleapis.com/maps/api/js?key=my-api-key&libraries=places&callback=initAutocomplete"
+      );
+      expect(createdScript.async).toBe(true);
+      expect(createdScript.defer).toBe(true);
+      expect(typeof createdScript.onerror).toBe("function");
+
+      // The component installed a global callback that resolves loadGooglePlacesScript.
+      const win = testGlobal.window as GoogleMapsWindow;
+      const cb = win.initAutocomplete;
+      expect(typeof cb).toBe("function");
+
+      // Make Autocomplete available, simulating a successful script load, then fire the callback.
+      const autocompleteConstructor = mock((_input: unknown, _opts: unknown) => ({
+        addListener: () => {},
+        getPlace: () => null,
+      }));
+      win.google = {
+        maps: {
+          places: {
+            Autocomplete: autocompleteConstructor,
+          },
+        },
+      };
+
+      await act(async () => {
+        (cb as () => void)();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      expect(autocompleteConstructor).toHaveBeenCalled();
+    });
+
+    it("invokes setScriptLoaded(false) and warns when the script fails to load", async () => {
+      renderWithTheme(
+        <WebAddressAutocomplete
+          googleMapsApiKey="my-api-key"
+          handleAddressChange={() => {}}
+          handleAutoCompleteChange={() => {}}
+          inputValue=""
+        />
+      );
+
+      expect(appendedScripts.length).toBe(1);
+      expect(typeof createdScript.onerror).toBe("function");
+
+      await act(async () => {
+        createdScript.onerror?.();
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      // The .catch path warns and falls back to plain TextField.
+      expect(warnings.length).toBeGreaterThan(0);
+    });
+  });
 });

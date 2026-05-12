@@ -150,9 +150,9 @@ export function permissionMiddleware<T>(
       let data;
       try {
         data = await populatedQuery.exec();
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
-          error,
+          error: error as Error,
           status: 500,
           title: `GET failed on ${req.params.id}`,
         });

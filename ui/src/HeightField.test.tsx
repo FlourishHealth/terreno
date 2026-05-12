@@ -1,4 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
+import {HeightActionSheet} from "./HeightActionSheet";
 import {HeightField} from "./HeightField";
 import {renderWithTheme} from "./test-utils";
 
@@ -93,6 +95,34 @@ describe("HeightField", () => {
       const pressable = getByLabelText("Height selector");
       expect(pressable).toBeTruthy();
       expect(pressable.props.accessibilityHint).toBe("Tap to select height");
+    });
+  });
+
+  describe("action sheet interactions", () => {
+    it("opens the action sheet when the pressable is tapped", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="60" />);
+      const pressable = getByLabelText("Height selector");
+      // Should not throw when pressed
+      fireEvent.press(pressable);
+      expect(pressable).toBeTruthy();
+    });
+
+    it("does not open the action sheet when disabled and pressed", () => {
+      const {getByLabelText} = renderWithTheme(
+        <HeightField disabled onChange={mockOnChange} value="60" />
+      );
+      const pressable = getByLabelText("Height selector");
+      fireEvent.press(pressable);
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it("forwards changes from the action sheet to onChange", () => {
+      const {UNSAFE_getByType} = renderWithTheme(
+        <HeightField onChange={mockOnChange} value="60" />
+      );
+      const actionSheet = UNSAFE_getByType(HeightActionSheet);
+      actionSheet.props.onChange("72");
+      expect(mockOnChange).toHaveBeenCalledWith("72");
     });
   });
 

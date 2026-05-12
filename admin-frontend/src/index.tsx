@@ -5,7 +5,7 @@ export {AdminModelTable} from "./AdminModelTable";
 export {AdminNestedArrayField} from "./AdminNestedArrayField";
 export {AdminObjectPicker} from "./AdminObjectPicker";
 export {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
-export {AdminRefField} from "./AdminRefField";
+export {AdminRefField, type AdminRefFieldProps} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
 export {AdminVersionConfig} from "./AdminVersionConfig";
@@ -27,6 +27,8 @@ export type {
   DocumentFile,
   DocumentListResponse,
   DocumentStorageBrowserProps,
+  RefFieldRendererProps,
+  RefRendererMap,
 } from "./types";
 export {SYSTEM_FIELDS} from "./types";
 export {useAdminApi} from "./useAdminApi";

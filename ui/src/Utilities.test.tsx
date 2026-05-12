@@ -1,5 +1,6 @@
 import {describe, expect, it} from "bun:test";
 
+import type {APIError, BaseProfile} from "./Common";
 import {
   bind,
   concat,
@@ -47,15 +48,15 @@ describe("Utilities", () => {
 
   describe("isTestUser", () => {
     it("returns true for nang.io email", () => {
-      expect(isTestUser({email: "test@nang.io"} as any)).toBe(true);
+      expect(isTestUser({email: "test@nang.io"} as unknown as BaseProfile)).toBe(true);
     });
 
     it("returns true for example.com email", () => {
-      expect(isTestUser({email: "test@example.com"} as any)).toBe(true);
+      expect(isTestUser({email: "test@example.com"} as unknown as BaseProfile)).toBe(true);
     });
 
     it("returns false for regular email", () => {
-      expect(isTestUser({email: "user@company.com"} as any)).toBe(false);
+      expect(isTestUser({email: "user@company.com"} as unknown as BaseProfile)).toBe(false);
     });
 
     it("returns falsy for undefined profile", () => {
@@ -63,7 +64,7 @@ describe("Utilities", () => {
     });
 
     it("returns falsy for profile without email", () => {
-      expect(isTestUser({} as any)).toBeFalsy();
+      expect(isTestUser({} as unknown as BaseProfile)).toBeFalsy();
     });
   });
 
@@ -321,13 +322,13 @@ describe("Utilities", () => {
     });
 
     it("handles empty components with includeCounty", () => {
-      const result = processAddressComponents([], {includeCounty: true}) as any;
+      const result = processAddressComponents([], {includeCounty: true});
       expect(result.countyName).toBe("");
       expect(result.countyCode).toBe("");
     });
 
     it("handles components with includeCounty when county is present", () => {
-      const result = processAddressComponents(components, {includeCounty: true}) as any;
+      const result = processAddressComponents(components, {includeCounty: true});
       expect(result.countyName).toBe("Suffolk County");
     });
 
@@ -337,7 +338,7 @@ describe("Utilities", () => {
       );
       const result = processAddressComponents(componentsWithoutCounty, {
         includeCounty: true,
-      }) as any;
+      });
       expect(result.countyName).toBe("");
     });
   });
@@ -364,7 +365,7 @@ describe("Utilities", () => {
     });
 
     it("returns false when passed a non-string value", () => {
-      expect(isValidGoogleApiKey(123 as any)).toBe(false);
+      expect(isValidGoogleApiKey(123 as unknown as string)).toBe(false);
     });
 
     it("returns false for whitespace-only key", () => {
@@ -404,22 +405,24 @@ describe("Utilities", () => {
   describe("printAPIError", () => {
     it("prints error title", () => {
       const error = {data: {title: "Not Found"}};
-      expect(printAPIError(error as any)).toBe("Not Found");
+      expect(printAPIError(error as unknown as APIError)).toBe("Not Found");
     });
 
     it("prints error title and detail", () => {
       const error = {data: {detail: "Resource does not exist", title: "Not Found"}};
-      expect(printAPIError(error as any)).toBe("Not Found: Resource does not exist");
+      expect(printAPIError(error as unknown as APIError)).toBe(
+        "Not Found: Resource does not exist"
+      );
     });
 
     it("omits detail when details is false", () => {
       const error = {data: {detail: "Resource does not exist", title: "Not Found"}};
-      expect(printAPIError(error as any, false)).toBe("Not Found");
+      expect(printAPIError(error as unknown as APIError, false)).toBe("Not Found");
     });
 
     it("prints title when detail is missing", () => {
       const error = {data: {title: "Not Found"}};
-      expect(printAPIError(error as any, true)).toBe("Not Found");
+      expect(printAPIError(error as unknown as APIError, true)).toBe("Not Found");
     });
   });
 });

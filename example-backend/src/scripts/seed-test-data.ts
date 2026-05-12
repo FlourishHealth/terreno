@@ -4,16 +4,47 @@
  * Run with: bun run src/scripts/seed-test-data.ts
  */
 
-import "dotenv/config";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {User} from "../models/user";
 import {connectToMongoDB} from "../utils/database";
 
-const TEST_USER = {
-  email: "test@example.com",
-  name: "Test User",
-  password: "testpassword123",
+interface SeedUser {
+  admin?: boolean;
+  email: string;
+  name: string;
+  password: string;
+}
+
+const TEST_USERS: SeedUser[] = [
+  {
+    email: "test@example.com",
+    name: "Test User",
+    password: "testpassword123",
+  },
+  {
+    admin: true,
+    email: "superuser@example.com",
+    name: "Super User",
+    password: "testpassword123",
+  },
+];
+
+const seedUser = async (testUser: SeedUser): Promise<void> => {
+  const existingUser = await User.findByEmail(testUser.email);
+  if (existingUser) {
+    logger.info(`Test user already exists: ${testUser.email}`);
+    return;
+  }
+
+  // Create test user using passport-local-mongoose's register method
+  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
+  const user = await (User as any).register(
+    {admin: testUser.admin ?? false, email: testUser.email, name: testUser.name},
+    testUser.password
+  );
+
+  logger.info(`Test user created: ${user.email} (id: ${user._id})`);
 };
 
 const main = async (): Promise<void> => {
@@ -21,22 +52,9 @@ const main = async (): Promise<void> => {
     logger.info("Connecting to MongoDB...");
     await connectToMongoDB();
 
-    // Check if test user already exists
-    const existingUser = await User.findByEmail(TEST_USER.email);
-    if (existingUser) {
-      logger.info(`Test user already exists: ${TEST_USER.email}`);
-      await mongoose.disconnect();
-      return;
+    for (const testUser of TEST_USERS) {
+      await seedUser(testUser);
     }
-
-    // Create test user using passport-local-mongoose's register method
-    // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose register is not typed on the model
-    const user = await (User as any).register(
-      {email: TEST_USER.email, name: TEST_USER.name},
-      TEST_USER.password
-    );
-
-    logger.info(`Test user created: ${user.email} (id: ${user._id})`);
 
     await mongoose.disconnect();
     logger.info("Done.");

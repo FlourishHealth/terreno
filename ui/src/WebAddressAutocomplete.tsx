@@ -1,23 +1,28 @@
 import {type ReactElement, useEffect, useRef, useState} from "react";
+import type {TextInput} from "react-native";
 
 import type {AddressAutocompleteProps} from "./Common";
 import {GOOGLE_PLACES_API_RESTRICTIONS} from "./Constants";
 import {TextField} from "./TextField";
 import {processAddressComponents} from "./Utilities";
 
-const loadGooglePlacesScript = (googleMapsApiKey: string, callbackName: any): Promise<void> => {
+type WindowWithCallbacks = Window & Record<string, unknown>;
+
+const loadGooglePlacesScript = (googleMapsApiKey: string, callbackName: string): Promise<void> => {
   return new Promise<void>((resolve, reject): undefined => {
     if (window.google?.maps?.places) {
       resolve();
       return;
     }
-    (window as any)[callbackName] = (): void => resolve();
+    (window as unknown as WindowWithCallbacks)[callbackName] = (): void => resolve();
     const script: HTMLScriptElement = document.createElement("script");
 
     script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    script.onerror = (): any => reject(new Error("Google Maps script failed to load"));
+    script.onerror = (): void => {
+      reject(new Error("Google Maps script failed to load"));
+    };
     document.head.appendChild(script);
     return;
   });
@@ -32,7 +37,7 @@ export const WebAddressAutocomplete = ({
   handleAutoCompleteChange,
 }: AddressAutocompleteProps): ReactElement => {
   const [scriptLoaded, setScriptLoaded] = useState(true);
-  const autocompleteInputRef = useRef(null);
+  const autocompleteInputRef = useRef<TextInput | null>(null);
 
   // Load the Google Maps script and initialize the autocomplete.
   useEffect(() => {
@@ -65,14 +70,20 @@ export const WebAddressAutocomplete = ({
       });
     // Cleanup
     return () => {
-      (window as any)[callbackName] = null;
+      (window as unknown as WindowWithCallbacks)[callbackName] = null;
     };
   }, [googleMapsApiKey, includeCounty, handleAutoCompleteChange]);
 
   return (
     <TextField
       disabled={disabled}
-      inputRef={scriptLoaded ? (ref: any): void => (autocompleteInputRef.current = ref) : undefined}
+      inputRef={
+        scriptLoaded
+          ? (ref: TextInput | null): void => {
+              autocompleteInputRef.current = ref;
+            }
+          : undefined
+      }
       onChange={(value): void => {
         handleAddressChange(value);
       }}

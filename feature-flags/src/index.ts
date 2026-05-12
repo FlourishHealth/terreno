@@ -1,5 +1,5 @@
 export {deterministicHash, evaluateAllFlags, evaluateFlag} from "./evaluate";
-export {FeatureFlag} from "./featureFlagModel";
+export {FeatureFlag, featureFlagAdminConfig} from "./featureFlagModel";
 export {FeatureFlagsApp} from "./featureFlagsApp";
 export type {
   EvaluationResult,

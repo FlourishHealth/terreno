@@ -160,11 +160,12 @@ export async function defaultResponseHandler<T>(
   }
   try {
     return serialize(request, options, doc);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorObj = error as Error;
     throw new APIError({
-      error,
+      error: errorObj,
       status: 400,
-      title: `Error serializing ${method} response: ${error.message}`,
+      title: `Error serializing ${method} response: ${errorObj.message}`,
     });
   }
 }

@@ -12,6 +12,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 
 ## Coming Soon
 
+- [Add feature flags](add-feature-flags.md) — Add feature flags and A/B testing to your app
 - Add custom permissions
 - Implement file uploads
 - Configure email notifications

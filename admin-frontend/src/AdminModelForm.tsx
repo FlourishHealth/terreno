@@ -3,7 +3,7 @@ import {Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
-import type {AdminFieldConfig, AdminModelConfig} from "./types";
+import type {AdminFieldConfig, AdminModelConfig, RefRendererMap} from "./types";
 import {SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
@@ -25,6 +25,12 @@ interface AdminModelFormProps {
     result: any;
     itemId?: string;
   }) => Promise<void> | void;
+  /**
+   * Optional map of custom ref-field renderers keyed by referenced model name. Forwarded
+   * to every nested {@link AdminFieldRenderer} so refs in this form (including refs
+   * inside nested/primitive arrays) can be rendered with a consumer-provided component.
+   */
+  refRenderers?: RefRendererMap;
 }
 
 const getEditableFields = (
@@ -158,6 +164,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   footerContent,
   transformPayload,
   onSaveSuccess,
+  refRenderers,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
   const [formState, setFormState] = useState<Record<string, any>>({});
@@ -354,6 +361,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
             modelConfigs={modelConfigs}
             onChange={(value: any) => handleFieldChange(fieldKey, value)}
             parentFormState={formState}
+            refRenderers={refRenderers}
             value={formState[fieldKey]}
           />
         ))}

@@ -88,6 +88,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api, i
         api={api}
         baseUrl={baseUrl}
         onDismiss={handleDismiss}
+        scriptDescription={selectedScript?.description}
         scriptName={selectedScript?.name ?? null}
         visible={modalVisible}
       />
