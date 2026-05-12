@@ -140,6 +140,16 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           />
         </Box>
       </Box>
+      {Boolean(form.requireScrollToBottom && !hasScrolledToBottom) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-scroll-hint">
+          Please scroll to the bottom to continue
+        </Text>
+      )}
+      {Boolean(form.captureSignature && !signatureValue) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-signature-hint">
+          Please provide your signature to continue
+        </Text>
+      )}
     </Box>
   );
 
