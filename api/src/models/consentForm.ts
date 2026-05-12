@@ -4,11 +4,11 @@ import type {ConsentFormDocument, ConsentFormModel} from "../types/consentForm";
 
 const consentFormTypeMap = {
   agreement: "agreement",
-  custom: "custom",
-  hipaa: "hipaa",
   privacy: "privacy",
+  hipaa: "hipaa",
   research: "research",
   terms: "terms",
+  custom: "custom",
 } as const;
 
 const consentFormTypeValues = Object.values(consentFormTypeMap);
