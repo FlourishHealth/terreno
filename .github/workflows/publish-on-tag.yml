@@ -958,14 +958,27 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Validate required secrets
+        env:
+          REPO_ADMIN_TOKEN: ${{ secrets.REPO_ADMIN_TOKEN }}
+        run: |
+          missing=()
+          if [ -z "$REPO_ADMIN_TOKEN" ]; then missing+=("REPO_ADMIN_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - uses: actions/checkout@v6
         with:
           ref: master
+          token: ${{ secrets.REPO_ADMIN_TOKEN }}
+          persist-credentials: true
 
       - name: Setup Git
         run: |
-          git config --global user.name "GitHub CD bot"
-          git config --global user.email "github-cd-bot@nang.io"
+          git config --global user.name "joshgachnang"
+          git config --global user.email "josh@flourish.health"
 
       - name: Update package versions
         run: |
