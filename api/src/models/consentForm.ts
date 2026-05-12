@@ -2,16 +2,7 @@ import mongoose from "mongoose";
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 import type {ConsentFormDocument, ConsentFormModel} from "../types/consentForm";
 
-const consentFormTypeMap = {
-  agreement: "agreement",
-  privacy: "privacy",
-  hipaa: "hipaa",
-  research: "research",
-  terms: "terms",
-  custom: "custom",
-} as const;
-
-const consentFormTypeValues = Object.values(consentFormTypeMap);
+const consentFormTypeValues = ["agreement", "privacy", "hipaa", "research", "terms", "custom"] as const;
 
 const consentFormSchema = new mongoose.Schema<ConsentFormDocument, ConsentFormModel>(
   {
