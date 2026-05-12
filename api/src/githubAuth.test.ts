@@ -6,10 +6,47 @@ import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
+import {generateTokens} from "./auth";
 import {setupServer} from "./expressServer";
 import {type GitHubUserFields, githubUserPlugin, setupGitHubAuth} from "./githubAuth";
 import {logger} from "./logger";
 import {createdUpdatedPlugin, isDisabledPlugin} from "./plugins";
+
+interface FakeStrategyOutcome {
+  type: "success" | "redirect" | "fail";
+  user?: unknown;
+  url?: string;
+  challenge?: {message: string};
+}
+
+let fakeGithubOutcome: FakeStrategyOutcome = {type: "redirect", url: "http://github.com/mock"};
+
+interface FakePassportStrategy {
+  name: string;
+  success: (user: unknown) => void;
+  fail: (challenge: {message: string}) => void;
+  redirect: (url: string) => void;
+  error: (err: Error) => void;
+  authenticate: (req: express.Request) => void;
+}
+
+const installFakeGithubStrategy = (): void => {
+  const strategy: Pick<FakePassportStrategy, "name" | "authenticate"> = {
+    authenticate(this: FakePassportStrategy): void {
+      if (fakeGithubOutcome.type === "success") {
+        this.success(fakeGithubOutcome.user);
+        return;
+      }
+      if (fakeGithubOutcome.type === "fail") {
+        this.fail(fakeGithubOutcome.challenge ?? {message: "auth failed"});
+        return;
+      }
+      this.redirect(fakeGithubOutcome.url ?? "http://github.com/mock");
+    },
+    name: "github",
+  };
+  passport.use("github", strategy as unknown as passport.Strategy);
+};
 
 interface TestUser extends GitHubUserFields {
   admin: boolean;
@@ -525,5 +562,280 @@ describe("addGitHubAuthRoutes link endpoints", () => {
     expect((updatedUser as any).githubId).toBeUndefined();
     expect((updatedUser as any).githubAvatarUrl).toBeUndefined();
     expect((updatedUser as any).githubProfileUrl).toBeUndefined();
+  });
+});
+
+describe("GitHub callback handler (fake strategy)", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await connectDb();
+    await GitHubTestUserModel.deleteMany({});
+
+    function addRoutes(router: express.Router): void {
+      router.get("/test", (_req, res) => res.json({ok: true}));
+    }
+
+    app = setupServer({
+      addMiddleware: (a) => {
+        // The handler reads (req as any).session?.returnTo. setupServer does not install
+        // express-session, so prime a fake session from a request header for tests.
+        a.use((req, _res, next) => {
+          const headerReturnTo = req.headers["x-mock-return-to"];
+          if (typeof headerReturnTo === "string") {
+            (req as unknown as {session: {returnTo: string}}).session = {returnTo: headerReturnTo};
+          }
+          next();
+        });
+      },
+      addRoutes,
+      githubAuth: {
+        allowAccountLinking: true,
+        callbackURL: "http://localhost:9000/auth/github/callback",
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+      },
+      skipListen: true,
+      userModel: GitHubTestUserModel as any,
+    });
+    // Swap the github strategy with our fake after setupServer registered it.
+    installFakeGithubStrategy();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    fakeGithubOutcome = {type: "redirect", url: "http://github.com/mock"};
+  });
+
+  it("GET /auth/github/callback returns JSON tokens on success", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "cb@example.com",
+      githubId: "cb-gh-1",
+      name: "CB User",
+    } as any);
+
+    fakeGithubOutcome = {type: "success", user};
+
+    const res = await agent.get("/auth/github/callback").expect(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.refreshToken).toBeDefined();
+    expect(res.body.data.userId).toBeDefined();
+  });
+
+  it("GET /auth/github/callback redirects to returnTo with tokens when session.returnTo is set", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "cb2@example.com",
+      githubId: "cb-gh-2",
+      name: "CB User 2",
+    } as any);
+
+    fakeGithubOutcome = {type: "success", user};
+    const res = await agent
+      .get("/auth/github/callback")
+      .set("x-mock-return-to", "https://example.com/cb")
+      .expect(302);
+    expect(res.headers.location).toContain("https://example.com/cb");
+    expect(res.headers.location).toContain("token=");
+    expect(res.headers.location).toContain("refreshToken=");
+    expect(res.headers.location).toContain("userId=");
+  });
+
+  it("GET /auth/github/callback redirects on failure", async () => {
+    fakeGithubOutcome = {challenge: {message: "denied"}, type: "fail"};
+    const res = await agent.get("/auth/github/callback").expect(302);
+    expect(res.headers.location).toContain("/auth/github/failure");
+  });
+
+  it("GET /auth/github/callback returns 500 when token generation fails", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "cb3@example.com",
+      githubId: "cb-gh-3",
+      name: "CB User 3",
+    } as any);
+
+    fakeGithubOutcome = {type: "success", user};
+
+    const savedSecret = process.env.TOKEN_SECRET;
+    process.env.TOKEN_SECRET = "";
+    try {
+      const res = await agent.get("/auth/github/callback").expect(500);
+      expect(res.body.message).toBe("Authentication failed");
+    } finally {
+      process.env.TOKEN_SECRET = savedSecret;
+    }
+  });
+});
+
+describe("GET /auth/github/link with JWT (fake strategy)", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await connectDb();
+    await GitHubTestUserModel.deleteMany({});
+
+    function addRoutes(router: express.Router): void {
+      router.get("/test", (_req, res) => res.json({ok: true}));
+    }
+
+    app = setupServer({
+      addRoutes,
+      githubAuth: {
+        allowAccountLinking: true,
+        callbackURL: "http://localhost:9000/auth/github/callback",
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+      },
+      skipListen: true,
+      userModel: GitHubTestUserModel as any,
+    });
+    installFakeGithubStrategy();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    fakeGithubOutcome = {type: "redirect", url: "http://github.com/mock"};
+  });
+
+  it("GET /auth/github/link forwards to GitHub auth when JWT is valid", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "linkjwt@example.com",
+      name: "Link JWT User",
+    } as any);
+    await (user as any).setPassword("password123");
+    await user.save();
+
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "linkjwt@example.com", password: "password123"})
+      .expect(200);
+
+    fakeGithubOutcome = {type: "redirect", url: "http://github.com/auth"};
+    const res = await agent
+      .get("/auth/github/link")
+      .set("authorization", `Bearer ${loginRes.body.data.token}`)
+      .expect(302);
+    expect(res.headers.location).toBe("http://github.com/auth");
+  });
+});
+
+describe("DELETE /auth/github/unlink edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await connectDb();
+    await GitHubTestUserModel.deleteMany({});
+
+    function addRoutes(router: express.Router): void {
+      router.get("/test", (_req, res) => res.json({ok: true}));
+    }
+
+    app = setupServer({
+      addRoutes,
+      githubAuth: {
+        allowAccountLinking: true,
+        callbackURL: "http://localhost:9000/auth/github/callback",
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+      },
+      skipListen: true,
+      userModel: GitHubTestUserModel as any,
+    });
+    installFakeGithubStrategy();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 400 when user has no password (no other auth method)", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "ghonly@example.com",
+      githubId: "ghonly-1",
+      githubUsername: "ghonly",
+    } as any);
+
+    const {token} = await generateTokens({_id: (user as any)._id});
+
+    const res = await agent
+      .delete("/auth/github/unlink")
+      .set("authorization", `Bearer ${token}`)
+      .expect(400);
+    expect(res.body.message).toContain("Cannot unlink GitHub account");
+  });
+
+  it("returns 500 when save throws during unlink", async () => {
+    const user = await GitHubTestUserModel.create({
+      email: "savefail@example.com",
+      githubId: "savefail-1",
+    } as any);
+    await (user as any).setPassword("password123");
+    await user.save();
+
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "savefail@example.com", password: "password123"})
+      .expect(200);
+
+    const originalFindById = (GitHubTestUserModel as any).findById;
+    (GitHubTestUserModel as any).findById = () => ({
+      select: async () => ({
+        hash: "x",
+        salt: "y",
+        save: async () => {
+          throw new Error("boom");
+        },
+      }),
+    });
+    try {
+      const res = await agent
+        .delete("/auth/github/unlink")
+        .set("authorization", `Bearer ${loginRes.body.data.token}`)
+        .expect(500);
+      expect(res.body.message).toBe("Failed to unlink GitHub account");
+    } finally {
+      (GitHubTestUserModel as any).findById = originalFindById;
+    }
+  });
+});
+
+describe("GitHub strategy verify callback edge cases", () => {
+  const testApp = {get: () => {}, use: () => {}} as any;
+
+  beforeEach(async () => {
+    await connectDb();
+    await GitHubTestUserModel.deleteMany({});
+  });
+
+  it("returns 404 when linking a user whose record disappears", async () => {
+    const existingUser = await GitHubTestUserModel.create({
+      email: "gone@example.com",
+    } as any);
+
+    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+      allowAccountLinking: true,
+      callbackURL: "http://localhost:9000/auth/github/callback",
+      clientId: "id",
+      clientSecret: "secret",
+    });
+
+    // Delete user before verify runs to hit the 404 path.
+    await GitHubTestUserModel.deleteOne({_id: (existingUser as any)._id});
+
+    const req = {user: existingUser};
+    const result = await invokeGitHubVerify(req, "access", "refresh", {
+      id: "gh-missing-1",
+      username: "missing",
+    });
+    expect(result.err).toBeDefined();
+    expect((result.err as any).status).toBe(404);
   });
 });
