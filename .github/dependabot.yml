@@ -24,8 +24,12 @@ updates:
   # Maintain dependencies for backend packages
   - package-ecosystem: "bun"
     directories:
+      - "/admin-backend"
+      - "/ai"
       - "/api"
+      - "/api-health"
       - "/example-backend"
+      - "/feature-flags"
       - "/mcp-server"
     schedule:
       interval: "monthly"
@@ -46,6 +50,7 @@ updates:
   # Maintain dependencies for frontend packages
   - package-ecosystem: "bun"
     directories:
+      - "/admin-frontend"
       - "/demo"
       - "/ui"
       - "/example-frontend"
