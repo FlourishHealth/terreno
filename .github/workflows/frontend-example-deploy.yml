@@ -134,7 +134,7 @@ jobs:
           echo "env=example-frontend-preview-branch-${SAFE_BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Deactivate previous branch deployments
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const environment = '${{ steps.branch.outputs.env }}';
@@ -156,7 +156,7 @@ jobs:
 
       - name: Create GitHub Deployment
         id: create-deployment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -172,7 +172,7 @@ jobs:
             core.setOutput('deployment_id', deployment.data.id);
 
       - name: Set deployment status to in_progress
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -202,7 +202,7 @@ jobs:
 
       - name: Set deployment status to success
         if: success()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -216,7 +216,7 @@ jobs:
 
       - name: Set deployment status to failure
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -253,7 +253,7 @@ jobs:
 
       - name: Create GitHub Deployment
         id: create-deployment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -268,7 +268,7 @@ jobs:
             core.setOutput('deployment_id', deployment.data.id);
 
       - name: Set deployment status to in_progress
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -297,7 +297,7 @@ jobs:
 
       - name: Set deployment status to success
         if: success()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -311,7 +311,7 @@ jobs:
 
       - name: Set deployment status to failure
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -344,7 +344,7 @@ jobs:
           path: dist
 
       - name: Deactivate previous preview deployments
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const environment = `example-frontend-preview-pr-${{ github.event.pull_request.number }}`;
@@ -366,7 +366,7 @@ jobs:
 
       - name: Create GitHub Deployment
         id: create-deployment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             const deployment = await github.rest.repos.createDeployment({
@@ -382,7 +382,7 @@ jobs:
             core.setOutput('deployment_id', deployment.data.id);
 
       - name: Set deployment status to in_progress
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -412,7 +412,7 @@ jobs:
 
       - name: Set deployment status to success
         if: success()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
@@ -426,7 +426,7 @@ jobs:
 
       - name: Set deployment status to failure
         if: failure()
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9.0.0
         with:
           script: |
             await github.rest.repos.createDeploymentStatus({
