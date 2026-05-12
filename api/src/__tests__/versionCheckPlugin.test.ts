@@ -52,7 +52,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 150});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({status: "ok"});
+    expect(res.body).toEqual({requiredVersion: 50, status: "ok", warningVersion: 100});
   });
 
   it("returns warning when client version < warning (web)", async () => {
@@ -116,7 +116,7 @@ describe("VersionCheckPlugin", () => {
 
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({status: "ok"});
+    expect(res.body).toEqual({requiredVersion: 50, status: "ok", warningVersion: 100});
   });
 
   it("version equal to required returns warning not required", async () => {

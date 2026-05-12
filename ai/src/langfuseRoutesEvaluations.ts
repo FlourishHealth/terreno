@@ -33,15 +33,15 @@ export const addEvaluationRoutes = (
       }
 
       const client = getLangfuseClient();
-      client.score({
-        comment: comment ?? null,
+      client.score.create({
+        comment: comment ?? undefined,
         dataType: dataType as "NUMERIC" | "CATEGORICAL" | "BOOLEAN" | undefined,
         name,
         traceId,
         value,
       });
 
-      await client.flushAsync();
+      await client.flush();
       return res.status(201).json({comment, dataType, name, traceId, value});
     })
   );

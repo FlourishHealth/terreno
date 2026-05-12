@@ -1,3 +1,4 @@
 [test]
 preload = ["../ui/src/bunSetup.ts"]
 root = "./src"
+coveragePathIgnorePatterns = ["**/*.test.ts", "**/*.test.tsx", "**/*.isolated.ts", "**/*.isolated.tsx", "**/isolated/**", "../ui/**", "dist/**"]

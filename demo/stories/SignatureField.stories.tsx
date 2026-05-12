@@ -2,12 +2,12 @@ import {SignatureField} from "@terreno/ui";
 import {type ReactElement, useState} from "react";
 
 export const SignatureFieldDemo = (): ReactElement => {
-  const [, setSignature] = useState();
+  const [, setSignature] = useState<string>();
   return <SignatureField onChange={setSignature} />;
 };
 
 export const SignatureFieldDemoCompleted = (): ReactElement => {
-  const [, setSignature] = useState();
+  const [, setSignature] = useState<string>();
   return (
     <SignatureField
       disabled
@@ -19,13 +19,13 @@ export const SignatureFieldDemoCompleted = (): ReactElement => {
 };
 
 export const SignatureFieldDemoDisabled = (): ReactElement => {
-  const [, setSignature] = useState();
+  const [, setSignature] = useState<string>();
   return (
     <SignatureField disabled disabledText="Complete form before signing" onChange={setSignature} />
   );
 };
 
 export const SignatureFieldDemoWithError = (): ReactElement => {
-  const [, setSignature] = useState();
+  const [, setSignature] = useState<string>();
   return <SignatureField errorText="Signature is required." onChange={setSignature} />;
 };

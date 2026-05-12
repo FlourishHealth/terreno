@@ -20,7 +20,7 @@ import {
   VersionCheckPlugin,
 } from "@terreno/api";
 import {HealthApp} from "@terreno/api-health";
-import {FeatureFlag, FeatureFlagsApp} from "@terreno/feature-flags";
+import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
 import {addAdminUserRoutes} from "./api/adminUsers";
@@ -216,12 +216,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(
         new AdminApp({
           models: [
-            {
-              displayName: "Feature Flags",
-              listFields: ["key", "name", "type", "enabled", "archived", "created"],
-              model: FeatureFlag,
-              routePath: "/feature-flags",
-            },
+            featureFlagAdminConfig,
             {
               displayName: "Todos",
               listFields: ["title", "completed", "ownerId", "created"],

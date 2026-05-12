@@ -136,3 +136,27 @@ export const FeatureFlag = mongoose.model<FeatureFlagDocument, FeatureFlagModel>
   "FeatureFlag",
   featureFlagSchema
 );
+
+/**
+ * Pre-configured admin model config for the FeatureFlag model.
+ *
+ * Pass this directly to `AdminApp({ models: [...] })` so downstream consumers
+ * don't have to manually configure displayName, listFields, and routePath.
+ *
+ * @example
+ * ```typescript
+ * import {featureFlagAdminConfig} from "@terreno/feature-flags";
+ * import {AdminApp} from "@terreno/admin-backend";
+ *
+ * new TerrenoApp({userModel: User})
+ *   .register(new FeatureFlagsApp({segments}))
+ *   .register(new AdminApp({models: [featureFlagAdminConfig]}))
+ *   .start();
+ * ```
+ */
+export const featureFlagAdminConfig = {
+  displayName: "Feature Flags",
+  listFields: ["key", "name", "type", "enabled", "archived", "created"],
+  model: FeatureFlag,
+  routePath: "/feature-flags",
+};

@@ -360,7 +360,7 @@ logSocket("Connected", {socketId: socket.id});
 
 **Enable Debug Logging:**
 
-Add to your `app.json` or `app.config.js`:
+Add to your `app.json` or `app.config.ts`:
 ``````json
 {
   "expo": {

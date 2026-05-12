@@ -70,6 +70,7 @@ export * from "./SectionDivider";
 export * from "./SegmentedControl";
 export * from "./SelectBadge";
 export * from "./SelectField";
+export * from "./SidebarNavigation";
 export * from "./SideDrawer";
 export * from "./Signature";
 export * from "./SignatureField";
@@ -101,6 +102,7 @@ export * from "./table/TableTitle";
 export * from "./table/tableContext";
 export * from "./UnifiedAddressAutoComplete";
 export * from "./Unifier";
+export * from "./UpgradeRequiredScreen";
 export * from "./UserInactivity";
 export * from "./Utilities";
 export * from "./useConsentForms";
@@ -257,8 +259,8 @@ export interface LayoutRoot {
    * Set the root
    */
   root: Layout;
-  modals?: any;
-  overlays?: any;
+  modals?: Layout[];
+  overlays?: Layout[];
 }
 export interface ExternalComponent {
   /**

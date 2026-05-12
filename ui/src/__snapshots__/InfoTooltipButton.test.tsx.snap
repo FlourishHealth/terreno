@@ -1,7 +1,76 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`InfoTooltipButton renders correctly with text 1`] = `null`;
+exports[`InfoTooltipButton renders correctly with text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Help information",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Show info tooltip",
+    "accessibilityLabel": "info",
+    "onPress": [Function],
+    "testID": "icon-button-exclamation",
+  },
+  "type": "Pressable",
+}
+`;
 
-exports[`InfoTooltipButton renders with different tooltip text 1`] = `null`;
+exports[`InfoTooltipButton renders with different tooltip text 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Click for more details",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Show info tooltip",
+    "accessibilityLabel": "info",
+    "onPress": [Function],
+    "testID": "icon-button-exclamation",
+  },
+  "type": "Pressable",
+}
+`;
 
-exports[`InfoTooltipButton renders info icon 1`] = `null`;
+exports[`InfoTooltipButton renders info icon 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        "Tooltip content",
+      ],
+      "props": {
+        "style": undefined,
+      },
+      "type": "Text",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Show info tooltip",
+    "accessibilityLabel": "info",
+    "onPress": [Function],
+    "testID": "icon-button-exclamation",
+  },
+  "type": "Pressable",
+}
+`;

@@ -33,9 +33,10 @@ const sendDemoResponse = (res: express.Response, historyId?: string): void => {
 
 /**
  * Resolve the AIService for a request. Priority:
- * 1. Per-request API key via `x-ai-api-key` header (creates a temporary AIService)
- * 2. Pre-configured aiService from route options
- * 3. undefined (triggers demo mode response)
+ * 1. Per-request API key via `x-ai-api-key` header (creates a temporary AIService via createModelFn)
+ * 2. Specific model requested + server-side model factory (creates a temporary AIService via createServerModelFn)
+ * 3. Pre-configured aiService from route options
+ * 4. undefined (triggers demo mode response)
  */
 const resolveAiService = (
   req: express.Request,
@@ -45,6 +46,12 @@ const resolveAiService = (
   const perRequestKey = req.headers["x-ai-api-key"] as string | undefined;
   if (perRequestKey && options.createModelFn) {
     return new AIService({model: options.createModelFn(perRequestKey, modelId)});
+  }
+  if (modelId && options.createServerModelFn) {
+    const serverModel = options.createServerModelFn(modelId);
+    if (serverModel) {
+      return new AIService({model: serverModel});
+    }
   }
   return options.aiService;
 };
@@ -59,10 +66,17 @@ const generateTitle = async (
 ): Promise<string | undefined> => {
   try {
     let titleService = aiService;
-    if (options.titleModelId && options.createModelFn && perRequestApiKey) {
-      titleService = new AIService({
-        model: options.createModelFn(perRequestApiKey, options.titleModelId),
-      });
+    if (options.titleModelId) {
+      if (options.createModelFn && perRequestApiKey) {
+        titleService = new AIService({
+          model: options.createModelFn(perRequestApiKey, options.titleModelId),
+        });
+      } else if (options.createServerModelFn) {
+        const titleModel = options.createServerModelFn(options.titleModelId);
+        if (titleModel) {
+          titleService = new AIService({model: titleModel});
+        }
+      }
     }
     const conversationSnippet = `User: ${prompt}\nAssistant: ${response.substring(0, 500)}`;
     const title = await titleService.generateText({
@@ -299,7 +313,10 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
             messages,
             model: (aiService as any).model,
             providerOptions: !supportsTools
-              ? {google: {responseModalities: ["TEXT", "IMAGE"]}}
+              ? {
+                  google: {responseModalities: ["TEXT", "IMAGE"]},
+                  vertex: {responseModalities: ["TEXT", "IMAGE"]},
+                }
               : undefined,
             stopWhen: allTools ? stepCountIs(maxSteps ?? 5) : stepCountIs(1),
             system: effectiveSystemPrompt ?? undefined,

@@ -1,4 +1,4 @@
-import {useFeatureFlags} from "@terreno/rtk";
+import {useFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Box,
   Button,
@@ -19,7 +19,8 @@ import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} f
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const {data: profileResponse, isLoading, refetch} = useGetMeQuery();
+  const userId = useSelectCurrentUserId();
+  const {data: profileResponse, isLoading, refetch} = useGetMeQuery(undefined, {skip: !userId});
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
   const {setPrimitives, resetTheme} = useTheme();
 
@@ -28,7 +29,7 @@ const ProfileScreen: React.FC = () => {
     getFlag,
     isLoading: isFeatureFlagsLoading,
     error: featureFlagsError,
-  } = useFeatureFlags(terrenoApi);
+  } = useFeatureFlags(terrenoApi, {skip: !userId});
   const showDarkModeToggle = getFlag("dark-mode-toggle");
   const featureFlagEntries = useMemo(
     (): Array<{key: string; value: boolean | string | null}> =>
@@ -159,6 +160,7 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setName}
               placeholder="Your name"
+              testID="profile-name-input"
               title="Name"
               value={name}
             />
@@ -168,6 +170,7 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setEmail}
               placeholder="your@email.com"
+              testID="profile-email-input"
               title="Email"
               type="email"
               value={email}
@@ -177,19 +180,20 @@ const ProfileScreen: React.FC = () => {
               disabled={isUpdating}
               onChange={setPassword}
               placeholder="Leave blank to keep current password"
+              testID="profile-password-input"
               title="New Password"
               type="password"
               value={password}
             />
 
             {saveSuccess && (
-              <Box>
+              <Box testID="profile-save-success">
                 <Text color="success">Profile updated successfully!</Text>
               </Box>
             )}
 
             {saveError && (
-              <Box>
+              <Box testID="profile-save-error">
                 <Text color="error">{saveError}</Text>
               </Box>
             )}
@@ -200,6 +204,7 @@ const ProfileScreen: React.FC = () => {
                 iconName="check"
                 loading={isUpdating}
                 onClick={handleSave}
+                testID="profile-save-button"
                 text="Save Changes"
               />
             </Box>
@@ -216,12 +221,13 @@ const ProfileScreen: React.FC = () => {
             <TextField
               onChange={setApiKeyInput}
               placeholder="Enter your Gemini API key"
+              testID="profile-gemini-key-input"
               title="API Key"
               type="password"
               value={apiKeyInput}
             />
             {apiKeySaved && (
-              <Box>
+              <Box testID="profile-gemini-saved-text">
                 <Text color="success">API key saved!</Text>
               </Box>
             )}
@@ -230,12 +236,14 @@ const ProfileScreen: React.FC = () => {
                 disabled={!apiKeyInput.trim()}
                 iconName="check"
                 onClick={handleSaveApiKey}
+                testID="profile-gemini-save-button"
                 text="Save Key"
               />
               <Button
                 disabled={!geminiApiKey}
                 iconName="trash"
                 onClick={handleClearApiKey}
+                testID="profile-gemini-clear-button"
                 text="Clear Key"
                 variant="destructive"
               />
@@ -304,7 +312,9 @@ const ProfileScreen: React.FC = () => {
         <Card marginBottom={6}>
           <Box gap={4}>
             <Heading size="lg">Session</Heading>
-            <Text color="secondaryLight">Logged in as {profile?.email}</Text>
+            <Text color="secondaryLight" testID="profile-logged-in-as">
+              Logged in as {profile?.email}
+            </Text>
             <Button
               iconName="right-from-bracket"
               onClick={handleLogout}
@@ -322,6 +332,7 @@ const ProfileScreen: React.FC = () => {
               <Button
                 iconName="gear"
                 onClick={handleNavigateToAdmin}
+                testID="profile-admin-button"
                 text="Admin Panel"
                 variant="secondary"
               />

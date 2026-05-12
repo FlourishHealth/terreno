@@ -1,4 +1,4 @@
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {type DateTimePickerEvent} from "@react-native-community/datetimepicker";
 import React from "react";
 
 import {ActionSheet} from "./ActionSheet";
@@ -12,7 +12,7 @@ export class NumberPickerActionSheet extends React.Component<
   TextFieldPickerActionSheetProps,
   NumberPickerActionSheetState
 > {
-  render() {
+  render(): React.ReactElement {
     return (
       <ActionSheet bounceOnOpen gestureEnabled ref={this.props.actionSheetRef}>
         <Box marginBottom={8} paddingX={4} width="100%">
@@ -30,7 +30,7 @@ export class NumberPickerActionSheet extends React.Component<
             display="spinner"
             is24Hour
             mode={this.props.mode}
-            onChange={(_event: any, date?: Date) => {
+            onChange={(_event: DateTimePickerEvent, date?: Date) => {
               if (!date) {
                 return;
               }

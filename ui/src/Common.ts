@@ -1,7 +1,14 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
 import type {ReactElement, ReactNode} from "react";
-import type {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
+import type {
+  ImageStyle,
+  ListRenderItemInfo,
+  StyleProp,
+  TextInput,
+  TextStyle,
+  ViewStyle,
+} from "react-native";
 import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {Styles} from "react-native-google-places-autocomplete";
 import type {SvgProps} from "react-native-svg";
@@ -456,6 +463,7 @@ export interface BoxPropsBase {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
+      // noExplicitAny: escape hatch for arbitrary inline style values
       [key: string]: any;
     };
   };
@@ -528,7 +536,7 @@ export interface BoxPropsBase {
 
   onClick?: () => void | Promise<void>;
   className?: string;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   onHoverStart?: () => void | Promise<void>;
   onHoverEnd?: () => void | Promise<void>;
   scroll?: boolean;
@@ -554,7 +562,7 @@ export type BoxProps =
 export type BoxColor = SurfaceColor | "transparent";
 
 export interface ErrorBoundaryProps {
-  onError?: (error: Error, stack: any) => void;
+  onError?: (error: Error, stack: string) => void;
   children?: ReactNode;
 }
 
@@ -652,7 +660,7 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
   multiline?: boolean;
   rows?: number;
 
-  inputRef?: any;
+  inputRef?: (ref: TextInput | null) => void;
   trimOnBlur?: boolean;
 
   aiSuggestion?: AiSuggestionProps;
@@ -782,7 +790,7 @@ export interface ImageProps {
   size?: string;
   srcSet?: string;
   fullWidth?: boolean;
-  style?: any;
+  style?: ImageStyle;
 }
 
 export interface BackButtonInterface {
@@ -850,14 +858,17 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
+  // noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
   renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
+  // noExplicitAny: list data type varies by consumer's data model
   listViewData: any[];
-  listViewExtraData?: any;
+  listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
+  // noExplicitAny: callback value type varies by consumer's data model
   onSelectionChange?: (value?: any) => void | Promise<void>;
 }
 
@@ -896,7 +907,7 @@ export interface AddressInterface {
 export interface TransformValueOptions {
   func?: (value: string) => string;
   options?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -1447,8 +1458,10 @@ export interface BannerButtonProps {
 export interface BannerPropsBase {
   /**
    * Used to identify if banner has been dismissed by the user.
+   * When provided, dismissal state is persisted to AsyncStorage.
+   * When omitted, dismissal is ephemeral (resets on remount).
    */
-  id: string;
+  id?: string;
   /**
    * The text to display in the main body of the banner.
    */
@@ -1743,6 +1756,7 @@ export interface HeightActionSheetProps {
 
 export interface HyperlinkProps {
   linkDefault?: boolean;
+  // noExplicitAny: type comes from external linkify-it library which lacks an exported type
   linkify?: any;
   linkStyle?: StyleProp<any>;
   linkText?: string | ((url: string) => string);
@@ -1899,10 +1913,12 @@ export interface ModalProps {
   /**
    * The function to call when the primary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   primaryButtonOnClick?: (value?: any) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
+  // noExplicitAny: callback value type varies by consumer context
   secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
 }
 
@@ -1915,6 +1931,7 @@ export interface NumberPickerActionSheetProps {
 }
 
 export interface PageProps {
+  // noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
@@ -1928,11 +1945,11 @@ export interface PageProps {
   color?: SurfaceColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
-  footer?: any;
+  footer?: ReactNode;
   rightButton?: string;
   rightButtonOnClick?: () => void;
-  children?: any;
-  onError?: (error: Error, stack: any) => void;
+  children?: ReactChildren;
+  onError?: (error: Error, stack: string) => void;
 }
 
 export interface ProgressBarProps {
@@ -1955,7 +1972,7 @@ export interface RadioFieldProps {
 export interface SignatureFieldProps {
   disabled?: boolean; // default "default"
   value?: string;
-  onChange: (value: any) => void;
+  onChange: (value: string) => void;
   title?: string; // default "Signature"
   onStart?: () => void;
   onEnd?: () => void;
@@ -2066,7 +2083,7 @@ export interface PaginationProps {
  * Data Table
  */
 export interface DataTableCellData {
-  value: any;
+  value: unknown;
   highlight?: SurfaceColor;
   textSize?: "sm" | "md" | "lg";
 }
@@ -2085,7 +2102,7 @@ export interface DataTableColumn {
 }
 
 export interface DataTableProps {
-  data: {value: any; highlight?: SurfaceColor; textSize?: "sm" | "md" | "lg"}[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   alternateRowBackground?: boolean;
   totalPages?: number;
@@ -2100,19 +2117,21 @@ export interface DataTableProps {
   /**
    * When tapping the eye icon, a modal is shown with more info about the row.
    */
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: any[];
-    rowIndex: number;
-  }>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra data to pass to the more modal.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.
   customColumnComponentMap?: DataTableCustomComponentMap;
 }
 
 export interface DataTableCellProps {
-  value: any;
+  value: DataTableCellData;
   columnDef: DataTableColumn;
   colIndex: number;
   isPinnedHorizontal: boolean;
@@ -2352,16 +2371,19 @@ export type TapToEditProps =
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
+  // noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   value: any;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
+  // noExplicitAny: value type varies across TapToEdit field types
   onSave?: (value: any) => void | Promise<void>;
 
   /**
@@ -2374,6 +2396,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
+  // noExplicitAny: input value type varies across TapToEdit field types
   transform?: (value: any) => string;
   /**
    * Show a confirmation modal before saving the value.
@@ -2429,7 +2452,7 @@ export interface APIError {
     source?: string;
     pointer?: string;
     parameter?: string;
-    meta?: {[id: string]: any};
+    meta?: {[id: string]: unknown};
   };
 }
 
@@ -2462,6 +2485,7 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
+    // noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
@@ -2494,7 +2518,8 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
-  doc: any; // The rest of the document.
+  // noExplicitAny: document shape varies by model used with ModelAdmin
+  doc: any;
   fieldKey: string; // Dot notation representation of the field.
   // user: User;
   editing: boolean; // Allow for inline editing of the field.
@@ -2908,4 +2933,128 @@ export interface UserInactivityProps {
    * @default 10000
    */
   timeForInactivity?: number;
+}
+
+/**
+ * Maps badge status keys to their semantic meaning for sidebar navigation items.
+ */
+export const SIDEBAR_BADGE_STATUS_MAP = {
+  error: "error",
+  info: "info",
+  neutral: "neutral",
+  success: "success",
+  warning: "warning",
+} as const;
+
+export type SidebarBadgeStatus = keyof typeof SIDEBAR_BADGE_STATUS_MAP;
+
+export interface SidebarNavigationItem {
+  /**
+   * Display text for the navigation item.
+   */
+  label: string;
+  /**
+   * Route name matching the expo-router file-based route (e.g. "index", "dashboard").
+   */
+  route: string;
+  /**
+   * FontAwesome 6 icon name rendered alongside the label.
+   */
+  iconName: IconName;
+  /**
+   * Badge displayed on the icon. A number shows a count (capped at 99+); true shows a dot indicator.
+   */
+  badge?: number | boolean;
+  /**
+   * Color status of the badge. Defaults to "error".
+   */
+  badgeStatus?: SidebarBadgeStatus;
+}
+
+/**
+ * Props for the SidebarNavigation custom expo-router navigator.
+ * Used in _layout.tsx files to provide sidebar navigation.
+ */
+export interface SidebarNavigationProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * Optional callback fired after a navigation item is pressed.
+   */
+  onNavigate?: (route: string) => void;
+  /**
+   * The route to show when the navigator first renders.
+   */
+  initialRouteName?: string;
+  /**
+   * Screen options passed through to the underlying Navigator.
+   */
+  screenOptions?: Record<string, unknown>;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Optional Screen definitions passed to the underlying Navigator,
+   * e.g. <Screen name="index" options={{title: "Home"}} />.
+   */
+  children?: React.ReactNode;
+}
+
+/**
+ * Props for the standalone SidebarNavigationPanel (no expo-router dependency).
+ * Useful for demos, testing, or non-expo-router apps.
+ */
+export interface SidebarNavigationPanelProps {
+  /**
+   * Navigation items displayed at the top of the sidebar.
+   */
+  topItems: SidebarNavigationItem[];
+  /**
+   * Navigation items displayed at the bottom of the sidebar.
+   */
+  bottomItems: SidebarNavigationItem[];
+  /**
+   * The currently active route, used to highlight the matching item.
+   */
+  activeRoute?: string;
+  /**
+   * Called when a navigation item is pressed.
+   */
+  onNavigate: (route: string) => void;
+  /**
+   * Main content rendered beside (web) or behind (mobile) the sidebar.
+   */
+  children: React.ReactNode;
+  /**
+   * Additional styles applied to the sidebar panel container.
+   */
+  panelStyle?: StyleProp<ViewStyle>;
+  /**
+   * Additional styles applied to each navigation item.
+   */
+  itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Controlled open state. When provided, the panel hides its internal hamburger
+   * button and defers open/close to the caller.
+   *
+   * @platform mobile — the web sidebar is always visible; this prop is ignored on web.
+   */
+  isOpen?: boolean;
+  /**
+   * Called when the panel requests an open or close (controlled mode only).
+   *
+   * @platform mobile — the web sidebar is always visible; this prop is ignored on web.
+   */
+  onOpenChange?: (isOpen: boolean) => void;
 }

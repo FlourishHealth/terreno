@@ -440,3 +440,84 @@ describe("OpenApiMiddlewareBuilder configuration", () => {
     expect(builder).toBeInstanceOf(OpenApiMiddlewareBuilder);
   });
 });
+
+describe("OpenApiMiddlewareBuilder withValidation / buildWithSchemas", () => {
+  beforeEach(() => {
+    const {resetOpenApiValidatorConfig} = require("./openApiValidator");
+    resetOpenApiValidatorConfig();
+  });
+
+  it("buildWithSchemas returns bodySchema and querySchema", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .buildWithSchemas();
+
+    expect(result.bodySchema).toBeDefined();
+    expect(result.bodySchema?.name).toBeDefined();
+    expect(result.querySchema).toBeDefined();
+    expect(result.querySchema?.page).toBeDefined();
+    expect(typeof result.middleware).toBe("function");
+  });
+
+  it("buildWithSchemas returns undefined schemas when no body/query defined", () => {
+    const result = createOpenApiBuilder({}).buildWithSchemas();
+    expect(result.bodySchema).toBeUndefined();
+    expect(result.querySchema).toBeUndefined();
+  });
+
+  it("withValidation with defaults enables body and query validation", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation()
+      .buildWithSchemas();
+
+    expect(result.validationEnabled).toBe(true);
+  });
+
+  it("withValidation with enabled=false disables validation", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withValidation({enabled: false})
+      .buildWithSchemas();
+
+    expect(result.validationEnabled).toBe(false);
+  });
+
+  it("build() returns an array with validators when validation is enabled", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation()
+      .build();
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBeGreaterThan(1);
+  });
+
+  it("build() returns a single middleware when validation is disabled", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .build();
+
+    expect(typeof result).toBe("function");
+  });
+
+  it("build() falls back to single middleware when there is nothing to validate", () => {
+    const result = createOpenApiBuilder({}).withValidation().build();
+
+    expect(typeof result).toBe("function");
+  });
+
+  it("withValidation options body=false and query=false is respected", () => {
+    const result = createOpenApiBuilder({})
+      .withRequestBody({name: {required: true, type: "string"}})
+      .withQueryParameter("page", {type: "number"})
+      .withValidation({body: false, query: false})
+      .build();
+
+    // No body/query validation = just the openApi middleware (single fn)
+    expect(typeof result).toBe("function");
+  });
+});

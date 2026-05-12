@@ -40,6 +40,7 @@ import {
 
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
 
 export const defaultStyles = StyleSheet.create({
   chevron: {
@@ -128,6 +129,15 @@ export function RNPickerSelect({
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
+
+  // Web-only: anchor the custom dropdown menu to the trigger element so that
+  // Safari/Firefox/Chrome all render the same styled menu instead of the
+  // browser's native <select> UI.
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
 
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
@@ -520,10 +530,61 @@ export function RNPickerSelect({
     );
   };
 
-  // TODO: Create custom React component for web in order to apply library style rules
+  // Custom web dropdown. Rendering the native <Picker> on web delegates
+  // styling to each browser (Safari in particular looks very different from
+  // Chrome/Firefox). Instead, we render a styled trigger + popup menu so the
+  // dropdown looks identical across browsers and matches the Terreno design.
+  const openWebMenu = (): void => {
+    if (disabled) {
+      return;
+    }
+    measureWebAnchor(() => {
+      setShowPicker(true);
+      if (onOpen) {
+        onOpen();
+      }
+    });
+  };
+
+  const closeWebMenu = (): void => {
+    setShowPicker(false);
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  // Build the dropdown option list AND track each option's original index in
+  // `options` so `onValueChange` receives the same index that the native
+  // Picker would have reported (needed when a placeholder is present).
+  const {menuOptions: webMenuOptions, originalIndexes: webMenuOptionIndexes} = useMemo<{
+    menuOptions: WebDropdownMenuOption[];
+    originalIndexes: number[];
+  }>(() => {
+    const menuOptions: WebDropdownMenuOption[] = [];
+    const originalIndexes: number[] = [];
+    for (let i = 0; i < options.length; i++) {
+      const item = options[i];
+      if (!item || typeof item !== "object" || typeof item.label !== "string") {
+        continue;
+      }
+      menuOptions.push({
+        color: item.color,
+        key: item.key,
+        label: item.label,
+        value: String(item.value ?? ""),
+      });
+      originalIndexes.push(i);
+    }
+    return {menuOptions, originalIndexes};
+  }, [options]);
+
   const renderWeb = () => {
+    const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
+    const webSelectedIndex = webMenuOptionIndexes.indexOf(selectedOriginalIdx);
     return (
       <View
+        ref={webTriggerRef}
         style={[
           defaultStyles.viewContainer,
           {
@@ -535,31 +596,55 @@ export function RNPickerSelect({
           },
         ]}
       >
-        <Picker
-          enabled={!disabled}
-          onValueChange={onValueChangeEvent}
-          selectedValue={selectedItem?.value}
-          style={[
-            {
-              backgroundColor: theme.surface.base,
-              borderColor: "black",
-              borderRadius: 4,
-              borderWidth: 0,
-              height: "100%",
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-              width: "100%",
-            },
-            disabled && {
-              backgroundColor: theme.surface.neutralLight,
-              color: theme.text.secondaryLight,
-              opacity: 1,
-            },
-          ]}
+        <Pressable
+          aria-role="button"
+          disabled={disabled}
+          onPress={openWebMenu}
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            minHeight: 40,
+            paddingHorizontal: 8,
+            width: "100%",
+          }}
           testID="web_picker"
+          {...touchableWrapperProps}
         >
-          {renderPickerItems()}
-        </Picker>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: disabled ? theme.text.secondaryLight : theme.text.primary,
+              flex: 1,
+              paddingRight: 8,
+            }}
+            testID="text_input"
+          >
+            {displayLabel}
+          </Text>
+          <Icon
+            color={disabled ? "secondaryLight" : "primary"}
+            iconName={showPicker ? "angle-up" : "angle-down"}
+            size="sm"
+          />
+        </Pressable>
+        <WebDropdownMenu
+          anchor={webAnchor}
+          onClose={closeWebMenu}
+          onSelect={(_val, idx) => {
+            const originalIndex = webMenuOptionIndexes[idx] ?? idx;
+            // Pass the original (non-stringified) value through so lodash
+            // `isEqual` matching in `getSelectedItem` works for number /
+            // object values.
+            const originalValue = options[originalIndex]?.value;
+            onValueChangeEvent(originalValue, originalIndex);
+            closeWebMenu();
+          }}
+          options={webMenuOptions}
+          selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
+          testIDPrefix="web_dropdown"
+          visible={showPicker}
+        />
       </View>
     );
   };

@@ -209,7 +209,6 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
       dependencies: {
         "@terreno/admin-backend": "latest",
         "@terreno/api": "latest",
-        dotenv: "^16.4.7",
         luxon: "^3.7.2",
         mongoose: "^8.18.1",
         "passport-local-mongoose": "^9.0.1",

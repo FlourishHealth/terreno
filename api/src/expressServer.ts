@@ -42,7 +42,7 @@ export function setupEnvironment(): void {
   }
 }
 
-export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<any>>) => void;
+export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
 const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   const options = (res.locals.loggingOptions ?? {}) as LoggingOptions;
@@ -340,15 +340,11 @@ export function cronjob(
   schedule: "hourly" | "minutely" | string,
   callback: () => void
 ) {
-  let _cronSchedule = schedule;
-  if (schedule === "hourly") {
-    _cronSchedule = "0 * * * *";
-  } else if (schedule === "minutely") {
-    _cronSchedule = "* * * * *";
-  }
-  logger.info(`Adding cronjob ${name}, running at: ${schedule}`);
+  const cronSchedule =
+    schedule === "hourly" ? "0 * * * *" : schedule === "minutely" ? "* * * * *" : schedule;
+  logger.info(`Adding cronjob ${name}, running at: ${cronSchedule}`);
   try {
-    new cron.CronJob(schedule, callback, null, true, "America/Chicago");
+    new cron.CronJob(cronSchedule, callback, null, true, "America/Chicago");
   } catch (error) {
     throw new Error(`Failed to create cronjob: ${error}`);
   }

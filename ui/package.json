@@ -25,6 +25,7 @@
     "@react-native-community/datetimepicker": "catalog:",
     "@react-native-community/slider": "catalog:",
     "@react-native-picker/picker": "catalog:",
+    "@react-navigation/native": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "~8.0.8",
     "expo-document-picker": "~14.0.8",
@@ -120,6 +121,9 @@
     "trailingComma": "es5",
     "useTabs": false
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "compile": "tsc",
     "compile:watch": "tsc -w",
@@ -130,7 +134,8 @@
     "local": "tsc-watch --onSuccess \"cp -a dist/* ../flourish/node_modules/@terreno/ui/dist\"",
     "test": "TZ=America/New_York bun test --watch",
     "test:ci": "TZ=America/New_York bun test",
+    "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.7.2"
+  "version": "0.13.0"
 }

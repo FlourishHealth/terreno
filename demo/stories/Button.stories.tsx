@@ -8,7 +8,7 @@ export const ButtonDemo = (props: Partial<ButtonProps>) => {
   );
 };
 
-export const ButtonVariants = (props: Partial<ButtonProps>) => {
+export const ButtonVariants = (props: Partial<ButtonProps> = {}) => {
   return (
     <>
       <Box direction="row" wrap>
@@ -160,7 +160,7 @@ export const ConfirmationButton = () => {
   );
 };
 
-export const FullWidthButtons = (props: Partial<ButtonProps>) => {
+export const FullWidthButtons = (props: Partial<ButtonProps> = {}) => {
   return (
     <Box gap={4}>
       <Box gap={2}>

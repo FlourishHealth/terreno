@@ -22,7 +22,9 @@ export default function Layout() {
             </Pressable>
           ),
         }}
-      />
+      >
+        <Stack.Screen name="sidebar-navigation" options={{headerShown: false}} />
+      </Stack>
     </>
   );
 }

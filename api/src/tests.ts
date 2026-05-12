@@ -162,7 +162,7 @@ const requiredSchema = new Schema<RequiredField>({
 });
 export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
-export function getBaseServer(): Express {
+export const getBaseServer = (): Express => {
   const app = express();
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
 
@@ -186,12 +186,12 @@ export function getBaseServer(): Express {
   });
   app.use(express.json());
   return app;
-}
+};
 
-export async function authAsUser(
+export const authAsUser = async (
   app: express.Application,
   type: "admin" | "notAdmin"
-): Promise<TestAgent> {
+): Promise<TestAgent> => {
   const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
   const password = type === "admin" ? "securePassword" : "password";
 
@@ -199,9 +199,9 @@ export async function authAsUser(
   const res = await agent.post("/auth/login").send({email, password}).expect(200);
   await agent.set("authorization", `Bearer ${res.body.data.token}`);
   return agent;
-}
+};
 
-export async function setupDb() {
+export const setupDb = async () => {
   await mongoose
     .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
     .catch(logger.catch);
@@ -233,7 +233,7 @@ export async function setupDb() {
 
     return [admin, notAdmin, adminOther];
   } catch (error) {
-    console.error("Error setting up DB", error);
+    logger.error("Error setting up DB", error);
     throw error;
   }
-}
+};

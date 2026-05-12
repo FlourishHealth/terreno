@@ -707,6 +707,168 @@ describe("ConsentApp", () => {
     });
   });
 
+  describe("POST /consent-forms/generate (aiConfig)", () => {
+    const aiConfig = {
+      generateContent: async ({
+        type,
+        description,
+        locale,
+      }: {
+        type: string;
+        description: string;
+        locale: string;
+      }) => `Generated ${type} content (${locale}) for: ${description}`,
+      translateContent: async ({
+        content,
+        fromLocale,
+        toLocale,
+      }: {
+        content: string;
+        fromLocale: string;
+        toLocale: string;
+      }) => `[${fromLocale}->${toLocale}] ${content}`,
+    };
+
+    it("generates consent form content for admins", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      const res = await aiAdmin
+        .post("/consent-forms/generate")
+        .send({description: "Privacy policy for a health app", locale: "es", type: "privacy"})
+        .expect(200);
+
+      expect(res.body.data.content).toBe(
+        "Generated privacy content (es) for: Privacy policy for a health app"
+      );
+    });
+
+    it("defaults locale to en when not provided", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      const res = await aiAdmin
+        .post("/consent-forms/generate")
+        .send({description: "Terms", type: "terms"})
+        .expect(200);
+
+      expect(res.body.data.content).toContain("(en)");
+    });
+
+    it("returns 403 for non-admin users", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiUser = await authAsUser(aiApp, "notAdmin");
+
+      await aiUser
+        .post("/consent-forms/generate")
+        .send({description: "Privacy", type: "privacy"})
+        .expect(403);
+    });
+
+    it("returns 400 when type is missing", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      await aiAdmin.post("/consent-forms/generate").send({description: "Privacy"}).expect(400);
+    });
+
+    it("returns 400 when description is missing", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      await aiAdmin.post("/consent-forms/generate").send({type: "privacy"}).expect(400);
+    });
+
+    it("returns 404 when aiConfig is not provided", async () => {
+      await adminAgent
+        .post("/consent-forms/generate")
+        .send({description: "Privacy", type: "privacy"})
+        .expect(404);
+    });
+  });
+
+  describe("POST /consent-forms/translate (aiConfig)", () => {
+    const aiConfig = {
+      generateContent: async ({
+        type,
+        description,
+        locale,
+      }: {
+        type: string;
+        description: string;
+        locale: string;
+      }) => `Generated ${type} content (${locale}) for: ${description}`,
+      translateContent: async ({
+        content,
+        fromLocale,
+        toLocale,
+      }: {
+        content: string;
+        fromLocale: string;
+        toLocale: string;
+      }) => `[${fromLocale}->${toLocale}] ${content}`,
+    };
+
+    it("translates consent form content for admins", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      const res = await aiAdmin
+        .post("/consent-forms/translate")
+        .send({content: "Hello world", fromLocale: "en", toLocale: "es"})
+        .expect(200);
+
+      expect(res.body.data.content).toBe("[en->es] Hello world");
+    });
+
+    it("returns 403 for non-admin users", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiUser = await authAsUser(aiApp, "notAdmin");
+
+      await aiUser
+        .post("/consent-forms/translate")
+        .send({content: "Hello", fromLocale: "en", toLocale: "es"})
+        .expect(403);
+    });
+
+    it("returns 400 when content is missing", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      await aiAdmin
+        .post("/consent-forms/translate")
+        .send({fromLocale: "en", toLocale: "es"})
+        .expect(400);
+    });
+
+    it("returns 400 when fromLocale is missing", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      await aiAdmin
+        .post("/consent-forms/translate")
+        .send({content: "Hello", toLocale: "es"})
+        .expect(400);
+    });
+
+    it("returns 400 when toLocale is missing", async () => {
+      const aiApp = buildApp({aiConfig});
+      const aiAdmin = await authAsUser(aiApp, "admin");
+
+      await aiAdmin
+        .post("/consent-forms/translate")
+        .send({content: "Hello", fromLocale: "en"})
+        .expect(400);
+    });
+
+    it("returns 404 when aiConfig is not provided", async () => {
+      await adminAgent
+        .post("/consent-forms/translate")
+        .send({content: "Hello", fromLocale: "en", toLocale: "es"})
+        .expect(404);
+    });
+  });
+
   describe("GET /consents/audit/:userId", () => {
     it("returns audit history for a user when auditTrail is enabled", async () => {
       const form = await ConsentForm.create({

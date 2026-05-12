@@ -32,23 +32,21 @@ import {TableTitle} from "./table/TableTitle";
 // easily.
 
 const TextCell: FC<{
-  cellData: {value: string; textSize?: "sm" | "md" | "lg"};
+  cellData: DataTableCellData;
   column: DataTableColumn;
 }> = ({cellData}) => {
   return (
     <Box flex="grow" justifyContent="center">
-      <Text size={cellData.textSize || "md"}>{cellData.value}</Text>
+      <Text size={cellData.textSize || "md"}>{String(cellData.value ?? "")}</Text>
     </Box>
   );
 };
 
-const CheckedCell: FC<{cellData: {value: boolean}; column: DataTableColumn}> = ({cellData}) => {
+const CheckedCell: FC<{cellData: DataTableCellData; column: DataTableColumn}> = ({cellData}) => {
+  const isChecked = Boolean(cellData.value);
   return (
     <Box flex="grow" justifyContent="center" width="100%">
-      <Icon
-        color={cellData.value ? "success" : "secondaryDark"}
-        iconName={cellData.value ? "check" : "x"}
-      />
+      <Icon color={isChecked ? "success" : "secondaryDark"} iconName={isChecked ? "check" : "x"} />
     </Box>
   );
 };
@@ -71,7 +69,7 @@ const DataTableCell: FC<DataTableCellProps> = ({
   // Default to TextCell
   let Component: React.ComponentType<{
     column: DataTableColumn;
-    cellData: {value: any; highlight?: SurfaceColor};
+    cellData: DataTableCellData;
   }> = TextCell;
   if (customColumnComponentMap?.[columnDef.columnType]) {
     Component = customColumnComponentMap[columnDef.columnType];
@@ -265,37 +263,41 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
         }),
       }}
     >
-      {Boolean(column.title) && <TableTitle align="left" title={column.title!} />}
-      <View style={{alignItems: "center", flexDirection: "row"}}>
-        {column.infoModalText && (
-          <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
-        )}
-        {column.sortable && (
-          <Pressable hitSlop={16} onPress={() => onSort(index)}>
-            <View
-              style={{
-                alignItems: "center",
-                backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
-                borderRadius: theme.radius.rounded,
-                height: 16,
-                justifyContent: "center",
-                marginLeft: 8,
-                width: 16,
-              }}
-            >
-              <FontAwesome6
-                color={theme.text.inverted}
-                name={
-                  sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
-                }
-                selectable={undefined}
-                size={10}
-                solid
-              />
-            </View>
-          </Pressable>
-        )}
-      </View>
+      {[
+        Boolean(column.title) ? (
+          <TableTitle align="left" key="data-table-header-title" title={column.title!} />
+        ) : null,
+        <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
+          {column.infoModalText && (
+            <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
+          )}
+          {column.sortable && (
+            <Pressable hitSlop={16} onPress={() => onSort(index)}>
+              <View
+                style={{
+                  alignItems: "center",
+                  backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
+                  borderRadius: theme.radius.rounded,
+                  height: 16,
+                  justifyContent: "center",
+                  marginLeft: 8,
+                  width: 16,
+                }}
+              >
+                <FontAwesome6
+                  color={theme.text.inverted}
+                  name={
+                    sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
+                  }
+                  selectable={undefined}
+                  size={10}
+                  solid
+                />
+              </View>
+            </Pressable>
+          )}
+        </View>,
+      ]}
     </View>
   );
 };
@@ -401,20 +403,22 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
 };
 
 interface DataTableContentProps {
-  data: any[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   pinnedColumns: number;
   alternateRowBackground: boolean;
   columnWidths: number[];
   bodyScrollRef: React.RefObject<ScrollView | null>;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: any[];
-    rowIndex: number;
-  }>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra props to pass to the more modal, one per row.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   moreContentSize?: "sm" | "md" | "lg";
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;

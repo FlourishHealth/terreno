@@ -62,9 +62,15 @@ config.resolver.unstable_enableSymlinks = true;
 // Force React-related imports to resolve to a single canonical path
 // This prevents the "Invalid hook call" error caused by duplicate React instances
 const reactPackages = ["react", "react-dom", "react-native", "react-native-web"];
+const jspdfNativeStub = path.resolve(__dirname, "jspdf-native-stub.js");
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // jspdf's node build uses AMD require() that Metro can't parse — force ESM build on web
-  if (platform === "web" && moduleName === "jspdf") {
+  // jspdf uses browser/node APIs (latin1 encoding, Buffer) unavailable in Hermes —
+  // stub it on native, force ESM build on web (CJS entry uses AMD require() Metro can't parse).
+  if (moduleName === "jspdf") {
+    if (platform !== "web") {
+      return {type: "sourceFile", filePath: jspdfNativeStub};
+    }
     try {
       const uiDir = path.resolve(monorepoRoot, "ui");
       const jspdfDir = path.dirname(require.resolve("jspdf/package.json", {paths: [projectRoot, uiDir, monorepoRoot]}));

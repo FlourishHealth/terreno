@@ -1,6 +1,6 @@
 export * from "./Accordion.config";
-export * from "./AiSuggestionBox.config";
 export * from "./AddressField.config";
+export * from "./AiSuggestionBox.config";
 export * from "./Avatar.config";
 export * from "./Badge.config";
 export * from "./Banner.config";
@@ -34,6 +34,7 @@ export * from "./SectionDivider.config";
 export * from "./SegmentedControl.config";
 export * from "./SelectBadge.config";
 export * from "./SelectField.config";
+export * from "./SidebarNavigation.config";
 export * from "./SideDrawer.config";
 export * from "./SignatureField.config";
 export * from "./Slider.config";

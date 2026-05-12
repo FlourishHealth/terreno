@@ -157,4 +157,75 @@ describe("Button", () => {
     const {getByLabelText} = renderWithTheme(<Button onClick={() => {}} text="Accessible" />);
     expect(getByLabelText("Accessible")).toBeTruthy();
   });
+
+  it("invokes onClick when confirmation primary button is pressed", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    // Wait for confirmation modal
+    await waitFor(
+      () => {
+        expect(queryByText("Confirm Title")).toBeTruthy();
+      },
+      {timeout: 2000}
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Confirm"));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    await waitFor(() => {
+      expect(handleClick).toHaveBeenCalled();
+    });
+  });
+
+  it("dismisses confirmation modal when secondary button is pressed", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    await waitFor(
+      () => {
+        expect(queryByText("Cancel")).toBeTruthy();
+      },
+      {timeout: 2000}
+    );
+
+    // Cancel does not throw and does not invoke onClick
+    expect(() => fireEvent.press(getByText("Cancel"))).not.toThrow();
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("renders with tooltip on desktop (wrapped in Tooltip)", () => {
+    const {toJSON} = renderWithTheme(
+      <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
 });

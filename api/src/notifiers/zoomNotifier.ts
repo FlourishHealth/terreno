@@ -29,10 +29,10 @@ import {logger} from "../logger";
  * Logs errors to Sentry and logger when webhook is missing or request fails.
  * Uses Zoom's rich message format (format=full) with structured header and body.
  */
-export async function sendToZoom(
+export const sendToZoom = async (
   {header, body, subheader}: {header: string; body: string; subheader?: string},
   {channel, shouldThrow = false, env}: {channel: string; shouldThrow?: boolean; env?: string}
-) {
+) => {
   const zoomWebhooksString = process.env.ZOOM_CHAT_WEBHOOKS;
   if (!zoomWebhooksString) {
     const msg = "ZOOM_CHAT_WEBHOOKS not set. Zoom message not sent";
@@ -45,7 +45,6 @@ export async function sendToZoom(
   );
 
   const zoomChannel = channel ?? "default";
-  // Use format full
   const zoomWebhookUrl = zoomWebhooks[zoomChannel]?.channel ?? zoomWebhooks.default?.channel;
 
   if (!zoomWebhookUrl) {
@@ -64,7 +63,6 @@ export async function sendToZoom(
     return;
   }
 
-  // Build the message structure
   const messageBody: {
     head: {text: string; sub_head?: {text: string}};
     body: Array<{type: string; text: string}>;
@@ -80,7 +78,6 @@ export async function sendToZoom(
     },
   };
 
-  // Add subheader if provided
   if (subheader) {
     messageBody.head.sub_head = {
       text: subheader,
@@ -98,14 +95,15 @@ export async function sendToZoom(
         },
       }
     );
-  } catch (error: any) {
-    logger.error(`Error posting to Zoom: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`Error posting to Zoom: ${errorMessage}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Zoom: ${error.text ?? error.message}`,
+        title: `Error posting to Zoom: ${errorMessage}`,
       });
     }
   }
-}
+};

@@ -367,6 +367,22 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     [defaultLocale, handleLocaleContentChange, localeContent, toast, translateContent]
   );
 
+  // Hooks must run before any early returns to keep React's hook order stable across
+  // the loading → loaded transition (otherwise: "Rendered more hooks than during the
+  // previous render", React error #310).
+  const contentLocales = useMemo(
+    () => Object.keys(localeContent).filter((k) => localeContent[k] !== undefined),
+    [localeContent]
+  );
+  const defaultLocaleOptions = useMemo(
+    () =>
+      contentLocales.map((locale) => ({
+        label: locale.toUpperCase(),
+        value: locale,
+      })),
+    [contentLocales]
+  );
+
   if (isEditMode && isFormLoading) {
     return (
       <Page maxWidth="100%">
@@ -380,20 +396,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const isSaving = isCreating || isUpdating;
   const activeLocale = supportedLocales[activeLocaleIndex] ?? "en";
   const isNonDefaultLocale = activeLocale !== defaultLocale;
-
-  const contentLocales = useMemo(
-    () => Object.keys(localeContent).filter((k) => localeContent[k] !== undefined),
-    [localeContent]
-  );
   const hasLocales = contentLocales.length > 0;
-  const defaultLocaleOptions = useMemo(
-    () =>
-      contentLocales.map((locale) => ({
-        label: locale.toUpperCase(),
-        value: locale,
-      })),
-    [contentLocales]
-  );
 
   return (
     <Page

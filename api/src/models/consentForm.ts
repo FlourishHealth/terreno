@@ -2,6 +2,17 @@ import mongoose from "mongoose";
 import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 import type {ConsentFormDocument, ConsentFormModel} from "../types/consentForm";
 
+const consentFormTypeMap = {
+  agreement: "agreement",
+  custom: "custom",
+  hipaa: "hipaa",
+  privacy: "privacy",
+  research: "research",
+  terms: "terms",
+} as const;
+
+const consentFormTypeValues = Object.values(consentFormTypeMap);
+
 const consentFormSchema = new mongoose.Schema<ConsentFormDocument, ConsentFormModel>(
   {
     active: {
@@ -95,7 +106,7 @@ const consentFormSchema = new mongoose.Schema<ConsentFormDocument, ConsentFormMo
     },
     type: {
       description: "Category of consent form",
-      enum: ["agreement", "privacy", "hipaa", "research", "terms", "custom"],
+      enum: consentFormTypeValues,
       required: true,
       type: String,
     },

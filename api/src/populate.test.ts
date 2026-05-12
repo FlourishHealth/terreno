@@ -1,7 +1,8 @@
 import {beforeEach, describe, expect, it} from "bun:test";
+import mongoose, {Schema} from "mongoose";
 
-import {unpopulate} from "./populate";
-import {FoodModel, setupDb} from "./tests";
+import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
+import {FoodModel, setupDb, UserModel} from "./tests";
 
 describe("populate functions", () => {
   let admin: any;
@@ -119,5 +120,150 @@ describe("unpopulate edge cases", () => {
     const result = unpopulate(doc as any, "containers.items") as any;
     expect(result.containers[0].items).toEqual(["item-1", "item-2"]);
     expect(result.containers[1].items).toEqual(["item-3", "item-4"]);
+  });
+});
+
+describe("fixMixedFields", () => {
+  it("returns early when schema is missing", () => {
+    const properties = {foo: {type: "object"}};
+    expect(() => fixMixedFields(null, properties)).not.toThrow();
+  });
+
+  it("returns early when properties is missing", () => {
+    const schema = new Schema({});
+    expect(() => fixMixedFields(schema, null as any)).not.toThrow();
+  });
+
+  it("replaces Mixed fields with only description", () => {
+    const schema = new Schema({data: {description: "any data", type: Schema.Types.Mixed}});
+    const properties: any = {data: {description: "any data", type: "object"}};
+    fixMixedFields(schema, properties);
+    expect(properties.data).toEqual({description: "any data"});
+  });
+
+  it("recurses into arrays of sub-documents", () => {
+    const subSchema = new Schema({meta: {type: Schema.Types.Mixed}});
+    const schema = new Schema({items: [subSchema]});
+    const properties: any = {
+      items: {
+        items: {
+          properties: {
+            meta: {type: "object"},
+          },
+        },
+        type: "array",
+      },
+    };
+    fixMixedFields(schema, properties);
+    expect(properties.items.items.properties.meta).toEqual({description: undefined});
+  });
+
+  it("skips unknown paths", () => {
+    const schema = new Schema({foo: String});
+    const properties = {unknownKey: {type: "string"}};
+    expect(() => fixMixedFields(schema, properties)).not.toThrow();
+  });
+});
+
+describe("getOpenApiSpecForModel edge cases", () => {
+  it("returns model properties without populatePaths", () => {
+    const result = getOpenApiSpecForModel(UserModel);
+    expect(result.properties).toBeDefined();
+  });
+
+  it("returns with extraModelProperties merged", () => {
+    const result = getOpenApiSpecForModel(UserModel, {
+      extraModelProperties: {customField: {type: "string"}},
+    });
+    expect(result.properties.customField).toEqual({type: "string"});
+  });
+
+  it("skips populate paths without ref", () => {
+    // Create a schema with a non-referenced ObjectId field
+    const testSchema = new Schema({name: String, simpleId: Schema.Types.ObjectId});
+    const TestModelNoRef =
+      mongoose.models.TestModelNoRef || mongoose.model("TestModelNoRef", testSchema);
+    const result = getOpenApiSpecForModel(TestModelNoRef, {
+      populatePaths: [{path: "simpleId"}],
+    });
+    // Should not throw, simpleId stays as-is
+    expect(result.properties).toBeDefined();
+  });
+
+  it("populates with fields allowlist", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name"], path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+  });
+
+  it("uses openApiComponent $ref when provided", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{openApiComponent: "UserComponent", path: "ownerId"}],
+    });
+    expect(result.properties.ownerId).toEqual({
+      $ref: "#/components/schemas/UserComponent",
+    });
+  });
+
+  it("populates array ref fields (eatenBy)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "eatenBy"}],
+    });
+    expect(result.properties.eatenBy).toBeDefined();
+    expect((result.properties.eatenBy as any).items).toBeDefined();
+  });
+
+  it("populates nested ref in sub-schema (likesIds.userId)", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "likesIds.userId"}],
+    });
+    expect(result.properties.likesIds).toBeDefined();
+  });
+
+  it("includes virtuals from model schema", () => {
+    const result = getOpenApiSpecForModel(FoodModel);
+    expect(result.properties.description).toBeDefined();
+    expect((result.properties.description as any).type).toBe("any");
+  });
+
+  it("includes virtuals from child schemas", () => {
+    const childSub = new Schema({amount: {description: "Amount", type: Number}});
+    childSub.virtual("displayAmount").get(function () {
+      return `${this.amount} units`;
+    });
+    const parentSchema = new Schema({
+      detail: {description: "Single embedded detail", type: childSub},
+      title: {description: "Title", type: String},
+    });
+    const ParentModel =
+      mongoose.models.ParentWithChildVirtual ||
+      mongoose.model("ParentWithChildVirtual", parentSchema);
+    const result = getOpenApiSpecForModel(ParentModel);
+    const detail = result.properties.detail as any;
+    expect(detail.properties.displayAmount).toBeDefined();
+    expect(detail.properties.displayAmount.type).toBe("any");
+  });
+});
+
+describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
+  it("filters populated fields using dot-notation keys", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["name.nested"], path: "ownerId"}],
+    });
+    const ownerProps = (result.properties.ownerId as any).properties;
+    expect(ownerProps.name).toBeDefined();
+    expect(typeof ownerProps.name).toBe("object");
+  });
+
+  it("rejects prototype pollution keys in nested dot-notation", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{fields: ["__proto__.polluted"], path: "ownerId"}],
+    });
+    expect(result.properties).toBeDefined();
+    expect((Object.prototype as any).polluted).toBeUndefined();
+    const ownerProps = (result.properties.ownerId as any).properties;
+    expect(ownerProps).toBeDefined();
+    expect(Object.keys(ownerProps)).not.toContain("__proto__");
   });
 });

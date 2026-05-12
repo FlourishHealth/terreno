@@ -13,7 +13,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
   preCreate: (body, req) => {
     return {
       ...body,
-      ownerId: (req.user as UserDocument)?._id,
+      ownerId: (req.user as unknown as UserDocument)?._id,
     } as TodoDocument;
   },
   queryFields: ["completed", "ownerId"],

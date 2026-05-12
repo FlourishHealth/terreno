@@ -31,7 +31,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     <Box direction="column" gap={2} testID={testID}>
       {Boolean(title) && <Heading size="sm">{title}</Heading>}
       <Box direction={isDesktop ? "row" : "column"} gap={3}>
-        <Box flex="grow">
+        <Box dangerouslySetInlineStyle={{__style: {flexBasis: 0}}} flex="grow">
           <Heading size="sm">Edit</Heading>
           <Box marginTop={1}>
             <TextField
@@ -46,7 +46,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             />
           </Box>
         </Box>
-        <Box flex="grow">
+        <Box dangerouslySetInlineStyle={{__style: {flexBasis: 0}}} flex="grow">
           <Heading size="sm">Preview</Heading>
           <ScrollView style={{maxHeight, minHeight: 100}}>
             <Box

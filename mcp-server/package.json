@@ -17,8 +17,9 @@
     "compile": "bun run sync-ui-docs && tsc && cp -r src/docs dist/",
     "compile:watch": "tsc -w",
     "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
-    "test": "bun test",
-    "test:ci": "bun test"
+    "test": "bun test src/",
+    "test:ci": "bun test src/",
+    "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
@@ -41,5 +42,8 @@
     "ai",
     "code-generation"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  }
 }

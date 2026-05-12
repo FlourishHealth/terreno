@@ -1,5 +1,5 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {Box, Button, Heading, Icon, Modal, Spinner, Text} from "@terreno/ui";
+import {Badge, Box, Button, Heading, Icon, Modal, Spinner, Text} from "@terreno/ui";
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import type {BackgroundTask} from "./types";
 import {useAdminScripts} from "./useAdminScripts";
@@ -8,8 +8,11 @@ interface AdminScriptRunModalProps {
   baseUrl: string;
   api: Api<any, any, any, any>;
   scriptName: string | null;
+  scriptDescription?: string;
   visible: boolean;
   onDismiss: () => void;
+  /** When true, skip the confirmation step and only allow a dry run. */
+  dryRunOnly?: boolean;
 }
 
 const POLL_INTERVAL_MS = 2000;
@@ -17,17 +20,22 @@ const POLL_INTERVAL_MS = 2000;
 const isTerminalStatus = (status?: string): boolean =>
   status === "completed" || status === "failed" || status === "cancelled";
 
+type Phase = "confirm" | "running" | "done";
+
 export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   baseUrl,
   api,
   scriptName,
+  scriptDescription,
   visible,
   onDismiss,
+  dryRunOnly = false,
 }) => {
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"running" | "done">("running");
+  const [phase, setPhase] = useState<Phase>("confirm");
+  const [isDryRun, setIsDryRun] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
-  const hasStartedRef = useRef(false);
+  const startingRef = useRef(false);
 
   const {useRunScriptMutation, useGetScriptTaskQuery, useCancelScriptTaskMutation} =
     useAdminScripts(api, baseUrl);
@@ -43,34 +51,14 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
 
   const task: BackgroundTask | undefined = taskData?.task;
 
-  // Auto-start wet run when modal opens
-  useEffect(() => {
-    if (!visible || !scriptName || hasStartedRef.current) {
-      return;
-    }
-    hasStartedRef.current = true;
-    setTaskId(null);
-    setPhase("running");
-    setStartError(null);
-
-    void (async () => {
-      try {
-        const result = await runScript({name: scriptName, wetRun: true}).unwrap();
-        setTaskId(result.taskId);
-      } catch (err: unknown) {
-        const errData = (err as {data?: {title?: string; detail?: string}})?.data;
-        const message = errData?.detail ?? errData?.title ?? "Failed to start script";
-        setStartError(message);
-        setPhase("done");
-        hasStartedRef.current = false;
-      }
-    })();
-  }, [visible, scriptName, runScript]);
-
-  // Reset when modal closes
+  // Reset modal state whenever it becomes hidden
   useEffect(() => {
     if (!visible) {
-      hasStartedRef.current = false;
+      setTaskId(null);
+      setPhase("confirm");
+      setIsDryRun(false);
+      setStartError(null);
+      startingRef.current = false;
     }
   }, [visible]);
 
@@ -81,7 +69,32 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
     }
   }, [task?.status]);
 
-  const handleCancel = useCallback(async () => {
+  const startRun = useCallback(
+    async (wetRun: boolean) => {
+      if (!scriptName || startingRef.current) {
+        return;
+      }
+      startingRef.current = true;
+      setIsDryRun(!wetRun);
+      setTaskId(null);
+      setStartError(null);
+      setPhase("running");
+      try {
+        const result = await runScript({name: scriptName, wetRun}).unwrap();
+        setTaskId(result.taskId);
+      } catch (err: unknown) {
+        const errData = (err as {data?: {title?: string; detail?: string}})?.data;
+        const message = errData?.detail ?? errData?.title ?? "Failed to start script";
+        setStartError(message);
+        setPhase("done");
+      } finally {
+        startingRef.current = false;
+      }
+    },
+    [scriptName, runScript]
+  );
+
+  const handleCancelTask = useCallback(async () => {
     if (!taskId) {
       return;
     }
@@ -92,11 +105,54 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
     }
   }, [taskId, cancelTask]);
 
+  const renderConfirm = (): React.ReactElement => (
+    <Box gap={4} paddingY={4}>
+      <Heading align="center" size="md">
+        {scriptName}
+      </Heading>
+      {scriptDescription && (
+        <Text align="center" color="secondaryDark">
+          {scriptDescription}
+        </Text>
+      )}
+      <Text align="center" size="sm">
+        {dryRunOnly
+          ? "Dry runs simulate the script without persisting any changes."
+          : "Run a dry run first to preview changes, or run the script for real."}
+      </Text>
+      <Box direction="row" gap={2} justifyContent="center" wrap>
+        <Button
+          onClick={() => startRun(false)}
+          testID="admin-script-dry-run-button"
+          text="Dry Run"
+          variant={dryRunOnly ? "primary" : "secondary"}
+        />
+        {!dryRunOnly && (
+          <Button
+            confirmationText={`Run "${scriptName}" for real? This will persist changes.`}
+            onClick={() => startRun(true)}
+            testID="admin-script-wet-run-button"
+            text="Run"
+            variant="primary"
+            withConfirmation
+          />
+        )}
+        <Button
+          onClick={onDismiss}
+          testID="admin-script-confirm-cancel-button"
+          text="Cancel"
+          variant="muted"
+        />
+      </Box>
+    </Box>
+  );
+
   const renderRunning = (): React.ReactElement => (
     <Box alignItems="center" gap={4} paddingY={4}>
       <Heading align="center" size="md">
         {scriptName}
       </Heading>
+      <Badge status={isDryRun ? "info" : "warning"} value={isDryRun ? "Dry Run" : "Live Run"} />
       <Spinner size="md" />
       {task?.progress?.message && <Text align="center">{task.progress.message}</Text>}
       {task?.progress?.stage && (
@@ -110,9 +166,9 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
         </Text>
       )}
       <Button
-        disabled={isCancelling}
+        disabled={isCancelling || !taskId}
         loading={isCancelling}
-        onClick={handleCancel}
+        onClick={handleCancelTask}
         testID="admin-script-cancel-button"
         text="Cancel"
         variant="destructive"
@@ -139,6 +195,7 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
           {scriptName}
         </Heading>
         <Box alignItems="center" gap={2}>
+          <Badge status={isDryRun ? "info" : "warning"} value={isDryRun ? "Dry Run" : "Live Run"} />
           <Icon color={iconColor} iconName={iconName} size="md" />
           <Text align="center" bold>
             {statusLabel}
@@ -175,11 +232,12 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
     <Modal
       onDismiss={onDismiss}
       persistOnBackgroundClick={!isComplete}
-      primaryButtonOnClick={onDismiss}
+      primaryButtonOnClick={isComplete ? onDismiss : undefined}
       primaryButtonText={isComplete ? "Close" : undefined}
       visible={visible}
     >
       <Box minHeight={200} padding={2}>
+        {phase === "confirm" && renderConfirm()}
         {phase === "running" && renderRunning()}
         {phase === "done" && renderDone()}
       </Box>

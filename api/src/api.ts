@@ -39,13 +39,15 @@ import {isValidObjectId} from "./utils";
 
 export type JSONPrimitive = string | number | boolean | null;
 export interface JSONArray extends Array<JSONValue> {}
-export type JSONObject = {[member: string]: JSONValue};
+export interface JSONObject {
+  [member: string]: JSONValue;
+}
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
-export function addPopulateToQuery(
+export const addPopulateToQuery = (
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
-) {
+) => {
   const paths = populatePaths ?? [];
   let query = builtQuery;
 
@@ -55,7 +57,7 @@ export function addPopulateToQuery(
     query = builtQuery.populate({path, select});
   }
   return query;
-}
+};
 
 // TODOS:
 // Support bulk actions
@@ -74,6 +76,30 @@ const COMPLEX_QUERY_PARAMS = ["$and", "$or"];
  * @returns The sum of `a` and `b`
  */
 export type RESTMethod = "list" | "create" | "read" | "update" | "delete";
+
+/**
+ * Interface for the vendored @wesleytodd/openapi Express middleware.
+ * Provides methods for building OpenAPI documentation from Express routes.
+ */
+export interface OpenApiMiddleware {
+  /** The middleware itself is callable as Express middleware. */
+  (req: express.Request, res: express.Response, next: express.NextFunction): void;
+  /** Register a path-level OpenAPI schema, returning an Express middleware that attaches the schema to the route. */
+  path: (schema?: Record<string, unknown>) => express.RequestHandler;
+  /** Register or retrieve an OpenAPI component definition (schemas, responses, parameters, etc). */
+  component: (
+    type: string,
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** Shorthand for component("schemas", ...) */
+  schema: (
+    name?: string,
+    description?: Record<string, unknown>
+  ) => OpenApiMiddleware | {$ref: string} | Record<string, unknown> | undefined;
+  /** The generated OpenAPI document */
+  document: Record<string, unknown>;
+}
 
 /**
  * This is the main configuration.
@@ -113,8 +139,8 @@ export interface ModelRouterOptions<T> {
    */
   queryFilter?: (
     user?: User,
-    query?: Record<string, any>
-  ) => Record<string, any> | null | Promise<Record<string, any> | null>;
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
   /**
    * Transformers allow data to be transformed before actions are executed,
    * and serialized before being returned to the user.
@@ -140,7 +166,7 @@ export interface ModelRouterOptions<T> {
    * list queries. Accepts any Mongoose-style queries, and runs for all user types.
    *    defaultQueryParams: \{hidden: false\} // By default, don't show objects with hidden=true
    * These can be overridden by the user if not disallowed by queryFilter. */
-  defaultQueryParams?: {[key: string]: any};
+  defaultQueryParams?: Record<string, unknown>;
   /**
    * Manages Mongoose populations before returning from all methods (list, read, create, etc).
    * For each population:
@@ -164,14 +190,17 @@ export interface ModelRouterOptions<T> {
    *  or 500. */
   maxLimit?: number; // defaults to 500
   /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
-  endpoints?: (router: any, options?: Partial<ModelRouterOptions<T>>) => void;
+  endpoints?: (router: express.Router, options?: Partial<ModelRouterOptions<T>>) => void;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
    * Return null to return a generic 403 error. Throw an APIError to return a 400 with specific
    * error information.
    */
-  preCreate?: (value: any, request: express.Request) => T | Promise<T> | null;
+  preCreate?: (
+    value: Partial<T> | (Partial<T> | undefined)[] | null | undefined,
+    request: express.Request
+  ) => T | Promise<T> | null;
   /**
    * Hook that runs after `transformer.transform` but before changes are made for update operations.
    * Can update the body fields based on the request or the user.
@@ -253,17 +282,17 @@ export interface ModelRouterOptions<T> {
   /**
    * The OpenAPI generator for this server. This is used to generate the OpenAPI documentation.
    */
-  openApi?: any;
+  openApi?: OpenApiMiddleware;
   /**
    * Overwrite parts of the configuration for the OpenAPI generator.
    * This will be merged with the generated configuration.
    */
   openApiOverwrite?: {
-    get?: any;
-    list?: any;
-    create?: any;
-    update?: any;
-    delete?: any;
+    get?: Record<string, unknown>;
+    list?: Record<string, unknown>;
+    create?: Record<string, unknown>;
+    update?: Record<string, unknown>;
+    delete?: Record<string, unknown>;
   };
   /**
    * Overwrite parts of the model properties for the OpenAPI generator.
@@ -271,7 +300,7 @@ export interface ModelRouterOptions<T> {
    * This is useful if you add custom properties to the model during serialize, for example,
    * that you want to be documented and typed in the SDK.
    */
-  openApiExtraModelProperties?: any;
+  openApiExtraModelProperties?: Record<string, unknown>;
   /**
    * Enable runtime validation of request bodies against the OpenAPI schema.
    * When enabled, requests that don't match the documented schema will return 400 errors.
@@ -296,11 +325,11 @@ export interface ModelRouterOptions<T> {
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
-function checkQueryParamAllowed(
+const checkQueryParamAllowed = (
   queryParam: string,
   queryParamValue: any,
   queryFields: string[] = []
-) {
+) => {
   // Check the values of each of the complex query params. We don't support recursive queries here,
   // just one level of and/or
   if (COMPLEX_QUERY_PARAMS.includes(queryParam)) {
@@ -318,7 +347,7 @@ function checkQueryParamAllowed(
       title: `${queryParam} is not allowed as a query param.`,
     });
   }
-}
+};
 
 // Handles dot notation patches, creates a normal object to be used for updates.
 // function flattenDotNotationPatch(data: any) {
@@ -342,10 +371,10 @@ function checkQueryParamAllowed(
 // Helper to determine if validation should be enabled for a specific operation.
 // When options.validation is not set, returns true — the middleware's own
 // isConfigured check will decide whether to actually validate.
-function shouldValidate(
+const shouldValidate = (
   options: ModelRouterOptions<any>,
   operation: "create" | "update" | "query"
-): boolean {
+): boolean => {
   // Check route-specific validation option first
   if (options.validation !== undefined) {
     if (typeof options.validation === "boolean") {
@@ -362,14 +391,14 @@ function shouldValidate(
 
   // Default: let middleware's isConfigured check decide
   return true;
-}
+};
 
 // Get body validation middleware if validation is enabled
-function getBodyValidationMiddleware<T>(
+const getBodyValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const validationOptions: import("./openApiValidator").RequestBodyValidatorOptions = {};
   if (!shouldValidate(options, operation)) {
     validationOptions.enabled = false;
@@ -392,13 +421,13 @@ function getBodyValidationMiddleware<T>(
   }
 
   return validateModelRequestBody(model, validationOptions);
-}
+};
 
 // Get query validation middleware if validation is enabled
-function getQueryValidationMiddleware<T>(
+const getQueryValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
   const validationOptions: import("./openApiValidator").QueryValidatorOptions = {};
   if (!shouldValidate(options, "query")) {
@@ -409,7 +438,7 @@ function getQueryValidationMiddleware<T>(
   }
 
   return validateQueryParams(querySchema, validationOptions);
-}
+};
 
 /**
  * Registration object returned by modelRouter when called with a path.

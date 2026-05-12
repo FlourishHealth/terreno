@@ -317,4 +317,40 @@ describe("prompts", () => {
       expect(result.messages[0].content.text).toContain("Unknown prompt");
     });
   });
+
+  describe("migrate_to_terreno_app", () => {
+    test("should return generic guide without serverFile", () => {
+      const result = handlePromptRequest("migrate_to_terreno_app", {});
+      const content = result.messages[0].content.text;
+
+      expect(content.length).toBeGreaterThan(0);
+      expect(content).not.toContain("Your Task");
+    });
+
+    test("should include task-specific instructions when serverFile is provided", () => {
+      const result = handlePromptRequest("migrate_to_terreno_app", {
+        serverFile: "src/myServer.ts",
+      });
+      const content = result.messages[0].content.text;
+
+      expect(content).toContain("src/myServer.ts");
+      expect(content).toContain("Your Task");
+      expect(content).toContain("TerrenoApp.create");
+      expect(content).toContain("HealthApp");
+    });
+  });
+
+  describe("bootstrap_terreno_app", () => {
+    test("should delegate to bootstrap prompt handler", () => {
+      const result = handlePromptRequest("bootstrap_terreno_app", {
+        appDisplayName: "My Bootstrap App",
+        appName: "my-bootstrap-app",
+      });
+      const content = result.messages[0].content.text;
+
+      expect(content).toContain("my-bootstrap-app");
+      expect(content).toContain("My Bootstrap App");
+      expect(content).toContain("bootstrap_app");
+    });
+  });
 });

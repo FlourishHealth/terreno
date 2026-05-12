@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "api/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/api-ci.yml"
 
 defaults:
@@ -49,7 +50,7 @@ jobs:
         run: bun run lint
       - name: Build
         run: bun run compile
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         env:
           CI: true

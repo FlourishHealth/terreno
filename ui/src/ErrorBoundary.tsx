@@ -8,14 +8,14 @@ interface State {
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
-  state = {error: undefined};
+  state: State = {error: undefined};
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): State {
     console.warn("[ErrorBoundary] Derived error", error);
     return {error};
   }
 
-  componentDidCatch(error: Error, info: {componentStack: string}) {
+  componentDidCatch(error: Error, info: {componentStack: string}): void {
     console.warn("[ErrorBoundary] Caught error", error);
 
     if (this.props.onError) {
@@ -23,11 +23,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, State> {
     }
   }
 
-  resetError = () => {
+  resetError = (): void => {
     this.setState({error: undefined});
   };
 
-  render() {
+  render(): React.ReactNode {
     const error = this.state.error;
     if (error) {
       return <ErrorPage error={error} resetError={this.resetError} />;

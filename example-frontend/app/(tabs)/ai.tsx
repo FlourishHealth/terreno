@@ -1,4 +1,4 @@
-import {baseUrl, getAuthToken} from "@terreno/rtk";
+import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Box,
   GPTChat,
@@ -79,7 +79,8 @@ const AiScreen: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
 
   const dispatch = useDispatch();
-  const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
+  const userId = useSelectCurrentUserId();
+  const {data: historiesData, isLoading} = useGetGptHistoriesQuery(undefined, {skip: !userId});
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 

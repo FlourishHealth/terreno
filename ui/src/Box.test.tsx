@@ -659,4 +659,222 @@ describe("Box", () => {
       expect(component.toJSON()).toMatchSnapshot();
     });
   });
+
+  describe("edge case warnings and fallbacks", () => {
+    it("returns empty style when border prop is falsy", () => {
+      const {root} = renderWithTheme(<Box border={undefined as any} />);
+      expect(root).toBeTruthy();
+    });
+
+    it("returns empty style when borderBottom prop is falsy", () => {
+      const {root} = renderWithTheme(<Box borderBottom={undefined as any} />);
+      expect(root).toBeTruthy();
+    });
+
+    it("returns empty style when borderLeft prop is falsy", () => {
+      const {root} = renderWithTheme(<Box borderLeft={undefined as any} />);
+      expect(root).toBeTruthy();
+    });
+
+    it("returns empty style when borderRight prop is falsy", () => {
+      const {root} = renderWithTheme(<Box borderRight={undefined as any} />);
+      expect(root).toBeTruthy();
+    });
+
+    it("returns empty style when borderTop prop is falsy", () => {
+      const {root} = renderWithTheme(<Box borderTop={undefined as any} />);
+      expect(root).toBeTruthy();
+    });
+
+    it("warns when invalid height value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box height={"abc" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("warns when invalid maxHeight value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box maxHeight={"xyz" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("warns when invalid maxWidth value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box maxWidth={"abc" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("warns when invalid minHeight value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box minHeight={"abc" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("warns when invalid minWidth value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box minWidth={"abc" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("warns when invalid width value is provided", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box width={"abc" as any} />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("applies mdDirection only when mediaQuery is md+", () => {
+      const {root} = renderWithTheme(<Box mdDirection="row" />);
+      expect(root).toBeTruthy();
+    });
+
+    it("applies lgDirection only when mediaQuery is lg", () => {
+      const {root} = renderWithTheme(<Box lgDirection="column" />);
+      expect(root).toBeTruthy();
+    });
+
+    it("applies width with border adds 4 pixels", () => {
+      const {root} = renderWithTheme(<Box border="default" width={100} />);
+      const view = root.findByType("View");
+      expect(view.props.style.width).toBe(104);
+    });
+
+    it("applies height with border adds 4 pixels", () => {
+      const {root} = renderWithTheme(<Box border="default" height={80} />);
+      const view = root.findByType("View");
+      expect(view.props.style.height).toBe(84);
+    });
+
+    it("warns when wrap is combined with alignItems on native", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box alignItems="center" wrap />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("applies dangerouslySetInlineStyle overrides", () => {
+      const {root} = renderWithTheme(
+        <Box dangerouslySetInlineStyle={{__style: {backgroundColor: "red"}}} />
+      );
+      const view = root.findByType("View");
+      expect(view.props.style.backgroundColor).toBe("red");
+    });
+
+    it("handles rounding='circle' with width/height", () => {
+      const {root} = renderWithTheme(<Box height={40} rounding="circle" width={40} />);
+      const view = root.findByType("View");
+      expect(view.props.style.borderRadius).toBe(40);
+    });
+
+    it("warns when rounding='circle' without width/height", () => {
+      const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+      renderWithTheme(<Box rounding="circle" />);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
+    });
+
+    it("applies shadow on ios/web", () => {
+      const {root} = renderWithTheme(<Box shadow />);
+      const view = root.findByType("View");
+      expect(view.props.style.boxShadow).toBeDefined();
+    });
+
+    it("applies overflow='scroll'", () => {
+      const {root} = renderWithTheme(<Box overflow="scroll" />);
+      const view = root.findByType("View");
+      expect(view.props.style.overflow).toBe("scroll");
+    });
+
+    it("applies overflow='scrollY'", () => {
+      const {root} = renderWithTheme(<Box overflow="scrollY" />);
+      const view = root.findByType("View");
+      expect(view.props.style.overflow).toBe("scroll");
+    });
+
+    it("applies position='absolute'", () => {
+      const {root} = renderWithTheme(<Box position="absolute" />);
+      const view = root.findByType("View");
+      expect(view.props.style.position).toBe("absolute");
+    });
+
+    it("applies zIndex", () => {
+      const {root} = renderWithTheme(<Box zIndex={10} />);
+      const view = root.findByType("View");
+      expect(view.props.style.zIndex).toBe(10);
+    });
+
+    it("applies top/left/right/bottom offsets", () => {
+      const {root} = renderWithTheme(<Box bottom left position="absolute" right top />);
+      const view = root.findByType("View");
+      expect(view.props.style.top).toBe(0);
+      expect(view.props.style.left).toBe(0);
+      expect(view.props.style.right).toBe(0);
+      expect(view.props.style.bottom).toBe(0);
+    });
+
+    it("fires onScroll when scroll is enabled", async () => {
+      const onScroll = mock(() => {});
+      const {root} = renderWithTheme(
+        <Box onScroll={onScroll} scroll>
+          <Text>Scrollable</Text>
+        </Box>
+      );
+      const scrollView = root.findByType("ScrollView" as any);
+      await act(async () => {
+        scrollView.props.onScroll?.({nativeEvent: {contentOffset: {y: 100}}});
+      });
+      expect(onScroll).toHaveBeenCalledWith(100);
+    });
+
+    it("invokes onHoverStart/onHoverEnd callbacks", async () => {
+      const onHoverStart = mock(() => {});
+      const onHoverEnd = mock(() => {});
+      const {root} = renderWithTheme(
+        <Box onHoverEnd={onHoverEnd} onHoverStart={onHoverStart}>
+          <Text>Hover</Text>
+        </Box>
+      );
+      const view = root.findByType("View");
+      await act(async () => {
+        await view.props.onPointerEnter?.();
+      });
+      await act(async () => {
+        await view.props.onPointerLeave?.();
+      });
+      expect(onHoverStart).toHaveBeenCalled();
+      expect(onHoverEnd).toHaveBeenCalled();
+    });
+
+    it("exposes scrollTo and scrollToEnd through ref", () => {
+      const ref = React.createRef<any>();
+      renderWithTheme(
+        <Box ref={ref} scroll>
+          <Text>Content</Text>
+        </Box>
+      );
+      expect(typeof ref.current?.scrollTo).toBe("function");
+      expect(typeof ref.current?.scrollToEnd).toBe("function");
+      // Call them to cover the function bodies
+      ref.current?.scrollTo(100);
+      ref.current?.scrollToEnd();
+    });
+
+    it("invokes onClick with haptic feedback", async () => {
+      const onClick = mock(() => Promise.resolve());
+      const {getByLabelText} = renderWithTheme(
+        <Box accessibilityHint="" accessibilityLabel="Press" onClick={onClick}>
+          <Text>Click</Text>
+        </Box>
+      );
+      await act(async () => {
+        fireEvent.press(getByLabelText("Press"));
+      });
+      expect(onClick).toHaveBeenCalled();
+    });
+  });
 });

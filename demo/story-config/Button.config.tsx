@@ -91,11 +91,11 @@ export const ButtonConfiguration: DemoConfiguration = {
     },
   },
   stories: {
-    Variants: {render: () => ButtonVariants({})},
-    IconPosition: {render: () => ButtonIconPosition()},
-    Loading: {render: () => ButtonLoading()},
-    Confirmation: {render: () => ConfirmationButton()},
-    FullWidth: {render: () => FullWidthButtons({})},
-    Multiline: {render: () => MultilineButtons()},
+    Variants: {render: ButtonVariants},
+    IconPosition: {render: ButtonIconPosition},
+    Loading: {render: ButtonLoading},
+    Confirmation: {render: ConfirmationButton},
+    FullWidth: {render: FullWidthButtons},
+    Multiline: {render: MultilineButtons},
   },
 };

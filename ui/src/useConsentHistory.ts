@@ -20,11 +20,35 @@ export interface ConsentHistoryEntry {
   userAgent?: string;
 }
 
-export const useConsentHistory = (api: any, baseUrl?: string) => {
+interface ConsentHistoryResponse {
+  data?: ConsentHistoryEntry[];
+}
+
+interface ConsentHistoryQueryBuilder {
+  query: (options: {providesTags: string[]; query: () => string}) => unknown;
+}
+
+interface ConsentHistoryHookState {
+  data?: ConsentHistoryEntry[] | ConsentHistoryResponse;
+  error: unknown;
+  isLoading: boolean;
+  refetch: () => void | Promise<void>;
+}
+
+interface ConsentHistoryApi {
+  injectEndpoints: (options: {
+    endpoints: (build: ConsentHistoryQueryBuilder) => {getMyConsents: unknown};
+    overrideExisting: boolean;
+  }) => {
+    useGetMyConsentsQuery: () => ConsentHistoryHookState;
+  };
+}
+
+export const useConsentHistory = (api: ConsentHistoryApi, baseUrl?: string) => {
   const base = baseUrl || "";
 
   const enhancedApi = api.injectEndpoints({
-    endpoints: (build: any) => ({
+    endpoints: (build) => ({
       getMyConsents: build.query({
         providesTags: ["MyConsents"],
         query: () => `${base}/consents/my`,

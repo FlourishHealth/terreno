@@ -20,7 +20,7 @@ export const SelectField: FC<SelectFieldProps> = ({
 
   return (
     <View>
-      {title && <FieldTitle text={title} />}
+      {Boolean(title) && <FieldTitle text={title!} />}
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <RNPickerSelect
         disabled={disabled}
@@ -35,7 +35,7 @@ export const SelectField: FC<SelectFieldProps> = ({
         placeholder={!requireValue ? clearOption : {}}
         value={value ?? ""}
       />
-      {helperText && <FieldHelperText text={helperText} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
     </View>
   );
 };

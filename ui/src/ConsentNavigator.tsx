@@ -13,19 +13,25 @@ interface ConsentNavigatorProps {
   api: any;
   baseUrl?: string;
   children: React.ReactNode;
+  extraScreens?: React.ReactNode[];
   onError?: (error: any) => void;
+  variables?: Record<string, string>;
 }
 
 export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   api,
   baseUrl,
   children,
+  extraScreens,
   onError,
+  variables,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [extraScreenIndex, setExtraScreenIndex] = useState(0);
   const {forms, isLoading, error, refetch} = useConsentForms(api, baseUrl);
   const {submit, isSubmitting} = useSubmitConsent(api, baseUrl);
   const locale = detectLocale();
+  const validExtraScreens = extraScreens ?? [];
 
   if (isLoading) {
     console.debug("[ConsentNavigator] Loading pending consents...");
@@ -68,6 +74,18 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   }
 
   if (forms.length === 0 || currentIndex >= forms.length) {
+    if (extraScreenIndex < validExtraScreens.length) {
+      const currentScreen = validExtraScreens[extraScreenIndex];
+      console.debug(
+        `[ConsentNavigator] Showing extra screen ${extraScreenIndex + 1}/${validExtraScreens.length}`
+      );
+      if (React.isValidElement(currentScreen)) {
+        return React.cloneElement(currentScreen as React.ReactElement<any>, {
+          onNext: () => setExtraScreenIndex((i) => i + 1),
+        });
+      }
+      return <>{currentScreen}</>;
+    }
     console.debug("[ConsentNavigator] No pending consents, showing app");
     return <>{children}</>;
   }
@@ -123,6 +141,7 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
       locale={locale}
       onAgree={handleAgree}
       onDecline={currentForm.required ? undefined : handleDecline}
+      variables={variables}
     />
   );
 };
