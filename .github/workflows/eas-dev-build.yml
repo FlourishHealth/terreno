@@ -74,14 +74,12 @@ jobs:
           ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
           ENV_NAME="eas-${APP}-${PLATFORM}-${ENVIRONMENT}"
-          DEPLOYMENT_ID=$(gh api "repos/${{ github.repository }}/deployments" \
-            -f ref="${{ github.sha }}" \
-            -f environment="$ENV_NAME" \
-            -F auto_merge=false \
-            -F required_contexts='[]' \
-            -f description="EAS ${APP} ${PLATFORM} ${ENVIRONMENT}" \
-            -F transient_environment=true \
-            --jq '.id')
+          DEPLOYMENT_ID=$(jq -n \
+            --arg ref "${{ github.sha }}" \
+            --arg env "$ENV_NAME" \
+            --arg desc "EAS ${APP} ${PLATFORM} ${ENVIRONMENT}" \
+            '{ref: $ref, environment: $env, auto_merge: false, required_contexts: [], description: $desc, transient_environment: true}' | \
+            gh api "repos/${{ github.repository }}/deployments" --input - --jq '.id')
           echo "id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
           gh api "repos/${{ github.repository }}/deployments/$DEPLOYMENT_ID/statuses" \
             -f state=in_progress \
