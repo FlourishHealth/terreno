@@ -248,7 +248,7 @@ describe("HeightField - Android platform", () => {
     expect(root).toBeTruthy();
   });
 
-  it("forwards feet/inches picker changes to onChange (Android)", () => {
+  it("forwards feet picker changes to onChange (Android)", () => {
     const onChange = mock(() => {});
     const {SelectField} = require("./SelectField") as {
       SelectField: React.ComponentType<{onChange?: (v: string) => void}>;
@@ -256,12 +256,20 @@ describe("HeightField - Android platform", () => {
     const {UNSAFE_getAllByType} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
     const selects = UNSAFE_getAllByType(SelectField);
     expect(selects.length).toBe(2);
-    // First SelectField is feet, second is inches.
-    // value="70" → 5ft 10in. Bumping feet to 6 yields 6*12 + 10 = 82.
+    // First SelectField is feet. value="70" → 5ft 10in. Bumping feet to 6 yields 6*12+10=82.
     selects[0].props.onChange?.("6");
     expect(onChange).toHaveBeenCalledWith("82");
-    onChange.mockClear();
-    // Inches change keeps current feet=5 → 5*12 + 3 = 63.
+  });
+
+  it("forwards inches picker changes to onChange (Android)", () => {
+    const onChange = mock(() => {});
+    const {SelectField} = require("./SelectField") as {
+      SelectField: React.ComponentType<{onChange?: (v: string) => void}>;
+    };
+    const {UNSAFE_getAllByType} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const selects = UNSAFE_getAllByType(SelectField);
+    expect(selects.length).toBe(2);
+    // Second SelectField is inches. value="70" → 5ft 10in. Changing inches to 3 yields 5*12+3=63.
     selects[1].props.onChange?.("3");
     expect(onChange).toHaveBeenCalledWith("63");
   });
