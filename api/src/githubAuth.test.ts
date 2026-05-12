@@ -6,7 +6,7 @@ import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import {generateTokens} from "./auth";
+import {generateTokens, type UserModel} from "./auth";
 import {setupServer} from "./expressServer";
 import {type GitHubUserFields, githubUserPlugin, setupGitHubAuth} from "./githubAuth";
 import {logger} from "./logger";
@@ -54,6 +54,13 @@ interface TestUser extends GitHubUserFields {
   username: string;
   email: string;
   disabled?: boolean;
+}
+
+interface PasswordedDocument {
+  setPassword: (password: string) => Promise<unknown>;
+  save: () => Promise<unknown>;
+  hash?: string;
+  salt?: string;
 }
 
 // Create schema for GitHub-enabled user
@@ -580,8 +587,9 @@ describe("GitHub callback handler (fake strategy)", () => {
 
     app = setupServer({
       addMiddleware: (a) => {
-        // The handler reads (req as any).session?.returnTo. setupServer does not install
-        // express-session, so prime a fake session from a request header for tests.
+        // The handler reads (req as unknown as {session?: {returnTo?: string}}).session?.returnTo.
+        // setupServer does not install express-session, so prime a fake session from a request
+        // header for tests.
         a.use((req, _res, next) => {
           const headerReturnTo = req.headers["x-mock-return-to"];
           if (typeof headerReturnTo === "string") {
@@ -598,7 +606,7 @@ describe("GitHub callback handler (fake strategy)", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     });
     // Swap the github strategy with our fake after setupServer registered it.
     installFakeGithubStrategy();
@@ -615,7 +623,7 @@ describe("GitHub callback handler (fake strategy)", () => {
       email: "cb@example.com",
       githubId: "cb-gh-1",
       name: "CB User",
-    } as any);
+    } as unknown as TestUser);
 
     fakeGithubOutcome = {type: "success", user};
 
@@ -630,7 +638,7 @@ describe("GitHub callback handler (fake strategy)", () => {
       email: "cb2@example.com",
       githubId: "cb-gh-2",
       name: "CB User 2",
-    } as any);
+    } as unknown as TestUser);
 
     fakeGithubOutcome = {type: "success", user};
     const res = await agent
@@ -654,7 +662,7 @@ describe("GitHub callback handler (fake strategy)", () => {
       email: "cb3@example.com",
       githubId: "cb-gh-3",
       name: "CB User 3",
-    } as any);
+    } as unknown as TestUser);
 
     fakeGithubOutcome = {type: "success", user};
 
@@ -691,7 +699,7 @@ describe("GET /auth/github/link with JWT (fake strategy)", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     });
     installFakeGithubStrategy();
     agent = supertest.agent(app);
@@ -706,8 +714,8 @@ describe("GET /auth/github/link with JWT (fake strategy)", () => {
     const user = await GitHubTestUserModel.create({
       email: "linkjwt@example.com",
       name: "Link JWT User",
-    } as any);
-    await (user as any).setPassword("password123");
+    } as unknown as TestUser);
+    await (user as unknown as PasswordedDocument).setPassword("password123");
     await user.save();
 
     const loginRes = await agent
@@ -746,7 +754,7 @@ describe("DELETE /auth/github/unlink edge cases", () => {
         clientSecret: "test-client-secret",
       },
       skipListen: true,
-      userModel: GitHubTestUserModel as any,
+      userModel: GitHubTestUserModel as unknown as UserModel,
     });
     installFakeGithubStrategy();
     agent = supertest.agent(app);
@@ -761,9 +769,9 @@ describe("DELETE /auth/github/unlink edge cases", () => {
       email: "ghonly@example.com",
       githubId: "ghonly-1",
       githubUsername: "ghonly",
-    } as any);
+    } as unknown as TestUser);
 
-    const {token} = await generateTokens({_id: (user as any)._id});
+    const {token} = await generateTokens({_id: (user as unknown as {_id: unknown})._id});
 
     const res = await agent
       .delete("/auth/github/unlink")
@@ -776,8 +784,8 @@ describe("DELETE /auth/github/unlink edge cases", () => {
     const user = await GitHubTestUserModel.create({
       email: "savefail@example.com",
       githubId: "savefail-1",
-    } as any);
-    await (user as any).setPassword("password123");
+    } as unknown as TestUser);
+    await (user as unknown as PasswordedDocument).setPassword("password123");
     await user.save();
 
     const loginRes = await agent
@@ -785,14 +793,21 @@ describe("DELETE /auth/github/unlink edge cases", () => {
       .send({email: "savefail@example.com", password: "password123"})
       .expect(200);
 
-    const originalFindById = (GitHubTestUserModel as any).findById;
-    (GitHubTestUserModel as any).findById = () => ({
+    interface MockableFindById {
+      findById: (id: unknown) => {
+        select: (fields: string) => Promise<PasswordedDocument | null>;
+      };
+    }
+    const mockableModel = GitHubTestUserModel as unknown as MockableFindById;
+    const originalFindById = mockableModel.findById;
+    mockableModel.findById = () => ({
       select: async () => ({
         hash: "x",
         salt: "y",
         save: async () => {
           throw new Error("boom");
         },
+        setPassword: async () => undefined,
       }),
     });
     try {
@@ -802,13 +817,13 @@ describe("DELETE /auth/github/unlink edge cases", () => {
         .expect(500);
       expect(res.body.message).toBe("Failed to unlink GitHub account");
     } finally {
-      (GitHubTestUserModel as any).findById = originalFindById;
+      mockableModel.findById = originalFindById;
     }
   });
 });
 
 describe("GitHub strategy verify callback edge cases", () => {
-  const testApp = {get: () => {}, use: () => {}} as any;
+  const testApp = {get: () => {}, use: () => {}} as unknown as express.Application;
 
   beforeEach(async () => {
     await connectDb();
@@ -818,9 +833,9 @@ describe("GitHub strategy verify callback edge cases", () => {
   it("returns 404 when linking a user whose record disappears", async () => {
     const existingUser = await GitHubTestUserModel.create({
       email: "gone@example.com",
-    } as any);
+    } as unknown as TestUser);
 
-    setupGitHubAuth(testApp, GitHubTestUserModel as any, {
+    setupGitHubAuth(testApp, GitHubTestUserModel as unknown as UserModel, {
       allowAccountLinking: true,
       callbackURL: "http://localhost:9000/auth/github/callback",
       clientId: "id",
@@ -828,7 +843,7 @@ describe("GitHub strategy verify callback edge cases", () => {
     });
 
     // Delete user before verify runs to hit the 404 path.
-    await GitHubTestUserModel.deleteOne({_id: (existingUser as any)._id});
+    await GitHubTestUserModel.deleteOne({_id: (existingUser as unknown as {_id: unknown})._id});
 
     const req = {user: existingUser};
     const result = await invokeGitHubVerify(req, "access", "refresh", {
@@ -836,6 +851,6 @@ describe("GitHub strategy verify callback edge cases", () => {
       username: "missing",
     });
     expect(result.err).toBeDefined();
-    expect((result.err as any).status).toBe(404);
+    expect(result.err?.status).toBe(404);
   });
 });
