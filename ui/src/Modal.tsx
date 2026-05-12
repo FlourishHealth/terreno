@@ -102,7 +102,7 @@ const ModalContent: FC<{
           <Icon iconName="x" size="sm" />
         </Pressable>
       </View>
-      {title && (
+      {Boolean(title) && (
         <View
           accessibilityHint="Modal title"
           aria-label={title}
@@ -112,7 +112,7 @@ const ModalContent: FC<{
           <Heading size="lg">{title}</Heading>
         </View>
       )}
-      {subtitle && (
+      {Boolean(subtitle) && (
         <View
           accessibilityHint="Modal Sub Heading Text"
           aria-label={subtitle}
@@ -122,7 +122,7 @@ const ModalContent: FC<{
           <Text size="lg">{subtitle}</Text>
         </View>
       )}
-      {text && (
+      {Boolean(text) && (
         <View
           accessibilityHint="Modal body text"
           aria-label={text}

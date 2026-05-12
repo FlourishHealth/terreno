@@ -263,37 +263,41 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
         }),
       }}
     >
-      {Boolean(column.title) && <TableTitle align="left" title={column.title!} />}
-      <View style={{alignItems: "center", flexDirection: "row"}}>
-        {column.infoModalText && (
-          <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
-        )}
-        {column.sortable && (
-          <Pressable hitSlop={16} onPress={() => onSort(index)}>
-            <View
-              style={{
-                alignItems: "center",
-                backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
-                borderRadius: theme.radius.rounded,
-                height: 16,
-                justifyContent: "center",
-                marginLeft: 8,
-                width: 16,
-              }}
-            >
-              <FontAwesome6
-                color={theme.text.inverted}
-                name={
-                  sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
-                }
-                selectable={undefined}
-                size={10}
-                solid
-              />
-            </View>
-          </Pressable>
-        )}
-      </View>
+      {[
+        Boolean(column.title) ? (
+          <TableTitle align="left" key="data-table-header-title" title={column.title!} />
+        ) : null,
+        <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>
+          {column.infoModalText && (
+            <InfoModalIcon infoModalChildren={<Markdown>{column.infoModalText}</Markdown>} />
+          )}
+          {column.sortable && (
+            <Pressable hitSlop={16} onPress={() => onSort(index)}>
+              <View
+                style={{
+                  alignItems: "center",
+                  backgroundColor: sort ? theme.surface.primary : theme.surface.neutralLight,
+                  borderRadius: theme.radius.rounded,
+                  height: 16,
+                  justifyContent: "center",
+                  marginLeft: 8,
+                  width: 16,
+                }}
+              >
+                <FontAwesome6
+                  color={theme.text.inverted}
+                  name={
+                    sort === "asc" ? "arrow-down" : sort === "desc" ? "arrow-up" : "arrows-up-down"
+                  }
+                  selectable={undefined}
+                  size={10}
+                  solid
+                />
+              </View>
+            </Pressable>
+          )}
+        </View>,
+      ]}
     </View>
   );
 };

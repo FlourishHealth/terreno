@@ -36,13 +36,15 @@ import {isValidObjectId} from "./utils";
 
 export type JSONPrimitive = string | number | boolean | null;
 export interface JSONArray extends Array<JSONValue> {}
-export type JSONObject = {[member: string]: JSONValue};
+export interface JSONObject {
+  [member: string]: JSONValue;
+}
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
-export function addPopulateToQuery(
+export const addPopulateToQuery = (
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
-) {
+) => {
   const paths = populatePaths ?? [];
   let query = builtQuery;
 
@@ -52,7 +54,7 @@ export function addPopulateToQuery(
     query = builtQuery.populate({path, select});
   }
   return query;
-}
+};
 
 // TODOS:
 // Support bulk actions
@@ -312,11 +314,11 @@ export interface ModelRouterOptions<T> {
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
-function checkQueryParamAllowed(
+const checkQueryParamAllowed = (
   queryParam: string,
   queryParamValue: any,
   queryFields: string[] = []
-) {
+) => {
   // Check the values of each of the complex query params. We don't support recursive queries here,
   // just one level of and/or
   if (COMPLEX_QUERY_PARAMS.includes(queryParam)) {
@@ -334,7 +336,7 @@ function checkQueryParamAllowed(
       title: `${queryParam} is not allowed as a query param.`,
     });
   }
-}
+};
 
 // Handles dot notation patches, creates a normal object to be used for updates.
 // function flattenDotNotationPatch(data: any) {
@@ -358,10 +360,10 @@ function checkQueryParamAllowed(
 // Helper to determine if validation should be enabled for a specific operation.
 // When options.validation is not set, returns true — the middleware's own
 // isConfigured check will decide whether to actually validate.
-function shouldValidate(
+const shouldValidate = (
   options: ModelRouterOptions<any>,
   operation: "create" | "update" | "query"
-): boolean {
+): boolean => {
   // Check route-specific validation option first
   if (options.validation !== undefined) {
     if (typeof options.validation === "boolean") {
@@ -378,14 +380,14 @@ function shouldValidate(
 
   // Default: let middleware's isConfigured check decide
   return true;
-}
+};
 
 // Get body validation middleware if validation is enabled
-function getBodyValidationMiddleware<T>(
+const getBodyValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>,
   operation: "create" | "update"
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const validationOptions: import("./openApiValidator").RequestBodyValidatorOptions = {};
   if (!shouldValidate(options, operation)) {
     validationOptions.enabled = false;
@@ -408,13 +410,13 @@ function getBodyValidationMiddleware<T>(
   }
 
   return validateModelRequestBody(model, validationOptions);
-}
+};
 
 // Get query validation middleware if validation is enabled
-function getQueryValidationMiddleware<T>(
+const getQueryValidationMiddleware = <T>(
   model: Model<T>,
   options: ModelRouterOptions<T>
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const querySchema = buildQuerySchemaFromFields(model, options.queryFields);
   const validationOptions: import("./openApiValidator").QueryValidatorOptions = {};
   if (!shouldValidate(options, "query")) {
@@ -425,7 +427,7 @@ function getQueryValidationMiddleware<T>(
   }
 
   return validateQueryParams(querySchema, validationOptions);
-}
+};
 
 /**
  * Registration object returned by modelRouter when called with a path.

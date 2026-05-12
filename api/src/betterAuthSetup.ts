@@ -13,6 +13,7 @@ import mongoose from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {logger} from "./logger";
+import {findOneOrNoneFor} from "./plugins";
 
 /**
  * The Better Auth instance type.
@@ -109,7 +110,9 @@ export const createBetterAuthSessionMiddleware = (
 
         if (userModel) {
           // Look up the application user by betterAuthId
-          const appUser = await userModel.findOne({betterAuthId: betterAuthUser.id});
+          const appUser = await findOneOrNoneFor(userModel, {
+            betterAuthId: betterAuthUser.id,
+          });
           if (appUser) {
             (req as any).user = appUser;
             (req as any).betterAuthSession = session;
@@ -151,7 +154,9 @@ export const syncBetterAuthUser = async (
   oauthProvider?: string
 ): Promise<any> => {
   try {
-    const existingUser: any = await userModel.findOne({betterAuthId: betterAuthUser.id});
+    const existingUser: any = await findOneOrNoneFor(userModel, {
+      betterAuthId: betterAuthUser.id,
+    });
 
     if (existingUser) {
       // Update existing user if needed
@@ -164,7 +169,9 @@ export const syncBetterAuthUser = async (
     }
 
     // Check if user exists by email (migration case)
-    const userByEmail: any = await userModel.findOne({email: betterAuthUser.email});
+    const userByEmail: any = await findOneOrNoneFor(userModel, {
+      email: betterAuthUser.email,
+    });
     if (userByEmail) {
       // Link existing user to Better Auth
       userByEmail.betterAuthId = betterAuthUser.id;

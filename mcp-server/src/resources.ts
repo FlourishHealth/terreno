@@ -30,6 +30,16 @@ const loadMarkdown = (filename: string): string => {
   return readFileSync(filePath, "utf-8");
 };
 
+interface TypeDocType {
+  type: string;
+  name?: string;
+  value?: unknown;
+  types?: TypeDocType[];
+  elementType?: TypeDocType;
+  typeArguments?: TypeDocType[];
+  declaration?: {signatures?: unknown[]};
+}
+
 interface TypeDocProp {
   id: number;
   name: string;
@@ -40,7 +50,7 @@ interface TypeDocProp {
     summary?: {kind: string; text: string}[];
     blockTags?: {tag: string; content: {kind: string; text: string}[]}[];
   };
-  type?: any;
+  type?: TypeDocType;
 }
 
 interface TypeDocInterface {
@@ -81,21 +91,21 @@ export const loadTypeDocJson = (): TypeDocRoot | null => {
   return JSON.parse(readFileSync(filePath, "utf-8"));
 };
 
-export const extractTypeString = (typeObj: any): string => {
+export const extractTypeString = (typeObj: TypeDocType | null | undefined): string => {
   if (!typeObj) {
     return "unknown";
   }
 
   if (typeObj.type === "intrinsic") {
-    return typeObj.name;
+    return typeObj.name ?? "unknown";
   }
 
   if (typeObj.type === "literal") {
-    return JSON.stringify(typeObj.value);
+    return JSON.stringify(typeObj.value) ?? "unknown";
   }
 
   if (typeObj.type === "union") {
-    return typeObj.types?.map((t: any) => extractTypeString(t)).join(" | ") ?? "unknown";
+    return typeObj.types?.map((t: TypeDocType) => extractTypeString(t)).join(" | ") ?? "unknown";
   }
 
   if (typeObj.type === "array") {
@@ -104,8 +114,8 @@ export const extractTypeString = (typeObj: any): string => {
 
   if (typeObj.type === "reference") {
     if (typeObj.typeArguments) {
-      const args = typeObj.typeArguments.map((t: any) => extractTypeString(t)).join(", ");
-      return `${typeObj.name}<${args}>`;
+      const args = typeObj.typeArguments.map((t: TypeDocType) => extractTypeString(t)).join(", ");
+      return `${typeObj.name ?? "unknown"}<${args}>`;
     }
     return typeObj.name ?? "unknown";
   }

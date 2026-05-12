@@ -100,6 +100,14 @@ describe("SegmentedControl", () => {
     expect(queryByText("Tab 1")).toBeNull();
   });
 
+  it("uses the default no-op onChange when none is provided", () => {
+    const {getByText} = renderWithTheme(
+      <SegmentedControl items={defaultItems} selectedIndex={0} />
+    );
+
+    expect(() => fireEvent.press(getByText("Tab 2"))).not.toThrow();
+  });
+
   it("invokes handlePrevious when previous scroll button is pressed", () => {
     const manyItems = ["Tab 1", "Tab 2", "Tab 3", "Tab 4", "Tab 5", "Tab 6"];
     const {UNSAFE_getAllByProps, queryByText} = renderWithTheme(

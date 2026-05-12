@@ -254,6 +254,9 @@ exports[`SelectBadge renders correctly with default props 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -518,6 +521,9 @@ exports[`SelectBadge renders with info status (default) 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -782,6 +788,9 @@ exports[`SelectBadge renders with success status 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -1046,6 +1055,9 @@ exports[`SelectBadge renders with warning status 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -1310,6 +1322,9 @@ exports[`SelectBadge renders with error status 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -1574,6 +1589,9 @@ exports[`SelectBadge renders with neutral status 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -1838,6 +1856,9 @@ exports[`SelectBadge renders with secondary style 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -2102,6 +2123,9 @@ exports[`SelectBadge renders with custom colors 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 1,
@@ -2366,6 +2390,9 @@ exports[`SelectBadge renders disabled state 1`] = `
     },
   ],
   "props": {
+    "ref": {
+      "current": null,
+    },
     "style": {
       "alignItems": "flex-start",
       "opacity": 0.5,

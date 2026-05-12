@@ -2,6 +2,7 @@ import type {ConsentFormDefinition} from "@terreno/api";
 
 export const consentDefinitions: Record<string, ConsentFormDefinition> = {
   "privacy-policy": {
+    allowDecline: true,
     content: {
       en: `# Privacy Policy
 

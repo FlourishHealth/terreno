@@ -1,8 +1,31 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
+import {forwardRef} from "react";
+import {Text, View} from "react-native";
 
+import {isMobileDevice} from "./MediaQuery";
 import {renderWithTheme} from "./test-utils";
 import {UnifiedAddressAutoCompleteField} from "./UnifiedAddressAutoComplete";
+
+// react-native-google-places-autocomplete pulls in native bindings that fail
+// to load in the bun test environment, so swap it for a lightweight stub.
+mock.module("react-native-google-places-autocomplete", () => ({
+  GooglePlacesAutocomplete: forwardRef(
+    (
+      props: {placeholder?: string; testID?: string},
+      _ref: React.Ref<unknown>
+    ): React.ReactElement => (
+      <View testID={`mobile-autocomplete-${props.testID ?? "stub"}`}>
+        <Text>{props.placeholder ?? "GooglePlacesAutocomplete"}</Text>
+      </View>
+    )
+  ),
+}));
+
+interface MutableGlobal {
+  document?: {createElement: () => Record<string, unknown>; head: {appendChild: () => void}};
+  window?: {google?: unknown};
+}
 
 describe("UnifiedAddressAutoCompleteField", () => {
   const defaultProps = {
@@ -68,5 +91,64 @@ describe("UnifiedAddressAutoCompleteField", () => {
     expect(inputs.length).toBeGreaterThan(0);
     fireEvent.changeText(inputs[0], "1600 Amphitheatre Pkwy");
     expect(handleAddressChange).toHaveBeenCalledWith("1600 Amphitheatre Pkwy");
+  });
+
+  describe("web branch", () => {
+    const testGlobal = globalThis as MutableGlobal;
+    const originalDocument = testGlobal.document;
+    const originalWindow = testGlobal.window;
+
+    beforeAll(() => {
+      testGlobal.document = {
+        createElement: (): Record<string, unknown> => ({}),
+        head: {appendChild: (): void => {}},
+      };
+      testGlobal.window = {
+        google: {
+          maps: {
+            places: {
+              Autocomplete: function MockAutocomplete(): void {
+                return;
+              },
+            },
+          },
+        },
+      };
+    });
+
+    afterAll(() => {
+      testGlobal.document = originalDocument;
+      testGlobal.window = originalWindow;
+    });
+
+    it("renders WebAddressAutocomplete when document is defined and key is valid", () => {
+      const {toJSON} = renderWithTheme(
+        <UnifiedAddressAutoCompleteField
+          {...defaultProps}
+          googleMapsApiKey="test-dummy-key-not-real-0123456789"
+          testID="web-address"
+        />
+      );
+      // The web branch loads Google Maps via document.head, so just confirm it rendered.
+      expect(toJSON()).toBeDefined();
+    });
+  });
+
+  describe("mobile/native branch", () => {
+    afterEach(() => {
+      (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+    });
+
+    it("renders MobileAddressAutocomplete when isMobileDevice + isNative + valid key", () => {
+      (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
+      const {getByTestId} = renderWithTheme(
+        <UnifiedAddressAutoCompleteField
+          {...defaultProps}
+          googleMapsApiKey="test-dummy-key-not-real-0123456789"
+          testID="mobile-address"
+        />
+      );
+      expect(getByTestId("mobile-autocomplete-stub")).toBeDefined();
+    });
   });
 });

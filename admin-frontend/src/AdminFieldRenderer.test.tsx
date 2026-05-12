@@ -372,6 +372,56 @@ describe("AdminFieldRenderer (main)", () => {
     expect(toJSON()).toBeDefined();
   });
 
+  it("uses custom refRenderer for single ref fields when matching ref model name", () => {
+    const CustomRenderer = mock((_props: any) => <></>) as any;
+    renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{ref: "User", required: false, type: "objectid"}}
+        fieldKey="ownerId"
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        refRenderers={{User: CustomRenderer}}
+        value="abc123"
+      />
+    );
+    expect(CustomRenderer).toHaveBeenCalled();
+    const props = (CustomRenderer as any).mock.calls[0][0];
+    expect(props.refModelName).toBe("User");
+    expect(props.routePath).toBe("/admin/users");
+    expect(props.value).toBe("abc123");
+  });
+
+  it("does not invoke a refRenderer whose key does not match the field's ref model", () => {
+    const CustomRenderer = mock((_props: any) => <></>) as any;
+    // No modelConfigs entry for "Post" so AdminRefField path is also bypassed; this
+    // verifies the dispatch logic only fires the renderer when the key matches.
+    renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{ref: "Post", required: false, type: "objectid"}}
+        fieldKey="postId"
+        refRenderers={{User: CustomRenderer}}
+        value=""
+      />
+    );
+    expect(CustomRenderer).not.toHaveBeenCalled();
+  });
+
+  it("uses custom refRenderer when modelConfigs is missing (empty routePath)", () => {
+    const CustomRenderer = mock((_props: any) => <></>) as any;
+    renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={{ref: "User", required: false, type: "objectid"}}
+        fieldKey="ownerId"
+        refRenderers={{User: CustomRenderer}}
+        value="x"
+      />
+    );
+    expect(CustomRenderer).toHaveBeenCalled();
+    expect((CustomRenderer as any).mock.calls[0][0].routePath).toBe("");
+  });
+
   it("triggers onChange handlers for number, enum, array, object", () => {
     const numberChange = mock((_: any) => {});
     const {UNSAFE_root: numberRoot} = renderWithTheme(

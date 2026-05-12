@@ -164,4 +164,45 @@ describe("ConsentFormScreen", () => {
     );
     expect(getByTestId("consent-form-scroll-hint")).toBeTruthy();
   });
+
+  it("shows footer scroll hint when scroll to bottom is required but not done", () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-footer-scroll-hint")).toBeTruthy();
+    expect(queryByTestId("consent-footer-signature-hint")).toBeNull();
+  });
+
+  it("hides footer scroll hint when scroll to bottom is not required", () => {
+    const {queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={baseForm} locale="en" onAgree={() => {}} />
+    );
+    expect(queryByTestId("consent-footer-scroll-hint")).toBeNull();
+  });
+
+  it("shows footer signature hint when signature is required but not provided", () => {
+    const form = {...baseForm, captureSignature: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-footer-signature-hint")).toBeTruthy();
+    expect(queryByTestId("consent-footer-scroll-hint")).toBeNull();
+  });
+
+  it("hides footer signature hint when signature is not required", () => {
+    const {queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={baseForm} locale="en" onAgree={() => {}} />
+    );
+    expect(queryByTestId("consent-footer-signature-hint")).toBeNull();
+  });
+
+  it("shows both footer hints when scroll and signature are both required", () => {
+    const form = {...baseForm, captureSignature: true, requireScrollToBottom: true};
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-footer-scroll-hint")).toBeTruthy();
+    expect(getByTestId("consent-footer-signature-hint")).toBeTruthy();
+  });
 });

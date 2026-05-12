@@ -4,10 +4,10 @@ import axios from "axios";
 import {APIError} from "../errors";
 import {logger} from "../logger";
 
-export async function sendToGoogleChat(
+export const sendToGoogleChat = async (
   messageText: string,
   {channel, shouldThrow = false, env}: {channel?: string; shouldThrow?: boolean; env?: string} = {}
-) {
+) => {
   const chatWebhooksString = process.env.GOOGLE_CHAT_WEBHOOKS;
   if (!chatWebhooksString) {
     const msg = "GOOGLE_CHAT_WEBHOOKS not set. Google Chat message not sent";
@@ -34,14 +34,15 @@ export async function sendToGoogleChat(
 
   try {
     await axios.post(chatWebhookUrl, {text: formattedMessageText});
-  } catch (error: any) {
-    logger.error(`Error posting to Google Chat: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const errorObj = error as {text?: string; message?: string};
+    logger.error(`Error posting to Google Chat: ${errorObj.text ?? errorObj.message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Google Chat: ${error.text ?? error.message}`,
+        title: `Error posting to Google Chat: ${errorObj.text ?? errorObj.message}`,
       });
     }
   }
-}
+};

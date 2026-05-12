@@ -2,6 +2,9 @@ import {beforeEach, describe, expect, it} from "bun:test";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {configureStore} from "@reduxjs/toolkit";
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
+import {renderHook} from "@testing-library/react-native";
+import React from "react";
+import {Provider} from "react-redux";
 
 import {
   type EmailLoginRequest,
@@ -560,6 +563,28 @@ describe("hook wrappers", () => {
   it("throws when hook selectors are called outside React render", () => {
     expect(() => useSelectCurrentUserId()).toThrow();
     expect(() => useSelectIsAuthenticating()).toThrow();
+  });
+
+  it("returns the current userId from auth state via useSelectCurrentUserId", () => {
+    const {store, authSlice} = createTestStore();
+    store.dispatch(authSlice.actions.setUserId({userId: "user-abc"}));
+    const wrapper = ({children}: {children: React.ReactNode}): React.ReactElement =>
+      React.createElement(Provider, {children, store});
+    const {result} = renderHook(() => useSelectCurrentUserId(), {wrapper});
+    expect(result.current).toBe("user-abc");
+  });
+
+  it("returns isAuthenticating from auth state via useSelectIsAuthenticating", () => {
+    const {store} = createTestStore();
+    store.dispatch({
+      meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "hook-test"},
+      payload: undefined,
+      type: "terreno-rtk/executeMutation/pending",
+    });
+    const wrapper = ({children}: {children: React.ReactNode}): React.ReactElement =>
+      React.createElement(Provider, {children, store});
+    const {result} = renderHook(() => useSelectIsAuthenticating(), {wrapper});
+    expect(result.current).toBe(true);
   });
 });
 

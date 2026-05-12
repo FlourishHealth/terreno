@@ -1,8 +1,9 @@
+import type React from "react";
 import Svg, {Path} from "react-native-svg";
 
 import type {CustomSvgProps} from "../Common";
 
-export const MobileIcon = ({doNotDisturb, ...props}: CustomSvgProps) => {
+export const MobileIcon = ({doNotDisturb, ...props}: CustomSvgProps): React.ReactElement => {
   return (
     <Svg fill="none" height={33} viewBox="0 0 33 45" width={30} {...props}>
       <Path d="M3 7h24v35H3z" fill="#fff" />

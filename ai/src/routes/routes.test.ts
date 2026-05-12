@@ -1,6 +1,6 @@
 import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {createdUpdatedPlugin, setupServer} from "@terreno/api";
-import type {LanguageModel, Tool} from "ai";
+import {jsonSchema, type LanguageModel, type Tool, tool} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -319,6 +319,27 @@ describe("AI Routes", () => {
         .parse(sseCollect);
       expect(res.status).toBe(200);
       expect(createServerModelFn).toHaveBeenCalledWith("gemini-2.5-pro");
+    });
+
+    it("falls back to default aiService when createServerModelFn returns null", async () => {
+      const createServerModelFn = mock((_modelId?: string) => null);
+      const customApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {aiService, createServerModelFn, openApiOptions: options});
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(customApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({model: "unsupported-model", prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      expect(createServerModelFn).toHaveBeenCalledWith("unsupported-model");
+      const body = (res as SseResponse).body;
+      expect(body).toContain("done");
     });
 
     it("rejects history from another user", async () => {
@@ -680,6 +701,90 @@ describe("AI Routes", () => {
       expect(body).toContain("toolResult");
     });
 
+    it("emits a file SSE event when a tool execution returns fileData", async () => {
+      let toolCallEmitted = false;
+      const fileToolModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              if (!toolCallEmitted) {
+                toolCallEmitted = true;
+                controller.enqueue({id: "t1", type: "text-start" as const});
+                controller.enqueue({
+                  delta: "Generating",
+                  id: "t1",
+                  type: "text-delta" as const,
+                });
+                controller.enqueue({id: "t1", type: "text-end" as const});
+                controller.enqueue({
+                  input: "{}",
+                  toolCallId: "tc1",
+                  toolName: "fileTool",
+                  type: "tool-call" as const,
+                });
+                controller.enqueue({
+                  finishReason: "tool-calls" as const,
+                  type: "finish" as const,
+                  usage: {inputTokens: 1, outputTokens: 1},
+                });
+              } else {
+                // Second step after tool execution: just finish.
+                controller.enqueue({id: "t2", type: "text-start" as const});
+                controller.enqueue({delta: "done", id: "t2", type: "text-delta" as const});
+                controller.enqueue({id: "t2", type: "text-end" as const});
+                controller.enqueue({
+                  finishReason: "stop" as const,
+                  type: "finish" as const,
+                  usage: {inputTokens: 1, outputTokens: 1},
+                });
+              }
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "file-tool-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const fileTool = tool({
+        description: "Returns a generated file",
+        execute: async () => ({
+          fileData: "data:application/pdf;base64,AAAA",
+          filename: "result.pdf",
+          mimeType: "application/pdf",
+        }),
+        inputSchema: jsonSchema({properties: {}, type: "object"}),
+      });
+      const fileToolApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: fileToolModel as unknown as LanguageModel}),
+            openApiOptions: options,
+            tools: {fileTool},
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(fileToolApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "make a file"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("file");
+      expect(body).toContain("result.pdf");
+      expect(body).toContain("application/pdf");
+    });
+
     it("forwards mid-stream error parts as SSE error events", async () => {
       const errEventModel = {
         doGenerate: mock(async () => ({
@@ -941,6 +1046,78 @@ describe("AI Routes", () => {
         .send({promptIndex: 1, rating: null});
       expect(res.status).toBe(200);
       expect(res.body.data.rating).toBeNull();
+    });
+  });
+
+  describe("GPT Prompt error handling", () => {
+    it("catches errors thrown mid-stream iteration and sends SSE error", async () => {
+      const streamIterationErrorModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({
+                delta: "partial",
+                id: "t1",
+                type: "text-delta" as const,
+              });
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.error(new Error("stream iteration failure"));
+            },
+          }),
+        })),
+        modelId: "stream-iter-error",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const errApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({
+              model: streamIterationErrorModel as unknown as LanguageModel,
+            }),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(errApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("error");
+    });
+
+    it("handles AIRequest.logRequest failure gracefully", async () => {
+      const originalLogRequest = AIRequest.logRequest;
+      // biome-ignore lint/suspicious/noExplicitAny: Override static method for test mock.
+      AIRequest.logRequest = mock(async () => {
+        throw new Error("database write failed");
+      }) as unknown as typeof AIRequest.logRequest;
+      try {
+        const agent = await authAsUser(app, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("done");
+      } finally {
+        AIRequest.logRequest = originalLogRequest;
+      }
     });
   });
 

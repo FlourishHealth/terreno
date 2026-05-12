@@ -12,6 +12,7 @@ import {
 import startCase from "lodash/startCase";
 import React, {useCallback} from "react";
 import {AdminRefField} from "./AdminRefField";
+import type {RefRendererMap} from "./types";
 
 interface AdminPrimitiveArrayFieldProps {
   title: string;
@@ -22,10 +23,15 @@ interface AdminPrimitiveArrayFieldProps {
   itemRef?: string;
   value: PrimitiveItem[];
   onChange: (value: PrimitiveItem[]) => void;
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query Api type is generic; admin code is type-erased here
   api: Api<any, any, any, any>;
   baseUrl: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
+  /**
+   * Optional map of custom ref-field renderers keyed by referenced model name. When
+   * `itemRef` matches a key, the custom component renders in place of the built-in
+   * {@link AdminRefField} for each ref item.
+   */
+  refRenderers?: RefRendererMap;
 }
 
 type PrimitiveItem = string | number | boolean;
@@ -57,6 +63,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
   api,
   baseUrl,
   modelConfigs,
+  refRenderers,
 }) => {
   const arrayValue = Array.isArray(value) ? value : [];
 
@@ -103,18 +110,34 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         />
       );
     }
-    if (itemType === "objectid" && refModel) {
-      return (
-        <AdminRefField
-          api={api}
-          baseUrl={baseUrl}
-          onChange={(val: string) => handleUpdate(index, val)}
-          refModelName={refModel.name}
-          routePath={refModel.routePath}
-          title=""
-          value={item != null ? String(item) : ""}
-        />
-      );
+    if (itemType === "objectid" && itemRef) {
+      const CustomRenderer = refRenderers?.[itemRef];
+      if (CustomRenderer) {
+        return (
+          <CustomRenderer
+            api={api}
+            baseUrl={baseUrl}
+            onChange={(val: string) => handleUpdate(index, val)}
+            refModelName={itemRef}
+            routePath={refModel?.routePath ?? ""}
+            title=""
+            value={item != null ? String(item) : ""}
+          />
+        );
+      }
+      if (refModel) {
+        return (
+          <AdminRefField
+            api={api}
+            baseUrl={baseUrl}
+            onChange={(val: string) => handleUpdate(index, val)}
+            refModelName={refModel.name}
+            routePath={refModel.routePath}
+            title=""
+            value={item != null ? String(item) : ""}
+          />
+        );
+      }
     }
     if (itemType === "number") {
       return (

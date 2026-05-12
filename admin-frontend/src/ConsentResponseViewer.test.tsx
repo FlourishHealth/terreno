@@ -47,6 +47,23 @@ describe("ConsentResponseViewer", () => {
     expect(toJSON()).toBeDefined();
   });
 
+  // Regression: useState/useCallback used to run after the early-return spinner
+  // branch, which produced React error #310 ("Rendered more hooks than during the
+  // previous render") the moment loading flipped to loaded. This test exercises
+  // both renders.
+  it("survives the loading → loaded transition without a hook-order error", async () => {
+    readState.isLoading = true;
+    const {rerender, getByText} = renderWithTheme(
+      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+    );
+    await act(async () => {
+      readState.isLoading = false;
+      readState.data = {agreed: true, consentFormId: "raw-id", userId: "u1"};
+      rerender(<ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />);
+    });
+    expect(getByText("Download PDF")).toBeDefined();
+  });
+
   it("shows not-found state when there is no id / data", () => {
     const {getByText} = renderWithTheme(
       <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="" />

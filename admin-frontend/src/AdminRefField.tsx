@@ -1,20 +1,14 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import React from "react";
 import {AdminObjectPicker} from "./AdminObjectPicker";
+import type {RefFieldRendererProps} from "./types";
 
-interface AdminRefFieldProps {
-  api: Api<any, any, any, any>;
-  baseUrl: string;
-  routePath: string;
-  refModelName: string;
-  title: string;
-  value: string;
-  onChange: (value: string) => void;
-  errorText?: string;
-  helperText?: string;
-}
+/**
+ * Props for the built-in {@link AdminRefField} renderer. Re-exported as the
+ * shape custom ref renderers should accept (see {@link RefFieldRendererProps}).
+ */
+export type AdminRefFieldProps = RefFieldRendererProps;
 
-export const AdminRefField: React.FC<AdminRefFieldProps> = ({
+export const AdminRefField: React.FC<RefFieldRendererProps> = ({
   api,
   routePath,
   refModelName,
