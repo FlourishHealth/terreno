@@ -21,7 +21,7 @@ const mockCancelTask = mock((_taskId: string) => ({
 
 const mockUseAdminScripts = mock(() => ({
   useCancelScriptTaskMutation: () => [mockCancelTask, {isLoading: false}],
-  useGetScriptTaskQuery: () => ({data: undefined, isLoading: false, error: null}),
+  useGetScriptTaskQuery: () => ({data: undefined, error: null, isLoading: false}),
   useRunScriptMutation: () => [mockRunScript, {isLoading: false}],
 }));
 

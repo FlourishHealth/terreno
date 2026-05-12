@@ -46,7 +46,7 @@ export const addQuerySubscription = (
   if (!socketQueries.has(socketId)) {
     socketQueries.set(socketId, new Set());
   }
-  socketQueries.get(socketId)!.add(queryId);
+  socketQueries.get(socketId)?.add(queryId);
 };
 
 /**
