@@ -133,7 +133,7 @@ jobs:
 
       - name: Wait for build completion
         id: wait
-        if: steps.build.outputs.id != ''
+        if: always() && steps.build.outputs.id != ''
         timeout-minutes: 45
         env:
           BUILD_ID: ${{ steps.build.outputs.id }}
