@@ -10,7 +10,6 @@ import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import express from "express";
 
 import {matchesQuery} from "./queryMatcher";
-import {RealtimeApp} from "./realtimeApp";
 import {
   addQuerySubscription,
   clearQueryStore,
@@ -19,6 +18,7 @@ import {
   removeAllSocketQueries,
   removeQuerySubscription,
 } from "./queryStore";
+import {RealtimeApp} from "./realtimeApp";
 import {
   clearRealtimeRegistry,
   findRegistryEntryByCollection,
@@ -68,7 +68,7 @@ describe("matchesQuery", () => {
 
   describe("nested field access", () => {
     it("accesses nested fields via dot notation", () => {
-      const doc = {user: {name: "Alice", age: 30}};
+      const doc = {user: {age: 30, name: "Alice"}};
       expect(matchesQuery(doc, {"user.name": "Alice"})).toBe(true);
     });
 
@@ -171,9 +171,7 @@ describe("matchesQuery", () => {
     });
 
     it("returns false when value is in array", () => {
-      expect(matchesQuery({status: "active"}, {status: {$nin: ["active", "pending"]}})).toBe(
-        false
-      );
+      expect(matchesQuery({status: "active"}, {status: {$nin: ["active", "pending"]}})).toBe(false);
     });
 
     it("returns false when operand is not an array", () => {
@@ -212,13 +210,13 @@ describe("matchesQuery", () => {
   describe("$and operator", () => {
     it("matches when all conditions are true", () => {
       expect(
-        matchesQuery({status: "active", count: 5}, {$and: [{status: "active"}, {count: 5}]})
+        matchesQuery({count: 5, status: "active"}, {$and: [{status: "active"}, {count: 5}]})
       ).toBe(true);
     });
 
     it("returns false when one condition fails", () => {
       expect(
-        matchesQuery({status: "active", count: 3}, {$and: [{status: "active"}, {count: 5}]})
+        matchesQuery({count: 3, status: "active"}, {$and: [{status: "active"}, {count: 5}]})
       ).toBe(false);
     });
 
@@ -274,7 +272,7 @@ describe("matchesQuery", () => {
 
   describe("empty query", () => {
     it("matches any document with empty query", () => {
-      expect(matchesQuery({name: "Alice", count: 5}, {})).toBe(true);
+      expect(matchesQuery({count: 5, name: "Alice"}, {})).toBe(true);
     });
   });
 });
@@ -301,7 +299,7 @@ describe("queryStore", () => {
 
     it("normalizes key order before computing id", () => {
       const id1 = computeQueryId("todos", {completed: false, ownerId: "abc"});
-      const id2 = computeQueryId("todos", {ownerId: "abc", completed: false});
+      const id2 = computeQueryId("todos", {completed: false, ownerId: "abc"});
       expect(id1).toBe(id2);
     });
 
@@ -440,7 +438,10 @@ describe("queryStore", () => {
 describe("realtimeRegistry", () => {
   const makeEntry = (overrides: Partial<Parameters<typeof registerRealtime>[0]> = {}) => ({
     collectionName: "todos",
-    config: {methods: ["create" as const, "update" as const, "delete" as const], roomStrategy: "owner" as const},
+    config: {
+      methods: ["create" as const, "update" as const, "delete" as const],
+      roomStrategy: "owner" as const,
+    },
     modelName: "Todo",
     options: {} as any,
     routePath: "/todos",
@@ -463,7 +464,9 @@ describe("realtimeRegistry", () => {
 
     it("allows multiple entries", () => {
       registerRealtime(makeEntry({modelName: "Todo", routePath: "/todos"}));
-      registerRealtime(makeEntry({modelName: "Item", routePath: "/items", collectionName: "items"}));
+      registerRealtime(
+        makeEntry({collectionName: "items", modelName: "Item", routePath: "/items"})
+      );
       expect(getRealtimeRegistry()).toHaveLength(2);
     });
   });
@@ -471,7 +474,9 @@ describe("realtimeRegistry", () => {
   describe("getRealtimeRegistry", () => {
     it("returns all registered entries", () => {
       registerRealtime(makeEntry({modelName: "Todo"}));
-      registerRealtime(makeEntry({modelName: "Item", routePath: "/items", collectionName: "items"}));
+      registerRealtime(
+        makeEntry({collectionName: "items", modelName: "Item", routePath: "/items"})
+      );
       const registry = getRealtimeRegistry();
       expect(registry).toHaveLength(2);
       expect(registry.map((e) => e.modelName)).toEqual(["Todo", "Item"]);
@@ -545,7 +550,7 @@ describe("RealtimeApp", () => {
     });
 
     it("creates an instance with provided config", () => {
-      const app = new RealtimeApp({debug: true, adapter: "none"});
+      const app = new RealtimeApp({adapter: "none", debug: true});
       expect(app).toBeDefined();
     });
   });
