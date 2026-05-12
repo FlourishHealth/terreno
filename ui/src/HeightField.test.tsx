@@ -206,3 +206,63 @@ describe("HeightField", () => {
     });
   });
 });
+
+describe("HeightField - Android platform", () => {
+  // Toggle Platform.OS to "android" to exercise the Android rendering branch
+  // that uses SelectField pickers instead of the Pressable+ActionSheet path.
+  const {Platform} = require("react-native") as {Platform: {OS: string}};
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = "android";
+  });
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it("renders Android pickers with title, helperText, and errorText", () => {
+    const onChange = mock(() => {});
+    const {getByText, queryByLabelText} = renderWithTheme(
+      <HeightField
+        errorText="Required"
+        helperText="Enter height"
+        onChange={onChange}
+        title="Height"
+        value="70"
+      />
+    );
+    // Title and helper/error rendered
+    expect(getByText("Height")).toBeTruthy();
+    expect(getByText("Enter height")).toBeTruthy();
+    expect(getByText("Required")).toBeTruthy();
+    // The Pressable from the iOS branch should NOT be present.
+    expect(queryByLabelText("Height selector")).toBeNull();
+  });
+
+  it("renders Android pickers in disabled state", () => {
+    const onChange = mock(() => {});
+    const {root} = renderWithTheme(
+      <HeightField disabled onChange={onChange} title="Height" value="60" />
+    );
+    expect(root).toBeTruthy();
+  });
+
+  it("forwards feet/inches picker changes to onChange (Android)", () => {
+    const onChange = mock(() => {});
+    const {SelectField} = require("./SelectField") as {
+      SelectField: React.ComponentType<{onChange?: (v: string) => void}>;
+    };
+    const {UNSAFE_getAllByType} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const selects = UNSAFE_getAllByType(SelectField);
+    expect(selects.length).toBe(2);
+    // First SelectField is feet, second is inches.
+    // value="70" → 5ft 10in. Bumping feet to 6 yields 6*12 + 10 = 82.
+    selects[0].props.onChange?.("6");
+    expect(onChange).toHaveBeenCalledWith("82");
+    onChange.mockClear();
+    // Inches change keeps current feet=5 → 5*12 + 3 = 63.
+    selects[1].props.onChange?.("3");
+    expect(onChange).toHaveBeenCalledWith("63");
+  });
+});
