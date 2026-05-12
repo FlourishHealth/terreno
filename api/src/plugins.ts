@@ -85,14 +85,14 @@ export const createdUpdatedPlugin = (schema: Schema<any, any, any, any>): void =
     }
     // If we aren't specifying created, use now.
     if (!this.created) {
-      this.created = new Date();
+      this.created = DateTime.now().toJSDate();
     }
     // All writes change the updated time.
-    this.updated = new Date();
+    this.updated = DateTime.now().toJSDate();
   });
 
   schema.pre(/save|updateOne|insertMany/, function () {
-    void this.updateOne({}, {$set: {updated: new Date()}});
+    void this.updateOne({}, {$set: {updated: DateTime.now().toJSDate()}});
   });
 };
 
