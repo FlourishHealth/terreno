@@ -9,7 +9,7 @@ import {AdminScriptRunModal} from "./AdminScriptRunModal";
 mock.module("@terreno/ui", () => ({
   ...terrenoUi,
   Modal: ({children, visible}: {children?: React.ReactNode; visible?: boolean}) =>
-    visible ? <>{children}</> : null,
+    visible ? children : null,
 }));
 
 const mockRunScript = mock((_args: {name: string; wetRun: boolean}) => ({
@@ -21,7 +21,7 @@ const mockCancelTask = mock((_taskId: string) => ({
 
 const mockUseAdminScripts = mock(() => ({
   useCancelScriptTaskMutation: () => [mockCancelTask, {isLoading: false}],
-  useGetScriptTaskQuery: () => ({data: undefined, isLoading: false, error: null}),
+  useGetScriptTaskQuery: () => ({data: undefined, error: null, isLoading: false}),
   useRunScriptMutation: () => [mockRunScript, {isLoading: false}],
 }));
 
