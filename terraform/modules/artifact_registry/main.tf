@@ -1,0 +1,38 @@
+resource "google_artifact_registry_repository" "this" {
+  project       = var.project_id
+  location      = var.region
+  repository_id = var.repository_id
+  description   = var.description
+  format        = "DOCKER"
+
+  dynamic "cleanup_policies" {
+    for_each = var.keep_recent_versions > 0 ? [1] : []
+    content {
+      id     = "keep-recent-versions"
+      action = "KEEP"
+      most_recent_versions {
+        keep_count = var.keep_recent_versions
+      }
+    }
+  }
+}
+
+resource "google_artifact_registry_repository_iam_member" "writer" {
+  for_each = toset(var.writer_members)
+
+  project    = var.project_id
+  location   = google_artifact_registry_repository.this.location
+  repository = google_artifact_registry_repository.this.name
+  role       = "roles/artifactregistry.writer"
+  member     = each.value
+}
+
+resource "google_artifact_registry_repository_iam_member" "reader" {
+  for_each = toset(var.reader_members)
+
+  project    = var.project_id
+  location   = google_artifact_registry_repository.this.location
+  repository = google_artifact_registry_repository.this.name
+  role       = "roles/artifactregistry.reader"
+  member     = each.value
+}

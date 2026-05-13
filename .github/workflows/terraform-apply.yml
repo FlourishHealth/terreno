@@ -1,0 +1,208 @@
+name: Terraform Apply (Infra Manager)
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-apply.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-apply.yml"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to apply (prod or staging). Leave blank to run all."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  format:
+    name: Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - name: terraform fmt -check -recursive
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+
+  preview:
+    name: Preview (${{ matrix.env }})
+    if: github.event_name == 'pull_request'
+    needs: format
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [prod, staging]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Resolve env-specific inputs
+        id: env
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.env }}" = "prod" ]; then
+            echo "project_id=${{ vars.GCP_TF_PROJECT_ID_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "wif_provider=${{ vars.GCP_WIF_PROVIDER_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "deployer_sa=${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "project_id=${{ vars.GCP_TF_PROJECT_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "wif_provider=${{ vars.GCP_WIF_PROVIDER_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "deployer_sa=${{ vars.GCP_TF_DEPLOYER_SA_STAGING }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip if env not bootstrapped
+        id: gate
+        run: |
+          if [ -z "${{ steps.env.outputs.project_id }}" ] || [ -z "${{ steps.env.outputs.wif_provider }}" ] || [ -z "${{ steps.env.outputs.deployer_sa }}" ]; then
+            echo "::notice::${{ matrix.env }} has not been bootstrapped yet; skipping preview."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: steps.gate.outputs.skip != 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.env.outputs.wif_provider }}
+          service_account: ${{ steps.env.outputs.deployer_sa }}
+
+      - name: Set up Cloud SDK
+        if: steps.gate.outputs.skip != 'true'
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ steps.env.outputs.project_id }}
+
+      - name: Create Infra Manager preview
+        if: steps.gate.outputs.skip != 'true'
+        id: preview
+        run: |
+          set -euo pipefail
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          DEPLOYMENT="terreno-${{ matrix.env }}"
+          PREVIEW_ID="${DEPLOYMENT}-pr${{ github.event.pull_request.number }}-${GITHUB_RUN_ID}"
+          echo "preview_id=$PREVIEW_ID" >> "$GITHUB_OUTPUT"
+          echo "location=$LOCATION" >> "$GITHUB_OUTPUT"
+          gcloud infra-manager previews create "$PREVIEW_ID" \
+            --project="${{ steps.env.outputs.project_id }}" \
+            --location="$LOCATION" \
+            --deployment="projects/${{ steps.env.outputs.project_id }}/locations/${LOCATION}/deployments/${DEPLOYMENT}" \
+            --service-account="${{ steps.env.outputs.deployer_sa }}" \
+            --local-source="terraform/envs/${{ matrix.env }}" \
+            --quiet
+
+      - name: Describe preview
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          gcloud infra-manager previews describe \
+            "${{ steps.preview.outputs.preview_id }}" \
+            --location="${{ steps.preview.outputs.location }}" \
+            --project="${{ steps.env.outputs.project_id }}" \
+            --format='yaml(state,errorCode,errorLogs,buildResults)'
+
+      - name: Cleanup preview
+        if: steps.gate.outputs.skip != 'true' && always()
+        run: |
+          gcloud infra-manager previews delete \
+            "${{ steps.preview.outputs.preview_id }}" \
+            --location="${{ steps.preview.outputs.location }}" \
+            --project="${{ steps.env.outputs.project_id }}" \
+            --quiet || true
+
+  apply:
+    name: Apply (${{ matrix.env }})
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: format
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        env: [staging, prod]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip if workflow_dispatch targets a different env
+        id: scope
+        run: |
+          DISPATCH="${{ github.event.inputs.environment }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$DISPATCH" ] && [ "$DISPATCH" != "${{ matrix.env }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve env-specific inputs
+        if: steps.scope.outputs.skip != 'true'
+        id: env
+        run: |
+          set -euo pipefail
+          if [ "${{ matrix.env }}" = "prod" ]; then
+            echo "project_id=${{ vars.GCP_TF_PROJECT_ID_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "wif_provider=${{ vars.GCP_WIF_PROVIDER_PROD }}" >> "$GITHUB_OUTPUT"
+            echo "deployer_sa=${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "project_id=${{ vars.GCP_TF_PROJECT_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "wif_provider=${{ vars.GCP_WIF_PROVIDER_STAGING }}" >> "$GITHUB_OUTPUT"
+            echo "deployer_sa=${{ vars.GCP_TF_DEPLOYER_SA_STAGING }}" >> "$GITHUB_OUTPUT"
+          fi
+          missing=()
+          [ -z "${{ vars.GCP_TF_PROJECT_ID_PROD }}" ] && [ "${{ matrix.env }}" = "prod" ] && missing+=("GCP_TF_PROJECT_ID_PROD")
+          [ -z "${{ vars.GCP_TF_PROJECT_ID_STAGING }}" ] && [ "${{ matrix.env }}" = "staging" ] && missing+=("GCP_TF_PROJECT_ID_STAGING")
+          [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] && [ "${{ matrix.env }}" = "prod" ] && missing+=("GCP_WIF_PROVIDER_PROD")
+          [ -z "${{ vars.GCP_WIF_PROVIDER_STAGING }}" ] && [ "${{ matrix.env }}" = "staging" ] && missing+=("GCP_WIF_PROVIDER_STAGING")
+          [ -z "${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" ] && [ "${{ matrix.env }}" = "prod" ] && missing+=("GCP_TF_DEPLOYER_SA_PROD")
+          [ -z "${{ vars.GCP_TF_DEPLOYER_SA_STAGING }}" ] && [ "${{ matrix.env }}" = "staging" ] && missing+=("GCP_TF_DEPLOYER_SA_STAGING")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required repository variables for ${{ matrix.env }}: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        if: steps.scope.outputs.skip != 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.env.outputs.wif_provider }}
+          service_account: ${{ steps.env.outputs.deployer_sa }}
+
+      - name: Set up Cloud SDK
+        if: steps.scope.outputs.skip != 'true'
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ steps.env.outputs.project_id }}
+
+      - name: Apply Infra Manager deployment
+        if: steps.scope.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          DEPLOYMENT="terreno-${{ matrix.env }}"
+          gcloud infra-manager deployments apply "$DEPLOYMENT" \
+            --project="${{ steps.env.outputs.project_id }}" \
+            --location="$LOCATION" \
+            --service-account="${{ steps.env.outputs.deployer_sa }}" \
+            --local-source="terraform/envs/${{ matrix.env }}" \
+            --quiet
+
+      - name: Show deployment status
+        if: steps.scope.outputs.skip != 'true'
+        run: |
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          DEPLOYMENT="terreno-${{ matrix.env }}"
+          gcloud infra-manager deployments describe "$DEPLOYMENT" \
+            --project="${{ steps.env.outputs.project_id }}" \
+            --location="$LOCATION" \
+            --format='yaml(state,latestRevision,errorCode)'
