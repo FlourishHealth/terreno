@@ -86,16 +86,16 @@ module "backend_secret_langfuse_public_key" {
 module "backend_service" {
   source = "../../modules/cloud_run_service"
 
-  project_id    = var.project_id
-  region        = var.backend_region
-  service_name  = var.backend_service_name
-  image         = var.placeholder_image
-  port          = 3000
-  memory        = "512Mi"
-  cpu           = "1"
-  min_instances = var.backend_min_instances
-  max_instances = var.backend_max_instances
-  concurrency   = 80
+  project_id            = var.project_id
+  region                = var.backend_region
+  service_name          = var.backend_service_name
+  image                 = var.placeholder_image
+  port                  = 3000
+  memory                = "512Mi"
+  cpu                   = "1"
+  min_instances         = var.backend_min_instances
+  max_instances         = var.backend_max_instances
+  concurrency           = 80
   timeout_seconds       = 300
   allow_unauthenticated = true
   labels                = local.common_labels
@@ -154,16 +154,16 @@ module "mcp_secret_sentry_dsn" {
 module "mcp_service" {
   source = "../../modules/cloud_run_service"
 
-  project_id    = var.project_id
-  region        = var.mcp_region
-  service_name  = var.mcp_service_name
-  image         = var.placeholder_image
-  port          = 8080
-  memory        = "512Mi"
-  cpu           = "1"
-  min_instances = var.mcp_min_instances
-  max_instances = var.mcp_max_instances
-  concurrency   = 80
+  project_id            = var.project_id
+  region                = var.mcp_region
+  service_name          = var.mcp_service_name
+  image                 = var.placeholder_image
+  port                  = 8080
+  memory                = "512Mi"
+  cpu                   = "1"
+  min_instances         = var.mcp_min_instances
+  max_instances         = var.mcp_max_instances
+  concurrency           = 80
   timeout_seconds       = 300
   allow_unauthenticated = true
   labels                = local.common_labels
