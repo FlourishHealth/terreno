@@ -1119,6 +1119,112 @@ describe("AI Routes", () => {
         AIRequest.logRequest = originalLogRequest;
       }
     });
+
+    it("swallows preparePromptForAI failure when langfuse prompt loading throws", async () => {
+      // Re-mock preparePromptForAI to throw, exercising the catch branch that
+      // logs `Langfuse system prompt skipped: ...` and continues without it.
+      mock.module("../langfuseVercelAi", () => ({
+        ...realLangfuseVercelAi,
+        createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+        preparePromptForAI: async () => {
+          throw new Error("langfuse offline");
+        },
+      }));
+      try {
+        const customApp = setupServer({
+          addRoutes: (router, options) => {
+            addGptRoutes(router, {
+              aiService,
+              langfuseSystemPromptName: "broken-prompt",
+              openApiOptions: options,
+            });
+          },
+          skipListen: true,
+          userModel: UserModel,
+        });
+        const agent = await authAsUser(customApp, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        // Failure is silently caught; request still completes successfully.
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("done");
+      } finally {
+        // Restore the original happy-path mock for subsequent tests.
+        mock.module("../langfuseVercelAi", () => ({
+          ...realLangfuseVercelAi,
+          createTelemetryConfig: () => ({functionId: "test", isEnabled: false}),
+          preparePromptForAI: async () => ({
+            config: {},
+            prompt: "test",
+            telemetry: {isEnabled: false},
+          }),
+        }));
+      }
+    });
+
+    it("logs warning when AIRequest.logRequest throws inside the stream error catch", async () => {
+      // Combine a stream that errors mid-iteration with a logRequest that also throws,
+      // exercising the catch-within-catch that logs `Failed to log AIRequest error`.
+      const streamIterationErrorModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({
+                delta: "partial",
+                id: "t1",
+                type: "text-delta" as const,
+              });
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.error(new Error("stream iteration failure"));
+            },
+          }),
+        })),
+        modelId: "stream-iter-error",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const errApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({
+              model: streamIterationErrorModel as unknown as LanguageModel,
+            }),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const originalLogRequest = AIRequest.logRequest;
+      AIRequest.logRequest = mock(async () => {
+        throw new Error("log write failed");
+      }) as unknown as typeof AIRequest.logRequest;
+      try {
+        const agent = await authAsUser(errApp, "notAdmin");
+        const res = await agent
+          .post("/gpt/prompt")
+          .send({prompt: "Hi"})
+          .buffer(true)
+          .parse(sseCollect);
+        // Failure path still flushes an SSE error event and ends the response.
+        expect(res.status).toBe(200);
+        const body = (res as SseResponse).body;
+        expect(body).toContain("error");
+      } finally {
+        AIRequest.logRequest = originalLogRequest;
+      }
+    });
   });
 
   describe("GPT tools route", () => {
