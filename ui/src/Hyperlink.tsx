@@ -36,73 +36,93 @@
 
 import * as mdurl from "mdurl";
 import React from "react";
-import {Linking, Platform, Text, View} from "react-native";
+import {Linking, Platform, type StyleProp, Text, type TextStyle, View} from "react-native";
 
 import type {HyperlinkProps} from "./Common";
 
-const linkifyLib = require("linkify-it")();
+interface LinkifyMatch {
+  index: number;
+  lastIndex: number;
+  raw: string;
+  schema: string;
+  text: string;
+  url: string;
+}
+
+interface LinkifyItLike {
+  pretest: (text: string) => boolean;
+  test: (text: string) => boolean;
+  match: (text: string) => LinkifyMatch[] | null;
+}
+
+const linkifyLib: LinkifyItLike = require("linkify-it")();
 
 const {OS} = Platform;
 
 // Leaving this as a class component because it was easier to handle the `parse(this)` in
 // `render()`
 class HyperlinkComponent extends React.Component<HyperlinkProps> {
-  isTextNested = (component: any) => {
+  isTextNested = (component: React.ReactElement) => {
     if (!React.isValidElement(component)) throw new Error("Invalid component");
-    const {type: {displayName} = {} as any} = component;
+    const componentType = (component.type as {displayName?: string} | undefined) ?? {};
+    const {displayName} = componentType;
     if (displayName !== "Text") throw new Error("Not a Text component");
-    return typeof (component.props as any).children !== "string";
+    return typeof (component.props as {children?: unknown}).children !== "string";
   };
 
-  linkify = (component: any) => {
+  linkify = (component: React.ReactElement<{children: string; style?: unknown}>) => {
     const linkifyIt = this.props.linkify || linkifyLib;
 
     if (!linkifyIt.pretest(component.props.children) || !linkifyIt.test(component.props.children))
       return component;
 
-    const elements = [];
+    const elements: React.ReactNode[] = [];
     let _lastIndex = 0;
 
-    const {key: _key, ref: _ref, ...componentProps} = component.props;
+    const {key: _key, ref: _ref, ...componentProps} = component.props as Record<string, unknown>;
 
     try {
-      linkifyIt.match(component.props.children).forEach(({index, lastIndex, text, url}: any) => {
-        const nonLinkedText = component.props.children.substring(_lastIndex, index);
-        nonLinkedText && elements.push(nonLinkedText);
-        _lastIndex = lastIndex;
-        if (this.props.linkText)
-          text =
-            typeof this.props.linkText === "function"
-              ? this.props.linkText(url)
-              : this.props.linkText;
+      linkifyIt
+        .match(component.props.children)
+        ?.forEach(({index, lastIndex, text, url}: LinkifyMatch) => {
+          const nonLinkedText = component.props.children.substring(_lastIndex, index);
+          nonLinkedText && elements.push(nonLinkedText);
+          _lastIndex = lastIndex;
+          if (this.props.linkText)
+            text =
+              typeof this.props.linkText === "function"
+                ? this.props.linkText(url)
+                : this.props.linkText;
 
-        const clickHandlerProps: any = {};
-        if (OS !== "web") {
-          if (this.props.onLongPress) {
-            clickHandlerProps.onLongPress = () => (this.props as any).onLongPress(url, text);
+          const clickHandlerProps: {onPress?: () => void; onLongPress?: () => void} = {};
+          if (OS !== "web") {
+            if (this.props.onLongPress) {
+              clickHandlerProps.onLongPress = () => this.props.onLongPress?.(url, text);
+            }
           }
-        }
-        if (this.props.onPress) {
-          clickHandlerProps.onPress = () => (this.props as any).onPress(url, text);
-        }
+          if (this.props.onPress) {
+            clickHandlerProps.onPress = () => this.props.onPress?.(url);
+          }
 
-        let injected: any = {};
-        if (this.props.injectViewProps) {
-          injected = this.props.injectViewProps(url);
-        }
+          // noExplicitAny: `injectViewProps` returns an arbitrary props bag (HyperlinkProps types it
+          // as returning `any`); accept any spreadable record for forwarding to <Text>.
+          let injected: Record<string, unknown> = {};
+          if (this.props.injectViewProps) {
+            injected = this.props.injectViewProps(url);
+          }
 
-        elements.push(
-          <Text
-            {...componentProps}
-            {...clickHandlerProps}
-            key={url + index}
-            style={[component.props.style, this.props.linkStyle]}
-            {...injected}
-          >
-            {text}
-          </Text>
-        );
-      });
+          elements.push(
+            <Text
+              {...componentProps}
+              {...clickHandlerProps}
+              key={url + index}
+              style={[component.props.style, this.props.linkStyle]}
+              {...injected}
+            >
+              {text}
+            </Text>
+          );
+        });
       elements.push(
         component.props.children.substring(_lastIndex, component.props.children.length)
       );
@@ -112,11 +132,13 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     }
   };
 
-  parse = (component: any): React.ReactElement => {
-    const {props: {children} = {} as any} = component || {};
+  parse = (component: React.ReactElement): React.ReactElement => {
+    const props =
+      (component?.props as {children?: React.ReactNode; style?: StyleProp<TextStyle>}) ?? {};
+    const {children} = props;
     if (!children) return component;
 
-    const {key: _key, ref: _ref, ...componentProps} = component.props;
+    const {key: _key, ref: _ref, ...componentProps} = component.props as Record<string, unknown>;
 
     const linkifyIt = this.props.linkify || linkifyLib;
 
@@ -124,15 +146,19 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
       component,
       componentProps,
       React.Children.map(children, (child) => {
-        const {type: {displayName} = {} as any} = child || {};
+        const childType = (child as React.ReactElement | null)?.type as
+          | {displayName?: string}
+          | undefined;
+        const displayName = childType?.displayName;
         if (typeof child === "string" && linkifyIt.pretest(child))
           return this.linkify(
-            <Text {...componentProps} style={component.props.style}>
+            <Text {...componentProps} style={props.style}>
               {child}
             </Text>
           );
-        if (displayName === "Text" && !this.isTextNested(child)) return this.linkify(child);
-        return this.parse(child);
+        if (displayName === "Text" && !this.isTextNested(child as React.ReactElement))
+          return this.linkify(child as React.ReactElement<{children: string; style?: unknown}>);
+        return this.parse(child as React.ReactElement);
       })
     );
   };
@@ -148,7 +174,11 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
       <View {...viewProps} style={this.props.style}>
         {!this.props.onPress && !this.props.onLongPress && !this.props.linkStyle
           ? this.props.children
-          : (this.parse(this).props as {children?: React.ReactNode}).children}
+          : (
+              this.parse(this as unknown as React.ReactElement).props as {
+                children?: React.ReactNode;
+              }
+            ).children}
       </View>
     );
   }

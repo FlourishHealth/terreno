@@ -29,11 +29,15 @@ import {useCallback, useEffect, useMemo, useState} from "react";
 import {
   Keyboard,
   Modal,
+  type ModalProps,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
+  type PressableProps,
   StyleSheet,
   Text,
   TextInput,
+  type TextInputProps,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -67,14 +71,22 @@ export const defaultStyles = StyleSheet.create({
   },
 });
 
+export interface PickerSelectItem {
+  label: string;
+  value: string;
+  key?: string | number;
+  color?: string;
+  inputLabel?: string;
+}
+
 export interface RNPickerSelectProps {
-  onValueChange: (value: any, index: any) => void;
-  items: any[];
-  value?: any;
-  placeholder?: any;
+  onValueChange: (value: string, index: number) => void;
+  items: PickerSelectItem[];
+  value?: string;
+  placeholder?: Partial<PickerSelectItem>;
   disabled?: boolean;
   itemKey?: string | number;
-  children?: any;
+  children?: React.ReactNode;
   onOpen?: () => void;
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
@@ -87,18 +99,18 @@ export interface RNPickerSelectProps {
   onClose?: () => void;
 
   // Modal props (iOS only)
-  modalProps?: any;
+  modalProps?: Partial<ModalProps>;
 
   // TextInput props
-  textInputProps?: any;
+  textInputProps?: Partial<TextInputProps>;
 
   // Touchable Done props (iOS only)
-  touchableDoneProps?: any;
+  touchableDoneProps?: Partial<PressableProps>;
 
   // Touchable wrapper props
-  touchableWrapperProps?: any;
+  touchableWrapperProps?: Partial<PressableProps>;
 
-  InputAccessoryView?: any;
+  InputAccessoryView?: React.ComponentType<{testID?: string}>;
 }
 
 export function RNPickerSelect({
@@ -125,7 +137,7 @@ export function RNPickerSelect({
   InputAccessoryView,
 }: RNPickerSelectProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [animationType, setAnimationType] = useState(undefined);
+  const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
@@ -159,25 +171,25 @@ export function RNPickerSelect({
   }, [items, placeholder]);
 
   const getSelectedItem = useCallback(
-    (key: any, val: any) => {
-      let idx = options.findIndex((item: any) => {
-        if (item.key && key) {
+    (key: string | number | undefined, val: string | undefined) => {
+      let idx = options.findIndex((item: Partial<PickerSelectItem> | undefined) => {
+        if (item?.key && key) {
           return isEqual(item.key, key);
         }
-        return isEqual(item.value, val);
+        return isEqual(item?.value, val);
       });
       if (idx === -1) {
         idx = 0;
       }
       return {
         idx,
-        selectedItem: options[idx] || {},
+        selectedItem: (options[idx] || {}) as Partial<PickerSelectItem>,
       };
     },
     [options]
   );
 
-  const [selectedItem, setSelectedItem] = useState<any>(() => {
+  const [selectedItem, setSelectedItem] = useState<Partial<PickerSelectItem>>(() => {
     return getSelectedItem(itemKey, value).selectedItem;
   });
 
@@ -195,13 +207,15 @@ export function RNPickerSelect({
     togglePicker(false, onDownArrow);
   };
 
-  const onValueChangeEvent = (val: any, index: any) => {
+  const onValueChangeEvent = (val: string, index: number) => {
     const item = getSelectedItem(itemKey, val);
     onValueChange(val, index);
     setSelectedItem(item.selectedItem);
   };
 
-  const onOrientationChange = ({nativeEvent}: any) => {
+  const onOrientationChange = ({
+    nativeEvent,
+  }: NativeSyntheticEvent<{orientation: "portrait" | "landscape"}>) => {
     setOrientation(nativeEvent.orientation);
   };
 
@@ -215,7 +229,7 @@ export function RNPickerSelect({
     }
   };
 
-  const togglePicker = (animate = false, postToggleCallback?: any) => {
+  const togglePicker = (animate = false, postToggleCallback?: () => void) => {
     if (disabled) {
       return;
     }
@@ -237,7 +251,8 @@ export function RNPickerSelect({
   };
 
   const renderPickerItems = () => {
-    return options?.map((item: any) => {
+    return options?.map((item: Partial<PickerSelectItem> | undefined) => {
+      if (!item?.label) return null;
       return (
         <Picker.Item
           color={item.color}
@@ -408,7 +423,6 @@ export function RNPickerSelect({
         ]}
       >
         <Pressable
-          activeOpacity={1}
           onPress={() => {
             togglePicker(true);
           }}
@@ -467,14 +481,16 @@ export function RNPickerSelect({
   };
 
   const renderAndroidHeadless = () => {
-    const Component: any = fixAndroidTouchableBug ? View : Pressable;
+    // `View` and `Pressable` accept disjoint prop sets; the fork swaps between them to work
+    // around an Android touchable bug, so we cast to a structural component type that accepts
+    // the union of props actually used in JSX below.
+    const Component = (fixAndroidTouchableBug ? View : Pressable) as React.ComponentType<{
+      onPress?: PressableProps["onPress"];
+      testID?: string;
+      children?: React.ReactNode;
+    }>;
     return (
-      <Component
-        activeOpacity={1}
-        onPress={onOpen}
-        testID="android_touchable_wrapper"
-        {...touchableWrapperProps}
-      >
+      <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
         <View>
           {renderTextInputOrChildren()}
           <Picker
@@ -637,7 +653,7 @@ export function RNPickerSelect({
             // `isEqual` matching in `getSelectedItem` works for number /
             // object values.
             const originalValue = options[originalIndex]?.value;
-            onValueChangeEvent(originalValue, originalIndex);
+            onValueChangeEvent(originalValue ?? "", originalIndex);
             closeWebMenu();
           }}
           options={webMenuOptions}
