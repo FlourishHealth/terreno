@@ -5,8 +5,6 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 
 ## What's managed
 
-For each environment (`prod`, `staging`):
-
 - Project APIs (Cloud Run, Artifact Registry, Secret Manager, Infra Manager, IAM, etc.)
 - GCS state bucket
 - **Workload Identity Federation** pool + provider + deployer service account
@@ -33,27 +31,26 @@ terraform/
     secret/                     # Secret Manager secret container
     github_oidc/                # WIF pool/provider/SA
   shared/
-    env/                        # Composition of the above (shared between envs)
+    env/                        # Composition of the above
   envs/
     prod/                       # Thin wrapper + terraform.tfvars
-    staging/                    # Thin wrapper + terraform.tfvars
 ```
 
-Both `envs/prod` and `envs/staging` are nearly identical — they wrap
-`shared/env/` and only differ in `terraform.tfvars` values.
+The `shared/env` and `envs/prod` split exists so adding a second environment
+later is purely additive — copy `envs/prod` to `envs/<new-env>` and update
+`terraform.tfvars`.
 
-## One-time bootstrap (per environment)
+## One-time bootstrap
 
 The Infra Manager deployment SA needs a place to live and the state bucket
 needs to exist *before* Terraform can run. Bootstrap is a manual step:
 
 ```bash
-ENV=staging                                  # or prod
-PROJECT_ID=flourish-terreno-staging          # see envs/<env>/terraform.tfvars
-STATE_BUCKET=flourish-terreno-tfstate-staging
+PROJECT_ID=flourish-terreno
+STATE_BUCKET=flourish-terreno-tfstate-prod
 LOCATION=us-central1                         # Infra Manager region
 
-# 1. Enable required APIs on the new project.
+# 1. Enable required APIs on the project.
 gcloud services enable \
   cloudbuild.googleapis.com \
   config.googleapis.com \
@@ -76,12 +73,12 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:infra-manager-bootstrap@${PROJECT_ID}.iam.gserviceaccount.com" \
   --role="roles/owner"
 
-# 4. Create the Infra Manager deployment for this env.
-gcloud infra-manager deployments apply "terreno-$ENV" \
+# 4. Create the Infra Manager deployment.
+gcloud infra-manager deployments apply terreno-prod \
   --project="$PROJECT_ID" \
   --location="$LOCATION" \
   --service-account="infra-manager-bootstrap@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --local-source="envs/$ENV"
+  --local-source="envs/prod"
 ```
 
 After step 4 succeeds, the WIF provider, deployer SA, and all other resources
@@ -97,17 +94,14 @@ sensitive):
 | Variable | Value |
 |----------|-------|
 | `GCP_TF_PROJECT_ID_PROD` | `flourish-terreno` |
-| `GCP_TF_PROJECT_ID_STAGING` | `flourish-terreno-staging` |
-| `GCP_WIF_PROVIDER_PROD` | output `workload_identity_provider` from prod |
-| `GCP_WIF_PROVIDER_STAGING` | output `workload_identity_provider` from staging |
-| `GCP_TF_DEPLOYER_SA_PROD` | output `deployer_service_account_email` from prod |
-| `GCP_TF_DEPLOYER_SA_STAGING` | output `deployer_service_account_email` from staging |
+| `GCP_WIF_PROVIDER_PROD` | output `workload_identity_provider` from the first apply |
+| `GCP_TF_DEPLOYER_SA_PROD` | output `deployer_service_account_email` from the first apply |
 | `GCP_INFRA_MANAGER_LOCATION` | optional, defaults to `us-central1` |
 
 Fetch the outputs after the first apply:
 
 ```bash
-gcloud infra-manager deployments describe "terreno-prod" \
+gcloud infra-manager deployments describe terreno-prod \
   --project=flourish-terreno --location=us-central1 \
   --format="value(latestRevision)"
 # Then grab the outputs from the returned revision name:
@@ -145,17 +139,14 @@ echo -n 'https://...@sentry.io/...' | \
   --project="$PROJECT_ID" --data-file=-
 ```
 
-For staging, append `-staging` to the secret IDs (they match the staging
-service names in `envs/staging/terraform.tfvars`).
-
 Rotation = `gcloud secrets versions add` again. Cloud Run reads `:latest`
 on every cold start.
 
 ## Importing existing resources
 
-The first `terraform plan` against prod will want to **create** resources
-that already exist (the live Cloud Run service, Artifact Registry repo, etc.).
-Import them before the first apply:
+The first `terraform plan` will want to **create** resources that already
+exist (the live Cloud Run service, Artifact Registry repo, etc.). Import them
+before the first apply:
 
 ```bash
 cd envs/prod
@@ -199,5 +190,5 @@ terraform fmt -recursive ../..
 terraform validate
 ```
 
-Don't `terraform apply` locally to prod — Infra Manager is the source of
-truth for who can apply.
+Don't `terraform apply` locally — Infra Manager is the source of truth for
+who can apply.
