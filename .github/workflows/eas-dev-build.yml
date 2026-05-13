@@ -26,10 +26,15 @@ on:
           - iOS
           - Android
 
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -51,14 +56,191 @@ jobs:
       - name: Compile workspace packages
         run: bun run compile
 
-      - name: Run EAS Build
-        working-directory: ${{ github.event.inputs.app }}
+      - name: Find PR for branch
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PROFILE="${{ github.event.inputs.environment }}"
-          PLATFORM="${{ github.event.inputs.platform }}"
+          PR_NUMBER=$(gh pr list --head "${{ github.ref_name }}" --state open --json number --jq '.[0].number // ""')
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "PR for branch ${{ github.ref_name }}: ${PR_NUMBER:-none}"
 
-          if [ "$PLATFORM" == "iOS" ]; then
-            eas build --profile "$PROFILE" --platform ios --non-interactive
-          elif [ "$PLATFORM" == "Android" ]; then
-            eas build --profile "$PROFILE" --platform android --non-interactive
+      - name: Create deployment
+        id: deployment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP: ${{ github.event.inputs.app }}
+          PLATFORM: ${{ github.event.inputs.platform }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          ENV_NAME="eas-${APP}-${PLATFORM}-${ENVIRONMENT}"
+          DEPLOYMENT_ID=$(jq -n \
+            --arg ref "${{ github.sha }}" \
+            --arg env "$ENV_NAME" \
+            --arg desc "EAS ${APP} ${PLATFORM} ${ENVIRONMENT}" \
+            '{ref: $ref, environment: $env, auto_merge: false, required_contexts: [], description: $desc, transient_environment: true}' | \
+            gh api "repos/${{ github.repository }}/deployments" --input - --jq '.id')
+          echo "id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+          gh api "repos/${{ github.repository }}/deployments/$DEPLOYMENT_ID/statuses" \
+            -f state=in_progress \
+            -f description="Submitting EAS build" >/dev/null
+
+      - name: Submit EAS Build
+        id: build
+        working-directory: ${{ github.event.inputs.app }}
+        env:
+          PLATFORM: ${{ github.event.inputs.platform }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          PROFILE="$ENVIRONMENT"
+          PLATFORM_LOWER=$(echo "$PLATFORM" | tr 'A-Z' 'a-z')
+          BUILD_JSON=$(eas build --profile "$PROFILE" --platform "$PLATFORM_LOWER" --non-interactive --no-wait --json)
+          echo "$BUILD_JSON" > /tmp/eas-build.json
+          BUILD_ID=$(jq -r '.[0].id' /tmp/eas-build.json)
+          SLUG=$(jq -r '.[0].project.slug' /tmp/eas-build.json)
+          OWNER=$(jq -r '.[0].project.ownerAccount.name' /tmp/eas-build.json)
+          BUILD_URL="https://expo.dev/accounts/$OWNER/projects/$SLUG/builds/$BUILD_ID"
+          echo "id=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "url=$BUILD_URL" >> "$GITHUB_OUTPUT"
+          echo "Build submitted: $BUILD_URL"
+
+      - name: Post initial PR comment
+        if: steps.pr.outputs.number != '' && steps.build.outputs.id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BUILD_URL: ${{ steps.build.outputs.url }}
+          APP: ${{ github.event.inputs.app }}
+          PLATFORM: ${{ github.event.inputs.platform }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          MARKER="<!-- eas-build:${APP}:${PLATFORM}:${ENVIRONMENT} -->"
+          {
+            echo "$MARKER"
+            printf '**[BUILDING] EAS Build submitted** — `%s` (%s, %s)\n\n' "$APP" "$PLATFORM" "$ENVIRONMENT"
+            printf '[View build on Expo](%s)\n' "$BUILD_URL"
+          } > /tmp/comment.md
+          BODY=$(cat /tmp/comment.md)
+          EXISTING=$(gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING" -f body="$BODY" >/dev/null
+            echo "Updated comment $EXISTING"
+          else
+            gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" -f body="$BODY" >/dev/null
+            echo "Created new comment"
+          fi
+
+      - name: Wait for build completion
+        id: wait
+        if: steps.build.outputs.id != ''
+        timeout-minutes: 45
+        env:
+          BUILD_ID: ${{ steps.build.outputs.id }}
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          STATUS=""
+          RES=""
+          QUERY="query Build(\$id: ID!) { builds { byId(buildId: \$id) { id status error { errorCode message } artifacts { buildUrl } } } }"
+          while true; do
+            sleep 30
+            RES=$(curl -s -X POST https://api.expo.dev/graphql \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $EXPO_TOKEN" \
+              --data "$(jq -nc --arg q "$QUERY" --arg id "$BUILD_ID" '{query: $q, variables: {id: $id}}')")
+            STATUS=$(echo "$RES" | jq -r '.data.builds.byId.status // "UNKNOWN"')
+            echo "[$(date +%H:%M:%S)] Status: $STATUS"
+            case "$STATUS" in
+              FINISHED|ERRORED|CANCELED)
+                break
+                ;;
+              UNKNOWN)
+                echo "Unexpected response: $RES"
+                ;;
+            esac
+          done
+          ARTIFACT_URL=$(echo "$RES" | jq -r '.data.builds.byId.artifacts.buildUrl // ""')
+          ERROR_MESSAGE=$(echo "$RES" | jq -r '.data.builds.byId.error.message // ""' | head -c 500)
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "artifact_url=$ARTIFACT_URL" >> "$GITHUB_OUTPUT"
+          {
+            echo "error_message<<__EOF__"
+            echo "$ERROR_MESSAGE"
+            echo "__EOF__"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Update deployment status
+        if: steps.deployment.outputs.id != '' && always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.id }}
+          BUILD_URL: ${{ steps.build.outputs.url }}
+          BUILD_STATUS: ${{ steps.wait.outputs.status }}
+        run: |
+          if [ "$BUILD_STATUS" = "FINISHED" ]; then
+            STATE="success"
+            DESC="EAS build succeeded"
+          elif [ -n "$BUILD_STATUS" ]; then
+            STATE="failure"
+            DESC="EAS build $BUILD_STATUS"
+          else
+            STATE="failure"
+            DESC="EAS build submission failed"
+          fi
+          if [ -n "$BUILD_URL" ]; then
+            gh api "repos/${{ github.repository }}/deployments/$DEPLOYMENT_ID/statuses" \
+              -f state="$STATE" \
+              -f environment_url="$BUILD_URL" \
+              -f log_url="$BUILD_URL" \
+              -f description="$DESC" >/dev/null
+          else
+            gh api "repos/${{ github.repository }}/deployments/$DEPLOYMENT_ID/statuses" \
+              -f state="$STATE" \
+              -f description="$DESC" >/dev/null
+          fi
+          echo "Deployment status: $STATE ($DESC)"
+
+      - name: Post final PR comment
+        if: steps.pr.outputs.number != '' && always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          BUILD_URL: ${{ steps.build.outputs.url }}
+          BUILD_STATUS: ${{ steps.wait.outputs.status }}
+          ARTIFACT_URL: ${{ steps.wait.outputs.artifact_url }}
+          ERROR_MESSAGE: ${{ steps.wait.outputs.error_message }}
+          APP: ${{ github.event.inputs.app }}
+          PLATFORM: ${{ github.event.inputs.platform }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          MARKER="<!-- eas-build:${APP}:${PLATFORM}:${ENVIRONMENT} -->"
+          if [ "$BUILD_STATUS" = "FINISHED" ]; then
+            HEADER="**[SUCCESS] EAS Build finished**"
+          elif [ -n "$BUILD_STATUS" ]; then
+            HEADER="**[FAILED] EAS Build $BUILD_STATUS**"
+          else
+            HEADER="**[FAILED] EAS Build submission failed**"
+          fi
+          {
+            echo "$MARKER"
+            printf '%s — `%s` (%s, %s)\n' "$HEADER" "$APP" "$PLATFORM" "$ENVIRONMENT"
+            if [ -n "$BUILD_URL" ]; then
+              printf '\n[View build on Expo](%s)\n' "$BUILD_URL"
+            fi
+            if [ -n "$ARTIFACT_URL" ]; then
+              printf '\n[Download artifact](%s)\n' "$ARTIFACT_URL"
+            fi
+            if [ -n "$ERROR_MESSAGE" ]; then
+              printf '\n```\n%s\n```\n' "$ERROR_MESSAGE"
+            fi
+          } > /tmp/comment.md
+          BODY=$(cat /tmp/comment.md)
+          EXISTING=$(gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$EXISTING" -f body="$BODY" >/dev/null
+            echo "Updated comment $EXISTING"
+          else
+            gh api "repos/${{ github.repository }}/issues/$PR_NUMBER/comments" -f body="$BODY" >/dev/null
+            echo "Created new comment"
           fi
