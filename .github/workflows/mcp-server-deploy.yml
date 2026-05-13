@@ -83,7 +83,7 @@ jobs:
           if [ -z "$GCP_PROJECT_ID" ]; then missing+=("GCP_PROJECT_ID"); fi
           if [ -z "$GCP_ARTIFACT_REGISTRY" ]; then missing+=("GCP_ARTIFACT_REGISTRY"); fi
           if [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ]; then missing+=("vars.GCP_WIF_PROVIDER_PROD"); fi
-          if [ -z "${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" ]; then missing+=("vars.GCP_TF_DEPLOYER_SA_PROD"); fi
+          if [ -z "${{ vars.GCP_CD_DEPLOYER_SA_PROD }}" ]; then missing+=("vars.GCP_CD_DEPLOYER_SA_PROD"); fi
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing required vars: ${missing[*]}"
             exit 1
@@ -112,7 +112,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ vars.GCP_TF_DEPLOYER_SA_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3

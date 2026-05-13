@@ -19,8 +19,8 @@ permissions:
   pull-requests: write
 
 env:
-  TF_ENV: prod
   TF_DEPLOYMENT: terreno-prod
+  TF_SOURCE_DIR: terraform
 
 jobs:
   format:
@@ -46,7 +46,7 @@ jobs:
       - name: Skip if env not bootstrapped
         id: gate
         run: |
-          if [ -z "${{ vars.GCP_TF_PROJECT_ID_PROD }}" ] || [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] || [ -z "${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" ]; then
+          if [ -z "${{ vars.GCP_TF_PROJECT_ID_PROD }}" ] || [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] || [ -z "${{ vars.GCP_TF_ADMIN_SA_PROD }}" ]; then
             echo "::notice::Environment has not been bootstrapped yet; skipping preview."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -58,7 +58,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ vars.GCP_TF_DEPLOYER_SA_PROD }}
+          service_account: ${{ vars.GCP_TF_ADMIN_SA_PROD }}
 
       - name: Set up Cloud SDK
         if: steps.gate.outputs.skip != 'true'
@@ -79,8 +79,8 @@ jobs:
             --project="${{ vars.GCP_TF_PROJECT_ID_PROD }}" \
             --location="$LOCATION" \
             --deployment="projects/${{ vars.GCP_TF_PROJECT_ID_PROD }}/locations/${LOCATION}/deployments/${TF_DEPLOYMENT}" \
-            --service-account="${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" \
-            --local-source="terraform/envs/${TF_ENV}" \
+            --service-account="${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --local-source="${TF_SOURCE_DIR}" \
             --quiet
 
       - name: Describe preview
@@ -115,7 +115,7 @@ jobs:
           missing=()
           [ -z "${{ vars.GCP_TF_PROJECT_ID_PROD }}" ] && missing+=("GCP_TF_PROJECT_ID_PROD")
           [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] && missing+=("GCP_WIF_PROVIDER_PROD")
-          [ -z "${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" ] && missing+=("GCP_TF_DEPLOYER_SA_PROD")
+          [ -z "${{ vars.GCP_TF_ADMIN_SA_PROD }}" ] && missing+=("GCP_TF_ADMIN_SA_PROD")
           if [ ${#missing[@]} -ne 0 ]; then
             echo "::error::Missing required repository variables: ${missing[*]}"
             exit 1
@@ -125,7 +125,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ vars.GCP_TF_DEPLOYER_SA_PROD }}
+          service_account: ${{ vars.GCP_TF_ADMIN_SA_PROD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
@@ -139,8 +139,8 @@ jobs:
           gcloud infra-manager deployments apply "${TF_DEPLOYMENT}" \
             --project="${{ vars.GCP_TF_PROJECT_ID_PROD }}" \
             --location="$LOCATION" \
-            --service-account="${{ vars.GCP_TF_DEPLOYER_SA_PROD }}" \
-            --local-source="terraform/envs/${TF_ENV}" \
+            --service-account="${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --local-source="${TF_SOURCE_DIR}" \
             --quiet
 
       - name: Show deployment status

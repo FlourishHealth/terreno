@@ -26,25 +26,46 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   }
 }
 
-resource "google_service_account" "deployer" {
+resource "google_service_account" "sa" {
+  for_each = var.service_accounts
+
   project      = var.project_id
-  account_id   = var.service_account_id
-  display_name = "GitHub Actions Deployer"
-  description  = "Impersonated by GitHub Actions via Workload Identity Federation to deploy this environment."
+  account_id   = each.key
+  display_name = coalesce(each.value.display_name, each.key)
+  description  = each.value.description
 }
 
-resource "google_project_iam_member" "deployer" {
-  for_each = var.roles
+# Flatten {sa_name => roles} into one row per (sa_name, role) so we can create
+# one project-level IAM binding per role.
+locals {
+  sa_role_bindings = merge([
+    for sa_name, sa in var.service_accounts : {
+      for role in sa.roles :
+      "${sa_name}|${role}" => { sa_name = sa_name, role = role }
+    }
+  ]...)
+
+  # One row per (sa_name, github_repo) for workloadIdentityUser bindings.
+  sa_repo_bindings = merge([
+    for sa_name in keys(var.service_accounts) : {
+      for repo in var.github_repos :
+      "${sa_name}|${repo}" => { sa_name = sa_name, repo = repo }
+    }
+  ]...)
+}
+
+resource "google_project_iam_member" "sa_roles" {
+  for_each = local.sa_role_bindings
 
   project = var.project_id
-  role    = each.value
-  member  = "serviceAccount:${google_service_account.deployer.email}"
+  role    = each.value.role
+  member  = "serviceAccount:${google_service_account.sa[each.value.sa_name].email}"
 }
 
 resource "google_service_account_iam_member" "wif_user" {
-  for_each = var.github_repos
+  for_each = local.sa_repo_bindings
 
-  service_account_id = google_service_account.deployer.name
+  service_account_id = google_service_account.sa[each.value.sa_name].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.this.name}/attribute.repository/${each.value}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.this.name}/attribute.repository/${each.value.repo}"
 }

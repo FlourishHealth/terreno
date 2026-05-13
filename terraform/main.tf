@@ -3,21 +3,63 @@ locals {
     environment = var.environment
     managed_by  = "terraform"
   }
+
+  # Two impersonable service accounts:
+  #
+  #   terraform-admin: Used by Infra Manager + the terraform-apply workflow.
+  #     Needs admin-level scope because Terraform creates IAM bindings, WIF
+  #     pools, secrets, buckets, and enables APIs.
+  #
+  #   gh-deployer:     Used by the CD workflows (deploy-example-gcp,
+  #     mcp-server-deploy). Narrow scope: push images, roll Cloud Run, and
+  #     read (not write) secrets so it can verify mounts.
+  service_accounts = {
+    terraform-admin = {
+      display_name = "Terraform admin"
+      description  = "Impersonated by Infra Manager to apply terraform/. Project-admin scope."
+      roles = [
+        "roles/artifactregistry.admin",
+        "roles/config.admin",
+        "roles/iam.serviceAccountAdmin",
+        "roles/iam.workloadIdentityPoolAdmin",
+        "roles/resourcemanager.projectIamAdmin",
+        "roles/run.admin",
+        "roles/secretmanager.admin",
+        "roles/serviceusage.serviceUsageAdmin",
+        "roles/storage.admin",
+      ]
+    }
+    gh-deployer = {
+      display_name = "GitHub Actions CD deployer"
+      description  = "Impersonated by the application deploy workflows. Push images + roll Cloud Run + read secrets."
+      roles = [
+        "roles/artifactregistry.writer",
+        "roles/iam.serviceAccountUser",
+        "roles/run.admin",
+        "roles/secretmanager.secretAccessor",
+      ]
+    }
+  }
+}
+
+data "google_project" "this" {
+  project_id = var.project_id
 }
 
 module "bootstrap" {
-  source = "../../modules/project_bootstrap"
+  source = "./modules/project_bootstrap"
 
   project_id        = var.project_id
   state_bucket_name = var.state_bucket_name
 }
 
 module "github_oidc" {
-  source = "../../modules/github_oidc"
+  source = "./modules/github_oidc"
 
-  project_id   = var.project_id
-  github_owner = var.github_owner
-  github_repos = var.github_repos
+  project_id       = var.project_id
+  github_owner     = var.github_owner
+  github_repos     = var.github_repos
+  service_accounts = local.service_accounts
 
   depends_on = [module.bootstrap]
 }
@@ -27,22 +69,25 @@ module "github_oidc" {
 # ---------------------------------------------------------------------------
 
 module "backend_artifact_registry" {
-  source = "../../modules/artifact_registry"
+  source = "./modules/artifact_registry"
 
   project_id    = var.project_id
   region        = var.backend_region
   repository_id = var.backend_service_name
-  description   = "Container images for ${var.backend_service_name} (${var.environment})."
+  description   = "Container images for ${var.backend_service_name}."
 
+  # Project-level artifactregistry.writer is already granted on the gh-deployer
+  # SA via github_oidc; this binding is redundant but harmless if you want
+  # repo-scoped pushing.
   writer_members = [
-    "serviceAccount:${module.github_oidc.service_account_email}",
+    "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}",
   ]
 
   depends_on = [module.bootstrap]
 }
 
 module "backend_secret_mongo_uri" {
-  source = "../../modules/secret"
+  source = "./modules/secret"
 
   project_id = var.project_id
   secret_id  = "${var.backend_service_name}-mongo-uri"
@@ -56,7 +101,7 @@ module "backend_secret_mongo_uri" {
 }
 
 module "backend_secret_langfuse_secret_key" {
-  source = "../../modules/secret"
+  source = "./modules/secret"
 
   project_id = var.project_id
   secret_id  = "${var.backend_service_name}-langfuse-secret-key"
@@ -70,7 +115,7 @@ module "backend_secret_langfuse_secret_key" {
 }
 
 module "backend_secret_langfuse_public_key" {
-  source = "../../modules/secret"
+  source = "./modules/secret"
 
   project_id = var.project_id
   secret_id  = "${var.backend_service_name}-langfuse-public-key"
@@ -84,7 +129,7 @@ module "backend_secret_langfuse_public_key" {
 }
 
 module "backend_service" {
-  source = "../../modules/cloud_run_service"
+  source = "./modules/cloud_run_service"
 
   project_id            = var.project_id
   region                = var.backend_region
@@ -123,22 +168,22 @@ module "backend_service" {
 # ---------------------------------------------------------------------------
 
 module "mcp_artifact_registry" {
-  source = "../../modules/artifact_registry"
+  source = "./modules/artifact_registry"
 
   project_id    = var.project_id
   region        = var.mcp_region
   repository_id = var.mcp_service_name
-  description   = "Container images for ${var.mcp_service_name} (${var.environment})."
+  description   = "Container images for ${var.mcp_service_name}."
 
   writer_members = [
-    "serviceAccount:${module.github_oidc.service_account_email}",
+    "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}",
   ]
 
   depends_on = [module.bootstrap]
 }
 
 module "mcp_secret_sentry_dsn" {
-  source = "../../modules/secret"
+  source = "./modules/secret"
 
   project_id = var.project_id
   secret_id  = "${var.mcp_service_name}-sentry-dsn"
@@ -152,7 +197,7 @@ module "mcp_secret_sentry_dsn" {
 }
 
 module "mcp_service" {
-  source = "../../modules/cloud_run_service"
+  source = "./modules/cloud_run_service"
 
   project_id            = var.project_id
   region                = var.mcp_region
@@ -176,8 +221,4 @@ module "mcp_service" {
     module.mcp_artifact_registry,
     module.mcp_secret_sentry_dsn,
   ]
-}
-
-data "google_project" "this" {
-  project_id = var.project_id
 }

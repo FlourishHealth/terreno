@@ -1,11 +1,12 @@
 variable "project_id" {
-  description = "GCP project ID for this environment."
+  description = "GCP project ID."
   type        = string
 }
 
 variable "environment" {
-  description = "Environment label applied to all resources (prod, staging)."
+  description = "Environment label applied to all resources."
   type        = string
+  default     = "prod"
 }
 
 variable "state_bucket_name" {
@@ -19,7 +20,7 @@ variable "github_owner" {
 }
 
 variable "github_repos" {
-  description = "Set of '<owner>/<repo>' allowed to impersonate the deployer SA."
+  description = "Set of '<owner>/<repo>' allowed to impersonate the deployer SAs."
   type        = set(string)
 }
 

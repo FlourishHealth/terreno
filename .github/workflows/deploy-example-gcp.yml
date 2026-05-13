@@ -77,7 +77,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ vars.GCP_TF_DEPLOYER_SA_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
@@ -222,7 +222,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
-          service_account: ${{ vars.GCP_TF_DEPLOYER_SA_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3

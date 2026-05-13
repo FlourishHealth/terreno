@@ -1,11 +1,16 @@
 output "workload_identity_provider" {
   value       = module.github_oidc.workload_identity_provider
-  description = "Pass to google-github-actions/auth as workload_identity_provider."
+  description = "Pass to google-github-actions/auth as workload_identity_provider. Shared by both service accounts."
 }
 
-output "deployer_service_account_email" {
-  value       = module.github_oidc.service_account_email
-  description = "Pass to google-github-actions/auth as service_account."
+output "terraform_admin_sa_email" {
+  value       = module.github_oidc.service_account_emails["terraform-admin"]
+  description = "Service account for terraform-apply.yml (project-admin scope). Repo var: GCP_TF_ADMIN_SA_PROD."
+}
+
+output "gh_deployer_sa_email" {
+  value       = module.github_oidc.service_account_emails["gh-deployer"]
+  description = "Service account for the CD workflows (deploy-example-gcp, mcp-server-deploy). Repo var: GCP_CD_DEPLOYER_SA_PROD."
 }
 
 output "backend_url" {

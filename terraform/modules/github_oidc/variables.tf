@@ -15,30 +15,21 @@ variable "provider_id" {
   default     = "github"
 }
 
-variable "service_account_id" {
-  description = "Service account ID for the GitHub deployer."
-  type        = string
-  default     = "github-actions-deployer"
-}
-
 variable "github_owner" {
   description = "GitHub org/user that owns the repo. Used in OIDC attribute condition."
   type        = string
 }
 
 variable "github_repos" {
-  description = "Set of '<owner>/<repo>' strings allowed to impersonate the deployer SA via this pool."
+  description = "Set of '<owner>/<repo>' strings allowed to impersonate any of the service accounts via this pool."
   type        = set(string)
 }
 
-variable "roles" {
-  description = "IAM roles granted to the deployer SA at the project level."
-  type        = set(string)
-  default = [
-    "roles/run.admin",
-    "roles/artifactregistry.writer",
-    "roles/iam.serviceAccountUser",
-    "roles/secretmanager.secretAccessor",
-    "roles/storage.objectViewer",
-  ]
+variable "service_accounts" {
+  description = "Service accounts to create. Each entry gets its own SA with the given project-level roles, plus iam.workloadIdentityUser bindings for every github_repos entry. Use this to split powers (e.g., one admin SA for Terraform, one narrow SA for CD pipelines)."
+  type = map(object({
+    display_name = optional(string)
+    description  = optional(string)
+    roles        = set(string)
+  }))
 }
