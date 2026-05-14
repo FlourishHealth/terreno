@@ -5,7 +5,8 @@ resource "google_cloud_run_v2_service" "this" {
   ingress  = var.ingress
   labels   = var.labels
 
-  deletion_protection = false
+  deletion_protection  = var.deletion_protection
+  invoker_iam_disabled = var.allow_unauthenticated
 
   template {
     max_instance_request_concurrency = var.concurrency
@@ -55,10 +56,17 @@ resource "google_cloud_run_v2_service" "this" {
   }
 
   lifecycle {
-    # The CD workflow rolls new image SHAs onto this service. Terraform should
-    # not fight those updates — it owns the service definition, not the image.
+    # The CD workflow rolls new image SHAs and env vars onto this service on
+    # every deploy. Terraform owns the structural service definition (scaling,
+    # ports, resources, IAM); the workflow owns the runtime payload.
     ignore_changes = [
       template[0].containers[0].image,
+      template[0].containers[0].env,
+      template[0].containers[0].name,
+      template[0].containers[0].resources[0].cpu_idle,
+      template[0].containers[0].resources[0].startup_cpu_boost,
+      template[0].labels,
+      template[0].revision,
       client,
       client_version,
     ]

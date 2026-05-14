@@ -12,7 +12,7 @@ locals {
   #
   #   gh-deployer:     Used by the CD workflows (deploy-example-gcp,
   #     mcp-server-deploy). Narrow scope: push images, roll Cloud Run, and
-  #     read (not write) secrets so it can verify mounts.
+  #     read secrets so env vars sourced from Secret Manager work.
   service_accounts = {
     terraform-admin = {
       display_name = "Terraform admin"
@@ -61,7 +61,11 @@ module "github_oidc" {
 }
 
 # ---------------------------------------------------------------------------
-# Example backend (Cloud Run + Artifact Registry + secrets)
+# Example backend
+#
+# Cloud Run service env vars + image are managed by the CD workflow
+# (deploy-example-gcp.yml), which sources values from GitHub Actions secrets.
+# Terraform owns the structural definition: resources, scaling, IAM, labels.
 # ---------------------------------------------------------------------------
 
 module "backend_artifact_registry" {
@@ -72,53 +76,8 @@ module "backend_artifact_registry" {
   repository_id = var.backend_service_name
   description   = "Container images for ${var.backend_service_name}."
 
-  # Project-level artifactregistry.writer is already granted on the gh-deployer
-  # SA via github_oidc; this binding is redundant but harmless if you want
-  # repo-scoped pushing.
   writer_members = {
     gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
-  }
-
-  depends_on = [module.bootstrap]
-}
-
-module "backend_secret_mongo_uri" {
-  source = "./modules/secret"
-
-  project_id = var.project_id
-  secret_id  = "${var.backend_service_name}-mongo-uri"
-  labels     = local.common_labels
-
-  accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
-  }
-
-  depends_on = [module.bootstrap]
-}
-
-module "backend_secret_langfuse_secret_key" {
-  source = "./modules/secret"
-
-  project_id = var.project_id
-  secret_id  = "${var.backend_service_name}-langfuse-secret-key"
-  labels     = local.common_labels
-
-  accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
-  }
-
-  depends_on = [module.bootstrap]
-}
-
-module "backend_secret_langfuse_public_key" {
-  source = "./modules/secret"
-
-  project_id = var.project_id
-  secret_id  = "${var.backend_service_name}-langfuse-public-key"
-  labels     = local.common_labels
-
-  accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
   }
 
   depends_on = [module.bootstrap]
@@ -141,26 +100,11 @@ module "backend_service" {
   allow_unauthenticated = true
   labels                = local.common_labels
 
-  env = {
-    NODE_ENV = "production"
-  }
-
-  secret_env = {
-    MONGODB_URI         = module.backend_secret_mongo_uri.secret_id
-    LANGFUSE_SECRET_KEY = module.backend_secret_langfuse_secret_key.secret_id
-    LANGFUSE_PUBLIC_KEY = module.backend_secret_langfuse_public_key.secret_id
-  }
-
-  depends_on = [
-    module.backend_artifact_registry,
-    module.backend_secret_mongo_uri,
-    module.backend_secret_langfuse_secret_key,
-    module.backend_secret_langfuse_public_key,
-  ]
+  depends_on = [module.backend_artifact_registry]
 }
 
 # ---------------------------------------------------------------------------
-# MCP server (Cloud Run + Artifact Registry + secrets)
+# MCP server (same shape as the backend)
 # ---------------------------------------------------------------------------
 
 module "mcp_artifact_registry" {
@@ -173,20 +117,6 @@ module "mcp_artifact_registry" {
 
   writer_members = {
     gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
-  }
-
-  depends_on = [module.bootstrap]
-}
-
-module "mcp_secret_sentry_dsn" {
-  source = "./modules/secret"
-
-  project_id = var.project_id
-  secret_id  = "${var.mcp_service_name}-sentry-dsn"
-  labels     = local.common_labels
-
-  accessor_members = {
-    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
   }
 
   depends_on = [module.bootstrap]
@@ -209,12 +139,5 @@ module "mcp_service" {
   allow_unauthenticated = true
   labels                = local.common_labels
 
-  secret_env = {
-    SENTRY_DSN = module.mcp_secret_sentry_dsn.secret_id
-  }
-
-  depends_on = [
-    module.mcp_artifact_registry,
-    module.mcp_secret_sentry_dsn,
-  ]
+  depends_on = [module.mcp_artifact_registry]
 }

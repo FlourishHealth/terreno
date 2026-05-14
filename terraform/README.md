@@ -5,16 +5,15 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
 
 ## What's managed
 
-- Project APIs (Cloud Run, Artifact Registry, Secret Manager, Infra Manager, IAM, etc.)
+- Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
 - **Workload Identity Federation** — one pool/provider plus two impersonable service accounts:
   - `terraform-admin` — used by `terraform-apply.yml` (project-admin scope)
   - `gh-deployer` — used by the CD workflows (`deploy-example-gcp.yml`, `mcp-server-deploy.yml`) with the narrow set of roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
-- Cloud Run services (`terreno-backend-example`, `terreno-mcp`) with env vars and Secret Manager-sourced env vars
-- Secret Manager **secret containers** (values seeded out-of-band — see [Seeding secrets](#seeding-secrets))
+- Cloud Run services (`terreno-backend-example`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
 
-Cloud Run **image rollouts** are still driven by the CD workflows. Terraform owns the service definition; the workflow owns the image tag. `lifecycle.ignore_changes` on `template[0].containers[0].image` keeps them out of each other's way.
+Secrets (MongoDB URI, Langfuse keys, Sentry DSN, etc.) live in **GitHub Actions secrets** today and are not yet migrated to Secret Manager. The deploy workflows reference them via `${{ secrets.X }}` and feed them into Cloud Run as plain env vars. Migration to Secret Manager is a future cleanup.
 
 ## Layout
 
@@ -29,7 +28,7 @@ terraform/
     project_bootstrap/          # APIs + state bucket
     artifact_registry/          # Docker repo + IAM
     cloud_run_service/          # v2 Cloud Run service + invoker IAM
-    secret/                     # Secret Manager secret container
+    secret/                     # Secret Manager secret container (kept for future use)
     github_oidc/                # WIF pool/provider + multi-SA support
 ```
 
@@ -42,9 +41,10 @@ PROJECT_ID=flourish-terreno
 STATE_BUCKET=flourish-terreno-tfstate-prod
 LOCATION=us-central1                         # Infra Manager region
 
-# 1. Enable required APIs on the project. (Terraform manages most of these
-#    via the project_bootstrap module, but the ones below are needed for the
-#    initial `terraform plan` / `infra-manager apply` to succeed.)
+# 1. Enable APIs needed before Terraform can run. Terraform manages most of
+#    these via the project_bootstrap module, but plan/apply itself needs the
+#    cloud build, config, IAM, service usage, and storage APIs available
+#    first.
 gcloud services enable \
   cloudbuild.googleapis.com \
   cloudresourcemanager.googleapis.com \
@@ -108,34 +108,6 @@ gcloud infra-manager revisions describe <REVISION> --format=json | jq '.terrafor
 
 Once those repo variables are set, you can **delete the `GCP_SA_KEY` secret** from GitHub — every workflow now uses WIF.
 
-## Seeding secrets
-
-Terraform creates Secret Manager **containers** but never holds the values. Seed each one with `gcloud`:
-
-```bash
-PROJECT_ID=flourish-terreno
-
-# Backend example secrets
-echo -n 'mongodb+srv://...' | \
-  gcloud secrets versions add terreno-backend-example-mongo-uri \
-  --project="$PROJECT_ID" --data-file=-
-
-echo -n 'sk-lf-...' | \
-  gcloud secrets versions add terreno-backend-example-langfuse-secret-key \
-  --project="$PROJECT_ID" --data-file=-
-
-echo -n 'pk-lf-...' | \
-  gcloud secrets versions add terreno-backend-example-langfuse-public-key \
-  --project="$PROJECT_ID" --data-file=-
-
-# MCP server secret
-echo -n 'https://...@sentry.io/...' | \
-  gcloud secrets versions add terreno-mcp-sentry-dsn \
-  --project="$PROJECT_ID" --data-file=-
-```
-
-Rotation = `gcloud secrets versions add` again. Cloud Run reads `:latest` on every cold start.
-
 ## Importing existing resources
 
 The first `terraform plan` will want to **create** resources that already exist (live Cloud Run service, Artifact Registry repo, existing Workload Identity Pool). Import them before the first apply:
@@ -163,19 +135,20 @@ terraform import 'module.github_oidc.google_iam_workload_identity_pool_provider.
   projects/flourish-terreno/locations/global/workloadIdentityPools/github-actions/providers/github
 ```
 
-Then `terraform plan` should show no diff (or just additions for the new secret containers / WIF resources). If the plan wants to change Cloud Run env vars, that's expected — Terraform will rewrite the service to reference Secret Manager. Seed the secret values **before** the first apply so the service doesn't go down.
-
-## Adding a new secret
-
-1. Add a `module "..." { source = "./modules/secret" ... }` block to `main.tf`.
-2. Add it to `secret_env` on the relevant Cloud Run service module.
-3. Add the same `KEY=secret-id:latest` entry to the `secrets:` block of the deploy workflow (so workflow rollouts keep the mount in sync).
-4. Commit, merge — Infra Manager will create the empty container.
-5. `gcloud secrets versions add` to seed the value.
+After import, `terraform plan` should show only safe metadata updates on the imported resources (description, cleanup_policies, labels, attribute_mapping additions). Cloud Run env vars and image are excluded from the plan via `lifecycle.ignore_changes`.
 
 ## Adding a third service account
 
 The `local.service_accounts` map in `main.tf` is the single source of truth. Add a new entry with its role set; Terraform will create the SA, bind project IAM, and grant `workloadIdentityUser` for every `github_repos` entry. Then read the new email out of `module.github_oidc.service_account_emails["<name>"]`.
+
+## Adopting a new secret (future)
+
+When you do want to manage a secret with Terraform:
+
+1. Add a `module "..." { source = "./modules/secret" ... }` block to `main.tf` (the module is already shipped).
+2. Pass it to the relevant Cloud Run service via `secret_env` (you'll also need to remove the `env_vars:` entry for that key from the workflow).
+3. Commit, merge — Infra Manager will create the empty container.
+4. `gcloud secrets versions add` to seed the value before the next CD deploy.
 
 ## Local validation
 

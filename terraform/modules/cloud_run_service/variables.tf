@@ -79,7 +79,13 @@ variable "timeout_seconds" {
 }
 
 variable "allow_unauthenticated" {
-  description = "If true, grants roles/run.invoker to allUsers."
+  description = "If true, grants roles/run.invoker to allUsers AND sets invoker_iam_disabled on the service (matches the live Cloud Run behavior — IAM is bypassed, so the binding is informational but harmless). If false, IAM is enforced normally."
+  type        = bool
+  default     = true
+}
+
+variable "deletion_protection" {
+  description = "If true, Terraform refuses to destroy the service (Cloud Run's default for v2 services). Defaults to true for prod safety. Override to false in throwaway envs."
   type        = bool
   default     = true
 }
