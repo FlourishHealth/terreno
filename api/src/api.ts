@@ -528,9 +528,6 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = transform<T>(options, req.body, "create", req.user);
       } catch (error: any) {
-        if (isAPIError(error)) {
-          throw error;
-        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,

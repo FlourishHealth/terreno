@@ -576,7 +576,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1324,7 +1324,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
       expect(res.body.title).toContain("cannot write fields");
     });
 
