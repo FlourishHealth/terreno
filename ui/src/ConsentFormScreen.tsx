@@ -50,6 +50,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   });
 
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
+  const hasRequiredCheckboxes = form.checkboxes.some((checkbox) => checkbox.required);
 
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
 
@@ -145,6 +146,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           Please scroll to the bottom to continue
         </Text>
       )}
+      {Boolean(hasRequiredCheckboxes && !allRequiredCheckboxesChecked) && (
+        <Text align="center" color="error" size="sm" testID="consent-footer-checkboxes-hint">
+          Please check all required items marked with *
+        </Text>
+      )}
       {Boolean(form.captureSignature && !signatureValue) && (
         <Text align="center" color="error" size="sm" testID="consent-footer-signature-hint">
           Please provide your signature to continue
@@ -169,6 +175,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
           {form.checkboxes.length > 0 && (
             <Box direction="column" gap={2} testID="consent-form-checkboxes">
+              {hasRequiredCheckboxes && (
+                <Text color="secondaryDark" size="sm" testID="consent-form-required-legend">
+                  * indicates a required item
+                </Text>
+              )}
               {form.checkboxes.map((checkbox, index) => {
                 const key = index.toString();
                 const isChecked = checkboxValues[key] ?? false;
