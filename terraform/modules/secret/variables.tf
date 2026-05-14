@@ -21,7 +21,7 @@ variable "labels" {
 }
 
 variable "accessor_members" {
-  description = "IAM members granted secretmanager.secretAccessor."
-  type        = list(string)
-  default     = []
+  description = "Map of stable_key => IAM member for secretmanager.secretAccessor. The key must be statically known at plan time (used as the for_each instance key); the value can be computed."
+  type        = map(string)
+  default     = {}
 }

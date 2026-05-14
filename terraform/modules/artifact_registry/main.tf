@@ -18,7 +18,7 @@ resource "google_artifact_registry_repository" "this" {
 }
 
 resource "google_artifact_registry_repository_iam_member" "writer" {
-  for_each = toset(var.writer_members)
+  for_each = var.writer_members
 
   project    = var.project_id
   location   = google_artifact_registry_repository.this.location
@@ -28,7 +28,7 @@ resource "google_artifact_registry_repository_iam_member" "writer" {
 }
 
 resource "google_artifact_registry_repository_iam_member" "reader" {
-  for_each = toset(var.reader_members)
+  for_each = var.reader_members
 
   project    = var.project_id
   location   = google_artifact_registry_repository.this.location

@@ -75,9 +75,9 @@ module "backend_artifact_registry" {
   # Project-level artifactregistry.writer is already granted on the gh-deployer
   # SA via github_oidc; this binding is redundant but harmless if you want
   # repo-scoped pushing.
-  writer_members = [
-    "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}",
-  ]
+  writer_members = {
+    gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
+  }
 
   depends_on = [module.bootstrap]
 }
@@ -89,9 +89,9 @@ module "backend_secret_mongo_uri" {
   secret_id  = "${var.backend_service_name}-mongo-uri"
   labels     = local.common_labels
 
-  accessor_members = [
-    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
-  ]
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
 
   depends_on = [module.bootstrap]
 }
@@ -103,9 +103,9 @@ module "backend_secret_langfuse_secret_key" {
   secret_id  = "${var.backend_service_name}-langfuse-secret-key"
   labels     = local.common_labels
 
-  accessor_members = [
-    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
-  ]
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
 
   depends_on = [module.bootstrap]
 }
@@ -117,9 +117,9 @@ module "backend_secret_langfuse_public_key" {
   secret_id  = "${var.backend_service_name}-langfuse-public-key"
   labels     = local.common_labels
 
-  accessor_members = [
-    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
-  ]
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
 
   depends_on = [module.bootstrap]
 }
@@ -171,9 +171,9 @@ module "mcp_artifact_registry" {
   repository_id = var.mcp_service_name
   description   = "Container images for ${var.mcp_service_name}."
 
-  writer_members = [
-    "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}",
-  ]
+  writer_members = {
+    gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
+  }
 
   depends_on = [module.bootstrap]
 }
@@ -185,9 +185,9 @@ module "mcp_secret_sentry_dsn" {
   secret_id  = "${var.mcp_service_name}-sentry-dsn"
   labels     = local.common_labels
 
-  accessor_members = [
-    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
-  ]
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
 
   depends_on = [module.bootstrap]
 }

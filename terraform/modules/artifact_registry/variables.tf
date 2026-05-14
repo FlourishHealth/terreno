@@ -20,15 +20,15 @@ variable "description" {
 }
 
 variable "writer_members" {
-  description = "IAM members granted artifactregistry.writer (push). Format: 'serviceAccount:foo@...' or 'group:bar@...'."
-  type        = list(string)
-  default     = []
+  description = "Map of stable_key => IAM member for artifactregistry.writer. The key must be statically known at plan time (used as the for_each instance key); the value can be computed. Example: { gh-deployer = serviceAccount:foo@bar.iam.gserviceaccount.com }."
+  type        = map(string)
+  default     = {}
 }
 
 variable "reader_members" {
-  description = "IAM members granted artifactregistry.reader (pull). Cloud Run's runtime SA reads images, but it's already an implicit member when the repo lives in the same project."
-  type        = list(string)
-  default     = []
+  description = "Map of stable_key => IAM member for artifactregistry.reader. See writer_members for key rules."
+  type        = map(string)
+  default     = {}
 }
 
 variable "keep_recent_versions" {

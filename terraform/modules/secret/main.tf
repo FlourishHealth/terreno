@@ -26,7 +26,7 @@ resource "google_secret_manager_secret" "this" {
 }
 
 resource "google_secret_manager_secret_iam_member" "accessor" {
-  for_each = toset(var.accessor_members)
+  for_each = var.accessor_members
 
   project   = var.project_id
   secret_id = google_secret_manager_secret.this.secret_id
