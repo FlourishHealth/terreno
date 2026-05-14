@@ -8,7 +8,7 @@ const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
 };
 
-export type PopulatePath = {
+export interface PopulatePath {
   // Mongoose style path population.
   // "ownerId" // populates the User that matches `ownerId`
   // "ownerId.organizationId" Nested. Populates the User that matches `ownerId`, as well as their organization.
@@ -23,7 +23,7 @@ export type PopulatePath = {
   // fields. If each field does not start with a "-", will act as an allow list and only
   // return those fields.
   fields?: string[];
-};
+}
 
 // This function filters an object to only include specified keys.
 // It supports nested keys using dot notation (e.g., 'user.name').
@@ -73,7 +73,7 @@ const filterKeys = (obj: Record<string, any>, keysToKeep?: string[]): Record<str
 
 // Helper function to get the path in the OpenAPI schema, so we can swap out the type for the
 // populated model component or generated type.
-function getPathInSchema(schema: any, path: string): string {
+const getPathInSchema = (schema: any, path: string): string => {
   const keys = path.split(".");
   let currentSchema = schema;
   let fullPath = "";
@@ -94,12 +94,12 @@ function getPathInSchema(schema: any, path: string): string {
       // If we're at the last key and it's an array, we don't need to add anything
       break;
     } else {
-      throw new Error(`Path ${path} not found in schema at key ${key}`);
+      throw new APIError({status: 500, title: `Path ${path} not found in schema at key ${key}`});
     }
   }
 
   return fullPath;
-}
+};
 
 // Replaces populated properties with the populated schema.
 // Recursively walks a Mongoose schema and fixes any Mixed fields in the
@@ -133,13 +133,13 @@ export const fixMixedFields = (schema: any, properties: Record<string, any>): vo
   }
 };
 
-export function getOpenApiSpecForModel(
+export const getOpenApiSpecForModel = (
   model: any,
   {
     populatePaths,
     extraModelProperties,
   }: {populatePaths?: PopulatePath[]; extraModelProperties?: Record<string, unknown>} = {}
-): {properties: Record<string, unknown>; required: string[]} {
+): {properties: Record<string, unknown>; required: string[]} => {
   const modelSwagger = m2s(model, {
     props: ["required", "enum"],
   });
@@ -241,13 +241,13 @@ export function getOpenApiSpecForModel(
     properties: {...modelSwagger.properties, ...extraModelProperties},
     required: modelSwagger.required ?? [],
   };
-}
+};
 
 // Helper function to unpopulate a document that has been populated.
 // This is helpful for supporting backwards compatibility. E.g. you use populatePaths
 // to populate a document but if the version header for the request is below the version
 // that the populatePath was added, we remove the population and just return the _id.
-export function unpopulate<T>(doc: Document<T>, path: string): Document<T> {
+export const unpopulate = <T>(doc: Document<T>, path: string): Document<T> => {
   if (!path) {
     throw new APIError({status: 500, title: "path is required for unpopulate"});
   }
@@ -288,4 +288,4 @@ export function unpopulate<T>(doc: Document<T>, path: string): Document<T> {
   };
 
   return recursiveUnpopulate(doc, pathParts);
-}
+};
