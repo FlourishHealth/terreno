@@ -1,11 +1,4 @@
-import {afterEach, describe, expect, it, mock} from "bun:test";
-
-import {
-  getLangfuseClient,
-  initLangfuseClient,
-  isLangfuseInitialized,
-  shutdownLangfuseClient,
-} from "./langfuseClient";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
 mock.module("@langfuse/client", () => {
   return {
@@ -25,7 +18,14 @@ mock.module("@langfuse/client", () => {
   };
 });
 
+const {getLangfuseClient, initLangfuseClient, isLangfuseInitialized, shutdownLangfuseClient} =
+  await import("./langfuseClient");
+
 describe("langfuseClient", () => {
+  beforeEach(async () => {
+    await shutdownLangfuseClient();
+  });
+
   afterEach(async () => {
     await shutdownLangfuseClient();
   });
