@@ -1,4 +1,5 @@
 project_id        = "flourish-terreno"
+project_number    = "966061500091"
 environment       = "prod"
 state_bucket_name = "flourish-terreno-tfstate-prod"
 

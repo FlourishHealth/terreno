@@ -42,10 +42,6 @@ locals {
   }
 }
 
-data "google_project" "this" {
-  project_id = var.project_id
-}
-
 module "bootstrap" {
   source = "./modules/project_bootstrap"
 
@@ -94,7 +90,7 @@ module "backend_secret_mongo_uri" {
   labels     = local.common_labels
 
   accessor_members = [
-    "serviceAccount:${data.google_project.this.number}-compute@developer.gserviceaccount.com",
+    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
   ]
 
   depends_on = [module.bootstrap]
@@ -108,7 +104,7 @@ module "backend_secret_langfuse_secret_key" {
   labels     = local.common_labels
 
   accessor_members = [
-    "serviceAccount:${data.google_project.this.number}-compute@developer.gserviceaccount.com",
+    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
   ]
 
   depends_on = [module.bootstrap]
@@ -122,7 +118,7 @@ module "backend_secret_langfuse_public_key" {
   labels     = local.common_labels
 
   accessor_members = [
-    "serviceAccount:${data.google_project.this.number}-compute@developer.gserviceaccount.com",
+    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
   ]
 
   depends_on = [module.bootstrap]
@@ -190,7 +186,7 @@ module "mcp_secret_sentry_dsn" {
   labels     = local.common_labels
 
   accessor_members = [
-    "serviceAccount:${data.google_project.this.number}-compute@developer.gserviceaccount.com",
+    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com",
   ]
 
   depends_on = [module.bootstrap]

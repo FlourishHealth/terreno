@@ -42,15 +42,21 @@ PROJECT_ID=flourish-terreno
 STATE_BUCKET=flourish-terreno-tfstate-prod
 LOCATION=us-central1                         # Infra Manager region
 
-# 1. Enable required APIs on the project.
+# 1. Enable required APIs on the project. (Terraform manages most of these
+#    via the project_bootstrap module, but the ones below are needed for the
+#    initial `terraform plan` / `infra-manager apply` to succeed.)
 gcloud services enable \
   cloudbuild.googleapis.com \
+  cloudresourcemanager.googleapis.com \
   config.googleapis.com \
   iam.googleapis.com \
   iamcredentials.googleapis.com \
   serviceusage.googleapis.com \
   storage.googleapis.com \
   --project="$PROJECT_ID"
+
+# Look up the project number (used by terraform.tfvars):
+gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)"
 
 # 2. Create the state bucket (Terraform will adopt it on first apply).
 gsutil mb -p "$PROJECT_ID" -l US -b on "gs://$STATE_BUCKET"
@@ -132,7 +138,7 @@ Rotation = `gcloud secrets versions add` again. Cloud Run reads `:latest` on eve
 
 ## Importing existing resources
 
-The first `terraform plan` will want to **create** resources that already exist (live Cloud Run service, Artifact Registry repo, etc.). Import them before the first apply:
+The first `terraform plan` will want to **create** resources that already exist (live Cloud Run service, Artifact Registry repo, existing Workload Identity Pool). Import them before the first apply:
 
 ```bash
 cd terraform
@@ -149,6 +155,12 @@ terraform import 'module.backend_artifact_registry.google_artifact_registry_repo
   projects/flourish-terreno/locations/us-central1/repositories/terreno-backend-example
 terraform import 'module.mcp_artifact_registry.google_artifact_registry_repository.this' \
   projects/flourish-terreno/locations/us-east1/repositories/terreno-mcp
+
+# Workload Identity Pool + provider (already exist in flourish-terreno)
+terraform import 'module.github_oidc.google_iam_workload_identity_pool.this' \
+  projects/flourish-terreno/locations/global/workloadIdentityPools/github-actions
+terraform import 'module.github_oidc.google_iam_workload_identity_pool_provider.github' \
+  projects/flourish-terreno/locations/global/workloadIdentityPools/github-actions/providers/github
 ```
 
 Then `terraform plan` should show no diff (or just additions for the new secret containers / WIF resources). If the plan wants to change Cloud Run env vars, that's expected — Terraform will rewrite the service to reference Secret Manager. Seed the secret values **before** the first apply so the service doesn't go down.

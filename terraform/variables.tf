@@ -3,6 +3,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "GCP project number (the numeric ID, not the project_id slug). Used to construct the Cloud Run default runtime service account email (<project_number>-compute@developer.gserviceaccount.com). Required as a variable rather than a data source so a fresh project doesn't need cloudresourcemanager.googleapis.com enabled before the first plan. Find it with: gcloud projects describe <project_id> --format='value(projectNumber)'."
+  type        = string
+}
+
 variable "environment" {
   description = "Environment label applied to all resources."
   type        = string
