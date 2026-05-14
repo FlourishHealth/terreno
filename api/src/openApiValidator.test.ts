@@ -161,6 +161,64 @@ describe("openApiValidator", () => {
     });
   });
 
+  describe("per-route validation: object-form options", () => {
+    it("applies object validation options with per-operation control", async () => {
+      configureOpenApiValidator({removeAdditional: true});
+
+      const removedProps: string[] = [];
+      const errorsCaught: ErrorObject[][] = [];
+
+      const freshApp = await setupFreshApp();
+      freshApp.use(
+        "/required",
+        modelRouter(RequiredModel, {
+          ...requiredRouterOptions,
+          validation: {
+            excludeFromCreate: ["about"],
+            onAdditionalPropertiesRemoved: (props) => {
+              removedProps.push(...props);
+            },
+            onError: (errors) => {
+              errorsCaught.push(errors);
+            },
+            validateCreate: true,
+            validateQuery: true,
+            validateUpdate: true,
+          },
+        })
+      );
+      const admin = await authAsUser(freshApp, "admin");
+
+      const res = await admin.post("/required").send({name: "Validated"}).expect(201);
+      expect(res.body.data.name).toBe("Validated");
+    });
+
+    it("disables create validation when validateCreate is false", async () => {
+      configureOpenApiValidator({removeAdditional: true});
+
+      const freshApp = await setupFreshApp();
+      freshApp.use(
+        "/required",
+        modelRouter(RequiredModel, {
+          ...requiredRouterOptions,
+          validation: {
+            excludeFromUpdate: ["about"],
+            validateCreate: false,
+            validateUpdate: true,
+          },
+        })
+      );
+      const admin = await authAsUser(freshApp, "admin");
+
+      // Even with extra field, should pass since create validation is disabled
+      const res = await admin
+        .post("/required")
+        .send({extraField: "ignored", name: "NoCreateValidation"})
+        .expect(201);
+      expect(res.body.data.name).toBe("NoCreateValidation");
+    });
+  });
+
   describe("sanitization of non-standard mongoose-to-swagger types", () => {
     it("validates models with ObjectId and DateOnly fields after sanitization", async () => {
       configureOpenApiValidator({removeAdditional: true});
