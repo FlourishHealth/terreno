@@ -284,7 +284,9 @@ exports[`CustomSelectField renders correctly with default props 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -612,7 +614,9 @@ exports[`CustomSelectField renders with title 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -925,7 +929,9 @@ exports[`CustomSelectField renders with placeholder 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -1238,7 +1244,9 @@ exports[`CustomSelectField renders with selected value 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -1551,7 +1559,9 @@ exports[`CustomSelectField renders with custom value (not in options) 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -1970,7 +1980,9 @@ exports[`CustomSelectField renders disabled state 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",
@@ -2283,7 +2295,9 @@ exports[`CustomSelectField includes custom option in dropdown 1`] = `
             },
           ],
           "props": {
-            "style": undefined,
+            "style": {
+              "width": "100%",
+            },
             "testID": undefined,
           },
           "type": "View",

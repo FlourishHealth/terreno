@@ -19,7 +19,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   const clearOption = {label: placeholder ?? "---", value: ""};
 
   return (
-    <View>
+    <View style={{width: "100%"}}>
       {Boolean(title) && <FieldTitle text={title!} />}
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <RNPickerSelect
