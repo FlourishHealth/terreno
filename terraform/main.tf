@@ -21,6 +21,9 @@ locals {
         "roles/artifactregistry.admin",
         "roles/config.admin",
         "roles/iam.serviceAccountAdmin",
+        # actAs is needed to update Cloud Run services whose runtime SA is
+        # the Compute Engine default — serviceAccountAdmin doesn't grant it.
+        "roles/iam.serviceAccountUser",
         "roles/iam.workloadIdentityPoolAdmin",
         "roles/resourcemanager.projectIamAdmin",
         "roles/run.admin",
