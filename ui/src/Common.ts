@@ -572,10 +572,9 @@ export type CardProps = BoxProps & {
 
   /**
    * The size of the display card.
-   * - "large": On desktop, horizontal layout with image/header on the left (160px wide).
-   * - "default": Same horizontal layout as large on desktop.
-   * - "small": Always vertical layout — image/header stacked above content.
-   * On mobile all sizes are vertical with the image spanning the full width.
+   * - "large": On desktop, horizontal layout with image/header on the left (160px wide). On mobile, vertical with a full-width image.
+   * - "default": Same horizontal layout as large on desktop. On mobile, horizontal with a 100px image on the left.
+   * - "small": Always vertical layout — image/header stacked above content (160px wide on mobile).
    * @default "default"
    */
   size?: "small" | "default" | "large";

@@ -47,16 +47,16 @@ export const CardConfiguration: DemoConfiguration = {
       description: "Both card variants side by side.",
       render: CardVariants,
     },
-    "Light and Dark": {
+    LightAndDark: {
       description: "Cards adapt to both light and dark themes.",
       render: LightAndDark,
     },
-    "Display Sizes": {
+    DisplaySizes: {
       description:
-        "Display cards support three sizes. Large and default lay out horizontally on desktop and vertically on mobile. Small is always vertical.",
+        "Display cards support three sizes. On desktop, large and default lay out horizontally; small is always vertical. On mobile, default is horizontal while large and small are vertical.",
       render: DisplaySizes,
     },
-    "With Image": {
+    WithImage: {
       description:
         "Display cards support a header image. Pass imageUri to replace the colored header with a full-width cover photo.",
       render: WithImage,
