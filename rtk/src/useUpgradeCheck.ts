@@ -1,7 +1,6 @@
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
 import type {AppStateStatic, Linking as LinkingNamespace} from "react-native";
-import * as ReactNative from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
@@ -15,13 +14,17 @@ interface ReactNativeModule extends Record<string, unknown> {
   };
 }
 
-const reactNativeModule = ReactNative as ReactNativeModule;
-const AppState = reactNativeModule.AppState ?? reactNativeModule.default?.AppState;
-const Linking = reactNativeModule.Linking ?? reactNativeModule.default?.Linking;
+const getReactNativeApis = (): {AppState: AppStateStatic; Linking: typeof LinkingNamespace} => {
+  const reactNativeModule = require("react-native") as ReactNativeModule;
+  const AppState = reactNativeModule.AppState ?? reactNativeModule.default?.AppState;
+  const Linking = reactNativeModule.Linking ?? reactNativeModule.default?.Linking;
 
-if (!AppState || !Linking) {
-  throw new Error("react-native AppState and Linking exports are required for useUpgradeCheck");
-}
+  if (!AppState || !Linking) {
+    throw new Error("react-native AppState and Linking exports are required for useUpgradeCheck");
+  }
+
+  return {AppState, Linking};
+};
 
 interface UseUpgradeCheckOptions {
   /**
@@ -63,6 +66,7 @@ interface UseUpgradeCheckResult {
  * @returns Current upgrade status, messages, and an `onUpdate` callback.
  */
 export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeCheckResult => {
+  const {AppState, Linking} = getReactNativeApis();
   const {pollingIntervalMs, recheckOnForeground = false} = options ?? {};
 
   const [isRequired, setIsRequired] = useState(false);
