@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it} from "bun:test";
 
 import {
   getLangfuseClient,
@@ -7,23 +7,7 @@ import {
   shutdownLangfuseClient,
 } from "./langfuseClient";
 
-mock.module("@langfuse/client", () => {
-  return {
-    LangfuseClient: class MockLangfuseClient {
-      baseUrl: string;
-      publicKey: string;
-      secretKey: string;
-
-      constructor(opts: {baseUrl: string; publicKey: string; secretKey: string}) {
-        this.baseUrl = opts.baseUrl;
-        this.publicKey = opts.publicKey;
-        this.secretKey = opts.secretKey;
-      }
-
-      shutdown = mock(async () => {});
-    },
-  };
-});
+// @langfuse/client is mocked globally in tests/bunSetup.ts.
 
 describe("langfuseClient", () => {
   afterEach(async () => {

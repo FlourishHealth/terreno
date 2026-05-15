@@ -4,6 +4,12 @@ import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
 
+import {getLangfuseClient, initLangfuseClient} from "./langfuseClient";
+import {addEvaluationRoutes} from "./langfuseRoutesEvaluations";
+import {addPlaygroundRoutes} from "./langfuseRoutesPlayground";
+import {addPromptRoutes} from "./langfuseRoutesPrompts";
+import {addTraceRoutes} from "./langfuseRoutesTraces";
+
 const scoreCreate = mock(() => {});
 const promptCreate = mock(async (_params: Record<string, unknown>) => ({}));
 const promptGet = mock(async (name: string) => ({
@@ -25,25 +31,6 @@ const traceList = mock(async () => ({
 }));
 const traceGet = mock(async (traceId: string) => ({id: traceId, name: "Trace"}));
 const flush = mock(async () => {});
-
-const realLangfuseClient = await import("./langfuseClient");
-mock.module("./langfuseClient", () => ({
-  ...realLangfuseClient,
-  getLangfuseClient: () => ({
-    api: {
-      prompts: {list: promptsList},
-      trace: {get: traceGet, list: traceList},
-    },
-    flush,
-    prompt: {create: promptCreate, get: promptGet},
-    score: {create: scoreCreate},
-  }),
-}));
-
-const {addPromptRoutes} = await import("./langfuseRoutesPrompts");
-const {addTraceRoutes} = await import("./langfuseRoutesTraces");
-const {addPlaygroundRoutes} = await import("./langfuseRoutesPlayground");
-const {addEvaluationRoutes} = await import("./langfuseRoutesEvaluations");
 
 const userSchema = new mongoose.Schema({
   admin: {default: false, type: Boolean},
@@ -89,6 +76,27 @@ describe("Langfuse routes", () => {
   });
 
   beforeEach(() => {
+    // Init the (fake) langfuse client and wire our local mocks onto its
+    // methods so the route handlers exercise customizable responses without
+    // making real SDK calls.
+    initLangfuseClient({publicKey: "pk-test", secretKey: "sk-test"});
+    const client = getLangfuseClient() as unknown as {
+      api: {
+        prompts: {list: typeof promptsList};
+        trace: {get: typeof traceGet; list: typeof traceList};
+      };
+      flush: typeof flush;
+      prompt: {create: typeof promptCreate; get: typeof promptGet};
+      score: {create: typeof scoreCreate};
+    };
+    client.api.prompts.list = promptsList;
+    client.api.trace.get = traceGet;
+    client.api.trace.list = traceList;
+    client.flush = flush;
+    client.prompt.create = promptCreate;
+    client.prompt.get = promptGet;
+    client.score.create = scoreCreate;
+
     app = setupServer({
       addRoutes: (router) => {
         addPromptRoutes(router, "/admin/langfuse");
