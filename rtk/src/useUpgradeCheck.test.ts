@@ -78,8 +78,13 @@ const debugCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
-// Now import the hook (after all mock.module calls which are hoisted)
-import {useUpgradeCheck} from "./useUpgradeCheck";
+// Import after all mock.module calls. Using `await import` instead of a
+// top-level static import ensures the mocks (especially for react-native) are
+// already in place when ./useUpgradeCheck's transitive imports resolve. With a
+// static import, bun 1.3.x has been observed to evaluate the real `react-native`
+// when this file is loaded after another test file already pulled it in, which
+// blows up with `Export named 'AppState' not found`.
+const {useUpgradeCheck} = await import("./useUpgradeCheck");
 
 // Helper: flush microtasks (lets .then() chains resolve)
 const flushPromises = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
