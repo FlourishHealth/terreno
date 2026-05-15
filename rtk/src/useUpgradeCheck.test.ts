@@ -1,5 +1,4 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {act, renderHook, waitFor} from "@testing-library/react-native";
 
 // ---------------------------------------------------------------------------
 // Mutable refs that tests can tweak between runs
@@ -78,12 +77,13 @@ const debugCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
-// Import after all mock.module calls. Using `await import` instead of a
-// top-level static import ensures the mocks (especially for react-native) are
-// already in place when ./useUpgradeCheck's transitive imports resolve. With a
-// static import, bun 1.3.x has been observed to evaluate the real `react-native`
-// when this file is loaded after another test file already pulled it in, which
-// blows up with `Export named 'AppState' not found`.
+// Import after all mock.module calls. Using `await import` instead of top-level
+// static imports ensures the mocks (especially for react-native) are already in
+// place when @testing-library/react-native and ./useUpgradeCheck pull in
+// `react-native` transitively. With static imports, bun 1.3.x has been observed
+// to evaluate the real `react-native` and fail with `Export named 'AppState'
+// not found`.
+const {act, renderHook, waitFor} = await import("@testing-library/react-native");
 const {useUpgradeCheck} = await import("./useUpgradeCheck");
 
 // Helper: flush microtasks (lets .then() chains resolve)
