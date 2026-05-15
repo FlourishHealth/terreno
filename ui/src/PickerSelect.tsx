@@ -253,13 +253,13 @@ export function RNPickerSelect({
 
   const renderPickerItems = () => {
     return options?.map((item) => {
-      if (!item?.label) return null;
+      if (!item) return null;
       return (
         <Picker.Item
-          color={item?.color}
-          key={item?.key || item?.label}
-          label={item?.label}
-          value={item?.value}
+          color={item.color}
+          key={item.key || item.label}
+          label={item.label}
+          value={item.value}
         />
       );
     });
