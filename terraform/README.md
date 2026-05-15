@@ -1,15 +1,15 @@
 # Terreno Infrastructure (Terraform + Infra Manager)
 
 This directory holds the Terraform configuration for Terreno's GCP infrastructure.
-It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview)** via a GitHub Actions workflow (`.github/workflows/terraform-apply.yml`).
+It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview)** via the unified `.github/workflows/cd.yml` workflow. That workflow also handles backend + MCP Cloud Run deployments, with `needs:` dependencies that guarantee terraform changes apply before any service deploy that might reference them (e.g. adding a new Secret Manager mount).
 
 ## What's managed
 
 - Project APIs (Cloud Run, Artifact Registry, IAM, Infra Manager, etc.)
 - GCS state bucket
 - **Workload Identity Federation** — one pool/provider plus two impersonable service accounts:
-  - `terraform-admin` — used by `terraform-apply.yml` (project-admin scope)
-  - `gh-deployer` — used by the CD workflows (`deploy-example-gcp.yml`, `mcp-server-deploy.yml`) with the narrow set of roles needed to push images and roll Cloud Run
+  - `terraform-admin` — used by `cd.yml`'s terraform-* jobs (project-admin scope)
+  - `gh-deployer` — used by `cd.yml`'s backend-deploy-* and mcp-deploy jobs with the narrow set of roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
 - Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the deploy workflow mounts them via `secrets:` so plaintext never traverses GitHub Actions runners.
@@ -93,9 +93,9 @@ Set these as **repository variables** (Settings → Secrets and variables → Ac
 |----------|-------|---------|
 | `GCP_TF_PROJECT_ID_PROD` | `flourish-terreno` | all workflows |
 | `GCP_WIF_PROVIDER_PROD` | output `workload_identity_provider` | all workflows |
-| `GCP_TF_ADMIN_SA_PROD` | output `terraform_admin_sa_email` | `terraform-apply.yml` |
-| `GCP_CD_DEPLOYER_SA_PROD` | output `gh_deployer_sa_email` | `deploy-example-gcp.yml`, `mcp-server-deploy.yml` |
-| `GCP_INFRA_MANAGER_LOCATION` | optional, defaults to `us-central1` | `terraform-apply.yml` |
+| `GCP_TF_ADMIN_SA_PROD` | output `terraform_admin_sa_email` | `cd.yml` (terraform jobs) |
+| `GCP_CD_DEPLOYER_SA_PROD` | output `gh_deployer_sa_email` | `cd.yml` (deploy jobs) |
+| `GCP_INFRA_MANAGER_LOCATION` | optional, defaults to `us-central1` | `cd.yml` |
 
 Fetch the outputs after the first apply:
 
@@ -142,14 +142,24 @@ After import, `terraform plan` should show only safe metadata updates on the imp
 
 The `local.service_accounts` map in `main.tf` is the single source of truth. Add a new entry with its role set; Terraform will create the SA, bind project IAM, and grant `workloadIdentityUser` for every `github_repos` entry. Then read the new email out of `module.github_oidc.service_account_emails["<name>"]`.
 
-## Adopting a new secret (future)
+## Adopting a new Secret Manager secret
 
-When you do want to manage a secret with Terraform:
+The recommended two-PR flow (avoids a broken first deploy):
 
-1. Add a `module "..." { source = "./modules/secret" ... }` block to `main.tf` (the module is already shipped).
-2. Pass it to the relevant Cloud Run service via `secret_env` (you'll also need to remove the `env_vars:` entry for that key from the workflow).
-3. Commit, merge — Infra Manager will create the empty container.
-4. `gcloud secrets versions add` to seed the value before the next CD deploy.
+**PR 1 — infrastructure only:**
+
+1. Add a `module "..." { source = "./modules/secret" ... }` block to `main.tf` (the module is already shipped). Grant accessor IAM to the relevant runtime SA.
+2. Commit, merge. `cd.yml`'s `terraform-apply` job creates the empty SM container. Backend/MCP deploys skip (no code changes).
+3. Seed the value: `echo -n 'value' | gcloud secrets versions add <secret-id> --project=flourish-terreno --data-file=-`.
+
+**PR 2 — wire it up:**
+
+4. Add the `KEY=<secret-id>:latest` line to the workflow's `secrets:` block in `cd.yml`. Remove the old `KEY=${{ secrets.X }}` line from `env_vars:` if migrating.
+5. Commit, merge. `cd.yml`'s deploy job rolls a new Cloud Run revision that mounts the (already-populated) secret.
+
+**Why two PRs?** The merged `cd.yml` guarantees terraform-apply finishes before any deploy, but it can't seed values — `gcloud secrets versions add` is a manual step. Doing it in one PR means the first deploy mounts an empty secret and Cloud Run rejects the revision.
+
+For rotating a value of an already-set-up secret, no PR needed — just `gcloud secrets versions add`. Cloud Run re-reads `:latest` on every cold start.
 
 ## Local validation
 
