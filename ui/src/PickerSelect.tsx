@@ -70,6 +70,7 @@ export const defaultStyles = StyleSheet.create({
   },
 });
 
+/** A single option for the picker select component. */
 export interface PickerSelectItem {
   label: string;
   value: string | number | null;
