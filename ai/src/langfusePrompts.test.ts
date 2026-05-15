@@ -1,6 +1,8 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 
 import {LangfuseCache} from "./langfuseCache";
+import {getLangfuseClient, initLangfuseClient} from "./langfuseClient";
+import {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} from "./langfusePrompts";
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
 const mockPromptCreate = mock(async (_params: Record<string, unknown>) => {});
@@ -13,16 +15,6 @@ const mockPromptGet = mock(async (_name: string, _options?: Record<string, unkno
   type: "text" as const,
   version: 1,
 }));
-
-const realLangfuseClient = await import("./langfuseClient");
-mock.module("./langfuseClient", () => ({
-  ...realLangfuseClient,
-  getLangfuseClient: () => ({prompt: {create: mockPromptCreate, get: mockPromptGet}}),
-}));
-
-const {compilePrompt, createPrompt, getPrompt, invalidatePromptCache} = await import(
-  "./langfusePrompts"
-);
 
 const textPrompt: LangfuseCachedPrompt = {
   config: {},
@@ -60,6 +52,15 @@ beforeEach(async () => {
     type: "text" as const,
     version: 1,
   }));
+  // Init the (fake) langfuse client and wire our local mocks onto its prompt
+  // methods so the real `langfusePrompts` code exercises customizable
+  // responses without hitting the network.
+  initLangfuseClient({publicKey: "pk-test", secretKey: "sk-test"});
+  const client = getLangfuseClient() as unknown as {
+    prompt: {create: typeof mockPromptCreate; get: typeof mockPromptGet};
+  };
+  client.prompt.get = mockPromptGet;
+  client.prompt.create = mockPromptCreate;
 });
 
 describe("compilePrompt", () => {
