@@ -38,7 +38,10 @@ export const Card = ({
     const mobilelargeImageHeight = 300;
     const imageStyle = isRow
       ? {alignSelf: "stretch" as const, width: isMobile ? 100 : 160}
-      : {height: isMobile && size === "large" ? mobilelargeImageHeight : imageHeight, width: "100%" as const};
+      : {
+          height: isMobile && size === "large" ? mobilelargeImageHeight : imageHeight,
+          width: "100%" as const,
+        };
 
     return (
       <Box

@@ -11,7 +11,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "0.13.0",
+      "version": "0.13.2",
       "dependencies": {
         "@google-cloud/storage": "^7.15.0",
         "@terreno/api": "workspace:*",
@@ -67,7 +67,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "0.13.0",
+      "version": "0.13.1",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "^7.15.0",
@@ -100,7 +100,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.13.0",
+      "version": "0.13.2",
       "dependencies": {
         "@sentry/bun": "^10.25.0",
         "@sentry/profiling-node": "^10.25.0",
@@ -170,7 +170,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "0.13.0",
+      "version": "0.13.2",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "^5.2.1",
@@ -358,7 +358,7 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "0.13.0",
+      "version": "0.13.2",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "^5.2.1",
