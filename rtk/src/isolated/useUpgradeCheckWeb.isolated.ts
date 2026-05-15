@@ -14,13 +14,13 @@ interface MockVersionCheckResponse {
 const mockUnwrap = mock((): Promise<MockVersionCheckResponse> => Promise.resolve({status: "ok"}));
 const mockTrigger = mock((..._args: unknown[]) => ({unwrap: mockUnwrap}));
 
-mock.module("./emptyApi", () => ({
+mock.module("../emptyApi", () => ({
   useLazyGetVersionCheckQuery: () => [mockTrigger],
 }));
 
 // IsWeb is always true in tests (Platform.OS mocked as "web" in preload).
 // We cannot change it per-test because bun snapshots module exports.
-mock.module("./platform", () => ({
+mock.module("../platform", () => ({
   IsWeb: true,
 }));
 
@@ -84,7 +84,7 @@ const originalWarn = console.warn;
 // to evaluate the real `react-native` and fail with `Export named 'AppState'
 // not found`.
 const {act, renderHook, waitFor} = await import("@testing-library/react-native");
-const {useUpgradeCheck} = await import("./useUpgradeCheck");
+const {useUpgradeCheck} = await import("../useUpgradeCheck");
 
 // Helper: flush microtasks (lets .then() chains resolve)
 const flushPromises = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
