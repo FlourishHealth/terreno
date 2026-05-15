@@ -126,7 +126,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
             onChange={onChange}
             options={dynamicOptions}
             title={label}
-            value={value ?? ""}
+            value={typeof value === "string" ? value : ""}
           />
         );
       }
@@ -148,7 +148,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
           refModelName={fieldConfig.ref}
           routePath={refModel?.routePath ?? ""}
           title={label}
-          value={value ?? ""}
+          value={typeof value === "string" ? value : ""}
         />
       );
     }
@@ -163,7 +163,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
           refModelName={fieldConfig.ref}
           routePath={refModel.routePath}
           title={label}
-          value={value ?? ""}
+          value={typeof value === "string" ? value : ""}
         />
       );
     }
@@ -177,7 +177,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? false}
+        value={typeof value === "boolean" ? value : false}
       />
     );
   }
@@ -196,7 +196,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={(nextValue: string) => onChange(nextValue === "" ? undefined : nextValue)}
         options={options}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -215,7 +215,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         type="datetime"
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -239,13 +239,17 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
 
   // Locale content widget (Map<locale, markdown>)
   if (fieldConfig.widget === "locale-content") {
+    const localeValue =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, string>)
+        : {};
     return (
       <LocaleContentEditor
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? {}}
+        value={localeValue}
       />
     );
   }
@@ -271,7 +275,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         options={options}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -308,7 +312,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         refRenderers={refRenderers}
         title={label}
-        value={value ?? []}
+        value={Array.isArray(value) ? value : []}
       />
     );
   }
@@ -327,7 +331,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         parentFormState={parentFormState}
         refRenderers={refRenderers}
         title={label}
-        value={value ?? []}
+        value={Array.isArray(value) ? (value as Record<string, unknown>[]) : []}
       />
     );
   }
@@ -366,7 +370,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         testID={`admin-field-${fieldKey}`}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -379,7 +383,11 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? []}
+        value={
+          Array.isArray(value)
+            ? (value as React.ComponentProps<typeof CheckboxListEditor>["value"])
+            : []
+        }
       />
     );
   }
@@ -396,7 +404,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         rows={6}
         testID={`admin-field-${fieldKey}`}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -409,7 +417,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
       onChange={onChange}
       testID={`admin-field-${fieldKey}`}
       title={label}
-      value={value ?? ""}
+      value={typeof value === "string" ? value : ""}
     />
   );
 };

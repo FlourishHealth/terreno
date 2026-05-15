@@ -1,8 +1,5 @@
 import {useMemo} from "react";
-import type {AdminApi} from "./types";
-
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
+import type {AdminApi, EndpointBuilder} from "./types";
 
 export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
   const enhancedApi = useMemo(() => {

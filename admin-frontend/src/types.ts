@@ -17,9 +17,19 @@ export type AdminApi = Api<any, any, any, any>;
  *
  * Admin screens operate over arbitrary Mongoose documents whose field types are not
  * known statically — they are discovered at runtime via the `/admin/config` endpoint.
+ * Read sites must narrow with `typeof` checks before passing to typed UI components.
  */
-// biome-ignore lint/suspicious/noExplicitAny: Mongoose document field types are heterogeneous and discovered dynamically
-export type AdminFieldValue = any;
+export type AdminFieldValue = unknown;
+
+/**
+ * RTK Query's `build` argument from `api.injectEndpoints({ endpoints: (build) => ... })`.
+ *
+ * The build helper is generic over the full endpoint set; since the admin panel injects
+ * endpoints dynamically into a consumer-supplied API, the endpoint shapes are not
+ * statically expressible here.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
+export type EndpointBuilder = any;
 
 export interface AdminFieldConfig {
   type: string;

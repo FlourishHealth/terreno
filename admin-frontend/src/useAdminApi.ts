@@ -1,11 +1,6 @@
 import {useMemo} from "react";
-import type {AdminApi} from "./types";
+import type {AdminApi, EndpointBuilder} from "./types";
 
-// RTK Query's `build` argument is heavily generic — typed dynamically via injectEndpoints.
-// We keep these as `any` because each endpoint has its own request/response shape that is
-// known to RTK Query at runtime but not statically expressible here.
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
 // biome-ignore lint/suspicious/noExplicitAny: payload bodies vary across admin models — handled at runtime
 type AdminPayload = any;
 // biome-ignore lint/suspicious/noExplicitAny: RTK Query tag callback args have a complex generic shape we erase here

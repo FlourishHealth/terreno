@@ -1,10 +1,7 @@
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminApi} from "./types";
-
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
+import type {AdminApi, EndpointBuilder} from "./types";
 
 interface VersionConfigData {
   mobileRequiredVersion?: number;

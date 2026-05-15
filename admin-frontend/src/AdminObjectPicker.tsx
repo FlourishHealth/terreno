@@ -1,9 +1,6 @@
 import {Box, IconButton, Spinner, Text, TextField} from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
-import type {AdminApi} from "./types";
-
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
+import type {AdminApi, EndpointBuilder} from "./types";
 
 /** Generic referenced document — admin can pick from any Mongoose model so the shape varies. */
 interface PickerItem {

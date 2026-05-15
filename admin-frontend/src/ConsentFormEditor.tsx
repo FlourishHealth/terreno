@@ -15,11 +15,8 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminApi} from "./types";
+import type {AdminApi, EndpointBuilder} from "./types";
 import {useAdminApi} from "./useAdminApi";
-
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
 
 interface CheckboxConfig {
   label: string;

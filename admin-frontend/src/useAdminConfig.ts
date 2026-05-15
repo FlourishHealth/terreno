@@ -1,8 +1,5 @@
 import {useMemo} from "react";
-import type {AdminApi, AdminConfigResponse} from "./types";
-
-// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
-type EndpointBuilder = any;
+import type {AdminApi, AdminConfigResponse, EndpointBuilder} from "./types";
 
 const ENDPOINT_NAME = "adminConfig";
 
