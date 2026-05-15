@@ -49,6 +49,16 @@ describe("Signature", () => {
     expect(clearMock).toHaveBeenCalledTimes(1);
   });
 
+  it("notifies the parent with an empty value when Clear is pressed", () => {
+    clearMock.mockClear();
+    const mockOnChange = mock(() => {});
+    const {getByText} = renderWithTheme(<Signature onChange={mockOnChange} />);
+    fireEvent.press(getByText("Clear"));
+    // Without this, "signature required" gating in parents would never reset
+    // because the underlying canvas clear() does not fire onEnd/onOK.
+    expect(mockOnChange).toHaveBeenCalledWith("");
+  });
+
   it("calls onChange with the data URL when a stroke ends", () => {
     toDataURLReturn = "data:image/png;base64,abc";
     const mockOnChange = mock(() => {});

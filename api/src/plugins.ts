@@ -85,14 +85,14 @@ export const createdUpdatedPlugin = (schema: Schema<any, any, any, any>): void =
     }
     // If we aren't specifying created, use now.
     if (!this.created) {
-      this.created = new Date();
+      this.created = DateTime.now().toJSDate();
     }
     // All writes change the updated time.
-    this.updated = new Date();
+    this.updated = DateTime.now().toJSDate();
   });
 
   schema.pre(/save|updateOne|insertMany/, function () {
-    void this.updateOne({}, {$set: {updated: new Date()}});
+    void this.updateOne({}, {$set: {updated: DateTime.now().toJSDate()}});
   });
 };
 
@@ -253,7 +253,7 @@ export interface FindExactlyOnePlugin<T> {
 }
 
 export class DateOnly extends SchemaType {
-  constructor(key: string, options: SchemaTypeOptions<any>) {
+  constructor(key: string, options: SchemaTypeOptions<Date>) {
     super(key, options, "DateOnly");
   }
 
@@ -262,6 +262,7 @@ export class DateOnly extends SchemaType {
   }
 
   $conditionalHandlers = {
+    // noExplicitAny: $conditionalHandlers is not exposed on SchemaType's prototype in Mongoose's public type definitions
     ...(SchemaType as any).prototype.$conditionalHandlers,
     $gt: this.handleSingle,
     $gte: this.handleSingle,
@@ -273,6 +274,7 @@ export class DateOnly extends SchemaType {
   // When using $gt, $gte, $lt, $lte, etc, we need to cast the value to a Date
   castForQuery($conditional, val, context): Date | undefined {
     if ($conditional == null) {
+      // noExplicitAny: applySetters is an internal Mongoose SchemaType method not in public type definitions
       return (this as any).applySetters(val, context);
     }
 
@@ -287,7 +289,7 @@ export class DateOnly extends SchemaType {
 
   // When either setting a value to a DateOnly or fetching from the DB,
   // we want to strip off the time portion.
-  cast(val: any): Date | undefined {
+  cast(val: unknown): Date | undefined {
     if (val instanceof Date) {
       const date = DateTime.fromJSDate(val).toUTC().startOf("day");
       if (!date.isValid) {
@@ -314,7 +316,7 @@ export class DateOnly extends SchemaType {
     }
     // Handle $gte, $lte, etc
     if (typeof val === "object") {
-      return val;
+      return val as Date;
     }
     throw new MongooseError.CastError(
       "DateOnly",
@@ -324,10 +326,13 @@ export class DateOnly extends SchemaType {
     );
   }
 
-  get(val: any): this {
-    return (val instanceof Date ? DateTime.fromJSDate(val).startOf("day").toJSDate() : val) as any;
+  get(val: unknown): this {
+    return (val instanceof Date
+      ? DateTime.fromJSDate(val).startOf("day").toJSDate()
+      : val) as unknown as this;
   }
 }
 
 // Register DateOnly with Mongoose's Schema.Types
+// noExplicitAny: DateOnly is a custom SchemaType not declared in Mongoose's Schema.Types interface
 (mongoose.Schema.Types as any).DateOnly = DateOnly;

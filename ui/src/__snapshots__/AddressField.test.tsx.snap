@@ -421,7 +421,6 @@ exports[`AddressField renders correctly with default props 1`] = `
                   },
                 ],
                 "props": {
-                  "activeOpacity": 1,
                   "onPress": [Function],
                   "style": {
                     "alignItems": "center",

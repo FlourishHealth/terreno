@@ -5,7 +5,7 @@ import {Navigator, Slot} from "expo-router";
 // update the import path here — this is the only place in the codebase that references it.
 // eslint-disable-next-line import/no-internal-modules
 import {Screen} from "expo-router/build/views/Screen";
-import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {type FC, type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   Animated,
   Dimensions,
@@ -361,7 +361,11 @@ const SidebarHeader: FC<{onOpen: () => void}> = ({onOpen}) => {
   const insets = useSafeAreaInsets();
   const {state, descriptors} = Navigator.useContext();
   const activeRoute = state.routes[state.index];
-  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as {
+    headerLeft?: (props: object) => ReactNode;
+    headerRight?: (props: object) => ReactNode;
+    title?: string;
+  };
 
   return (
     <View

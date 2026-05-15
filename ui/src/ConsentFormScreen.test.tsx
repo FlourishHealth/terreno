@@ -185,4 +185,51 @@ describe("ConsentFormScreen", () => {
     expect(getByTestId("consent-footer-scroll-hint")).toBeTruthy();
     expect(getByTestId("consent-footer-signature-hint")).toBeTruthy();
   });
+
+  it("shows the required-items legend when any checkbox is required", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-form-required-legend")).toBeTruthy();
+  });
+
+  it("hides the required-items legend when no checkbox is required", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Optional box", required: false}],
+    };
+    const {queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(queryByTestId("consent-form-required-legend")).toBeNull();
+  });
+
+  it("shows the checkbox footer hint when a required checkbox is unchecked", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-footer-checkboxes-hint")).toBeTruthy();
+  });
+
+  it("hides the checkbox footer hint once required checkboxes are checked", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    act(() => {
+      fireEvent.press(getByTestId("consent-form-checkbox-0"));
+    });
+    expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+  });
 });
