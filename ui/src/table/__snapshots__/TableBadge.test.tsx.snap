@@ -485,7 +485,6 @@ exports[`TableBadge renders select field when editing 1`] = `
                 },
               ],
               "props": {
-                "activeOpacity": 1,
                 "onPress": [Function],
                 "style": {
                   "alignItems": "center",

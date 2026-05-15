@@ -48,7 +48,6 @@ exports[`PickerSelect renders correctly with default props 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -313,7 +312,6 @@ exports[`PickerSelect renders with selected value 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -578,7 +576,6 @@ exports[`PickerSelect renders disabled state 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -845,7 +842,6 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1100,7 +1096,6 @@ exports[`PickerSelect matches items by itemKey 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1355,7 +1350,6 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
@@ -1541,7 +1535,6 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
         },
       ],
       "props": {
-        "activeOpacity": 1,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
