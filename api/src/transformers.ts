@@ -15,7 +15,10 @@ export interface TerrenoTransformer<T> {
   serialize?: (obj: T, user?: User) => Partial<T> | undefined;
 }
 
-function getUserType(user?: User, obj?: any): "anon" | "auth" | "owner" | "admin" {
+const getUserType = (
+  user?: User,
+  obj?: Record<string, unknown>
+): "anon" | "auth" | "owner" | "admin" => {
   if (user?.admin) {
     return "admin";
   }
@@ -26,10 +29,9 @@ function getUserType(user?: User, obj?: any): "anon" | "auth" | "owner" | "admin
     return "auth";
   }
   return "anon";
-}
+};
 
-export function AdminOwnerTransformer<T>(options: {
-  // TODO: do something with KeyOf here.
+export const AdminOwnerTransformer = <T>(options: {
   anonReadFields?: string[];
   authReadFields?: string[];
   ownerReadFields?: string[];
@@ -38,20 +40,20 @@ export function AdminOwnerTransformer<T>(options: {
   authWriteFields?: string[];
   ownerWriteFields?: string[];
   adminWriteFields?: string[];
-}): TerrenoTransformer<T> {
-  function pickFields(obj: Partial<T>, fields: any[]): Partial<T> {
+}): TerrenoTransformer<T> => {
+  const pickFields = (obj: Partial<T>, fields: string[]): Partial<T> => {
     const newData: Partial<T> = {};
     for (const field of fields) {
-      if (obj[field] !== undefined) {
-        newData[field] = obj[field];
+      if ((obj as Record<string, unknown>)[field] !== undefined) {
+        (newData as Record<string, unknown>)[field] = (obj as Record<string, unknown>)[field];
       }
     }
     return newData;
-  }
+  };
 
   return {
     serialize: (obj: T, user?: User) => {
-      const userType = getUserType(user, obj);
+      const userType = getUserType(user, obj as Record<string, unknown>);
       if (userType === "admin") {
         return pickFields(obj, [...(options.adminReadFields ?? []), "id"]);
       }
@@ -63,10 +65,9 @@ export function AdminOwnerTransformer<T>(options: {
       }
       return pickFields(obj, [...(options.anonReadFields ?? []), "id"]);
     },
-    // TODO: Migrate AdminOwnerTransform to use pre-hooks.
     transform: (obj: Partial<T>, _method: "create" | "update", user?: User) => {
-      const userType = getUserType(user, obj);
-      let allowedFields: any;
+      const userType = getUserType(user, obj as Record<string, unknown>);
+      let allowedFields: string[];
       if (userType === "admin") {
         allowedFields = options.adminWriteFields ?? [];
       } else if (userType === "owner") {
@@ -78,21 +79,22 @@ export function AdminOwnerTransformer<T>(options: {
       }
       const unallowedFields = Object.keys(obj).filter((k) => !allowedFields.includes(k));
       if (unallowedFields.length) {
-        throw new Error(
-          `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`
-        );
+        throw new APIError({
+          status: 403,
+          title: `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`,
+        });
       }
       return obj;
     },
   };
-}
+};
 
-export function transform<T>(
+export const transform = <T>(
   options: ModelRouterOptions<T>,
   data: Partial<T> | Partial<T>[],
   method: "create" | "update",
   user?: User
-) {
+) => {
   if (!options.transformer?.transform) {
     return data;
   }
@@ -108,16 +110,16 @@ export function transform<T>(
     return transformFn(data, method, user);
   }
   return data.map((d) => transformFn(d, method, user));
-}
+};
 
-export function serialize<T>(
+export const serialize = <T>(
   req: express.Request,
   options: ModelRouterOptions<T>,
-  data: (Document<any, any, any> & T) | (Document<any, any, any> & T)[]
-) {
-  const serializeFn = (serializeData: Document<any, any, any> & T, serializeUser?: User) => {
+  data: (Document & T) | (Document & T)[]
+) => {
+  const serializeFn = (serializeData: Document & T, serializeUser?: User) => {
     const dataObject = serializeData.toObject() as T;
-    (dataObject as any).id = serializeData._id;
+    (dataObject as Record<string, unknown>).id = serializeData._id;
 
     // Search for any value that is a Map and transform it to a plain object.
     // Otherwise Express drops the contents.
@@ -143,28 +145,29 @@ export function serialize<T>(
     return serializeFn(data, req.user);
   }
   return data.map((d) => serializeFn(d, req.user));
-}
+};
 
 /**
  * Default response handler for modelRouter. Calls toObject on each doc and returns the result,
  * using transformers.serializer if provided.
  */
-export async function defaultResponseHandler<T>(
-  doc: (Document<any, any, any> & T) | (Document<any, any, any> & T)[] | null,
+export const defaultResponseHandler = async <T>(
+  doc: (Document & T) | (Document & T)[] | null,
   method: "list" | "create" | "read" | "update",
   request: express.Request,
   options: ModelRouterOptions<T>
-) {
+) => {
   if (!doc) {
     return null;
   }
   try {
     return serialize(request, options, doc);
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorObj = error as Error;
     throw new APIError({
-      error,
+      error: errorObj,
       status: 400,
-      title: `Error serializing ${method} response: ${error.message}`,
+      title: `Error serializing ${method} response: ${errorObj.message}`,
     });
   }
-}
+};

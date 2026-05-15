@@ -1,4 +1,4 @@
-import {baseUrl, getAuthToken} from "@terreno/rtk";
+import {baseUrl, getAuthToken, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Box,
   GPTChat,
@@ -65,9 +65,9 @@ const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<
 };
 
 const AVAILABLE_MODELS = [
-  {label: "Gemini 3 Flash", value: "gemini-3-flash-preview"},
-  {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash-preview-05-20"},
-  {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro-preview-05-06"},
+  {label: "Gemini 3.1 Flash Lite", value: "gemini-3.1-flash-lite"},
+  {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash"},
+  {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro"},
 ];
 
 const AiScreen: React.FC = () => {
@@ -79,7 +79,8 @@ const AiScreen: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
 
   const dispatch = useDispatch();
-  const {data: historiesData, isLoading} = useGetGptHistoriesQuery();
+  const userId = useSelectCurrentUserId();
+  const {data: historiesData, isLoading} = useGetGptHistoriesQuery(undefined, {skip: !userId});
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 

@@ -12,7 +12,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {runOnJS} from "react-native-reanimated";
 
 import {Button} from "./Button";
-import type {ModalProps} from "./Common";
+import type {ModalProps, TerrenoTheme} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {isMobileDevice} from "./MediaQuery";
@@ -45,7 +45,7 @@ const ModalContent: FC<{
   secondaryButtonOnClick?: ModalProps["secondaryButtonOnClick"];
   onDismiss: ModalProps["onDismiss"];
   sizePx: DimensionValue;
-  theme: any;
+  theme: TerrenoTheme;
   isMobile: boolean;
 }> = ({
   children,
@@ -102,7 +102,7 @@ const ModalContent: FC<{
           <Icon iconName="x" size="sm" />
         </Pressable>
       </View>
-      {title && (
+      {Boolean(title) && (
         <View
           accessibilityHint="Modal title"
           aria-label={title}
@@ -112,7 +112,7 @@ const ModalContent: FC<{
           <Heading size="lg">{title}</Heading>
         </View>
       )}
-      {subtitle && (
+      {Boolean(subtitle) && (
         <View
           accessibilityHint="Modal Sub Heading Text"
           aria-label={subtitle}
@@ -122,7 +122,7 @@ const ModalContent: FC<{
           <Text size="lg">{subtitle}</Text>
         </View>
       )}
-      {text && (
+      {Boolean(text) && (
         <View
           accessibilityHint="Modal body text"
           aria-label={text}

@@ -1,0 +1,33 @@
+{
+  "children": [
+    {
+      "name": "Common",
+      "children": [
+        {
+          "name": "ButtonProps",
+          "kind": 256,
+          "children": [
+            {
+              "name": "text",
+              "type": {"type": "intrinsic", "name": "string"},
+              "flags": {},
+              "comment": {"summary": [{"text": "Button text"}]}
+            },
+            {
+              "name": "onClick",
+              "type": {
+                "type": "reflection",
+                "declaration": {"signatures": [{}]}
+              },
+              "flags": {"isOptional": true}
+            }
+          ]
+        },
+        {
+          "name": "NotAnInterface",
+          "kind": 128
+        }
+      ]
+    }
+  ]
+}

@@ -5,8 +5,8 @@ import {Navigator, Slot} from "expo-router";
 // update the import path here — this is the only place in the codebase that references it.
 // eslint-disable-next-line import/no-internal-modules
 import {Screen} from "expo-router/build/views/Screen";
-import {type FC, useCallback, useMemo, useState} from "react";
-import {Pressable, type StyleProp, View, type ViewStyle} from "react-native";
+import {type FC, type ReactNode, useCallback, useMemo, useState} from "react";
+import {Pressable, type StyleProp, View, type ViewProps, type ViewStyle} from "react-native";
 
 import {Badge} from "./Badge";
 import {Box} from "./Box";
@@ -127,7 +127,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
     <View style={{flex: 1}}>
       <View style={{flex: 1, marginLeft: COLLAPSED_WIDTH}}>{children}</View>
       <View
-        {...({onMouseEnter: handleHoverIn, onMouseLeave: handleHoverOut} as any)}
+        {...({onMouseEnter: handleHoverIn, onMouseLeave: handleHoverOut} as unknown as ViewProps)}
         style={[
           {
             backgroundColor: theme.surface.base,
@@ -149,7 +149,7 @@ export const SidebarNavigationPanel: FC<SidebarNavigationPanelProps> = ({
             transitionDuration: "150ms",
             transitionProperty: "width",
             transitionTimingFunction: "ease-in-out",
-          } as any,
+          } as unknown as ViewStyle,
           panelStyle,
         ]}
       >
@@ -195,7 +195,11 @@ const SidebarNavigatorContent: FC<{
   const {theme} = useTheme();
   const {state, navigation, descriptors} = Navigator.useContext();
   const activeRoute = state.routes[state.index];
-  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as any;
+  const {headerLeft, headerRight, title} = (descriptors[activeRoute?.key]?.options ?? {}) as {
+    headerLeft?: (props: object) => ReactNode;
+    headerRight?: (props: object) => ReactNode;
+    title?: string;
+  };
 
   const handleNavigate = useCallback(
     (route: string) => {

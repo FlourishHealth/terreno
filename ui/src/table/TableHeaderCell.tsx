@@ -73,7 +73,7 @@ export const TableHeaderCell = ({
             style={{
               alignItems: "center",
               backgroundColor: theme.surface.primary,
-              borderRadius: theme.radius.rounded as any,
+              borderRadius: theme.radius.rounded,
               height: 16,
               justifyContent: "center",
               width: 16,

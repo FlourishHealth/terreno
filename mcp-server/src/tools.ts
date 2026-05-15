@@ -508,9 +508,10 @@ ${fieldStates}
     try {
       await create${modelName}({ ${bodyFields} }).unwrap();
       // Success - navigate or show message
-    } catch (err: any) {
-      if (err.data?.fields) {
-        setErrors(err.data.fields);
+    } catch (err: unknown) {
+      const apiError = err as {data?: {fields?: FormErrors}};
+      if (apiError.data?.fields) {
+        setErrors(apiError.data.fields);
       }
     }
   }, [${bodyFields}, create${modelName}]);

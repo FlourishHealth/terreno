@@ -1,4 +1,4 @@
-import {useFeatureFlags} from "@terreno/rtk";
+import {useFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
 import {
   Box,
   Button,
@@ -19,7 +19,8 @@ import {logout, terrenoApi, useAppDispatch, useGetMeQuery, usePatchMeMutation} f
 const ProfileScreen: React.FC = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const {data: profileResponse, isLoading, refetch} = useGetMeQuery();
+  const userId = useSelectCurrentUserId();
+  const {data: profileResponse, isLoading, refetch} = useGetMeQuery(undefined, {skip: !userId});
   const [updateProfile, {isLoading: isUpdating}] = usePatchMeMutation();
   const {setPrimitives, resetTheme} = useTheme();
 
@@ -28,7 +29,7 @@ const ProfileScreen: React.FC = () => {
     getFlag,
     isLoading: isFeatureFlagsLoading,
     error: featureFlagsError,
-  } = useFeatureFlags(terrenoApi);
+  } = useFeatureFlags(terrenoApi, {skip: !userId});
   const showDarkModeToggle = getFlag("dark-mode-toggle");
   const featureFlagEntries = useMemo(
     (): Array<{key: string; value: boolean | string | null}> =>

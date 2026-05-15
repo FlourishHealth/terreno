@@ -20,11 +20,53 @@ export interface ConsentHistoryEntry {
   userAgent?: string;
 }
 
-export const useConsentHistory = (api: any, baseUrl?: string) => {
-  const base = baseUrl || "";
+interface ConsentHistoryResponse {
+  data?: ConsentHistoryEntry[];
+}
 
-  const enhancedApi = api.injectEndpoints({
-    endpoints: (build: any) => ({
+interface ConsentHistoryQueryBuilder {
+  query: (options: {providesTags: string[]; query: () => string}) => unknown;
+}
+
+interface ConsentHistoryHookState {
+  data?: ConsentHistoryEntry[] | ConsentHistoryResponse;
+  error: unknown;
+  isLoading: boolean;
+  refetch: () => void | Promise<void>;
+}
+
+interface ConsentHistoryEnhancedApi {
+  useGetMyConsentsQuery: () => ConsentHistoryHookState;
+}
+
+interface ConsentHistoryApi {
+  injectEndpoints: (options: {
+    endpoints: (build: ConsentHistoryQueryBuilder) => {getMyConsents: unknown};
+    overrideExisting: boolean;
+  }) => ConsentHistoryEnhancedApi;
+}
+
+/**
+ * Cache the enhanced api per (api, baseUrl). `injectEndpoints` logs a console
+ * error in development whenever an endpoint with the same name is re-injected
+ * (with `overrideExisting: false`), so calling it on every render of every
+ * consumer would flood the console. WeakMap-by-api lets the GC reclaim entries
+ * when the api object is unreachable.
+ */
+const enhancedApiCache = new WeakMap<ConsentHistoryApi, Map<string, ConsentHistoryEnhancedApi>>();
+
+const getEnhancedApi = (api: ConsentHistoryApi, base: string): ConsentHistoryEnhancedApi => {
+  let byBase = enhancedApiCache.get(api);
+  if (!byBase) {
+    byBase = new Map();
+    enhancedApiCache.set(api, byBase);
+  }
+  const cached = byBase.get(base);
+  if (cached) {
+    return cached;
+  }
+  const enhanced = api.injectEndpoints({
+    endpoints: (build) => ({
       getMyConsents: build.query({
         providesTags: ["MyConsents"],
         query: () => `${base}/consents/my`,
@@ -32,6 +74,13 @@ export const useConsentHistory = (api: any, baseUrl?: string) => {
     }),
     overrideExisting: false,
   });
+  byBase.set(base, enhanced);
+  return enhanced;
+};
+
+export const useConsentHistory = (api: ConsentHistoryApi, baseUrl?: string) => {
+  const base = baseUrl || "";
+  const enhancedApi = getEnhancedApi(api, base);
 
   const {data, isLoading, error, refetch} = enhancedApi.useGetMyConsentsQuery();
   const entries: ConsentHistoryEntry[] = Array.isArray(data) ? data : (data?.data ?? []);

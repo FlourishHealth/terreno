@@ -1,4 +1,6 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {fireEvent} from "@testing-library/react-native";
+import {HeightActionSheet} from "./HeightActionSheet";
 import {HeightField} from "./HeightField";
 import {renderWithTheme} from "./test-utils";
 
@@ -96,6 +98,34 @@ describe("HeightField", () => {
     });
   });
 
+  describe("action sheet interactions", () => {
+    it("opens the action sheet when the pressable is tapped", () => {
+      const {getByLabelText} = renderWithTheme(<HeightField onChange={mockOnChange} value="60" />);
+      const pressable = getByLabelText("Height selector");
+      // Should not throw when pressed
+      fireEvent.press(pressable);
+      expect(pressable).toBeTruthy();
+    });
+
+    it("does not open the action sheet when disabled and pressed", () => {
+      const {getByLabelText} = renderWithTheme(
+        <HeightField disabled onChange={mockOnChange} value="60" />
+      );
+      const pressable = getByLabelText("Height selector");
+      fireEvent.press(pressable);
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it("forwards changes from the action sheet to onChange", () => {
+      const {UNSAFE_getByType} = renderWithTheme(
+        <HeightField onChange={mockOnChange} value="60" />
+      );
+      const actionSheet = UNSAFE_getByType(HeightActionSheet);
+      actionSheet.props.onChange("72");
+      expect(mockOnChange).toHaveBeenCalledWith("72");
+    });
+  });
+
   describe("disabled state", () => {
     it("should render in disabled state", () => {
       const {root} = renderWithTheme(<HeightField disabled onChange={mockOnChange} value="70" />);
@@ -174,5 +204,73 @@ describe("HeightField", () => {
       );
       expect(component.toJSON()).toMatchSnapshot();
     });
+  });
+});
+
+describe("HeightField - Android platform", () => {
+  // Toggle Platform.OS to "android" to exercise the Android rendering branch
+  // that uses SelectField pickers instead of the Pressable+ActionSheet path.
+  const {Platform} = require("react-native") as {Platform: {OS: string}};
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = "android";
+  });
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it("renders Android pickers with title, helperText, and errorText", () => {
+    const onChange = mock(() => {});
+    const {getByText, queryByLabelText} = renderWithTheme(
+      <HeightField
+        errorText="Required"
+        helperText="Enter height"
+        onChange={onChange}
+        title="Height"
+        value="70"
+      />
+    );
+    // Title and helper/error rendered
+    expect(getByText("Height")).toBeTruthy();
+    expect(getByText("Enter height")).toBeTruthy();
+    expect(getByText("Required")).toBeTruthy();
+    // The Pressable from the iOS branch should NOT be present.
+    expect(queryByLabelText("Height selector")).toBeNull();
+  });
+
+  it("renders Android pickers in disabled state", () => {
+    const onChange = mock(() => {});
+    const {root} = renderWithTheme(
+      <HeightField disabled onChange={onChange} title="Height" value="60" />
+    );
+    expect(root).toBeTruthy();
+  });
+
+  it("forwards feet picker changes to onChange (Android)", () => {
+    const onChange = mock(() => {});
+    const {SelectField} = require("./SelectField") as {
+      SelectField: React.ComponentType<{onChange?: (v: string) => void}>;
+    };
+    const {UNSAFE_getAllByType} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const selects = UNSAFE_getAllByType(SelectField);
+    expect(selects.length).toBe(2);
+    // First SelectField is feet. value="70" → 5ft 10in. Bumping feet to 6 yields 6*12+10=82.
+    selects[0].props.onChange?.("6");
+    expect(onChange).toHaveBeenCalledWith("82");
+  });
+
+  it("forwards inches picker changes to onChange (Android)", () => {
+    const onChange = mock(() => {});
+    const {SelectField} = require("./SelectField") as {
+      SelectField: React.ComponentType<{onChange?: (v: string) => void}>;
+    };
+    const {UNSAFE_getAllByType} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const selects = UNSAFE_getAllByType(SelectField);
+    expect(selects.length).toBe(2);
+    // Second SelectField is inches. value="70" → 5ft 10in. Changing inches to 3 yields 5*12+3=63.
+    selects[1].props.onChange?.("3");
+    expect(onChange).toHaveBeenCalledWith("63");
   });
 });

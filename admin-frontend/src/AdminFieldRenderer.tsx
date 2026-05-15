@@ -8,10 +8,11 @@ import {
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminNestedArrayField} from "./AdminNestedArrayField";
+import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import {AdminRefField} from "./AdminRefField";
 import {CheckboxListEditor} from "./CheckboxListEditor";
 import {LocaleContentEditor} from "./LocaleContentEditor";
-import type {AdminFieldConfig, AdminScreenProps} from "./types";
+import type {AdminFieldConfig, AdminScreenProps, RefRendererMap} from "./types";
 
 // Attempts to parse a string as JSON, returning the parsed value or the raw string
 const parseJsonValue = (text: string): any => {
@@ -46,6 +47,14 @@ interface AdminFieldRendererProps extends AdminScreenProps {
   modelConfigs?: Array<{name: string; routePath: string}>;
   /** Parent document form state, used to derive dynamic options for sub-fields */
   parentFormState?: Record<string, any>;
+  /**
+   * Optional map of custom ref-field renderers keyed by referenced model name.
+   * When `fieldConfig.ref` (single ref) or `fieldConfig.itemRef` (primitive array
+   * of refs) matches a key, the custom component renders in place of the built-in
+   * {@link AdminRefField}. Forwarded to {@link AdminNestedArrayField} and
+   * {@link AdminPrimitiveArrayField} so nested fields participate in the override.
+   */
+  refRenderers?: RefRendererMap;
 }
 
 /**
@@ -94,6 +103,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   api,
   modelConfigs,
   parentFormState,
+  refRenderers,
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
@@ -123,9 +133,25 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     }
   }
 
-  // ObjectId with ref -> reference field
-  if (fieldConfig.ref && modelConfigs) {
-    const refModel = modelConfigs.find((m) => m.name === fieldConfig.ref);
+  // ObjectId with ref -> reference field (skip arrays — those go to AdminPrimitiveArrayField)
+  if (fieldConfig.ref && fieldConfig.type !== "array") {
+    const CustomRenderer = refRenderers?.[fieldConfig.ref];
+    const refModel = modelConfigs?.find((m) => m.name === fieldConfig.ref);
+    if (CustomRenderer) {
+      return (
+        <CustomRenderer
+          api={api}
+          baseUrl={baseUrl}
+          errorText={errorText}
+          helperText={helperText}
+          onChange={onChange}
+          refModelName={fieldConfig.ref}
+          routePath={refModel?.routePath ?? ""}
+          title={label}
+          value={value ?? ""}
+        />
+      );
+    }
     if (refModel) {
       return (
         <AdminRefField
@@ -267,6 +293,26 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     );
   }
 
+  // Array of primitives (string, number, boolean) or ObjectId refs
+  if (fieldConfig.type === "array" && fieldConfig.itemType && !fieldConfig.items) {
+    return (
+      <AdminPrimitiveArrayField
+        api={api}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        helperText={helperText}
+        itemEnum={fieldConfig.itemEnum}
+        itemRef={fieldConfig.itemRef}
+        itemType={fieldConfig.itemType}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        refRenderers={refRenderers}
+        title={label}
+        value={value ?? []}
+      />
+    );
+  }
+
   // Array of sub-documents
   if (fieldConfig.type === "array" && fieldConfig.items) {
     return (
@@ -279,6 +325,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         modelConfigs={modelConfigs}
         onChange={onChange}
         parentFormState={parentFormState}
+        refRenderers={refRenderers}
         title={label}
         value={value ?? []}
       />

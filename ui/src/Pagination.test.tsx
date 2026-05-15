@@ -83,4 +83,20 @@ describe("Pagination", () => {
     const {toJSON} = renderWithTheme(<Pagination page={2} setPage={() => {}} totalPages={20} />);
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("renders 'more' button for large page sets without throwing when pressed", () => {
+    const handleSetPage = mock((_page: number) => {});
+    const {UNSAFE_getAllByProps} = renderWithTheme(
+      <Pagination page={10} setPage={handleSetPage} totalPages={20} />
+    );
+    // Find the "more" pagination buttons (they have iconName="ellipsis")
+    const moreIcons = UNSAFE_getAllByProps({iconName: "ellipsis"});
+    expect(moreIcons.length).toBeGreaterThan(0);
+    const morePressable = moreIcons[0].parent;
+    if (morePressable) {
+      expect(() => fireEvent.press(morePressable)).not.toThrow();
+    }
+    // Pressing "more" does nothing (onClick is no-op)
+    expect(handleSetPage).not.toHaveBeenCalled();
+  });
 });

@@ -2,6 +2,7 @@ import type {Document, Model, Schema} from "mongoose";
 
 import {APIError} from "./errors";
 import {logger} from "./logger";
+import {type FindOneOrNonePlugin, findOneOrNone} from "./plugins";
 
 /**
  * Metadata for a secret field discovered by the configuration plugin.
@@ -100,7 +101,7 @@ export interface ConfigurationStatics<T extends object> {
  * const full = await AppConfig.getConfig(); // typed as AppConfigDocument
  * ```
  */
-export type ConfigurationModel<T extends object> = Model<T> & ConfigurationStatics<T>;
+export interface ConfigurationModel<T extends object> extends Model<T>, ConfigurationStatics<T> {}
 
 // ---------------------------------------------------------------------------
 // Plugin
@@ -132,18 +133,27 @@ export type ConfigurationModel<T extends object> = Model<T> & ConfigurationStati
 export const configurationPlugin = (schema: Schema, options?: ConfigurationPluginOptions): void => {
   const pluginOptions = options ?? {};
 
+  // Apply findOneOrNone so the singleton lookup avoids bare Model.findOne (idempotent).
+  findOneOrNone(schema);
+
   // Add a sentinel field with a unique index to enforce singleton at the DB level.
   // All config documents get _singleton: "config", and the unique index prevents duplicates.
   schema.add({
-    _singleton: {default: "config", immutable: true, select: false, type: String},
+    _singleton: {
+      default: "config",
+      description: "Sentinel field enforcing singleton constraint",
+      immutable: true,
+      select: false,
+      type: String,
+    },
   });
   schema.index({_singleton: 1}, {unique: true});
 
   // Enforce singleton: only one document allowed (application-level guard)
   schema.pre("save", async function () {
     if (this.isNew) {
-      // Intentional unfiltered findOne — checking if any singleton document exists
-      const existing = await (this.constructor as Model<unknown>).findOne({});
+      // Cheap existence check — no document needs to be returned.
+      const existing = await (this.constructor as Model<unknown>).exists({});
       if (existing) {
         throw new APIError({
           status: 409,
@@ -173,18 +183,23 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
   // Static: get the singleton configuration document or a value at a path (race-safe via upsert)
   schema.statics.getConfig = async function (key?: string): Promise<unknown> {
-    let config = await this.findOne({});
+    const findSingleton = (): Promise<Document | null> =>
+      (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone(
+        {}
+      ) as Promise<Document | null>;
+    let config: Document | null = await findSingleton();
     if (!config) {
       try {
         // Use `new` + `save` instead of `create({})` so Mongoose initializes
         // nested subdocument defaults (create({}) skips them).
-        config = new this();
-        await config.save();
+        const created = new this();
+        await created.save();
+        config = created;
       } catch (err: unknown) {
-        // If another process created the document between findOne and create,
+        // If another process created the document between the lookup and create,
         // the pre-save hook will throw a 409. Just fetch the existing one.
         if ((err as {status?: number})?.status === 409) {
-          config = await this.findOne({});
+          config = await findSingleton();
         } else {
           throw err;
         }
@@ -197,7 +212,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
     // Resolve dot-notation key into the document
     const parts = key.split(".");
-    let value: unknown = config.toObject();
+    let value: unknown = config?.toObject();
     for (const part of parts) {
       if (value == null || typeof value !== "object") {
         return undefined;

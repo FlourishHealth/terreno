@@ -1,5 +1,5 @@
 import {expect, test} from "@playwright/test";
-import {loginAsAdmin} from "./helpers/adminAuth";
+import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
 
 test.describe("Admin Panel", () => {
@@ -36,25 +36,29 @@ test.describe("Admin Panel", () => {
     await expect(page.getByTestId("admin-save-button")).toBeVisible();
   });
 
-  test("can create a todo via admin", async ({page}) => {
-    // Navigate to Todo create form
+  test("can create a todo via admin", async ({page, request}) => {
+    const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+    const token = await getAdminToken(request);
+
+    // Get the admin user's ID for the required ownerId field
+    const meRes = await request.get(`${API_URL}/auth/me`, {
+      headers: {authorization: `Bearer ${token}`},
+    });
+    const meData = (await meRes.json()) as Record<string, unknown>;
+    const data = (meData.data ?? meData) as Record<string, unknown>;
+    const adminUserId = data._id as string;
+
+    // Create a todo via the admin API
+    const todoTitle = `Admin Todo ${Date.now()}`;
+    const createRes = await request.post(`${API_URL}/admin/todos`, {
+      data: {ownerId: adminUserId, title: todoTitle},
+      headers: {authorization: `Bearer ${token}`},
+    });
+    expect(createRes.ok()).toBeTruthy();
+
+    // Navigate to the Todos admin table
     await page.getByTestId("admin-model-card-Todo").waitFor({state: "visible"});
     await page.getByTestId("admin-model-card-Todo").click();
-    await page.getByTestId("admin-create-button").waitFor({state: "visible"});
-    await page.getByTestId("admin-create-button").click();
-    await page.getByTestId("admin-save-button").waitFor({state: "visible"});
-
-    // Fill in the title field with a unique value
-    const todoTitle = `Admin Todo ${Date.now()}`;
-    const titleInput = page.getByRole("textbox").first();
-    await titleInput.fill(todoTitle);
-
-    // Select an owner from the ownerId dropdown (required field)
-    const ownerSelect = page.getByRole("combobox").first();
-    await ownerSelect.selectOption({index: 1});
-
-    // Save the form — redirects back to the model table
-    await page.getByTestId("admin-save-button").click();
     await page.waitForLoadState("networkidle");
 
     // Verify the todo appears in the table

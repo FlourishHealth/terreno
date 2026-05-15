@@ -4,9 +4,6 @@ import type {FC} from "react";
 import {type IconProps, iconSizeToNumber} from "./Common";
 import {useTheme} from "./Theme";
 
-// TODO: Update <Icon /> to be closer to Expo's Vector Icon, letting multiple icon packs be used,
-// etc.
-// TODO: Add documentation for adding FA6-Pro icons.
 export const Icon: FC<IconProps> = ({
   color = "primary",
   size = "md",

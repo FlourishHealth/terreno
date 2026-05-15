@@ -1,0 +1,115 @@
+name: Publish feature-flags manually
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. 0.7.1)'
+        required: true
+        type: string
+
+jobs:
+  publish-feature-flags:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: feature-flags
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.12.1
+        with:
+          mongodb-version: 6.0
+          mongodb-image: mirror.gcr.io/library/mongo
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Get latest @terreno/api version
+        id: api-version
+        run: echo "version=$(npm view @terreno/api version)" >> $GITHUB_OUTPUT
+
+      - name: Replace catalog and workspace references
+        run: |
+          API_VERSION="${{ steps.api-version.outputs.version }}"
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const apiVersion = process.env.API_VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key === '@terreno/api') {
+                // Use the latest published @terreno/api version
+                pkg[depType][key] = '^' + apiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                // For other terreno workspace packages, use the tag version
+                pkg[depType][key] = process.env.VERSION;
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          API_VERSION: ${{ steps.api-version.outputs.version }}
+          VERSION: ${{ github.event.inputs.version }}
+
+      - name: Install dependencies after replacement
+        run: bun install
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Run tests
+        run: bun run test
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/feature-flags@${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY

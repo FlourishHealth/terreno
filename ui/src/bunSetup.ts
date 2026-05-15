@@ -1,46 +1,76 @@
 import {beforeEach, mock} from "bun:test";
 import React from "react";
 
+type MockComponentProps = Record<string, unknown> & {
+  children?: React.ReactNode;
+  style?: unknown;
+  testID?: string;
+};
+type MockStyleValue = unknown;
+type MockAnimation = {
+  start?: (callback?: (result: {finished: boolean}) => void) => void;
+  stop?: () => void;
+  reset?: () => void;
+};
+type EasingFn = (t: number) => number;
+type MockColor = string | number | null | undefined;
+type MockAssetSource = {height?: number; uri?: string; width?: number} | null | undefined;
+
 // Set environment variables
 process.env.TZ = "America/New_York";
 process.env.EXPO_OS = "ios";
 
 // Define React Native globals
-(globalThis as any).__DEV__ = true;
-(globalThis as any).__BUNDLE_START_TIME__ = Date.now();
+const rnGlobals = globalThis as typeof globalThis & {
+  __DEV__?: boolean;
+  __BUNDLE_START_TIME__?: number;
+};
+rnGlobals.__DEV__ = true;
+rnGlobals.__BUNDLE_START_TIME__ = Date.now();
 
 // Mock react-native to avoid Flow type errors
 mock.module("react-native", () => {
-  const View = ({children, style, testID, ...props}: any) =>
+  const View = ({children, style, testID, ...props}: MockComponentProps) =>
     React.createElement("View", {style, testID, ...props}, children);
-  const Text = ({children, style, ...props}: any) =>
+  const Text = ({children, style, ...props}: MockComponentProps) =>
     React.createElement("Text", {style, ...props}, children);
-  const TextInput = (props: any) => React.createElement("TextInput", props);
-  const TouchableOpacity = ({children, ...props}: any) =>
+  const TextInput = (props: MockComponentProps) => React.createElement("TextInput", props);
+  const TouchableOpacity = ({children, ...props}: MockComponentProps) =>
     React.createElement("TouchableOpacity", props, children);
-  const Pressable = ({children, ...props}: any) =>
+  const Pressable = ({children, ...props}: MockComponentProps) =>
     React.createElement("Pressable", props, children);
-  const ScrollView = ({children, ...props}: any) =>
+  const ScrollView = ({children, ...props}: MockComponentProps) =>
     React.createElement("ScrollView", props, children);
-  const Image = (props: any) => React.createElement("Image", props);
-  const ImageBackground = ({children, ...props}: any) =>
+  const Image = (props: MockComponentProps) => React.createElement("Image", props);
+  const ImageBackground = ({children, ...props}: MockComponentProps) =>
     React.createElement("ImageBackground", props, children);
-  const ActivityIndicator = (props: any) => React.createElement("ActivityIndicator", props);
-  const FlatList = ({data, renderItem, keyExtractor, ...props}: any) =>
+  const ActivityIndicator = (props: MockComponentProps) =>
+    React.createElement("ActivityIndicator", props);
+  const FlatList = ({
+    data,
+    renderItem,
+    keyExtractor,
+    ...props
+  }: MockComponentProps & {
+    data?: unknown[];
+    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
+    keyExtractor?: (item: unknown, index: number) => string;
+  }) =>
     React.createElement(
       "FlatList",
       props,
-      data?.map((item: any, index: number) =>
-        renderItem({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
+      data?.map((item: unknown, index: number) =>
+        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
       )
     );
-  const SectionList = (props: any) => React.createElement("SectionList", props);
-  const KeyboardAvoidingView = ({children, ...props}: any) =>
+  const SectionList = (props: MockComponentProps) => React.createElement("SectionList", props);
+  const KeyboardAvoidingView = ({children, ...props}: MockComponentProps) =>
     React.createElement("KeyboardAvoidingView", props, children);
-  const SafeAreaView = ({children, ...props}: any) =>
+  const SafeAreaView = ({children, ...props}: MockComponentProps) =>
     React.createElement("SafeAreaView", props, children);
-  const Modal = ({children, ...props}: any) => React.createElement("Modal", props, children);
-  const Switch = (props: any) => React.createElement("Switch", props);
+  const Modal = ({children, ...props}: MockComponentProps) =>
+    React.createElement("Modal", props, children);
+  const Switch = (props: MockComponentProps) => React.createElement("Switch", props);
   const AnimatedValue = class Value {
     _value: number;
     constructor(value: number = 0) {
@@ -63,8 +93,8 @@ mock.module("react-native", () => {
     track = mock(() => {});
   };
   const AnimatedValueXY = class ValueXY {
-    x: any;
-    y: any;
+    x: InstanceType<typeof AnimatedValue>;
+    y: InstanceType<typeof AnimatedValue>;
     constructor(value?: {x?: number; y?: number}) {
       this.x = new AnimatedValue(value?.x || 0);
       this.y = new AnimatedValue(value?.y || 0);
@@ -89,7 +119,7 @@ mock.module("react-native", () => {
   const Animated = {
     // Operators
     add: mock(() => new AnimatedValue(0)),
-    createAnimatedComponent: (comp: any) => comp,
+    createAnimatedComponent: <T>(comp: T): T => comp,
     decay: mock(() => createAnimationMock()),
     delay: mock(() => createAnimationMock()),
     diffClamp: mock(() => new AnimatedValue(0)),
@@ -98,7 +128,7 @@ mock.module("react-native", () => {
     event: mock(() => mock(() => {})),
     FlatList,
     Image,
-    loop: mock((animation: any) => ({
+    loop: mock((animation: MockAnimation) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
         animation?.start?.();
@@ -109,10 +139,10 @@ mock.module("react-native", () => {
     modulo: mock(() => new AnimatedValue(0)),
     multiply: mock(() => new AnimatedValue(0)),
     // Composition functions
-    parallel: mock((animations: any[]) => ({
+    parallel: mock((animations: MockAnimation[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => {
+        animations?.forEach((anim: MockAnimation) => {
           anim?.start?.();
         });
         callback?.({finished: true});
@@ -120,10 +150,10 @@ mock.module("react-native", () => {
       stop: mock(() => {}),
     })),
     ScrollView,
-    sequence: mock((animations: any[]) => ({
+    sequence: mock((animations: MockAnimation[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => {
+        animations?.forEach((anim: MockAnimation) => {
           anim?.start?.();
         });
         callback?.({finished: true});
@@ -131,10 +161,10 @@ mock.module("react-native", () => {
       stop: mock(() => {}),
     })),
     spring: mock(() => createAnimationMock()),
-    stagger: mock((_delay: number, animations: any[]) => ({
+    stagger: mock((_delay: number, animations: MockAnimation[]) => ({
       reset: mock(() => {}),
       start: mock((callback?: (result: {finished: boolean}) => void) => {
-        animations?.forEach((anim: any) => {
+        animations?.forEach((anim: MockAnimation) => {
           anim?.start?.();
         });
         callback?.({finished: true});
@@ -153,13 +183,14 @@ mock.module("react-native", () => {
   const StyleSheet = {
     absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
     absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
-    create: (styles: any) => styles,
-    flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
+    create: <T>(styles: T): T => styles,
+    flatten: (style: MockStyleValue) =>
+      Array.isArray(style) ? Object.assign({}, ...style) : style || {},
     hairlineWidth: 1,
   };
   const Platform = {
     OS: "ios",
-    select: (obj: any) => obj.ios || obj.default,
+    select: <T>(obj: {ios?: T; default?: T}): T | undefined => obj.ios ?? obj.default,
     Version: "14.0",
   };
   const Dimensions = {
@@ -237,11 +268,11 @@ mock.module("react-native", () => {
     addEventListener: mock(() => ({remove: mock(() => {})})),
     exitApp: mock(() => {}),
   };
-  const TouchableWithoutFeedback = ({children, ...props}: any) =>
+  const TouchableWithoutFeedback = ({children, ...props}: MockComponentProps) =>
     React.createElement("TouchableWithoutFeedback", props, children);
-  const TouchableHighlight = ({children, ...props}: any) =>
+  const TouchableHighlight = ({children, ...props}: MockComponentProps) =>
     React.createElement("TouchableHighlight", props, children);
-  const TouchableNativeFeedback = ({children, ...props}: any) =>
+  const TouchableNativeFeedback = ({children, ...props}: MockComponentProps) =>
     React.createElement("TouchableNativeFeedback", props, children);
   const Touchable = {
     Mixin: {
@@ -304,10 +335,10 @@ mock.module("react-native", () => {
     ease: mock((t: number) => t),
     elastic: mock(() => (t: number) => t),
     exp: mock((t: number) => t),
-    in: mock((f: any) => f),
-    inOut: mock((f: any) => f),
+    in: mock((f: EasingFn) => f),
+    inOut: mock((f: EasingFn) => f),
     linear: mock((t: number) => t),
-    out: mock((f: any) => f),
+    out: mock((f: EasingFn) => f),
     poly: mock(() => (t: number) => t),
     quad: mock((t: number) => t * t),
     sin: mock((t: number) => Math.sin(t)),
@@ -429,12 +460,16 @@ if (typeof globalThis.expo === "undefined") {
     EventEmitter: EventEmitterClass,
     NativeModule: class NativeModule {},
     SharedObject: class SharedObject {},
-  } as any;
+    // noExplicitAny: globalThis.expo is typed by expo-modules-core with many native-only APIs
+    // that aren't needed for these mocks, so we cast through unknown to satisfy the type.
+  } as unknown as typeof globalThis.expo;
 }
 
 // Mock expo-router
 mock.module("expo-router", () => ({
-  Link: ({children, ...props}: any) => React.createElement("Link", props, children),
+  Link: ({children, ...props}: MockComponentProps) => React.createElement("Link", props, children),
+  Navigator: ({children, ...props}: MockComponentProps) =>
+    React.createElement("Navigator", props, children),
   router: {
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -442,9 +477,19 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   },
-  Stack: ({children, ...props}: any) => React.createElement("Stack", props, children),
-  Tabs: ({children, ...props}: any) => React.createElement("Tabs", props, children),
+  Slot: ({children, ...props}: MockComponentProps) => React.createElement("Slot", props, children),
+  Stack: ({children, ...props}: MockComponentProps) =>
+    React.createElement("Stack", props, children),
+  Tabs: ({children, ...props}: MockComponentProps) => React.createElement("Tabs", props, children),
+  useFocusEffect: mock(() => undefined),
   useLocalSearchParams: mock(() => ({})),
+  useNavigation: mock(() => ({
+    addListener: mock(() => () => undefined),
+    goBack: mock(() => {}),
+    navigate: mock(() => {}),
+    setOptions: mock(() => {}),
+  })),
+  usePathname: mock(() => "/"),
   useRouter: mock(() => ({
     back: mock(() => {}),
     canGoBack: mock(() => true),
@@ -452,6 +497,7 @@ mock.module("expo-router", () => ({
     push: mock(() => {}),
     replace: mock(() => {}),
   })),
+  useSearchParams: mock(() => ({})),
   useSegments: mock(() => []),
 }));
 
@@ -630,7 +676,7 @@ mock.module("@expo/vector-icons/FontAwesome6", () => ({
 
 // Mock linkify-it - need to mock the Hyperlink component directly instead
 mock.module("./Hyperlink", () => ({
-  Hyperlink: ({children}: any) => React.createElement("View", {}, children),
+  Hyperlink: ({children}: MockComponentProps) => React.createElement("View", {}, children),
 }));
 
 // Mock react-native internal modules with Flow types
@@ -638,7 +684,7 @@ mock.module("./Hyperlink", () => ({
 
 // StyleSheet related
 mock.module("react-native/Libraries/StyleSheet/processColor", () => {
-  const processColor = (color: any) => {
+  const processColor = (color: MockColor) => {
     if (color === null || color === undefined) return null;
     if (typeof color === "number") return color;
     return 0xff000000;
@@ -647,7 +693,7 @@ mock.module("react-native/Libraries/StyleSheet/processColor", () => {
 });
 
 mock.module("react-native/Libraries/StyleSheet/normalizeColor", () => {
-  const normalizeColor = (color: any) => {
+  const normalizeColor = (color: MockColor) => {
     if (color === null || color === undefined) return null;
     if (typeof color === "number") return color;
     return 0xff000000;
@@ -656,24 +702,26 @@ mock.module("react-native/Libraries/StyleSheet/normalizeColor", () => {
 });
 
 mock.module("react-native/Libraries/StyleSheet/PlatformColorValueTypes", () => ({
-  DynamicColorIOS: (obj: any) => obj.light,
-  normalizeColorObject: (color: any) => color,
-  PlatformColor: (...args: any[]) => args[0],
-  processColorObject: (color: any) => color,
+  DynamicColorIOS: (obj: {light: unknown}) => obj.light,
+  normalizeColorObject: (color: MockColor) => color,
+  PlatformColor: (...args: unknown[]) => args[0],
+  processColorObject: (color: MockColor) => color,
 }));
 
 mock.module("react-native/Libraries/StyleSheet/StyleSheet", () => ({
   absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
   absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
-  create: (styles: any) => styles,
+  create: <T>(styles: T): T => styles,
   default: {
     absoluteFill: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
     absoluteFillObject: {bottom: 0, left: 0, position: "absolute", right: 0, top: 0},
-    create: (styles: any) => styles,
-    flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
+    create: <T>(styles: T): T => styles,
+    flatten: (style: MockStyleValue) =>
+      Array.isArray(style) ? Object.assign({}, ...style) : style || {},
     hairlineWidth: 1,
   },
-  flatten: (style: any) => (Array.isArray(style) ? Object.assign({}, ...style) : style || {}),
+  flatten: (style: MockStyleValue) =>
+    Array.isArray(style) ? Object.assign({}, ...style) : style || {},
   hairlineWidth: 1,
 }));
 
@@ -685,7 +733,7 @@ mock.module("react-native/Libraries/NativeComponent/NativeComponentRegistry", ()
 }));
 
 mock.module("react-native/Libraries/NativeComponent/ViewConfigIgnore", () => ({
-  ConditionallyIgnoredEventHandlers: (handlers: any) => handlers,
+  ConditionallyIgnoredEventHandlers: <T>(handlers: T): T => handlers,
   DifferentHeuristics: {},
   ignoredViewConfigPropNames: new Set(),
   isIgnoredViewConfigProp: mock(() => false),
@@ -693,14 +741,15 @@ mock.module("react-native/Libraries/NativeComponent/ViewConfigIgnore", () => ({
 
 // Mock @react-native-community/slider
 mock.module("@react-native-community/slider", () => ({
-  default: (props: any) => React.createElement("Slider", props),
-  Slider: (props: any) => React.createElement("Slider", props),
+  default: (props: MockComponentProps) => React.createElement("Slider", props),
+  Slider: (props: MockComponentProps) => React.createElement("Slider", props),
 }));
 
 // Mock react-native-swiper-flatlist
 mock.module("react-native-swiper-flatlist", () => ({
-  default: ({children, ...props}: any) => React.createElement("SwiperFlatList", props, children),
-  SwiperFlatList: ({children, ...props}: any) =>
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("SwiperFlatList", props, children),
+  SwiperFlatList: ({children, ...props}: MockComponentProps) =>
     React.createElement("SwiperFlatList", props, children),
 }));
 
@@ -746,7 +795,7 @@ mock.module("react-native/Libraries/Utilities/codegenNativeCommands", () => ({
 
 // Image related
 mock.module("react-native/Libraries/Image/resolveAssetSource", () => {
-  const resolveAssetSource = (source: any) => ({
+  const resolveAssetSource = (source: MockAssetSource) => ({
     height: source?.height || 0,
     scale: 1,
     uri: source?.uri || "",
@@ -768,13 +817,22 @@ mock.module("react-native/Libraries/Image/ImageSource", () => ({
 
 // Animated related
 mock.module("react-native/Libraries/Animated/Animated", () => {
-  const View = ({children, style}: any) => React.createElement("View", {style}, children);
-  const Text = ({children, style}: any) => React.createElement("Text", {style}, children);
-  const Image = (props: any) => React.createElement("Image", props);
-  const ScrollView = ({children}: any) => React.createElement("ScrollView", {}, children);
+  const View = ({children, style}: MockComponentProps) =>
+    React.createElement("View", {style}, children);
+  const Text = ({children, style}: MockComponentProps) =>
+    React.createElement("Text", {style}, children);
+  const Image = (props: MockComponentProps) => React.createElement("Image", props);
+  const ScrollView = ({children}: MockComponentProps) =>
+    React.createElement("ScrollView", {}, children);
   return {
-    createAnimatedComponent: (c: any) => c,
-    default: {createAnimatedComponent: (c: any) => c, Image, ScrollView, Text, View},
+    createAnimatedComponent: <T>(c: T): T => c,
+    default: {
+      createAnimatedComponent: <T>(c: T): T => c,
+      Image,
+      ScrollView,
+      Text,
+      View,
+    },
     Image,
     ScrollView,
     Text,
@@ -803,9 +861,13 @@ mock.module("react-native/Libraries/TurboModule/TurboModuleRegistry", () => ({
 
 // Utilities
 mock.module("react-native/Libraries/Utilities/Platform", () => ({
-  default: {OS: "ios", select: (obj: any) => obj.ios || obj.default, Version: "14.0"},
+  default: {
+    OS: "ios",
+    select: <T>(obj: {ios?: T; default?: T}): T | undefined => obj.ios ?? obj.default,
+    Version: "14.0",
+  },
   OS: "ios",
-  select: (obj: any) => obj.ios || obj.default,
+  select: <T>(obj: {ios?: T; default?: T}): T | undefined => obj.ios ?? obj.default,
   Version: "14.0",
 }));
 
@@ -837,60 +899,71 @@ mock.module("react-native/Libraries/Utilities/useColorScheme", () => ({
 
 // Components
 mock.module("react-native/Libraries/Components/View/View", () => ({
-  default: ({children, style, testID, ...props}: any) =>
+  default: ({children, style, testID, ...props}: MockComponentProps) =>
     React.createElement("View", {style, testID, ...props}, children),
 }));
 
 mock.module("react-native/Libraries/Text/Text", () => ({
-  default: ({children, style, ...props}: any) =>
+  default: ({children, style, ...props}: MockComponentProps) =>
     React.createElement("Text", {style, ...props}, children),
 }));
 
 mock.module("react-native/Libraries/Components/TextInput/TextInput", () => ({
-  default: (props: any) => React.createElement("TextInput", props),
+  default: (props: MockComponentProps) => React.createElement("TextInput", props),
 }));
 
 mock.module("react-native/Libraries/Image/Image", () => ({
-  default: (props: any) => React.createElement("Image", props),
+  default: (props: MockComponentProps) => React.createElement("Image", props),
 }));
 
 mock.module("react-native/Libraries/Components/ScrollView/ScrollView", () => ({
-  default: ({children, ...props}: any) => React.createElement("ScrollView", props, children),
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("ScrollView", props, children),
 }));
 
 mock.module("react-native/Libraries/Components/Pressable/Pressable", () => ({
-  default: ({children, ...props}: any) => React.createElement("Pressable", props, children),
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("Pressable", props, children),
 }));
 
 mock.module("react-native/Libraries/Components/Touchable/TouchableOpacity", () => ({
-  default: ({children, ...props}: any) => React.createElement("TouchableOpacity", props, children),
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("TouchableOpacity", props, children),
 }));
 
 mock.module("react-native/Libraries/Components/ActivityIndicator/ActivityIndicator", () => ({
-  default: (props: any) => React.createElement("ActivityIndicator", props),
+  default: (props: MockComponentProps) => React.createElement("ActivityIndicator", props),
 }));
 
 mock.module("react-native/Libraries/Modal/Modal", () => ({
-  default: ({children, ...props}: any) => React.createElement("Modal", props, children),
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("Modal", props, children),
 }));
 
 mock.module("react-native/Libraries/Components/Switch/Switch", () => ({
-  default: (props: any) => React.createElement("Switch", props),
+  default: (props: MockComponentProps) => React.createElement("Switch", props),
 }));
 
 mock.module("react-native/Libraries/Lists/FlatList", () => ({
-  default: ({data, renderItem, ...props}: any) =>
+  default: ({
+    data,
+    renderItem,
+    ...props
+  }: MockComponentProps & {
+    data?: unknown[];
+    renderItem?: (info: {item: unknown; index: number; separators: unknown}) => React.ReactNode;
+  }) =>
     React.createElement(
       "FlatList",
       props,
-      data?.map((item: any, index: number) =>
-        renderItem({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
+      data?.map((item: unknown, index: number) =>
+        renderItem?.({index, item, separators: {highlight: () => {}, unhighlight: () => {}}})
       )
     ),
 }));
 
 mock.module("react-native/Libraries/Lists/SectionList", () => ({
-  default: (props: any) => React.createElement("SectionList", props),
+  default: (props: MockComponentProps) => React.createElement("SectionList", props),
 }));
 
 // APIs
@@ -1028,10 +1101,10 @@ mock.module("react-native/Libraries/Animated/Easing", () => ({
     ease: (t: number) => t,
     elastic: () => (t: number) => t,
     exp: (t: number) => t,
-    in: (f: any) => f,
-    inOut: (f: any) => f,
+    in: (f: EasingFn) => f,
+    inOut: (f: EasingFn) => f,
     linear: (t: number) => t,
-    out: (f: any) => f,
+    out: (f: EasingFn) => f,
     poly: () => (t: number) => t,
     quad: (t: number) => t * t,
     sin: (t: number) => Math.sin(t),
@@ -1097,10 +1170,13 @@ mock.module("react-native/Libraries/LogBox/LogBox", () => ({
 }));
 
 // Mock @react-native-picker/picker
-const PickerComponent = ({children, ...props}: any) =>
+type PickerItem = (p: MockComponentProps) => React.ReactElement;
+const PickerComponent = ({children, ...props}: MockComponentProps) =>
   React.createElement("Picker", props, children);
-(PickerComponent as any).Item = ({children, ...props}: any) =>
-  React.createElement("Picker.Item", props, children);
+(PickerComponent as typeof PickerComponent & {Item: PickerItem}).Item = ({
+  children,
+  ...props
+}: MockComponentProps) => React.createElement("Picker.Item", props, children);
 mock.module("@react-native-picker/picker", () => ({
   Picker: PickerComponent,
   PickerIOS: PickerComponent,
@@ -1108,7 +1184,8 @@ mock.module("@react-native-picker/picker", () => ({
 
 // Mock react-native-picker-select
 mock.module("react-native-picker-select", () => ({
-  default: ({children, ...props}: any) => React.createElement("RNPickerSelect", props, children),
+  default: ({children, ...props}: MockComponentProps) =>
+    React.createElement("RNPickerSelect", props, children),
 }));
 
 // Mock @react-native-community/datetimepicker
@@ -1117,26 +1194,27 @@ mock.module("@react-native-community/datetimepicker", () => ({
     dismiss: mock(() => Promise.resolve()),
     open: mock(() => Promise.resolve({action: "dismissed"})),
   },
-  default: (props: any) => React.createElement("DateTimePicker", props),
+  default: (props: MockComponentProps) => React.createElement("DateTimePicker", props),
 }));
 
 // Mock react-native-calendars
 mock.module("react-native-calendars", () => ({
-  Agenda: (props: any) => React.createElement("Agenda", props),
-  AgendaList: (props: any) => React.createElement("AgendaList", props),
-  Calendar: (props: any) => React.createElement("Calendar", props),
-  CalendarList: (props: any) => React.createElement("CalendarList", props),
-  ExpandableCalendar: (props: any) => React.createElement("ExpandableCalendar", props),
+  Agenda: (props: MockComponentProps) => React.createElement("Agenda", props),
+  AgendaList: (props: MockComponentProps) => React.createElement("AgendaList", props),
+  Calendar: (props: MockComponentProps) => React.createElement("Calendar", props),
+  CalendarList: (props: MockComponentProps) => React.createElement("CalendarList", props),
+  ExpandableCalendar: (props: MockComponentProps) =>
+    React.createElement("ExpandableCalendar", props),
   LocaleConfig: {
     defaultLocale: "en",
     locales: {},
   },
-  WeekCalendar: (props: any) => React.createElement("WeekCalendar", props),
+  WeekCalendar: (props: MockComponentProps) => React.createElement("WeekCalendar", props),
 }));
 
 // Mock more react-native internal modules with Flow types
 mock.module("react-native/Libraries/Image/resolveAssetSource", () => ({
-  default: mock((source: any) => ({
+  default: mock((source: MockAssetSource) => ({
     height: source?.height || 0,
     scale: 1,
     uri: source?.uri || "",
@@ -1153,12 +1231,16 @@ mock.module("react-native/Libraries/Image/AssetSourceResolver", () => ({
 
 // Mock react-native-gesture-handler
 mock.module("react-native-gesture-handler", () => {
-  const GestureHandler = ({children}: any) => children;
+  const GestureHandler = ({children}: MockComponentProps) => children;
 
+  type ChainableGesture = {
+    [method: string]: (...args: unknown[]) => ChainableGesture;
+  };
   // Create a chainable gesture object that returns itself for all method calls
-  const createChainableGesture = (): any => {
-    const gesture: any = {};
+  const createChainableGesture = (): ChainableGesture => {
+    const gesture = {} as ChainableGesture;
     const chainableMethods = [
+      "onBegin",
       "onStart",
       "onEnd",
       "onUpdate",
@@ -1207,7 +1289,7 @@ mock.module("react-native-gesture-handler", () => {
   return {
     BaseButton: GestureHandler,
     BorderlessButton: GestureHandler,
-    createNativeWrapper: (comp: any) => comp,
+    createNativeWrapper: <T>(comp: T): T => comp,
     Directions: {
       DOWN: 8,
       LEFT: 2,
@@ -1218,21 +1300,21 @@ mock.module("react-native-gesture-handler", () => {
     FlatList: GestureHandler,
     FlingGestureHandler: GestureHandler,
     Gesture: {
-      Exclusive: (..._gestures: any[]) => createChainableGesture(),
+      Exclusive: (..._gestures: unknown[]) => createChainableGesture(),
       Fling: () => createChainableGesture(),
       LongPress: () => createChainableGesture(),
       Manual: () => createChainableGesture(),
       Native: () => createChainableGesture(),
       Pan: () => createChainableGesture(),
       Pinch: () => createChainableGesture(),
-      Race: (..._gestures: any[]) => createChainableGesture(),
+      Race: (..._gestures: unknown[]) => createChainableGesture(),
       Rotation: () => createChainableGesture(),
-      Simultaneous: (..._gestures: any[]) => createChainableGesture(),
+      Simultaneous: (..._gestures: unknown[]) => createChainableGesture(),
       Tap: () => createChainableGesture(),
     },
     GestureDetector: GestureHandler,
     GestureHandlerRootView: GestureHandler,
-    gestureHandlerRootHOC: (comp: any) => comp,
+    gestureHandlerRootHOC: <T>(comp: T): T => comp,
     LongPressGestureHandler: GestureHandler,
     NativeViewGestureHandler: GestureHandler,
     PanGestureHandler: GestureHandler,
@@ -1260,11 +1342,11 @@ mock.module("react-native-gesture-handler", () => {
 // Mock react-native-reanimated
 mock.module("react-native-reanimated", () => {
   const Animated = {
-    createAnimatedComponent: (comp: any) => comp,
-    Image: (props: any) => React.createElement("Image", props),
-    ScrollView: ({children}: any) => React.createElement("ScrollView", {}, children),
-    Text: ({children, style}: any) => React.createElement("Text", {style}, children),
-    View: ({children, style}: any) => React.createElement("View", {style}, children),
+    createAnimatedComponent: <T>(comp: T): T => comp,
+    Image: (props: MockComponentProps) => React.createElement("Image", props),
+    ScrollView: ({children}: MockComponentProps) => React.createElement("ScrollView", {}, children),
+    Text: ({children, style}: MockComponentProps) => React.createElement("Text", {style}, children),
+    View: ({children, style}: MockComponentProps) => React.createElement("View", {style}, children),
   };
   return {
     default: Animated,
@@ -1274,18 +1356,19 @@ mock.module("react-native-reanimated", () => {
       linear: (t: number) => t,
       quad: (t: number) => t,
     },
-    runOnJS: mock((fn: any) => fn),
-    runOnUI: mock((fn: any) => fn),
+    runOnJS: mock((fn: unknown) => fn),
+    runOnUI: mock((fn: unknown) => fn),
     useAnimatedGestureHandler: mock(() => ({})),
-    useAnimatedStyle: mock((fn: any) => fn()),
-    useDerivedValue: mock((fn: any) => ({value: fn()})),
-    useSharedValue: mock((val: any) => ({value: val})),
-    withDecay: mock((val: any) => val),
-    withDelay: mock((_delay: any, val: any) => val),
-    withRepeat: mock((val: any) => val),
-    withSequence: mock((...vals: any[]) => vals[0]),
-    withSpring: mock((val: any) => val),
-    withTiming: mock((val: any) => val),
+    useAnimatedReaction: mock(() => undefined),
+    useAnimatedStyle: mock((fn: () => unknown) => fn()),
+    useDerivedValue: mock((fn: () => unknown) => ({value: fn()})),
+    useSharedValue: mock((val: unknown) => ({value: val})),
+    withDecay: mock((val: unknown) => val),
+    withDelay: mock((_delay: unknown, val: unknown) => val),
+    withRepeat: mock((val: unknown) => val),
+    withSequence: mock((...vals: unknown[]) => vals[0]),
+    withSpring: mock((val: unknown) => val),
+    withTiming: mock((val: unknown) => val),
     ...Animated,
   };
 });
@@ -1294,7 +1377,7 @@ mock.module("react-native-reanimated", () => {
 mock.module("react-native-svg", () => {
   const createSvgComponent =
     (name: string) =>
-    ({children, ...props}: any) =>
+    ({children, ...props}: MockComponentProps) =>
       React.createElement(name, props, children);
 
   return {

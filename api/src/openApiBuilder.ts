@@ -75,7 +75,7 @@ import {
  * };
  * ```
  */
-export type OpenApiSchemaProperty = {
+export interface OpenApiSchemaProperty {
   /** The JSON Schema type (e.g., "string", "number", "boolean", "object", "array") */
   type: string;
   /** Human-readable description of the property */
@@ -90,7 +90,7 @@ export type OpenApiSchemaProperty = {
   additionalProperties?: OpenApiSchemaProperty | boolean;
   /** Whether this property is required in the parent object */
   required?: boolean;
-};
+}
 
 /**
  * Defines the top-level schema for request bodies and responses.
@@ -151,7 +151,7 @@ export type OpenApiSchema = {
  * };
  * ```
  */
-export type OpenApiParameter = {
+export interface OpenApiParameter {
   /** Location of the parameter */
   in: "query" | "path" | "header";
   /** Name of the parameter */
@@ -162,7 +162,7 @@ export type OpenApiParameter = {
   schema: OpenApiSchemaProperty;
   /** Human-readable description of the parameter */
   description?: string;
-};
+}
 
 /**
  * Defines a response in an OpenAPI operation.
@@ -188,7 +188,7 @@ export type OpenApiParameter = {
  * };
  * ```
  */
-export type OpenApiResponse = {
+export interface OpenApiResponse {
   /** Human-readable description of the response */
   description: string;
   /** Content definitions keyed by media type */
@@ -197,7 +197,7 @@ export type OpenApiResponse = {
       schema: OpenApiSchema;
     };
   };
-};
+}
 
 /**
  * Internal configuration object for the OpenAPI middleware builder.
@@ -283,7 +283,7 @@ export interface OpenApiBuildResult {
  */
 export class OpenApiMiddlewareBuilder {
   /** Router options containing OpenAPI configuration */
-  private options: Partial<ModelRouterOptions<any>>;
+  private options: Partial<ModelRouterOptions<unknown>>;
 
   /** Accumulated OpenAPI configuration from builder methods */
   private config: OpenApiConfig;
@@ -302,12 +302,23 @@ export class OpenApiMiddlewareBuilder {
    *
    * @param options - Router options containing the OpenAPI path configuration
    */
-  constructor(options: Partial<ModelRouterOptions<any>>) {
+  constructor(options: Partial<ModelRouterOptions<unknown>>) {
     this.options = options;
     this.config = {
       responses: {},
     };
     this.validationConfig = {};
+  }
+
+  private describeRoute(): string {
+    const parts: string[] = [];
+    if (this.config.summary) {
+      parts.push(`"${this.config.summary}"`);
+    }
+    if (this.config.tags?.length) {
+      parts.push(`tags=[${this.config.tags.join(", ")}]`);
+    }
+    return parts.length > 0 ? parts.join(" ") : "unnamed route";
   }
 
   /**
@@ -678,7 +689,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in buildWithSchemas for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     const globalConfig = getOpenApiValidatorConfig();
@@ -739,7 +752,9 @@ export class OpenApiMiddlewareBuilder {
         )
       );
     } else {
-      logger.debug("No options.openApi provided, skipping OpenApiMiddleware");
+      logger.debug(
+        `No options.openApi provided in build for ${this.describeRoute()}, skipping OpenApiMiddleware`
+      );
     }
 
     // Check if validation should be enabled
@@ -802,8 +817,8 @@ export class OpenApiMiddlewareBuilder {
  * router.get("/analytics/stats", statsMiddleware, getStatsHandler);
  * ```
  */
-export function createOpenApiBuilder(
-  options: Partial<ModelRouterOptions<any>>
-): OpenApiMiddlewareBuilder {
+export const createOpenApiBuilder = (
+  options: Partial<ModelRouterOptions<unknown>>
+): OpenApiMiddlewareBuilder => {
   return new OpenApiMiddlewareBuilder(options);
-}
+};

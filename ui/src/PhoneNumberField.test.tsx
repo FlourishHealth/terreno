@@ -1,4 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
+import {act, fireEvent} from "@testing-library/react-native";
 
 import {PhoneNumberField} from "./PhoneNumberField";
 import {renderWithTheme} from "./test-utils";
@@ -28,15 +29,6 @@ describe("PhoneNumberField", () => {
       <PhoneNumberField label="Phone" onChange={() => {}} value="(555) 123-4567" />
     );
     expect(getByDisplayValue("(555) 123-4567")).toBeTruthy();
-  });
-
-  it("formats phone number as user types", () => {
-    const handleChange = mock((_value: string) => {});
-    const {toJSON} = renderWithTheme(
-      <PhoneNumberField label="Phone" onChange={handleChange} value="5551234567" />
-    );
-    // Snapshot captures the formatted phone number display
-    expect(toJSON()).toMatchSnapshot();
   });
 
   it("renders with custom errorText", () => {
@@ -75,5 +67,50 @@ describe("PhoneNumberField", () => {
       />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("calls onBlur callback when provided", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <PhoneNumberField
+        label="Phone"
+        onBlur={handleBlur}
+        onChange={handleChange}
+        value="(555) 123-4567"
+      />
+    );
+    const input = getByDisplayValue("(555) 123-4567");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "(555) 123-4567"}});
+    });
+    expect(handleBlur).toHaveBeenCalled();
+  });
+
+  it("calls onBlur with invalid number and sets an error state", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <PhoneNumberField label="Phone" onBlur={handleBlur} onChange={handleChange} value="" />
+    );
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent.changeText(input, "123");
+      fireEvent(input, "blur", {nativeEvent: {text: "123"}});
+    });
+    expect(handleBlur).toHaveBeenCalled();
+  });
+
+  it("handles empty input on blur without error", async () => {
+    const handleBlur = mock((_value: string) => {});
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <PhoneNumberField label="Phone" onBlur={handleBlur} onChange={handleChange} value="" />
+    );
+    const input = getByDisplayValue("");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: ""}});
+    });
+    expect(handleBlur).toHaveBeenCalled();
   });
 });

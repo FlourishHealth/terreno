@@ -24,7 +24,7 @@ export type {
 /**
  * Storage adapter interface matching what Better Auth expects.
  */
-interface StorageAdapter {
+export interface StorageAdapter {
   setItem: (key: string, value: string) => void | Promise<void>;
   getItem: (key: string) => string | null | Promise<string | null>;
   removeItem?: (key: string) => void | Promise<void>;
@@ -33,9 +33,12 @@ interface StorageAdapter {
 /**
  * Async storage adapter for Better Auth that works on both web and native.
  * Uses SecureStore on native platforms and AsyncStorage on web.
+ *
+ * `isWeb` is exposed as a parameter so the adapter can be unit tested
+ * without having to re-load the module for each platform.
  */
-const createStorageAdapter = (): StorageAdapter => {
-  if (IsWeb) {
+export const createStorageAdapter = (isWeb: boolean = IsWeb): StorageAdapter => {
+  if (isWeb) {
     return {
       getItem: (key: string): Promise<string | null> => {
         if (typeof window !== "undefined") {
