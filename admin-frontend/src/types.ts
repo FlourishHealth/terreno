@@ -1,12 +1,32 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import type React from "react";
 
+/**
+ * Type alias for an RTK Query API instance with type-erased generic parameters.
+ *
+ * The admin panel dynamically injects endpoints into the consumer's RTK Query API at
+ * runtime via `api.injectEndpoints()`. The consumer's API is built from a generated
+ * OpenAPI SDK with thousands of distinct endpoint types — there is no shared base
+ * type we can constrain to, so the generic parameters are erased.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
+export type AdminApi = Api<any, any, any, any>;
+
+/**
+ * Generic field/document value used throughout the admin panel.
+ *
+ * Admin screens operate over arbitrary Mongoose documents whose field types are not
+ * known statically — they are discovered at runtime via the `/admin/config` endpoint.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Mongoose document field types are heterogeneous and discovered dynamically
+export type AdminFieldValue = any;
+
 export interface AdminFieldConfig {
   type: string;
   required: boolean;
   description?: string;
   enum?: string[];
-  default?: any;
+  default?: AdminFieldValue;
   ref?: string;
   searchable?: boolean;
   widget?: string;
@@ -78,7 +98,7 @@ export interface BackgroundTask {
 
 export interface AdminScreenProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
 }
 
 /**
@@ -86,7 +106,7 @@ export interface AdminScreenProps {
  * custom renderer is a drop-in replacement.
  */
 export interface RefFieldRendererProps {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   baseUrl: string;
   routePath: string;
   refModelName: string;
@@ -125,7 +145,7 @@ export interface DocumentListResponse {
 }
 
 export interface DocumentStorageBrowserProps {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   basePath: string;
   title?: string;
   allowDelete?: boolean;

@@ -196,6 +196,7 @@ export class TerrenoApp {
    * ```
    */
   configure(
+    // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
     model: import("mongoose").Model<any>,
     options?: Omit<ConfigurationAppOptions, "model">
   ): this {
@@ -255,8 +256,8 @@ export class TerrenoApp {
     app.use(express.json({limit: "50mb"}));
 
     // Auth routes (login/signup/refresh_token) before JWT middleware
-    addAuthRoutes(app, options.userModel as any, options.authOptions);
-    setupAuth(app as any, options.userModel as any);
+    addAuthRoutes(app, options.userModel, options.authOptions);
+    setupAuth(app, options.userModel);
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -269,7 +270,7 @@ export class TerrenoApp {
     });
 
     // Sentry scopes
-    app.use((req: any, _res: any, next: any) => {
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
       const transactionId = req.header("X-Transaction-ID");
       const sessionId = req.header("X-Session-ID");
       if (transactionId) {
@@ -279,7 +280,7 @@ export class TerrenoApp {
         Sentry.getCurrentScope().setTag("session_id", sessionId);
       }
       if (req.user?._id) {
-        Sentry.getCurrentScope().setTag("user", req.user._id);
+        Sentry.getCurrentScope().setTag("user", String(req.user._id));
       }
       next();
     });
@@ -303,8 +304,8 @@ export class TerrenoApp {
 
     // GitHub OAuth
     if (options.githubAuth) {
-      setupGitHubAuth(app, options.userModel as any, options.githubAuth);
-      addGitHubAuthRoutes(app, options.userModel as any, options.githubAuth, options.authOptions);
+      setupGitHubAuth(app, options.userModel, options.githubAuth);
+      addGitHubAuthRoutes(app, options.userModel, options.githubAuth, options.authOptions);
     }
 
     // Mount configuration app if configured
@@ -324,7 +325,7 @@ export class TerrenoApp {
 
     // /auth/me must be registered after plugins so that session middleware
     // (e.g. Better Auth) has a chance to populate req.user first.
-    addMeRoutes(app, options.userModel as any, options.authOptions);
+    addMeRoutes(app, options.userModel, options.authOptions);
 
     Sentry.setupExpressErrorHandler(app);
 
@@ -332,8 +333,14 @@ export class TerrenoApp {
     app.use(apiUnauthorizedMiddleware);
     app.use(apiErrorMiddleware);
 
-    app.use(function onError(err: any, _req: any, res: any, _next: any) {
-      logger.error(`Fallthrough error: ${err}${err?.stack ? `\n${err.stack}` : ""}}`);
+    app.use(function onError(
+      err: unknown,
+      _req: express.Request,
+      res: express.Response & {sentry?: string},
+      _next: express.NextFunction
+    ) {
+      const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
+      logger.error(`Fallthrough error: ${err}${stack}}`);
       Sentry.captureException(err);
       res.statusCode = 500;
       res.end(`${res.sentry}\n`);
@@ -372,7 +379,8 @@ export class TerrenoApp {
           logger.info(`Listening on port ${port}`);
         });
       } catch (error) {
-        logger.error(`Error trying to start HTTP server: ${error}\n${(error as any).stack}`);
+        const stack = error instanceof Error ? error.stack : String(error);
+        logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
         process.exit(1);
       }
     }

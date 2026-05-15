@@ -1,16 +1,30 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
+import type {AdminApi} from "./types";
+
+// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
+type EndpointBuilder = any;
+
+// The configuration document shape varies per consumer — different apps register different
+// configuration sections via @terreno/api's Configuration model.
+// biome-ignore lint/suspicious/noExplicitAny: configuration values are heterogeneous per consumer
+type ConfigBody = any;
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's hook return shape varies per endpoint
+type RtkHookResult = any;
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's mutation trigger has a complex generic shape
+type RtkMutationTrigger = any;
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's error union type erases at the hook boundary
+type RtkError = any;
 
 interface UseConfigurationApiOptions {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   basePath: string;
 }
 
 interface UseConfigurationApiResult {
-  useMetaQuery: () => {data: any; isLoading: boolean; error: any};
-  useRefreshSecretsMutation: () => [any, {isLoading: boolean}];
-  useUpdateMutation: () => [any, {isLoading: boolean}];
-  useValuesQuery: () => {data: any; isLoading: boolean; error: any};
+  useMetaQuery: () => {data: RtkHookResult; isLoading: boolean; error: RtkError};
+  useRefreshSecretsMutation: () => [RtkMutationTrigger, {isLoading: boolean}];
+  useUpdateMutation: () => [RtkMutationTrigger, {isLoading: boolean}];
+  useValuesQuery: () => {data: RtkHookResult; isLoading: boolean; error: RtkError};
 }
 
 /**
@@ -28,7 +42,7 @@ export const useConfigurationApi = ({
 }: UseConfigurationApiOptions): UseConfigurationApiResult => {
   const enhancedApi = useMemo(() => {
     return api.enhanceEndpoints({addTagTypes: ["configuration"]}).injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         configMeta: build.query({
           query: () => ({
             method: "GET",
@@ -43,7 +57,7 @@ export const useConfigurationApi = ({
         }),
         configUpdate: build.mutation({
           invalidatesTags: ["configuration"],
-          query: (body: any) => ({
+          query: (body: ConfigBody) => ({
             body,
             method: "PATCH",
             url: basePath,
@@ -61,10 +75,12 @@ export const useConfigurationApi = ({
     });
   }, [api, basePath]);
 
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
   return {
-    useMetaQuery: (enhancedApi as any).useConfigMetaQuery,
-    useRefreshSecretsMutation: (enhancedApi as any).useConfigRefreshSecretsMutation,
-    useUpdateMutation: (enhancedApi as any).useConfigUpdateMutation,
-    useValuesQuery: (enhancedApi as any).useConfigValuesQuery,
+    useMetaQuery: enhanced.useConfigMetaQuery,
+    useRefreshSecretsMutation: enhanced.useConfigRefreshSecretsMutation,
+    useUpdateMutation: enhanced.useConfigUpdateMutation,
+    useValuesQuery: enhanced.useConfigValuesQuery,
   };
 };

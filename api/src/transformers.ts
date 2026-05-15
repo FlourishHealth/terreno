@@ -15,11 +15,15 @@ export interface TerrenoTransformer<T> {
   serialize?: (obj: T, user?: User) => Partial<T> | undefined;
 }
 
-function getUserType(user?: User, obj?: any): "anon" | "auth" | "owner" | "admin" {
+function getUserType(
+  user?: User,
+  obj?: {ownerId?: unknown} | unknown
+): "anon" | "auth" | "owner" | "admin" {
   if (user?.admin) {
     return "admin";
   }
-  if (obj && user && String(obj?.ownerId) === String(user?.id)) {
+  const withOwner = obj as {ownerId?: unknown} | undefined;
+  if (withOwner && user && String(withOwner?.ownerId) === String(user?.id)) {
     return "owner";
   }
   if (user?.id) {
@@ -39,11 +43,12 @@ export function AdminOwnerTransformer<T>(options: {
   ownerWriteFields?: string[];
   adminWriteFields?: string[];
 }): TerrenoTransformer<T> {
-  function pickFields(obj: Partial<T>, fields: any[]): Partial<T> {
+  function pickFields(obj: Partial<T>, fields: string[]): Partial<T> {
     const newData: Partial<T> = {};
     for (const field of fields) {
-      if (obj[field] !== undefined) {
-        newData[field] = obj[field];
+      const key = field as keyof T;
+      if (obj[key] !== undefined) {
+        newData[key] = obj[key];
       }
     }
     return newData;
@@ -66,7 +71,7 @@ export function AdminOwnerTransformer<T>(options: {
     // TODO: Migrate AdminOwnerTransform to use pre-hooks.
     transform: (obj: Partial<T>, _method: "create" | "update", user?: User) => {
       const userType = getUserType(user, obj);
-      let allowedFields: any;
+      let allowedFields: string[];
       if (userType === "admin") {
         allowedFields = options.adminWriteFields ?? [];
       } else if (userType === "owner") {
@@ -113,11 +118,14 @@ export function transform<T>(
 export function serialize<T>(
   req: express.Request,
   options: ModelRouterOptions<T>,
-  data: (Document<any, any, any> & T) | (Document<any, any, any> & T)[]
+  data: (Document<unknown, unknown, unknown> & T) | (Document<unknown, unknown, unknown> & T)[]
 ) {
-  const serializeFn = (serializeData: Document<any, any, any> & T, serializeUser?: User) => {
+  const serializeFn = (
+    serializeData: Document<unknown, unknown, unknown> & T,
+    serializeUser?: User
+  ) => {
     const dataObject = serializeData.toObject() as T;
-    (dataObject as any).id = serializeData._id;
+    (dataObject as unknown as {id: unknown}).id = serializeData._id;
 
     // Search for any value that is a Map and transform it to a plain object.
     // Otherwise Express drops the contents.
@@ -150,7 +158,10 @@ export function serialize<T>(
  * using transformers.serializer if provided.
  */
 export async function defaultResponseHandler<T>(
-  doc: (Document<any, any, any> & T) | (Document<any, any, any> & T)[] | null,
+  doc:
+    | (Document<unknown, unknown, unknown> & T)
+    | (Document<unknown, unknown, unknown> & T)[]
+    | null,
   method: "list" | "create" | "read" | "update",
   request: express.Request,
   options: ModelRouterOptions<T>

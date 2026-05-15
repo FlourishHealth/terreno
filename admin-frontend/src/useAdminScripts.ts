@@ -1,11 +1,13 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
-import type {BackgroundTask} from "./types";
+import type {AdminApi, BackgroundTask} from "./types";
 
-export const useAdminScripts = (api: Api<any, any, any, any>, baseUrl: string) => {
+// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
+type EndpointBuilder = any;
+
+export const useAdminScripts = (api: AdminApi, baseUrl: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         adminCancelScriptTask: build.mutation({
           invalidatesTags: ["admin_scriptTask"],
           query: (taskId: string) => ({
@@ -31,16 +33,18 @@ export const useAdminScripts = (api: Api<any, any, any, any>, baseUrl: string) =
     });
   }, [api, baseUrl]);
 
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
   return {
-    useCancelScriptTaskMutation: (enhancedApi as any).useAdminCancelScriptTaskMutation as () => [
+    useCancelScriptTaskMutation: enhanced.useAdminCancelScriptTaskMutation as () => [
       (taskId: string) => {unwrap: () => Promise<{task: BackgroundTask; message: string}>},
       {isLoading: boolean},
     ],
-    useGetScriptTaskQuery: (enhancedApi as any).useAdminGetScriptTaskQuery as (
+    useGetScriptTaskQuery: enhanced.useAdminGetScriptTaskQuery as (
       taskId: string,
       options?: {skip?: boolean; pollingInterval?: number}
     ) => {data: {task: BackgroundTask} | undefined; isLoading: boolean; error: unknown},
-    useRunScriptMutation: (enhancedApi as any).useAdminRunScriptMutation as () => [
+    useRunScriptMutation: enhanced.useAdminRunScriptMutation as () => [
       (args: {name: string; wetRun: boolean}) => {unwrap: () => Promise<{taskId: string}>},
       {isLoading: boolean},
     ],

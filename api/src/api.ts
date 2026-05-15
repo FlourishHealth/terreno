@@ -41,7 +41,24 @@ export interface JSONObject {
 }
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
 
+// Helper to extract a human-readable message from an unknown error.
+const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
+// Helper to extract a stack trace string from an unknown error.
+const errorStack = (error: unknown): string => {
+  if (error instanceof Error && error.stack) {
+    return error.stack;
+  }
+  return String(error);
+};
+
 export const addPopulateToQuery = (
+  // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types
   builtQuery: mongoose.Query<any[], any, Record<string, never>, any>,
   populatePaths?: PopulatePath[]
 ) => {
@@ -262,16 +279,16 @@ export interface ModelRouterOptions<T> {
    * @deprecated: Use responseHandler instead.
    */
   postList?: (
-    value: (Document<any, any, any> & T)[],
+    value: (Document<unknown, unknown, unknown> & T)[],
     request: express.Request
-  ) => Promise<(Document<any, any, any> & T)[]>;
+  ) => Promise<(Document<unknown, unknown, unknown> & T)[]>;
   /**
    * Serialize an object or list of objects before returning to the client.
    * This is a good spot to remove sensitive information from the object, such as passwords or API
    * keys. Throw an APIError to return a 400 with an error message.
    */
   responseHandler?: (
-    value: (Document<any, any, any> & T) | (Document<any, any, any> & T)[],
+    value: (Document<unknown, unknown, unknown> & T) | (Document<unknown, unknown, unknown> & T)[],
     method: "list" | "create" | "read" | "update" | "delete",
     request: express.Request,
     options: ModelRouterOptions<T>
@@ -316,14 +333,16 @@ export interface ModelRouterOptions<T> {
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
 const checkQueryParamAllowed = (
   queryParam: string,
-  queryParamValue: any,
+  queryParamValue: unknown,
   queryFields: string[] = []
 ) => {
+  // Cast for iteration through complex query values
+  const complexValue = queryParamValue as Array<Record<string, unknown>>;
   // Check the values of each of the complex query params. We don't support recursive queries here,
   // just one level of and/or
   if (COMPLEX_QUERY_PARAMS.includes(queryParam)) {
     // Complex query of the form `$and: [{key1: value1}, {key2: value2}]`
-    for (const subQuery of queryParamValue) {
+    for (const subQuery of complexValue) {
       for (const subKey of Object.keys(subQuery)) {
         checkQueryParamAllowed(subKey, subQuery[subKey], queryFields);
       }
@@ -360,8 +379,8 @@ const checkQueryParamAllowed = (
 // Helper to determine if validation should be enabled for a specific operation.
 // When options.validation is not set, returns true — the middleware's own
 // isConfigured check will decide whether to actually validate.
-const shouldValidate = (
-  options: ModelRouterOptions<any>,
+const shouldValidate = <T>(
+  options: ModelRouterOptions<T>,
   operation: "create" | "update" | "query"
 ): boolean => {
   // Check route-specific validation option first
@@ -446,7 +465,7 @@ export interface ModelRouterRegistration {
   /** The Express router containing CRUD endpoints */
   router: express.Router;
   /** @internal Rebuilds the router with the openApi instance injected into options */
-  _buildWithOpenApi: (openApi: any) => express.Router;
+  _buildWithOpenApi: (openApi: OpenApiMiddleware) => express.Router;
 }
 
 /**
@@ -492,7 +511,8 @@ export function modelRouter<T>(
   if (path !== undefined) {
     return {
       __type: "modelRouter",
-      _buildWithOpenApi: (openApi: any) => _buildModelRouter(model, {...options, openApi}),
+      _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
+        _buildModelRouter(model, {...options, openApi}),
       path,
       router,
     };
@@ -527,18 +547,18 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       let body: Partial<T> | (Partial<T> | undefined)[] | null | undefined;
       try {
         body = transform<T>(options, req.body, "create", req.user);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 400,
-          title: error.message,
+          title: errorMessage(error),
         });
       }
       if (options.preCreate) {
         try {
           body = await options.preCreate(body, req);
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (isAPIError(error)) {
             throw error;
           }
@@ -546,7 +566,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `preCreate hook error: ${error.message}`,
+            title: `preCreate hook error: ${errorMessage(error)}`,
           });
         }
         if (body === undefined) {
@@ -571,29 +591,30 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           title: "Invalid request body",
         });
       }
-      let data;
+      let data: Document<unknown, unknown, unknown> & T;
       try {
-        data = await model.create(body as any);
-      } catch (error: any) {
+        data = (await model.create(body as T)) as Document<unknown, unknown, unknown> & T;
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 400,
-          title: error.message,
+          title: errorMessage(error),
         });
       }
 
       if (options.populatePaths) {
         try {
+          // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
           let populateQuery: any = model.findById(data._id);
           populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
           data = await populateQuery.exec();
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `Populate error: ${error.message}`,
+            title: `Populate error: ${errorMessage(error)}`,
           });
         }
       }
@@ -601,23 +622,23 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postCreate) {
         try {
           await options.postCreate(data, req);
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `postCreate hook error: ${error.message}`,
+            title: `postCreate hook error: ${errorMessage(error)}`,
           });
         }
       }
       try {
         const serialized = await responseHandler(data, "create", req, options);
         return res.status(201).json({data: serialized});
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `responseHandler error: ${error.message}`,
+          title: `responseHandler error: ${errorMessage(error)}`,
         });
       }
     })
@@ -633,7 +654,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       queryValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let query: any = {};
+      let query: Record<string, unknown> = {};
       for (const queryParam of Object.keys(options.defaultQueryParams ?? [])) {
         query[queryParam] = options.defaultQueryParams?.[queryParam];
       }
@@ -665,10 +686,10 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       // Check if any of the keys in the query are not allowed by options.queryFilter
       if (options.queryFilter) {
-        let queryFilter;
+        let queryFilter: Record<string, unknown> | null | undefined;
         try {
           queryFilter = await options.queryFilter(req.user, query);
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
@@ -717,30 +738,30 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
       const populatedQuery = addPopulateToQuery(builtQuery, options.populatePaths);
 
-      let data: (Document<any, any, any> & T)[];
+      let data: (Document<unknown, unknown, unknown> & T)[];
       try {
-        data = await populatedQuery.exec();
-      } catch (error: any) {
+        data = (await populatedQuery.exec()) as (Document<unknown, unknown, unknown> & T)[];
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `List error: ${error.stack}`,
+          title: `List error: ${errorStack(error)}`,
         });
       }
 
-      let serialized;
+      let serialized: JSONValue | Partial<T> | (Partial<T> | undefined)[] | undefined;
 
       try {
         serialized = await responseHandler(data, "list", req, options);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `responseHandler error: ${error.message}`,
+          title: `responseHandler error: ${errorMessage(error)}`,
         });
       }
 
-      let more;
+      let more: boolean | undefined;
       try {
         if (serialized && Array.isArray(serialized)) {
           more = serialized.length === limit + 1 && serialized.length > 0;
@@ -767,11 +788,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           });
         }
         return res.json({data: serialized});
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `Serialization error: ${error.message}`,
+          title: `Serialization error: ${errorMessage(error)}`,
         });
       }
     })
@@ -785,16 +806,16 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const data: mongoose.Document & T = (req as any).obj;
+      const data: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
 
       try {
         const serialized = await responseHandler(data, "read", req, options);
         return res.json({data: serialized});
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `responseHandler error: ${error.message}`,
+          title: `responseHandler error: ${errorMessage(error)}`,
         });
       }
     })
@@ -820,18 +841,18 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       updateValidation,
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      let doc: mongoose.Document & T = (req as any).obj;
+      let doc: mongoose.Document & T = (req as Request & {obj: mongoose.Document & T}).obj;
 
-      let body;
+      let body: Partial<T> | T | null | undefined;
 
       try {
-        body = transform<T>(options, req.body, "update", req.user);
-      } catch (error: any) {
+        body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 403,
-          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${error.message}`,
+          title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${errorMessage(error)}`,
         });
       }
 
@@ -842,7 +863,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           // two preUpdate branches downstream, one looking at the dot notation style and
           // one looking at normal object style.
           body = await options.preUpdate(body, req);
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (isAPIError(error)) {
             throw error;
           }
@@ -850,7 +871,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${error.message}`,
+            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
           });
         }
         if (body === undefined) {
@@ -877,16 +898,17 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         doc.set(body);
         await doc.save();
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 400,
-          title: `preUpdate hook save error on ${req.params.id}: ${error.message}`,
+          title: `preUpdate hook save error on ${req.params.id}: ${errorMessage(error)}`,
         });
       }
 
       if (options.populatePaths) {
+        // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type varies based on populatePaths
         let populateQuery: any = model.findById(doc._id);
         populateQuery = addPopulateToQuery(populateQuery, options.populatePaths);
         doc = await populateQuery.exec();
@@ -895,12 +917,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postUpdate) {
         try {
           await options.postUpdate(doc, body, req, prevDoc);
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `postUpdate hook error on ${req.params.id}: ${error.message}`,
+            title: `postUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
           });
         }
       }
@@ -908,11 +930,11 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         const serialized = await responseHandler(doc, "update", req, options);
         return res.json({data: serialized});
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
-          title: `responseHandler error: ${error.message}`,
+          title: `responseHandler error: ${errorMessage(error)}`,
         });
       }
     })
@@ -926,13 +948,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       permissionMiddleware(model, options),
     ],
     asyncHandler(async (req: Request, res: Response) => {
-      const doc: mongoose.Document & T & {deleted?: boolean} = (req as any).obj;
+      const doc: mongoose.Document & T & {deleted?: boolean} = (
+        req as Request & {obj: mongoose.Document & T & {deleted?: boolean}}
+      ).obj;
 
       if (options.preDelete) {
-        let body;
+        let body: T | null | undefined;
         try {
           body = await options.preDelete(doc, req);
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (isAPIError(error)) {
             throw error;
           }
@@ -940,7 +964,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 403,
-            title: `preDelete hook error on ${req.params.id}: ${error.message}`,
+            title: `preDelete hook error on ${req.params.id}: ${errorMessage(error)}`,
           });
         }
         if (body === undefined) {
@@ -970,12 +994,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         // For models without the isDeleted plugin
         try {
           await doc.deleteOne();
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: error.message,
+            title: errorMessage(error),
           });
         }
       }
@@ -983,12 +1007,12 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       if (options.postDelete) {
         try {
           await options.postDelete(req, doc);
-        } catch (error: any) {
+        } catch (error: unknown) {
           throw new APIError({
             disableExternalErrorTracking: getDisableExternalErrorTracking(error),
             error,
             status: 400,
-            title: `postDelete hook error: ${error.message}`,
+            title: `postDelete hook error: ${errorMessage(error)}`,
           });
         }
       }
@@ -1042,16 +1066,16 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       });
     }
 
-    const array = [...doc[field]];
+    const array = [...(doc as unknown as Record<string, unknown[]>)[field]];
     if (operation === "POST") {
       array.push(req.body[field]);
     } else if (operation === "PATCH" || operation === "DELETE") {
       // Check for subschema vs String array:
-      let index;
+      let index: number;
       if (isValidObjectId(itemId)) {
-        index = array.findIndex((x: any) => x.id === itemId);
+        index = array.findIndex((x) => (x as {id?: string})?.id === itemId);
       } else {
-        index = array.findIndex((x: string) => x === itemId);
+        index = array.indexOf(itemId);
       }
       if (index === -1) {
         throw new APIError({
@@ -1062,7 +1086,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       // For PATCHing an item by ID, we need to merge the objects so we don't override the _id or
       // other parts of the subdocument.
       if (operation === "PATCH" && isValidObjectId(itemId)) {
-        Object.assign(array[index], req.body[field]);
+        Object.assign(array[index] as object, req.body[field]);
       } else if (operation === "PATCH") {
         // For PATCHing a string array, we can replace the whole object.
         array[index] = req.body[field];
@@ -1079,24 +1103,24 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
 
     try {
       body = transform<T>(options, body, "update", req.user) as Partial<T>;
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new APIError({
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
         error,
         status: 403,
-        title: error.message,
+        title: errorMessage(error),
       });
     }
 
     if (options.preUpdate) {
       try {
         body = await options.preUpdate(body, req);
-      } catch (error: any) {
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 400,
-          title: `preUpdate hook error on ${req.params.id}: ${error.message}`,
+          title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
         });
       }
       if (body === undefined) {
@@ -1120,28 +1144,35 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     try {
       Object.assign(doc, body);
       await doc.save();
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new APIError({
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
         error,
         status: 400,
-        title: `PATCH Pre Update error on ${req.params.id}: ${error.message}`,
+        title: `PATCH Pre Update error on ${req.params.id}: ${errorMessage(error)}`,
       });
     }
 
     if (options.postUpdate) {
       try {
-        await options.postUpdate(doc as any, body, req, prevDoc as any);
-      } catch (error: any) {
+        await options.postUpdate(
+          doc as unknown as Document<unknown, unknown, unknown> & T,
+          body,
+          req,
+          prevDoc as unknown as T
+        );
+      } catch (error: unknown) {
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
           status: 400,
-          title: `PATCH Post Update error on ${req.params.id}: ${error.message}`,
+          title: `PATCH Post Update error on ${req.params.id}: ${errorMessage(error)}`,
         });
       }
     }
-    return res.json({data: serialize<T>(req, options, doc as any)});
+    return res.json({
+      data: serialize<T>(req, options, doc as unknown as Document<unknown, unknown, unknown> & T),
+    });
   }
 
   async function arrayPost(req: Request, res: Response) {
@@ -1156,7 +1187,7 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     return arrayOperation(req, res, "DELETE");
   }
   // Set up routes for managing array fields. Check if there any array fields to add this for.
-  if (Object.values(model.schema.paths).find((config: any) => config.instance === "Array")) {
+  if (Object.values(model.schema.paths).find((config) => config.instance === "Array")) {
     router.post(
       "/:id/:field",
       authenticateMiddleware(options.allowAnonymous),
@@ -1234,7 +1265,10 @@ export interface AsyncHandlerOptions {
  * }));
  * ```
  */
-export const asyncHandler = (fn: any, options?: AsyncHandlerOptions) => {
+// biome-ignore lint/suspicious/noExplicitAny: handlers may have narrower Request<Params> generics — Express's overload signature uses any for the same reason
+type AsyncHandlerFn = (req: any, res: Response, next: NextFunction) => Promise<unknown> | unknown;
+
+export const asyncHandler = (fn: AsyncHandlerFn, options?: AsyncHandlerOptions) => {
   // If no validation options, return simple handler
   if (!options?.bodySchema && !options?.querySchema) {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -1274,13 +1308,13 @@ export const asyncHandler = (fn: any, options?: AsyncHandlerOptions) => {
       }
 
       try {
-        validators[index](req, res, (err?: any) => {
+        validators[index](req, res, ((err?: unknown) => {
           if (err) {
             next(err);
             return;
           }
           runValidators(index + 1);
-        });
+        }) as NextFunction);
       } catch (err) {
         next(err);
       }

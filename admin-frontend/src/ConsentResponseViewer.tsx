@@ -3,15 +3,16 @@ import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Image} from "react-native";
 import {generateConsentPdf} from "./generateConsentPdf";
+import type {AdminApi} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentResponseViewerProps {
   baseUrl: string;
-  api: any;
+  api: AdminApi;
   id: string;
 }
 
-const formatDate = (value: any): string => {
+const formatDate = (value: unknown): string => {
   if (!value) {
     return "";
   }

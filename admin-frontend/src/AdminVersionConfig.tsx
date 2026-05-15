@@ -1,7 +1,10 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import type {AdminApi} from "./types";
+
+// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
+type EndpointBuilder = any;
 
 interface VersionConfigData {
   mobileRequiredVersion?: number;
@@ -14,7 +17,7 @@ interface VersionConfigData {
 }
 
 interface AdminVersionConfigProps {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   baseUrl: string;
 }
 
@@ -27,7 +30,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
 
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [VERSION_CONFIG_ENDPOINT]: build.query({
           query: () => ({
             method: "GET",
@@ -46,8 +49,10 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
     });
   }, [api, baseUrl]);
 
-  const useVersionConfigQuery = (enhancedApi as any).useAdminVersionConfigQuery;
-  const [updateConfig] = (enhancedApi as any).useUpdateVersionConfigMutation();
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
+  const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
+  const [updateConfig] = enhanced.useUpdateVersionConfigMutation();
 
   const {data, isLoading: isFetching, error: fetchError} = useVersionConfigQuery();
 

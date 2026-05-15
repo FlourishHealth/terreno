@@ -47,13 +47,16 @@ const {OS} = Platform;
 // Leaving this as a class component because it was easier to handle the `parse(this)` in
 // `render()`
 class HyperlinkComponent extends React.Component<HyperlinkProps> {
+  // biome-ignore lint/suspicious/noExplicitAny: forked react-native-hyperlink internals operate on arbitrary React element trees with untyped children
   isTextNested = (component: any) => {
     if (!React.isValidElement(component)) throw new Error("Invalid component");
+    // biome-ignore lint/suspicious/noExplicitAny: destructure default for arbitrary React element type field
     const {type: {displayName} = {} as any} = component;
     if (displayName !== "Text") throw new Error("Not a Text component");
-    return typeof (component.props as any).children !== "string";
+    return typeof (component.props as {children?: unknown}).children !== "string";
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: forked react-native-hyperlink internals operate on arbitrary React element trees with untyped children
   linkify = (component: any) => {
     const linkifyIt = this.props.linkify || linkifyLib;
 
@@ -66,6 +69,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     const {key: _key, ref: _ref, ...componentProps} = component.props;
 
     try {
+      // biome-ignore lint/suspicious/noExplicitAny: linkify-it library lacks TypeScript types for its match results
       linkifyIt.match(component.props.children).forEach(({index, lastIndex, text, url}: any) => {
         const nonLinkedText = component.props.children.substring(_lastIndex, index);
         nonLinkedText && elements.push(nonLinkedText);
@@ -76,17 +80,20 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
               ? this.props.linkText(url)
               : this.props.linkText;
 
-        const clickHandlerProps: any = {};
+        const clickHandlerProps: {onPress?: () => void; onLongPress?: () => void} = {};
         if (OS !== "web") {
           if (this.props.onLongPress) {
-            clickHandlerProps.onLongPress = () => (this.props as any).onLongPress(url, text);
+            clickHandlerProps.onLongPress = () => this.props.onLongPress?.(url, text);
           }
         }
         if (this.props.onPress) {
-          clickHandlerProps.onPress = () => (this.props as any).onPress(url, text);
+          // The HyperlinkProps onPress signature is (url) => void per Common.ts, but this forked
+          // component invokes it with both url and text. Cast to avoid arity mismatch.
+          const onPressFn = this.props.onPress as (url: string, text: string) => void;
+          clickHandlerProps.onPress = () => onPressFn(url, text);
         }
 
-        let injected: any = {};
+        let injected: Record<string, unknown> = {};
         if (this.props.injectViewProps) {
           injected = this.props.injectViewProps(url);
         }
@@ -112,7 +119,9 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
     }
   };
 
+  // biome-ignore lint/suspicious/noExplicitAny: forked react-native-hyperlink internals operate on arbitrary React element trees with untyped children
   parse = (component: any): React.ReactElement => {
+    // biome-ignore lint/suspicious/noExplicitAny: destructure default for arbitrary React element props
     const {props: {children} = {} as any} = component || {};
     if (!children) return component;
 
@@ -124,6 +133,7 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
       component,
       componentProps,
       React.Children.map(children, (child) => {
+        // biome-ignore lint/suspicious/noExplicitAny: destructure default for arbitrary React child node type field
         const {type: {displayName} = {} as any} = child || {};
         if (typeof child === "string" && linkifyIt.pretest(child))
           return this.linkify(

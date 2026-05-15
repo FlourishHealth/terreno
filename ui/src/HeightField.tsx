@@ -154,6 +154,7 @@ export const HeightField: FC<HeightFieldProps> = ({
   max,
 }) => {
   const {theme} = useTheme();
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const actionSheetRef: React.RefObject<any> = useRef(null);
   const isMobileOrNative = isMobileDevice() || isNative();
 

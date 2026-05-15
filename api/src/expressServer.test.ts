@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 import supertest from "supertest";
@@ -653,7 +654,6 @@ describe("expressServer", () => {
     const timerIds: ReturnType<typeof setTimeout>[] = [];
 
     beforeEach(() => {
-      // biome-ignore lint/suspicious/noExplicitAny: Mock requires type override for process.exit.
       process.exit = mock(() => {
         throw new Error("process.exit called");
       }) as unknown as typeof process.exit;
@@ -750,7 +750,6 @@ describe("expressServer", () => {
         setupServer({
           addRoutes,
           skipListen: true,
-          // biome-ignore lint/suspicious/noExplicitAny: Test mock for UserModel.
           userModel: UserModel as any,
         })
       ).toThrow("route initialization failed");

@@ -81,7 +81,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   ...fieldProps
 }) => {
   const [editing, setEditing] = useState(false);
-  const [initialValue, setInitialValue] = useState();
+  const [initialValue, setInitialValue] = useState<unknown>();
   const helperText: string | undefined = propsHelperText;
   // setInitialValue is called after initial render to handle the case where the value is updated
   useEffect(() => {
@@ -90,6 +90,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
   }, [value]);
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
+  // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
   const inputRef = useRef<any>(null);
 
   // bring the bring the input into focus when editing from within the component,
@@ -116,13 +117,16 @@ export const TapToEdit: FC<TapToEditProps> = ({
             helperText={helperText}
             inputRef={
               ["text", "textarea", "url", "email", "number"].includes(fieldProps?.type)
-                ? (ref: any) => (inputRef.current = ref)
+                ? (ref: unknown) => {
+                    inputRef.current = ref;
+                  }
                 : undefined
             }
             onChange={setValue ?? (() => {})}
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}
+            // biome-ignore lint/suspicious/noExplicitAny: fieldProps is a discriminated union (FieldProps) but the spread loses narrowing; type-checking each variant individually is impractical here
             {...(fieldProps as any)}
           />
           {editing && !isEditing && (
@@ -142,7 +146,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   onClick={(): void => {
                     if (setValue) {
                       setValue("");
-                      setInitialValue("" as any);
+                      setInitialValue("");
                     }
                     if (onSave) {
                       onSave("");

@@ -145,8 +145,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 // };
 
 const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
-  const convertControls = (controls: any): {[key: string]: any} => {
-    const result: {[key: string]: any} = {};
+  const convertControls = (
+    controls: Record<string, {defaultValue?: unknown}>
+  ): Record<string, unknown> => {
+    const result: Record<string, unknown> = {};
     Object.keys(controls).forEach((key) => {
       // TODO: use type to figure out a better default (e.g. true for boolean, etc)
       result[key] = controls[key].defaultValue ?? "";
@@ -189,11 +191,11 @@ const ComponentDemo = ({config}: {config: DemoConfiguration}) => {
             <Field
               key={prop}
               title={config.demoOptions?.controls?.[prop]?.title ?? startCase(prop)}
-              {...(config.demoOptions?.controls?.[prop] as any)}
-              onChange={(value: any) => {
+              {...(config.demoOptions?.controls?.[prop] as Record<string, unknown>)}
+              onChange={(value: unknown) => {
                 setPropValues({...cloneDeep(propValues), [prop]: value});
               }}
-              value={propValues[prop]}
+              value={propValues[prop] as string}
             />
           ))}
         </Box>
