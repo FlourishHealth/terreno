@@ -1,9 +1,11 @@
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {AppState, Linking} from "react-native";
+import ReactNative from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
+
+const {AppState, Linking} = ReactNative;
 
 interface UseUpgradeCheckOptions {
   /**
