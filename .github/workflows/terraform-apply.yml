@@ -79,7 +79,7 @@ jobs:
             --project="${{ vars.GCP_TF_PROJECT_ID_PROD }}" \
             --location="$LOCATION" \
             --deployment="projects/${{ vars.GCP_TF_PROJECT_ID_PROD }}/locations/${LOCATION}/deployments/${TF_DEPLOYMENT}" \
-            --service-account="${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --service-account="projects/${{ vars.GCP_TF_PROJECT_ID_PROD }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
             --local-source="${TF_SOURCE_DIR}" \
             --quiet
 
@@ -139,7 +139,7 @@ jobs:
           gcloud infra-manager deployments apply "${TF_DEPLOYMENT}" \
             --project="${{ vars.GCP_TF_PROJECT_ID_PROD }}" \
             --location="$LOCATION" \
-            --service-account="${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+            --service-account="projects/${{ vars.GCP_TF_PROJECT_ID_PROD }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
             --local-source="${TF_SOURCE_DIR}" \
             --quiet
 
