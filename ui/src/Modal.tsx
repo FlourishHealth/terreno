@@ -12,7 +12,7 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler";
 import {runOnJS} from "react-native-reanimated";
 
 import {Button} from "./Button";
-import type {ModalProps} from "./Common";
+import type {ModalProps, TerrenoTheme} from "./Common";
 import {Heading} from "./Heading";
 import {Icon} from "./Icon";
 import {isMobileDevice} from "./MediaQuery";
@@ -45,7 +45,7 @@ const ModalContent: FC<{
   secondaryButtonOnClick?: ModalProps["secondaryButtonOnClick"];
   onDismiss: ModalProps["onDismiss"];
   sizePx: DimensionValue;
-  theme: any;
+  theme: TerrenoTheme;
   isMobile: boolean;
 }> = ({
   children,

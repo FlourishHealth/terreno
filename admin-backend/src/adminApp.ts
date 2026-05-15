@@ -484,7 +484,8 @@ export class AdminApp {
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
-          if (!(req as any).user?.admin) {
+          const user = req.user as {_id: unknown; admin?: boolean} | undefined;
+          if (!user?.admin) {
             throw new APIError({
               disableExternalErrorTracking: true,
               status: 403,

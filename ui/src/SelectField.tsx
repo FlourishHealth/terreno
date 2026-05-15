@@ -26,10 +26,10 @@ export const SelectField: FC<SelectFieldProps> = ({
         disabled={disabled}
         items={options}
         onValueChange={(v) => {
-          if (v === undefined || v === "") {
+          if (v === undefined || v === null || v === "") {
             onChange("");
           } else {
-            onChange(v);
+            onChange(String(v));
           }
         }}
         placeholder={!requireValue ? clearOption : {}}

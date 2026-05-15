@@ -9,7 +9,7 @@ import {AdminScriptRunModal} from "./AdminScriptRunModal";
 mock.module("@terreno/ui", () => ({
   ...terrenoUi,
   Modal: ({children, visible}: {children?: React.ReactNode; visible?: boolean}) =>
-    visible ? <>{children}</> : null,
+    visible ? children : null,
 }));
 
 const mockRunScript = mock((_args: {name: string; wetRun: boolean}) => ({
