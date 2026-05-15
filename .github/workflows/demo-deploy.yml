@@ -60,7 +60,7 @@ jobs:
         run: bash demo/scripts/fix-netlify-assets.sh demo/dist
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: demo-dist
           path: demo/dist

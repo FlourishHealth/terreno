@@ -530,9 +530,26 @@ mock.module("react-native-signature-canvas", () => ({
   Signature: mock(() => null),
 }));
 
-// Mock react-signature-canvas (web version)
-mock.module("react-signature-canvas", () => ({
-  default: mock(() => null),
+// Mock react-signature-canvas (web). The real module references `window` at
+// import time, which doesn't exist under bun test.
+mock.module("react-signature-canvas", () => {
+  const SignatureCanvasMock = React.forwardRef(
+    ({backgroundColor}: {backgroundColor?: string}, _ref) =>
+      React.createElement("View", {style: {backgroundColor}, testID: "signature-canvas"})
+  );
+  return {__esModule: true, default: SignatureCanvasMock};
+});
+
+// Mock react-native-portalize. The real `Host` wraps children in an extra View
+// whose presence makes snapshots brittle, and individual tests already mock
+// this to render inline; hoisting the mock to setup keeps test ordering from
+// leaking different shapes into other test files. Shape matches the per-file
+// mock used by Tooltip.test.tsx so the two don't disagree.
+mock.module("react-native-portalize", () => ({
+  Host: ({children}: MockComponentProps) =>
+    React.createElement("View", {style: undefined, testID: "portal-host"}, children),
+  Portal: ({children}: MockComponentProps) =>
+    React.createElement("View", {style: undefined, testID: "portal"}, children),
 }));
 
 // Mock IconButton component
