@@ -19,8 +19,9 @@ const DEFAULT_IGNORED_COLLECTIONS = ["socketio", "sessions"];
 
 /**
  * Map MongoDB change stream operation types to our method names.
+ * Exported for testing.
  */
-const mapOperationType = (
+export const mapOperationType = (
   operationType: string,
   change: ChangeStreamDocument
 ): "create" | "update" | "delete" | null => {
@@ -51,8 +52,13 @@ const getCollectionTag = (routePath: string): string => routePath.replace(/^\//,
 
 /**
  * Determine which Socket.io rooms to emit to based on the room strategy.
+ * Exported for testing.
  */
-const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): string[] => {
+export const resolveRooms = (
+  entry: RealtimeRegistryEntry,
+  doc: any,
+  method: string
+): string[] => {
   const {roomStrategy} = entry.config;
   // Use the collection tag (e.g. "todos") for model rooms, matching what the frontend subscribes to
   const collectionTag = getCollectionTag(entry.routePath);
@@ -138,8 +144,9 @@ export const serializeDoc = async (
  * Document rooms: `document:{collection}:{docId}` — clients subscribed to a single document.
  * Query rooms: `query:{queryId}` — clients subscribed to a query filter. The change stream
  * watcher evaluates whether the document matches each active query for the collection.
+ * Exported for testing.
  */
-const emitToDocumentAndQueryRooms = (
+export const emitToDocumentAndQueryRooms = (
   io: Server,
   collection: string,
   event: RealtimeEvent,

@@ -11,7 +11,12 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 
-import {serializeDoc} from "./changeStreamWatcher";
+import {
+  emitToDocumentAndQueryRooms,
+  mapOperationType,
+  resolveRooms,
+  serializeDoc,
+} from "./changeStreamWatcher";
 import {matchesQuery} from "./queryMatcher";
 import {
   addQuerySubscription,
@@ -922,6 +927,51 @@ describe("installRealtimeSocketHandlers", () => {
       expect(socket.rooms.has("model:other")).toBe(true);
     });
 
+    it("unsubscribe:document removes the room and decrements the counter", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "broadcasts", id: "doc1"});
+      expect(socket.rooms.has("document:broadcasts:doc1")).toBe(true);
+      await socket.trigger("unsubscribe:document", {collection: "broadcasts", id: "doc1"});
+      expect(socket.rooms.has("document:broadcasts:doc1")).toBe(false);
+    });
+
+    it("unsubscribe:document ignores malformed payloads", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      // None of these should throw or affect rooms
+      await socket.trigger("unsubscribe:document", null);
+      await socket.trigger("unsubscribe:document", {});
+      await socket.trigger("unsubscribe:document", {collection: "broadcasts"});
+      await socket.trigger("unsubscribe:document", {id: "doc1"});
+      const docRooms = Array.from(socket.rooms).filter((r) => r.startsWith("document:"));
+      expect(docRooms).toHaveLength(0);
+    });
+
+    it("unsubscribe:query removes the query subscription and leaves the room", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {collection: "broadcasts", query: {priority: 1}});
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      expect(subscribed).toBeDefined();
+      const queryId = (subscribed?.payload as {queryId: string}).queryId;
+      expect(socket.rooms.has(`query:${queryId}`)).toBe(true);
+      expect(getQuerySubscriptionsForCollection("broadcasts").length).toBe(1);
+      await socket.trigger("unsubscribe:query", {queryId});
+      expect(socket.rooms.has(`query:${queryId}`)).toBe(false);
+      expect(getQuerySubscriptionsForCollection("broadcasts").length).toBe(0);
+    });
+
+    it("unsubscribe:query ignores malformed payloads", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("unsubscribe:query", null);
+      await socket.trigger("unsubscribe:query", {});
+      // No assertion needed — just exercises the no-op path
+    });
+
     it("disconnect removes all query subscriptions for the socket", async () => {
       registerOwnerCollection();
       const socket = createMockSocket({admin: true, id: "admin1"});
@@ -1026,5 +1076,237 @@ describe("serializeDoc (change stream serializer)", () => {
     const entry = makeEntry();
     const result = await serializeDoc(entry as any, {name: "Alice"}, "create");
     expect(result).toEqual({name: "Alice"});
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// changeStreamWatcher — internal helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("mapOperationType", () => {
+  it("maps insert to create", () => {
+    expect(mapOperationType("insert", {} as any)).toBe("create");
+  });
+
+  it("maps update to update by default", () => {
+    expect(
+      mapOperationType("update", {
+        updateDescription: {updatedFields: {title: "x"}},
+      } as any)
+    ).toBe("update");
+  });
+
+  it("maps replace to update", () => {
+    expect(mapOperationType("replace", {} as any)).toBe("update");
+  });
+
+  it("maps update with deleted=true to delete (soft delete)", () => {
+    expect(
+      mapOperationType("update", {
+        updateDescription: {updatedFields: {deleted: true}},
+      } as any)
+    ).toBe("delete");
+  });
+
+  it("maps delete to delete", () => {
+    expect(mapOperationType("delete", {} as any)).toBe("delete");
+  });
+
+  it("returns null for unknown operation types", () => {
+    expect(mapOperationType("invalidate", {} as any)).toBeNull();
+    expect(mapOperationType("drop", {} as any)).toBeNull();
+  });
+});
+
+describe("resolveRooms", () => {
+  const baseEntry: any = {
+    collectionName: "todos",
+    config: {methods: ["create", "update", "delete"]},
+    modelName: "Todo",
+    options: {},
+    routePath: "/todos",
+  };
+
+  it("returns user-specific room for owner strategy with ownerId", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "owner"}};
+    const rooms = resolveRooms(entry, {ownerId: "user-1"}, "create");
+    expect(rooms).toEqual(["user:user-1"]);
+  });
+
+  it("converts ObjectId-like ownerId to string", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "owner"}};
+    const ownerId = {toString: (): string => "owner-from-obj"};
+    const rooms = resolveRooms(entry, {ownerId}, "create");
+    expect(rooms).toEqual(["user:owner-from-obj"]);
+  });
+
+  it("falls back to model room when owner strategy has no ownerId", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "owner"}};
+    const rooms = resolveRooms(entry, {}, "create");
+    expect(rooms).toEqual(["model:todos"]);
+  });
+
+  it("returns model room for model strategy", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "model"}};
+    const rooms = resolveRooms(entry, {}, "create");
+    expect(rooms).toEqual(["model:todos"]);
+  });
+
+  it("returns authenticated room for broadcast strategy", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "broadcast"}};
+    const rooms = resolveRooms(entry, {}, "create");
+    expect(rooms).toEqual(["authenticated"]);
+  });
+
+  it("defaults to model room for unknown strategy", () => {
+    const entry = {...baseEntry, config: {...baseEntry.config, roomStrategy: "unknown" as any}};
+    const rooms = resolveRooms(entry, {}, "create");
+    expect(rooms).toEqual(["model:todos"]);
+  });
+
+  it("invokes custom function room resolver", () => {
+    const entry = {
+      ...baseEntry,
+      config: {
+        ...baseEntry.config,
+        roomStrategy: (doc: any, method: string): string[] => [`custom:${method}:${doc.id}`],
+      },
+    };
+    const rooms = resolveRooms(entry, {id: "42"}, "update");
+    expect(rooms).toEqual(["custom:update:42"]);
+  });
+});
+
+describe("emitToDocumentAndQueryRooms", () => {
+  const makeIo = (): {
+    emissions: Array<{room: string; event: string; payload: unknown}>;
+    io: any;
+  } => {
+    const emissions: Array<{room: string; event: string; payload: unknown}> = [];
+    const io = {
+      to: (room: string) => ({
+        emit: (event: string, payload: unknown): void => {
+          emissions.push({event, payload, room});
+        },
+      }),
+    };
+    return {emissions, io};
+  };
+
+  beforeEach(() => {
+    clearQueryStore();
+  });
+
+  afterEach(() => {
+    clearQueryStore();
+  });
+
+  it("emits to the document room", () => {
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "update",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {}, () => {});
+    expect(emissions.some((e) => e.room === "document:todos:doc-1")).toBe(true);
+  });
+
+  it("forwards deletes to every query room without filtering", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "delete",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {});
+    expect(emissions.some((e) => e.room === `query:${queryId}` && e.event === "sync")).toBe(true);
+  });
+
+  it("skips matching when fullDocument is missing on non-delete events", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "create",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {});
+    expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
+  });
+
+  it("emits create events to query rooms when the doc matches", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "create",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
+    const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+    expect(queryEmissions.length).toBe(1);
+    expect(queryEmissions[0].payload).toMatchObject({method: "create"});
+  });
+
+  it("does not emit create events to query rooms when the doc does not match", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "create",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
+    expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
+  });
+
+  it("emits update as-is when the document still matches the query", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "update",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
+    const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+    expect(queryEmissions.length).toBe(1);
+    expect(queryEmissions[0].payload).toMatchObject({method: "update"});
+  });
+
+  it("converts updates that no longer match into delete events for the query", () => {
+    const queryId = computeQueryId("todos", {priority: 1});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "update",
+      model: "Todo",
+      timestamp: 1,
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
+    const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
+    expect(queryEmissions.length).toBe(1);
+    expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
   });
 });
