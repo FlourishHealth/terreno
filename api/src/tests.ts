@@ -1,6 +1,6 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
+import passportLocalMongoose, {type PassportLocalMongooseDocument} from "passport-local-mongoose";
 import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -62,19 +62,22 @@ const userSchema = new Schema<User>({
   username: {description: "The user's username", type: String},
 });
 
-userSchema.plugin(passportLocalMongoose as any, {
-  attemptsField: "attempts",
-  interval: process.env.NODE_ENV === "test" ? 1 : 100,
-  limitAttempts: true,
-  maxAttempts: 3,
-  maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
-  usernameCaseInsensitive: true,
-  usernameField: "email",
-});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
+  {
+    attemptsField: "attempts",
+    interval: process.env.NODE_ENV === "test" ? 1 : 100,
+    limitAttempts: true,
+    maxAttempts: 3,
+    maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
+    usernameCaseInsensitive: true,
+    usernameField: "email",
+  }
+);
 // userSchema.plugin(tokenPlugin);
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDisabledPlugin);
-userSchema.methods.postCreate = async function (body: any) {
+userSchema.methods.postCreate = async function (body: {age?: number}) {
   this.age = body.age;
   return this.save();
 };
@@ -121,6 +124,7 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
+    // noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
     expiration: {description: "Expiration date of the food", type: DateOnly as any},
     hidden: {
       default: false,
@@ -221,13 +225,13 @@ export const setupDb = async () => {
       UserModel.create({admin: true, email: "admin@example.com", name: "Admin"}),
       UserModel.create({admin: true, email: "admin+other@example.com", name: "Admin Other"}),
     ]);
-    await (notAdmin as any).setPassword("password");
+    await (notAdmin as unknown as PassportLocalMongooseDocument).setPassword("password");
     await notAdmin.save();
 
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PassportLocalMongooseDocument).setPassword("securePassword");
     await admin.save();
 
-    await (adminOther as any).setPassword("otherPassword");
+    await (adminOther as unknown as PassportLocalMongooseDocument).setPassword("otherPassword");
 
     await adminOther.save();
 

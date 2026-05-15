@@ -1224,7 +1224,6 @@ exports[`Field renders time field 1`] = `
                         },
                       ],
                       "props": {
-                        "activeOpacity": 1,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
@@ -1494,7 +1493,6 @@ exports[`Field renders time field 1`] = `
                         },
                       ],
                       "props": {
-                        "activeOpacity": 1,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
@@ -2219,7 +2217,6 @@ exports[`Field renders datetime field 1`] = `
                         },
                       ],
                       "props": {
-                        "activeOpacity": 1,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
@@ -2489,7 +2486,6 @@ exports[`Field renders datetime field 1`] = `
                         },
                       ],
                       "props": {
-                        "activeOpacity": 1,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
@@ -2860,7 +2856,6 @@ exports[`Field renders select field 1`] = `
             },
           ],
           "props": {
-            "activeOpacity": 1,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
@@ -3737,7 +3732,6 @@ exports[`Field renders address field 1`] = `
                   },
                 ],
                 "props": {
-                  "activeOpacity": 1,
                   "onPress": [Function],
                   "style": {
                     "alignItems": "center",

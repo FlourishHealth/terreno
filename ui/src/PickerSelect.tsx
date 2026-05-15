@@ -25,7 +25,7 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useState} from "react";
 import {
   Keyboard,
   Modal,
@@ -71,22 +71,23 @@ export const defaultStyles = StyleSheet.create({
   },
 });
 
+/** A single option for the picker select component. */
 export interface PickerSelectItem {
   label: string;
-  value: string;
+  value: string | number | null;
   key?: string | number;
   color?: string;
   inputLabel?: string;
 }
 
 export interface RNPickerSelectProps {
-  onValueChange: (value: string, index: number) => void;
+  onValueChange: (value: string | number | null, index: number) => void;
   items: PickerSelectItem[];
-  value?: string;
+  value?: string | number | null;
   placeholder?: Partial<PickerSelectItem>;
   disabled?: boolean;
   itemKey?: string | number;
-  children?: React.ReactNode;
+  children?: ReactNode;
   onOpen?: () => void;
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
@@ -110,7 +111,7 @@ export interface RNPickerSelectProps {
   // Touchable wrapper props
   touchableWrapperProps?: Partial<PressableProps>;
 
-  InputAccessoryView?: React.ComponentType<{testID?: string}>;
+  InputAccessoryView?: ComponentType<{testID?: string}>;
 }
 
 export function RNPickerSelect({
@@ -171,8 +172,8 @@ export function RNPickerSelect({
   }, [items, placeholder]);
 
   const getSelectedItem = useCallback(
-    (key: string | number | undefined, val: string | undefined) => {
-      let idx = options.findIndex((item: Partial<PickerSelectItem> | undefined) => {
+    (key: string | number | undefined, val: string | number | null | undefined) => {
+      let idx = options.findIndex((item) => {
         if (item?.key && key) {
           return isEqual(item.key, key);
         }
@@ -207,7 +208,7 @@ export function RNPickerSelect({
     togglePicker(false, onDownArrow);
   };
 
-  const onValueChangeEvent = (val: string, index: number) => {
+  const onValueChangeEvent = (val: string | number | null, index: number) => {
     const item = getSelectedItem(itemKey, val);
     onValueChange(val, index);
     setSelectedItem(item.selectedItem);
@@ -251,14 +252,14 @@ export function RNPickerSelect({
   };
 
   const renderPickerItems = () => {
-    return options?.map((item: Partial<PickerSelectItem> | undefined) => {
+    return options?.map((item) => {
       if (!item?.label) return null;
       return (
         <Picker.Item
-          color={item.color}
-          key={item.key || item.label}
-          label={item.label}
-          value={item.value}
+          color={item?.color}
+          key={item?.key || item?.label}
+          label={item?.label}
+          value={item?.value}
         />
       );
     });
@@ -484,10 +485,10 @@ export function RNPickerSelect({
     // `View` and `Pressable` accept disjoint prop sets; the fork swaps between them to work
     // around an Android touchable bug, so we cast to a structural component type that accepts
     // the union of props actually used in JSX below.
-    const Component = (fixAndroidTouchableBug ? View : Pressable) as React.ComponentType<{
+    const Component = (fixAndroidTouchableBug ? View : Pressable) as ComponentType<{
       onPress?: PressableProps["onPress"];
       testID?: string;
-      children?: React.ReactNode;
+      children?: ReactNode;
     }>;
     return (
       <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
@@ -652,8 +653,8 @@ export function RNPickerSelect({
             // Pass the original (non-stringified) value through so lodash
             // `isEqual` matching in `getSelectedItem` works for number /
             // object values.
-            const originalValue = options[originalIndex]?.value;
-            onValueChangeEvent(originalValue ?? "", originalIndex);
+            const originalValue = options[originalIndex]?.value ?? null;
+            onValueChangeEvent(originalValue, originalIndex);
             closeWebMenu();
           }}
           options={webMenuOptions}

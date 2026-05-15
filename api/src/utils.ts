@@ -1,5 +1,6 @@
 import mongoose, {Types} from "mongoose";
 
+import {APIError} from "./errors";
 import {logger} from "./logger";
 
 // A better version of mongoose's ObjectId.isValid,
@@ -31,17 +32,26 @@ export const checkModelsStrict = (ignoredModels: string[] = []): void => {
     const schema = mongoose.model(model).schema;
 
     if (schema.get("toObject")?.virtuals !== true) {
-      throw new Error(`Model ${model} toObject.virtuals not set to true`);
+      throw new APIError({
+        status: 500,
+        title: `Model ${model} toObject.virtuals not set to true`,
+      });
     }
     if (schema.get("toJSON")?.virtuals !== true) {
-      throw new Error(`Model ${model} toJSON.virtuals not set to true`);
+      throw new APIError({
+        status: 500,
+        title: `Model ${model} toJSON.virtuals not set to true`,
+      });
     }
 
     if (ignoredModels.includes(model)) {
       continue;
     }
     if (schema.get("strict") !== "throw") {
-      throw new Error(`Model ${model} is not set to strict mode.`);
+      throw new APIError({
+        status: 500,
+        title: `Model ${model} is not set to strict mode.`,
+      });
     }
   }
 };
