@@ -86,6 +86,48 @@ module "backend_artifact_registry" {
   depends_on = [module.bootstrap]
 }
 
+module "backend_secret_mongodb_uri" {
+  source = "./modules/secret"
+
+  project_id = var.project_id
+  secret_id  = "${var.backend_service_name}-mongodb-uri"
+  labels     = local.common_labels
+
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
+module "backend_secret_langfuse_secret_key" {
+  source = "./modules/secret"
+
+  project_id = var.project_id
+  secret_id  = "${var.backend_service_name}-langfuse-secret-key"
+  labels     = local.common_labels
+
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
+module "backend_secret_langfuse_public_key" {
+  source = "./modules/secret"
+
+  project_id = var.project_id
+  secret_id  = "${var.backend_service_name}-langfuse-public-key"
+  labels     = local.common_labels
+
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
 module "backend_service" {
   source = "./modules/cloud_run_service"
 
@@ -103,7 +145,12 @@ module "backend_service" {
   allow_unauthenticated = true
   labels                = local.common_labels
 
-  depends_on = [module.backend_artifact_registry]
+  depends_on = [
+    module.backend_artifact_registry,
+    module.backend_secret_mongodb_uri,
+    module.backend_secret_langfuse_secret_key,
+    module.backend_secret_langfuse_public_key,
+  ]
 }
 
 # ---------------------------------------------------------------------------

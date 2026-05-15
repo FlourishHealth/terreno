@@ -12,8 +12,9 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
   - `gh-deployer` — used by the CD workflows (`deploy-example-gcp.yml`, `mcp-server-deploy.yml`) with the narrow set of roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
 - Cloud Run services (`terreno-backend-example`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
+- Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the deploy workflow mounts them via `secrets:` so plaintext never traverses GitHub Actions runners.
 
-Secrets (MongoDB URI, Langfuse keys, Sentry DSN, etc.) live in **GitHub Actions secrets** today and are not yet migrated to Secret Manager. The deploy workflows reference them via `${{ secrets.X }}` and feed them into Cloud Run as plain env vars. Migration to Secret Manager is a future cleanup.
+The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.
 
 ## Layout
 

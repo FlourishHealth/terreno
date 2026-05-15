@@ -111,9 +111,10 @@ jobs:
           tag: prod
           env_vars: |
             NODE_ENV=production
-            MONGODB_URI=${{ secrets.MONGO_URI }}
-            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
-            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          secrets: |
+            MONGODB_URI=${{ env.GCP_SERVICE_NAME }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_SERVICE_NAME }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_SERVICE_NAME }}-langfuse-public-key:latest
           flags: |
             --port=3000
             --memory=512Mi
@@ -253,9 +254,10 @@ jobs:
           no_traffic: true
           env_vars: |
             NODE_ENV=production
-            MONGODB_URI=${{ secrets.MONGO_URI }}
-            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
-            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          secrets: |
+            MONGODB_URI=${{ env.GCP_SERVICE_NAME }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_SERVICE_NAME }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_SERVICE_NAME }}-langfuse-public-key:latest
           flags: |
             --port=3000
             --memory=512Mi
