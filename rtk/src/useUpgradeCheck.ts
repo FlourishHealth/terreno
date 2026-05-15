@@ -1,11 +1,27 @@
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
-import ReactNative from "react-native";
+import type {AppStateStatic, Linking as LinkingNamespace} from "react-native";
+import * as ReactNative from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
 
-const {AppState, Linking} = ReactNative;
+interface ReactNativeModule extends Record<string, unknown> {
+  AppState?: AppStateStatic;
+  Linking?: typeof LinkingNamespace;
+  default?: {
+    AppState?: AppStateStatic;
+    Linking?: typeof LinkingNamespace;
+  };
+}
+
+const reactNativeModule = ReactNative as ReactNativeModule;
+const AppState = reactNativeModule.AppState ?? reactNativeModule.default?.AppState;
+const Linking = reactNativeModule.Linking ?? reactNativeModule.default?.Linking;
+
+if (!AppState || !Linking) {
+  throw new Error("react-native AppState and Linking exports are required for useUpgradeCheck");
+}
 
 interface UseUpgradeCheckOptions {
   /**
