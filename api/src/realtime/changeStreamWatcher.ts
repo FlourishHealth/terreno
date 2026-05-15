@@ -54,11 +54,7 @@ const getCollectionTag = (routePath: string): string => routePath.replace(/^\//,
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
-export const resolveRooms = (
-  entry: RealtimeRegistryEntry,
-  doc: any,
-  method: string
-): string[] => {
+export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): string[] => {
   const {roomStrategy} = entry.config;
   // Use the collection tag (e.g. "todos") for model rooms, matching what the frontend subscribes to
   const collectionTag = getCollectionTag(entry.routePath);
