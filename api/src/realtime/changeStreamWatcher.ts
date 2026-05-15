@@ -81,18 +81,54 @@ const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): s
 };
 
 /**
- * Serialize a document for emission. Uses the realtime-specific handler if provided,
- * otherwise falls back to the modelRouter responseHandler via simple serialization.
+ * Serialize a document for emission.
+ *
+ * Precedence:
+ *   1. `realtimeResponseHandler` if provided (full control over what's emitted).
+ *   2. modelRouter `responseHandler` if provided — invoked with a synthetic request
+ *      so the same stripping logic used for REST responses (e.g. removing `hash`/`salt`)
+ *      applies to realtime events. This prevents accidental leaks when an app only
+ *      configures sanitization in the REST `responseHandler`.
+ *   3. `toJSON()` fallback.
+ *
+ * Failures in user-supplied handlers fall back to `toJSON()` (logged) so a serializer
+ * bug never silently leaks a raw document or kills the change stream watcher.
  */
-const serializeDoc = async (
+export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
   doc: any,
-  method: string
+  method: "create" | "update" | "delete"
 ): Promise<any> => {
   if (entry.config.realtimeResponseHandler) {
-    return entry.config.realtimeResponseHandler(doc, method);
+    try {
+      return await entry.config.realtimeResponseHandler(doc, method);
+    } catch (error) {
+      logger.error(
+        `[realtime] realtimeResponseHandler threw for ${entry.modelName}/${method}: ${error}. ` +
+          "Falling back to toJSON."
+      );
+    }
   }
-  // Use toJSON for simple serialization since we don't have a request context in change streams
+
+  const responseHandler = entry.options?.responseHandler;
+  if (responseHandler) {
+    try {
+      // The REST responseHandler signature expects a "list" | "create" | "read" | "update" method.
+      // Map "delete" → "read" so handlers that branch on method receive a sane value.
+      const restMethod = method === "delete" ? "read" : method;
+      // Synthesize the minimal request shape a sanitizing responseHandler is likely to read.
+      // We intentionally do not pass a user — handlers must not depend on per-recipient context
+      // for realtime serialization (events fan out to many rooms).
+      const syntheticReq = {params: {}, query: {}, user: undefined} as any;
+      return await responseHandler(doc, restMethod as any, syntheticReq, entry.options);
+    } catch (error) {
+      logger.error(
+        `[realtime] modelRouter responseHandler threw during realtime serialization for ` +
+          `${entry.modelName}/${method}: ${error}. Falling back to toJSON.`
+      );
+    }
+  }
+
   return typeof doc.toJSON === "function" ? doc.toJSON() : doc;
 };
 
@@ -264,9 +300,18 @@ export const startChangeStreamWatcher = (
         // Determine target rooms
         let rooms: string[];
         if (isHardDelete) {
-          // For hard deletes without a full doc, emit to model room
-          const collectionTag = getCollectionTag(entry.routePath);
-          rooms = [`model:${collectionTag}`];
+          // Hard delete: no fullDocument, so we can't resolve owner/custom rooms.
+          // For owner strategy we cannot safely fan out to a model room without
+          // leaking deletes across users — admins still receive the event via the
+          // admin room and any document-specific subscribers via document rooms.
+          if (entry.config.roomStrategy === "owner") {
+            rooms = ["admin"];
+          } else if (entry.config.roomStrategy === "broadcast") {
+            rooms = ["authenticated"];
+          } else {
+            const collectionTag = getCollectionTag(entry.routePath);
+            rooms = [`model:${collectionTag}`];
+          }
         } else {
           rooms = resolveRooms(entry, fullDocument, method);
         }

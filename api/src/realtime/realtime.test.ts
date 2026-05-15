@@ -4,11 +4,14 @@
  *   - queryStore.ts (addQuerySubscription, removeQuerySubscription, etc.)
  *   - registry.ts (registerRealtime, getRealtimeRegistry, etc.)
  *   - realtimeApp.ts (RealtimeApp class — register, getIo, close)
+ *   - realtimeApp.ts (installRealtimeSocketHandlers — permission and rate-limit logic)
+ *   - changeStreamWatcher.ts (serializeDoc — responseHandler fallback)
  */
 
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 
+import {serializeDoc} from "./changeStreamWatcher";
 import {matchesQuery} from "./queryMatcher";
 import {
   addQuerySubscription,
@@ -18,7 +21,13 @@ import {
   removeAllSocketQueries,
   removeQuerySubscription,
 } from "./queryStore";
-import {RealtimeApp} from "./realtimeApp";
+import {
+  installRealtimeSocketHandlers,
+  MAX_MODEL_SUBSCRIPTIONS,
+  MAX_QUERY_SUBSCRIPTIONS,
+  RealtimeApp,
+  type RealtimeSocketLike,
+} from "./realtimeApp";
 import {
   clearRealtimeRegistry,
   findRegistryEntryByCollection,
@@ -582,5 +591,440 @@ describe("RealtimeApp", () => {
       // Should not throw
       await expect(app.close()).resolves.toBeUndefined();
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// installRealtimeSocketHandlers — permission and rate-limit logic
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MockSocket extends RealtimeSocketLike {
+  rooms: Set<string>;
+  emitted: {event: string; payload: unknown}[];
+  listeners: Map<string, (...args: any[]) => any>;
+  trigger: (event: string, ...args: any[]) => Promise<void>;
+}
+
+const createMockSocket = (decodedToken?: {id?: string; admin?: boolean}): MockSocket => {
+  const rooms = new Set<string>();
+  const emitted: {event: string; payload: unknown}[] = [];
+  const listeners = new Map<string, (...args: any[]) => any>();
+
+  const socket: MockSocket = {
+    decodedToken,
+    emit: (event, payload) => {
+      emitted.push({event, payload});
+    },
+    emitted,
+    id: `socket-${Math.random().toString(36).slice(2, 9)}`,
+    join: async (room: string) => {
+      rooms.add(room);
+    },
+    leave: async (room: string) => {
+      rooms.delete(room);
+    },
+    listeners,
+    on: (event, handler) => {
+      listeners.set(event, handler);
+    },
+    rooms,
+    trigger: async (event, ...args) => {
+      const handler = listeners.get(event);
+      if (handler) {
+        await handler(...args);
+      }
+    },
+  };
+
+  return socket;
+};
+
+describe("installRealtimeSocketHandlers", () => {
+  beforeEach(() => {
+    clearRealtimeRegistry();
+    clearQueryStore();
+  });
+
+  afterEach(() => {
+    clearRealtimeRegistry();
+    clearQueryStore();
+  });
+
+  const registerOwnerCollection = (): void => {
+    registerRealtime({
+      collectionName: "todos",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "owner"},
+      modelName: "Todo",
+      options: {} as any,
+      routePath: "/todos",
+    });
+  };
+
+  const registerModelCollection = (): void => {
+    registerRealtime({
+      collectionName: "broadcasts",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "Broadcast",
+      options: {} as any,
+      routePath: "/broadcasts",
+    });
+  };
+
+  describe("connection setup", () => {
+    it("joins user-specific and authenticated rooms when token has userId", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      // joinUserRooms is fire-and-forget — give microtasks a chance to flush.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(socket.rooms.has("user:user1")).toBe(true);
+      expect(socket.rooms.has("authenticated")).toBe(true);
+    });
+
+    it("joins admin room for admin tokens", async () => {
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(socket.rooms.has("admin")).toBe(true);
+    });
+
+    it("does not join admin room for non-admin tokens", async () => {
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(socket.rooms.has("admin")).toBe(false);
+    });
+  });
+
+  describe("subscribe:model permission", () => {
+    it("denies unregistered collections", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "nonexistent");
+      expect(socket.rooms.has("model:nonexistent")).toBe(false);
+    });
+
+    it("denies owner-strategy model room for non-admin users", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "todos");
+      expect(socket.rooms.has("model:todos")).toBe(false);
+    });
+
+    it("allows owner-strategy model room for admins", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "todos");
+      expect(socket.rooms.has("model:todos")).toBe(true);
+    });
+
+    it("allows non-admins to subscribe to model-strategy collections", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "broadcasts");
+      expect(socket.rooms.has("model:broadcasts")).toBe(true);
+    });
+
+    it("ignores empty or non-string model names", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "");
+      await socket.trigger("subscribe:model", 123 as any);
+      await socket.trigger("subscribe:model", null as any);
+      const modelRooms = Array.from(socket.rooms).filter((r) => r.startsWith("model:"));
+      expect(modelRooms).toHaveLength(0);
+    });
+
+    it("enforces MAX_MODEL_SUBSCRIPTIONS cap", async () => {
+      // Register MAX + 5 model-strategy collections.
+      for (let i = 0; i < MAX_MODEL_SUBSCRIPTIONS + 5; i++) {
+        registerRealtime({
+          collectionName: `coll${i}`,
+          config: {methods: ["create"], roomStrategy: "model"},
+          modelName: `Coll${i}`,
+          options: {} as any,
+          routePath: `/coll${i}`,
+        });
+      }
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      for (let i = 0; i < MAX_MODEL_SUBSCRIPTIONS + 5; i++) {
+        await socket.trigger("subscribe:model", `coll${i}`);
+      }
+      const modelRooms = Array.from(socket.rooms).filter((r) => r.startsWith("model:"));
+      expect(modelRooms.length).toBe(MAX_MODEL_SUBSCRIPTIONS);
+    });
+  });
+
+  describe("subscribe:document permission", () => {
+    it("denies unregistered collections", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "nonexistent", id: "abc"});
+      const docRooms = Array.from(socket.rooms).filter((r) => r.startsWith("document:"));
+      expect(docRooms).toHaveLength(0);
+    });
+
+    it("denies owner-strategy document subscription for non-admin", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "todos", id: "doc1"});
+      expect(socket.rooms.has("document:todos:doc1")).toBe(false);
+    });
+
+    it("allows owner-strategy document subscription for admins", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "todos", id: "doc1"});
+      expect(socket.rooms.has("document:todos:doc1")).toBe(true);
+    });
+
+    it("allows model-strategy document subscription for non-admin", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "broadcasts", id: "doc1"});
+      expect(socket.rooms.has("document:broadcasts:doc1")).toBe(true);
+    });
+
+    it("ignores malformed payloads", async () => {
+      registerModelCollection();
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", null);
+      await socket.trigger("subscribe:document", {});
+      await socket.trigger("subscribe:document", {collection: "broadcasts"});
+      await socket.trigger("subscribe:document", {id: "doc1"});
+      await socket.trigger("subscribe:document", {collection: 123 as any, id: "doc1"});
+      const docRooms = Array.from(socket.rooms).filter((r) => r.startsWith("document:"));
+      expect(docRooms).toHaveLength(0);
+    });
+  });
+
+  describe("subscribe:query permission", () => {
+    it("denies unregistered collections", async () => {
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {collection: "nope", query: {a: 1}});
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+    });
+
+    it("injects ownerId for owner-strategy non-admin subscribers", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "todos",
+        query: {completed: false},
+      });
+
+      // queryId emitted back must encode the injected ownerId
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      expect(subscribed).toBeDefined();
+      expect((subscribed?.payload as any).queryId).toContain("user1");
+    });
+
+    it("does NOT inject ownerId for admins (admins see all)", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "todos",
+        query: {completed: false},
+      });
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      expect(subscribed).toBeDefined();
+      expect((subscribed?.payload as any).queryId).not.toContain("admin1");
+    });
+
+    it("ignores subscriptions when user has no id (anonymous) for owner strategy", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: false}); // no id
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "todos",
+        query: {completed: false},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+    });
+
+    it("computes the queryId server-side regardless of client-provided value", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "todos",
+        query: {completed: false},
+        queryId: "EVIL_HIJACK", // client-provided is ignored
+      });
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      const payload = subscribed?.payload as {queryId: string};
+      expect(payload.queryId).not.toBe("EVIL_HIJACK");
+      // Must match what the server computes
+      expect(payload.queryId).toBe(computeQueryId("todos", {completed: false}));
+    });
+
+    it("ignores malformed query payloads", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", null);
+      await socket.trigger("subscribe:query", {});
+      await socket.trigger("subscribe:query", {collection: "todos"});
+      await socket.trigger("subscribe:query", {collection: "todos", query: [1, 2, 3]});
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+    });
+
+    it("enforces MAX_QUERY_SUBSCRIPTIONS cap", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      for (let i = 0; i < MAX_QUERY_SUBSCRIPTIONS + 5; i++) {
+        await socket.trigger("subscribe:query", {
+          collection: "todos",
+          query: {priority: i},
+        });
+      }
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms.length).toBe(MAX_QUERY_SUBSCRIPTIONS);
+    });
+  });
+
+  describe("unsubscribe and counters", () => {
+    it("unsubscribe:model frees a slot so further subscriptions are allowed", async () => {
+      registerModelCollection();
+      registerRealtime({
+        collectionName: "other",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Other",
+        options: {} as any,
+        routePath: "/other",
+      });
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "broadcasts");
+      expect(socket.rooms.has("model:broadcasts")).toBe(true);
+      await socket.trigger("unsubscribe:model", "broadcasts");
+      expect(socket.rooms.has("model:broadcasts")).toBe(false);
+      // can re-subscribe
+      await socket.trigger("subscribe:model", "other");
+      expect(socket.rooms.has("model:other")).toBe(true);
+    });
+
+    it("disconnect removes all query subscriptions for the socket", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {collection: "todos", query: {priority: 1}});
+      await socket.trigger("subscribe:query", {collection: "todos", query: {priority: 2}});
+      expect(getQuerySubscriptionsForCollection("todos").length).toBeGreaterThan(0);
+      await socket.trigger("disconnect");
+      // The mock leaves rooms intact but the store should be cleared for this socket.
+      // Other sockets aren't subscribed, so the store should be empty.
+      expect(getQuerySubscriptionsForCollection("todos").length).toBe(0);
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// serializeDoc — responseHandler fallback for change stream events
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("serializeDoc (change stream serializer)", () => {
+  const makeEntry = (overrides: any = {}) => ({
+    collectionName: "users",
+    config: {methods: ["create", "update", "delete"] as const, roomStrategy: "model" as const},
+    modelName: "User",
+    options: {} as any,
+    routePath: "/users",
+    ...overrides,
+  });
+
+  it("prefers realtimeResponseHandler when provided", async () => {
+    const entry = makeEntry({
+      config: {
+        methods: ["update"],
+        realtimeResponseHandler: (doc: any) => ({customized: doc.name}),
+        roomStrategy: "model",
+      },
+    });
+    const result = await serializeDoc(entry as any, {name: "Alice", secret: "x"}, "update");
+    expect(result).toEqual({customized: "Alice"});
+  });
+
+  it("falls back to modelRouter responseHandler when no realtime handler is set", async () => {
+    // Mimics a stripping responseHandler like the example-backend users router.
+    const responseHandler = mock(async (doc: any) => {
+      const {hash, salt, ...rest} = doc;
+      return rest;
+    });
+    const entry = makeEntry({options: {responseHandler}});
+    const result = await serializeDoc(
+      entry as any,
+      {email: "a@b.com", hash: "h", name: "Alice", salt: "s"},
+      "update"
+    );
+    expect(result).toEqual({email: "a@b.com", name: "Alice"});
+    expect(responseHandler).toHaveBeenCalled();
+  });
+
+  it("maps 'delete' method to 'read' when invoking the REST responseHandler", async () => {
+    let observedMethod: string | undefined;
+    const responseHandler = async (doc: any, method: string) => {
+      observedMethod = method;
+      return doc;
+    };
+    const entry = makeEntry({options: {responseHandler}});
+    await serializeDoc(entry as any, {name: "Alice"}, "delete");
+    expect(observedMethod).toBe("read");
+  });
+
+  it("falls back to toJSON when responseHandler throws", async () => {
+    const responseHandler = async (): Promise<any> => {
+      throw new Error("boom");
+    };
+    const entry = makeEntry({options: {responseHandler}});
+    const doc = {name: "Alice", toJSON: () => ({name: "Alice-json"})};
+    const result = await serializeDoc(entry as any, doc, "update");
+    expect(result).toEqual({name: "Alice-json"});
+  });
+
+  it("falls back to toJSON when realtimeResponseHandler throws", async () => {
+    const entry = makeEntry({
+      config: {
+        methods: ["update"],
+        realtimeResponseHandler: () => {
+          throw new Error("boom");
+        },
+        roomStrategy: "model",
+      },
+    });
+    const doc = {name: "Alice", toJSON: () => ({name: "Alice-json"})};
+    const result = await serializeDoc(entry as any, doc, "update");
+    expect(result).toEqual({name: "Alice-json"});
+  });
+
+  it("returns toJSON output when no handlers are configured", async () => {
+    const entry = makeEntry();
+    const doc = {name: "Alice", toJSON: () => ({id: "1", name: "Alice"})};
+    const result = await serializeDoc(entry as any, doc, "create");
+    expect(result).toEqual({id: "1", name: "Alice"});
+  });
+
+  it("returns raw doc when toJSON is missing and no handlers configured", async () => {
+    const entry = makeEntry();
+    const result = await serializeDoc(entry as any, {name: "Alice"}, "create");
+    expect(result).toEqual({name: "Alice"});
   });
 });

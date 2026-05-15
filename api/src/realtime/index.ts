@@ -8,7 +8,14 @@ export {
   removeAllSocketQueries,
   removeQuerySubscription,
 } from "./queryStore";
-export {RealtimeApp} from "./realtimeApp";
+export {
+  installRealtimeSocketHandlers,
+  MAX_DOCUMENT_SUBSCRIPTIONS,
+  MAX_MODEL_SUBSCRIPTIONS,
+  MAX_QUERY_SUBSCRIPTIONS,
+  RealtimeApp,
+  type RealtimeSocketLike,
+} from "./realtimeApp";
 export {
   clearRealtimeRegistry,
   findRegistryEntryByCollection,
