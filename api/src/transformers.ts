@@ -15,7 +15,10 @@ export interface TerrenoTransformer<T> {
   serialize?: (obj: T, user?: User) => Partial<T> | undefined;
 }
 
-const getUserType = (user?: User, obj?: Record<string, unknown>): "anon" | "auth" | "owner" | "admin" => {
+const getUserType = (
+  user?: User,
+  obj?: Record<string, unknown>
+): "anon" | "auth" | "owner" | "admin" => {
   if (user?.admin) {
     return "admin";
   }
