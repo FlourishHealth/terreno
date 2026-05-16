@@ -1100,12 +1100,25 @@ describe("mapOperationType", () => {
     expect(mapOperationType("replace", {} as any)).toBe("update");
   });
 
-  it("maps update with deleted=true to delete (soft delete)", () => {
+  it("maps update with deleted=true to delete (soft delete) when delete is enabled", () => {
     expect(
-      mapOperationType("update", {
-        updateDescription: {updatedFields: {deleted: true}},
-      } as any)
+      mapOperationType("update", {updateDescription: {updatedFields: {deleted: true}}} as any, [
+        "create",
+        "update",
+        "delete",
+      ])
     ).toBe("delete");
+  });
+
+  it("keeps soft delete as update when delete is NOT in the enabled methods", () => {
+    // A model configured with methods: ["create", "update"] must still see
+    // soft-delete events as updates — otherwise they'd be silently dropped.
+    expect(
+      mapOperationType("update", {updateDescription: {updatedFields: {deleted: true}}} as any, [
+        "create",
+        "update",
+      ])
+    ).toBe("update");
   });
 
   it("maps delete to delete", () => {

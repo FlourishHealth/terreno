@@ -18,8 +18,10 @@ export interface RealtimeConfig {
     | "owner"
     | "model"
     | "broadcast"
+    // noExplicitAny: doc is an arbitrary Mongoose document; consumers cast to their model type
     | ((doc: any, method: string, req: express.Request) => string[]);
   /** Custom serializer for real-time events. Falls back to the modelRouter responseHandler. */
+  // noExplicitAny: doc shape and return value are consumer-defined per model
   realtimeResponseHandler?: (doc: any, method: string) => any;
 }
 
@@ -36,6 +38,7 @@ export interface RealtimeEvent {
   /** Document ID */
   id: string;
   /** Serialized document data (omitted for hard deletes) */
+  // noExplicitAny: emitted document shape varies by model and serializer
   data?: any;
   /** Fields that were updated (for update events from change streams) */
   updatedFields?: string[];

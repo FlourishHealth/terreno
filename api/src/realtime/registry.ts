@@ -13,7 +13,10 @@ export interface RealtimeRegistryEntry {
   collectionName: string;
   /** Real-time configuration from modelRouter options */
   config: RealtimeConfig;
-  /** Full modelRouter options (for responseHandler, permissions, etc.) */
+  /**
+   * Full modelRouter options (for responseHandler, permissions, etc.).
+   */
+  // noExplicitAny: registry stores heterogeneous models — narrowing the generic is not useful at the registry level
   options: ModelRouterOptions<any>;
 }
 

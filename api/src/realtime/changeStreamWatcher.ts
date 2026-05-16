@@ -19,21 +19,29 @@ const DEFAULT_IGNORED_COLLECTIONS = ["socketio", "sessions"];
 
 /**
  * Map MongoDB change stream operation types to our method names.
+ *
+ * Soft deletes (an `update` that sets `deleted: true`) are reclassified as
+ * `"delete"` only when the model has `"delete"` enabled in its realtime
+ * methods. Otherwise they fall back to `"update"` so models that subscribe
+ * to updates (but not deletes) still see the change — without this fallback,
+ * a model configured with `methods: ["create", "update"]` would silently
+ * drop soft-delete events.
+ *
  * Exported for testing.
  */
 export const mapOperationType = (
   operationType: string,
-  change: ChangeStreamDocument
+  change: ChangeStreamDocument,
+  enabledMethods: ReadonlyArray<"create" | "update" | "delete"> = ["create", "update", "delete"]
 ): "create" | "update" | "delete" | null => {
   if (operationType === "insert") {
     return "create";
   }
   if (operationType === "update" || operationType === "replace") {
-    // Check for soft delete (deleted: true)
-    if (
+    const isSoftDelete =
       operationType === "update" &&
-      (change as any).updateDescription?.updatedFields?.deleted === true
-    ) {
+      (change as any).updateDescription?.updatedFields?.deleted === true;
+    if (isSoftDelete && enabledMethods.includes("delete")) {
       return "delete";
     }
     return "update";
@@ -283,8 +291,11 @@ export const startChangeStreamWatcher = (
           return;
         }
 
-        // Map to our method type
-        const method = mapOperationType(change.operationType, change);
+        // Map to our method type. Pass enabledMethods so soft deletes only
+        // remap to "delete" when the model actually subscribes to deletes —
+        // otherwise the change is kept as "update" so update subscribers
+        // still receive it.
+        const method = mapOperationType(change.operationType, change, entry.config.methods);
         if (!method) {
           return;
         }

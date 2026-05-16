@@ -873,9 +873,24 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       // Conflict detection: if client sends If-Unmodified-Since header or _updatedAt body field,
       // check if the document has been modified since the client last fetched it.
       if (req.headers["if-unmodified-since"] || req.body._updatedAt) {
-        const clientTimestamp = req.headers["if-unmodified-since"]
+        const usingHeader = Boolean(req.headers["if-unmodified-since"]);
+        const clientTimestamp = usingHeader
           ? DateTime.fromHTTP(req.headers["if-unmodified-since"] as string)
           : DateTime.fromISO(req.body._updatedAt);
+
+        // Malformed timestamps must not silently bypass conflict detection.
+        // Invalid DateTime returns NaN from valueOf(), and `NaN < anything` is
+        // false — so without this guard the check would silently pass.
+        if (!clientTimestamp.isValid) {
+          throw new APIError({
+            detail: usingHeader
+              ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+              : "_updatedAt body field could not be parsed as an ISO date",
+            status: 400,
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
         const serverTimestamp = (doc as any).updated
           ? DateTime.fromJSDate(new Date((doc as any).updated))
           : null;
