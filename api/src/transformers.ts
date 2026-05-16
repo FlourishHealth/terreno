@@ -15,10 +15,10 @@ export interface TerrenoTransformer<T> {
   serialize?: (obj: T, user?: User) => Partial<T> | undefined;
 }
 
-function getUserType(
+const getUserType = (
   user?: User,
-  obj?: {ownerId?: unknown} | unknown
-): "anon" | "auth" | "owner" | "admin" {
+  obj?: Record<string, unknown>
+): "anon" | "auth" | "owner" | "admin" => {
   if (user?.admin) {
     return "admin";
   }
@@ -30,10 +30,9 @@ function getUserType(
     return "auth";
   }
   return "anon";
-}
+};
 
-export function AdminOwnerTransformer<T>(options: {
-  // TODO: do something with KeyOf here.
+export const AdminOwnerTransformer = <T>(options: {
   anonReadFields?: string[];
   authReadFields?: string[];
   ownerReadFields?: string[];
@@ -42,8 +41,8 @@ export function AdminOwnerTransformer<T>(options: {
   authWriteFields?: string[];
   ownerWriteFields?: string[];
   adminWriteFields?: string[];
-}): TerrenoTransformer<T> {
-  function pickFields(obj: Partial<T>, fields: string[]): Partial<T> {
+}): TerrenoTransformer<T> => {
+  const pickFields = (obj: Partial<T>, fields: string[]): Partial<T> => {
     const newData: Partial<T> = {};
     for (const field of fields) {
       const key = field as keyof T;
@@ -52,11 +51,11 @@ export function AdminOwnerTransformer<T>(options: {
       }
     }
     return newData;
-  }
+  };
 
   return {
     serialize: (obj: T, user?: User) => {
-      const userType = getUserType(user, obj);
+      const userType = getUserType(user, obj as Record<string, unknown>);
       if (userType === "admin") {
         return pickFields(obj, [...(options.adminReadFields ?? []), "id"]);
       }
@@ -68,9 +67,8 @@ export function AdminOwnerTransformer<T>(options: {
       }
       return pickFields(obj, [...(options.anonReadFields ?? []), "id"]);
     },
-    // TODO: Migrate AdminOwnerTransform to use pre-hooks.
     transform: (obj: Partial<T>, _method: "create" | "update", user?: User) => {
-      const userType = getUserType(user, obj);
+      const userType = getUserType(user, obj as Record<string, unknown>);
       let allowedFields: string[];
       if (userType === "admin") {
         allowedFields = options.adminWriteFields ?? [];
@@ -83,21 +81,22 @@ export function AdminOwnerTransformer<T>(options: {
       }
       const unallowedFields = Object.keys(obj).filter((k) => !allowedFields.includes(k));
       if (unallowedFields.length) {
-        throw new Error(
-          `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`
-        );
+        throw new APIError({
+          status: 403,
+          title: `User of type ${userType} cannot write fields: ${unallowedFields.join(", ")}`,
+        });
       }
       return obj;
     },
   };
-}
+};
 
-export function transform<T>(
+export const transform = <T>(
   options: ModelRouterOptions<T>,
   data: Partial<T> | Partial<T>[],
   method: "create" | "update",
   user?: User
-) {
+) => {
   if (!options.transformer?.transform) {
     return data;
   }
@@ -113,13 +112,13 @@ export function transform<T>(
     return transformFn(data, method, user);
   }
   return data.map((d) => transformFn(d, method, user));
-}
+};
 
-export function serialize<T>(
+export const serialize = <T>(
   req: express.Request,
   options: ModelRouterOptions<T>,
   data: (Document<unknown, unknown, unknown> & T) | (Document<unknown, unknown, unknown> & T)[]
-) {
+) => {
   const serializeFn = (
     serializeData: Document<unknown, unknown, unknown> & T,
     serializeUser?: User
@@ -151,13 +150,13 @@ export function serialize<T>(
     return serializeFn(data, req.user);
   }
   return data.map((d) => serializeFn(d, req.user));
-}
+};
 
 /**
  * Default response handler for modelRouter. Calls toObject on each doc and returns the result,
  * using transformers.serializer if provided.
  */
-export async function defaultResponseHandler<T>(
+export const defaultResponseHandler = async <T>(
   doc:
     | (Document<unknown, unknown, unknown> & T)
     | (Document<unknown, unknown, unknown> & T)[]
@@ -165,7 +164,7 @@ export async function defaultResponseHandler<T>(
   method: "list" | "create" | "read" | "update",
   request: express.Request,
   options: ModelRouterOptions<T>
-) {
+) => {
   if (!doc) {
     return null;
   }
@@ -179,4 +178,4 @@ export async function defaultResponseHandler<T>(
       title: `Error serializing ${method} response: ${errorObj.message}`,
     });
   }
-}
+};

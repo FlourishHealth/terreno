@@ -548,6 +548,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = transform<T>(options, req.body, "create", req.user);
       } catch (error: unknown) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
@@ -848,6 +851,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       try {
         body = transform<T>(options, req.body, "update", req.user) as Partial<T>;
       } catch (error: unknown) {
+        if (isAPIError(error)) {
+          throw error;
+        }
         throw new APIError({
           disableExternalErrorTracking: getDisableExternalErrorTracking(error),
           error,
@@ -1104,6 +1110,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
     try {
       body = transform<T>(options, body, "update", req.user) as Partial<T>;
     } catch (error: unknown) {
+      if (isAPIError(error)) {
+        throw error;
+      }
       throw new APIError({
         disableExternalErrorTracking: getDisableExternalErrorTracking(error),
         error,
