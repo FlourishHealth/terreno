@@ -264,7 +264,7 @@ const DataTableHeaderCell: FC<DataTableHeaderCellProps> = ({
       }}
     >
       {[
-        Boolean(column.title) ? (
+        column.title ? (
           <TableTitle align="left" key="data-table-header-title" title={column.title!} />
         ) : null,
         <View key="data-table-header-tools" style={{alignItems: "center", flexDirection: "row"}}>

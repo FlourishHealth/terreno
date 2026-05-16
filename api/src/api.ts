@@ -6,6 +6,7 @@
 import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
+import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
 import {authenticateMiddleware, type User} from "./auth";
@@ -26,6 +27,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {registerRealtime} from "./realtime/registry";
+import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -311,6 +314,14 @@ export interface ModelRouterOptions<T> {
    * This option overrides the global setting for this specific router.
    */
   validation?: boolean | ModelRouterValidationOptions;
+  /**
+   * Enable real-time sync for this model via WebSocket events.
+   * When configured, CRUD operations will emit events to connected clients
+   * through the RealtimeApp plugin's change stream watcher.
+   *
+   * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   */
+  realtime?: RealtimeConfig;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -490,6 +501,16 @@ export function modelRouter<T>(
   const router = _buildModelRouter(model, options);
 
   if (path !== undefined) {
+    // Register for real-time sync if configured
+    if (options.realtime) {
+      registerRealtime({
+        collectionName: model.collection.collectionName,
+        config: options.realtime,
+        modelName: model.modelName,
+        options,
+        routePath: path,
+      });
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: any) => _buildModelRouter(model, {...options, openApi}),
@@ -497,6 +518,14 @@ export function modelRouter<T>(
       router,
     };
   }
+
+  if (options.realtime) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
+        "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+
   return router;
 }
 
@@ -839,6 +868,48 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           status: 403,
           title: `PATCH failed on ${req.params.id} for user ${req.user?.id}: ${error.message}`,
         });
+      }
+
+      // Conflict detection: if client sends If-Unmodified-Since header or _updatedAt body field,
+      // check if the document has been modified since the client last fetched it.
+      if (req.headers["if-unmodified-since"] || req.body._updatedAt) {
+        const usingHeader = Boolean(req.headers["if-unmodified-since"]);
+        const clientTimestamp = usingHeader
+          ? DateTime.fromHTTP(req.headers["if-unmodified-since"] as string)
+          : DateTime.fromISO(req.body._updatedAt);
+
+        // Malformed timestamps must not silently bypass conflict detection.
+        // Invalid DateTime returns NaN from valueOf(), and `NaN < anything` is
+        // false — so without this guard the check would silently pass.
+        if (!clientTimestamp.isValid) {
+          throw new APIError({
+            detail: usingHeader
+              ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+              : "_updatedAt body field could not be parsed as an ISO date",
+            status: 400,
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
+        const serverTimestamp = (doc as any).updated
+          ? DateTime.fromJSDate(new Date((doc as any).updated))
+          : null;
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          throw new APIError({
+            detail: JSON.stringify({
+              clientUpdated: clientTimestamp.toISO(),
+              serverUpdated: serverTimestamp.toISO(),
+            }),
+            status: 409,
+            title: "Conflict: document has been modified since you last fetched it",
+          });
+        }
+        // Remove _updatedAt from body so it doesn't get saved
+        delete req.body._updatedAt;
+        if (body) {
+          delete (body as any)._updatedAt;
+        }
       }
 
       if (options.preUpdate) {

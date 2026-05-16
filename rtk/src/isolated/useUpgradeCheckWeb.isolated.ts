@@ -1,5 +1,4 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {act, renderHook, waitFor} from "@testing-library/react-native";
 
 // ---------------------------------------------------------------------------
 // Mutable refs that tests can tweak between runs
@@ -15,13 +14,13 @@ interface MockVersionCheckResponse {
 const mockUnwrap = mock((): Promise<MockVersionCheckResponse> => Promise.resolve({status: "ok"}));
 const mockTrigger = mock((..._args: unknown[]) => ({unwrap: mockUnwrap}));
 
-mock.module("./emptyApi", () => ({
+mock.module("../emptyApi", () => ({
   useLazyGetVersionCheckQuery: () => [mockTrigger],
 }));
 
 // IsWeb is always true in tests (Platform.OS mocked as "web" in preload).
 // We cannot change it per-test because bun snapshots module exports.
-mock.module("./platform", () => ({
+mock.module("../platform", () => ({
   IsWeb: true,
 }));
 
@@ -78,8 +77,14 @@ const debugCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
-// Now import the hook (after all mock.module calls which are hoisted)
-import {useUpgradeCheck} from "./useUpgradeCheck";
+// Import after all mock.module calls. Using `await import` instead of top-level
+// static imports ensures the mocks (especially for react-native) are already in
+// place when @testing-library/react-native and ./useUpgradeCheck pull in
+// `react-native` transitively. With static imports, bun 1.3.x has been observed
+// to evaluate the real `react-native` and fail with `Export named 'AppState'
+// not found`.
+const {act, renderHook, waitFor} = await import("@testing-library/react-native");
+const {useUpgradeCheck} = await import("../useUpgradeCheck");
 
 // Helper: flush microtasks (lets .then() chains resolve)
 const flushPromises = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
