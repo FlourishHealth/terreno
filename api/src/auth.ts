@@ -11,7 +11,7 @@ import {
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
 
-import {APIError, apiErrorMiddleware} from "./errors";
+import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
 
@@ -31,11 +31,15 @@ export interface User {
 export interface UserModel extends Model<User> {
   createAnonymousUser?: (id?: string) => Promise<User>;
   // Allows additional setup during signup. This will be passed the rest of req.body from the signup
-  postCreate?: (body: any) => Promise<void>;
+  postCreate?: (body: Record<string, unknown>) => Promise<void>;
 
+  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   createStrategy(): any;
+  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   serializeUser(): any;
+  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   deserializeUser(): any;
+  // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   findByUsername(username: string, findOpts: any): any;
 }
 
@@ -49,7 +53,7 @@ export function authenticateMiddleware(anonymous = false) {
     failWithError: true,
     session: false,
   });
-  return (req: any, res: any, next: any) => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (req.user) {
       return next();
     }
@@ -61,27 +65,29 @@ export async function signupUser(
   userModel: UserModel,
   email: string,
   password: string,
-  body?: any
+  body?: Record<string, unknown>
 ) {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
-  const {email: _email, password: _password, ...bodyRest} = body;
+  const {email: _email, password: _password, ...bodyRest} = body ?? {};
 
   try {
+    // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's register() is untyped
     const user = await (userModel as any).register({email, ...bodyRest}, password);
 
     if (user.postCreate) {
       try {
         await user.postCreate(bodyRest);
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error(`Error in user.postCreate: ${error}`);
         throw error;
       }
     }
     await user.save();
     return user;
-  } catch (error: any) {
-    throw new APIError({title: error.message});
+  } catch (error: unknown) {
+    const message = errorMessage(error);
+    throw new APIError({title: message});
   }
 }
 
@@ -102,6 +108,7 @@ export async function signupUser(
  * authentication providers) to reuse and customize the same token generation logic.
  * This ensures consistent and secure token issuance across different authentication flows.
  */
+// biome-ignore lint/suspicious/noExplicitAny: user object is variable (Mongoose Document, plain object, anonymous user) — strict typing here would require generics that break call sites
 export const generateTokens = async (user: any, authOptions?: AuthOptions) => {
   const tokenSecretOrKey = process.env.TOKEN_SECRET;
   if (!tokenSecretOrKey) {
@@ -111,7 +118,7 @@ export const generateTokens = async (user: any, authOptions?: AuthOptions) => {
     logger.warn("No user found for token generation");
     return {refreshToken: null, token: null};
   }
-  let payload: Record<string, any> = {id: user._id.toString()};
+  let payload: Record<string, unknown> = {id: String(user._id)};
   if (authOptions?.generateJWTPayload) {
     payload = {...authOptions.generateJWTPayload(user), ...payload};
   }
@@ -137,7 +144,7 @@ export const generateTokens = async (user: any, authOptions?: AuthOptions) => {
 
   const token = jwt.sign(payload, tokenSecretOrKey, tokenOptions);
   const refreshTokenSecretOrKey = process.env.REFRESH_TOKEN_SECRET;
-  let refreshToken;
+  let refreshToken: string | undefined;
   if (refreshTokenSecretOrKey) {
     const refreshTokenOptions: jwt.SignOptions = {
       expiresIn: "30d",
@@ -215,7 +222,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
     passport.use(
       "jwt",
       new JwtStrategy(jwtOpts, async (jwtPayload: JwtPayload, done) => {
-        let user;
+        let user: User | null = null;
         if (!jwtPayload) {
           return done(null, false);
         }
@@ -241,7 +248,11 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
 
   // Adds req.user to the request. This may wind up duplicating requests with passport,
   // but passport doesn't give us req.user early enough.
-  async function decodeJWTMiddleware(req, res, next) {
+  async function decodeJWTMiddleware(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
     if (!process.env.TOKEN_SECRET) {
       return next();
     }
@@ -260,21 +271,27 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
       return next();
     }
 
-    let decoded;
+    let decoded: jwt.JwtPayload | undefined;
 
     try {
       decoded = jwt.verify(token, process.env.TOKEN_SECRET, {
         issuer: process.env.TOKEN_ISSUER,
       }) as jwt.JwtPayload;
-    } catch (error: any) {
+    } catch (error: unknown) {
       const userText = req.user?._id ? ` for user ${req.user._id} ` : "";
-      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${error?.expiredAt}, current time: ${Date.now()}`;
+      const expiredAt =
+        error && typeof error === "object" && "expiredAt" in error
+          ? (error as {expiredAt?: unknown}).expiredAt
+          : undefined;
+      const message = errorMessage(error);
+      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${Date.now()}`;
       logger.debug(details);
-      return res.status(401).json({details, message: error?.message});
+      return res.status(401).json({details, message});
     }
-    if (decoded.id) {
+    if (decoded?.id) {
       try {
-        req.user = await userModel.findById(decoded.id);
+        const user = await userModel.findById(decoded.id);
+        req.user = user as unknown as express.Request["user"];
         if (req.user?.disabled) {
           logger.warn(`[jwt] User ${req.user.id} is disabled`);
           return res.status(401).json({status: 401, title: "User is disabled"});
@@ -286,6 +303,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
     return next();
   }
   app.use(decodeJWTMiddleware);
+  // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   app.use(express.urlencoded({extended: false}) as any);
 }
 
@@ -296,23 +314,31 @@ export function addAuthRoutes(
 ): void {
   const router = express.Router();
   router.post("/login", async (req, res, next) => {
-    passport.authenticate("local", {session: false}, async (err: any, user: any, info: any) => {
-      if (err) {
-        logger.error(`Error logging in: ${err}`);
-        return next(err);
+    passport.authenticate(
+      "local",
+      {session: false},
+      async (
+        err: Error | null,
+        user: (User & {type?: string}) | false | null,
+        info: {message?: string} | undefined
+      ) => {
+        if (err) {
+          logger.error(`Error logging in: ${err}`);
+          return next(err);
+        }
+        if (!user) {
+          logger.warn(`Invalid login: ${info}`);
+          return res.status(401).json({message: info?.message});
+        }
+        if (process.env.NODE_ENV !== "test") {
+          logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
+        }
+        const tokens = await generateTokens(user, authOptions);
+        return res.json({
+          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
+        });
       }
-      if (!user) {
-        logger.warn(`Invalid login: ${info}`);
-        return res.status(401).json({message: info?.message});
-      }
-      if (process.env.NODE_ENV !== "test") {
-        logger.info(`User logged in: ${user._id}, type: ${(user as any).type || "N/A"}`);
-      }
-      const tokens = await generateTokens(user, authOptions);
-      return res.json({
-        data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
-      });
-    })(req, res, next);
+    )(req, res, next);
   });
 
   router.post("/refresh_token", async (req, res) => {
@@ -329,12 +355,13 @@ export function addAuthRoutes(
       return res.status(401).json({message: "No REFRESH_TOKEN_SECRET set, cannot refresh token"});
     }
     const refreshTokenSecretOrKey = process.env.REFRESH_TOKEN_SECRET;
-    let decoded;
+    let decoded: JwtPayload;
     try {
       decoded = jwt.verify(req.body.refreshToken, refreshTokenSecretOrKey) as JwtPayload;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Error refreshing token for user ${req.user?.id}: ${error}`);
-      return res.status(401).json({message: error?.message});
+      const message = errorMessage(error);
+      return res.status(401).json({message});
     }
     if (decoded?.id) {
       const user = await userModel.findById(decoded.id);
@@ -351,10 +378,10 @@ export function addAuthRoutes(
     router.post(
       "/signup",
       passport.authenticate("signup", {failWithError: true, session: false}),
-      async (req: any, res: any) => {
+      async (req: express.Request, res: express.Response) => {
         const tokens = await generateTokens(req.user, authOptions);
         return res.json({
-          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: req.user._id},
+          data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: req.user?._id},
         });
       }
     );
@@ -379,8 +406,8 @@ export function addMeRoutes(
       logger.debug("Not user data found for /me");
       return res.sendStatus(404);
     }
-    const dataObject = data.toObject();
-    (dataObject as any).id = data._id;
+    const dataObject = data.toObject() as unknown as Record<string, unknown>;
+    dataObject.id = data._id;
     return res.json({data: dataObject});
   });
 
@@ -396,17 +423,18 @@ export function addMeRoutes(
     // try {
     //   body = transform(req.body, "update", req.user);
     // } catch (e) {
-    //   return res.status(403).send({message: (e as any).message});
+    //   return res.status(403).send({message: (e as Error).message});
     // }
     try {
       Object.assign(doc, req.body);
       await doc.save();
 
-      const dataObject = doc.toObject();
-      (dataObject as any).id = doc._id;
+      const dataObject = doc.toObject() as unknown as Record<string, unknown>;
+      dataObject.id = doc._id;
       return res.json({data: dataObject});
-    } catch (error) {
-      return res.status(403).send({message: (error as any).message});
+    } catch (error: unknown) {
+      const message = errorMessage(error);
+      return res.status(403).send({message});
     }
   });
 

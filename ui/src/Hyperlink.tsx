@@ -101,11 +101,12 @@ class HyperlinkComponent extends React.Component<HyperlinkProps> {
             }
           }
           if (this.props.onPress) {
-            clickHandlerProps.onPress = () => this.props.onPress?.(url);
+            // The HyperlinkProps onPress signature is (url) => void per Common.ts, but this forked
+            // component invokes it with both url and text. Cast to avoid arity mismatch.
+            const onPressFn = this.props.onPress as (url: string, text: string) => void;
+            clickHandlerProps.onPress = () => onPressFn(url, text);
           }
 
-          // noExplicitAny: `injectViewProps` returns an arbitrary props bag (HyperlinkProps types it
-          // as returning `any`); accept any spreadable record for forwarding to <Text>.
           let injected: Record<string, unknown> = {};
           if (this.props.injectViewProps) {
             injected = this.props.injectViewProps(url);

@@ -23,9 +23,15 @@ export type BetterAuthInstance = ReturnType<typeof betterAuth>;
 /**
  * Options for creating a Better Auth instance.
  */
+// Minimal shape we use from the MongoDB native client returned by mongoose connection
+export interface MongoClientLike {
+  // biome-ignore lint/suspicious/noExplicitAny: the MongoDB driver Db type is opaque to this layer; it is passed straight to better-auth's adapter
+  db: () => any;
+}
+
 export interface CreateBetterAuthOptions {
   config: BetterAuthConfig;
-  mongoClient: any;
+  mongoClient: MongoClientLike;
   userModel?: UserModel;
 }
 
@@ -88,7 +94,7 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
     trustedOrigins: config.trustedOrigins ?? [],
   });
 
-  return auth as any;
+  return auth as BetterAuthInstance;
 };
 
 /**
@@ -108,31 +114,35 @@ export const createBetterAuthSessionMiddleware = (
       if (session?.user && session?.session) {
         const betterAuthUser = session.user as BetterAuthUser;
 
+        const reqWithSession = req as Request & {
+          user?: Request["user"];
+          betterAuthSession?: BetterAuthSessionData;
+        };
         if (userModel) {
           // Look up the application user by betterAuthId
           const appUser = await findOneOrNoneFor(userModel, {
             betterAuthId: betterAuthUser.id,
           });
           if (appUser) {
-            (req as any).user = appUser;
-            (req as any).betterAuthSession = session;
+            reqWithSession.user = appUser as unknown as Request["user"];
+            reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
           } else {
             // User exists in Better Auth but not synced yet - create them
             const newUser = await syncBetterAuthUser(userModel, betterAuthUser);
-            (req as any).user = newUser;
-            (req as any).betterAuthSession = session;
+            reqWithSession.user = newUser as unknown as Request["user"];
+            reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
           }
         } else {
           // No user model - just attach the Better Auth user directly
-          (req as any).user = {
+          reqWithSession.user = {
             _id: betterAuthUser.id,
             admin: false,
             betterAuthId: betterAuthUser.id,
             email: betterAuthUser.email,
             id: betterAuthUser.id,
             name: betterAuthUser.name,
-          };
-          (req as any).betterAuthSession = session;
+          } as unknown as Request["user"];
+          reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
         }
       }
 
@@ -148,15 +158,27 @@ export const createBetterAuthSessionMiddleware = (
  * Syncs a Better Auth user to the application User model.
  * Creates or updates the user as needed.
  */
+// Loose shape used when mutating Mongoose user documents during Better Auth sync.
+// The fields are added by the consumer's user schema (via baseUserPlugin or similar).
+interface MutableUserDoc {
+  email?: string;
+  name?: string;
+  betterAuthId?: string;
+  oauthProvider?: string | null;
+  id?: string;
+  save: () => Promise<unknown>;
+}
+
 export const syncBetterAuthUser = async (
   userModel: UserModel,
   betterAuthUser: BetterAuthUser,
   oauthProvider?: string
+  // biome-ignore lint/suspicious/noExplicitAny: return is a consumer-defined user document; tests inspect varied fields
 ): Promise<any> => {
   try {
-    const existingUser: any = await findOneOrNoneFor(userModel, {
+    const existingUser = (await findOneOrNoneFor(userModel, {
       betterAuthId: betterAuthUser.id,
-    });
+    })) as unknown as MutableUserDoc | null;
 
     if (existingUser) {
       // Update existing user if needed
@@ -169,9 +191,9 @@ export const syncBetterAuthUser = async (
     }
 
     // Check if user exists by email (migration case)
-    const userByEmail: any = await findOneOrNoneFor(userModel, {
+    const userByEmail = (await findOneOrNoneFor(userModel, {
       email: betterAuthUser.email,
-    });
+    })) as unknown as MutableUserDoc | null;
     if (userByEmail) {
       // Link existing user to Better Auth
       userByEmail.betterAuthId = betterAuthUser.id;
@@ -184,14 +206,15 @@ export const syncBetterAuthUser = async (
 
     // Use Better Auth ID as _id when it's a valid ObjectId (MongoDB adapter) so frontend IDs match
     const useAsId = mongoose.isValidObjectId(betterAuthUser.id) ? {_id: betterAuthUser.id} : {};
-    const newUser: any = new (userModel as any)({
+    // biome-ignore lint/suspicious/noExplicitAny: userModel is generic across consumers — constructor args are runtime-validated
+    const newUser = new (userModel as any)({
       ...useAsId,
       admin: false,
       betterAuthId: betterAuthUser.id,
       email: betterAuthUser.email,
       name: betterAuthUser.name || betterAuthUser.email.split("@")[0],
       oauthProvider: oauthProvider || null,
-    });
+    }) as MutableUserDoc;
     await newUser.save();
     logger.info(`Created new user from Better Auth: ${newUser.id}`);
     return newUser;
@@ -222,9 +245,9 @@ export const mountBetterAuthRoutes = (
 /**
  * Gets the MongoDB client from the mongoose connection.
  */
-export const getMongoClientFromMongoose = (): any => {
+export const getMongoClientFromMongoose = (): MongoClientLike => {
   const connection = mongoose.connection;
-  const client = (connection as any).client;
+  const client = (connection as unknown as {client?: MongoClientLike}).client;
   if (!client) {
     throw new Error("Mongoose is not connected. Ensure MongoDB connection is established first.");
   }
@@ -249,12 +272,12 @@ export const setupBetterAuthUserSync = (_auth: BetterAuthInstance, _userModel: U
  * Extracts Better Auth session data from the request.
  */
 export const getBetterAuthSession = (req: Request): BetterAuthSessionData | null => {
-  return (req as any).betterAuthSession ?? null;
+  return (req as Request & {betterAuthSession?: BetterAuthSessionData}).betterAuthSession ?? null;
 };
 
 /**
  * Checks if the request has a valid Better Auth session.
  */
 export const hasBetterAuthSession = (req: Request): boolean => {
-  return Boolean((req as any).betterAuthSession);
+  return Boolean((req as Request & {betterAuthSession?: BetterAuthSessionData}).betterAuthSession);
 };

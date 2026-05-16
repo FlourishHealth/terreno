@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, type Mock, spyOn} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import axios from "axios";

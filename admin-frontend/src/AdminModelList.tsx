@@ -1,13 +1,13 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
+import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminCustomScreen, AdminModelConfig} from "./types";
+import type {AdminApi, AdminCustomScreen, AdminModelConfig} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
   /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
@@ -126,7 +126,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
 
   const handlePress = useCallback(
     (modelName: string) => {
-      router.push(`${baseUrl}/${modelName}` as any);
+      router.push(`${baseUrl}/${modelName}` as Href);
     },
     [baseUrl]
   );
@@ -172,7 +172,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
               <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
             )}
             {configurationPath && (
-              <ConfigurationCard onPress={() => router.push(configurationPath as any)} />
+              <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
             )}
           </Box>
         )}

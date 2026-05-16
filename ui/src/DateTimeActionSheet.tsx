@@ -369,7 +369,11 @@ const DateCalendar = ({
   const {theme} = useTheme();
 
   const markedDates: {
-    [id: string]: {selected: boolean; selectedColor: string; customStyles?: any};
+    [id: string]: {
+      selected: boolean;
+      selectedColor: string;
+      customStyles?: {container?: {backgroundColor?: string; borderRadius?: number}};
+    };
   } = {};
 
   // Check if the date is T00:00:00.000Z (it should be), otherwise treat it as a date in the
@@ -471,7 +475,7 @@ export const DateTimeActionSheet = ({
 
   // If the value changes in the props, update the state for the date and time.
   useEffect(() => {
-    let datetime;
+    let datetime: DateTime;
     if (value) {
       if (type === "date") {
         datetime = DateTime.fromISO(value).toUTC().set({millisecond: 0, second: 0});
@@ -495,7 +499,7 @@ export const DateTimeActionSheet = ({
     setHour(h);
     setMinute(datetime.minute);
     setAmPm(datetime.toFormat("a") === "AM" ? "am" : "pm");
-    setDate(datetime.toISO());
+    setDate(datetime.toISO() ?? "");
     // Reset timezone when the sent date changes.
     setTimezone(originalTimezone);
   }, [value, originalTimezone, type]);

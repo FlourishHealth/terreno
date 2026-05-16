@@ -5,7 +5,7 @@ import {AIRequest} from "../models/aiRequest";
 import type {AiRequestsExplorerRouteOptions} from "../types";
 
 export const addAiRequestsExplorerRoutes = (
-  router: any,
+  router: express.Router,
   options?: AiRequestsExplorerRouteOptions
 ): void => {
   router.get(
@@ -31,7 +31,7 @@ export const addAiRequestsExplorerRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const user = (req as any).user;
+      const user = req.user as {admin?: boolean} | undefined;
       if (!user?.admin) {
         return res.status(403).json({error: "Admin access required"});
       }
@@ -43,7 +43,9 @@ export const addAiRequestsExplorerRoutes = (
       );
       const skip = (page - 1) * limit;
 
-      const match: Record<string, any> = {deleted: {$ne: true}};
+      const match: Record<string, unknown> & {created?: {$gte?: Date; $lte?: Date}} = {
+        deleted: {$ne: true},
+      };
 
       if (req.query.requestType) {
         match.requestType = req.query.requestType;

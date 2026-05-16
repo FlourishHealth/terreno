@@ -29,6 +29,7 @@
  * router.get("/stats", middleware, statsHandler);
  * ```
  */
+import type express from "express";
 import merge from "lodash/merge";
 
 import type {ModelRouterOptions} from "./api";
@@ -246,7 +247,7 @@ interface ValidationConfig {
  */
 export interface OpenApiBuildResult {
   /** The OpenAPI documentation middleware */
-  middleware: any;
+  middleware: express.RequestHandler;
   /** Request body schema if defined */
   bodySchema?: Record<string, OpenApiSchemaProperty>;
   /** Query parameter schemas if defined */
@@ -397,7 +398,7 @@ export class OpenApiMiddlewareBuilder {
    * });
    * ```
    */
-  withRequestBody<T extends Record<string, any>>(
+  withRequestBody<T extends Record<string, unknown>>(
     schema: {
       [K in keyof T]: OpenApiSchemaProperty;
     },
@@ -454,7 +455,7 @@ export class OpenApiMiddlewareBuilder {
    * builder.withResponse(204, "No content");
    * ```
    */
-  withResponse<T extends Record<string, any>>(
+  withResponse<T extends Record<string, unknown>>(
     statusCode: number,
     schema:
       | {
@@ -508,7 +509,7 @@ export class OpenApiMiddlewareBuilder {
    * }, {description: "List of users"});
    * ```
    */
-  withArrayResponse<T extends Record<string, any>>(
+  withArrayResponse<T extends Record<string, unknown>>(
     statusCode: number,
     itemSchema: {
       [K in keyof T]: OpenApiSchemaProperty;
@@ -671,10 +672,10 @@ export class OpenApiMiddlewareBuilder {
    * ```
    */
   buildWithSchemas(): OpenApiBuildResult {
-    const noop = (_a: any, _b: any, next: () => void): void => next();
+    const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware only (no validation middleware)
-    let openApiMiddleware: any = noop;
+    let openApiMiddleware: express.RequestHandler = noop;
     if (this.options.openApi?.path) {
       openApiMiddleware = this.options.openApi.path(
         merge(
@@ -733,11 +734,12 @@ export class OpenApiMiddlewareBuilder {
    * router.get("/users/:id", middleware, getUserHandler);
    * ```
    */
+  // biome-ignore lint/suspicious/noExplicitAny: returns either a single RequestHandler or an array depending on validation config — callers spread or invoke
   build(): any {
-    const noop = (_a: any, _b: any, next: () => void): void => next();
+    const noop: express.RequestHandler = (_a, _b, next) => next();
 
     // Build the OpenAPI documentation middleware
-    let openApiMiddleware: any = noop;
+    let openApiMiddleware: express.RequestHandler = noop;
     if (this.options.openApi?.path) {
       openApiMiddleware = this.options.openApi.path(
         merge(
@@ -768,7 +770,7 @@ export class OpenApiMiddlewareBuilder {
     }
 
     // Build validation middleware
-    const validators: any[] = [openApiMiddleware];
+    const validators: express.RequestHandler[] = [openApiMiddleware];
 
     // Add body validation if we have a request body schema
     if (this.validationConfig.validateBody && this.requestBodySchema) {

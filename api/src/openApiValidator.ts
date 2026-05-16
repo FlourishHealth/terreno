@@ -184,6 +184,7 @@ const getAjvInstance = (): Ajv => {
       useDefaults: true,
       validateSchema: false,
     });
+    // biome-ignore lint/suspicious/noExplicitAny: ajv-formats has a known type compat issue with AJV instances
     addFormats(instance as any);
     ajvCache.set(key, instance);
   }
@@ -644,7 +645,7 @@ export const createValidator = (
   return (req: Request, res: Response, next: NextFunction): void => {
     // Run body validation first
     if (bodyValidator) {
-      bodyValidator(req, res, ((err?: any) => {
+      bodyValidator(req, res, ((err?: unknown) => {
         if (err) {
           next(err);
           return;
@@ -714,7 +715,7 @@ const m2sOptions = {
  */
 export const getSchemaFromModel = <T>(model: Model<T>): Record<string, OpenApiSchemaProperty> => {
   const modelSwagger = m2s(model, m2sOptions);
-  fixMixedFields((model as any).schema, modelSwagger.properties);
+  fixMixedFields(model.schema, modelSwagger.properties);
   return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
 };
 

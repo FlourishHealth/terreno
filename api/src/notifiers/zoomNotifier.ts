@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
-import {APIError} from "../errors";
+import {APIError, errorMessage} from "../errors";
 import {logger} from "../logger";
 
 /**
@@ -96,13 +96,13 @@ export const sendToZoom = async (
       }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Error posting to Zoom: ${errorMessage}`);
+    const message = errorMessage(error);
+    logger.error(`Error posting to Zoom: ${message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Zoom: ${errorMessage}`,
+        title: `Error posting to Zoom: ${message}`,
       });
     }
   }

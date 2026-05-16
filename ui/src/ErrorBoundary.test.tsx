@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, beforeAll, describe, expect, it, mock, spyOn} from "bun:test";
 import React from "react";
 

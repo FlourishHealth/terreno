@@ -21,7 +21,7 @@ const ALLOWED_MIME_TYPES = new Set([
 const DEFAULT_MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export const addFileRoutes = (
-  router: any,
+  router: express.Router,
   options: FileRouteOptions & {fileStorageService: FileStorageService}
 ): void => {
   const {fileStorageService, maxFileSize = DEFAULT_MAX_FILE_SIZE} = options;
@@ -56,8 +56,9 @@ export const addFileRoutes = (
         .build(),
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
-      const file = (req as any).file as Express.Multer.File | undefined;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId;
+      const file = (req as express.Request & {file?: Express.Multer.File}).file;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)
+        ?._id as mongoose.Types.ObjectId;
 
       if (!file) {
         throw new APIError({status: 400, title: "No file provided"});
@@ -110,7 +111,8 @@ export const addFileRoutes = (
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const gcsKey = req.params.gcsKey as string;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)
+        ?._id as mongoose.Types.ObjectId;
 
       const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
       if (!attachment) {

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeAll, beforeEach, mock} from "bun:test";
 import {Writable} from "node:stream";
 import mongoose from "mongoose";
