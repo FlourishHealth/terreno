@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {AppState, Linking} from "react-native";
+import {AppState, type AppStateStatus, Linking} from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
@@ -125,7 +125,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     if (!recheckOnForeground) {
       return;
     }
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
+    const subscription = AppState.addEventListener("change", (nextAppState: AppStateStatus) => {
       const wasBackground = /inactive|background/.test(appState.current);
       const isNowActive = nextAppState === "active";
 

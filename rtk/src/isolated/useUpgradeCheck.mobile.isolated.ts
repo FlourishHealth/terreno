@@ -14,12 +14,12 @@ interface MockVersionCheckResponse {
 const mockUnwrap = mock((): Promise<MockVersionCheckResponse> => Promise.resolve({status: "ok"}));
 const mockTrigger = mock((..._args: unknown[]) => ({unwrap: mockUnwrap}));
 
-mock.module("./emptyApi", () => ({
+mock.module("../emptyApi", () => ({
   useLazyGetVersionCheckQuery: () => [mockTrigger],
 }));
 
 // IsWeb is false to exercise native code paths
-mock.module("./platform", () => ({
+mock.module("../platform", () => ({
   IsWeb: false,
 }));
 
@@ -68,7 +68,7 @@ const warnCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
-import {useUpgradeCheck} from "./useUpgradeCheck";
+import {useUpgradeCheck} from "../useUpgradeCheck";
 
 const flushPromises = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
