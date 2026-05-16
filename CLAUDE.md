@@ -1,10 +1,3 @@
----
-localRoot: true
-targets: ["claudecode"]
-description: "Terreno monorepo Claude Code guidelines"
-globs: ["**/*"]
----
-
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
@@ -16,6 +9,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api
@@ -23,20 +17,6 @@ A monorepo containing shared packages for building full-stack applications with 
 ## Development
 
 Uses [Bun](https://bun.sh/) as the package manager.
-
-### Bootstrap
-
-Run these commands when setting up or updating the project:
-
-```bash
-bun run bootstrap        # Initial setup: install deps + compile all packages
-bun run bootstrap:update # Update after changes: install deps + recompile all packages
-```
-
-- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment (e.g. a container image). Installs all dependencies and compiles every package.
-- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed. Reinstalls dependencies and recompiles to pick up any changes.
-
-### Common Commands
 
 ```bash
 bun install              # Install dependencies
@@ -54,6 +34,8 @@ bun run ui:test          # Test UI package
 bun run demo:start       # Start demo app
 bun run frontend:web     # Start frontend example
 bun run backend:dev      # Start backend example
+bun run mcp:build        # Build MCP server
+bun run mcp:start        # Start MCP server
 bun run admin-backend:compile   # Compile admin backend
 bun run admin-frontend:compile  # Compile admin frontend
 ```
@@ -170,6 +152,53 @@ import {
 } from "@terreno/api";
 ```
 
+#### modelRouter Usage
+
+```typescript
+import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
+
+const router = modelRouter(YourModel, {
+  permissions: {
+    list: [Permissions.IsAuthenticated],
+    create: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+    delete: [],  // Disabled
+  },
+  sort: "-created",
+  queryFields: ["_id", "type", "name"],
+});
+```
+
+#### Custom Routes
+
+For non-CRUD endpoints, use the OpenAPI builder:
+
+```typescript
+import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+
+router.get("/yourRoute/:id", [
+  authenticateMiddleware(),
+  createOpenApiBuilder(options)
+    .withTags(["yourTag"])
+    .withSummary("Brief summary")
+    .withPathParameter("id", {type: "string"})
+    .withResponse(200, {data: {type: "object"}})
+    .build(),
+], asyncHandler(async (req, res) => {
+  return res.json({data: result});
+}));
+```
+
+#### API Conventions
+
+- Throw `APIError` with appropriate status codes: `throw new APIError({status: 400, title: "Message"})`
+- Do not use `Model.findOne` - use `Model.findExactlyOne` or `Model.findOneOrThrow`
+- Define statics/methods by direct assignment: `schema.methods = {bar() {}}`
+- All model types live in `src/modelInterfaces.ts`
+- In routes: `req.user` is `UserDocument | undefined`
+- In @terreno/api callbacks: cast with `const user = u as unknown as UserDocument`
+
 ### @terreno/ui
 
 React Native component library with 88+ components:
@@ -194,6 +223,60 @@ import {
 } from "@terreno/ui";
 ```
 
+#### UI Component Examples
+
+Layout with Box:
+```typescript
+<Box direction="row" padding={4} gap={2} alignItems="center">
+  <Text>Content</Text>
+  <Button text="Action" />
+</Box>
+```
+
+Buttons:
+```typescript
+<Button
+  text="Submit"
+  variant="primary"  // 'primary' | 'secondary' | 'outline' | 'ghost'
+  onClick={handleSubmit}
+  loading={isLoading}
+  iconName="check"
+/>
+```
+
+Forms:
+```typescript
+<TextField
+  label="Email"
+  value={email}
+  onChangeText={setEmail}
+  error={emailError}
+  helperText="Enter a valid email"
+/>
+```
+
+Modals:
+```typescript
+<Modal
+  title="Confirm Action"
+  visible={isVisible}
+  primaryButtonText="Confirm"
+  secondaryButtonText="Cancel"
+  onDismiss={() => setIsVisible(false)}
+  onPrimaryAction={handleConfirm}
+>
+  <Text>Are you sure?</Text>
+</Modal>
+```
+
+#### UI Common Pitfalls
+
+- Don't use inline styles when theme values are available
+- Don't use raw `View`/`Text` when `Box`/@terreno/ui `Text` are available
+- Don't forget loading and error states
+- Don't use `style` prop when equivalent props exist (`padding`, `margin`)
+- Never modify `openApiSdk.ts` manually
+
 ### @terreno/rtk
 
 Redux Toolkit Query integration:
@@ -206,6 +289,31 @@ Key imports:
 ```typescript
 import {generateAuthSlice} from "@terreno/rtk";
 ```
+
+Always use generated SDK hooks - never use `axios` or `request` directly:
+
+```typescript
+// Correct
+import {useGetYourRouteQuery} from "@/store/openApiSdk";
+const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
+
+// Wrong - don't use axios directly
+// const result = await axios.get("/api/yourRoute/value");
+```
+
+## React Best Practices (Frontend Packages)
+
+- Use functional components with `React.FC` type
+- Import hooks directly: `import {useEffect, useMemo} from 'react'`
+- Always provide return types for functions
+- Add explanatory comment above each `useEffect`
+- Wrap callbacks in `useCallback`
+- Prefer const arrow functions
+- Use inline styles over `StyleSheet.create`
+- Use Luxon for date operations
+- Place static content and interfaces at beginning of file
+- Minimize `use client`, `useEffect`, and `setState`
+- Always support React-Native Web
 
 ## CI/CD Workflows
 
