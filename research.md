@@ -1,176 +1,97 @@
-# Research: Consent Forms System for Terreno
+# Research: modelRouter Actions
 
 ## Summary
-Terreno has all the building blocks to support a consent forms system: `modelRouter` for CRUD APIs, `AdminApp` for admin UI, `MarkdownView`/`SignatureField`/`CheckBox` in ui, and RTK Query for client hooks. The main work is defining the models (ConsentForm + ConsentResponse), creating a `ConsentApp` plugin for api, adding admin support, and building a `ConsentNavigator` component in ui that client apps import. The Flourish implementation provides a proven UX pattern to follow.
 
-## Decisions Made
+`modelRouter` already has the right shape for actions to slot into cleanly:
 
-1. **Option A** — Full plugin across api+ui+rtk (not a separate package)
-2. **Server-side form-to-user mapping** — Backend filters forms before sending to client
-3. **Explicit versioning** — "Publish new version" action, not auto-version on edit
-4. **No default forms** — Admin editor will have an AI-generate button using Terreno AI tooling
-5. **Markdown editor** — New UI component (may be broken off into its own task first)
+- `options.endpoints(router)` callback runs **before** CRUD route registration, so custom routes can shadow CRUD paths. (`api/src/api.ts:507`)
+- Permission middleware **auto-loads `req.obj`** for `/:id` routes — instance actions get the document for free, plus existing 404/soft-delete behavior. (`api/src/api.ts:148–210`)
+- `asyncHandler` + `apiErrorMiddleware` already wrap every CRUD route. (`api/src/api.ts:1208–1291`, `api/src/api.ts:1176`)
+- OpenAPI today is **Mongoose-driven** via `mongoose-to-swagger`. Actions need a parallel **Zod → OpenAPI** path. This is the largest new piece. (`api/src/openApi.ts:116–161`)
+- `createOpenApiBuilder` is the existing fluent builder for custom OpenAPI routes — actions reuse/extend that pattern internally so per-action OpenAPI emission stays consistent. (`api/src/openApiBuilder.ts`)
+
+## Decisions captured from clarifying questions
+
+| # | Decision |
+|---|---|
+| Methods | POST + GET |
+| Schemas | Zod (input + output), used for both runtime validation and OpenAPI |
+| Doc loading | Auto-load on instance actions; 404 if missing; pass via `ctx.doc` |
+| Permissions | Same shape as modelRouter CRUD `PermissionMethod<T>` array; **required**, throws at register time if omitted |
+| Handler | RORO: `async ({req, res, doc, body, query, user}) => result` |
+| Config | Top-level `instanceActions` and `collectionActions` records on `ModelRouterOptions` |
+| URL | Action name verbatim (e.g. `bulkArchive` → `/bulkArchive`) |
+| Response | Handler returns raw data; framework auto-wraps in `{data: ...}` (no `responseHandler`) |
+| OpenAPI tag | Default to model tag; per-action `tag` override |
+| Collisions | Throw at register time on conflicts with CRUD paths or array-field operations |
+| Hooks | No pre/post hooks on actions |
 
 ## Context
-- **Problem:** Apps need consent workflows (legal agreements, HIPAA, privacy policies) but there's no reusable system in Terreno.
-- **Current state:** Flourish has a working but hardcoded consent system — forms defined in constants, types enumerated, completion tracked on the User model. It works but isn't portable.
-- **Goal:** A first-class, configurable consent system spanning all Terreno packages.
+
+| Concern | Current state | File |
+|---|---|---|
+| modelRouter entry | `modelRouter(path, model, options) → ModelRouterRegistration` with `_buildWithOpenApi` rebuild hook | `api/src/api.ts:466` |
+| Custom routes today | `options.endpoints(router)` callback; runs first so it can shadow CRUD | `api/src/api.ts:507` |
+| Permissions | Array of `PermissionMethod<T> = (method, user?, obj?) => bool` per REST verb. AND-semantics | `api/src/permissions.ts:34` |
+| `IsOwner` two-phase | Returns `true` when `obj` is undefined (pre-load); checks `ownerId` after middleware loads doc | `api/src/permissions.ts:53` |
+| Doc auto-load | Permission middleware does `findById` + populate, attaches to `(req as any).obj` for `/:id` routes; 404 on missing or soft-deleted | `api/src/api.ts:148–210` |
+| `asyncHandler` | Wraps `(req, res, next) → Promise`, catches rejections → `next(err)`; optional `bodySchema`/`querySchema` validation chain | `api/src/api.ts:1208–1291` |
+| Error envelope | `APIError({status, title, detail?, code?, fields?, meta?})` + `apiErrorMiddleware` registered on every modelRouter | `api/src/errors.ts:1–132`, `api/src/api.ts:1176` |
+| OpenAPI generation | Per-verb middlewares (`listOpenApiMiddleware`, `createOpenApiMiddleware`, …) built from Mongoose via `mongoose-to-swagger` | `api/src/openApi.ts:116–161` |
+| OpenAPI tag default | `model.collection.collectionName` | `api/src/openApi.ts:156` |
+| Custom-route OpenAPI | `createOpenApiBuilder(options).withTags(...).withResponse(...).build()` fluent builder | `api/src/openApiBuilder.ts` |
+| Validation | Opt-in `validation: true` option enables AJV/OpenAPI validation (`validateRequestBody`, `validateQueryParams`) | `api/src/openApiValidator.ts` |
+| Tests | `bun:test` + `supertest` + `setupDb()` + `authAsUser()` per file | `api/src/api.test.ts` etc. |
 
 ## Findings
 
-### Finding 1 — API Patterns (modelRouter + TerrenoPlugin)
+1. **`endpoints` is the existing extension point.** `consentApp.ts:56` already hand-rolls actions inside it. This is exactly the boilerplate we're eliminating — it becomes a migration target in the same PR.
 
-**modelRouter** (`api/src/api.ts:423-453`) generates full CRUD endpoints for any Mongoose model with permissions, hooks, validation, pagination, sorting, and OpenAPI spec generation.
+2. **Permission middleware already loads docs for `/:id` routes.** For instance actions, we factor the existing load-doc-then-check-permission flow into a reusable helper keyed on the action's permission array (rather than the model's `update`/`read` arrays).
 
-**TerrenoPlugin** (`api/src/terrenoPlugin.ts`) is the extension point — `AdminApp`, `HealthApp`, and `BetterAuthApp` all implement it. A plugin gets `register(app)` and can mount arbitrary Express routes.
+3. **No Zod in `@terreno/api` today.** Adding `@asteasolutions/zod-to-openapi` is required. It coexists cleanly with `mongoose-to-swagger` since action schemas are independent of the model's CRUD schemas.
 
-**Registration pattern** (example-backend):
-```typescript
-const terraApp = new TerrenoApp({userModel: User, ...})
-  .register(todoRouter)            // modelRouter
-  .register(new AdminApp({...}))   // plugin
-  .start();
-```
+4. **OpenAPI rebuild hook exists.** `ModelRouterRegistration._buildWithOpenApi` is called by `TerrenoApp` after all routers are assembled — actions register their operations during this rebuild.
 
-**Key hooks available on modelRouter:** `preCreate`, `postCreate`, `preUpdate`, `postUpdate`, `preDelete`, `postDelete`, `queryFilter`, `responseHandler`.
+5. **`responseHandler` is for model documents.** Actions return arbitrary data and should bypass it; framework just wraps in `{data: ...}` to match the CRUD response envelope.
 
-### Finding 2 — Admin Backend + Frontend
+6. **Soft-delete-aware doc loading** returns 404 with metadata. Instance actions inherit this via the shared helper, not by reimplementation.
 
-**AdminApp** (`admin-backend/src/adminApp.ts:121-206`) takes a `models` array and auto-generates:
-- `GET /admin/config` — field metadata extracted from Mongoose schemas
-- CRUD routes per model via `modelRouter` with `Permissions.IsAdmin`
+7. **Array operations register `POST /:id/:field`** (`api/src/api.ts:1159–1175`). Action names must not collide with array field names — we detect this at register time.
 
-**Admin frontend** auto-generates list/table/form views from the config response:
-- `AdminModelList` — card grid of all models
-- `AdminModelTable` — DataTable with pagination, sorting, actions
-- `AdminModelForm` — auto-generated form from field metadata
-- `AdminFieldRenderer` — renders fields by type (string->TextField, boolean->BooleanField, enum->SelectField, etc.)
+8. **No bulk operations** (TODO at `api/src/api.ts:60`). Collection actions become the natural home for bulk patterns once shipped.
 
-**Gap:** No markdown editor field type exists. `AdminFieldRenderer` handles string/number/boolean/date/enum/objectid. For consent form markdown content, we need a new markdown editor component in UI.
+9. **Existing OpenAPI validator is AJV/JSON-Schema based.** The Zod path for actions is parallel — Zod schemas validate request bodies at the action middleware, and `zod-to-openapi` converts them for the spec. No collision with `configureOpenApiValidator`.
 
-### Finding 3 — UI Components Available
+## Options Considered
 
-All needed UI primitives exist in `@terreno/ui`:
+| # | Approach | Pros | Cons | Effort |
+|---|---|---|---|---|
+| A | **Recommended.** New top-level `instanceActions` / `collectionActions` options; reuses the existing `endpoints` slot internally; leaves raw `endpoints` as an escape hatch | Clean public API. Matches chosen config shape. Doesn't break existing call sites | Two ways to add custom routes; need docs explaining when to use each | Medium |
+| B | Replace `endpoints` entirely with `instanceActions`/`collectionActions` | One way to do it | Breaking change. Forces migration of all callers in same PR | Large |
+| C | Extend `endpoints` callback with helper methods (`router.action(...)`) | Minimal new public surface | Awkward signature; doesn't match chosen config shape; harder to introspect for OpenAPI | Small |
 
-| Component | Use in Consents |
-|-----------|----------------|
-| `Page` | Consent form screen container |
-| `MarkdownView` | Render consent form markdown content |
-| `SignatureField` | Capture signatures |
-| `CheckBox` | Optional toggles/checkboxes |
-| `Button` | Agree/Disagree actions |
-| `ScrollView` (via Page scroll) | Scroll-to-bottom tracking |
-| `Box` | Layout |
-| `Heading`/`Text` | Form title and instructions |
+## Recommendation
 
-No existing navigator pattern for multi-step flows. `ConsentNavigator` would be new.
+**Option A.** Three layered concerns:
 
-### Finding 4 — RTK Patterns for Client Hooks
+1. **Route registration** — register actions inside the existing pre-CRUD slot, using the same `asyncHandler` + `apiErrorMiddleware` plumbing.
+2. **Permission + doc-load wiring** — extract a reusable helper from `permissionMiddleware` that loads the doc and runs an arbitrary permission array. Reuse for instance actions; CRUD continues to use the keyed-by-verb path.
+3. **OpenAPI** — add `@asteasolutions/zod-to-openapi`, register action operations during `_buildWithOpenApi`. Per-action `tag` override; default to model tag.
 
-**emptySplitApi** (`rtk/src/emptyApi.ts`) is the base API with auth token management. Client apps run `bun run sdk` to generate typed hooks from the backend's `/openapi.json`.
+Migrate `consentApp.ts` to the new API in the same PR as a dogfooding pass.
 
-**generateTags** (`rtk/src/tagGenerator.ts`) auto-creates cache invalidation rules.
+## References
 
-For the consent system, we'd export a custom hook like `useConsentForms(api)` from `@terreno/ui` that:
-1. Fetches pending consent forms for the current user
-2. Returns forms, loading state, and a submit function
-3. Runs on every app launch
-
-### Finding 5 — Flourish System Architecture (Reference)
-
-**Models:** Consent stored as subdocuments on User (`consentFormAgreements[]` with consentFormId, type, isAgreed, agreedDate, signature, signedDate).
-
-**Form definition:** Interface with `consentFormId`, `title`, `text` (function returning markdown), `consentFormType`, `captureSignature`, `requireScrollToBottom`.
-
-**Types:** 8 types (patientAgreement, familyMemberAgreement, consent, transportation, research, privacy, hipaa, virginiaRights).
-
-**Navigation flow:** App layout checks `useConsentForms()` -> if pending forms exist, redirects to `/(consent)` screen -> user completes one at a time -> PATCH user with agreement -> when all done, redirect to main app.
-
-**Key patterns to keep:**
-- Versioned forms (consentFormId as version number)
-- Ordered display (show form A first, then B)
-- Per-form type configuration (signature, scroll-to-bottom, checkboxes)
-- Run-on-every-launch check
-
-**Key patterns to change:**
-- Forms in database (not hardcoded constants)
-- Separate ConsentForm and ConsentResponse models (not subdocuments on User)
-- Admin-editable markdown content
-- Hook-based server-side mapping (user data -> which forms to show)
-
-### Finding 6 — Proposed Data Model
-
-**ConsentForm** (admin-managed):
-- `title` (string, required)
-- `slug` (string, unique identifier for form lineage)
-- `content` (string/markdown, required)
-- `type` (enum: agreement, privacy, hipaa, research, custom)
-- `version` (number, explicit versioning)
-- `order` (number, display ordering)
-- `captureSignature` (boolean)
-- `requireScrollToBottom` (boolean)
-- `checkboxes` (array of {label, required})
-- `buttons` (object: {agreeText, disagreeText, showDisagree})
-- `active` (boolean)
-
-**ConsentResponse** (user completions):
-- `userId` (ObjectId, ref User)
-- `consentFormId` (ObjectId, ref ConsentForm)
-- `agreed` (boolean)
-- `agreedAt` (Date)
-- `signature` (string, base64)
-- `signedAt` (Date)
-- `checkboxValues` (Map of label->boolean)
-- `metadata` (Mixed, for custom data from hooks)
-
-### Finding 7 — Integration Points
-
-**Backend (`@terreno/api`):**
-- `ConsentApp` plugin implementing `TerrenoPlugin`
-- Registers ConsentForm and ConsentResponse models + routes
-- `GET /consents/pending` — returns pending forms for authenticated user (checks version, previous responses)
-- `POST /consents/respond` — records a consent response
-- Hook: `resolveConsentForms(user, allForms)` — server-side filtering of which forms to show based on user data
-
-**Admin:**
-- Register ConsentForm in AdminApp models array
-- Custom markdown field renderer for content editing (new component, may be separate task)
-- AI-generate button for creating consent form content
-
-**Frontend (`@terreno/ui`):**
-- `ConsentNavigator` — drop-in navigator component
-- `ConsentFormScreen` — renders a single consent form (markdown + signature + checkboxes + buttons)
-- `useConsentForms(api)` — hook that fetches pending forms, returns state + submit
-
-**Client app integration:**
-```typescript
-import {ConsentNavigator} from "@terreno/ui";
-
-<ConsentNavigator api={terrenoApi} onComplete={() => router.replace("/(tabs)")} />
-```
-
-## Key File Paths
-
-| Feature | File |
-|---------|------|
-| modelRouter | `api/src/api.ts:423-453` |
-| TerrenoPlugin interface | `api/src/terrenoPlugin.ts` |
-| TerrenoApp class | `api/src/terrenoApp.ts:41-190` |
-| Permissions | `api/src/permissions.ts` |
-| OpenAPI generation | `api/src/openApi.ts` |
-| AdminApp | `admin-backend/src/adminApp.ts:121-206` |
-| AdminFieldRenderer | `admin-frontend/src/AdminFieldRenderer.tsx` |
-| AdminModelForm | `admin-frontend/src/AdminModelForm.tsx` |
-| useAdminApi | `admin-frontend/src/useAdminApi.ts` |
-| MarkdownView | `ui/src/MarkdownView.tsx` |
-| SignatureField | `ui/src/SignatureField.tsx` |
-| CheckBox | `ui/src/CheckBox.tsx` |
-| Page | `ui/src/Page.tsx` |
-| emptySplitApi | `rtk/src/emptyApi.ts` |
-| generateAuthSlice | `rtk/src/authSlice.ts` |
-| generateTags | `rtk/src/tagGenerator.ts` |
-| Example backend | `example-backend/src/server.ts` |
-| Example frontend store | `example-frontend/store/sdk.ts` |
-| Flourish consent forms | `~/src/flourish/backend/src/constants/consentForms.ts` |
-| Flourish consent screen | `~/src/flourish/app/app/(consent)/index.tsx` |
-| Flourish consent hook | `~/src/flourish/app/hooks/useConsentForms.ts` |
+- `api/src/api.ts:466` — modelRouter entry
+- `api/src/api.ts:105–314` — full options interface
+- `api/src/api.ts:148–210` — permission middleware doc-load
+- `api/src/api.ts:507` — endpoints registration order
+- `api/src/api.ts:1208–1291` — asyncHandler
+- `api/src/api.ts:1159–1175` — array operations
+- `api/src/permissions.ts:34–81` — Permissions
+- `api/src/openApi.ts:116–161` — OpenAPI middleware factory
+- `api/src/openApiBuilder.ts` — fluent OpenAPI builder for custom routes
+- `api/src/consentApp.ts:56–161` — example of hand-rolled actions (migration target)
+- `api/src/errors.ts:1–132` — APIError
+- `api/src/openApiValidator.ts` — validation middleware
