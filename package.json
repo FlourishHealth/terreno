@@ -62,7 +62,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "rulesync": "^5.9.0"
+    "rulesync": "^8.18.0"
   },
   "name": "@terreno/root",
   "overrides": {
