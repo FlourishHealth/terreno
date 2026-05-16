@@ -55,7 +55,7 @@ export const Card = ({
         gap={isMobile ? 0 : 6}
         height={cardHeight}
         overflow="hidden"
-        padding={isMobile ? 0 : 6}
+        padding={padding ?? (isMobile ? 0 : 6)}
         rounding={allBorders ? "md" : undefined}
         width={cardWidth}
         {...rest}
