@@ -11,7 +11,7 @@ import {
 } from "passport-jwt";
 import {Strategy as LocalStrategy} from "passport-local";
 
-import {APIError, apiErrorMiddleware} from "./errors";
+import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
 
@@ -86,7 +86,7 @@ export async function signupUser(
     await user.save();
     return user;
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
+    const message = errorMessage(error);
     throw new APIError({title: message});
   }
 }
@@ -283,7 +283,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
         error && typeof error === "object" && "expiredAt" in error
           ? (error as {expiredAt?: unknown}).expiredAt
           : undefined;
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${Date.now()}`;
       logger.debug(details);
       return res.status(401).json({details, message});
@@ -360,7 +360,7 @@ export function addAuthRoutes(
       decoded = jwt.verify(req.body.refreshToken, refreshTokenSecretOrKey) as JwtPayload;
     } catch (error: unknown) {
       logger.error(`Error refreshing token for user ${req.user?.id}: ${error}`);
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       return res.status(401).json({message});
     }
     if (decoded?.id) {
@@ -433,7 +433,7 @@ export function addMeRoutes(
       dataObject.id = doc._id;
       return res.json({data: dataObject});
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       return res.status(403).send({message});
     }
   });

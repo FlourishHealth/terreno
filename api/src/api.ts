@@ -9,7 +9,14 @@ import cloneDeep from "lodash/cloneDeep";
 import mongoose, {type Document, type Model} from "mongoose";
 
 import {authenticateMiddleware, type User} from "./auth";
-import {APIError, apiErrorMiddleware, getDisableExternalErrorTracking, isAPIError} from "./errors";
+import {
+  APIError,
+  apiErrorMiddleware,
+  errorMessage,
+  errorStack,
+  getDisableExternalErrorTracking,
+  isAPIError,
+} from "./errors";
 import {logger} from "./logger";
 import {
   createOpenApiMiddleware,
@@ -40,22 +47,6 @@ export interface JSONObject {
   [member: string]: JSONValue;
 }
 export type JSONValue = JSONPrimitive | JSONObject | JSONArray;
-
-// Helper to extract a human-readable message from an unknown error.
-const errorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return String(error);
-};
-
-// Helper to extract a stack trace string from an unknown error.
-const errorStack = (error: unknown): string => {
-  if (error instanceof Error && error.stack) {
-    return error.stack;
-  }
-  return String(error);
-};
 
 export const addPopulateToQuery = (
   // biome-ignore lint/suspicious/noExplicitAny: mongoose Query type parameters vary widely across populated/unpopulated documents — caller passes concrete types

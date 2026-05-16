@@ -164,6 +164,22 @@ export const isAPIError = (error: unknown): error is APIError => {
   return error instanceof Error && error.name === "APIError";
 };
 
+/** Extract a human-readable message from an unknown error. */
+export const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
+/** Extract a stack trace string from an unknown error. */
+export const errorStack = (error: unknown): string => {
+  if (error instanceof Error && error.stack) {
+    return error.stack;
+  }
+  return String(error);
+};
+
 /**
  * Safely extracts the disableExternalErrorTracking property from an error.
  * Works with both APIError instances and regular Error objects that may have
