@@ -3,11 +3,11 @@ import {inspect} from "node:util";
 import * as Sentry from "@sentry/bun";
 import winston from "winston";
 
-function isPrimitive(val: any) {
+function isPrimitive(val: unknown) {
   return val === null || (typeof val !== "object" && typeof val !== "function");
 }
 
-function formatWithInspect(val: any) {
+function formatWithInspect(val: unknown) {
   const prefix = isPrimitive(val) ? "" : "\n";
   const shouldFormat = typeof val !== "string";
 
@@ -20,8 +20,9 @@ function formatWithInspect(val: any) {
 function printf(timestamp = false) {
   return (info: winston.Logform.TransformableInfo) => {
     const msg = formatWithInspect(info.message);
-    const splatArgs = (info[Symbol.for("splat") as any] || []) as any[];
-    const rest = splatArgs.map((data: any) => formatWithInspect(data)).join(" ");
+    const splatKey = Symbol.for("splat") as unknown as keyof winston.Logform.TransformableInfo;
+    const splatArgs = (info[splatKey] || []) as unknown[];
+    const rest = splatArgs.map((data) => formatWithInspect(data)).join(" ");
     if (timestamp) {
       return `${info.timestamp} - ${info.level}: ${msg} ${rest}`;
     }
@@ -120,7 +121,7 @@ export interface LoggingOptions {
 export function setupLogging(options?: LoggingOptions) {
   winstonLogger.clear();
   if (!options?.disableConsoleLogging) {
-    const formats: any[] = [winston.format.simple()];
+    const formats: winston.Logform.Format[] = [winston.format.simple()];
     if (!options?.disableConsoleColors) {
       formats.push(winston.format.colorize());
     }

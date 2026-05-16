@@ -22,7 +22,8 @@ const getUserType = (
   if (user?.admin) {
     return "admin";
   }
-  if (obj && user && String(obj?.ownerId) === String(user?.id)) {
+  const withOwner = obj as {ownerId?: unknown} | undefined;
+  if (withOwner && user && String(withOwner?.ownerId) === String(user?.id)) {
     return "owner";
   }
   if (user?.id) {
@@ -44,8 +45,9 @@ export const AdminOwnerTransformer = <T>(options: {
   const pickFields = (obj: Partial<T>, fields: string[]): Partial<T> => {
     const newData: Partial<T> = {};
     for (const field of fields) {
-      if ((obj as Record<string, unknown>)[field] !== undefined) {
-        (newData as Record<string, unknown>)[field] = (obj as Record<string, unknown>)[field];
+      const key = field as keyof T;
+      if (obj[key] !== undefined) {
+        newData[key] = obj[key];
       }
     }
     return newData;
@@ -115,11 +117,14 @@ export const transform = <T>(
 export const serialize = <T>(
   req: express.Request,
   options: ModelRouterOptions<T>,
-  data: (Document & T) | (Document & T)[]
+  data: (Document<unknown, unknown, unknown> & T) | (Document<unknown, unknown, unknown> & T)[]
 ) => {
-  const serializeFn = (serializeData: Document & T, serializeUser?: User) => {
+  const serializeFn = (
+    serializeData: Document<unknown, unknown, unknown> & T,
+    serializeUser?: User
+  ) => {
     const dataObject = serializeData.toObject() as T;
-    (dataObject as Record<string, unknown>).id = serializeData._id;
+    (dataObject as unknown as {id: unknown}).id = serializeData._id;
 
     // Search for any value that is a Map and transform it to a plain object.
     // Otherwise Express drops the contents.
@@ -152,7 +157,10 @@ export const serialize = <T>(
  * using transformers.serializer if provided.
  */
 export const defaultResponseHandler = async <T>(
-  doc: (Document & T) | (Document & T)[] | null,
+  doc:
+    | (Document<unknown, unknown, unknown> & T)
+    | (Document<unknown, unknown, unknown> & T)[]
+    | null,
   method: "list" | "create" | "read" | "update",
   request: express.Request,
   options: ModelRouterOptions<T>

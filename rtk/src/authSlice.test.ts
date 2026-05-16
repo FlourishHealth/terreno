@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {configureStore} from "@reduxjs/toolkit";
@@ -40,10 +41,7 @@ const api = createApi({
 });
 
 const createTestStore = () => {
-  const {authReducer, middleware, ...rest} = generateAuthSlice(
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock
-    api as any
-  );
+  const {authReducer, middleware, ...rest} = generateAuthSlice(api as any);
 
   return {
     ...rest,
@@ -283,29 +281,24 @@ describe("generateAuthSlice", () => {
 
 describe("selectors", () => {
   it("selectCurrentUserId returns userId", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock state
     const state = {auth: {userId: "user-123"}} as any;
     expect(selectCurrentUserId(state)).toBe("user-123");
   });
 
   it("selectCurrentUserId returns undefined when no auth state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock state
     expect(selectCurrentUserId({} as any)).toBeUndefined();
   });
 
   it("selectIsAuthenticating returns isAuthenticating", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock state
     const state = {auth: {isAuthenticating: true}} as any;
     expect(selectIsAuthenticating(state)).toBe(true);
   });
 
   it("selectIsAuthenticating defaults to false", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock state
     expect(selectIsAuthenticating({} as any)).toBe(false);
   });
 
   it("selectLastTokenRefreshTimestamp returns timestamp", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock state
     const state = {auth: {lastTokenRefreshTimestamp: 12345}} as any;
     expect(selectLastTokenRefreshTimestamp(state)).toBe(12345);
   });
@@ -328,10 +321,8 @@ describe("EmailLoginRequest type", () => {
 describe("generateProfileEndpoints", () => {
   it("builds endpoint query payloads", () => {
     const builder = {
-      // biome-ignore lint/suspicious/noExplicitAny: Testing generated endpoint configs
       mutation: (config: any) => config,
     };
-    // biome-ignore lint/suspicious/noExplicitAny: Lightweight fake builder for unit test
     const endpoints = generateProfileEndpoints(builder as any, "todos");
     const createEmailUserQuery = endpoints.createEmailUser.query;
     const emailLoginQuery = endpoints.emailLogin.query;

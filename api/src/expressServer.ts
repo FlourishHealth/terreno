@@ -44,8 +44,9 @@ export function setupEnvironment(): void {
 
 export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
+// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
 const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
-  const options = (res.locals.loggingOptions ?? {}) as LoggingOptions;
+  const options = (res.locals?.loggingOptions ?? {}) as LoggingOptions;
 
   const slowReadMs = options.logSlowRequestsReadMs ?? SLOW_READ_MAX;
   const slowWriteMs = options.logSlowRequestsWriteMs ?? SLOW_WRITE_MAX;
@@ -84,7 +85,8 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   }
 };
 
-export function logRequests(req: any, res: any, next: any) {
+// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
+export function logRequests(req: any, res: any, next: express.NextFunction) {
   const startTime = process.hrtime.bigint();
 
   let userString = "";
@@ -116,8 +118,16 @@ export function logRequests(req: any, res: any, next: any) {
   next();
 }
 
-export function createRouter(rootPath: string, addRoutes: AddRoutes, middleware: any[] = []) {
-  function routePathMiddleware(req: any, _res: any, next: any) {
+export function createRouter(
+  rootPath: string,
+  addRoutes: AddRoutes,
+  middleware: express.RequestHandler[] = []
+): Array<string | express.RequestHandler | Router> {
+  function routePathMiddleware(
+    req: express.Request & {routeMount?: string[]},
+    _res: express.Response,
+    next: express.NextFunction
+  ) {
     if (!req.routeMount) {
       req.routeMount = [];
     }
@@ -134,8 +144,8 @@ export function createRouter(rootPath: string, addRoutes: AddRoutes, middleware:
 export function createRouterWithAuth(
   rootPath: string,
   addRoutes: (router: Router) => void,
-  middleware: any[] = []
-) {
+  middleware: express.RequestHandler[] = []
+): Array<string | express.RequestHandler | Router> {
   return createRouter(rootPath, addRoutes, [
     passport.authenticate("firebase-jwt", {session: false}),
     ...middleware,
@@ -143,8 +153,11 @@ export function createRouterWithAuth(
 }
 
 export interface AuthOptions {
-  generateJWTPayload?: (user: any) => Record<string, any>;
+  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
+  generateJWTPayload?: (user: any) => Record<string, unknown>;
+  // biome-ignore lint/suspicious/noExplicitAny: see above
   generateTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
+  // biome-ignore lint/suspicious/noExplicitAny: see above
   generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
 }
 
@@ -199,8 +212,8 @@ function initializeRoutes(
   app.use(express.json({limit: "50mb"}));
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
-  addAuthRoutes(app, UserModel as any, options?.authOptions);
-  setupAuth(app as any, UserModel as any);
+  addAuthRoutes(app, UserModel, options?.authOptions);
+  setupAuth(app, UserModel);
 
   if (options.logRequests !== false) {
     app.use(logRequests);
@@ -213,7 +226,7 @@ function initializeRoutes(
   });
 
   // Add Sentry scopes for session, transaction, and userId if any are set
-  app.use((req: any, _res: any, next: any) => {
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
     const transactionId = req.header("X-Transaction-ID");
     const sessionId = req.header("X-Session-ID");
     if (transactionId) {
@@ -223,7 +236,7 @@ function initializeRoutes(
       Sentry.getCurrentScope().setTag("session_id", sessionId);
     }
     if (req.user?._id) {
-      Sentry.getCurrentScope().setTag("user", req.user._id);
+      Sentry.getCurrentScope().setTag("user", String(req.user._id));
     }
     next();
   });
@@ -246,12 +259,12 @@ function initializeRoutes(
     app.use("/swagger", oapi.swaggerui());
   }
 
-  addMeRoutes(app, UserModel as any, options?.authOptions);
+  addMeRoutes(app, UserModel, options?.authOptions);
 
   // Set up GitHub OAuth if configured (works with JWT auth)
   if (options.githubAuth) {
-    setupGitHubAuth(app, UserModel as any, options.githubAuth);
-    addGitHubAuthRoutes(app, UserModel as any, options.githubAuth, options.authOptions);
+    setupGitHubAuth(app, UserModel, options.githubAuth);
+    addGitHubAuthRoutes(app, UserModel, options.githubAuth, options.authOptions);
   }
 
   addRoutes(app, {openApi: oapi});
@@ -262,8 +275,14 @@ function initializeRoutes(
   app.use(apiUnauthorizedMiddleware);
   app.use(apiErrorMiddleware);
 
-  app.use(function onError(err: any, _req: any, res: any, _next: any) {
-    logger.error(`Fallthrough error: ${err}${err?.stack ? `\n${err.stack}` : ""}}`);
+  app.use(function onError(
+    err: unknown,
+    _req: express.Request,
+    res: express.Response & {sentry?: string},
+    _next: express.NextFunction
+  ) {
+    const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
+    logger.error(`Fallthrough error: ${err}${stack}}`);
     Sentry.captureException(err);
     res.statusCode = 500;
     res.end(`${res.sentry}\n`);
@@ -315,8 +334,9 @@ export function setupServer(options: SetupServerOptions): express.Application {
       corsOrigin: options.corsOrigin,
       githubAuth: options.githubAuth,
     });
-  } catch (error: any) {
-    logger.error(`Error initializing routes: ${error.stack}`);
+  } catch (error: unknown) {
+    const stack = error instanceof Error && error.stack ? error.stack : String(error);
+    logger.error(`Error initializing routes: ${stack}`);
     throw error;
   }
 
@@ -327,7 +347,8 @@ export function setupServer(options: SetupServerOptions): express.Application {
         logger.info(`Listening on port ${port}`);
       });
     } catch (error) {
-      logger.error(`Error trying to start HTTP server: ${error}\n${(error as any).stack}`);
+      const stack = error instanceof Error ? error.stack : String(error);
+      logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
       process.exit(1);
     }
   }
@@ -351,13 +372,13 @@ export function cronjob(
 }
 
 export interface WrapScriptOptions {
-  onFinish?: (result?: any) => void | Promise<void>;
+  onFinish?: (result?: unknown) => void | Promise<void>;
   terminateTimeout?: number; // in seconds, defaults to 300. Set to 0 to have no termination timeout.
   slackChannel?: string;
 }
 // Wrap up a script with some helpers, such as catching errors, reporting them to sentry, notifying
 // Slack of runs, etc. Also supports timeouts.
-export async function wrapScript(func: () => Promise<any>, options: WrapScriptOptions = {}) {
+export async function wrapScript(func: () => Promise<unknown>, options: WrapScriptOptions = {}) {
   const name = require.main?.filename.split("/").slice(-1)[0].replace(".ts", "");
   logger.info(`Running script ${name}`);
   await sendToSlack(`Running script ${name}`, {
@@ -383,7 +404,7 @@ export async function wrapScript(func: () => Promise<any>, options: WrapScriptOp
     }, closeTime);
   }
 
-  let result: any;
+  let result: unknown;
   try {
     result = await func();
     if (options.onFinish) {

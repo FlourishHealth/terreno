@@ -50,7 +50,7 @@ export const Permissions = {
     }
     return method === "list" || method === "read";
   },
-  IsOwner: (_method: RESTMethod, user?: User, obj?: any) => {
+  IsOwner: (_method: RESTMethod, user?: User, obj?: unknown) => {
     // When checking if we can possibly perform the action, return true.
     if (!obj) {
       return true;
@@ -61,10 +61,12 @@ export const Permissions = {
     if (user?.admin) {
       return true;
     }
-    const ownerId = obj?.ownerId?._id || obj?.ownerId;
-    return user?.id && ownerId && String(ownerId) === String(user?.id);
+    const withOwner = obj as {ownerId?: {_id?: unknown} | unknown};
+    const ownerObj = withOwner.ownerId as {_id?: unknown} | undefined;
+    const ownerId = ownerObj?._id ?? withOwner.ownerId;
+    return Boolean(user?.id && ownerId && String(ownerId) === String(user?.id));
   },
-  IsOwnerOrReadOnly: (method: RESTMethod, user?: User, obj?: any) => {
+  IsOwnerOrReadOnly: (method: RESTMethod, user?: User, obj?: unknown) => {
     // When checking if we can possibly perform the action, return true.
     if (!obj) {
       return true;
@@ -73,7 +75,8 @@ export const Permissions = {
       return true;
     }
 
-    if (user?.id && obj?.ownerId && String(obj?.ownerId) === String(user?.id)) {
+    const withOwner = obj as {ownerId?: unknown};
+    if (user?.id && withOwner.ownerId && String(withOwner.ownerId) === String(user?.id)) {
       return true;
     }
     return method === "list" || method === "read";
@@ -146,10 +149,14 @@ export function permissionMiddleware<T>(
       }
 
       const builtQuery = model.findById(req.params.id);
-      const populatedQuery = addPopulateToQuery(builtQuery as any, options.populatePaths);
-      let data;
+      const populatedQuery = addPopulateToQuery(
+        // biome-ignore lint/suspicious/noExplicitAny: Query types vary based on populate paths
+        builtQuery as any,
+        options.populatePaths
+      );
+      let data: T | null;
       try {
-        data = await populatedQuery.exec();
+        data = (await populatedQuery.exec()) as T | null;
       } catch (error: unknown) {
         throw new APIError({
           error: error as Error,
@@ -207,7 +214,7 @@ export function permissionMiddleware<T>(
         });
       }
 
-      (req as any).obj = data;
+      (req as express.Request & {obj?: T | null}).obj = data;
 
       return next();
     } catch (error) {

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it} from "bun:test";
 import supertest from "supertest";
 import {VersionConfig} from "../models/versionConfig";

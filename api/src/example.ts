@@ -3,7 +3,7 @@ import mongoose, {model, Schema} from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
+import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {setupServer} from "./expressServer";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
@@ -36,6 +36,7 @@ const userSchema = new Schema<User>({
   username: {description: "The user's username", type: String},
 });
 
+// biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's plugin type is incompatible with mongoose Schema generics
 userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(baseUserPlugin);
@@ -65,14 +66,14 @@ function getBaseServer() {
     }
   });
   app.use(express.json());
-  setupAuth(app, UserModel as any);
-  addAuthRoutes(app, UserModel as any);
+  setupAuth(app, UserModel as unknown as UserMongooseModel);
+  addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
 
-  function addRoutes(router: express.Router, options?: Partial<ModelRouterOptions<any>>): void {
+  function addRoutes(router: express.Router, options?: Partial<ModelRouterOptions<unknown>>): void {
     router.use(
       "/food",
       modelRouter(FoodModel, {
-        ...options,
+        ...(options as Partial<ModelRouterOptions<Food>>),
         openApiOverwrite: {
           get: {responses: {200: {description: "Get all the food"}}},
         },
@@ -93,7 +94,7 @@ function getBaseServer() {
     loggingOptions: {
       level: "debug",
     },
-    userModel: UserModel as any,
+    userModel: UserModel as unknown as UserMongooseModel,
   });
 }
 getBaseServer();

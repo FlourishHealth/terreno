@@ -133,7 +133,7 @@ const defaultProps = {
 
 type Props = Partial<typeof defaultProps> & ActionSheetProps;
 
-export class ActionSheet extends Component<Props, State, any> {
+export class ActionSheet extends Component<Props, State, unknown> {
   static defaultProps = defaultProps;
 
   actionSheetHeight = 0;
@@ -144,7 +144,7 @@ export class ActionSheet extends Component<Props, State, any> {
 
   prevScroll = 0;
 
-  timeout: any | null = null;
+  timeout: ReturnType<typeof setTimeout> | null = null;
 
   offsetY = 0;
 
@@ -164,8 +164,10 @@ export class ActionSheet extends Component<Props, State, any> {
 
   deviceLayoutCalled = false;
 
+  // biome-ignore lint/suspicious/noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
   scrollViewRef: React.RefObject<any>;
 
+  // biome-ignore lint/suspicious/noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
   safeAreaViewRef: React.RefObject<any>;
 
   transformValue: Animated.Value;
@@ -669,7 +671,7 @@ export class ActionSheet extends Component<Props, State, any> {
     this.keyboardDidHideListener?.remove();
   }
 
-  _onDeviceLayout = async (_event: any) => {
+  _onDeviceLayout = async (_event: LayoutChangeEvent) => {
     const event = {..._event};
 
     if (this.timeout) {
@@ -721,7 +723,7 @@ export class ActionSheet extends Component<Props, State, any> {
     return scrollPosition;
   }
 
-  _keyExtractor = (item: any) => item;
+  _keyExtractor = (item: string) => item;
 
   render() {
     const {scrollable, modalVisible, keyboard} = this.state;
