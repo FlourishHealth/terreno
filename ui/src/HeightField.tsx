@@ -1,6 +1,7 @@
 import {type FC, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {Platform, Pressable, type StyleProp, TextInput, View} from "react-native";
 
+import type {ActionSheet} from "./ActionSheet";
 import {Box} from "./Box";
 import type {HeightFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
@@ -154,8 +155,7 @@ export const HeightField: FC<HeightFieldProps> = ({
   max,
 }) => {
   const {theme} = useTheme();
-  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
-  const actionSheetRef: React.RefObject<any> = useRef(null);
+  const actionSheetRef = useRef<ActionSheet | null>(null);
   const isMobileOrNative = isMobileDevice() || isNative();
 
   const minInches = min ?? DEFAULT_MIN_INCHES;

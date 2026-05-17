@@ -30,6 +30,7 @@ import {
   Keyboard,
   Modal,
   type ModalProps,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
   type PressableProps,
@@ -137,9 +138,7 @@ export function RNPickerSelect({
   InputAccessoryView,
 }: RNPickerSelectProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [animationType, setAnimationType] = useState<"none" | "slide" | "fade" | undefined>(
-    undefined
-  );
+  const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
@@ -185,7 +184,7 @@ export function RNPickerSelect({
       }
       return {
         idx,
-        selectedItem: options[idx] || {},
+        selectedItem: (options[idx] || {}) as Partial<PickerSelectItem>,
       };
     },
     [options]
@@ -217,9 +216,7 @@ export function RNPickerSelect({
 
   const onOrientationChange = ({
     nativeEvent,
-  }: {
-    nativeEvent: {orientation: "portrait" | "landscape"};
-  }) => {
+  }: NativeSyntheticEvent<{orientation: "portrait" | "landscape"}>) => {
     setOrientation(nativeEvent.orientation);
   };
 
@@ -256,12 +253,13 @@ export function RNPickerSelect({
 
   const renderPickerItems = () => {
     return options?.map((item) => {
+      if (!item) return null;
       return (
         <Picker.Item
-          color={item?.color}
-          key={item?.key || item?.label}
-          label={item?.label}
-          value={item?.value}
+          color={item.color}
+          key={item.key || item.label}
+          label={item.label}
+          value={item.value}
         />
       );
     });
@@ -484,9 +482,14 @@ export function RNPickerSelect({
   };
 
   const renderAndroidHeadless = () => {
-    // noExplicitAny: Component is View or Pressable depending on a bug workaround flag. View
-    // ignores Pressable-specific props (onPress) at runtime. A type-safe union cannot express this.
-    const Component = (fixAndroidTouchableBug ? View : Pressable) as unknown as typeof Pressable;
+    // `View` and `Pressable` accept disjoint prop sets; the fork swaps between them to work
+    // around an Android touchable bug, so we cast to a structural component type that accepts
+    // the union of props actually used in JSX below.
+    const Component = (fixAndroidTouchableBug ? View : Pressable) as ComponentType<{
+      onPress?: PressableProps["onPress"];
+      testID?: string;
+      children?: ReactNode;
+    }>;
     return (
       <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
         <View>

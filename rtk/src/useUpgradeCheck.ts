@@ -1,6 +1,10 @@
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {AppState, Linking} from "react-native";
+// Use a namespace import + lazy property access so per-test `mock.module` swaps
+// reach the runtime values. A destructured `import {AppState, Linking}` fails
+// bun's static-export check against react-native's CJS getter exports under the
+// version pinned in CI.
+import * as ReactNative from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
@@ -55,7 +59,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
   const [warningCheckCount, setWarningCheckCount] = useState(0);
   const [triggerVersionCheck] = useLazyGetVersionCheckQuery();
   const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
-  const appState = useRef(AppState.currentState);
+  const appState = useRef(ReactNative.AppState.currentState);
 
   // Process version-check response inline via .unwrap() so every poll trigger
   // is handled, even when RTK Query returns a structurally-shared cached response
@@ -98,7 +102,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
       return;
     }
     if (updateUrl) {
-      void Linking.openURL(updateUrl).catch((err: unknown) => {
+      void ReactNative.Linking.openURL(updateUrl).catch((err: unknown) => {
         console.warn("Failed to open update URL", err);
       });
     } else {
@@ -125,7 +129,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     if (!recheckOnForeground) {
       return;
     }
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
+    const subscription = ReactNative.AppState.addEventListener("change", (nextAppState) => {
       const wasBackground = /inactive|background/.test(appState.current);
       const isNowActive = nextAppState === "active";
 
