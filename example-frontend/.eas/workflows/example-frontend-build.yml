@@ -74,7 +74,7 @@ jobs:
       - name: Publish EAS Update
         id: publish
         run: |
-          update_json=$(eas update \
+          update_json=$(bunx eas-cli@latest update \
             --branch "pr-${{ github.event.pull_request.number }}" \
             --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
             --non-interactive \
