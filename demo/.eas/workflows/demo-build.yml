@@ -13,6 +13,10 @@ on:
     labels:
       - build-expo
 
+defaults:
+  tools:
+    bun: 1.3.10
+
 jobs:
   fingerprint:
     name: Compute fingerprint
@@ -92,6 +96,3 @@ jobs:
         1. Install the latest `terreno-demo` dev build from the [EAS dashboard](https://expo.dev/accounts/flourishhealth/projects/terreno-demo/builds) (or scan a fresh QR if one was built below).
         2. Open the dev build → shake to open the dev menu → "Extensions" → "Branch" → select `pr-${{ github.event.pull_request.number }}`.
         3. The PR's JavaScript loads instantly. Pull to refresh after pushing more commits.
-      build_ids:
-        - ${{ needs.build_ios.outputs.build_id }}
-        - ${{ needs.build_android.outputs.build_id }}
