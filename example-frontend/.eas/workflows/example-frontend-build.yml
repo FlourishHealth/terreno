@@ -17,6 +17,7 @@ on:
 defaults:
   tools:
     bun: 1.3.10
+    node: "22"
 
 jobs:
   fingerprint:

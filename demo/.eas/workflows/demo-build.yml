@@ -16,6 +16,7 @@ on:
 defaults:
   tools:
     bun: 1.3.10
+    node: "22"
 
 jobs:
   fingerprint:
@@ -70,6 +71,9 @@ jobs:
       - name: Compile workspace packages
         working_directory: ../
         run: bun run compile
+      - name: Generate UI type documentation
+        working_directory: ../ui
+        run: bun run types
       - name: Publish EAS Update
         id: publish
         run: |
