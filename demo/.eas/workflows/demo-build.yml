@@ -60,11 +60,26 @@ jobs:
 
   publish_update:
     name: Publish EAS Update for PR
-    type: update
     needs: [fingerprint]
-    params:
-      branch: pr-${{ github.event.pull_request.number }}
-      message: "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+    outputs:
+      first_update_group_id: ${{ steps.publish.outputs.first_update_group_id }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/use_npm_token
+      - uses: eas/install_node_modules
+      - name: Compile workspace packages
+        working_directory: ../
+        run: bun run compile
+      - name: Publish EAS Update
+        id: publish
+        run: |
+          update_json=$(eas update \
+            --branch "pr-${{ github.event.pull_request.number }}" \
+            --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
+            --non-interactive \
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          set-output first_update_group_id "$first_id"
 
   comment:
     name: Post PR comment
