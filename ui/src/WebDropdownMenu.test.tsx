@@ -143,6 +143,187 @@ describe("WebDropdownMenu", () => {
   });
 });
 
+describe("WebDropdownMenu positioning", () => {
+  const options = [
+    {label: "Option A", value: "a"},
+    {label: "Option B", value: "b"},
+  ];
+
+  it("positions the menu above the trigger when near the bottom of the screen", () => {
+    // Window height is mocked to 812. Place the trigger near the bottom so
+    // there is not enough room (< 300px) below it.
+    const bottomAnchor = {height: 40, width: 200, x: 16, y: 750};
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={bottomAnchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    const menu = getByTestId("web_dropdown_menu");
+    const style = Array.isArray(menu.props.style)
+      ? Object.assign({}, ...menu.props.style)
+      : menu.props.style;
+    // Menu should open above: top should be less than the trigger's y position.
+    expect(style.top).toBeLessThan(bottomAnchor.y);
+  });
+
+  it("clamps maxHeight to available space when opening below", () => {
+    // Place the trigger so there's some space below but less than 300px.
+    // windowHeight=812, anchor y=600 + height=40 + gap=4 => spaceBelow = 168
+    const midAnchor = {height: 40, width: 200, x: 16, y: 600};
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={midAnchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    const menu = getByTestId("web_dropdown_menu");
+    const style = Array.isArray(menu.props.style)
+      ? Object.assign({}, ...menu.props.style)
+      : menu.props.style;
+    // spaceBelow = 812 - 644 = 168. Since 168 < 300 but anchor.y (600) > 168,
+    // it opens above. maxHeight clamped to space above: min(300, 600 - 4) = 300.
+    expect(style.maxHeight).toBeLessThanOrEqual(300);
+  });
+});
+
+describe("WebDropdownMenu searchable", () => {
+  const anchor = {height: 40, width: 200, x: 16, y: 32};
+  const options = [
+    {label: "Apple", value: "apple"},
+    {label: "Banana", value: "banana"},
+    {label: "Cherry", value: "cherry"},
+    {label: "Avocado", value: "avocado"},
+  ];
+
+  it("does not render a search input when searchable is false", () => {
+    const {queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    expect(queryByTestId("web_dropdown_search")).toBeNull();
+  });
+
+  it("renders a search input by default (searchable defaults to true)", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        visible
+      />
+    );
+    expect(getByTestId("web_dropdown_search")).toBeTruthy();
+  });
+
+  it("filters options by label when the user types in the search input", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "a");
+    expect(getByTestId("web_dropdown_option_apple")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_avocado")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_cherry")).toBeNull();
+  });
+
+  it("shows 'No matching options' when filter matches nothing", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "zzz");
+    expect(getByTestId("web_dropdown_no_results")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_apple")).toBeNull();
+  });
+
+  it("reports the original index when selecting a filtered option", () => {
+    const onSelect = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={onSelect}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "cherry");
+    fireEvent.press(getByTestId("web_dropdown_option_cherry"));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual(["cherry", 2]);
+  });
+
+  it("performs case-insensitive filtering", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "BANANA");
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_apple")).toBeNull();
+  });
+
+  it("shows all options when search input is empty", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "ban");
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "");
+    expect(getByTestId("web_dropdown_option_apple")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_cherry")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_avocado")).toBeTruthy();
+  });
+});
+
 describe("useWebDropdownAnchor", () => {
   it("exposes a default zero-sized anchor before measuring", () => {
     const {result} = renderHook(() => useWebDropdownAnchor());

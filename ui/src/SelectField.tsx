@@ -12,6 +12,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   options,
   requireValue = false,
   placeholder = "Please select an option.",
+  searchable = true,
   title,
   value,
   onChange,
@@ -33,6 +34,7 @@ export const SelectField: FC<SelectFieldProps> = ({
           }
         }}
         placeholder={!requireValue ? clearOption : {}}
+        searchable={searchable}
         value={value ?? ""}
       />
       {Boolean(helperText) && <FieldHelperText text={helperText!} />}

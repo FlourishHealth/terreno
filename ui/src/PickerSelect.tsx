@@ -112,6 +112,13 @@ export interface RNPickerSelectProps {
   touchableWrapperProps?: Partial<PressableProps>;
 
   InputAccessoryView?: ComponentType<{testID?: string}>;
+
+  /**
+   * When true the web dropdown renders a search input that filters options
+   * by label as the user types. Only affects the web platform.
+   * @default true
+   */
+  searchable?: boolean;
 }
 
 export function RNPickerSelect({
@@ -136,6 +143,7 @@ export function RNPickerSelect({
   touchableWrapperProps,
 
   InputAccessoryView,
+  searchable = true,
 }: RNPickerSelectProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
@@ -658,6 +666,7 @@ export function RNPickerSelect({
             closeWebMenu();
           }}
           options={webMenuOptions}
+          searchable={searchable}
           selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
           testIDPrefix="web_dropdown"
           visible={showPicker}
