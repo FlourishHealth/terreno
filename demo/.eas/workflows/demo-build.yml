@@ -1,25 +1,93 @@
-name: Demo Build
+name: Demo PR
+
+# Invoked exclusively by .github/workflows/eas-pr.yml via `eas workflow:run`.
+# The GH Action decides fast path (no build needed, --wait) vs slow path
+# (new dev build needed, async), so we can reflect real status in GitHub.
 
 on:
-  pull_request_labeled:
-    label: "build-expo"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number for branch/comment context
+        type: string
+        required: true
+      pr_title:
+        description: PR title for the update message
+        type: string
+        required: true
+
+defaults:
+  tools:
+    bun: 1.3.10
+    node: "22"
 
 jobs:
+  fingerprint:
+    name: Compute fingerprint
+    type: fingerprint
+
+  get_ios_build:
+    name: Check for matching iOS dev build
+    type: get-build
+    needs: [fingerprint]
+    params:
+      platform: ios
+      profile: development
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+
+  get_android_build:
+    name: Check for matching Android dev build
+    type: get-build
+    needs: [fingerprint]
+    params:
+      platform: android
+      profile: development
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+
   build_ios:
-    name: Build iOS
+    name: Build iOS dev client
     type: build
+    needs: [get_ios_build]
+    if: ${{ needs.get_ios_build.outputs.build_id == '' }}
     params:
       platform: ios
       profile: development
 
   build_android:
-    name: Build Android
+    name: Build Android dev client
     type: build
+    needs: [get_android_build]
+    if: ${{ needs.get_android_build.outputs.build_id == '' }}
     params:
       platform: android
       profile: development
 
-  github_comment:
-    name: Post GitHub Comment
-    type: github-comment
-    after: [build_ios, build_android]
+  publish_update:
+    name: Publish EAS Update for PR
+    needs: [fingerprint]
+    outputs:
+      first_update_group_id: ${{ steps.publish.outputs.first_update_group_id }}
+    steps:
+      - uses: eas/checkout
+      - uses: eas/use_npm_token
+      - uses: eas/install_node_modules
+      - name: Compile workspace packages
+        working_directory: ../
+        run: bun run compile
+      - name: Generate UI type documentation
+        working_directory: ../ui
+        run: bun run types
+      - name: Publish EAS Update
+        id: publish
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_TITLE: ${{ inputs.pr_title }}
+        run: |
+          update_json=$(bunx eas-cli@latest update \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
+            --non-interactive \
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          set-output first_update_group_id "$first_id"
+          echo "✓ EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
