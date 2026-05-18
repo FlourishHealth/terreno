@@ -17,6 +17,7 @@ on:
         options:
           - example-frontend
           - demo
+          - both
       git_ref:
         description: Git ref to build (branch, tag, or commit). Defaults to the workflow ref.
         required: false
@@ -61,33 +62,31 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Resolve workflow path
-        id: resolve
-        run: |
-          case "${{ inputs.target }}" in
-            example-frontend)
-              echo "dir=example-frontend" >> "$GITHUB_OUTPUT"
-              echo "file=example-frontend-build.yml" >> "$GITHUB_OUTPUT"
-              ;;
-            demo)
-              echo "dir=demo" >> "$GITHUB_OUTPUT"
-              echo "file=demo-build.yml" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "::error::Unknown target: ${{ inputs.target }}"
-              exit 1
-              ;;
-          esac
-
       - name: Dispatch to EAS Cloud
-        working-directory: ${{ steps.resolve.outputs.dir }}
         env:
+          TARGET: ${{ inputs.target }}
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_TITLE: ${{ inputs.pr_title }}
         run: |
           set -euo pipefail
-          eas workflow:run ".eas/workflows/${{ steps.resolve.outputs.file }}" \
-            --non-interactive \
-            -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}"
-          echo "✅ Dispatched. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"
+
+          case "$TARGET" in
+            example-frontend) targets="example-frontend" ;;
+            demo)             targets="demo" ;;
+            both)             targets="example-frontend demo" ;;
+            *) echo "::error::Unknown target: $TARGET"; exit 1 ;;
+          esac
+
+          for app in $targets; do
+            case "$app" in
+              example-frontend) file=example-frontend-build.yml ;;
+              demo)             file=demo-build.yml ;;
+            esac
+            echo "::group::Dispatching $app"
+            (cd "$app" && eas workflow:run ".eas/workflows/$file" \
+              --non-interactive \
+              -F "pr_number=${PR_NUMBER}" \
+              -F "pr_title=${PR_TITLE}")
+            echo "::endgroup::"
+          done
+          echo "✅ Dispatched ${targets}. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"

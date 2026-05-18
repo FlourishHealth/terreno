@@ -121,14 +121,22 @@ jobs:
           ios_match_count=$(eas build:list --platform ios --profile development --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
           android_match_count=$(eas build:list --platform android --profile development --fingerprint-hash "$android_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
 
-          echo "iOS fingerprint:     $ios_hash  matching builds: $ios_match_count"
-          echo "Android fingerprint: $android_hash  matching builds: $android_match_count"
+          # Latest finished build per (platform, profile) for the comment's install-page links.
+          ios_device_latest=$(eas build:list --platform ios --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+          ios_sim_latest=$(eas build:list --platform ios --profile development:simulator --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+          android_latest=$(eas build:list --platform android --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+
+          echo "iOS fingerprint:     $ios_hash  matching builds: $ios_match_count  latest device: $ios_device_latest  latest sim: $ios_sim_latest"
+          echo "Android fingerprint: $android_hash  matching builds: $android_match_count  latest: $android_latest"
 
           {
             echo "ios_hash=$ios_hash"
             echo "android_hash=$android_hash"
             echo "ios_match=$([ "$ios_match_count" -gt 0 ] && echo true || echo false)"
             echo "android_match=$([ "$android_match_count" -gt 0 ] && echo true || echo false)"
+            echo "ios_device_latest=$ios_device_latest"
+            echo "ios_sim_latest=$ios_sim_latest"
+            echo "android_latest=$android_latest"
           } >> "$GITHUB_OUTPUT"
 
           if [ "$ios_match_count" -gt 0 ] && [ "$android_match_count" -gt 0 ]; then
@@ -178,6 +186,9 @@ jobs:
           PROJECT_ID: ddbe68d9-1142-4991-a02e-4ebb9fd83530
           IOS_MATCH: ${{ steps.decide.outputs.ios_match }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
+          IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
+          ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
           PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}
         run: .github/workflows/scripts/post-eas-pr-comment.sh
 
@@ -236,18 +247,25 @@ jobs:
           ios_hash=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
           android_hash=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
 
-          # Demo iOS uses the development:simulator profile.
-          ios_match_count=$(eas build:list --platform ios --profile development:simulator --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
+          ios_match_count=$(eas build:list --platform ios --profile development --fingerprint-hash "$ios_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
           android_match_count=$(eas build:list --platform android --profile development --fingerprint-hash "$android_hash" --status finished --limit 1 --non-interactive --json | jq 'length')
 
-          echo "iOS fingerprint:     $ios_hash  matching builds: $ios_match_count"
-          echo "Android fingerprint: $android_hash  matching builds: $android_match_count"
+          # Latest finished build per (platform, profile) for the comment's install-page links.
+          ios_device_latest=$(eas build:list --platform ios --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+          ios_sim_latest=$(eas build:list --platform ios --profile development:simulator --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+          android_latest=$(eas build:list --platform android --profile development --status finished --limit 1 --non-interactive --json | jq -r '.[0].id // empty')
+
+          echo "iOS fingerprint:     $ios_hash  matching builds: $ios_match_count  latest device: $ios_device_latest  latest sim: $ios_sim_latest"
+          echo "Android fingerprint: $android_hash  matching builds: $android_match_count  latest: $android_latest"
 
           {
             echo "ios_hash=$ios_hash"
             echo "android_hash=$android_hash"
             echo "ios_match=$([ "$ios_match_count" -gt 0 ] && echo true || echo false)"
             echo "android_match=$([ "$android_match_count" -gt 0 ] && echo true || echo false)"
+            echo "ios_device_latest=$ios_device_latest"
+            echo "ios_sim_latest=$ios_sim_latest"
+            echo "android_latest=$android_latest"
           } >> "$GITHUB_OUTPUT"
 
           if [ "$ios_match_count" -gt 0 ] && [ "$android_match_count" -gt 0 ]; then
@@ -297,5 +315,8 @@ jobs:
           PROJECT_ID: 89c320ce-465b-4d71-9fd6-74fea9c5d898
           IOS_MATCH: ${{ steps.decide.outputs.ios_match }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
+          IOS_DEVICE_BUILD_ID: ${{ steps.decide.outputs.ios_device_latest }}
+          IOS_SIM_BUILD_ID: ${{ steps.decide.outputs.ios_sim_latest }}
+          ANDROID_BUILD_ID: ${{ steps.decide.outputs.android_latest }}
           PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}
         run: .github/workflows/scripts/post-eas-pr-comment.sh
