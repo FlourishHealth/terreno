@@ -1,5 +1,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {
+  convertNullToUndefined,
+  getIsoDate,
   humanDate,
   humanDateAndTime,
   printDate,
@@ -453,6 +455,72 @@ describe("DateUtilities", () => {
       expect(printSince("2019-12-23T11:00:00.000Z")).toBe("3 years ago");
       // print without ago
       expect(printSince("2019-12-23T11:00:00.000Z", {showAgo: false})).toBe("3 years");
+    });
+
+    it("should throw for invalid date", () => {
+      expect(() => printSince("not-a-date")).toThrow("printSince: Invalid date: not-a-date");
+    });
+  });
+
+  describe("humanDate – non-string input", () => {
+    it("should throw for non-string date", () => {
+      expect(() => humanDate(123 as unknown as string)).toThrow(
+        "humanDate: Invalid date type: number"
+      );
+    });
+  });
+
+  describe("humanDateAndTime – showTimezone false", () => {
+    it("should format time without timezone abbreviation", () => {
+      const result = humanDateAndTime("2022-12-24T12:00:00.000Z", {showTimezone: false});
+      expect(result).toBe("7:00 AM");
+    });
+
+    it("should format tomorrow without timezone abbreviation", () => {
+      const result = humanDateAndTime("2022-12-25T12:00:00.000Z", {showTimezone: false});
+      expect(result).toBe("Tomorrow 7:00 AM");
+    });
+  });
+
+  describe("printDate – showTimezone warning", () => {
+    it("should still return the date when showTimezone is true", () => {
+      const result = printDate("2022-12-24T12:00:00.000Z", {showTimezone: true});
+      expect(result).toBe("12/24/2022");
+    });
+  });
+
+  describe("printDateRange – timeOnly with different dates", () => {
+    it("should warn but still return time range when dates differ", () => {
+      const result = printDateRange("2022-12-24T12:00:00.000Z", "2022-12-25T18:00:00.000Z", {
+        timeOnly: true,
+        timezone: "America/New_York",
+      });
+      expect(result).toBe("7:00 AM - 1:00 PM EST");
+    });
+  });
+
+  describe("convertNullToUndefined", () => {
+    it("should return the string when given a string", () => {
+      expect(convertNullToUndefined("hello")).toBe("hello");
+    });
+
+    it("should return undefined when given null", () => {
+      expect(convertNullToUndefined(null)).toBeUndefined();
+    });
+  });
+
+  describe("getIsoDate", () => {
+    it("should return undefined for undefined input", () => {
+      expect(getIsoDate(undefined)).toBeUndefined();
+    });
+
+    it("should return undefined for empty string", () => {
+      expect(getIsoDate("")).toBeUndefined();
+    });
+
+    it("should return ISO string for valid date", () => {
+      const result = getIsoDate("2022-12-24T12:00:00.000Z");
+      expect(result).toBe("2022-12-24T12:00:00.000Z");
     });
   });
 });
