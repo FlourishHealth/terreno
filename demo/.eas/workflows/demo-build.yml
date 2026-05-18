@@ -90,34 +90,4 @@ jobs:
             --json)
           first_id=$(echo "$update_json" | jq -r '.[0].group')
           set-output first_update_group_id "$first_id"
-
-  comment:
-    name: Post PR comment
-    type: github-comment
-    after:
-      - fingerprint
-      - get_ios_build
-      - get_android_build
-      - publish_update
-      - build_ios
-      - build_android
-    params:
-      message: |
-        ### 🧪 Terreno Demo — EAS PR build
-
-        **EAS Update published**
-        - Branch: `pr-${{ inputs.pr_number }}`
-        - Update group: `${{ needs.publish_update.outputs.first_update_group_id }}`
-
-        **Fingerprint**
-        - iOS: `${{ needs.fingerprint.outputs.ios_fingerprint_hash }}`
-        - Android: `${{ needs.fingerprint.outputs.android_fingerprint_hash }}`
-
-        **Dev build status (matching fingerprint)**
-        - iOS: ${{ needs.get_ios_build.outputs.build_id != '' && '✅ Existing dev build can load this update' || '⚠️ Native deps changed — a new dev build was dispatched automatically' }}
-        - Android: ${{ needs.get_android_build.outputs.build_id != '' && '✅ Existing dev build can load this update' || '⚠️ Native deps changed — a new dev build was dispatched automatically' }}
-
-        **How to test on your phone**
-        1. Install the latest `terreno-demo` dev build from the [EAS dashboard](https://expo.dev/accounts/flourishhealth/projects/terreno-demo/builds) (or scan a fresh QR if one was built below).
-        2. Open the dev build → shake to open the dev menu → "Extensions" → "Branch" → select `pr-${{ inputs.pr_number }}`.
-        3. The PR's JavaScript loads instantly. Pull to refresh after pushing more commits.
+          echo "✓ EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
