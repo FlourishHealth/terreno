@@ -174,8 +174,8 @@ jobs:
           APP_DISPLAY: Terreno Example
           APP_ICON: "📱"
           APP_SLUG: terreno-example
-          IOS_HASH: ${{ steps.decide.outputs.ios_hash }}
-          ANDROID_HASH: ${{ steps.decide.outputs.android_hash }}
+          APP_SCHEME: frontend
+          PROJECT_ID: ddbe68d9-1142-4991-a02e-4ebb9fd83530
           IOS_MATCH: ${{ steps.decide.outputs.ios_match }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
           PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}
@@ -293,8 +293,8 @@ jobs:
           APP_DISPLAY: Terreno Demo
           APP_ICON: "🧪"
           APP_SLUG: terreno-demo
-          IOS_HASH: ${{ steps.decide.outputs.ios_hash }}
-          ANDROID_HASH: ${{ steps.decide.outputs.android_hash }}
+          APP_SCHEME: terreno
+          PROJECT_ID: 89c320ce-465b-4d71-9fd6-74fea9c5d898
           IOS_MATCH: ${{ steps.decide.outputs.ios_match }}
           ANDROID_MATCH: ${{ steps.decide.outputs.android_match }}
           PATH_TAKEN: ${{ steps.decide.outputs.needs_build == 'true' && 'slow' || 'fast' }}

@@ -9,12 +9,11 @@
 #   APP_DISPLAY       Pretty name for the comment header
 #   APP_ICON          Emoji for the header (📱 or 🧪)
 #   APP_SLUG          EAS project slug (e.g. terreno-example, terreno-demo)
-#   IOS_HASH          iOS fingerprint hash
-#   ANDROID_HASH      Android fingerprint hash
+#   APP_SCHEME        Deep-link URL scheme (from app.json — e.g. frontend, terreno)
+#   PROJECT_ID        EAS project UUID
 #   IOS_MATCH         "true" if a finished iOS dev build matches IOS_HASH
 #   ANDROID_MATCH     "true" if a finished Android dev build matches ANDROID_HASH
 #   PATH_TAKEN        "fast" or "slow"
-#   WORKFLOW_RUN_URL  Optional URL to the EAS workflow run (links the comment)
 
 set -euo pipefail
 
@@ -25,57 +24,56 @@ set -euo pipefail
 : "${APP_DISPLAY:?missing}"
 : "${APP_ICON:?missing}"
 : "${APP_SLUG:?missing}"
-: "${IOS_HASH:?missing}"
-: "${ANDROID_HASH:?missing}"
+: "${APP_SCHEME:?missing}"
+: "${PROJECT_ID:?missing}"
 : "${IOS_MATCH:?missing}"
 : "${ANDROID_MATCH:?missing}"
 : "${PATH_TAKEN:?missing}"
 
 MARKER="<!-- eas-pr-comment:${APP_NAME} -->"
 
-ios_status="⚠️ Native deps changed — a new dev build was dispatched automatically"
-if [ "$IOS_MATCH" = "true" ]; then
-  ios_status="✅ Existing dev build can load this update"
-fi
+urlencode() {
+  jq -nr --arg v "$1" '$v | @uri'
+}
 
-android_status="⚠️ Native deps changed — a new dev build was dispatched automatically"
-if [ "$ANDROID_MATCH" = "true" ]; then
-  android_status="✅ Existing dev build can load this update"
-fi
+branch="pr-$PR_NUMBER"
+update_url="https://u.expo.dev/$PROJECT_ID?channel-name=$branch"
+deep_link="$APP_SCHEME://expo-development-client/?url=$(urlencode "$update_url")"
+qr_image="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(urlencode "$deep_link")"
+branch_dashboard="https://expo.dev/accounts/flourishhealth/projects/$APP_SLUG/updates?branchName=$branch"
 
-if [ "$PATH_TAKEN" = "slow" ]; then
-  path_note="🔨 **Slow path** — fingerprint changed, a fresh dev build is being produced on EAS (~15 min). The EAS Update was still published; existing dev builds with the prior fingerprint can keep using it. New per-job status checks will appear on this PR when the build finishes."
-else
-  path_note="✅ **Fast path** — fingerprint matched an existing dev build; published the EAS Update and confirmed it in real time."
-fi
+ios_status="⚠️ Fingerprint changed — rebuilding"
+[ "$IOS_MATCH" = "true" ] && ios_status="✅ Existing build matches"
+android_status="⚠️ Fingerprint changed — rebuilding"
+[ "$ANDROID_MATCH" = "true" ] && android_status="✅ Existing build matches"
 
-workflow_link=""
-if [ -n "${WORKFLOW_RUN_URL:-}" ]; then
-  workflow_link="
-
-[View EAS workflow run]($WORKFLOW_RUN_URL)"
-fi
+path_line="✅ Fast path (waited on EAS)"
+[ "$PATH_TAKEN" = "slow" ] && path_line="🔨 Slow path (dev build dispatched async)"
 
 body=$(cat <<EOF
 $MARKER
 ### $APP_ICON $APP_DISPLAY — EAS PR build
 
-**EAS Update branch:** \`pr-$PR_NUMBER\`
+**EAS Update branch:** \`$branch\`
 
-$path_note
+<details>
+<summary>Launch on device</summary>
 
-**Fingerprint**
-- iOS: \`$IOS_HASH\`
-- Android: \`$ANDROID_HASH\`
+[![Scan with phone camera]($qr_image)]($deep_link)
 
-**Dev build status (matching fingerprint)**
-- iOS: $ios_status
-- Android: $android_status
+[Open branch on EAS dashboard]($branch_dashboard)
 
-**How to test on your phone**
-1. Install the latest \`$APP_SLUG\` dev build from the [EAS dashboard](https://expo.dev/accounts/flourishhealth/projects/$APP_SLUG/builds).
-2. Open the dev build → shake → "Extensions" → "Branch" → select \`pr-$PR_NUMBER\`.
-3. Pull to refresh after pushing more commits.$workflow_link
+**Status**
+- Path: $path_line
+- iOS dev build: $ios_status
+- Android dev build: $android_status
+
+**Instructions**
+1. Install the latest \`$APP_SLUG\` dev build from the [EAS dashboard](https://expo.dev/accounts/flourishhealth/projects/$APP_SLUG/builds) (one-time, per phone).
+2. Scan the QR above with your phone's camera — it opens the dev client straight onto this PR's branch. Or in the dev client, tap "Extensions" → "Branch" → \`$branch\`.
+3. Pull to refresh after pushing more commits.
+
+</details>
 EOF
 )
 
