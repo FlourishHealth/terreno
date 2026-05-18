@@ -188,6 +188,7 @@ export const WebDropdownMenu = ({
                 fontSize: 14,
                 paddingHorizontal: 8,
                 paddingVertical: 4,
+                ...(Platform.OS === "web" ? {outline: "none"} : {}),
               }}
               testID={`${testIDPrefix}_search`}
               value={searchQuery}
@@ -195,41 +196,40 @@ export const WebDropdownMenu = ({
           </View>
         )}
         <ScrollView>
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((item) => {
-              const originalIdx = options.indexOf(item);
-              const isSelected =
-                selectedIndex !== undefined
-                  ? originalIdx === selectedIndex
-                  : item.value === selectedValue;
-              return (
-                <Pressable
-                  aria-role="button"
-                  key={item.key ?? originalIdx}
-                  onPress={() => onSelect(item.value, originalIdx)}
-                  style={(state: PressableWebState) => ({
-                    backgroundColor:
-                      isSelected || state.hovered || state.pressed
-                        ? theme.surface.neutralLight
-                        : theme.surface.base,
-                    paddingHorizontal: 12,
-                    paddingVertical: 10,
-                  })}
-                  testID={`${testIDPrefix}_option_${item.value}`}
+          {filteredOptions.map((item) => {
+            const originalIdx = options.indexOf(item);
+            const isSelected =
+              selectedIndex !== undefined
+                ? originalIdx === selectedIndex
+                : item.value === selectedValue;
+            return (
+              <Pressable
+                aria-role="button"
+                key={item.key ?? originalIdx}
+                onPress={() => onSelect(item.value, originalIdx)}
+                style={(state: PressableWebState) => ({
+                  backgroundColor:
+                    isSelected || state.hovered || state.pressed
+                      ? theme.surface.neutralLight
+                      : theme.surface.base,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                })}
+                testID={`${testIDPrefix}_option_${item.value}`}
+              >
+                <Text
+                  style={{
+                    color: item.color ?? theme.text.primary,
+                    fontWeight: isSelected ? "600" : "400",
+                    ...optionTextStyle,
+                  }}
                 >
-                  <Text
-                    style={{
-                      color: item.color ?? theme.text.primary,
-                      fontWeight: isSelected ? "600" : "400",
-                      ...optionTextStyle,
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </Pressable>
-              );
-            })
-          ) : (
+                  {item.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {searchable && filteredOptions.length === 0 && (
             <View style={{paddingHorizontal: 12, paddingVertical: 10}}>
               <Text
                 style={{color: theme.text.secondaryLight, fontStyle: "italic"}}
