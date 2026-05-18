@@ -31,11 +31,6 @@ on:
         required: false
         type: string
         default: Manual dispatch
-      force_build:
-        description: Build a fresh dev client even if the fingerprint matches
-        required: false
-        type: boolean
-        default: true
 
 jobs:
   dispatch:
@@ -89,12 +84,10 @@ jobs:
         env:
           PR_NUMBER: ${{ inputs.pr_number }}
           PR_TITLE: ${{ inputs.pr_title }}
-          FORCE_BUILD: ${{ inputs.force_build }}
         run: |
           set -euo pipefail
           eas workflow:run ".eas/workflows/${{ steps.resolve.outputs.file }}" \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}" \
-            -F "force_build=${FORCE_BUILD}"
+            -F "pr_title=${PR_TITLE}"
           echo "✅ Dispatched. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"

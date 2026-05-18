@@ -7,15 +7,19 @@ name: EAS PR
 #   EAS Update + post the PR comment, and **wait** for the EAS workflow
 #   so the GitHub status reflects real pass/fail.
 #
-# - Fingerprint changed (or `build-expo` label was added)  →  slow path:
-#   dispatch the EAS workflow asynchronously and exit immediately. A
-#   full dev build can take 15+ minutes; the EAS GitHub App still posts
-#   per-job status checks for that run when it eventually finishes.
+# - Fingerprint changed  →  slow path: dispatch the EAS workflow async
+#   and exit. A full dev build can take 15+ minutes; the EAS GitHub App
+#   posts per-job status checks for that run when it eventually finishes.
+#
+# A new dev build is only ever produced when the fingerprint has changed.
+# There is no manual force-build hatch from this workflow — push a change
+# that bumps the fingerprint, or use the `Trigger EAS Workflow` manual
+# dispatch for off-PR seed builds.
 
 on:
   pull_request:
     branches: [master]
-    types: [opened, reopened, synchronize, labeled]
+    types: [opened, reopened, synchronize]
     paths:
       - example-frontend/**
       - demo/**
@@ -36,7 +40,6 @@ jobs:
     outputs:
       example_frontend: ${{ steps.changes.outputs.example_frontend }}
       demo: ${{ steps.changes.outputs.demo }}
-      force_build: ${{ steps.changes.outputs.force_build }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -46,25 +49,8 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          ACTION: ${{ github.event.action }}
-          LABEL_NAME: ${{ github.event.label.name }}
         run: |
           set -euo pipefail
-
-          # `labeled` only fires for new label additions. Only react to build-expo.
-          if [ "$ACTION" = "labeled" ]; then
-            if [ "$LABEL_NAME" = "build-expo" ]; then
-              echo "force_build=true" >> "$GITHUB_OUTPUT"
-              echo "example_frontend=true" >> "$GITHUB_OUTPUT"
-              echo "demo=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "force_build=false" >> "$GITHUB_OUTPUT"
-              echo "example_frontend=false" >> "$GITHUB_OUTPUT"
-              echo "demo=false" >> "$GITHUB_OUTPUT"
-            fi
-            exit 0
-          fi
-
           changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || echo "")
           ef=false
           dm=false
@@ -74,7 +60,6 @@ jobs:
           if echo "$changed" | grep -qE "^(demo/|ui/|package\.json$|bun\.lock$)"; then
             dm=true
           fi
-          echo "force_build=false" >> "$GITHUB_OUTPUT"
           echo "example_frontend=$ef" >> "$GITHUB_OUTPUT"
           echo "demo=$dm" >> "$GITHUB_OUTPUT"
 
@@ -100,6 +85,16 @@ jobs:
         with:
           bun-version: 1.3.10
 
+      - name: Cache bun + node_modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -114,17 +109,8 @@ jobs:
       - name: Decide fast vs slow path
         id: decide
         working-directory: example-frontend
-        env:
-          FORCE_BUILD: ${{ needs.detect.outputs.force_build }}
         run: |
           set -euo pipefail
-          if [ "$FORCE_BUILD" = "true" ]; then
-            echo "needs_build=true" >> "$GITHUB_OUTPUT"
-            echo "reason=label" >> "$GITHUB_OUTPUT"
-            echo "::notice::build-expo label set — forcing slow path"
-            exit 0
-          fi
-
           ios_hash=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
           android_hash=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
 
@@ -136,10 +122,8 @@ jobs:
 
           if [ "$ios_match" -gt 0 ] && [ "$android_match" -gt 0 ]; then
             echo "needs_build=false" >> "$GITHUB_OUTPUT"
-            echo "reason=fingerprint-match" >> "$GITHUB_OUTPUT"
           else
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
-            echo "reason=fingerprint-changed" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Fast path — run EAS workflow and wait
@@ -154,8 +138,7 @@ jobs:
             --wait \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}" \
-            -F "force_build=false"
+            -F "pr_title=${PR_TITLE}"
 
       - name: Slow path — dispatch EAS workflow async
         if: steps.decide.outputs.needs_build == 'true'
@@ -163,14 +146,12 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-          REASON: ${{ steps.decide.outputs.reason }}
         run: |
-          echo "::notice::Reason: $REASON — dispatching dev build to EAS (will not wait)"
+          echo "::notice::Fingerprint changed — dispatching dev build to EAS (will not wait)"
           eas workflow:run .eas/workflows/example-frontend-build.yml \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}" \
-            -F "force_build=true"
+            -F "pr_title=${PR_TITLE}"
           echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
 
   demo:
@@ -195,6 +176,16 @@ jobs:
         with:
           bun-version: 1.3.10
 
+      - name: Cache bun + node_modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
       - uses: expo/expo-github-action@v8
         with:
           eas-version: latest
@@ -213,17 +204,8 @@ jobs:
       - name: Decide fast vs slow path
         id: decide
         working-directory: demo
-        env:
-          FORCE_BUILD: ${{ needs.detect.outputs.force_build }}
         run: |
           set -euo pipefail
-          if [ "$FORCE_BUILD" = "true" ]; then
-            echo "needs_build=true" >> "$GITHUB_OUTPUT"
-            echo "reason=label" >> "$GITHUB_OUTPUT"
-            echo "::notice::build-expo label set — forcing slow path"
-            exit 0
-          fi
-
           ios_hash=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
           android_hash=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
 
@@ -236,10 +218,8 @@ jobs:
 
           if [ "$ios_match" -gt 0 ] && [ "$android_match" -gt 0 ]; then
             echo "needs_build=false" >> "$GITHUB_OUTPUT"
-            echo "reason=fingerprint-match" >> "$GITHUB_OUTPUT"
           else
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
-            echo "reason=fingerprint-changed" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Fast path — run EAS workflow and wait
@@ -254,8 +234,7 @@ jobs:
             --wait \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}" \
-            -F "force_build=false"
+            -F "pr_title=${PR_TITLE}"
 
       - name: Slow path — dispatch EAS workflow async
         if: steps.decide.outputs.needs_build == 'true'
@@ -263,12 +242,10 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-          REASON: ${{ steps.decide.outputs.reason }}
         run: |
-          echo "::notice::Reason: $REASON — dispatching dev build to EAS (will not wait)"
+          echo "::notice::Fingerprint changed — dispatching dev build to EAS (will not wait)"
           eas workflow:run .eas/workflows/demo-build.yml \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}" \
-            -F "force_build=true"
+            -F "pr_title=${PR_TITLE}"
           echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
