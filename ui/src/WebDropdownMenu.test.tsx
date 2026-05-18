@@ -143,6 +143,135 @@ describe("WebDropdownMenu", () => {
   });
 });
 
+describe("WebDropdownMenu searchable", () => {
+  const anchor = {height: 40, width: 200, x: 16, y: 32};
+  const options = [
+    {label: "Apple", value: "apple"},
+    {label: "Banana", value: "banana"},
+    {label: "Cherry", value: "cherry"},
+    {label: "Avocado", value: "avocado"},
+  ];
+
+  it("does not render a search input when searchable is false", () => {
+    const {queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        visible
+      />
+    );
+    expect(queryByTestId("web_dropdown_search")).toBeNull();
+  });
+
+  it("renders a search input when searchable is true", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    expect(getByTestId("web_dropdown_search")).toBeTruthy();
+  });
+
+  it("filters options by label when the user types in the search input", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "a");
+    expect(getByTestId("web_dropdown_option_apple")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_avocado")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_cherry")).toBeNull();
+  });
+
+  it("shows 'No matching options' when filter matches nothing", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "zzz");
+    expect(getByTestId("web_dropdown_no_results")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_apple")).toBeNull();
+  });
+
+  it("reports the original index when selecting a filtered option", () => {
+    const onSelect = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={onSelect}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "cherry");
+    fireEvent.press(getByTestId("web_dropdown_option_cherry"));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual(["cherry", 2]);
+  });
+
+  it("performs case-insensitive filtering", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "BANANA");
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_option_apple")).toBeNull();
+  });
+
+  it("shows all options when search input is empty", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "ban");
+    fireEvent.changeText(getByTestId("web_dropdown_search"), "");
+    expect(getByTestId("web_dropdown_option_apple")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_banana")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_cherry")).toBeTruthy();
+    expect(getByTestId("web_dropdown_option_avocado")).toBeTruthy();
+  });
+});
+
 describe("useWebDropdownAnchor", () => {
   it("exposes a default zero-sized anchor before measuring", () => {
     const {result} = renderHook(() => useWebDropdownAnchor());
