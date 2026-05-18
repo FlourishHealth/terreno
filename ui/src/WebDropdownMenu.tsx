@@ -1,5 +1,6 @@
 import {type ReactElement, useEffect, useRef, useState} from "react";
 import {
+  Dimensions,
   type DimensionValue,
   Modal,
   Platform,
@@ -58,7 +59,8 @@ export interface WebDropdownMenuProps {
   /**
    * When true, renders a search input at the top of the dropdown that
    * filters options by label as the user types. The filter resets each
-   * time the menu opens. Defaults to false.
+   * time the menu opens.
+   * @default true
    */
   searchable?: boolean;
 }
@@ -91,7 +93,7 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
-  searchable = false,
+  searchable = true,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,6 +118,19 @@ export const WebDropdownMenu = ({
       ? options.filter((item) => item.label.toLowerCase().includes(normalizedQuery))
       : options;
 
+  const menuMaxHeight = 300;
+  const gap = 4;
+  const windowHeight = Dimensions.get("window").height;
+  const spaceBelow = windowHeight - (anchor.y + anchor.height + gap);
+  // If not enough room below the trigger, open the menu above it instead.
+  const isOpenAbove = spaceBelow < menuMaxHeight && anchor.y > spaceBelow;
+  const menuTop = isOpenAbove ? anchor.y - menuMaxHeight - gap : anchor.y + anchor.height + gap;
+  // When opening above, clamp so the menu doesn't go above the viewport.
+  const clampedTop = Math.max(0, menuTop);
+  const clampedMaxHeight = isOpenAbove
+    ? Math.min(menuMaxHeight, anchor.y - gap)
+    : Math.min(menuMaxHeight, spaceBelow);
+
   return (
     <Modal
       animationType="none"
@@ -137,7 +152,7 @@ export const WebDropdownMenu = ({
           borderRadius: 4,
           borderWidth: 1,
           left: anchor.x,
-          maxHeight: 300,
+          maxHeight: clampedMaxHeight,
           minWidth,
           overflow: "hidden",
           position: "absolute",
@@ -145,7 +160,7 @@ export const WebDropdownMenu = ({
           shadowOffset: {height: 2, width: 0},
           shadowOpacity: 0.15,
           shadowRadius: 8,
-          top: anchor.y + anchor.height + 4,
+          top: clampedTop,
           width: width ?? anchor.width,
         }}
         testID={`${testIDPrefix}_menu`}

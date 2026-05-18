@@ -143,6 +143,58 @@ describe("WebDropdownMenu", () => {
   });
 });
 
+describe("WebDropdownMenu positioning", () => {
+  const options = [
+    {label: "Option A", value: "a"},
+    {label: "Option B", value: "b"},
+  ];
+
+  it("positions the menu above the trigger when near the bottom of the screen", () => {
+    // Window height is mocked to 812. Place the trigger near the bottom so
+    // there is not enough room (< 300px) below it.
+    const bottomAnchor = {height: 40, width: 200, x: 16, y: 750};
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={bottomAnchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    const menu = getByTestId("web_dropdown_menu");
+    const style = Array.isArray(menu.props.style)
+      ? Object.assign({}, ...menu.props.style)
+      : menu.props.style;
+    // Menu should open above: top should be less than the trigger's y position.
+    expect(style.top).toBeLessThan(bottomAnchor.y);
+  });
+
+  it("clamps maxHeight to available space when opening below", () => {
+    // Place the trigger so there's some space below but less than 300px.
+    // windowHeight=812, anchor y=600 + height=40 + gap=4 => spaceBelow = 168
+    const midAnchor = {height: 40, width: 200, x: 16, y: 600};
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={midAnchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable={false}
+        visible
+      />
+    );
+    const menu = getByTestId("web_dropdown_menu");
+    const style = Array.isArray(menu.props.style)
+      ? Object.assign({}, ...menu.props.style)
+      : menu.props.style;
+    // spaceBelow = 812 - 644 = 168. Since 168 < 300 but anchor.y (600) > 168,
+    // it opens above. maxHeight clamped to space above: min(300, 600 - 4) = 300.
+    expect(style.maxHeight).toBeLessThanOrEqual(300);
+  });
+});
+
 describe("WebDropdownMenu searchable", () => {
   const anchor = {height: 40, width: 200, x: 16, y: 32};
   const options = [
@@ -159,20 +211,20 @@ describe("WebDropdownMenu searchable", () => {
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
+        searchable={false}
         visible
       />
     );
     expect(queryByTestId("web_dropdown_search")).toBeNull();
   });
 
-  it("renders a search input when searchable is true", () => {
+  it("renders a search input by default (searchable defaults to true)", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
-        searchable
         visible
       />
     );

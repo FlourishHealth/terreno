@@ -2693,7 +2693,7 @@ export interface SelectFieldPropsBase {
   /**
    * When true, the web dropdown renders a search input that lets the user
    * type to filter options by label. Only affects the web platform.
-   * @default false
+   * @default true
    */
   searchable?: boolean;
 

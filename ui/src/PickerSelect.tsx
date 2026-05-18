@@ -115,7 +115,8 @@ export interface RNPickerSelectProps {
 
   /**
    * When true the web dropdown renders a search input that filters options
-   * by label as the user types. Only affects the web platform. Defaults to false.
+   * by label as the user types. Only affects the web platform.
+   * @default true
    */
   searchable?: boolean;
 }
@@ -142,7 +143,7 @@ export function RNPickerSelect({
   touchableWrapperProps,
 
   InputAccessoryView,
-  searchable = false,
+  searchable = true,
 }: RNPickerSelectProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
