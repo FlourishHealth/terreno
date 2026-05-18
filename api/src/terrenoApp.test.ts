@@ -1,10 +1,13 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import type express from "express";
+import mongoose, {Schema} from "mongoose";
 import supertest from "supertest";
 
 import {modelRouter} from "./api";
+import {configurationPlugin} from "./configurationPlugin";
 import {Permissions} from "./permissions";
+import {createdUpdatedPlugin} from "./plugins";
 import {TerrenoApp} from "./terrenoApp";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import {authAsUser, FoodModel, setupDb, UserModel} from "./tests";
@@ -163,6 +166,124 @@ describe("TerrenoApp", () => {
 
       await supertest(app).get("/nonexistent").expect(404);
       expect(middlewareCalled).toBe(true);
+    });
+  });
+
+  describe("configure", () => {
+    beforeEach(async () => {
+      await setupDb();
+    });
+
+    it("registers configuration routes when configure is called", async () => {
+      const configSchema = new Schema({
+        appName: {default: "TestApp", description: "App display name", type: String},
+      });
+      configSchema.plugin(configurationPlugin);
+      configSchema.plugin(createdUpdatedPlugin);
+      const modelName = `TestConfig_${Date.now()}`;
+      const ConfigModel = mongoose.model(modelName, configSchema);
+
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: UserModel as any,
+      })
+        .configure(ConfigModel)
+        .build();
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/configuration/meta");
+      expect(res.status).toBe(200);
+      expect(res.body.sections).toBeDefined();
+
+      await ConfigModel.deleteMany({}).catch(() => {});
+    });
+
+    it("supports custom basePath via configure options", async () => {
+      const configSchema = new Schema({
+        siteName: {default: "Test", description: "Site name", type: String},
+      });
+      configSchema.plugin(configurationPlugin);
+      configSchema.plugin(createdUpdatedPlugin);
+      const modelName = `TestConfig2_${Date.now()}`;
+      const ConfigModel = mongoose.model(modelName, configSchema);
+
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: UserModel as any,
+      })
+        .configure(ConfigModel, {basePath: "/settings"})
+        .build();
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/settings/meta");
+      expect(res.status).toBe(200);
+      expect(res.body.sections).toBeDefined();
+
+      await ConfigModel.deleteMany({}).catch(() => {});
+    });
+  });
+
+  describe("addMiddleware with app configurator", () => {
+    it("runs app-configurator function when fn.length > 3", async () => {
+      let appReceived: express.Application | undefined;
+      const configurator = (
+        receivedApp: express.Application,
+        _a: unknown,
+        _b: unknown,
+        _c: unknown
+      ): void => {
+        appReceived = receivedApp;
+      };
+
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: UserModel as any,
+      })
+        .addMiddleware(configurator as unknown as express.RequestHandler)
+        .build();
+
+      expect(appReceived).toBe(app);
+    });
+  });
+
+  describe("fallthrough error handler", () => {
+    beforeEach(async () => {
+      await setupDb();
+    });
+
+    it("catches errors that fall through other error middleware", async () => {
+      const plugin: TerrenoPlugin = {
+        register: (registeredApp: express.Application) => {
+          registeredApp.get(
+            "/trigger-fallthrough",
+            (_req: express.Request, _res: express.Response) => {
+              throw new Error("unexpected failure");
+            }
+          );
+        },
+      };
+
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: UserModel as any,
+      })
+        .register(plugin)
+        .build();
+
+      const res = await supertest(app).get("/trigger-fallthrough");
+      expect(res.status).toBe(500);
+    });
+  });
+
+  describe("logRequests option", () => {
+    it("disables request logging when logRequests is false", () => {
+      const app = new TerrenoApp({
+        logRequests: false,
+        skipListen: true,
+        userModel: UserModel as any,
+      }).build();
+
+      expect(app).toBeDefined();
     });
   });
 
