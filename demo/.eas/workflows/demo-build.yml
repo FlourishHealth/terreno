@@ -1,17 +1,24 @@
 name: Demo PR
 
+# Invoked exclusively by .github/workflows/eas-pr.yml via `eas workflow:run`.
+# The GH Action decides fast path (no build needed, --wait) vs slow path
+# (new dev build needed, async), so we can reflect real status in GitHub.
+
 on:
-  pull_request:
-    branches: [master]
-    types: [opened, reopened, synchronize]
-    paths:
-      - demo/**
-      - ui/**
-      - package.json
-      - bun.lock
-  pull_request_labeled:
-    labels:
-      - build-expo
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number for branch/comment context
+        type: string
+        required: true
+      pr_title:
+        description: PR title for the update message
+        type: string
+        required: true
+      force_build:
+        description: Build a fresh dev client even if the fingerprint matches
+        type: boolean
+        default: false
 
 defaults:
   tools:
@@ -45,7 +52,7 @@ jobs:
     name: Build iOS dev client
     type: build
     needs: [get_ios_build]
-    if: ${{ github.event_name == 'pull_request_labeled' || needs.get_ios_build.outputs.build_id == '' }}
+    if: ${{ inputs.force_build || needs.get_ios_build.outputs.build_id == '' }}
     params:
       platform: ios
       profile: development:simulator
@@ -54,7 +61,7 @@ jobs:
     name: Build Android dev client
     type: build
     needs: [get_android_build]
-    if: ${{ github.event_name == 'pull_request_labeled' || needs.get_android_build.outputs.build_id == '' }}
+    if: ${{ inputs.force_build || needs.get_android_build.outputs.build_id == '' }}
     params:
       platform: android
       profile: development
@@ -77,8 +84,8 @@ jobs:
       - name: Publish EAS Update
         id: publish
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_TITLE: ${{ inputs.pr_title }}
         run: |
           update_json=$(bunx eas-cli@latest update \
             --branch "pr-${PR_NUMBER}" \
@@ -103,7 +110,7 @@ jobs:
         ### 🧪 Terreno Demo — EAS PR build
 
         **EAS Update published**
-        - Branch: `pr-${{ github.event.pull_request.number }}`
+        - Branch: `pr-${{ inputs.pr_number }}`
         - Update group: `${{ needs.publish_update.outputs.first_update_group_id }}`
 
         **Fingerprint**
@@ -116,5 +123,5 @@ jobs:
 
         **How to test on your phone**
         1. Install the latest `terreno-demo` dev build from the [EAS dashboard](https://expo.dev/accounts/flourishhealth/projects/terreno-demo/builds) (or scan a fresh QR if one was built below).
-        2. Open the dev build → shake to open the dev menu → "Extensions" → "Branch" → select `pr-${{ github.event.pull_request.number }}`.
+        2. Open the dev build → shake to open the dev menu → "Extensions" → "Branch" → select `pr-${{ inputs.pr_number }}`.
         3. The PR's JavaScript loads instantly. Pull to refresh after pushing more commits.

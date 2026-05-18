@@ -4,23 +4,38 @@ name: Trigger EAS Workflow
 # remotely on EAS infrastructure — this job just dispatches and exits, so the
 # GitHub Actions runner is never tied up waiting for builds.
 #
-# PR-driven builds + updates trigger automatically from each app's
-# `.eas/workflows/*.yml` (no GitHub Action required).
+# PR-driven dispatch is handled by `eas-pr.yml`. Use this only for forcing a
+# build off-PR (e.g., to seed a dev build on master).
 
 on:
   workflow_dispatch:
     inputs:
       target:
-        description: "App to dispatch"
+        description: App to dispatch
         required: true
         type: choice
         options:
           - example-frontend
           - demo
       git_ref:
-        description: "Git ref to build (branch, tag, or commit). Defaults to the workflow ref."
+        description: Git ref to build (branch, tag, or commit). Defaults to the workflow ref.
         required: false
         type: string
+      pr_number:
+        description: PR number to associate with the EAS Update branch (defaults to 0 for non-PR runs)
+        required: false
+        type: string
+        default: "0"
+      pr_title:
+        description: Message to attach to the EAS Update
+        required: false
+        type: string
+        default: Manual dispatch
+      force_build:
+        description: Build a fresh dev client even if the fingerprint matches
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   dispatch:
@@ -37,10 +52,8 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          missing=()
-          if [ -z "$EXPO_TOKEN" ]; then missing+=("EXPO_TOKEN"); fi
-          if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing required secret EXPO_TOKEN"
             exit 1
           fi
 
@@ -73,11 +86,15 @@ jobs:
 
       - name: Dispatch to EAS Cloud
         working-directory: ${{ steps.resolve.outputs.dir }}
+        env:
+          PR_NUMBER: ${{ inputs.pr_number }}
+          PR_TITLE: ${{ inputs.pr_title }}
+          FORCE_BUILD: ${{ inputs.force_build }}
         run: |
           set -euo pipefail
-          echo "::group::eas workflow:run"
-          eas workflow:run ".eas/workflows/${{ steps.resolve.outputs.file }}" --non-interactive
-          echo "::endgroup::"
-          echo ""
-          echo "✅ Dispatched. Build/update runs on EAS Cloud; progress is reported back to the PR via EAS Workflow's github-comment step."
-          echo "Track live: https://expo.dev/accounts/flourishhealth/workflows"
+          eas workflow:run ".eas/workflows/${{ steps.resolve.outputs.file }}" \
+            --non-interactive \
+            -F "pr_number=${PR_NUMBER}" \
+            -F "pr_title=${PR_TITLE}" \
+            -F "force_build=${FORCE_BUILD}"
+          echo "✅ Dispatched. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"
