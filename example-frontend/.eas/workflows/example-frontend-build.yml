@@ -74,10 +74,13 @@ jobs:
         run: bun run compile
       - name: Publish EAS Update
         id: publish
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           update_json=$(bunx eas-cli@latest update \
-            --branch "pr-${{ github.event.pull_request.number }}" \
-            --message "PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}" \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
             --non-interactive \
             --json)
           first_id=$(echo "$update_json" | jq -r '.[0].group')

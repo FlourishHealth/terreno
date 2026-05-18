@@ -33,6 +33,17 @@ jobs:
         with:
           ref: ${{ inputs.git_ref || github.ref }}
 
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          missing=()
+          if [ -z "$EXPO_TOKEN" ]; then missing+=("EXPO_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
@@ -41,15 +52,6 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: Validate required secrets
-        run: |
-          missing=()
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then missing+=("EXPO_TOKEN"); fi
-          if [ ${#missing[@]} -ne 0 ]; then
-            echo "::error::Missing required secrets: ${missing[*]}"
-            exit 1
-          fi
 
       - name: Resolve workflow path
         id: resolve
