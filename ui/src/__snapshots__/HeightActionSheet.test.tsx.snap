@@ -186,9 +186,8 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                         "accessibilityLabel": "Done",
                                         "accessibilityRole": "button",
                                         "accessibilityState": {
-                                          "disabled": undefined,
+                                          "disabled": false,
                                         },
-                                        "aria-disabled": undefined,
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
@@ -881,9 +880,8 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                         "accessibilityLabel": "Done",
                                         "accessibilityRole": "button",
                                         "accessibilityState": {
-                                          "disabled": undefined,
+                                          "disabled": false,
                                         },
-                                        "aria-disabled": undefined,
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {

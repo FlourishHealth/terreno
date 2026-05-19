@@ -674,9 +674,8 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
-                                "aria-disabled": "true",
                                 "disabled": true,
-                                "onPress": undefined,
+                                "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -692,7 +691,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "signup-screen-submit-button",
                               },
-                              "type": "PressableScale",
+                              "type": "Pressable",
                             },
                           ],
                           "props": {
@@ -757,9 +756,8 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
-                                "aria-disabled": "true",
                                 "disabled": true,
-                                "onPress": undefined,
+                                "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -775,7 +773,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "signup-screen-login-link",
                               },
-                              "type": "PressableScale",
+                              "type": "Pressable",
                             },
                           ],
                           "props": {

@@ -532,9 +532,8 @@ exports[`Modal renders with both buttons 1`] = `
                             "accessibilityLabel": "Cancel",
                             "accessibilityRole": "button",
                             "accessibilityState": {
-                              "disabled": undefined,
+                              "disabled": false,
                             },
-                            "aria-disabled": undefined,
                             "disabled": false,
                             "onPress": [Function: debounced],
                             "style": {
@@ -610,9 +609,8 @@ exports[`Modal renders with both buttons 1`] = `
                         "accessibilityLabel": "Save",
                         "accessibilityRole": "button",
                         "accessibilityState": {
-                          "disabled": undefined,
+                          "disabled": false,
                         },
-                        "aria-disabled": undefined,
                         "disabled": false,
                         "onPress": [Function: debounced],
                         "style": {
@@ -863,9 +861,8 @@ exports[`Modal renders with disabled primary button 1`] = `
                         "accessibilityState": {
                           "disabled": true,
                         },
-                        "aria-disabled": "true",
                         "disabled": true,
-                        "onPress": undefined,
+                        "onPress": [Function: debounced],
                         "style": {
                           "alignItems": "center",
                           "alignSelf": "flex-start",
@@ -881,7 +878,7 @@ exports[`Modal renders with disabled primary button 1`] = `
                         },
                         "testID": undefined,
                       },
-                      "type": "PressableScale",
+                      "type": "Pressable",
                     },
                   ],
                   "props": {

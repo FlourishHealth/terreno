@@ -815,9 +815,8 @@ exports[`Page renders with right button 1`] = `
                             "accessibilityLabel": "Save",
                             "accessibilityRole": "button",
                             "accessibilityState": {
-                              "disabled": undefined,
+                              "disabled": false,
                             },
-                            "aria-disabled": undefined,
                             "disabled": false,
                             "onPress": [Function: debounced],
                             "style": {

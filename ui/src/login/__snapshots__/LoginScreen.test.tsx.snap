@@ -359,9 +359,8 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
-                                "aria-disabled": "true",
                                 "disabled": true,
-                                "onPress": undefined,
+                                "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -377,7 +376,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-submit-button",
                               },
-                              "type": "PressableScale",
+                              "type": "Pressable",
                             },
                           ],
                           "props": {
@@ -442,9 +441,8 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
-                                "aria-disabled": "true",
                                 "disabled": true,
-                                "onPress": undefined,
+                                "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "flex-start",
@@ -460,7 +458,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-forgot-password",
                               },
-                              "type": "PressableScale",
+                              "type": "Pressable",
                             },
                           ],
                           "props": {
@@ -526,9 +524,8 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
-                                "aria-disabled": "true",
                                 "disabled": true,
-                                "onPress": undefined,
+                                "onPress": [Function: debounced],
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -544,7 +541,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-signup-link",
                               },
-                              "type": "PressableScale",
+                              "type": "Pressable",
                             },
                           ],
                           "props": {

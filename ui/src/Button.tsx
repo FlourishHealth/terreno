@@ -8,7 +8,7 @@ import {
 } from "pressto";
 import type React from "react";
 import {lazy, Suspense, useCallback, useMemo, useState} from "react";
-import {ActivityIndicator, Text, View} from "react-native";
+import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "react-native";
 
 import {Box} from "./Box";
 import type {ButtonPressAnimation, ButtonProps} from "./Common";
@@ -23,12 +23,14 @@ const LazyModal = lazy(() => import("./Modal").then((module) => ({default: modul
 
 const PRESSABLE_BY_ANIMATION: Record<
   ButtonPressAnimation,
-  React.ComponentType<CustomPressableProps & {"aria-disabled"?: "true"}>
+  React.ComponentType<CustomPressableProps>
 > = {
   none: PressableWithoutFeedback,
   opacity: PressableOpacity,
   scale: PressableScale,
 };
+
+type ButtonPressableProps = CustomPressableProps & PressableProps;
 
 const ButtonComponent: React.FC<ButtonProps> = ({
   confirmationText = "Are you sure you want to continue?",
@@ -112,7 +114,11 @@ const ButtonComponent: React.FC<ButtonProps> = ({
     return null;
   }
 
-  const PressableComponent = PRESSABLE_BY_ANIMATION[pressAnimation];
+  const isPressDisabled = disabled || Boolean(loading);
+  const PressableComponent = (
+    isPressDisabled ? Pressable : PRESSABLE_BY_ANIMATION[pressAnimation]
+  ) as React.ComponentType<ButtonPressableProps>;
+  const pressableInteractionProps = isPressDisabled ? {disabled: true} : {enabled: true};
 
   return (
     <PressableComponent
@@ -121,9 +127,8 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       }
       accessibilityLabel={text}
       accessibilityRole="button"
-      accessibilityState={{disabled: disabled || loading}}
-      aria-disabled={disabled || loading ? "true" : undefined}
-      enabled={!disabled && !loading}
+      accessibilityState={{disabled: isPressDisabled}}
+      {...pressableInteractionProps}
       onPress={debouncedHandlePress}
       style={{
         alignItems: "center",
