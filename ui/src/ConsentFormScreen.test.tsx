@@ -213,7 +213,7 @@ describe("ConsentFormScreen", () => {
       ...baseForm,
       checkboxes: [{confirmationPrompt: "Are you sure?", label: "Tricky", required: true}],
     };
-    const {getByTestId, getByText} = renderWithTheme(
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
     act(() => {
@@ -227,7 +227,7 @@ describe("ConsentFormScreen", () => {
     return new Promise<void>((resolve) => {
       setTimeout(() => {
         // Checkbox hint should be gone because the required checkbox was toggled on
-        expect(getByTestId("consent-form-checkbox-0")).toBeTruthy();
+        expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
         resolve();
       }, 600);
     });
