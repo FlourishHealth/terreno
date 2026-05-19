@@ -249,6 +249,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                             "accessibilityState": {
                                               "disabled": undefined,
                                             },
+                                            "aria-disabled": undefined,
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -1014,6 +1015,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                             "accessibilityState": {
                                               "disabled": undefined,
                                             },
+                                            "aria-disabled": undefined,
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -1876,6 +1878,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                             "accessibilityState": {
                                               "disabled": undefined,
                                             },
+                                            "aria-disabled": undefined,
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -2673,6 +2676,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                             "accessibilityState": {
                                               "disabled": undefined,
                                             },
+                                            "aria-disabled": undefined,
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -3509,6 +3513,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                             "accessibilityState": {
                                               "disabled": undefined,
                                             },
+                                            "aria-disabled": undefined,
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {

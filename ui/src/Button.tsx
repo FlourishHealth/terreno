@@ -23,7 +23,7 @@ const LazyModal = lazy(() => import("./Modal").then((module) => ({default: modul
 
 const PRESSABLE_BY_ANIMATION: Record<
   ButtonPressAnimation,
-  React.ComponentType<CustomPressableProps>
+  React.ComponentType<CustomPressableProps & {"aria-disabled"?: "true"}>
 > = {
   none: PressableWithoutFeedback,
   opacity: PressableOpacity,
@@ -122,6 +122,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       accessibilityLabel={text}
       accessibilityRole="button"
       accessibilityState={{disabled: disabled || loading}}
+      aria-disabled={disabled || loading ? "true" : undefined}
       enabled={!disabled && !loading}
       onPress={debouncedHandlePress}
       style={{

@@ -50,6 +50,7 @@ exports[`Button renders correctly with default props 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -121,6 +122,7 @@ exports[`Button renders primary variant 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -192,6 +194,7 @@ exports[`Button renders secondary variant 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -263,6 +266,7 @@ exports[`Button renders muted variant 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -334,6 +338,7 @@ exports[`Button renders outline variant 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -405,6 +410,7 @@ exports[`Button renders destructive variant 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -476,6 +482,7 @@ exports[`Button renders disabled state 1`] = `
     "accessibilityState": {
       "disabled": true,
     },
+    "aria-disabled": "true",
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -547,6 +554,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
     "accessibilityState": {
       "disabled": true,
     },
+    "aria-disabled": "true",
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -641,6 +649,7 @@ exports[`Button renders loading state 1`] = `
     "accessibilityState": {
       "disabled": true,
     },
+    "aria-disabled": "true",
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -712,6 +721,7 @@ exports[`Button renders fullWidth button 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -796,6 +806,7 @@ exports[`Button renders with icon on left 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -880,6 +891,7 @@ exports[`Button renders with icon on right 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -951,6 +963,7 @@ exports[`Button renders with confirmation modal props 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -1022,6 +1035,7 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
     "accessibilityState": {
       "disabled": undefined,
     },
+    "aria-disabled": undefined,
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {

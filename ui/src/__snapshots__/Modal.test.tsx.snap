@@ -534,6 +534,7 @@ exports[`Modal renders with both buttons 1`] = `
                             "accessibilityState": {
                               "disabled": undefined,
                             },
+                            "aria-disabled": undefined,
                             "disabled": false,
                             "onPress": [Function: debounced],
                             "style": {
@@ -611,6 +612,7 @@ exports[`Modal renders with both buttons 1`] = `
                         "accessibilityState": {
                           "disabled": undefined,
                         },
+                        "aria-disabled": undefined,
                         "disabled": false,
                         "onPress": [Function: debounced],
                         "style": {
@@ -861,6 +863,7 @@ exports[`Modal renders with disabled primary button 1`] = `
                         "accessibilityState": {
                           "disabled": true,
                         },
+                        "aria-disabled": "true",
                         "disabled": true,
                         "onPress": undefined,
                         "style": {

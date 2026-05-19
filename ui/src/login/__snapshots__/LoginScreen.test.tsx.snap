@@ -359,6 +359,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
+                                "aria-disabled": "true",
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {
@@ -441,6 +442,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
+                                "aria-disabled": "true",
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {
@@ -524,6 +526,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityState": {
                                   "disabled": true,
                                 },
+                                "aria-disabled": "true",
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {

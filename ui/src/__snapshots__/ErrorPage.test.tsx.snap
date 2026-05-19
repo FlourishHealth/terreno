@@ -158,6 +158,7 @@ exports[`ErrorPage renders correctly 1`] = `
         "accessibilityState": {
           "disabled": undefined,
         },
+        "aria-disabled": undefined,
         "disabled": false,
         "onPress": [Function: debounced],
         "style": {
