@@ -170,6 +170,9 @@ exports[`DecimalRangeActionSheet renders correctly 1`] = `
                                         "accessibilityHint": "Press to perform action",
                                         "accessibilityLabel": "Close",
                                         "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": undefined,
+                                        },
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
@@ -849,6 +852,9 @@ exports[`DecimalRangeActionSheet renders with different min/max range 1`] = `
                                         "accessibilityHint": "Press to perform action",
                                         "accessibilityLabel": "Close",
                                         "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": undefined,
+                                        },
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {

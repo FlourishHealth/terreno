@@ -47,6 +47,9 @@ exports[`Button renders correctly with default props 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Click me",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -115,6 +118,9 @@ exports[`Button renders primary variant 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Primary",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -183,6 +189,9 @@ exports[`Button renders secondary variant 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Secondary",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -251,6 +260,9 @@ exports[`Button renders muted variant 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Muted",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -319,6 +331,9 @@ exports[`Button renders outline variant 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Outline",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -387,6 +402,9 @@ exports[`Button renders destructive variant 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Delete",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -455,6 +473,9 @@ exports[`Button renders disabled state 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Disabled",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -523,6 +544,9 @@ exports[`Button applies disabled styles when disabled 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Disabled",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -614,6 +638,9 @@ exports[`Button renders loading state 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Loading",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": true,
+    },
     "disabled": true,
     "onPress": undefined,
     "style": {
@@ -682,6 +709,9 @@ exports[`Button renders fullWidth button 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Full Width",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -763,6 +793,9 @@ exports[`Button renders with icon on left 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "With Icon",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -844,6 +877,9 @@ exports[`Button renders with icon on right 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Next",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -912,6 +948,9 @@ exports[`Button renders with confirmation modal props 1`] = `
     "accessibilityHint": "Opens a confirmation dialog",
     "accessibilityLabel": "Delete",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {
@@ -980,6 +1019,9 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
     "accessibilityHint": "Press to perform action",
     "accessibilityLabel": "Hover me",
     "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": undefined,
+    },
     "disabled": false,
     "onPress": [Function: debounced],
     "style": {

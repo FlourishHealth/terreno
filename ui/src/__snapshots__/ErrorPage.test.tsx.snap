@@ -155,6 +155,9 @@ exports[`ErrorPage renders correctly 1`] = `
         "accessibilityHint": "Press to perform action",
         "accessibilityLabel": "Try again",
         "accessibilityRole": "button",
+        "accessibilityState": {
+          "disabled": undefined,
+        },
         "disabled": false,
         "onPress": [Function: debounced],
         "style": {

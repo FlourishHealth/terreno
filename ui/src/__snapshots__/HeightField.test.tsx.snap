@@ -246,6 +246,9 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                                             "accessibilityHint": "Press to perform action",
                                             "accessibilityLabel": "Done",
                                             "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": undefined,
+                                            },
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -1008,6 +1011,9 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                                             "accessibilityHint": "Press to perform action",
                                             "accessibilityLabel": "Done",
                                             "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": undefined,
+                                            },
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -1867,6 +1873,9 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                                             "accessibilityHint": "Press to perform action",
                                             "accessibilityLabel": "Done",
                                             "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": undefined,
+                                            },
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -2661,6 +2670,9 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                                             "accessibilityHint": "Press to perform action",
                                             "accessibilityLabel": "Done",
                                             "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": undefined,
+                                            },
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {
@@ -3494,6 +3506,9 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                                             "accessibilityHint": "Press to perform action",
                                             "accessibilityLabel": "Done",
                                             "accessibilityRole": "button",
+                                            "accessibilityState": {
+                                              "disabled": undefined,
+                                            },
                                             "disabled": false,
                                             "onPress": [Function: debounced],
                                             "style": {

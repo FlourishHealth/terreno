@@ -170,6 +170,9 @@ exports[`NumberPickerActionSheet renders correctly 1`] = `
                                         "accessibilityHint": "Press to perform action",
                                         "accessibilityLabel": "Close",
                                         "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": undefined,
+                                        },
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
@@ -1499,6 +1502,9 @@ exports[`NumberPickerActionSheet renders with different range 1`] = `
                                         "accessibilityHint": "Press to perform action",
                                         "accessibilityLabel": "Close",
                                         "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": undefined,
+                                        },
                                         "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {

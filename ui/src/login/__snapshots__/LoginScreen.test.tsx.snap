@@ -356,6 +356,9 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityHint": "Press to perform action",
                                 "accessibilityLabel": "Log In",
                                 "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {
@@ -435,6 +438,9 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityHint": "Press to perform action",
                                 "accessibilityLabel": "Forgot password?",
                                 "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {
@@ -515,6 +521,9 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 "accessibilityHint": "Press to perform action",
                                 "accessibilityLabel": "Need an account? Sign Up",
                                 "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {

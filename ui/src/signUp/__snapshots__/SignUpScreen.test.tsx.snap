@@ -671,6 +671,9 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 "accessibilityHint": "Press to perform action",
                                 "accessibilityLabel": "Sign Up",
                                 "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {
@@ -750,6 +753,9 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 "accessibilityHint": "Press to perform action",
                                 "accessibilityLabel": "Already have an account? Log in",
                                 "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": undefined,
                                 "style": {

@@ -169,6 +169,9 @@ exports[`InfoModalIcon renders correctly with required props 1`] = `
                           "accessibilityHint": "Press to perform action",
                           "accessibilityLabel": "Close",
                           "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": undefined,
+                          },
                           "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
@@ -497,6 +500,9 @@ exports[`InfoModalIcon renders with subtitle 1`] = `
                           "accessibilityHint": "Press to perform action",
                           "accessibilityLabel": "Close",
                           "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": undefined,
+                          },
                           "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
@@ -823,6 +829,9 @@ exports[`InfoModalIcon renders with children content 1`] = `
                           "accessibilityHint": "Press to perform action",
                           "accessibilityLabel": "Close",
                           "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": undefined,
+                          },
                           "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
@@ -1110,6 +1119,9 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                           "accessibilityHint": "Press to perform action",
                           "accessibilityLabel": "Close",
                           "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": undefined,
+                          },
                           "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {

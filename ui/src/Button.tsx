@@ -121,6 +121,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
       }
       accessibilityLabel={text}
       accessibilityRole="button"
+      accessibilityState={{disabled: disabled || loading}}
       enabled={!disabled && !loading}
       onPress={debouncedHandlePress}
       style={{
