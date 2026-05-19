@@ -3,21 +3,21 @@ import {inspect} from "node:util";
 import * as Sentry from "@sentry/bun";
 import winston from "winston";
 
-function isPrimitive(val: unknown) {
+const isPrimitive = (val: unknown) => {
   return val === null || (typeof val !== "object" && typeof val !== "function");
-}
+};
 
-function formatWithInspect(val: unknown) {
+const formatWithInspect = (val: unknown) => {
   const prefix = isPrimitive(val) ? "" : "\n";
   const shouldFormat = typeof val !== "string";
 
   return prefix + (shouldFormat ? inspect(val, {colors: true, depth: null}) : val);
-}
+};
 
 // Winston doesn't operate like console.log by default, e.g. `logger.error('error',
 // error)` only prints the message and no args. Add handling for all the args,
 // while also supporting splat logging.
-function printf(timestamp = false) {
+const printf = (timestamp = false) => {
   return (info: winston.Logform.TransformableInfo) => {
     const msg = formatWithInspect(info.message);
     const splatKey = Symbol.for("splat") as unknown as keyof winston.Logform.TransformableInfo;
@@ -28,7 +28,7 @@ function printf(timestamp = false) {
     }
     return `${info.level}: ${msg} ${rest}`;
   };
-}
+};
 
 // Setup a global, default rejection handler.
 winston.add(
@@ -64,11 +64,11 @@ export const winstonLogger = winston.createLogger({
 });
 
 // Helper function to send logs to Sentry if enabled
-function sendToSentry(message: string, level: "debug" | "info" | "warn" | "error") {
+const sendToSentry = (message: string, level: "debug" | "info" | "warn" | "error"): void => {
   if (process.env.USE_SENTRY_LOGGING === "true" && Sentry.logger) {
     Sentry.logger[level](message);
   }
-}
+};
 
 export const logger = {
   // simple way to log a caught exception. e.g. promise().catch(logger.catch)
@@ -118,7 +118,7 @@ export interface LoggingOptions {
   logSlowRequestsWriteMs?: number;
 }
 
-export function setupLogging(options?: LoggingOptions) {
+export const setupLogging = (options?: LoggingOptions): void => {
   winstonLogger.clear();
   if (!options?.disableConsoleLogging) {
     const formats: winston.Logform.Format[] = [winston.format.simple()];
@@ -188,4 +188,4 @@ export function setupLogging(options?: LoggingOptions) {
       winstonLogger.add(transport);
     }
   }
-}
+};
