@@ -231,12 +231,6 @@ describe("TerrenoApp", () => {
       }).start();
 
       expect(app).toBeDefined();
-
-      // Clean up the listener
-      const server = (app as unknown as {_server?: import("http").Server})._server;
-      if (server) {
-        server.close();
-      }
     });
   });
 
