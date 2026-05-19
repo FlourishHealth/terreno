@@ -153,9 +153,9 @@ exports[`ErrorPage renders correctly 1`] = `
       ],
       "props": {
         "accessibilityHint": "Press to perform action",
-        "aria-label": "Try again",
-        "aria-role": "button",
-        "disabled": undefined,
+        "accessibilityLabel": "Try again",
+        "accessibilityRole": "button",
+        "disabled": false,
         "onPress": [Function: debounced],
         "style": {
           "alignItems": "center",
@@ -172,7 +172,7 @@ exports[`ErrorPage renders correctly 1`] = `
         },
         "testID": undefined,
       },
-      "type": "Pressable",
+      "type": "PressableScale",
     },
   ],
   "props": {

@@ -168,9 +168,9 @@ exports[`NumberPickerActionSheet renders correctly 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Close",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Close",
+                                        "accessibilityRole": "button",
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -187,7 +187,7 @@ exports[`NumberPickerActionSheet renders correctly 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {
@@ -1497,9 +1497,9 @@ exports[`NumberPickerActionSheet renders with different range 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Close",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Close",
+                                        "accessibilityRole": "button",
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -1516,7 +1516,7 @@ exports[`NumberPickerActionSheet renders with different range 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {

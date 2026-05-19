@@ -354,10 +354,10 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Log In",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Log In",
+                                "accessibilityRole": "button",
                                 "disabled": true,
-                                "onPress": [Function: debounced],
+                                "onPress": undefined,
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -373,7 +373,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-submit-button",
                               },
-                              "type": "Pressable",
+                              "type": "PressableScale",
                             },
                           ],
                           "props": {
@@ -433,10 +433,10 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Forgot password?",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Forgot password?",
+                                "accessibilityRole": "button",
                                 "disabled": true,
-                                "onPress": [Function: debounced],
+                                "onPress": undefined,
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "flex-start",
@@ -452,7 +452,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-forgot-password",
                               },
-                              "type": "Pressable",
+                              "type": "PressableScale",
                             },
                           ],
                           "props": {
@@ -513,10 +513,10 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Need an account? Sign Up",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Need an account? Sign Up",
+                                "accessibilityRole": "button",
                                 "disabled": true,
-                                "onPress": [Function: debounced],
+                                "onPress": undefined,
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -532,7 +532,7 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "login-screen-signup-link",
                               },
-                              "type": "Pressable",
+                              "type": "PressableScale",
                             },
                           ],
                           "props": {

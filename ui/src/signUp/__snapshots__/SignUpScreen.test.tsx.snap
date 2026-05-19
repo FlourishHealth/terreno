@@ -669,10 +669,10 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Sign Up",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Sign Up",
+                                "accessibilityRole": "button",
                                 "disabled": true,
-                                "onPress": [Function: debounced],
+                                "onPress": undefined,
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -688,7 +688,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "signup-screen-submit-button",
                               },
-                              "type": "Pressable",
+                              "type": "PressableScale",
                             },
                           ],
                           "props": {
@@ -748,10 +748,10 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Already have an account? Log in",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Already have an account? Log in",
+                                "accessibilityRole": "button",
                                 "disabled": true,
-                                "onPress": [Function: debounced],
+                                "onPress": undefined,
                                 "style": {
                                   "alignItems": "center",
                                   "alignSelf": "stretch",
@@ -767,7 +767,7 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                                 "testID": "signup-screen-login-link",
                               },
-                              "type": "Pressable",
+                              "type": "PressableScale",
                             },
                           ],
                           "props": {
