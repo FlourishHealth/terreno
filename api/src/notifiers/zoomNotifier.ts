@@ -32,11 +32,11 @@ import {logger} from "../logger";
 export const sendToZoom = async (
   {header, body, subheader}: {header: string; body: string; subheader?: string},
   {channel, shouldThrow = false, env}: {channel: string; shouldThrow?: boolean; env?: string}
-) => {
+): Promise<void> => {
   const zoomWebhooksString = process.env.ZOOM_CHAT_WEBHOOKS;
   if (!zoomWebhooksString) {
     const msg = "ZOOM_CHAT_WEBHOOKS not set. Zoom message not sent";
-    Sentry.captureException(new Error(msg));
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     logger.error(msg);
     return;
   }
@@ -49,7 +49,7 @@ export const sendToZoom = async (
 
   if (!zoomWebhookUrl) {
     const msg = `No webhook url set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     logger.error(msg);
     return;
   }
@@ -58,7 +58,7 @@ export const sendToZoom = async (
     zoomWebhooks[zoomChannel]?.verificationToken ?? zoomWebhooks.default?.verificationToken;
   if (!zoomToken) {
     const msg = `No verification token set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     logger.error(msg);
     return;
   }
