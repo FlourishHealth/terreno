@@ -1,8 +1,40 @@
 import {describe, expect, it, mock} from "bun:test";
+import type {ScaledSize} from "react-native";
+import {useWindowDimensions} from "react-native";
+import type {ReactTestRendererJSON} from "react-test-renderer";
 
 import {Card} from "./Card";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
+
+type WindowDimensionsImpl = () => ScaledSize;
+type MockableUseWindowDimensions = WindowDimensionsImpl & {
+  mockImplementation?: (impl: WindowDimensionsImpl) => void;
+};
+
+const getScaledSize =
+  (width: number): WindowDimensionsImpl =>
+  (): ScaledSize => ({
+    fontScale: 1,
+    height: 1000,
+    scale: 2,
+    width,
+  });
+
+const setWindowWidth = (width: number): (() => void) => {
+  const useWindowDimensionsMock = useWindowDimensions as MockableUseWindowDimensions;
+  const dimensionsImpl = getScaledSize(width);
+
+  if (typeof useWindowDimensionsMock.mockImplementation === "function") {
+    useWindowDimensionsMock.mockImplementation(dimensionsImpl);
+
+    return (): void => {
+      useWindowDimensionsMock.mockImplementation(getScaledSize(375));
+    };
+  }
+
+  return (): void => {};
+};
 
 describe("Card", () => {
   describe("container variant (default)", () => {
@@ -77,6 +109,27 @@ describe("Card", () => {
         <Card description="Check out this new feature" title="My Feature" variant="display" />
       );
       expect(getByText("Check out this new feature")).toBeTruthy();
+    });
+
+    it("uses 4px spacing between the title and description", () => {
+      const {toJSON} = renderWithTheme(
+        <Card description="Body text" title="Feature Title" variant="display" />
+      );
+      const json = toJSON() as ReactTestRendererJSON;
+      const contentBox = json.children?.[0] as ReactTestRendererJSON;
+      const titleDescriptionBox = contentBox.children?.[0] as ReactTestRendererJSON;
+
+      expect(titleDescriptionBox.props.style.gap).toBe(4);
+    });
+
+    it("uses a 600px width for the default display card size on desktop", () => {
+      const restoreWindowWidth = setWindowWidth(1024);
+      const {toJSON} = renderWithTheme(<Card title="Feature Title" variant="display" />);
+      const json = toJSON() as ReactTestRendererJSON;
+
+      restoreWindowWidth();
+
+      expect(json.props.style.width).toBe(600);
     });
 
     it("renders action button when buttonText and buttonOnClick are provided", () => {

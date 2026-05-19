@@ -239,7 +239,7 @@ exports[`Card display variant renders correctly with required props 1`] = `
             "style": {
               "display": "flex",
               "flexDirection": "column",
-              "gap": 8,
+              "gap": 4,
             },
             "testID": undefined,
           },
@@ -334,7 +334,7 @@ exports[`Card display variant renders image when imageUri is provided 1`] = `
             "style": {
               "display": "flex",
               "flexDirection": "column",
-              "gap": 8,
+              "gap": 4,
             },
             "testID": undefined,
           },

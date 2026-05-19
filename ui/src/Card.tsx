@@ -7,6 +7,28 @@ import type {CardProps} from "./Common";
 import {Heading} from "./Heading";
 import {Text} from "./Text";
 
+const DEFAULT_DISPLAY_CARD_WIDTH = 600;
+const MOBILE_SMALL_DISPLAY_CARD_WIDTH = 200;
+const TITLE_DESCRIPTION_GAP = 1;
+
+const getDisplayCardWidth = ({
+  isMobile,
+  size,
+}: {
+  isMobile: boolean;
+  size: CardProps["size"];
+}): number | undefined => {
+  if (isMobile && size === "small") {
+    return MOBILE_SMALL_DISPLAY_CARD_WIDTH;
+  }
+
+  if (!isMobile && size === "default") {
+    return DEFAULT_DISPLAY_CARD_WIDTH;
+  }
+
+  return undefined;
+};
+
 export const Card = ({
   children,
   color = "base",
@@ -31,7 +53,7 @@ export const Card = ({
     // All 4 borders on desktop (all sizes) and mobile small; top+bottom only on mobile large/default
     const allBorders = !isMobile || size === "small";
 
-    const cardWidth = isMobile && size === "small" ? 200 : undefined;
+    const cardWidth = getDisplayCardWidth({isMobile, size});
     const cardHeight = isMobile && size === "large" ? 500 : undefined;
 
     // Image dimensions vary by layout context
@@ -53,11 +75,11 @@ export const Card = ({
         color={color}
         direction={isRow ? "row" : "column"}
         gap={isMobile ? 0 : 6}
-        height={cardHeight}
         overflow="hidden"
         padding={padding ?? (isMobile ? 0 : 6)}
         rounding={allBorders ? "md" : undefined}
-        width={cardWidth}
+        {...(cardHeight !== undefined ? {height: cardHeight} : {})}
+        {...(cardWidth !== undefined ? {width: cardWidth} : {})}
         {...rest}
       >
         {imageUri && (
@@ -75,7 +97,7 @@ export const Card = ({
           padding={isMobile ? 4 : 0}
         >
           {(Boolean(title) || Boolean(description)) && (
-            <Box direction="column" gap={2}>
+            <Box direction="column" gap={TITLE_DESCRIPTION_GAP}>
               {Boolean(title) && <Heading size="lg">{title}</Heading>}
               {Boolean(description) && <Text>{description}</Text>}
             </Box>
