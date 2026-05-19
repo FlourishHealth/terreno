@@ -42,7 +42,6 @@ export const sendToSlack = async (
           title: `No webhook url set in env for ${channel}. Slack message not sent`,
         })
       );
-      logger.debug(`No webhook url set in env for ${channel}.`);
       return;
     }
   }
