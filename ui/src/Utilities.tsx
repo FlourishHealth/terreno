@@ -6,7 +6,10 @@ import {Platform} from "react-native";
 import type {APIError, BaseProfile, IconSize} from "./Common";
 import {COUNTY_AND_COUNTY_EQUIVALENT_ENTITIES} from "./Constants";
 
-export function mergeInlineStyles(inlineStyle?: any, newStyle?: any) {
+export function mergeInlineStyles(
+  inlineStyle?: {__style?: Record<string, unknown>} | undefined,
+  newStyle?: Record<string, unknown> | undefined
+) {
   const inline = get(inlineStyle, "__style");
   return {
     __style: {
@@ -104,7 +107,7 @@ export const toProps = ({
   className,
   inlineStyle,
 }: Style): {className: string; style: InlineStyle} => {
-  const props: any = {};
+  const props: {className?: string; style?: InlineStyle} = {};
 
   if (className.size > 0) {
     // Sorting here ensures that classNames are always stable, reducing diff
@@ -117,7 +120,7 @@ export const toProps = ({
     props.style = inlineStyle;
   }
 
-  return props;
+  return props as {className: string; style: InlineStyle};
 };
 
 /*
@@ -173,7 +176,7 @@ export function bind<T>(
     | {
         readonly [key: string]: string;
       }
-    | any
+    | Record<string, string>
 ): (val: T) => Style {
   const map = mapClassName((name) => scope[name]);
   return (val: T): Style => map(fn(val));
@@ -316,8 +319,8 @@ export function formattedCountyCode(state: string, countyName: string): string {
   return `${countyData.stateFP}${countyData.countyFP}`;
 }
 
-export function isAPIError(error: any): error is APIError {
-  return error?.data?.title;
+export function isAPIError(error: unknown): error is APIError {
+  return Boolean((error as {data?: {title?: unknown}} | null | undefined)?.data?.title);
 }
 
 export function printAPIError(error: APIError, details = true): string {

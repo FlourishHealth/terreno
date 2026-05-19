@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import mongoose, {model, Schema} from "mongoose";

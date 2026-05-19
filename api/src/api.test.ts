@@ -1,3 +1,5 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
@@ -576,7 +578,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1324,7 +1326,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 

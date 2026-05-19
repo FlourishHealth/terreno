@@ -39,8 +39,8 @@ const getModelId = (model: LanguageModel): string => {
 };
 
 export class AIService {
-  private model: LanguageModel;
-  private defaultTemperature: number;
+  readonly model: LanguageModel;
+  readonly defaultTemperature: number;
 
   constructor({model, defaultTemperature = TemperaturePresets.DEFAULT}: AIServiceOptions) {
     this.model = model;
@@ -216,13 +216,13 @@ export class AIService {
             parts.push({image: new URL(part.url), mediaType: part.mimeType, type: "image"});
           } else if (part.type === "file") {
             logger.debug("Building file message part", {
-              filename: (part as any).filename,
+              filename: part.filename,
               mediaType: part.mimeType,
               urlPrefix: part.url?.substring(0, 50),
             });
             parts.push({
               data: new URL(part.url),
-              filename: (part as any).filename,
+              filename: part.filename,
               mediaType: part.mimeType,
               type: "file",
             });

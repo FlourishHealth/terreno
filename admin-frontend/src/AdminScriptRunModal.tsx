@@ -1,12 +1,11 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Badge, Box, Button, Heading, Icon, Modal, Spinner, Text} from "@terreno/ui";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import type {BackgroundTask} from "./types";
+import type {AdminApi, BackgroundTask} from "./types";
 import {useAdminScripts} from "./useAdminScripts";
 
 interface AdminScriptRunModalProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   scriptName: string | null;
   scriptDescription?: string;
   visible: boolean;

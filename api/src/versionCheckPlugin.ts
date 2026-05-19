@@ -30,12 +30,12 @@ export class VersionCheckPlugin implements TerrenoPlugin {
         const versionParam = req.query.version;
         const platform = req.query.platform as string | undefined;
 
-        const version =
-          typeof versionParam === "string"
-            ? parseInt(versionParam, 10)
-            : typeof versionParam === "number"
-              ? versionParam
-              : undefined;
+        let version: number | undefined;
+        if (typeof versionParam === "string") {
+          version = parseInt(versionParam, 10);
+        } else if (typeof versionParam === "number") {
+          version = versionParam;
+        }
 
         if (version === undefined || Number.isNaN(version)) {
           return res.json({status: "ok" as VersionCheckStatus});

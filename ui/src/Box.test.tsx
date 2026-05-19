@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import React from "react";

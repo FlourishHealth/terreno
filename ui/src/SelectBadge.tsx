@@ -3,7 +3,7 @@ import type React from "react";
 import {useCallback, useMemo, useState} from "react";
 import {Modal, Platform, Text, TouchableOpacity, View} from "react-native";
 
-import type {FieldOption, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
+import type {FieldOption, IconColor, SelectBadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
 import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
@@ -98,7 +98,7 @@ export const SelectBadge = ({
   );
 
   const renderPickerItems = useCallback(() => {
-    return options?.map((item: any) => (
+    return options?.map((item: FieldOption) => (
       <Picker.Item key={item.key || item.label} label={item.label} value={item.value} />
     ));
   }, [options]);
@@ -321,7 +321,11 @@ export const SelectBadge = ({
             }}
           >
             <Icon
-              color={textColor as any}
+              // noExplicitAny: textColor is a resolved hex string from the theme, but Icon's
+              // color prop expects an IconColor key. Icon falls back to the raw string at runtime
+              // (theme.text[color] ?? color), but the type cannot be narrowed without changing
+              // Icon's type signature to accept arbitrary strings.
+              color={textColor as unknown as IconColor}
               iconName={showPicker ? "chevron-up" : "chevron-down"}
               size="sm"
             />

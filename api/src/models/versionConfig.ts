@@ -17,7 +17,7 @@ export interface VersionConfigDocument extends mongoose.Document {
 
 export interface VersionConfigModel extends mongoose.Model<VersionConfigDocument> {
   findOneOrNone(
-    query: Record<string, any>,
+    query: Record<string, unknown>,
     errorArgs?: Partial<APIErrorConstructor>
   ): Promise<(Document & VersionConfigDocument) | null>;
 }

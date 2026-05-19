@@ -1,5 +1,4 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import {act, renderHook, waitFor} from "@testing-library/react-native";
 
 // ---------------------------------------------------------------------------
 // Mutable refs that tests can tweak between runs
@@ -15,13 +14,13 @@ interface MockVersionCheckResponse {
 const mockUnwrap = mock((): Promise<MockVersionCheckResponse> => Promise.resolve({status: "ok"}));
 const mockTrigger = mock((..._args: unknown[]) => ({unwrap: mockUnwrap}));
 
-mock.module("./emptyApi", () => ({
+mock.module("../emptyApi", () => ({
   useLazyGetVersionCheckQuery: () => [mockTrigger],
 }));
 
 // IsWeb is always true in tests (Platform.OS mocked as "web" in preload).
 // We cannot change it per-test because bun snapshots module exports.
-mock.module("./platform", () => ({
+mock.module("../platform", () => ({
   IsWeb: true,
 }));
 
@@ -78,8 +77,16 @@ const debugCalls: unknown[][] = [];
 const originalDebug = console.debug;
 const originalWarn = console.warn;
 
-// Now import the hook (after all mock.module calls which are hoisted)
-import {useUpgradeCheck} from "./useUpgradeCheck";
+// Import after all mock.module calls. Using `await import` instead of a
+// top-level static import ensures the mocks (especially for react-native) are
+// already in place when these modules' transitive imports resolve. With a
+// static import, bun 1.3.x has been observed to evaluate the real `react-native`
+// when this file is loaded after another test file already pulled it in, which
+// blows up with `Export named 'AppState' not found`. The
+// `@testing-library/react-native` import is also deferred because it pulls in
+// the real react-native module during its own evaluation.
+const {act, renderHook, waitFor} = await import("@testing-library/react-native");
+const {useUpgradeCheck} = await import("../useUpgradeCheck");
 
 // Helper: flush microtasks (lets .then() chains resolve)
 const flushPromises = (): Promise<void> => new Promise((r) => setTimeout(r, 0));

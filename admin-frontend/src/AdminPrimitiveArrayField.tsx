@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   BooleanField,
   Box,
@@ -12,7 +11,7 @@ import {
 import startCase from "lodash/startCase";
 import React, {useCallback} from "react";
 import {AdminRefField} from "./AdminRefField";
-import type {RefRendererMap} from "./types";
+import type {AdminApi, RefRendererMap} from "./types";
 
 interface AdminPrimitiveArrayFieldProps {
   title: string;
@@ -23,7 +22,7 @@ interface AdminPrimitiveArrayFieldProps {
   itemRef?: string;
   value: PrimitiveItem[];
   onChange: (value: PrimitiveItem[]) => void;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   baseUrl: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
   /**

@@ -1,5 +1,11 @@
 import React, {useState} from "react";
-import {Pressable, ScrollView} from "react-native";
+import {
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+} from "react-native";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -62,7 +68,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     }
   };
 
-  const handleLayout = (event: any) => {
+  const handleLayout = (event: LayoutChangeEvent) => {
     const h = event.nativeEvent.layout.height;
     setLayoutHeight(h);
     if (!hasScrolledToBottom && contentHeight > 0 && h > 0 && contentHeight <= h) {
@@ -70,7 +76,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
     }
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (hasScrolledToBottom) {
       return;
     }
