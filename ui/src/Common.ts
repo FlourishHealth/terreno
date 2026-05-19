@@ -1501,6 +1501,8 @@ export interface BodyProps {
   children?: ReactNode;
 }
 
+export type ButtonPressAnimation = "scale" | "opacity" | "none";
+
 export interface ButtonProps {
   /**
    * The text content of the confirmation modal.
@@ -1539,6 +1541,11 @@ export interface ButtonProps {
    * The subtitle of the confirmation modal.
    */
   modalSubTitle?: string;
+  /**
+   * The press animation to use when the button is touched.
+   * @default "scale"
+   */
+  pressAnimation?: ButtonPressAnimation;
   /**
    * The test ID for the button, used for testing purposes.
    */

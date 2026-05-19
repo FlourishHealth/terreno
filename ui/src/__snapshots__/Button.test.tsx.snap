@@ -45,9 +45,9 @@ exports[`Button renders correctly with default props 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Click me",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Click me",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -64,7 +64,7 @@ exports[`Button renders correctly with default props 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -113,9 +113,9 @@ exports[`Button renders primary variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Primary",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Primary",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -132,7 +132,7 @@ exports[`Button renders primary variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -181,9 +181,9 @@ exports[`Button renders secondary variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Secondary",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Secondary",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -200,7 +200,7 @@ exports[`Button renders secondary variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -249,9 +249,9 @@ exports[`Button renders muted variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Muted",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Muted",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -268,7 +268,7 @@ exports[`Button renders muted variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -317,9 +317,9 @@ exports[`Button renders outline variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Outline",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Outline",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -336,7 +336,7 @@ exports[`Button renders outline variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -385,9 +385,9 @@ exports[`Button renders destructive variant 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Delete",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Delete",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -404,7 +404,7 @@ exports[`Button renders destructive variant 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -453,10 +453,10 @@ exports[`Button renders disabled state 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Disabled",
-    "aria-role": "button",
+    "accessibilityLabel": "Disabled",
+    "accessibilityRole": "button",
     "disabled": true,
-    "onPress": [Function: debounced],
+    "onPress": undefined,
     "style": {
       "alignItems": "center",
       "alignSelf": "flex-start",
@@ -472,7 +472,7 @@ exports[`Button renders disabled state 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -521,10 +521,10 @@ exports[`Button applies disabled styles when disabled 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Disabled",
-    "aria-role": "button",
+    "accessibilityLabel": "Disabled",
+    "accessibilityRole": "button",
     "disabled": true,
-    "onPress": [Function: debounced],
+    "onPress": undefined,
     "style": {
       "alignItems": "center",
       "alignSelf": "flex-start",
@@ -540,7 +540,7 @@ exports[`Button applies disabled styles when disabled 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -612,10 +612,10 @@ exports[`Button renders loading state 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Loading",
-    "aria-role": "button",
+    "accessibilityLabel": "Loading",
+    "accessibilityRole": "button",
     "disabled": true,
-    "onPress": [Function: debounced],
+    "onPress": undefined,
     "style": {
       "alignItems": "center",
       "alignSelf": "flex-start",
@@ -631,7 +631,7 @@ exports[`Button renders loading state 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -680,9 +680,9 @@ exports[`Button renders fullWidth button 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Full Width",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Full Width",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -699,7 +699,7 @@ exports[`Button renders fullWidth button 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -761,9 +761,9 @@ exports[`Button renders with icon on left 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "With Icon",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "With Icon",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -780,7 +780,7 @@ exports[`Button renders with icon on left 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -842,9 +842,9 @@ exports[`Button renders with icon on right 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Next",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Next",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -861,7 +861,7 @@ exports[`Button renders with icon on right 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -910,9 +910,9 @@ exports[`Button renders with confirmation modal props 1`] = `
   ],
   "props": {
     "accessibilityHint": "Opens a confirmation dialog",
-    "aria-label": "Delete",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Delete",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -929,7 +929,7 @@ exports[`Button renders with confirmation modal props 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;
 
@@ -978,9 +978,9 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
   ],
   "props": {
     "accessibilityHint": "Press to perform action",
-    "aria-label": "Hover me",
-    "aria-role": "button",
-    "disabled": undefined,
+    "accessibilityLabel": "Hover me",
+    "accessibilityRole": "button",
+    "disabled": false,
     "onPress": [Function: debounced],
     "style": {
       "alignItems": "center",
@@ -997,6 +997,6 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
     },
     "testID": undefined,
   },
-  "type": "Pressable",
+  "type": "PressableScale",
 }
 `;

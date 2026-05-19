@@ -56,6 +56,22 @@ describe("Button", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders opacity press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="opacity" text="Opacity" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableOpacity");
+  });
+
+  it("renders no press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="none" text="No animation" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableWithoutFeedback");
+  });
+
   // Disabled state
   it("renders disabled state", () => {
     const {toJSON} = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />);
