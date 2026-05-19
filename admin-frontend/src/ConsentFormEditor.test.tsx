@@ -333,7 +333,7 @@ describe("ConsentFormEditor", () => {
   });
 
   it("renders and switches segmented control in multi-locale mode", async () => {
-    const {toJSON} = renderWithTheme(
+    const {toJSON, UNSAFE_root} = renderWithTheme(
       <ConsentFormEditor
         api={makeApi() as any}
         baseUrl="/admin"
@@ -341,6 +341,10 @@ describe("ConsentFormEditor", () => {
         supportedLocales={["en", "es"]}
       />
     );
+    const segmented = UNSAFE_root.findAll(
+      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+    );
+    expect(segmented[0].props.items).toEqual(["English", "Spanish"]);
     expect(toJSON()).toBeDefined();
   });
 
@@ -466,6 +470,45 @@ describe("ConsentFormEditor", () => {
     expect(translateCalls.length).toBe(1);
     expect(translateCalls[0].toLocale).toBe("es");
     expect(translateCalls[0].content).toBe("Hello world");
+  });
+
+  it("auto-translates selected target languages before saving", async () => {
+    state.formData = {
+      content: {en: "Hello world"},
+      defaultLocale: "en",
+      slug: "s",
+      title: "T",
+    };
+    const {UNSAFE_root, getByTestId} = renderWithTheme(
+      <ConsentFormEditor
+        api={makeApi() as any}
+        baseUrl="/admin"
+        hasAiSupport
+        id="f1"
+        supportedLocales={["en", "es", "fr"]}
+      />
+    );
+    const autoTranslateField = UNSAFE_root.findAll(
+      (n: any) => n.props?.title === "Auto translate with GPT"
+    );
+    expect(autoTranslateField.length).toBeGreaterThan(0);
+    await act(async () => {
+      autoTranslateField[0].props.onChange(true);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    const targetField = UNSAFE_root.findAll((n: any) => n.props?.title === "Translate into");
+    expect(targetField.length).toBeGreaterThan(0);
+    await act(async () => {
+      targetField[0].props.onChange(["es", "fr"]);
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    await press(getByTestId("consent-form-save-button"));
+    expect(translateCalls.length).toBe(2);
+    expect(translateCalls.map((call) => call.toLocale)).toEqual(["es", "fr"]);
+    expect(updateCalls[0].body.content.es).toBe("translated");
+    expect(updateCalls[0].body.content.fr).toBe("translated");
   });
 
   it("short-circuits translation when source locale has empty content", async () => {

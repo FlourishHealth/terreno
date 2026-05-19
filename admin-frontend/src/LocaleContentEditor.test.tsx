@@ -40,7 +40,7 @@ describe("LocaleContentEditor", () => {
     );
 
     await press(getByText("French"));
-    expect(getByText("Editing: fr")).toBeDefined();
+    expect(getByText("Editing: French")).toBeDefined();
   });
 
   it("removes the active locale when remove is pressed", async () => {
@@ -138,7 +138,7 @@ describe("LocaleContentEditor", () => {
     const {getByText} = renderWithTheme(
       <LocaleContentEditor onChange={onChange} value={{en: "Hi", es: "Hola"}} />
     );
-    await press(getByText("Remove en"));
+    await press(getByText("Remove English"));
     expect(onChange).toHaveBeenCalled();
   });
 });

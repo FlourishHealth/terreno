@@ -1,5 +1,6 @@
 import {Box, Button, MarkdownEditorField, SelectField, Text} from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
+import {COMMON_LOCALES, getLocaleLabel} from "./localeLabels";
 
 interface LocaleContentEditorProps {
   value: Record<string, string>;
@@ -8,19 +9,6 @@ interface LocaleContentEditorProps {
   helperText?: string;
   errorText?: string;
 }
-
-const COMMON_LOCALES = [
-  {label: "English", value: "en"},
-  {label: "Spanish", value: "es"},
-  {label: "French", value: "fr"},
-  {label: "German", value: "de"},
-  {label: "Portuguese", value: "pt"},
-  {label: "Chinese", value: "zh"},
-  {label: "Japanese", value: "ja"},
-  {label: "Korean", value: "ko"},
-  {label: "Arabic", value: "ar"},
-  {label: "Hindi", value: "hi"},
-];
 
 export const LocaleContentEditor: React.FC<LocaleContentEditorProps> = ({
   value = {},
@@ -89,7 +77,7 @@ export const LocaleContentEditor: React.FC<LocaleContentEditorProps> = ({
             <Button
               key={locale}
               onClick={() => setActiveLocale(locale)}
-              text={COMMON_LOCALES.find((l) => l.value === locale)?.label ?? locale.toUpperCase()}
+              text={getLocaleLabel(locale)}
               variant={locale === activeLocale ? "primary" : "outline"}
             />
           ))}
@@ -100,12 +88,12 @@ export const LocaleContentEditor: React.FC<LocaleContentEditorProps> = ({
         <Box gap={1}>
           <Box alignItems="center" direction="row" justifyContent="between">
             <Text color="secondaryDark" size="sm">
-              Editing: {activeLocale}
+              Editing: {getLocaleLabel(activeLocale)}
             </Text>
             {locales.length > 1 && (
               <Button
                 onClick={() => handleRemoveLocale(activeLocale)}
-                text={`Remove ${activeLocale}`}
+                text={`Remove ${getLocaleLabel(activeLocale)}`}
                 variant="destructive"
               />
             )}

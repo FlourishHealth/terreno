@@ -23,7 +23,7 @@ import {FeatureFlagsApp, featureFlagAdminConfig} from "@terreno/feature-flags";
 import express from "express";
 import mongoose from "mongoose";
 import {addAdminUserRoutes} from "./api/adminUsers";
-import {addAiRoutes} from "./api/ai";
+import {addAiRoutes, getConsentAiConfig} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
 import {addTodoRoutes} from "./api/todos";
 import {addUserRoutes} from "./api/users";
@@ -324,6 +324,7 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new ConsentApp({
+          aiConfig: getConsentAiConfig(),
           auditTrail: true,
           resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
           supportedLocales: ["en", "es"],

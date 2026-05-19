@@ -12,6 +12,7 @@ import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import {AdminRefField} from "./AdminRefField";
 import {CheckboxListEditor} from "./CheckboxListEditor";
 import {LocaleContentEditor} from "./LocaleContentEditor";
+import {getLocaleOptions} from "./localeLabels";
 import type {AdminFieldConfig, AdminFieldValue, AdminScreenProps, RefRendererMap} from "./types";
 
 // Attempts to parse a string as JSON, returning the parsed value or the raw string
@@ -262,7 +263,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         ? Object.keys(contentMap)
         : [];
     const hasLocales = localeKeys.length > 0;
-    const options = localeKeys.map((k) => ({label: k.toUpperCase(), value: k}));
+    const options = getLocaleOptions(localeKeys);
     return (
       <SelectField
         disabled={!hasLocales}

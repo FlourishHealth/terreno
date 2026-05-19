@@ -9,13 +9,18 @@ import {
   MCPService,
   preparePromptForAI,
 } from "@terreno/ai";
-import type {ModelRouterOptions} from "@terreno/api";
-import {logger} from "@terreno/api";
+import {APIError, type ConsentAppOptions, logger, type ModelRouterOptions} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+
+const CONSENT_CONTENT_SYSTEM_PROMPT =
+  "You draft consent form content for regulated healthcare and research applications. Return clear Markdown only, with legally precise language and no extra commentary.";
+
+const CONSENT_CONTENT_USER_PROMPT =
+  "Create a {type} consent form in {locale}. Requirements and context: {description}";
 
 /** A provider that creates language models and image models from model IDs. */
 interface AIProvider {
@@ -138,6 +143,50 @@ const createModelFromKey = (apiKey: string, modelId?: string) => {
   const provider = google.createGoogleGenerativeAI({apiKey});
   return provider(modelId ?? DEFAULT_MODEL);
 };
+
+const requireAiService = (): AIService => {
+  const aiService = getAiService();
+  if (!aiService) {
+    throw new APIError({
+      status: 503,
+      title: "AI service is not configured",
+    });
+  }
+  return aiService;
+};
+
+const buildConsentContentPrompt = ({
+  description,
+  locale,
+  type,
+}: {
+  description: string;
+  locale: string;
+  type: string;
+}): string => {
+  return CONSENT_CONTENT_USER_PROMPT.replace("{type}", type)
+    .replace("{locale}", locale)
+    .replace("{description}", description);
+};
+
+export const getConsentAiConfig = (): NonNullable<ConsentAppOptions["aiConfig"]> => ({
+  generateContent: async ({description, locale, type}) => {
+    const aiService = requireAiService();
+    return aiService.generateText({
+      prompt: buildConsentContentPrompt({description, locale, type}),
+      systemPrompt: CONSENT_CONTENT_SYSTEM_PROMPT,
+      temperature: 0.3,
+    });
+  },
+  translateContent: async ({content, fromLocale, toLocale}) => {
+    const aiService = requireAiService();
+    return aiService.translateText({
+      sourceLanguage: fromLocale,
+      targetLanguage: toLocale,
+      text: content,
+    });
+  },
+});
 
 const getMcpService = (): MCPService | undefined => {
   if (mcpServiceInstance) {

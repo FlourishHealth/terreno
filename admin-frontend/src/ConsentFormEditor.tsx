@@ -5,6 +5,7 @@ import {
   Heading,
   MarkdownEditor,
   Modal,
+  MultiselectField,
   NumberField,
   Page,
   SegmentedControl,
@@ -15,6 +16,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {getLocaleLabel, getLocaleOptions} from "./localeLabels";
 import type {AdminApi, EndpointBuilder} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
@@ -65,6 +67,16 @@ const TYPE_OPTIONS = [
   {label: "Custom", value: "custom"},
 ];
 
+const DEFAULT_SUPPORTED_LOCALES = ["en"];
+
+const areStringArraysEqual = (first: string[], second: string[]): boolean => {
+  if (first.length !== second.length) {
+    return false;
+  }
+
+  return first.every((value, index) => value === second[index]);
+};
+
 const slugify = (text: string): string => {
   return text
     .toLowerCase()
@@ -77,7 +89,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   baseUrl,
   api,
   id,
-  supportedLocales = ["en"],
+  supportedLocales = DEFAULT_SUPPORTED_LOCALES,
   hasAiSupport = false,
   onSave,
   onCancel,
@@ -123,6 +135,10 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [isGenerateModalVisible, setIsGenerateModalVisible] = useState(false);
   const [generateDescription, setGenerateDescription] = useState("");
   const [generateType, setGenerateType] = useState(type);
+  const [isAutoTranslateEnabled, setIsAutoTranslateEnabled] = useState(false);
+  const [translationTargetLocales, setTranslationTargetLocales] = useState<string[]>(() =>
+    supportedLocales.filter((locale) => locale !== defaultLocale)
+  );
 
   const routePath = `${baseUrl}${CONSENT_FORM_ROUTE}`;
   // publish/generate/translate are registered directly under /consent-forms, not the admin base path
@@ -211,6 +227,24 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     }
   }, [formData, supportedLocales]);
 
+  // Keep the GPT target list valid when the available or default locale changes.
+  useEffect(() => {
+    const availableTargetLocales = supportedLocales.filter((locale) => locale !== defaultLocale);
+    setTranslationTargetLocales((prev) => {
+      const validTargets = prev.filter((locale) => availableTargetLocales.includes(locale));
+      if (validTargets.length > 0) {
+        if (areStringArraysEqual(prev, validTargets)) {
+          return prev;
+        }
+        return validTargets;
+      }
+      if (areStringArraysEqual(prev, availableTargetLocales)) {
+        return prev;
+      }
+      return availableTargetLocales;
+    });
+  }, [defaultLocale, supportedLocales]);
+
   // Auto-generate slug from title unless manually set
   const handleTitleChange = useCallback(
     (newTitle: string) => {
@@ -250,43 +284,112 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     []
   );
 
-  const buildPayload = useCallback(() => {
-    return {
+  const buildPayload = useCallback(
+    (contentOverride?: Record<string, string>) => {
+      return {
+        active,
+        agreeButtonText,
+        allowDecline,
+        captureSignature,
+        checkboxes: checkboxes.map((cb) => ({
+          confirmationPrompt: cb.confirmationPrompt || undefined,
+          label: cb.label,
+          required: cb.required,
+        })),
+        content: contentOverride ?? localeContent,
+        declineButtonText: allowDecline ? declineButtonText : undefined,
+        defaultLocale,
+        order: parseInt(order, 10) || 0,
+        required,
+        requireScrollToBottom,
+        slug,
+        title,
+        type,
+      };
+    },
+    [
       active,
       agreeButtonText,
       allowDecline,
       captureSignature,
-      checkboxes: checkboxes.map((cb) => ({
-        confirmationPrompt: cb.confirmationPrompt || undefined,
-        label: cb.label,
-        required: cb.required,
-      })),
-      content: localeContent,
-      declineButtonText: allowDecline ? declineButtonText : undefined,
+      checkboxes,
       defaultLocale,
-      order: parseInt(order, 10) || 0,
+      localeContent,
+      declineButtonText,
+      order,
       required,
       requireScrollToBottom,
       slug,
       title,
       type,
-    };
-  }, [
-    active,
-    agreeButtonText,
-    allowDecline,
-    captureSignature,
-    checkboxes,
-    defaultLocale,
-    localeContent,
-    declineButtonText,
-    order,
-    required,
-    requireScrollToBottom,
-    slug,
-    title,
-    type,
-  ]);
+    ]
+  );
+
+  const translateLocales = useCallback(
+    async ({
+      sourceContent,
+      startingContent,
+      targetLocales,
+    }: {
+      sourceContent: string;
+      startingContent: Record<string, string>;
+      targetLocales: string[];
+    }): Promise<Record<string, string> | undefined> => {
+      if (!sourceContent.trim()) {
+        toast.error(`No content in ${getLocaleLabel(defaultLocale)} to translate from`);
+        return undefined;
+      }
+
+      if (targetLocales.length === 0) {
+        toast.error("Select at least one language to translate into");
+        return undefined;
+      }
+
+      let translatedContent = {...startingContent};
+      for (const targetLocale of targetLocales) {
+        if (targetLocale === defaultLocale) {
+          continue;
+        }
+
+        try {
+          const result = await translateContent({
+            content: sourceContent,
+            fromLocale: defaultLocale,
+            toLocale: targetLocale,
+          }).unwrap();
+          translatedContent = {
+            ...translatedContent,
+            [targetLocale]: result?.data?.content ?? "",
+          };
+        } catch (err) {
+          toast.catch(err, `Failed to translate content to ${getLocaleLabel(targetLocale)}`);
+          return undefined;
+        }
+      }
+
+      setLocaleContent(translatedContent);
+      return translatedContent;
+    },
+    [defaultLocale, toast, translateContent]
+  );
+
+  const handleTranslateSelectedLocales = useCallback(async (): Promise<
+    Record<string, string> | undefined
+  > => {
+    const sourceContent = localeContent[defaultLocale] ?? "";
+    const translatedContent = await translateLocales({
+      sourceContent,
+      startingContent: localeContent,
+      targetLocales: translationTargetLocales,
+    });
+
+    if (!translatedContent) {
+      return undefined;
+    }
+
+    toast.success(`Translated into ${translationTargetLocales.length} language(s)`);
+    return translatedContent;
+  }, [defaultLocale, localeContent, toast, translateLocales, translationTargetLocales]);
 
   const handleSave = useCallback(async () => {
     if (!title.trim()) {
@@ -298,7 +401,16 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
       return;
     }
 
-    const payload = buildPayload();
+    let nextLocaleContent = localeContent;
+    if (hasAiSupport && isAutoTranslateEnabled) {
+      const translatedContent = await handleTranslateSelectedLocales();
+      if (!translatedContent) {
+        return;
+      }
+      nextLocaleContent = translatedContent;
+    }
+
+    const payload = buildPayload(nextLocaleContent);
 
     try {
       let result: ConsentFormDocument | undefined;
@@ -312,7 +424,21 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     } catch (err) {
       toast.catch(err, `Failed to ${isEditMode ? "update" : "create"} consent form`);
     }
-  }, [buildPayload, createForm, id, isEditMode, onSave, slug, title, toast, updateForm]);
+  }, [
+    buildPayload,
+    createForm,
+    handleTranslateSelectedLocales,
+    hasAiSupport,
+    id,
+    isAutoTranslateEnabled,
+    isEditMode,
+    localeContent,
+    onSave,
+    slug,
+    title,
+    toast,
+    updateForm,
+  ]);
 
   const handlePublish = useCallback(async () => {
     if (!id) {
@@ -342,7 +468,15 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
         type: generateType,
       }).unwrap();
       const generatedText = result?.data?.content ?? "";
-      handleLocaleContentChange(activeLocale, generatedText);
+      const nextLocaleContent = {...localeContent, [activeLocale]: generatedText};
+      setLocaleContent(nextLocaleContent);
+      if (isAutoTranslateEnabled && activeLocale === defaultLocale) {
+        await translateLocales({
+          sourceContent: generatedText,
+          startingContent: nextLocaleContent,
+          targetLocales: translationTargetLocales,
+        });
+      }
       setIsGenerateModalVisible(false);
       toast.success("Content generated successfully");
     } catch (err) {
@@ -350,37 +484,32 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     }
   }, [
     activeLocaleIndex,
+    defaultLocale,
     generateContent,
     generateDescription,
     generateType,
-    handleLocaleContentChange,
+    isAutoTranslateEnabled,
+    localeContent,
     supportedLocales,
     toast,
+    translateLocales,
+    translationTargetLocales,
   ]);
 
   const handleTranslate = useCallback(
     async (targetLocale: string) => {
       const sourceContent = localeContent[defaultLocale] ?? "";
+      const translatedContent = await translateLocales({
+        sourceContent,
+        startingContent: localeContent,
+        targetLocales: [targetLocale],
+      });
 
-      if (!sourceContent.trim()) {
-        toast.error(`No content in ${defaultLocale} to translate from`);
-        return;
-      }
-
-      try {
-        const result = await translateContent({
-          content: sourceContent,
-          fromLocale: defaultLocale,
-          toLocale: targetLocale,
-        }).unwrap();
-        const translatedText = result?.data?.content ?? "";
-        handleLocaleContentChange(targetLocale, translatedText);
-        toast.success(`Content translated to ${targetLocale}`);
-      } catch (err) {
-        toast.catch(err, `Failed to translate content to ${targetLocale}`);
+      if (translatedContent) {
+        toast.success(`Content translated to ${getLocaleLabel(targetLocale)}`);
       }
     },
-    [defaultLocale, handleLocaleContentChange, localeContent, toast, translateContent]
+    [defaultLocale, localeContent, toast, translateLocales]
   );
 
   // Hooks must run before any early returns to keep React's hook order stable across
@@ -390,13 +519,14 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     () => Object.keys(localeContent).filter((k) => localeContent[k] !== undefined),
     [localeContent]
   );
-  const defaultLocaleOptions = useMemo(
-    () =>
-      contentLocales.map((locale) => ({
-        label: locale.toUpperCase(),
-        value: locale,
-      })),
-    [contentLocales]
+  const defaultLocaleOptions = useMemo(() => getLocaleOptions(contentLocales), [contentLocales]);
+  const localeSegmentItems = useMemo(
+    () => supportedLocales.map((locale) => getLocaleLabel(locale)),
+    [supportedLocales]
+  );
+  const translationTargetOptions = useMemo(
+    () => getLocaleOptions(supportedLocales.filter((locale) => locale !== defaultLocale)),
+    [defaultLocale, supportedLocales]
   );
 
   if (isEditMode && isFormLoading) {
@@ -574,10 +704,42 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
           </Box>
           {supportedLocales.length > 1 && (
             <SegmentedControl
-              items={supportedLocales}
+              items={localeSegmentItems}
               onChange={setActiveLocaleIndex}
               selectedIndex={activeLocaleIndex}
             />
+          )}
+          {hasAiSupport && supportedLocales.length > 1 && (
+            <Box border="default" gap={3} padding={3} rounding="md">
+              <BooleanField
+                helperText={`Use GPT to translate from ${getLocaleLabel(defaultLocale)} into selected languages before saving.`}
+                onChange={setIsAutoTranslateEnabled}
+                title="Auto translate with GPT"
+                value={isAutoTranslateEnabled}
+                variant="title"
+              />
+              {isAutoTranslateEnabled && (
+                <Box gap={3}>
+                  <MultiselectField
+                    helperText="Choose every language this consent form should include."
+                    onChange={setTranslationTargetLocales}
+                    options={translationTargetOptions}
+                    title="Translate into"
+                    value={translationTargetLocales}
+                  />
+                  <Button
+                    disabled={translationTargetLocales.length === 0}
+                    loading={isTranslating}
+                    onClick={async () => {
+                      await handleTranslateSelectedLocales();
+                    }}
+                    testID="consent-form-translate-selected-button"
+                    text="Translate Selected Languages"
+                    variant="secondary"
+                  />
+                </Box>
+              )}
+            </Box>
           )}
           {hasAiSupport && isNonDefaultLocale && (
             <Box>
@@ -585,16 +747,18 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
                 loading={isTranslating}
                 onClick={() => handleTranslate(activeLocale)}
                 testID={`consent-form-translate-${activeLocale}-button`}
-                text={`Translate from ${defaultLocale}`}
+                text={`Translate from ${getLocaleLabel(defaultLocale)}`}
                 variant="secondary"
               />
             </Box>
           )}
           <MarkdownEditor
-            onChange={(content) => handleLocaleContentChange(activeLocale, content)}
-            placeholder={`Enter content for locale: ${activeLocale}`}
+            onChange={(content: string) => handleLocaleContentChange(activeLocale, content)}
+            placeholder={`Enter content for ${getLocaleLabel(activeLocale)}`}
             testID={`consent-form-content-${activeLocale}`}
-            title={supportedLocales.length > 1 ? `Content (${activeLocale})` : "Content"}
+            title={
+              supportedLocales.length > 1 ? `Content (${getLocaleLabel(activeLocale)})` : "Content"
+            }
             value={localeContent[activeLocale] ?? ""}
           />
         </Box>
@@ -632,20 +796,22 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
                 />
               </Box>
               <TextField
-                onChange={(value) => handleCheckboxChange(index, "label", value)}
+                onChange={(value: string) => handleCheckboxChange(index, "label", value)}
                 placeholder="Checkbox label"
                 testID={`consent-form-checkbox-${index}-label-input`}
                 title="Label"
                 value={checkbox.label}
               />
               <BooleanField
-                onChange={(value) => handleCheckboxChange(index, "required", value)}
+                onChange={(value: boolean) => handleCheckboxChange(index, "required", value)}
                 title="Required"
                 value={checkbox.required}
                 variant="title"
               />
               <TextField
-                onChange={(value) => handleCheckboxChange(index, "confirmationPrompt", value)}
+                onChange={(value: string) =>
+                  handleCheckboxChange(index, "confirmationPrompt", value)
+                }
                 placeholder="Optional confirmation prompt"
                 testID={`consent-form-checkbox-${index}-prompt-input`}
                 title="Confirmation Prompt (optional)"
@@ -677,7 +843,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
               value={generateType}
             />
             <Text color="secondaryDark" size="sm">
-              Locale: {activeLocale}
+              Locale: {getLocaleLabel(activeLocale)}
             </Text>
             <TextField
               multiline
