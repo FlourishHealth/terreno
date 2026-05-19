@@ -701,6 +701,14 @@ mock.module("./Hyperlink", () => ({
   Hyperlink: ({children}: MockComponentProps) => React.createElement("View", {}, children),
 }));
 
+// Mock react-native-portalize so Portal renders inline in tests
+mock.module("react-native-portalize", () => ({
+  Host: ({children}: {children?: React.ReactNode}) =>
+    React.createElement("View", {testID: "portal-host"}, children),
+  Portal: ({children}: {children?: React.ReactNode}) =>
+    React.createElement("View", {testID: "portal"}, children),
+}));
+
 // Mock react-native internal modules with Flow types
 // These modules use Flow type syntax that Bun cannot parse
 

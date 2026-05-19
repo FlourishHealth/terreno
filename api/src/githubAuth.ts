@@ -65,10 +65,16 @@ export interface GitHubUserFields {
 // biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
 export const githubUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
-    githubAvatarUrl: {type: String},
-    githubId: {index: true, sparse: true, type: String, unique: true},
-    githubProfileUrl: {type: String},
-    githubUsername: {type: String},
+    githubAvatarUrl: {description: "GitHub avatar image URL", type: String},
+    githubId: {
+      description: "GitHub user ID",
+      index: true,
+      sparse: true,
+      type: String,
+      unique: true,
+    },
+    githubProfileUrl: {description: "GitHub profile URL", type: String},
+    githubUsername: {description: "GitHub username", type: String},
   });
 };
 
@@ -231,7 +237,7 @@ export const addGitHubAuthRoutes = (
       const returnTo = req.query.returnTo as string | undefined;
       if (returnTo) {
         const reqWithSession = req as express.Request & {session?: {returnTo?: string}};
-        reqWithSession.session = reqWithSession.session || {};
+        reqWithSession.session = reqWithSession.session ?? {};
         reqWithSession.session.returnTo = returnTo;
       }
       next();
@@ -255,7 +261,7 @@ export const addGitHubAuthRoutes = (
         // If there's a return URL, redirect with tokens as query params
         if (returnTo) {
           const url = new URL(returnTo);
-          url.searchParams.set("token", tokens.token || "");
+          url.searchParams.set("token", tokens.token ?? "");
           if (tokens.refreshToken) {
             url.searchParams.set("refreshToken", tokens.refreshToken);
           }
