@@ -691,7 +691,9 @@ exports[`TableBadge renders select field when editing 1`] = `
         },
       ],
       "props": {
-        "style": undefined,
+        "style": {
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",

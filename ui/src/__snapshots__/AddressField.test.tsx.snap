@@ -1117,7 +1117,9 @@ exports[`AddressField renders correctly with default props 1`] = `
           },
         ],
         "props": {
-          "style": undefined,
+          "style": {
+            "width": "100%",
+          },
           "testID": undefined,
         },
         "type": "View",
