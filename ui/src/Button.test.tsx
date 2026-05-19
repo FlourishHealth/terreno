@@ -56,6 +56,12 @@ describe("Button", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("defaults to scale press animation", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} text="Default animation" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableScale");
+  });
+
   it("renders opacity press animation", () => {
     const tree = renderWithTheme(
       <Button onClick={() => {}} pressAnimation="opacity" text="Opacity" />

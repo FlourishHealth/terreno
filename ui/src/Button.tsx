@@ -21,6 +21,8 @@ import {isNative} from "./Utilities";
 // Lazy load Modal to break the circular dependency: Modal -> Button -> Modal
 const LazyModal = lazy(() => import("./Modal").then((module) => ({default: module.Modal})));
 
+const DEFAULT_BUTTON_PRESS_ANIMATION: ButtonPressAnimation = "scale";
+
 const PRESSABLE_BY_ANIMATION: Record<
   ButtonPressAnimation,
   React.ComponentType<CustomPressableProps>
@@ -41,7 +43,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   loading: propsLoading,
   modalTitle = "Confirm",
   modalSubTitle,
-  pressAnimation = "scale",
+  pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   testID,
   text,
   variant = "primary",
