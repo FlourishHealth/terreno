@@ -916,9 +916,9 @@ describe("AI Routes", () => {
       await Project.deleteMany({});
     });
 
-    it("flushes remaining buffered text after the stream loop completes", async () => {
-      // Model that emits text-delta without explicit step boundaries so the
-      // post-loop flush at lines 464-469 is exercised.
+    it("streams text-delta events through the SSE path with a minimal mock model", async () => {
+      // Covers the text-delta SSE branch by using a model that emits only
+      // text-delta + finish (no step-start/step-end events).
       const noStepModel = {
         doGenerate: mock(async () => ({
           content: [{text: "ok", type: "text" as const}],
