@@ -357,8 +357,10 @@ export function addAuthRoutes(
           logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
         }
         const tokens = await generateTokens(user, authOptions);
-        setRequestContext({sessionId: tokens.sessionId, userId: String(user._id)});
-        res.setHeader("X-Session-ID", tokens.sessionId);
+        if (tokens.sessionId) {
+          setRequestContext({sessionId: tokens.sessionId, userId: String(user._id)});
+          res.setHeader("X-Session-ID", tokens.sessionId);
+        }
         return res.json({
           data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
         });
@@ -392,11 +394,13 @@ export function addAuthRoutes(
       const user = await userModel.findById(decoded.id);
       const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
       const tokens = await generateTokens(user, authOptions, {sessionId});
-      setRequestContext({
-        sessionId: tokens.sessionId,
-        userId: user?._id ? String(user._id) : undefined,
-      });
-      res.setHeader("X-Session-ID", tokens.sessionId);
+      if (tokens.sessionId) {
+        setRequestContext({
+          sessionId: tokens.sessionId,
+          userId: user?._id ? String(user._id) : undefined,
+        });
+        res.setHeader("X-Session-ID", tokens.sessionId);
+      }
       logger.debug(`Refreshed token for ${user?.id}`);
       return res.json({data: {refreshToken: tokens.refreshToken, token: tokens.token}});
     }
@@ -411,11 +415,13 @@ export function addAuthRoutes(
       passport.authenticate("signup", {failWithError: true, session: false}),
       async (req: express.Request, res: express.Response) => {
         const tokens = await generateTokens(req.user, authOptions);
-        setRequestContext({
-          sessionId: tokens.sessionId,
-          userId: req.user?._id ? String(req.user._id) : undefined,
-        });
-        res.setHeader("X-Session-ID", tokens.sessionId);
+        if (tokens.sessionId) {
+          setRequestContext({
+            sessionId: tokens.sessionId,
+            userId: req.user?._id ? String(req.user._id) : undefined,
+          });
+          res.setHeader("X-Session-ID", tokens.sessionId);
+        }
         return res.json({
           data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: req.user?._id},
         });

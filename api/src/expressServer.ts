@@ -311,6 +311,8 @@ export interface SetupServerOptions {
   userModel: UserMongooseModel;
   addRoutes: AddRoutes;
   loggingOptions?: LoggingOptions;
+  // Whether requests should be logged. Defaults to true.
+  logRequests?: boolean;
   authOptions?: AuthOptions;
   /**
    * GitHub OAuth configuration. When provided, enables GitHub authentication.
@@ -348,6 +350,8 @@ export const setupServer = (options: SetupServerOptions): express.Application =>
       authOptions: options.authOptions,
       corsOrigin: options.corsOrigin,
       githubAuth: options.githubAuth,
+      logRequests: options.logRequests,
+      loggingOptions: options.loggingOptions,
     });
   } catch (error: unknown) {
     const stack = error instanceof Error && error.stack ? error.stack : String(error);
