@@ -133,6 +133,19 @@ describe("Button", () => {
     });
   });
 
+  it("does not call onClick again on the trailing debounce edge after rapid presses", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Click" />);
+
+    await act(async () => {
+      fireEvent.press(getByText("Click"));
+      fireEvent.press(getByText("Click"));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
   // Confirmation modal tests
   it("renders with confirmation modal props", () => {
     const {toJSON} = renderWithTheme(

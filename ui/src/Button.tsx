@@ -108,7 +108,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   }, [onClick, showConfirmation, withConfirmation]);
 
   const debouncedHandlePress = useMemo(
-    () => debounce(handlePress, 500, {leading: true}),
+    () => debounce(handlePress, 500, {leading: true, trailing: false}),
     [handlePress]
   );
 
