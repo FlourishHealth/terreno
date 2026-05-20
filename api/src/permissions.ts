@@ -1,4 +1,3 @@
-// Defaults closed
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {NextFunction} from "express";
@@ -27,7 +26,6 @@ export const OwnerQueryFilter = (user?: User) => {
   if (user) {
     return {ownerId: user?.id};
   }
-  // Return a null, so we know to return no results.
   return null;
 };
 
@@ -91,7 +89,6 @@ export const checkPermissions = async <T>(
 ): Promise<boolean> => {
   let anyTrue = false;
   for (const perm of permissions) {
-    // May or may not be a promise.
     if (!(await perm(method, user, obj))) {
       return false;
     }
