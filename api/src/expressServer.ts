@@ -350,8 +350,8 @@ export const setupServer = (options: SetupServerOptions): express.Application =>
       authOptions: options.authOptions,
       corsOrigin: options.corsOrigin,
       githubAuth: options.githubAuth,
-      logRequests: options.logRequests,
       loggingOptions: options.loggingOptions,
+      logRequests: options.logRequests,
     });
   } catch (error: unknown) {
     const stack = error instanceof Error && error.stack ? error.stack : String(error);

@@ -1,9 +1,9 @@
+import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
 import type {Model, ObjectId} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
-import {randomUUID} from "node:crypto";
 import {Strategy as AnonymousStrategy} from "passport-anonymous";
 import {
   type JwtFromRequestFunction,
@@ -17,9 +17,9 @@ import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
 import {
   getSessionIdFromJwtPayload,
+  type JwtSessionPayload,
   setRequestContext,
   updateRequestContextFromRequest,
-  type JwtSessionPayload,
 } from "./requestContext";
 
 export interface User {
@@ -119,9 +119,8 @@ export async function signupUser(
  * authentication providers) to reuse and customize the same token generation logic.
  * This ensures consistent and secure token issuance across different authentication flows.
  */
-// biome-ignore lint/suspicious/noExplicitAny: user object is variable (Mongoose Document, plain object, anonymous user) — strict typing here would require generics that break call sites
 export const generateTokens = async (
-  user: any,
+  user: unknown,
   authOptions?: AuthOptions,
   options: GenerateTokensOptions = {}
 ) => {
@@ -129,12 +128,13 @@ export const generateTokens = async (
   if (!tokenSecretOrKey) {
     throw new Error("TOKEN_SECRET must be set in env.");
   }
-  if (!user?._id) {
+  const tokenUser = user as {_id?: ObjectId | string} | null | undefined;
+  if (!tokenUser?._id) {
     logger.warn("No user found for token generation");
     return {refreshToken: null, token: null};
   }
   const sessionId = options.sessionId ?? randomUUID();
-  let payload: Record<string, unknown> = {id: String(user._id), sid: sessionId};
+  let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
   if (authOptions?.generateJWTPayload) {
     payload = {...authOptions.generateJWTPayload(user), ...payload};
   }
