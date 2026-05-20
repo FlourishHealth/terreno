@@ -6,6 +6,10 @@ type MockComponentProps = Record<string, unknown> & {
   style?: unknown;
   testID?: string;
 };
+type MockPresstoPressableProps = MockComponentProps & {
+  enabled?: boolean;
+  onPress?: (...args: unknown[]) => unknown;
+};
 type MockStyleValue = unknown;
 type MockAnimation = {
   start?: (callback?: (result: {finished: boolean}) => void) => void;
@@ -446,6 +450,25 @@ mock.module("react-native", () => {
     View,
   };
 });
+
+const createMockPresstoPressable = (name: string): React.FC<MockPresstoPressableProps> => {
+  return ({children, enabled = true, onPress, ...props}) =>
+    React.createElement(
+      name,
+      {
+        ...props,
+        disabled: !enabled,
+        onPress: enabled ? onPress : undefined,
+      },
+      children
+    );
+};
+
+mock.module("pressto", () => ({
+  PressableOpacity: createMockPresstoPressable("PressableOpacity"),
+  PressableScale: createMockPresstoPressable("PressableScale"),
+  PressableWithoutFeedback: createMockPresstoPressable("PressableWithoutFeedback"),
+}));
 
 // Initialize globalThis.expo early for expo-modules-core
 if (typeof globalThis.expo === "undefined") {

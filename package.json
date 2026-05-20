@@ -34,6 +34,7 @@
     "luxon": "^3.7.2",
     "mongoose": "8.23.0",
     "prettier": "^3.3.3",
+    "pressto": "^0.6.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
