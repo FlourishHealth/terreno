@@ -47,6 +47,7 @@ winston.add(
 
 // Setup a default console logger.
 export const winstonLogger = winston.createLogger({
+  format: addRequestContextFormat(),
   level: "debug",
   transports: [
     new winston.transports.Console({

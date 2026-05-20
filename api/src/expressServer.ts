@@ -15,6 +15,11 @@ import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {
+  getCurrentRequestContext,
+  requestContextMiddleware,
+  updateRequestContextFromRequest,
+} from "./requestContext";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
 const SLOW_READ_MAX = 200;
@@ -198,6 +203,8 @@ const initializeRoutes = (
 
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));
 
+  app.use(requestContextMiddleware);
+
   app.use(
     cors({
       origin: options.corsOrigin ?? "*",
@@ -213,6 +220,10 @@ const initializeRoutes = (
   // Add login/signup/refresh_token before the JWT/auth middlewares
   addAuthRoutes(app, UserModel, options?.authOptions);
   setupAuth(app, UserModel);
+  app.use((req, res, next) => {
+    updateRequestContextFromRequest(req, res);
+    next();
+  });
 
   if (options.logRequests !== false) {
     app.use(logRequests);
@@ -226,8 +237,12 @@ const initializeRoutes = (
 
   // Add Sentry scopes for session, transaction, and userId if any are set
   app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const context = getCurrentRequestContext();
     const transactionId = req.header("X-Transaction-ID");
-    const sessionId = req.header("X-Session-ID");
+    const sessionId = context?.sessionId ?? req.header("X-Session-ID");
+    if (context?.requestId) {
+      Sentry.getCurrentScope().setTag("request_id", context.requestId);
+    }
     if (transactionId) {
       Sentry.getCurrentScope().setTag("transaction_id", transactionId);
     }

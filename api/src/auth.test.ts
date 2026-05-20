@@ -13,6 +13,11 @@ import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";
 
+const decodeTokenPayload = <T extends Record<string, unknown>>(token: string): T => {
+  const encodedPayload = token.split(".")[1];
+  return JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as T;
+};
+
 describe("auth tests", () => {
   let app: express.Application;
   let admin: any;
@@ -200,6 +205,38 @@ describe("auth tests", () => {
       .send({email: "ADMIN+other@example.com", password: "otherPassword"})
       .expect(200);
     expect(res.body.data.token).toBeDefined();
+  });
+
+  it("preserves JWT session id across refresh and request context", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+    const loginRefreshPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.refreshToken);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    expect(loginRefreshPayload.sid).toBe(loginTokenPayload.sid);
+    expect(loginRes.headers["x-session-id"]).toBe(loginTokenPayload.sid);
+
+    const refreshRes = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: loginRes.body.data.refreshToken})
+      .expect(200);
+    const refreshedTokenPayload = decodeTokenPayload<{sid?: string}>(refreshRes.body.data.token);
+    const refreshedRefreshPayload = decodeTokenPayload<{sid?: string}>(
+      refreshRes.body.data.refreshToken
+    );
+
+    expect(refreshedTokenPayload.sid).toBe(loginTokenPayload.sid);
+    expect(refreshedRefreshPayload.sid).toBe(loginTokenPayload.sid);
+    expect(refreshRes.headers["x-session-id"]).toBe(loginTokenPayload.sid);
+
+    const foodRes = await agent
+      .get("/food")
+      .set("authorization", `Bearer ${refreshRes.body.data.token}`)
+      .expect(200);
+    expect(foodRes.headers["x-session-id"]).toBe(loginTokenPayload.sid);
   });
 
   it("completes token login e2e", async () => {
