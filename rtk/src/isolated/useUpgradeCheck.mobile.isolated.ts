@@ -7,6 +7,7 @@ let mockBuildNumber: number | undefined = 42;
 
 interface MockVersionCheckResponse {
   message?: string;
+  pollingIntervalMs?: number;
   status: "ok" | "warning" | "required";
   updateUrl?: string;
 }

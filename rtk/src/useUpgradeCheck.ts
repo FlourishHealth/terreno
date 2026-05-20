@@ -42,14 +42,18 @@ interface UseUpgradeCheckResult {
  * - `isWarning` — the build is below the warning threshold; the caller
  *   can render a dismissible `Banner` or similar prompt.
  *
- * By default a single check runs on mount. Pass `pollingIntervalMs` and/or
- * `recheckOnForeground` to keep long-lived sessions up to date.
+ * The polling interval is server-driven: the first successful `/version-check`
+ * response returns `pollingIntervalMs` from the backend's VersionConfig and the
+ * hook uses that value for all subsequent intervals. Pass `pollingIntervalMs` in
+ * options as a local fallback that is active until the first server response
+ * arrives. Pass `recheckOnForeground` to also re-check when the app/tab
+ * returns to the foreground.
  *
- * @param options - Optional polling and foreground re-check configuration.
+ * @param options - Optional fallback polling interval and foreground re-check configuration.
  * @returns Current upgrade status, messages, and an `onUpdate` callback.
  */
 export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeCheckResult => {
-  const {pollingIntervalMs, recheckOnForeground = false} = options ?? {};
+  const {pollingIntervalMs: fallbackPollingIntervalMs, recheckOnForeground = false} = options ?? {};
 
   const [isRequired, setIsRequired] = useState(false);
   const [isWarning, setIsWarning] = useState(false);
@@ -57,6 +61,10 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
   const [warningMessage, setWarningMessage] = useState<string>();
   const [updateUrl, setUpdateUrl] = useState<string>();
   const [warningCheckCount, setWarningCheckCount] = useState(0);
+  // Starts with the local fallback; updated to the server-configured value after the first response.
+  const [activePollingIntervalMs, setActivePollingIntervalMs] = useState<number | undefined>(
+    fallbackPollingIntervalMs
+  );
   const [triggerVersionCheck] = useLazyGetVersionCheckQuery();
   const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
   const appState = useRef(ReactNative.AppState.currentState);
@@ -72,7 +80,12 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     triggerVersionCheck({platform, version: buildNumber})
       .unwrap()
       .then((data) => {
-        const {message, status, updateUrl: responseUpdateUrl} = data;
+        const {
+          message,
+          pollingIntervalMs: serverPollingIntervalMs,
+          status,
+          updateUrl: responseUpdateUrl,
+        } = data;
 
         if (status === "required") {
           setIsRequired(true);
@@ -89,6 +102,11 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
 
         if (responseUpdateUrl) {
           setUpdateUrl(responseUpdateUrl);
+        }
+
+        // Adopt the server-configured polling interval once it's available.
+        if (serverPollingIntervalMs !== undefined) {
+          setActivePollingIntervalMs(serverPollingIntervalMs);
         }
       })
       .catch((error: unknown) => {
@@ -115,14 +133,14 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     runCheck();
   }, [runCheck]);
 
-  // Periodic re-check at the configured interval
+  // Periodic re-check using the server-driven interval (falls back to the local prop until first response).
   useEffect(() => {
-    if (!pollingIntervalMs) {
+    if (!activePollingIntervalMs) {
       return;
     }
-    const interval = setInterval(runCheck, pollingIntervalMs);
+    const interval = setInterval(runCheck, activePollingIntervalMs);
     return () => clearInterval(interval);
-  }, [runCheck, pollingIntervalMs]);
+  }, [runCheck, activePollingIntervalMs]);
 
   // Re-check when app/tab returns to foreground
   useEffect(() => {

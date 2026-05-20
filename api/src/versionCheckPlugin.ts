@@ -8,6 +8,8 @@ export type VersionCheckStatus = "ok" | "warning" | "required";
 
 export interface VersionCheckResponse {
   message?: string;
+  /** How often the client should poll for updates, in milliseconds. */
+  pollingIntervalMs?: number;
   requiredVersion?: number;
   status: VersionCheckStatus;
   updateUrl?: string;
@@ -59,6 +61,7 @@ export class VersionCheckPlugin implements TerrenoPlugin {
             : (config.mobileWarningVersion ?? 0);
 
         const response: VersionCheckResponse = {
+          pollingIntervalMs: (config.pollingIntervalMinutes ?? 1440) * 60 * 1000,
           requiredVersion: requiredVersion > 0 ? requiredVersion : undefined,
           status: "ok",
           updateUrl: config.updateUrl || undefined,
