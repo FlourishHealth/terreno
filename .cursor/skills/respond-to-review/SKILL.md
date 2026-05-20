@@ -6,6 +6,15 @@ description: Review PR comments, plan fixes, and implement — auto-submitting w
 
 Review comments on PR #$ARGUMENTS and plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
 
+## Step 0: Validate Input
+
+`$ARGUMENTS` is interpolated into shell and `gh` commands throughout this skill. Before running any command that uses it, confirm it is a positive integer PR number — nothing else is valid here.
+
+- If `$ARGUMENTS` is empty: ask the user which PR to review and stop.
+- If `$ARGUMENTS` contains anything other than digits (whitespace, shell metacharacters, quotes, `..`, etc.): refuse to substitute it. Ask the user to re-invoke with a numeric PR number and stop.
+
+Do not attempt to "clean up" or quote a non-numeric value — reject it.
+
 ## Step 1: Setup Working Directory
 
 1. Check if we're already in a git worktree:
