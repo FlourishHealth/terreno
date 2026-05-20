@@ -2,6 +2,7 @@ import fs from "node:fs";
 import {inspect} from "node:util";
 import * as Sentry from "@sentry/bun";
 import winston from "winston";
+import {getCurrentLogContext} from "./requestContext";
 
 const isPrimitive = (val: unknown) => {
   return val === null || (typeof val !== "object" && typeof val !== "function");
@@ -14,6 +15,25 @@ const formatWithInspect = (val: unknown) => {
   return prefix + (shouldFormat ? inspect(val, {colors: true, depth: null}) : val);
 };
 
+const addRequestContextFormat = winston.format((info) => {
+  const context = getCurrentLogContext();
+  return {...context, ...info};
+});
+
+const formatContext = (info: winston.Logform.TransformableInfo): string => {
+  const contextParts = [
+    info.requestId ? `requestId=${info.requestId}` : undefined,
+    info.sessionId ? `sessionId=${info.sessionId}` : undefined,
+    info.userId ? `userId=${info.userId}` : undefined,
+    info.traceId ? `traceId=${info.traceId}` : undefined,
+  ].filter(Boolean);
+
+  if (contextParts.length === 0) {
+    return "";
+  }
+  return ` ${contextParts.join(" ")}`;
+};
+
 // Winston doesn't operate like console.log by default, e.g. `logger.error('error',
 // error)` only prints the message and no args. Add handling for all the args,
 // while also supporting splat logging.
@@ -23,10 +43,11 @@ const printf = (timestamp = false) => {
     const splatKey = Symbol.for("splat") as unknown as keyof winston.Logform.TransformableInfo;
     const splatArgs = (info[splatKey] || []) as unknown[];
     const rest = splatArgs.map((data) => formatWithInspect(data)).join(" ");
+    const context = formatContext(info);
     if (timestamp) {
-      return `${info.timestamp} - ${info.level}: ${msg} ${rest}`;
+      return `${info.timestamp} - ${info.level}: ${msg}${context} ${rest}`;
     }
-    return `${info.level}: ${msg} ${rest}`;
+    return `${info.level}: ${msg}${context} ${rest}`;
   };
 };
 
@@ -35,6 +56,7 @@ winston.add(
   new winston.transports.Console({
     debugStdout: true,
     format: winston.format.combine(
+      addRequestContextFormat(),
       winston.format.colorize(),
       winston.format.simple(),
       winston.format.printf(printf(false))
@@ -53,6 +75,7 @@ export const winstonLogger = winston.createLogger({
     new winston.transports.Console({
       debugStdout: true,
       format: winston.format.combine(
+        addRequestContextFormat(),
         winston.format.colorize(),
         winston.format.simple(),
         winston.format.printf(printf(false))
@@ -122,7 +145,7 @@ export interface LoggingOptions {
 export const setupLogging = (options?: LoggingOptions): void => {
   winstonLogger.clear();
   if (!options?.disableConsoleLogging) {
-    const formats: winston.Logform.Format[] = [winston.format.simple()];
+    const formats: winston.Logform.Format[] = [addRequestContextFormat(), winston.format.simple()];
     if (!options?.disableConsoleColors) {
       formats.push(winston.format.colorize());
     }
@@ -145,7 +168,7 @@ export const setupLogging = (options?: LoggingOptions): void => {
       colorize: false,
       compress: true,
       dirname: logDirectory,
-      format: winston.format.simple(),
+      format: winston.format.combine(addRequestContextFormat(), winston.format.simple()),
       // 30 days of retention
       maxFiles: 30,
       // 50MB max file size
