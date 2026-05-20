@@ -333,18 +333,20 @@ export class TerrenoApp {
     app.use(apiUnauthorizedMiddleware);
     app.use(apiErrorMiddleware);
 
-    app.use(function onError(
-      err: unknown,
-      _req: express.Request,
-      res: express.Response & {sentry?: string},
-      _next: express.NextFunction
-    ) {
-      const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
-      logger.error(`Fallthrough error: ${err}${stack}}`);
-      Sentry.captureException(err);
-      res.statusCode = 500;
-      res.end(`${res.sentry}\n`);
-    });
+    app.use(
+      (
+        err: unknown,
+        _req: express.Request,
+        res: express.Response & {sentry?: string},
+        _next: express.NextFunction
+      ) => {
+        const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
+        logger.error(`Fallthrough error: ${err}${stack}}`);
+        Sentry.captureException(err);
+        res.statusCode = 500;
+        res.end(`${res.sentry}\n`);
+      }
+    );
 
     return app;
   }
