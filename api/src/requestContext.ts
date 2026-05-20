@@ -140,6 +140,7 @@ export const updateRequestContextFromRequest = (
   const reqWithContext = req as express.Request & {
     authTokenPayload?: JwtSessionPayload;
     betterAuthSession?: {session?: {id?: string}};
+    requestId?: string;
     sessionId?: string;
   };
   const sessionId =
@@ -147,7 +148,8 @@ export const updateRequestContextFromRequest = (
     reqWithContext.betterAuthSession?.session?.id ??
     reqWithContext.sessionId ??
     getHeader(req, SESSION_ID_HEADER);
-  const userId = req.user?.id ?? (req.user?._id ? String(req.user._id) : undefined);
+  const user = req.user as {_id?: unknown; id?: string} | undefined;
+  const userId = user?.id ?? (user?._id ? String(user._id) : undefined);
 
   setRequestContext({sessionId, userId});
 
@@ -178,9 +180,10 @@ export const requestContextMiddleware = (
     traceSampled: traceContext?.traceSampled,
   };
 
-  req.requestId = requestId;
+  const reqWithContext = req as express.Request & {requestId?: string; sessionId?: string};
+  reqWithContext.requestId = requestId;
   if (sessionId) {
-    req.sessionId = sessionId;
+    reqWithContext.sessionId = sessionId;
   }
   res.setHeader("X-Request-ID", requestId);
 
