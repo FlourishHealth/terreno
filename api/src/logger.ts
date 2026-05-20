@@ -23,6 +23,7 @@ const addRequestContextFormat = winston.format((info) => {
 const formatContext = (info: winston.Logform.TransformableInfo): string => {
   const contextParts = [
     info.requestId ? `requestId=${info.requestId}` : undefined,
+    info.jobId ? `jobId=${info.jobId}` : undefined,
     info.sessionId ? `sessionId=${info.sessionId}` : undefined,
     info.userId ? `userId=${info.userId}` : undefined,
     info.traceId ? `traceId=${info.traceId}` : undefined,
