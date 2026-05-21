@@ -916,6 +916,54 @@ describe("AI Routes", () => {
       await Project.deleteMany({});
     });
 
+    it("streams text-delta events through the SSE path with a minimal mock model", async () => {
+      // Covers the text-delta SSE branch by using a model that emits only
+      // text-delta + finish (no step-start/step-end events).
+      const noStepModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({delta: "buffered tail", id: "t1", type: "text-delta" as const});
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 1, outputTokens: 1},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "no-step-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const customApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: noStepModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(customApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("buffered tail");
+    });
+
     it("uses per-request tools via createRequestTools", async () => {
       const createRequestTools = mock(() => ({
         localLookup: {description: "Per-request tool"} as unknown as Tool,

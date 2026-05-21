@@ -1,10 +1,13 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import type express from "express";
+import mongoose, {Schema} from "mongoose";
 import supertest from "supertest";
 
 import {modelRouter} from "./api";
 import type {UserModel as UserModelType} from "./auth";
+import {configurationPlugin} from "./configurationPlugin";
 import {Permissions} from "./permissions";
+import {createdUpdatedPlugin} from "./plugins";
 import {TerrenoApp} from "./terrenoApp";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import {authAsUser, FoodModel, setupDb, UserModel} from "./tests";
@@ -173,11 +176,6 @@ describe("TerrenoApp", () => {
     });
 
     it("mounts configuration routes when configure() is called", async () => {
-      const mongoose = await import("mongoose");
-      const {Schema} = mongoose;
-      const {configurationPlugin} = await import("./configurationPlugin");
-      const {createdUpdatedPlugin} = await import("./plugins");
-
       const cfgSchema = new Schema(
         {siteName: {default: "My Site", description: "Site name", type: String}},
         {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
@@ -197,6 +195,29 @@ describe("TerrenoApp", () => {
 
       const agent = await authAsUser(app, "admin");
       const res = await agent.get("/configuration/meta");
+      expect(res.status).toBe(200);
+    });
+
+    it("supports custom basePath via configure options", async () => {
+      const cfgSchema2 = new Schema(
+        {siteName: {default: "Test", description: "Site name", type: String}},
+        {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+      );
+      cfgSchema2.plugin(configurationPlugin);
+      cfgSchema2.plugin(createdUpdatedPlugin);
+
+      const modelName = `CfgModel2_${Date.now()}`;
+      const CfgModel2 = mongoose.model(modelName, cfgSchema2);
+
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      })
+        .configure(CfgModel2, {basePath: "/settings"})
+        .build();
+
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/settings/meta");
       expect(res.status).toBe(200);
     });
   });
@@ -255,6 +276,18 @@ describe("TerrenoApp", () => {
 
       expect(app).toBeDefined();
       expect(receivedApp).toBe(app);
+    });
+  });
+
+  describe("logRequests option", () => {
+    it("disables request logging when logRequests is false", () => {
+      const app = new TerrenoApp({
+        logRequests: false,
+        skipListen: true,
+        userModel: typedUserModel,
+      }).build();
+
+      expect(app).toBeDefined();
     });
   });
 
