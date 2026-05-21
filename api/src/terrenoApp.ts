@@ -11,6 +11,11 @@ import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./gi
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {
+  getCurrentRequestContext,
+  requestContextMiddleware,
+  updateRequestContextFromRequest,
+} from "./requestContext";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
@@ -240,6 +245,8 @@ export class TerrenoApp {
       qs.parse(str, {arrayLimit: options.arrayLimit ?? 200})
     );
 
+    app.use(requestContextMiddleware);
+
     app.use(cors({credentials: true, origin: options.corsOrigin ?? "*"}));
 
     // Apply custom middleware before JSON parsing
@@ -258,6 +265,10 @@ export class TerrenoApp {
     // Auth routes (login/signup/refresh_token) before JWT middleware
     addAuthRoutes(app, options.userModel, options.authOptions);
     setupAuth(app, options.userModel);
+    app.use((req, res, next) => {
+      updateRequestContextFromRequest(req, res);
+      next();
+    });
 
     if (options.logRequests !== false) {
       app.use(logRequests);
@@ -271,8 +282,12 @@ export class TerrenoApp {
 
     // Sentry scopes
     app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      const context = getCurrentRequestContext();
       const transactionId = req.header("X-Transaction-ID");
-      const sessionId = req.header("X-Session-ID");
+      const sessionId = context?.sessionId ?? req.header("X-Session-ID");
+      if (context?.requestId) {
+        Sentry.getCurrentScope().setTag("request_id", context.requestId);
+      }
       if (transactionId) {
         Sentry.getCurrentScope().setTag("transaction_id", transactionId);
       }
