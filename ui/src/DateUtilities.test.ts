@@ -540,7 +540,7 @@ describe("DateUtilities", () => {
       const labels = options.map((o) => o.label);
       expect(labels).toContain("Eastern");
       expect(labels).toContain("Pacific");
-      expect(labels).toContain("AZ");
+      expect(labels).toContain("Arizona");
     });
 
     it("returns US timezone options with short labels", () => {
