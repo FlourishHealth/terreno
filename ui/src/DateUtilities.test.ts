@@ -2,6 +2,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {
   convertNullToUndefined,
   getIsoDate,
+  getTimezoneOptions,
   humanDate,
   humanDateAndTime,
   printDate,
@@ -521,6 +522,48 @@ describe("DateUtilities", () => {
     it("should return ISO string for valid date", () => {
       const result = getIsoDate("2022-12-24T12:00:00.000Z");
       expect(result).toBe("2022-12-24T12:00:00.000Z");
+    });
+  });
+
+  describe("humanDate – non-Error thrown", () => {
+    it("should stringify a non-Error value thrown during date parsing", () => {
+      expect(() => humanDate(42 as unknown as string)).toThrow(
+        "humanDate: Invalid date type: number"
+      );
+    });
+  });
+
+  describe("getTimezoneOptions", () => {
+    it("returns US timezone options with full labels", () => {
+      const options = getTimezoneOptions("USA");
+      expect(options.length).toBe(7);
+      const labels = options.map((o) => o.label);
+      expect(labels).toContain("Eastern");
+      expect(labels).toContain("Pacific");
+      expect(labels).toContain("AZ");
+    });
+
+    it("returns US timezone options with short labels", () => {
+      const options = getTimezoneOptions("USA", true);
+      expect(options.length).toBe(7);
+      const azOption = options.find((o) => o.value === "America/Phoenix");
+      expect(azOption?.label).toBe("AZ");
+    });
+
+    it("returns worldwide timezone options", () => {
+      const options = getTimezoneOptions("Worldwide");
+      expect(options.length).toBeGreaterThan(7);
+      const values = options.map((o) => o.value);
+      expect(values).toContain("America/New_York");
+    });
+
+    it("returns worldwide timezone options with short labels", () => {
+      const options = getTimezoneOptions("Worldwide", true);
+      expect(options.length).toBeGreaterThan(7);
+      options.forEach((o) => {
+        expect(typeof o.label).toBe("string");
+        expect(typeof o.value).toBe("string");
+      });
     });
   });
 });
