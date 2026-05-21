@@ -30,7 +30,7 @@ describe("VersionCheckPlugin", () => {
   it("returns ok when no VersionConfig exists", async () => {
     const res = await app.get("/version-check").query({platform: "web", version: 100});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({status: "ok"});
+    expect(res.body).toEqual({pollingIntervalMs: 86400000, status: "ok"});
   });
 
   it("returns ok when version param is missing", async () => {
