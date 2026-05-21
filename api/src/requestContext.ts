@@ -1,5 +1,6 @@
 import {AsyncLocalStorage} from "node:async_hooks";
 import {randomUUID} from "node:crypto";
+import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {JwtPayload} from "jsonwebtoken";
 
@@ -181,12 +182,65 @@ export const getCurrentLogContext = (): Partial<RequestContext> => {
   };
 };
 
+const setSentryTag = (
+  scope: ReturnType<typeof Sentry.getCurrentScope>,
+  name: string,
+  value?: string | boolean
+): void => {
+  if (typeof value === "undefined") {
+    return;
+  }
+  scope.setTag(name, String(value));
+};
+
+const setSentryContextValue = (
+  context: Record<string, string | boolean>,
+  name: string,
+  value?: string | boolean
+): void => {
+  if (typeof value === "undefined") {
+    return;
+  }
+  context[name] = value;
+};
+
+export const applyRequestContextToSentry = (
+  context: Partial<RequestContext> = getCurrentLogContext()
+): void => {
+  const scope = Sentry.getCurrentScope();
+  setSentryTag(scope, "request_id", context.requestId);
+  setSentryTag(scope, "session_id", context.sessionId);
+  setSentryTag(scope, "job_id", context.jobId);
+  setSentryTag(scope, "user_id", context.userId);
+  setSentryTag(scope, "trace_id", context.traceId);
+  setSentryTag(scope, "span_id", context.spanId);
+  setSentryTag(scope, "trace_sampled", context.traceSampled);
+
+  if (context.userId) {
+    scope.setUser({id: context.userId});
+  }
+
+  const sentryContext: Record<string, string | boolean> = {};
+  setSentryContextValue(sentryContext, "requestId", context.requestId);
+  setSentryContextValue(sentryContext, "sessionId", context.sessionId);
+  setSentryContextValue(sentryContext, "jobId", context.jobId);
+  setSentryContextValue(sentryContext, "userId", context.userId);
+  setSentryContextValue(sentryContext, "traceId", context.traceId);
+  setSentryContextValue(sentryContext, "spanId", context.spanId);
+  setSentryContextValue(sentryContext, "traceSampled", context.traceSampled);
+
+  if (Object.keys(sentryContext).length > 0) {
+    scope.setContext("request_context", sentryContext);
+  }
+};
+
 export const setRequestContext = (updates: Partial<RequestContext>): void => {
   const context = getCurrentRequestContext();
   if (!context) {
     return;
   }
   Object.assign(context, updates);
+  applyRequestContextToSentry(context);
 };
 
 const setAttribute = (
@@ -219,13 +273,15 @@ export const runWithRequestContext = <T>(
   context: Partial<RequestContext>,
   callback: () => T
 ): T => {
-  return requestContextStorage.run(
-    {
-      ...context,
-      requestId: context.requestId ?? randomUUID(),
-    },
-    callback
-  );
+  const nextContext = {
+    ...context,
+    requestId: context.requestId ?? randomUUID(),
+  };
+
+  return requestContextStorage.run(nextContext, () => {
+    applyRequestContextToSentry(nextContext);
+    return callback();
+  });
 };
 
 export const runWithRequestContextAttributes = <T>(

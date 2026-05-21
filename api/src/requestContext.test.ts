@@ -1,5 +1,6 @@
-import {afterEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, type Mock} from "bun:test";
 import {Writable} from "node:stream";
+import * as Sentry from "@sentry/bun";
 import express from "express";
 import supertest from "supertest";
 import winston from "winston";
@@ -13,9 +14,17 @@ import {
   requestContextMiddleware,
   runWithRequestContext,
   runWithRequestContextAttributes,
+  setRequestContext,
 } from "./requestContext";
 
 describe("request context job propagation", () => {
+  beforeEach(() => {
+    const scope = Sentry.getCurrentScope();
+    (scope.setContext as unknown as Mock<(...args: unknown[]) => void>).mockClear();
+    (scope.setTag as unknown as Mock<(...args: unknown[]) => void>).mockClear();
+    (scope.setUser as unknown as Mock<(...args: unknown[]) => void>).mockClear();
+  });
+
   afterEach(() => {
     setupLogging({disableFileLogging: true});
   });
@@ -59,6 +68,11 @@ describe("request context job propagation", () => {
   });
 
   it("restores worker context from message attributes", () => {
+    const scope = Sentry.getCurrentScope();
+    const setContextMock = scope.setContext as unknown as Mock<(...args: unknown[]) => void>;
+    const setTagMock = scope.setTag as unknown as Mock<(...args: unknown[]) => void>;
+    const setUserMock = scope.setUser as unknown as Mock<(...args: unknown[]) => void>;
+
     runWithRequestContextAttributes(
       {
         traceparent: "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
@@ -79,6 +93,38 @@ describe("request context job propagation", () => {
         });
       }
     );
+
+    expect(setTagMock).toHaveBeenCalledWith("request_id", "request-1");
+    expect(setTagMock).toHaveBeenCalledWith("session_id", "session-1");
+    expect(setTagMock).toHaveBeenCalledWith("job_id", "job-worker-1");
+    expect(setTagMock).toHaveBeenCalledWith("user_id", "user-1");
+    expect(setTagMock).toHaveBeenCalledWith("trace_id", "4bf92f3577b34da6a3ce929d0e0e4736");
+    expect(setUserMock).toHaveBeenCalledWith({id: "user-1"});
+    expect(setContextMock).toHaveBeenCalledWith("request_context", {
+      jobId: "job-worker-1",
+      requestId: "request-1",
+      sessionId: "session-1",
+      spanId: "00f067aa0ba902b7",
+      traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+      traceSampled: true,
+      userId: "user-1",
+    });
+  });
+
+  it("sends context updates to Sentry for auth session changes", () => {
+    const scope = Sentry.getCurrentScope();
+    const setTagMock = scope.setTag as unknown as Mock<(...args: unknown[]) => void>;
+    const setUserMock = scope.setUser as unknown as Mock<(...args: unknown[]) => void>;
+
+    runWithRequestContext({requestId: "request-auth-1"}, () => {
+      setTagMock.mockClear();
+      setUserMock.mockClear();
+      setRequestContext({sessionId: "session-auth-1", userId: "user-auth-1"});
+    });
+
+    expect(setTagMock).toHaveBeenCalledWith("session_id", "session-auth-1");
+    expect(setTagMock).toHaveBeenCalledWith("user_id", "user-auth-1");
+    expect(setUserMock).toHaveBeenCalledWith({id: "user-auth-1"});
   });
 
   it("uses trace id as request id when attributes do not include request id", () => {

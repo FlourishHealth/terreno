@@ -91,7 +91,11 @@ export const winstonLogger = winston.createLogger({
 // Helper function to send logs to Sentry if enabled
 const sendToSentry = (message: string, level: "debug" | "info" | "warn" | "error"): void => {
   if (process.env.USE_SENTRY_LOGGING === "true" && Sentry.logger) {
-    Sentry.logger[level](message);
+    const logWithContext = Sentry.logger[level] as (
+      message: string,
+      attributes?: Record<string, unknown>
+    ) => void;
+    logWithContext(message, getCurrentLogContext());
   }
 };
 
