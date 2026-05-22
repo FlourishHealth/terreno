@@ -88,7 +88,7 @@ export const addFileRoutes = (
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const gcsKey = req.params.gcsKey as string;
 
-      const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
+      const attachment = await FileAttachment.findOneOrNone({deleted: false, gcsKey});
       if (!attachment) {
         throw new APIError({status: 404, title: "File not found"});
       }
@@ -114,7 +114,7 @@ export const addFileRoutes = (
       const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)
         ?._id as mongoose.Types.ObjectId;
 
-      const attachment = await FileAttachment.findOne({deleted: false, gcsKey});
+      const attachment = await FileAttachment.findOneOrNone({deleted: false, gcsKey});
       if (!attachment) {
         throw new APIError({status: 404, title: "File not found"});
       }
