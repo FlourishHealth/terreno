@@ -65,7 +65,8 @@ export class VersionCheckPlugin implements TerrenoPlugin {
             : (config.mobileWarningVersion ?? 0);
 
         const response: VersionCheckResponse = {
-          pollingIntervalMs: (config.pollingIntervalMinutes ?? DEFAULT_POLLING_INTERVAL_MINUTES) * 60 * 1000,
+          pollingIntervalMs:
+            (config.pollingIntervalMinutes ?? DEFAULT_POLLING_INTERVAL_MINUTES) * 60 * 1000,
           requiredVersion: requiredVersion > 0 ? requiredVersion : undefined,
           status: "ok",
           updateUrl: config.updateUrl || undefined,
