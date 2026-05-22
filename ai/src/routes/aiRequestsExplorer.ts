@@ -1,4 +1,4 @@
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
 import {DateTime} from "luxon";
 
@@ -57,10 +57,21 @@ export const addAiRequestsExplorerRoutes = (
       if (req.query.startDate || req.query.endDate) {
         match.created = {};
         if (req.query.startDate) {
-          match.created.$gte = DateTime.fromISO(req.query.startDate as string).toJSDate();
+          const startDt = DateTime.fromISO(req.query.startDate as string);
+          if (!startDt.isValid) {
+            throw new APIError({
+              status: 400,
+              title: "Invalid startDate format (expected ISO 8601)",
+            });
+          }
+          match.created.$gte = startDt.toJSDate();
         }
         if (req.query.endDate) {
-          match.created.$lte = DateTime.fromISO(req.query.endDate as string).toJSDate();
+          const endDt = DateTime.fromISO(req.query.endDate as string);
+          if (!endDt.isValid) {
+            throw new APIError({status: 400, title: "Invalid endDate format (expected ISO 8601)"});
+          }
+          match.created.$lte = endDt.toJSDate();
         }
       }
 
