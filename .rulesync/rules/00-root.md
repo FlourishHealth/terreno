@@ -1,6 +1,6 @@
 ---
 root: true
-targets: ["cursor", "windsurf", "copilot"]
+targets: ["cursor", "windsurf", "copilot", "claudecode"]
 description: "Terreno monorepo root guidelines"
 globs: ["**/*"]
 ---

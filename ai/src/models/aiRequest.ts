@@ -68,7 +68,7 @@ aiRequestSchema.index({aiModel: 1, created: -1});
 aiRequestSchema.index({created: -1, requestType: 1});
 aiRequestSchema.index({parentRequestId: 1});
 
-(aiRequestSchema.statics as any).logRequest = async function (
+aiRequestSchema.statics.logRequest = async function (
   this: AIRequestModel,
   params: LogRequestParams
 ): Promise<AIRequestDocument> {
@@ -76,7 +76,7 @@ aiRequestSchema.index({parentRequestId: 1});
   return request.save();
 };
 
-(aiRequestSchema.statics as any).logMultiAgentRequest = async function (
+aiRequestSchema.statics.logMultiAgentRequest = async function (
   this: AIRequestModel,
   params: LogMultiAgentRequestParams
 ): Promise<AIRequestDocument> {

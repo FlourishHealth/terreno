@@ -199,7 +199,7 @@ export function listOpenApiMiddleware<T>(
       // Remove _id from queryFields, we handle that above.
       ?.filter((field) => field !== "_id")
       .map((field) => {
-        const params: {name: string; in: "query"; schema: any}[] = [];
+        const params: {name: string; in: "query"; schema: Record<string, unknown>}[] = [];
 
         // Check for datetime/number to support gt/gte/lt/lte
         if (
@@ -462,10 +462,10 @@ export function deleteOpenApiMiddleware<T>(
 // Useful for endpoints that don't directly map to a model.
 export function readOpenApiMiddleware<T>(
   options: Partial<ModelRouterOptions<T>>,
-  properties: any,
+  properties: Record<string, unknown>,
   required: string[],
-  queryParameters: any
-): any {
+  queryParameters: Array<Record<string, unknown>>
+): express.RequestHandler {
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
     logger.debug(

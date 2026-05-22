@@ -322,7 +322,9 @@ exports[`TimezonePicker renders correctly with default props 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -636,7 +638,9 @@ exports[`TimezonePicker hides title when hideTitle is true 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -965,7 +969,9 @@ exports[`TimezonePicker renders with selected timezone 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1294,7 +1300,9 @@ exports[`TimezonePicker renders USA timezones by default 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1623,7 +1631,9 @@ exports[`TimezonePicker renders with short timezone labels 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",
@@ -1952,7 +1962,9 @@ exports[`TimezonePicker calls onChange when timezone is selected 1`] = `
     },
   ],
   "props": {
-    "style": undefined,
+    "style": {
+      "width": "100%",
+    },
     "testID": undefined,
   },
   "type": "View",

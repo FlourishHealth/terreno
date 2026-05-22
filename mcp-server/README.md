@@ -18,21 +18,26 @@ Documentation resources accessible via MCP:
 
 Code generation tools:
 
-- `generate_model` - Generate a Mongoose model with proper Terreno conventions
-- `generate_route` - Generate a modelRouter route configuration
-- `generate_screen` - Generate a React Native screen component
-- `generate_form_fields` - Generate form field components
-- `validate_model_schema` - Validate a Mongoose schema follows conventions
+- `terreno_bootstrap_app` - Scaffold a new full-stack Terreno app (frontend, backend, rules, MCP)
+- `terreno_bootstrap_ai_rules` - Scaffold AI assistant rules files for Cursor, Claude Code, etc.
+- `terreno_generate_model` - Generate a Mongoose model with proper Terreno conventions
+- `terreno_generate_route` - Generate a modelRouter route configuration
+- `terreno_generate_screen` - Generate a React Native screen component
+- `terreno_generate_form_fields` - Generate form field components
+- `terreno_validate_model_schema` - Validate a Mongoose schema follows conventions
+- `terreno_install_admin` - Generate admin panel integration files and instructions
 
 ### Prompts
 
 Code generation prompts:
 
-- `create_crud_feature` - Generate complete CRUD feature (model, routes, screens)
-- `create_api_endpoint` - Generate custom API endpoint with OpenAPI docs
-- `create_ui_component` - Generate reusable UI component
-- `create_form_screen` - Generate form screen with validation
-- `add_authentication` - Generate authentication setup
+- `terreno_bootstrap` - Prompt workflow for scaffolding a new Terreno application
+- `terreno_create_crud_feature` - Generate complete CRUD feature (model, routes, screens)
+- `terreno_create_api_endpoint` - Generate custom API endpoint with OpenAPI docs
+- `terreno_create_ui_component` - Generate reusable UI component
+- `terreno_create_form_screen` - Generate form screen with validation
+- `terreno_add_authentication` - Generate authentication setup
+- `terreno_migrate_to_terreno_app` - Migrate from setupServer to TerrenoApp pattern
 - `terreno_style_guide` - Get the Terreno code style guide
 
 ## Installation
@@ -188,7 +193,7 @@ This design allows the AI assistant to:
 
 ```json
 {
-  "name": "generate_model",
+  "name": "terreno_generate_model",
   "arguments": {
     "name": "Product",
     "fields": [
@@ -208,7 +213,7 @@ The tool returns TypeScript code that should be written to `backend/src/models/p
 
 ```json
 {
-  "name": "generate_route",
+  "name": "terreno_generate_route",
   "arguments": {
     "modelName": "Product",
     "routePath": "/products",
@@ -232,7 +237,7 @@ The tool returns route configuration code that should be written to `backend/src
 
 ```json
 {
-  "name": "generate_screen",
+  "name": "terreno_generate_screen",
   "arguments": {
     "name": "ProductList",
     "type": "list",
@@ -249,7 +254,7 @@ The tool returns React Native screen code that should be written to `frontend/sr
 ### Create CRUD Feature
 
 ```
-Prompt: create_crud_feature
+Prompt: terreno_create_crud_feature
 Arguments:
   - name: "Product"
   - fields: "title:string,price:number,description:string,active:boolean"

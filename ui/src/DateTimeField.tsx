@@ -418,6 +418,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   helperText,
 }): React.ReactElement => {
   const {theme} = useTheme();
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const dateActionSheetRef: React.RefObject<any> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
   const [showDate, setShowDate] = useState(false);
@@ -567,7 +568,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
       const dayVal = override?.day ?? day;
       const yearVal = override?.year ?? year;
       const hourVal = override?.hour ?? hour;
-      let date;
+      let date: DateTime;
       if (type === "datetime") {
         if (!monthVal || !dayVal || !yearVal || !hour || !minuteVal) {
           return undefined;
@@ -635,7 +636,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
       if (date.isValid) {
         // Always return UTC ISO string
-        return date.toUTC().toISO();
+        return date.toUTC().toISO() ?? undefined;
       }
       return undefined;
     },

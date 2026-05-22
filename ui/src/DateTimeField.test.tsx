@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, type mock} from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
 import {DateTime} from "luxon";

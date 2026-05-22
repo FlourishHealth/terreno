@@ -15,13 +15,18 @@ import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {
+  getCurrentRequestContext,
+  requestContextMiddleware,
+  updateRequestContextFromRequest,
+} from "./requestContext";
 import openapi from "./vendor/wesleytodd-openapi/index";
 
 const SLOW_READ_MAX = 200;
 const SLOW_WRITE_MAX = 500;
 const IS_JEST = process.env.JEST_WORKER_ID !== undefined;
 
-export function setupEnvironment(): void {
+export const setupEnvironment = (): void => {
   if (!process.env.TOKEN_ISSUER) {
     throw new Error("TOKEN_ISSUER must be set in env.");
   }
@@ -40,12 +45,13 @@ export function setupEnvironment(): void {
   if (!process.env.REFRESH_TOKEN_EXPIRES_IN && !IS_JEST) {
     logger.warn("REFRESH_TOKEN_EXPIRES_IN not set so using default.");
   }
-}
+};
 
 export type AddRoutes = (router: Router, options?: Partial<ModelRouterOptions<unknown>>) => void;
 
+// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
 const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
-  const options = (res.locals.loggingOptions ?? {}) as LoggingOptions;
+  const options = (res.locals?.loggingOptions ?? {}) as LoggingOptions;
 
   const slowReadMs = options.logSlowRequestsReadMs ?? SLOW_READ_MAX;
   const slowWriteMs = options.logSlowRequestsWriteMs ?? SLOW_WRITE_MAX;
@@ -84,7 +90,8 @@ const logRequestsFinished = (req: any, res: any, startTime: bigint) => {
   }
 };
 
-export function logRequests(req: any, res: any, next: any) {
+// biome-ignore lint/suspicious/noExplicitAny: also called from tests with mock request/response objects
+export const logRequests = (req: any, res: any, next: express.NextFunction): void => {
   const startTime = process.hrtime.bigint();
 
   let userString = "";
@@ -114,37 +121,48 @@ export function logRequests(req: any, res: any, next: any) {
   }
   onFinished(res, () => logRequestsFinished(req, res, startTime));
   next();
-}
+};
 
-export function createRouter(rootPath: string, addRoutes: AddRoutes, middleware: any[] = []) {
-  function routePathMiddleware(req: any, _res: any, next: any) {
+export const createRouter = (
+  rootPath: string,
+  addRoutes: AddRoutes,
+  middleware: express.RequestHandler[] = []
+): Array<string | express.RequestHandler | Router> => {
+  const routePathMiddleware = (
+    req: express.Request & {routeMount?: string[]},
+    _res: express.Response,
+    next: express.NextFunction
+  ): void => {
     if (!req.routeMount) {
       req.routeMount = [];
     }
     req.routeMount.push(rootPath);
     next();
-  }
+  };
 
   const router = express.Router();
   router.use(routePathMiddleware);
   addRoutes(router);
   return [rootPath, ...middleware, router];
-}
+};
 
-export function createRouterWithAuth(
+export const createRouterWithAuth = (
   rootPath: string,
   addRoutes: (router: Router) => void,
-  middleware: any[] = []
-) {
+  middleware: express.RequestHandler[] = []
+): Array<string | express.RequestHandler | Router> => {
   return createRouter(rootPath, addRoutes, [
     passport.authenticate("firebase-jwt", {session: false}),
     ...middleware,
   ]);
-}
+};
 
 export interface AuthOptions {
-  generateJWTPayload?: (user: any) => Record<string, any>;
+  // biome-ignore lint/suspicious/noExplicitAny: user shape is provided by the consumer's User model — any preserves the loose-binding contract
+  generateJWTPayload?: (user: any) => Record<string, unknown>;
+  // biome-ignore lint/suspicious/noExplicitAny: see above
   generateTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
+  // biome-ignore lint/suspicious/noExplicitAny: see above
   generateRefreshTokenExpiration?: (user: any) => number | jwt.SignOptions["expiresIn"];
 }
 
@@ -173,18 +191,19 @@ interface InitializeRoutesOptions {
   githubAuth?: GitHubAuthOptions;
 }
 
-function initializeRoutes(
+const initializeRoutes = (
   UserModel: UserMongooseModel,
   addRoutes: AddRoutes,
   options: InitializeRoutesOptions = {}
-): express.Application {
+): express.Application => {
   const app = express();
 
   // Record mount paths on layers for Express 5 → OpenAPI compat
   patchAppUse(app);
 
-  // TODO: Log a warning when we hit the array limit.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: options.arrayLimit ?? 200}));
+
+  app.use(requestContextMiddleware);
 
   app.use(
     cors({
@@ -199,8 +218,12 @@ function initializeRoutes(
   app.use(express.json({limit: "50mb"}));
 
   // Add login/signup/refresh_token before the JWT/auth middlewares
-  addAuthRoutes(app, UserModel as any, options?.authOptions);
-  setupAuth(app as any, UserModel as any);
+  addAuthRoutes(app, UserModel, options?.authOptions);
+  setupAuth(app, UserModel);
+  app.use((req, res, next) => {
+    updateRequestContextFromRequest(req, res);
+    next();
+  });
 
   if (options.logRequests !== false) {
     app.use(logRequests);
@@ -213,9 +236,13 @@ function initializeRoutes(
   });
 
   // Add Sentry scopes for session, transaction, and userId if any are set
-  app.use((req: any, _res: any, next: any) => {
+  app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const context = getCurrentRequestContext();
     const transactionId = req.header("X-Transaction-ID");
-    const sessionId = req.header("X-Session-ID");
+    const sessionId = context?.sessionId ?? req.header("X-Session-ID");
+    if (context?.requestId) {
+      Sentry.getCurrentScope().setTag("request_id", context.requestId);
+    }
     if (transactionId) {
       Sentry.getCurrentScope().setTag("transaction_id", transactionId);
     }
@@ -223,7 +250,7 @@ function initializeRoutes(
       Sentry.getCurrentScope().setTag("session_id", sessionId);
     }
     if (req.user?._id) {
-      Sentry.getCurrentScope().setTag("user", req.user._id);
+      Sentry.getCurrentScope().setTag("user", String(req.user._id));
     }
     next();
   });
@@ -246,12 +273,12 @@ function initializeRoutes(
     app.use("/swagger", oapi.swaggerui());
   }
 
-  addMeRoutes(app, UserModel as any, options?.authOptions);
+  addMeRoutes(app, UserModel, options?.authOptions);
 
   // Set up GitHub OAuth if configured (works with JWT auth)
   if (options.githubAuth) {
-    setupGitHubAuth(app, UserModel as any, options.githubAuth);
-    addGitHubAuthRoutes(app, UserModel as any, options.githubAuth, options.authOptions);
+    setupGitHubAuth(app, UserModel, options.githubAuth);
+    addGitHubAuthRoutes(app, UserModel, options.githubAuth, options.authOptions);
   }
 
   addRoutes(app, {openApi: oapi});
@@ -262,20 +289,30 @@ function initializeRoutes(
   app.use(apiUnauthorizedMiddleware);
   app.use(apiErrorMiddleware);
 
-  app.use(function onError(err: any, _req: any, res: any, _next: any) {
-    logger.error(`Fallthrough error: ${err}${err?.stack ? `\n${err.stack}` : ""}}`);
-    Sentry.captureException(err);
-    res.statusCode = 500;
-    res.end(`${res.sentry}\n`);
-  });
+  app.use(
+    (
+      err: unknown,
+      _req: express.Request,
+      res: express.Response & {sentry?: string},
+      _next: express.NextFunction
+    ) => {
+      const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
+      logger.error(`Fallthrough error: ${err}${stack}}`);
+      Sentry.captureException(err);
+      res.statusCode = 500;
+      res.end(`${res.sentry}\n`);
+    }
+  );
 
   return app;
-}
+};
 
 export interface SetupServerOptions {
   userModel: UserMongooseModel;
   addRoutes: AddRoutes;
   loggingOptions?: LoggingOptions;
+  // Whether requests should be logged. Defaults to true.
+  logRequests?: boolean;
   authOptions?: AuthOptions;
   /**
    * GitHub OAuth configuration. When provided, enables GitHub authentication.
@@ -300,8 +337,7 @@ export interface SetupServerOptions {
   sentryOptions?: Sentry.BunOptions;
 }
 
-// Sets up the routes and returns the app.
-export function setupServer(options: SetupServerOptions): express.Application {
+export const setupServer = (options: SetupServerOptions): express.Application => {
   const UserModel = options.userModel;
   const addRoutes = options.addRoutes;
 
@@ -314,9 +350,12 @@ export function setupServer(options: SetupServerOptions): express.Application {
       authOptions: options.authOptions,
       corsOrigin: options.corsOrigin,
       githubAuth: options.githubAuth,
+      loggingOptions: options.loggingOptions,
+      logRequests: options.logRequests,
     });
-  } catch (error: any) {
-    logger.error(`Error initializing routes: ${error.stack}`);
+  } catch (error: unknown) {
+    const stack = error instanceof Error && error.stack ? error.stack : String(error);
+    logger.error(`Error initializing routes: ${stack}`);
     throw error;
   }
 
@@ -327,19 +366,19 @@ export function setupServer(options: SetupServerOptions): express.Application {
         logger.info(`Listening on port ${port}`);
       });
     } catch (error) {
-      logger.error(`Error trying to start HTTP server: ${error}\n${(error as any).stack}`);
+      const stack = error instanceof Error ? error.stack : String(error);
+      logger.error(`Error trying to start HTTP server: ${error}\n${stack}`);
       process.exit(1);
     }
   }
   return app;
-}
+};
 
-// Convenience method to execute cronjobs with an always-running server.
-export function cronjob(
+export const cronjob = (
   name: string,
   schedule: "hourly" | "minutely" | string,
   callback: () => void
-) {
+): void => {
   const cronSchedule =
     schedule === "hourly" ? "0 * * * *" : schedule === "minutely" ? "* * * * *" : schedule;
   logger.info(`Adding cronjob ${name}, running at: ${cronSchedule}`);
@@ -348,16 +387,17 @@ export function cronjob(
   } catch (error) {
     throw new Error(`Failed to create cronjob: ${error}`);
   }
-}
+};
 
 export interface WrapScriptOptions {
-  onFinish?: (result?: any) => void | Promise<void>;
+  onFinish?: (result?: unknown) => void | Promise<void>;
   terminateTimeout?: number; // in seconds, defaults to 300. Set to 0 to have no termination timeout.
   slackChannel?: string;
 }
-// Wrap up a script with some helpers, such as catching errors, reporting them to sentry, notifying
-// Slack of runs, etc. Also supports timeouts.
-export async function wrapScript(func: () => Promise<any>, options: WrapScriptOptions = {}) {
+export const wrapScript = async (
+  func: () => Promise<unknown>,
+  options: WrapScriptOptions = {}
+): Promise<void> => {
   const name = require.main?.filename.split("/").slice(-1)[0].replace(".ts", "");
   logger.info(`Running script ${name}`);
   await sendToSlack(`Running script ${name}`, {
@@ -383,7 +423,7 @@ export async function wrapScript(func: () => Promise<any>, options: WrapScriptOp
     }, closeTime);
   }
 
-  let result: any;
+  let result: unknown;
   try {
     result = await func();
     if (options.onFinish) {
@@ -397,6 +437,5 @@ export async function wrapScript(func: () => Promise<any>, options: WrapScriptOp
     process.exit(1);
   }
   await sendToSlack(`Success running script ${name}: ${result}`);
-  // Unclear why we have to exit here to prevent the script for continuing to run.
   process.exit(0);
-}
+};

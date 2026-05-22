@@ -5,11 +5,14 @@ describe("tools", () => {
   test("should export all required tools", () => {
     const toolNames = tools.map((t) => t.name);
 
-    expect(toolNames).toContain("generate_model");
-    expect(toolNames).toContain("generate_route");
-    expect(toolNames).toContain("generate_screen");
-    expect(toolNames).toContain("generate_form_fields");
-    expect(toolNames).toContain("validate_model_schema");
+    expect(toolNames).toContain("terreno_generate_model");
+    expect(toolNames).toContain("terreno_generate_route");
+    expect(toolNames).toContain("terreno_generate_screen");
+    expect(toolNames).toContain("terreno_generate_form_fields");
+    expect(toolNames).toContain("terreno_validate_model_schema");
+    expect(toolNames).toContain("terreno_install_admin");
+    expect(toolNames).toContain("terreno_bootstrap_app");
+    expect(toolNames).toContain("terreno_bootstrap_ai_rules");
   });
 
   test("should have valid tool structure", () => {
@@ -22,9 +25,9 @@ describe("tools", () => {
     }
   });
 
-  describe("generate_model", () => {
+  describe("terreno_generate_model", () => {
     test("should generate basic model", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [
           {name: "title", required: true, type: "String"},
           {name: "price", required: true, type: "Number"},
@@ -44,7 +47,7 @@ describe("tools", () => {
     });
 
     test("should generate model with owner", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [{name: "title", required: true, type: "String"}],
         hasOwner: true,
         name: "Todo",
@@ -58,7 +61,7 @@ describe("tools", () => {
     });
 
     test("should generate model with soft delete", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [{name: "name", type: "String"}],
         name: "Item",
         softDelete: true,
@@ -70,7 +73,7 @@ describe("tools", () => {
     });
 
     test("should handle field with reference", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [{name: "userId", ref: "User", required: true, type: "ObjectId"}],
         name: "Order",
       });
@@ -82,7 +85,7 @@ describe("tools", () => {
     });
 
     test("should handle field with default value", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [{default: "true", name: "active", type: "Boolean"}],
         name: "Setting",
       });
@@ -93,9 +96,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_route", () => {
+  describe("terreno_generate_route", () => {
     test("should generate basic route", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Product",
         routePath: "/products",
       });
@@ -109,7 +112,7 @@ describe("tools", () => {
     });
 
     test("should generate route with custom permissions", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Post",
         permissions: {
           create: "authenticated",
@@ -129,7 +132,7 @@ describe("tools", () => {
     });
 
     test("should generate route with owner filter", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Task",
         ownerFiltered: true,
         routePath: "/tasks",
@@ -144,7 +147,7 @@ describe("tools", () => {
     });
 
     test("should generate route with query fields", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Item",
         queryFields: ["status", "category"],
         routePath: "/items",
@@ -156,7 +159,7 @@ describe("tools", () => {
     });
 
     test("should generate route with sort", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Event",
         routePath: "/events",
         sort: "-startDate",
@@ -168,9 +171,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_screen", () => {
+  describe("terreno_generate_screen", () => {
     test("should generate empty screen", () => {
-      const result = handleToolCall("generate_screen", {
+      const result = handleToolCall("terreno_generate_screen", {
         name: "Dashboard",
         type: "empty",
       });
@@ -184,7 +187,7 @@ describe("tools", () => {
     });
 
     test("should generate list screen", () => {
-      const result = handleToolCall("generate_screen", {
+      const result = handleToolCall("terreno_generate_screen", {
         fields: ["title", "price"],
         modelName: "Product",
         name: "ProductList",
@@ -202,7 +205,7 @@ describe("tools", () => {
     });
 
     test("should generate form screen", () => {
-      const result = handleToolCall("generate_screen", {
+      const result = handleToolCall("terreno_generate_screen", {
         fields: ["title", "description"],
         modelName: "Product",
         name: "CreateProduct",
@@ -220,7 +223,7 @@ describe("tools", () => {
     });
 
     test("should generate detail screen", () => {
-      const result = handleToolCall("generate_screen", {
+      const result = handleToolCall("terreno_generate_screen", {
         fields: ["title", "price", "description"],
         modelName: "Product",
         name: "ProductDetail",
@@ -237,9 +240,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_form_fields", () => {
+  describe("terreno_generate_form_fields", () => {
     test("should generate text field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{label: "Full Name", name: "name", type: "text"}],
       });
 
@@ -252,7 +255,7 @@ describe("tools", () => {
     });
 
     test("should generate email field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "email", required: true, type: "email"}],
       });
 
@@ -263,7 +266,7 @@ describe("tools", () => {
     });
 
     test("should generate select field with options", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [
           {
             name: "country",
@@ -285,7 +288,7 @@ describe("tools", () => {
     });
 
     test("should generate boolean field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "active", type: "boolean"}],
       });
 
@@ -296,7 +299,7 @@ describe("tools", () => {
     });
 
     test("should generate date field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "birthDate", type: "date"}],
       });
 
@@ -307,7 +310,7 @@ describe("tools", () => {
     });
 
     test("should generate multiple fields", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [
           {name: "name", type: "text"},
           {name: "email", type: "email"},
@@ -323,7 +326,7 @@ describe("tools", () => {
     });
   });
 
-  describe("validate_model_schema", () => {
+  describe("terreno_validate_model_schema", () => {
     test("should pass valid schema", () => {
       const validSchema = `
         const schema = new mongoose.Schema({
@@ -337,7 +340,7 @@ describe("tools", () => {
         interface MyDocument extends mongoose.Document {}
       `;
 
-      const result = handleToolCall("validate_model_schema", {
+      const result = handleToolCall("terreno_validate_model_schema", {
         schema: validSchema,
       });
 
@@ -351,7 +354,7 @@ describe("tools", () => {
         });
       `;
 
-      const result = handleToolCall("validate_model_schema", {schema});
+      const result = handleToolCall("terreno_validate_model_schema", {schema});
 
       expect(result.content[0].text).toContain("strict");
     });
@@ -363,7 +366,7 @@ describe("tools", () => {
         });
       `;
 
-      const result = handleToolCall("validate_model_schema", {schema});
+      const result = handleToolCall("terreno_validate_model_schema", {schema});
 
       expect(result.content[0].text).toContain("virtuals");
     });
@@ -376,7 +379,7 @@ describe("tools", () => {
         });
       `;
 
-      const result = handleToolCall("validate_model_schema", {schema});
+      const result = handleToolCall("terreno_validate_model_schema", {schema});
 
       expect(result.content[0].text).toContain("plugins");
     });
@@ -388,7 +391,7 @@ describe("tools", () => {
         };
       `;
 
-      const result = handleToolCall("validate_model_schema", {schema});
+      const result = handleToolCall("terreno_validate_model_schema", {schema});
 
       expect(result.content[0].text).toContain("findOne");
       expect(result.content[0].text).toContain("findOneOrThrow");
@@ -399,7 +402,7 @@ describe("tools", () => {
         const timestamp = new Date();
       `;
 
-      const result = handleToolCall("validate_model_schema", {schema});
+      const result = handleToolCall("terreno_validate_model_schema", {schema});
 
       expect(result.content[0].text).toContain("Luxon");
     });
@@ -413,9 +416,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_model edge cases", () => {
+  describe("terreno_generate_model edge cases", () => {
     test("should generate interface types for non-string fields", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [
           {name: "count", required: true, type: "Number"},
           {name: "isActive", required: true, type: "Boolean"},
@@ -436,7 +439,7 @@ describe("tools", () => {
     });
 
     test("should support hasOwner and softDelete options", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [{name: "title", required: true, type: "String"}],
         hasOwner: true,
         name: "Article",
@@ -451,7 +454,7 @@ describe("tools", () => {
     });
 
     test("should support unique and default field props", () => {
-      const result = handleToolCall("generate_model", {
+      const result = handleToolCall("terreno_generate_model", {
         fields: [
           {name: "email", required: true, type: "String", unique: true},
           {default: "0", name: "count", required: false, type: "Number"},
@@ -465,9 +468,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_route edge cases", () => {
+  describe("terreno_generate_route edge cases", () => {
     test("should generate route with ownerFiltered", () => {
-      const result = handleToolCall("generate_route", {
+      const result = handleToolCall("terreno_generate_route", {
         modelName: "Task",
         ownerFiltered: true,
         permissions: {
@@ -493,9 +496,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_screen edge cases", () => {
+  describe("terreno_generate_screen edge cases", () => {
     test("should fall back to empty template when type needs modelName but none given", () => {
-      const result = handleToolCall("generate_screen", {
+      const result = handleToolCall("terreno_generate_screen", {
         name: "Orphan",
         type: "list",
       });
@@ -506,9 +509,9 @@ describe("tools", () => {
     });
   });
 
-  describe("generate_form_fields edge cases", () => {
+  describe("terreno_generate_form_fields edge cases", () => {
     test("should generate password field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{label: "Password", name: "password", required: true, type: "password"}],
       });
       const content = result.content[0].text;
@@ -519,7 +522,7 @@ describe("tools", () => {
     });
 
     test("should generate textarea field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "bio", type: "textarea"}],
       });
       const content = result.content[0].text;
@@ -528,7 +531,7 @@ describe("tools", () => {
     });
 
     test("should generate datetime field", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "scheduledAt", type: "datetime"}],
       });
       const content = result.content[0].text;
@@ -538,7 +541,7 @@ describe("tools", () => {
     });
 
     test("should generate select field with empty options", () => {
-      const result = handleToolCall("generate_form_fields", {
+      const result = handleToolCall("terreno_generate_form_fields", {
         fields: [{name: "category", type: "select"}],
       });
       const content = result.content[0].text;
@@ -548,9 +551,9 @@ describe("tools", () => {
     });
   });
 
-  describe("install_admin", () => {
+  describe("terreno_install_admin", () => {
     test("should generate admin panel files and instructions", () => {
-      const result = handleToolCall("install_admin", {
+      const result = handleToolCall("terreno_install_admin", {
         models: [
           {
             displayName: "Todos",
@@ -586,16 +589,16 @@ describe("tools", () => {
   });
 
   describe("handleToolCall - bootstrap dispatch", () => {
-    test("should delegate bootstrap_app to bootstrap handler", () => {
-      const result = handleToolCall("bootstrap_app", {
+    test("should delegate terreno_bootstrap_app to bootstrap handler", () => {
+      const result = handleToolCall("terreno_bootstrap_app", {
         appDisplayName: "Dispatch App",
         appName: "dispatch-app",
       });
       expect(result.content[0].text).toContain("# Bootstrap Dispatch App");
     });
 
-    test("should delegate bootstrap_ai_rules to bootstrap handler", () => {
-      const result = handleToolCall("bootstrap_ai_rules", {
+    test("should delegate terreno_bootstrap_ai_rules to bootstrap handler", () => {
+      const result = handleToolCall("terreno_bootstrap_ai_rules", {
         appDisplayName: "Rules App",
         appName: "rules-app",
       });

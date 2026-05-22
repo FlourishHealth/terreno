@@ -17,7 +17,7 @@ const requireAdmin = (
   _res: express.Response,
   next: express.NextFunction
 ): void => {
-  if (!(req as any).user?.admin) {
+  if (!req.user?.admin) {
     next(new APIError({status: 403, title: "Admin access required"}));
     return;
   }
@@ -32,7 +32,7 @@ interface ConfigFieldMeta {
   required: boolean;
   description?: string;
   enum?: string[];
-  default?: any;
+  default?: unknown;
   secret?: boolean;
   widget?: string;
 }
@@ -59,6 +59,7 @@ export interface ConfigurationMetaResponse {
  */
 export interface ConfigurationAppOptions {
   /** The Mongoose model with configurationPlugin applied. */
+  // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance — consumers pass arbitrary configuration models
   model: Model<any>;
   /** Base path for configuration routes. Defaults to "/configuration". */
   basePath?: string;
@@ -70,8 +71,15 @@ export interface ConfigurationAppOptions {
  * Extracts field metadata from an OpenAPI properties object, augmented with
  * secret info from the Mongoose schema.
  */
+interface OpenApiPropertyMeta {
+  type?: string;
+  default?: unknown;
+  description?: string;
+  enum?: string[];
+}
+
 const extractFieldMeta = (
-  properties: Record<string, any>,
+  properties: Record<string, OpenApiPropertyMeta>,
   required: string[],
   schema: Schema,
   prefix: string,
@@ -81,7 +89,9 @@ const extractFieldMeta = (
   for (const [key, prop] of Object.entries(properties)) {
     const fullPath = prefix ? `${prefix}.${key}` : key;
     const schemaPath = schema.path(fullPath);
-    const opts = schemaPath?.options as any;
+    const opts = schemaPath?.options as
+      | {description?: string; secret?: boolean; default?: unknown}
+      | undefined;
 
     fields[key] = {
       default: prop.default,
@@ -112,17 +122,23 @@ const SECRET_REDACTED = "********";
  * Replaces values at secret paths with a placeholder string.
  */
 const redactSecrets = (
-  obj: Record<string, any>,
+  obj: Record<string, unknown>,
   secretFields: SecretFieldMeta[]
-): Record<string, any> => {
-  const redacted = {...obj};
+): Record<string, unknown> => {
+  const redacted: Record<string, unknown> = {...obj};
   for (const field of secretFields) {
     const parts = field.path.split(".");
-    let current: any = redacted;
+    let current: Record<string, unknown> | null = redacted;
     for (let i = 0; i < parts.length - 1; i++) {
-      if (current[parts[i]] != null && typeof current[parts[i]] === "object") {
-        current[parts[i]] = {...current[parts[i]]};
-        current = current[parts[i]];
+      if (!current) {
+        break;
+      }
+      const part = parts[i];
+      const nested = current[part];
+      if (nested != null && typeof nested === "object") {
+        const copy = {...(nested as Record<string, unknown>)};
+        current[part] = copy;
+        current = copy;
       } else {
         current = null;
         break;
@@ -206,8 +222,18 @@ export class ConfigurationApp implements TerrenoPlugin {
       }
     );
 
+    interface ConfigModelStatics {
+      getSecretFields?: () => SecretFieldMeta[];
+      getConfig: () => Promise<{toJSON: () => Record<string, unknown>}>;
+      updateConfig: (
+        body: Record<string, unknown>
+      ) => Promise<{toJSON: () => Record<string, unknown>}>;
+      resolveSecrets: () => Promise<Map<string, string>>;
+    }
+    const ConfigStatics = ConfigModel as unknown as ConfigModelStatics;
+
     // Discover secret fields once at registration time
-    const secretFields: SecretFieldMeta[] = (ConfigModel as any).getSecretFields?.() ?? [];
+    const secretFields: SecretFieldMeta[] = ConfigStatics.getSecretFields?.() ?? [];
 
     // GET /configuration — current values (secrets redacted)
     app.get(
@@ -215,7 +241,7 @@ export class ConfigurationApp implements TerrenoPlugin {
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {
-        const config = await (ConfigModel as any).getConfig();
+        const config = await ConfigStatics.getConfig();
         const data = redactSecrets(config.toJSON(), secretFields);
         return res.json({data});
       })
@@ -229,8 +255,8 @@ export class ConfigurationApp implements TerrenoPlugin {
       asyncHandler(async (req: express.Request, res: express.Response) => {
         // Strip internal system fields that should never be updated via the API
         const {_singleton: _s, _id: _i, __v: _v, ...safeBody} = req.body;
-        const config = await (ConfigModel as any).updateConfig(safeBody);
-        logger.info(`Configuration updated by ${(req as any).user?.email ?? "unknown"}`);
+        const config = await ConfigStatics.updateConfig(safeBody);
+        logger.info(`Configuration updated by ${req.user?.email ?? "unknown"}`);
         const data = redactSecrets(config.toJSON(), secretFields);
         return res.json({data});
       })
@@ -242,13 +268,13 @@ export class ConfigurationApp implements TerrenoPlugin {
       authenticateMiddleware(),
       requireAdmin,
       asyncHandler(async (_req: express.Request, res: express.Response) => {
-        const resolved: Map<string, string> = await (ConfigModel as any).resolveSecrets();
+        const resolved: Map<string, string> = await ConfigStatics.resolveSecrets();
         if (resolved.size > 0) {
           const updates: Record<string, unknown> = {};
           for (const [path, value] of resolved) {
             updates[path] = value;
           }
-          await (ConfigModel as any).updateConfig(updates);
+          await ConfigStatics.updateConfig(updates);
           logger.info(`Refreshed ${resolved.size}/${secretFields.length} secrets`);
         }
 
@@ -269,6 +295,7 @@ export class ConfigurationApp implements TerrenoPlugin {
    * Top-level fields with subschemas become sections.
    * Top-level scalar fields go into a "General" section.
    */
+  // biome-ignore lint/suspicious/noExplicitAny: Model<any> required for invariance with consumer-supplied configuration models
   private buildMetadata(_model: Model<any>, schema: Schema): ConfigurationMetaResponse {
     const sections: ConfigSectionMeta[] = [];
     const generalFields: Record<string, ConfigFieldMeta> = {};
@@ -279,21 +306,21 @@ export class ConfigurationApp implements TerrenoPlugin {
         return;
       }
 
-      const subSchema = (schemaType as any).schema as Schema | undefined;
+      const subSchema = (schemaType as unknown as {schema?: Schema}).schema;
 
       if (subSchema) {
         // This is a nested subschema — make it a section
         const {properties, required} = getOpenApiSpecForModel({
           modelName: pathName,
           schema: subSchema,
-        } as any);
+        } as unknown as Model<unknown>);
 
         // Filter out system fields from the subschema too
-        const filteredProperties: Record<string, any> = {};
+        const filteredProperties: Record<string, OpenApiPropertyMeta> = {};
         const filteredRequired: string[] = [];
         for (const [key, val] of Object.entries(properties)) {
           if (!SYSTEM_FIELDS.has(key)) {
-            filteredProperties[key] = val;
+            filteredProperties[key] = val as OpenApiPropertyMeta;
             if (required.includes(key)) {
               filteredRequired.push(key);
             }
@@ -309,7 +336,7 @@ export class ConfigurationApp implements TerrenoPlugin {
         );
 
         // Get description from the parent path options
-        const opts = schemaType.options as any;
+        const opts = schemaType.options as {description?: string} | undefined;
 
         sections.push({
           description: opts?.description,
@@ -319,7 +346,15 @@ export class ConfigurationApp implements TerrenoPlugin {
         });
       } else {
         // Scalar top-level field — goes into "General" section
-        const opts = schemaType.options as any;
+        const opts = schemaType.options as
+          | {
+              default?: unknown;
+              description?: string;
+              enum?: string[];
+              required?: boolean;
+              secret?: boolean;
+            }
+          | undefined;
         const fullPath = pathName;
 
         generalFields[pathName] = {
@@ -349,7 +384,7 @@ export class ConfigurationApp implements TerrenoPlugin {
     return {sections};
   }
 
-  private mongooseTypeToString(schemaType: any): string {
+  private mongooseTypeToString(schemaType: {instance?: string}): string {
     const instance = schemaType.instance?.toLowerCase();
     if (instance === "objectid") {
       return "string";

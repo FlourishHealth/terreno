@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 /**
  * Tests for admin-frontend hooks: useAdminApi, useAdminConfig,
  * useAdminScripts, useConfigurationApi, useDocumentStorageApi.

@@ -1,28 +1,33 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
-import type {AdminFieldConfig, AdminModelConfig, RefRendererMap} from "./types";
+import type {
+  AdminApi,
+  AdminFieldConfig,
+  AdminFieldValue,
+  AdminModelConfig,
+  RefRendererMap,
+} from "./types";
 import {SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelFormProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   modelName: string;
   mode: "create" | "edit";
   itemId?: string;
   footerContent?: React.ReactNode;
   transformPayload?: (params: {
     mode: "create" | "edit";
-    payload: Record<string, any>;
-  }) => Promise<Record<string, any>> | Record<string, any>;
+    payload: Record<string, AdminFieldValue>;
+  }) => Promise<Record<string, AdminFieldValue>> | Record<string, AdminFieldValue>;
   onSaveSuccess?: (params: {
     mode: "create" | "edit";
-    payload: Record<string, any>;
-    result: any;
+    payload: Record<string, AdminFieldValue>;
+    result: AdminFieldValue;
     itemId?: string;
   }) => Promise<void> | void;
   /**
@@ -57,7 +62,7 @@ const getEditableFields = (
   return ordered;
 };
 
-const getFieldDefault = (fieldConfig: AdminFieldConfig): any => {
+const getFieldDefault = (fieldConfig: AdminFieldConfig): AdminFieldValue => {
   if (fieldConfig.default !== undefined) {
     return fieldConfig.default;
   }
@@ -70,7 +75,7 @@ const getFieldDefault = (fieldConfig: AdminFieldConfig): any => {
   return "";
 };
 
-const sanitizePayloadValue = (value: any): any => {
+const sanitizePayloadValue = (value: AdminFieldValue): AdminFieldValue => {
   if (value === null) {
     return undefined;
   }
@@ -78,7 +83,7 @@ const sanitizePayloadValue = (value: any): any => {
     return value.map((item) => sanitizePayloadValue(item)).filter((item) => item !== undefined);
   }
   if (value && typeof value === "object") {
-    const nextValue: Record<string, any> = {};
+    const nextValue: Record<string, AdminFieldValue> = {};
     for (const [key, childValue] of Object.entries(value)) {
       const sanitizedChild = sanitizePayloadValue(childValue);
       if (sanitizedChild !== undefined) {
@@ -167,7 +172,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   refRenderers,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
-  const [formState, setFormState] = useState<Record<string, any>>({});
+  const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
   const navigation = useNavigation();
@@ -196,7 +201,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   // Initialize form state from fetched item data in edit mode
   useEffect(() => {
     if (mode === "edit" && itemData && !isInitialized) {
-      const initial: Record<string, any> = {};
+      const initial: Record<string, AdminFieldValue> = {};
       if (modelConfig) {
         for (const [key, fieldConfig] of getEditableFields(
           modelConfig.fields,
@@ -214,7 +219,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   // Initialize form state with defaults in create mode
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
-      const initial: Record<string, any> = {};
+      const initial: Record<string, AdminFieldValue> = {};
       for (const [key, fieldConfig] of getEditableFields(
         modelConfig.fields,
         modelConfig.fieldOrder
@@ -226,7 +231,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     }
   }, [mode, modelConfig, isInitialized]);
 
-  const handleFieldChange = useCallback((fieldKey: string, value: any) => {
+  const handleFieldChange = useCallback((fieldKey: string, value: AdminFieldValue) => {
     setFormState((prev) => ({...prev, [fieldKey]: value}));
     setErrors((prev) => {
       const next = {...prev};
@@ -257,11 +262,11 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return;
     }
     try {
-      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, any>;
+      const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, AdminFieldValue>;
       const payload = transformPayload
         ? await transformPayload({mode, payload: sanitizedPayload})
         : sanitizedPayload;
-      let result: any;
+      let result: AdminFieldValue;
       if (mode === "create") {
         result = await createItem(payload).unwrap();
       } else if (itemId) {
@@ -359,7 +364,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
             fieldKey={fieldKey}
             key={fieldKey}
             modelConfigs={modelConfigs}
-            onChange={(value: any) => handleFieldChange(fieldKey, value)}
+            onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
             parentFormState={formState}
             refRenderers={refRenderers}
             value={formState[fieldKey]}
