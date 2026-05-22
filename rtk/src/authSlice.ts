@@ -236,7 +236,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         listenerApi.dispatch(authSlice.actions.setUserId({userId: action.payload.userId}));
       }
     },
-    type: "terreno-rtk/executeMutation/fulfilled",
+    type: `${api.reducerPath}/executeMutation/fulfilled`,
   });
 
   // const clearLocalStorage = async (): Promise<void> => {
@@ -256,6 +256,16 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
   const logoutListenerMiddleware = createListenerMiddleware();
   logoutListenerMiddleware.startListening({
     effect: async () => {
+      // In-flight requests can re-dispatch LOGOUT_ACTION_TYPE after the first logout
+      // already cleared storage. Bail when there's nothing left to clear so we don't
+      // emit a cascade of "cleared auth token" log entries post-logout.
+      const [existingAuth, existingRefresh] = await Promise.all([
+        getAuthToken(),
+        getRefreshToken(),
+      ]);
+      if (!existingAuth && !existingRefresh) {
+        return;
+      }
       // TODO: We should only clear local storage when we're logging out, not disconnected.
       // await clearLocalStorage();
       if (!IsWeb) {
@@ -298,19 +308,29 @@ export const useSelectIsAuthenticating = (): boolean => {
   return useSelector((state: RootState): boolean => state.auth?.isAuthenticating ?? false);
 };
 
-export async function getAuthToken(): Promise<string | null> {
-  let token: string | null;
-
-  if (!IsWeb) {
-    token = await SecureStore.getItemAsync("AUTH_TOKEN");
-  } else {
-    // Check if we're in a browser environment (not SSR)
-    if (typeof window !== "undefined") {
-      token = await AsyncStorage.getItem("AUTH_TOKEN");
-    } else {
-      console.warn("Cannot get auth token: window is not defined (SSR context)");
-      token = null;
+// Wraps platform-specific storage reads. iOS keychain access can throw (locked
+// device, hardware quirks); when that happens we degrade to a null token so
+// callers follow the normal logged-out recovery path instead of crashing.
+async function readStoredToken(key: "AUTH_TOKEN" | "REFRESH_TOKEN"): Promise<string | null> {
+  try {
+    if (!IsWeb) {
+      return await SecureStore.getItemAsync(key);
     }
+    if (typeof window === "undefined") {
+      console.warn(`Cannot read ${key}: window is not defined (SSR context)`);
+      return null;
+    }
+    return await AsyncStorage.getItem(key);
+  } catch (error) {
+    console.warn(`[auth] Unable to read ${key} from storage, treating as absent`, error);
+    return null;
   }
-  return token;
+}
+
+export async function getAuthToken(): Promise<string | null> {
+  return readStoredToken("AUTH_TOKEN");
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+  return readStoredToken("REFRESH_TOKEN");
 }

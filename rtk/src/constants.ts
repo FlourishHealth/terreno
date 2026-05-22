@@ -5,6 +5,21 @@ export type RootState = any;
 export const LOGOUT_ACTION_TYPE = "auth/logout";
 export const TOKEN_REFRESHED_SUCCESS = "auth/tokenRefreshedSuccess";
 
+// HTTP status codes that indicate the server has explicitly rejected the
+// session. When one of these is present in a query error, the app should
+// force logout to clear the broken auth state.
+//
+// Intentionally excludes "FETCH_ERROR" — a network failure does not mean the
+// session is invalid; transient network problems should not log users out.
+const AUTH_RECOVERY_STATUSES = [401, 403, 404] as const;
+
+// Returns true when the given RTK Query error status represents a server-side
+// auth rejection that warrants clearing the session.
+export const isAuthRecoveryStatus = (
+  status: number | string | undefined
+): status is (typeof AUTH_RECOVERY_STATUSES)[number] =>
+  AUTH_RECOVERY_STATUSES.some((candidate) => candidate === status);
+
 export const AUTH_DEBUG = Constants.expoConfig?.extra?.AUTH_DEBUG === "true";
 if (AUTH_DEBUG) {
   console.debug("AUTH_DEBUG is enabled");

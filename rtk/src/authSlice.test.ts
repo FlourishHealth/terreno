@@ -9,6 +9,11 @@ import {
   selectIsAuthenticating,
 } from "./authSlice";
 
+// Pick a reducer path that intentionally differs from the package default
+// ("terreno-rtk") so the tests prove the listener middleware picks the
+// reducerPath up dynamically rather than matching against a hardcoded string.
+const TEST_REDUCER_PATH = "test-api";
+
 // Create a real RTK Query API with the endpoints that generateAuthSlice expects
 const api = createApi({
   baseQuery: fetchBaseQuery({baseUrl: "/"}),
@@ -27,7 +32,7 @@ const api = createApi({
       query: (body: {idToken: string}) => ({body, method: "POST", url: "auth/google"}),
     }),
   }),
-  reducerPath: "terreno-rtk",
+  reducerPath: TEST_REDUCER_PATH,
 });
 
 const createTestStore = () => {
@@ -101,7 +106,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(true);
@@ -113,7 +118,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       expect(store.getState().auth.isAuthenticating).toBe(true);
 
@@ -121,7 +126,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: {token: "abc", userId: "user-1"},
-        type: "terreno-rtk/executeMutation/fulfilled",
+        type: "test-api/executeMutation/fulfilled",
       });
       expect(store.getState().auth.isAuthenticating).toBe(false);
     });
@@ -131,14 +136,14 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
 
       // Then reject with error
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: {data: {message: "Invalid credentials"}},
-        type: "terreno-rtk/executeMutation/rejected",
+        type: "test-api/executeMutation/rejected",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(false);
@@ -151,7 +156,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailSignUp", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(true);
@@ -162,12 +167,12 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailSignUp", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       store.dispatch({
         meta: {arg: {endpointName: "emailSignUp", type: "mutation"}, requestId: "test-1"},
         payload: {token: "abc", userId: "user-1"},
-        type: "terreno-rtk/executeMutation/fulfilled",
+        type: "test-api/executeMutation/fulfilled",
       });
       expect(store.getState().auth.isAuthenticating).toBe(false);
     });
@@ -176,12 +181,12 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailSignUp", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       store.dispatch({
         meta: {arg: {endpointName: "emailSignUp", type: "mutation"}, requestId: "test-1"},
         payload: {data: {message: "Email already exists"}},
-        type: "terreno-rtk/executeMutation/rejected",
+        type: "test-api/executeMutation/rejected",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(false);
@@ -194,7 +199,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(true);
@@ -206,7 +211,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: {data: {message: "Previous error"}},
-        type: "terreno-rtk/executeMutation/rejected",
+        type: "test-api/executeMutation/rejected",
       });
       expect(store.getState().auth.error).toBe("Previous error");
 
@@ -214,7 +219,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-2"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       expect(store.getState().auth.error).toBeNull();
     });
@@ -223,12 +228,12 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: {token: "abc", userId: "user-1"},
-        type: "terreno-rtk/executeMutation/fulfilled",
+        type: "test-api/executeMutation/fulfilled",
       });
       expect(store.getState().auth.isAuthenticating).toBe(false);
     });
@@ -237,16 +242,32 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       store.dispatch({
         meta: {arg: {endpointName: "googleLogin", type: "mutation"}, requestId: "test-1"},
         payload: {data: {message: "Google auth failed"}},
-        type: "terreno-rtk/executeMutation/rejected",
+        type: "test-api/executeMutation/rejected",
       });
       const state = store.getState().auth;
       expect(state.isAuthenticating).toBe(false);
       expect(state.error).toBe("Google auth failed");
+    });
+  });
+
+  describe("login listener middleware", () => {
+    it("uses the api's reducerPath dynamically to match the fulfilled action", async () => {
+      // Dispatch a fulfilled action namespaced under the test reducer path. If
+      // the listener were hardcoded to "terreno-rtk/executeMutation/fulfilled",
+      // it would not fire and setUserId would never run.
+      store.dispatch({
+        meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
+        payload: {refreshToken: "rt", token: "at", userId: "user-listener-1"},
+        type: `${TEST_REDUCER_PATH}/executeMutation/fulfilled`,
+      });
+      // The listener effect is async; yield a couple of microtasks/macrotasks.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(store.getState().auth.userId).toBe("user-listener-1");
     });
   });
 
@@ -256,7 +277,7 @@ describe("generateAuthSlice", () => {
       store.dispatch({
         meta: {arg: {endpointName: "emailLogin", type: "mutation"}, requestId: "test-1"},
         payload: undefined,
-        type: "terreno-rtk/executeMutation/pending",
+        type: "test-api/executeMutation/pending",
       });
       expect(store.getState().auth.isAuthenticating).toBe(true);
 
