@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
 import type {SecretProvider} from "./configurationPlugin";

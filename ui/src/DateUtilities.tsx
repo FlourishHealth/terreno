@@ -61,7 +61,7 @@ export function humanDate(
   date: string,
   {timezone, dontShowTime}: {timezone?: string; dontShowTime?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
   } catch (error: unknown) {
@@ -95,7 +95,7 @@ export function humanDateAndTime(
   date: string,
   {timezone, showTimezone = true}: {timezone?: string; showTimezone?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
   } catch (error: unknown) {
@@ -162,7 +162,7 @@ export const printDate = (
     return justDate.startOf("day").toFormat("M/d/yyyy");
   }
 
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
   } catch (error: unknown) {
@@ -214,7 +214,7 @@ export function printTime(
   if (!date) {
     return defaultValue ?? "Invalid Date";
   }
-  let clonedDate;
+  let clonedDate: DateTime;
   if (!timezone) {
     throw new Error("printTime: timezone is required");
   }
@@ -250,7 +250,7 @@ export function printDateAndTime(
   if (!date) {
     return defaultValue ?? "Invalid Datetime";
   }
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
   } catch (error: unknown) {
@@ -307,7 +307,7 @@ export function printSince(
   date: string,
   {timezone, showAgo = true}: {timezone?: string; showAgo?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   const ago = showAgo ? " ago" : "";
   try {
     clonedDate = getDate(date, {timezone});

@@ -97,7 +97,7 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 
 Code generation tools that return TypeScript/JavaScript code as text. **Tools do not write files** — the AI assistant receives the code and writes it to appropriate locations.
 
-### generate_model
+### terreno_generate_model
 
 Generate a Mongoose model with Terreno conventions (timestamps, soft delete, owner tracking, type definitions).
 
@@ -142,7 +142,7 @@ Generate a Mongoose model with Terreno conventions (timestamps, soft delete, own
 - Plugin configuration
 - Export statements
 
-### generate_route
+### terreno_generate_route
 
 Generate modelRouter configuration with permissions and query options.
 
@@ -192,7 +192,7 @@ Generate modelRouter configuration with permissions and query options.
 - Lifecycle hooks structure
 - Instructions for registering route
 
-### generate_screen
+### terreno_generate_screen
 
 Generate React Native screen component with Terreno UI components.
 
@@ -229,7 +229,7 @@ Generate React Native screen component with Terreno UI components.
 - @terreno/ui components (Box, Text, Button, Card, etc.)
 - Loading/error/empty states
 
-### generate_form_fields
+### terreno_generate_form_fields
 
 Generate form field components for a model.
 
@@ -266,7 +266,7 @@ Generate form field components for a model.
 - Validation logic structure
 - Form state management pattern
 
-### validate_model_schema
+### terreno_validate_model_schema
 
 Validate a Mongoose schema against Terreno conventions.
 
@@ -284,11 +284,53 @@ Validate a Mongoose schema against Terreno conventions.
 - Recommendations for fixes
 - Severity levels (error, warning, info)
 
+### terreno_bootstrap_app
+
+Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose backend, Cursor rules, MCP settings).
+
+**Parameters:**
+
+``````typescript
+{
+  appName: string;           // kebab-case (e.g., "my-app")
+  appDisplayName: string;    // Human-readable name
+  description?: string;
+  mcpServerUrl?: string;     // Default: https://mcp.terreno.flourish.health
+}
+``````
+
+**Returns:** File list, setup instructions, and full file contents for backend, frontend, CI workflows, and MCP configuration.
+
+### terreno_bootstrap_ai_rules
+
+Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).
+
+**Parameters:** Same as `terreno_bootstrap_app` (`appName`, `appDisplayName` required).
+
+**Returns:** Rules files and instructions for installing/syncing with rulesync.
+
+### terreno_install_admin
+
+Generate admin panel integration for `@terreno/admin-backend` and `@terreno/admin-frontend`.
+
+**Parameters:** Model configurations with `modelName`, `routePath`, `displayName`, `listFields`, etc.
+
+**Returns:** Frontend screen files and backend/frontend setup snippets.
+
 ## Prompts
 
 Multi-step workflow prompts that guide AI assistants through complex tasks.
 
-### create_crud_feature
+### terreno_bootstrap
+
+Workflow prompt for scaffolding a new Terreno app. Delegates to `terreno_bootstrap_app` and `terreno_bootstrap_ai_rules` tools.
+
+**Arguments:**
+
+- `appName` (string) — Application name in kebab-case
+- `appDisplayName` (string) — Human-readable display name
+
+### terreno_create_crud_feature
 
 Generate complete CRUD feature: backend model + routes + frontend screens.
 
@@ -310,7 +352,7 @@ Generate complete CRUD feature: backend model + routes + frontend screens.
    - Regenerating SDK: `bun run sdk`
    - Adding navigation
 
-### create_api_endpoint
+### terreno_create_api_endpoint
 
 Generate custom (non-CRUD) API endpoint with OpenAPI documentation.
 
@@ -328,7 +370,7 @@ Generate custom (non-CRUD) API endpoint with OpenAPI documentation.
 4. Provide authentication setup instructions
 5. Provide SDK regeneration instructions
 
-### create_ui_component
+### terreno_create_ui_component
 
 Generate reusable UI component following @terreno/ui patterns.
 
@@ -346,7 +388,7 @@ Generate reusable UI component following @terreno/ui patterns.
 4. Include usage example
 5. Provide testing setup
 
-### create_form_screen
+### terreno_create_form_screen
 
 Generate form screen with validation and error handling.
 
@@ -365,7 +407,7 @@ Generate form screen with validation and error handling.
 5. Add loading/error/success states
 6. Provide navigation setup
 
-### add_authentication
+### terreno_add_authentication
 
 Generate authentication setup for new projects.
 
@@ -383,6 +425,14 @@ Generate authentication setup for new projects.
 5. Generate signup screen
 6. Set up token storage
 7. Provide environment variable list
+
+### terreno_migrate_to_terreno_app
+
+Guide for migrating from `setupServer` to the `TerrenoApp` fluent API pattern.
+
+**Arguments:**
+
+- `serverFile` (string, optional) — Path to server file to migrate (e.g., `src/server.ts`)
 
 ### terreno_style_guide
 

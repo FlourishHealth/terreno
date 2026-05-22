@@ -96,8 +96,8 @@
             "allow": ["assert", "debug", "error", "info", "warn"]
           }
         },
-        "noExplicitAny": "off",
-        "noImplicitAnyLet": "off"
+        "noExplicitAny": "error",
+        "noImplicitAnyLet": "error"
       }
     }
   },

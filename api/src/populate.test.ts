@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {type Document, type HydratedDocument, Schema} from "mongoose";
 

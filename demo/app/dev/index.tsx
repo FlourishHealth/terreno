@@ -17,7 +17,10 @@ export default function Dev(): ReactElement {
       if (navigationState.routes?.length <= 1) {
         return;
       }
-      const params: any = navigationState.routes[1]?.params ?? {};
+      const params = (navigationState.routes[1]?.params ?? {}) as {
+        component?: string;
+        story?: string;
+      };
 
       try {
         await AsyncStorage.setItem(
