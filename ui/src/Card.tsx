@@ -9,7 +9,11 @@ import {Text} from "./Text";
 
 const DEFAULT_DISPLAY_CARD_WIDTH = 600;
 const MOBILE_SMALL_DISPLAY_CARD_WIDTH = 200;
+const MOBILE_ROW_IMAGE_WIDTH = 100;
+const DESKTOP_ROW_IMAGE_WIDTH = 160;
+const MOBILE_LARGE_IMAGE_HEIGHT = 300;
 const TITLE_DESCRIPTION_GAP = 1;
+const MOBILE_BREAKPOINT = 768;
 
 const getDisplayCardWidth = ({
   isMobile,
@@ -29,11 +33,14 @@ const getDisplayCardWidth = ({
   return undefined;
 };
 
-export const Card = ({
+type DisplayCardProps = CardProps & {
+  isMobile: boolean;
+};
+
+const DisplayCard = ({
   children,
   color = "base",
   padding,
-  variant = "container",
   size = "default",
   title,
   description,
@@ -42,76 +49,95 @@ export const Card = ({
   imageUri,
   imageAlt,
   imageHeight = 160,
+  isMobile,
+  variant: _variant,
   ...rest
-}: CardProps): React.ReactElement => {
-  const {width: windowWidth} = useWindowDimensions();
-  const isMobile = windowWidth <= 768;
+}: DisplayCardProps): React.ReactElement => {
+  const isRow = (!isMobile && size !== "small") || (isMobile && size === "default");
+  const cardWidth = getDisplayCardWidth({isMobile, size});
 
-  if (variant === "display") {
-    // Row layout: desktop large/default and mobile default
-    const isRow = (!isMobile && size !== "small") || (isMobile && size === "default");
-    // All 4 borders on desktop (all sizes) and mobile small; top+bottom only on mobile large/default
-    const allBorders = !isMobile || size === "small";
+  const columnImageHeight = isMobile && size === "large" ? MOBILE_LARGE_IMAGE_HEIGHT : imageHeight;
 
-    const cardWidth = getDisplayCardWidth({isMobile, size});
-    const cardHeight = isMobile && size === "large" ? 500 : undefined;
+  const imageStyle = isRow
+    ? {
+        alignSelf: "stretch" as const,
+        flexShrink: 0,
+        width: isMobile ? MOBILE_ROW_IMAGE_WIDTH : DESKTOP_ROW_IMAGE_WIDTH,
+      }
+    : {
+        flexShrink: 0,
+        height: columnImageHeight,
+        width: "100%" as const,
+      };
 
-    // Image dimensions vary by layout context
-    const mobilelargeImageHeight = 300;
-    const imageStyle = isRow
-      ? {alignSelf: "stretch" as const, width: isMobile ? 100 : 160}
-      : {
-          height: isMobile && size === "large" ? mobilelargeImageHeight : imageHeight,
-          width: "100%" as const,
-        };
-
-    return (
+  return (
+    <Box
+      alignItems={isRow ? "stretch" : undefined}
+      alignSelf={cardWidth === undefined && isMobile ? "stretch" : undefined}
+      borderBottom="default"
+      borderLeft="default"
+      borderRight="default"
+      borderTop="default"
+      color={color}
+      direction={isRow ? "row" : "column"}
+      gap={isMobile ? 0 : 6}
+      overflow="hidden"
+      padding={padding ?? (isMobile ? 0 : 6)}
+      rounding="md"
+      width={cardWidth ?? (isMobile ? "100%" : undefined)}
+      {...rest}
+    >
+      {imageUri && (
+        <Image
+          accessibilityLabel={imageAlt}
+          resizeMode="cover"
+          source={{uri: imageUri}}
+          style={imageStyle}
+        />
+      )}
       <Box
-        alignItems={isRow ? "center" : undefined}
-        borderBottom="default"
-        borderLeft={allBorders ? "default" : undefined}
-        borderRight={allBorders ? "default" : undefined}
-        borderTop="default"
-        color={color}
-        direction={isRow ? "row" : "column"}
-        gap={isMobile ? 0 : 6}
-        overflow="hidden"
-        padding={padding ?? (isMobile ? 0 : 6)}
-        rounding={allBorders ? "md" : undefined}
-        {...(cardHeight !== undefined ? {height: cardHeight} : {})}
-        {...(cardWidth !== undefined ? {width: cardWidth} : {})}
-        {...rest}
+        direction="column"
+        flex={isRow ? "shrink" : undefined}
+        gap={4}
+        minWidth={isRow ? 0 : undefined}
+        padding={isMobile ? 4 : 0}
+        {...(isRow ? {} : {width: "100%"})}
       >
-        {imageUri && (
-          <Image
-            accessibilityLabel={imageAlt}
-            resizeMode="cover"
-            source={{uri: imageUri}}
-            style={imageStyle}
-          />
+        {(Boolean(title) || Boolean(description)) && (
+          <Box direction="column" gap={TITLE_DESCRIPTION_GAP} minWidth={0} width="100%">
+            {Boolean(title) && (
+              <Box minWidth={0} width="100%">
+                <Heading size="lg">{title}</Heading>
+              </Box>
+            )}
+            {Boolean(description) && (
+              <Box minWidth={0} width="100%">
+                <Text>{description}</Text>
+              </Box>
+            )}
+          </Box>
         )}
-        <Box
-          direction="column"
-          flex={isRow ? "grow" : undefined}
-          gap={4}
-          padding={isMobile ? 4 : 0}
-        >
-          {(Boolean(title) || Boolean(description)) && (
-            <Box direction="column" gap={TITLE_DESCRIPTION_GAP}>
-              {Boolean(title) && <Heading size="lg">{title}</Heading>}
-              {Boolean(description) && <Text>{description}</Text>}
-            </Box>
-          )}
-          {Boolean(buttonText && buttonOnClick) && (
-            <Button onClick={buttonOnClick!} text={buttonText!} />
-          )}
-          {children}
-        </Box>
+        {Boolean(buttonText && buttonOnClick) && (
+          <Button onClick={buttonOnClick!} text={buttonText!} />
+        )}
+        {children}
       </Box>
-    );
-  }
+    </Box>
+  );
+};
 
-  // Container variant
+type ContainerCardProps = CardProps & {
+  isMobile: boolean;
+};
+
+const ContainerCard = ({
+  children,
+  color = "base",
+  padding,
+  isMobile,
+  variant: _variant,
+  ...rest
+}: ContainerCardProps): React.ReactElement => {
   return (
     <Box
       borderBottom="default"
@@ -128,4 +154,26 @@ export const Card = ({
       {children}
     </Box>
   );
+};
+
+export const Card = ({variant = "container", ...props}: CardProps): React.ReactElement => {
+  if (variant === "display") {
+    const DisplayCardWithLayout = (): React.ReactElement => {
+      const {width: windowWidth} = useWindowDimensions();
+      const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+
+      return <DisplayCard {...props} isMobile={isMobile} />;
+    };
+
+    return <DisplayCardWithLayout />;
+  }
+
+  const ContainerCardWithLayout = (): React.ReactElement => {
+    const {width: windowWidth} = useWindowDimensions();
+    const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+
+    return <ContainerCard {...props} isMobile={isMobile} />;
+  };
+
+  return <ContainerCardWithLayout />;
 };
