@@ -1,5 +1,6 @@
 import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
 import type express from "express";
+import {DateTime} from "luxon";
 
 import {AIRequest} from "../models/aiRequest";
 import type {AiRequestsExplorerRouteOptions} from "../types";
@@ -56,10 +57,10 @@ export const addAiRequestsExplorerRoutes = (
       if (req.query.startDate || req.query.endDate) {
         match.created = {};
         if (req.query.startDate) {
-          match.created.$gte = new Date(req.query.startDate as string);
+          match.created.$gte = DateTime.fromISO(req.query.startDate as string).toJSDate();
         }
         if (req.query.endDate) {
-          match.created.$lte = new Date(req.query.endDate as string);
+          match.created.$lte = DateTime.fromISO(req.query.endDate as string).toJSDate();
         }
       }
 
