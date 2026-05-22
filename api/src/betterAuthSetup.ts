@@ -14,6 +14,7 @@ import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
 import {logger} from "./logger";
 import {findOneOrNoneFor} from "./plugins";
+import {updateRequestContextFromRequest} from "./requestContext";
 
 /**
  * The Better Auth instance type.
@@ -126,11 +127,13 @@ export const createBetterAuthSessionMiddleware = (
           if (appUser) {
             reqWithSession.user = appUser as unknown as Request["user"];
             reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+            updateRequestContextFromRequest(req);
           } else {
             // User exists in Better Auth but not synced yet - create them
             const newUser = await syncBetterAuthUser(userModel, betterAuthUser);
             reqWithSession.user = newUser as unknown as Request["user"];
             reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+            updateRequestContextFromRequest(req);
           }
         } else {
           // No user model - just attach the Better Auth user directly
@@ -143,6 +146,7 @@ export const createBetterAuthSessionMiddleware = (
             name: betterAuthUser.name,
           } as unknown as Request["user"];
           reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+          updateRequestContextFromRequest(req);
         }
       }
 

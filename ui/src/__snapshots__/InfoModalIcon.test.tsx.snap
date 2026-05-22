@@ -167,9 +167,12 @@ exports[`InfoModalIcon renders correctly with required props 1`] = `
                         ],
                         "props": {
                           "accessibilityHint": "Press to perform action",
-                          "aria-label": "Close",
-                          "aria-role": "button",
-                          "disabled": undefined,
+                          "accessibilityLabel": "Close",
+                          "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": false,
+                          },
+                          "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
@@ -186,7 +189,7 @@ exports[`InfoModalIcon renders correctly with required props 1`] = `
                           },
                           "testID": undefined,
                         },
-                        "type": "Pressable",
+                        "type": "PressableScale",
                       },
                     ],
                     "props": {
@@ -495,9 +498,12 @@ exports[`InfoModalIcon renders with subtitle 1`] = `
                         ],
                         "props": {
                           "accessibilityHint": "Press to perform action",
-                          "aria-label": "Close",
-                          "aria-role": "button",
-                          "disabled": undefined,
+                          "accessibilityLabel": "Close",
+                          "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": false,
+                          },
+                          "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
@@ -514,7 +520,7 @@ exports[`InfoModalIcon renders with subtitle 1`] = `
                           },
                           "testID": undefined,
                         },
-                        "type": "Pressable",
+                        "type": "PressableScale",
                       },
                     ],
                     "props": {
@@ -821,9 +827,12 @@ exports[`InfoModalIcon renders with children content 1`] = `
                         ],
                         "props": {
                           "accessibilityHint": "Press to perform action",
-                          "aria-label": "Close",
-                          "aria-role": "button",
-                          "disabled": undefined,
+                          "accessibilityLabel": "Close",
+                          "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": false,
+                          },
+                          "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
@@ -840,7 +849,7 @@ exports[`InfoModalIcon renders with children content 1`] = `
                           },
                           "testID": undefined,
                         },
-                        "type": "Pressable",
+                        "type": "PressableScale",
                       },
                     ],
                     "props": {
@@ -1108,9 +1117,12 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                         ],
                         "props": {
                           "accessibilityHint": "Press to perform action",
-                          "aria-label": "Close",
-                          "aria-role": "button",
-                          "disabled": undefined,
+                          "accessibilityLabel": "Close",
+                          "accessibilityRole": "button",
+                          "accessibilityState": {
+                            "disabled": false,
+                          },
+                          "disabled": false,
                           "onPress": [Function: debounced],
                           "style": {
                             "alignItems": "center",
@@ -1127,7 +1139,7 @@ exports[`InfoModalIcon opens modal when pressed 1`] = `
                           },
                           "testID": undefined,
                         },
-                        "type": "Pressable",
+                        "type": "PressableScale",
                       },
                     ],
                     "props": {

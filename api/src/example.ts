@@ -7,7 +7,13 @@ import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./a
 import {setupServer} from "./expressServer";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
-import {baseUserPlugin, createdUpdatedPlugin} from "./plugins";
+import {
+  baseUserPlugin,
+  createdUpdatedPlugin,
+  findExactlyOne,
+  findOneOrNone,
+  isDeletedPlugin,
+} from "./plugins";
 
 mongoose
   .connect("mongodb://localhost:27017/example")
@@ -31,10 +37,13 @@ interface Food {
   hidden?: boolean;
 }
 
-const userSchema = new Schema<User>({
-  admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
-  username: {description: "The user's username", type: String},
-});
+const userSchema = new Schema<User>(
+  {
+    admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
+    username: {description: "The user's username", type: String},
+  },
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
 
 // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose's plugin type is incompatible with mongoose Schema generics
 userSchema.plugin(passportLocalMongoose as any, {usernameField: "email"});
@@ -42,17 +51,29 @@ userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(baseUserPlugin);
 const UserModel = model<User>("User", userSchema);
 
-const schema = new Schema<Food>({
-  calories: {description: "Number of calories in the food", type: Number},
-  created: {description: "When this food was created", type: Date},
-  hidden: {default: false, description: "Whether this food is hidden from listings", type: Boolean},
-  name: {description: "The name of the food", type: String},
-  ownerId: {description: "The user who owns this food entry", ref: "User", type: "ObjectId"},
-});
+const schema = new Schema<Food>(
+  {
+    calories: {description: "Number of calories in the food", type: Number},
+    created: {description: "When this food was created", type: Date},
+    hidden: {
+      default: false,
+      description: "Whether this food is hidden from listings",
+      type: Boolean,
+    },
+    name: {description: "The name of the food", type: String},
+    ownerId: {description: "The user who owns this food entry", ref: "User", type: "ObjectId"},
+  },
+  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
+);
+
+schema.plugin(createdUpdatedPlugin);
+schema.plugin(isDeletedPlugin);
+schema.plugin(findOneOrNone);
+schema.plugin(findExactlyOne);
 
 const FoodModel = model<Food>("Food", schema);
 
-function getBaseServer() {
+const getBaseServer = () => {
   const app = express();
 
   app.use((req, res, next) => {
@@ -69,7 +90,10 @@ function getBaseServer() {
   setupAuth(app, UserModel as unknown as UserMongooseModel);
   addAuthRoutes(app, UserModel as unknown as UserMongooseModel);
 
-  function addRoutes(router: express.Router, options?: Partial<ModelRouterOptions<unknown>>): void {
+  const addRoutes = (
+    router: express.Router,
+    options?: Partial<ModelRouterOptions<unknown>>
+  ): void => {
     router.use(
       "/food",
       modelRouter(FoodModel, {
@@ -87,7 +111,7 @@ function getBaseServer() {
         queryFields: ["name", "calories", "created", "ownerId", "hidden"],
       })
     );
-  }
+  };
 
   return setupServer({
     addRoutes,
@@ -96,5 +120,5 @@ function getBaseServer() {
     },
     userModel: UserModel as unknown as UserMongooseModel,
   });
-}
+};
 getBaseServer();

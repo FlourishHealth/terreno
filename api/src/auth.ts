@@ -1,3 +1,4 @@
+import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
 import type {Model, ObjectId} from "mongoose";
@@ -14,6 +15,12 @@ import {Strategy as LocalStrategy} from "passport-local";
 import {APIError, apiErrorMiddleware, errorMessage} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {
+  getSessionIdFromJwtPayload,
+  type JwtSessionPayload,
+  setRequestContext,
+  updateRequestContextFromRequest,
+} from "./requestContext";
 
 export interface User {
   _id: ObjectId | string;
@@ -41,6 +48,10 @@ export interface UserModel extends Model<User> {
   deserializeUser(): any;
   // biome-ignore lint/suspicious/noExplicitAny: passport-local-mongoose return types are untyped
   findByUsername(username: string, findOpts: any): any;
+}
+
+export interface GenerateTokensOptions {
+  sessionId?: string;
 }
 
 export function authenticateMiddleware(anonymous = false) {
@@ -108,17 +119,22 @@ export async function signupUser(
  * authentication providers) to reuse and customize the same token generation logic.
  * This ensures consistent and secure token issuance across different authentication flows.
  */
-// biome-ignore lint/suspicious/noExplicitAny: user object is variable (Mongoose Document, plain object, anonymous user) — strict typing here would require generics that break call sites
-export const generateTokens = async (user: any, authOptions?: AuthOptions) => {
+export const generateTokens = async (
+  user: unknown,
+  authOptions?: AuthOptions,
+  options: GenerateTokensOptions = {}
+) => {
   const tokenSecretOrKey = process.env.TOKEN_SECRET;
   if (!tokenSecretOrKey) {
     throw new Error("TOKEN_SECRET must be set in env.");
   }
-  if (!user?._id) {
+  const tokenUser = user as {_id?: ObjectId | string} | null | undefined;
+  if (!tokenUser?._id) {
     logger.warn("No user found for token generation");
     return {refreshToken: null, token: null};
   }
-  let payload: Record<string, unknown> = {id: String(user._id)};
+  const sessionId = options.sessionId ?? randomUUID();
+  let payload: Record<string, unknown> = {id: String(tokenUser._id), sid: sessionId};
   if (authOptions?.generateJWTPayload) {
     payload = {...authOptions.generateJWTPayload(user), ...payload};
   }
@@ -166,7 +182,7 @@ export const generateTokens = async (user: any, authOptions?: AuthOptions) => {
   } else {
     logger.info("REFRESH_TOKEN_SECRET not set so refresh tokens will not be issued");
   }
-  return {refreshToken, token};
+  return {refreshToken, sessionId, token};
 };
 
 // TODO allow customization
@@ -289,9 +305,16 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
       return res.status(401).json({details, message});
     }
     if (decoded?.id) {
+      const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
+      req.authTokenPayload = decoded as JwtSessionPayload;
+      if (sessionId) {
+        req.sessionId = sessionId;
+        setRequestContext({sessionId});
+      }
       try {
         const user = await userModel.findById(decoded.id);
         req.user = user as unknown as express.Request["user"];
+        updateRequestContextFromRequest(req, res);
         if (req.user?.disabled) {
           logger.warn(`[jwt] User ${req.user.id} is disabled`);
           return res.status(401).json({status: 401, title: "User is disabled"});
@@ -334,6 +357,10 @@ export function addAuthRoutes(
           logger.info(`User logged in: ${user._id}, type: ${user.type || "N/A"}`);
         }
         const tokens = await generateTokens(user, authOptions);
+        if (tokens.sessionId) {
+          setRequestContext({sessionId: tokens.sessionId, userId: String(user._id)});
+          res.setHeader("X-Session-ID", tokens.sessionId);
+        }
         return res.json({
           data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: user?._id},
         });
@@ -365,7 +392,15 @@ export function addAuthRoutes(
     }
     if (decoded?.id) {
       const user = await userModel.findById(decoded.id);
-      const tokens = await generateTokens(user, authOptions);
+      const sessionId = getSessionIdFromJwtPayload(decoded as JwtSessionPayload);
+      const tokens = await generateTokens(user, authOptions, {sessionId});
+      if (tokens.sessionId) {
+        setRequestContext({
+          sessionId: tokens.sessionId,
+          userId: user?._id ? String(user._id) : undefined,
+        });
+        res.setHeader("X-Session-ID", tokens.sessionId);
+      }
       logger.debug(`Refreshed token for ${user?.id}`);
       return res.json({data: {refreshToken: tokens.refreshToken, token: tokens.token}});
     }
@@ -380,6 +415,13 @@ export function addAuthRoutes(
       passport.authenticate("signup", {failWithError: true, session: false}),
       async (req: express.Request, res: express.Response) => {
         const tokens = await generateTokens(req.user, authOptions);
+        if (tokens.sessionId) {
+          setRequestContext({
+            sessionId: tokens.sessionId,
+            userId: req.user?._id ? String(req.user._id) : undefined,
+          });
+          res.setHeader("X-Session-ID", tokens.sessionId);
+        }
         return res.json({
           data: {refreshToken: tokens.refreshToken, token: tokens.token, userId: req.user?._id},
         });
