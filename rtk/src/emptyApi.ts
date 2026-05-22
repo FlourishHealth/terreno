@@ -25,6 +25,8 @@ const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : ():
 /** Response from Terreno `GET /version-check` (VersionCheckPlugin). */
 export interface VersionCheckResponse {
   message?: string;
+  /** How often the client should poll for updates, in milliseconds. */
+  pollingIntervalMs?: number;
   requiredVersion?: number;
   status: "ok" | "warning" | "required";
   updateUrl?: string;
