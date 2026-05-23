@@ -26,6 +26,29 @@ export const MAX_DOCUMENT_SUBSCRIPTIONS = 500;
 export const MAX_QUERY_SUBSCRIPTIONS = 100;
 
 /**
+ * Replace any userinfo (`user:password@`) component in a URL with `***@` so the
+ * credentials are not written to logs. Falls back to a regex when the string
+ * isn't a valid URL the standard `URL` parser can read.
+ *
+ * Exported for testing.
+ */
+export const redactCredentials = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    if (parsed.username || parsed.password) {
+      parsed.username = "";
+      parsed.password = "";
+      // URL serialization drops the empty userinfo; reinsert a sentinel so logs make it
+      // obvious credentials were stripped rather than silently absent from the source URL.
+      return parsed.toString().replace(`${parsed.protocol}//`, `${parsed.protocol}//***@`);
+    }
+    return parsed.toString();
+  } catch {
+    return url.replace(/^(\w+):\/\/[^@/]*@/, "$1://***@");
+  }
+};
+
+/**
  * Minimal shape this module requires from a Socket.io socket. Lets tests pass a
  * mock without standing up a real server.
  */
@@ -367,7 +390,7 @@ export class RealtimeApp implements TerrenoPlugin {
     if (adapter === "redis") {
       const redisUrl = this.config.redisUrl ?? process.env.VALKEY_URL ?? process.env.REDIS_URL;
       if (redisUrl) {
-        logInfo(`[realtime] Redis adapter configured with URL: ${redisUrl}`);
+        logInfo(`[realtime] Redis adapter configured with URL: ${redactCredentials(redisUrl)}`);
         // Redis adapter must be configured externally by the consuming app
         // since @socket.io/redis-adapter and ioredis are optional peer dependencies.
         // Use realtimeApp.getIo() to access the Socket.io instance and call

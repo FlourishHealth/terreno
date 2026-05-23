@@ -137,8 +137,10 @@ export const ensureApiId = (data: unknown): unknown => {
  *      configures sanitization in the REST `responseHandler`.
  *   3. `toJSON()` fallback.
  *
- * Failures in user-supplied handlers fall back to `toJSON()` (logged) so a serializer
- * bug never silently leaks a raw document or kills the change stream watcher.
+ * If a user-supplied handler throws, we re-throw so the caller's outer try/catch
+ * records the failure and the event is dropped. Falling back to `toJSON()` here
+ * would risk leaking unsanitized fields (e.g. `hash`/`salt`) that the handler
+ * was supposed to strip.
  */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
@@ -153,8 +155,9 @@ export const serializeDoc = async (
     } catch (error) {
       logger.error(
         `[realtime] realtimeResponseHandler threw for ${entry.modelName}/${method}: ${error}. ` +
-          "Falling back to toJSON."
+          "Dropping event to avoid leaking unsanitized data."
       );
+      throw error;
     }
   }
 
@@ -172,8 +175,9 @@ export const serializeDoc = async (
     } catch (error) {
       logger.error(
         `[realtime] modelRouter responseHandler threw during realtime serialization for ` +
-          `${entry.modelName}/${method}: ${error}. Falling back to toJSON.`
+          `${entry.modelName}/${method}: ${error}. Dropping event to avoid leaking unsanitized data.`
       );
+      throw error;
     }
   }
 
@@ -186,6 +190,14 @@ export const serializeDoc = async (
  * Document rooms: `document:{collection}:{docId}` — clients subscribed to a single document.
  * Query rooms: `query:{queryId}` — clients subscribed to a query filter. The change stream
  * watcher evaluates whether the document matches each active query for the collection.
+ *
+ * For deletes, we are careful not to leak cross-user activity:
+ *   - Soft deletes (fullDocument present) are matched against each query like updates so
+ *     query subscribers only see deletes for docs that matched their filter.
+ *   - Hard deletes (fullDocument absent) on owner-strategy collections are NOT forwarded
+ *     to query rooms — subscribers will reconcile on their next fetch. Other strategies
+ *     forward the delete because the model/broadcast rooms are not user-scoped.
+ *
  * Exported for testing.
  */
 export const emitToDocumentAndQueryRooms = (
@@ -194,12 +206,15 @@ export const emitToDocumentAndQueryRooms = (
   event: RealtimeEvent,
   // biome-ignore lint/suspicious/noExplicitAny: fullDocument shape varies per consumer model
   fullDocument: any,
-  logDebug: (msg: string) => void
+  logDebug: (msg: string) => void,
+  entry?: RealtimeRegistryEntry
 ): void => {
   // Emit to document-specific room
   const docRoom = `document:${collection}:${event.id}`;
   io.to(docRoom).emit("sync", event);
   logDebug(`[realtime] Emitted ${event.method} to ${docRoom}`);
+
+  const isOwnerStrategy = entry?.config.roomStrategy === "owner";
 
   // Evaluate query subscriptions
   const querySubscriptions = getQuerySubscriptionsForCollection(collection);
@@ -207,9 +222,26 @@ export const emitToDocumentAndQueryRooms = (
     const queryRoom = `query:${queryId}`;
 
     if (event.method === "delete") {
-      // Always forward deletes — the client will remove the item if present
-      io.to(queryRoom).emit("sync", event);
-      logDebug(`[realtime] Emitted delete to ${queryRoom}`);
+      if (!fullDocument) {
+        // Hard delete with no document context. For owner-strategy collections we can't
+        // tell which query rooms belong to the owner without leaking activity to others,
+        // so skip query fanout entirely — subscribers will reconcile on next fetch.
+        if (isOwnerStrategy) {
+          logDebug(
+            `[realtime] Skipping hard delete fanout to ${queryRoom} (owner strategy, no fullDocument)`
+          );
+          continue;
+        }
+        io.to(queryRoom).emit("sync", event);
+        logDebug(`[realtime] Emitted hard delete to ${queryRoom}`);
+        continue;
+      }
+
+      // Soft delete: only forward to query rooms whose filter the document satisfies.
+      if (matchesQuery(fullDocument, query)) {
+        io.to(queryRoom).emit("sync", event);
+        logDebug(`[realtime] Emitted soft delete to ${queryRoom} (query matched)`);
+      }
       continue;
     }
 
@@ -407,12 +439,23 @@ export const startChangeStreamWatcher = (
         }
 
         // Emit to document-specific and query rooms
-        emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug);
+        emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
 
         logDebug(
           `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
         );
-        logInfo(`[realtime] sync event: ${JSON.stringify(event)}`);
+        // Log only metadata — never the document payload, which may contain sensitive fields.
+        const metadata: Record<string, unknown> = {
+          collection: event.collection,
+          id: event.id,
+          method: event.method,
+          model: event.model,
+          timestamp: event.timestamp,
+        };
+        if (event.updatedFields) {
+          metadata.updatedFields = event.updatedFields;
+        }
+        logInfo(`[realtime] sync event: ${JSON.stringify(metadata)}`);
       } catch (error) {
         logger.error(`[realtime] Error processing change event: ${error}`);
         Sentry.captureException(error);

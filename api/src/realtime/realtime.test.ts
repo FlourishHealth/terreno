@@ -33,6 +33,7 @@ import {
   MAX_QUERY_SUBSCRIPTIONS,
   RealtimeApp,
   type RealtimeSocketLike,
+  redactCredentials,
 } from "./realtimeApp";
 import {
   clearRealtimeRegistry,
@@ -1041,17 +1042,18 @@ describe("serializeDoc (change stream serializer)", () => {
     expect(observedMethod).toBe("read");
   });
 
-  it("falls back to toJSON when responseHandler throws", async () => {
+  it("re-throws when modelRouter responseHandler throws (event dropped, no leak)", async () => {
+    // Critical: do NOT fall back to toJSON, which would skip the handler's sanitization
+    // (e.g. stripping hash/salt) and leak the raw document.
     const responseHandler = async (): Promise<any> => {
       throw new Error("boom");
     };
     const entry = makeEntry({options: {responseHandler}});
-    const doc = {name: "Alice", toJSON: () => ({name: "Alice-json"})};
-    const result = await serializeDoc(entry as any, doc, "update");
-    expect(result).toEqual({name: "Alice-json"});
+    const doc = {hash: "h", name: "Alice", salt: "s", toJSON: () => ({hash: "h", name: "Alice"})};
+    await expect(serializeDoc(entry as any, doc, "update")).rejects.toThrow("boom");
   });
 
-  it("falls back to toJSON when realtimeResponseHandler throws", async () => {
+  it("re-throws when realtimeResponseHandler throws (event dropped, no leak)", async () => {
     const entry = makeEntry({
       config: {
         methods: ["update"],
@@ -1062,8 +1064,7 @@ describe("serializeDoc (change stream serializer)", () => {
       },
     });
     const doc = {name: "Alice", toJSON: () => ({name: "Alice-json"})};
-    const result = await serializeDoc(entry as any, doc, "update");
-    expect(result).toEqual({name: "Alice-json"});
+    await expect(serializeDoc(entry as any, doc, "update")).rejects.toThrow("boom");
   });
 
   it("returns toJSON output when no handlers are configured", async () => {
@@ -1242,7 +1243,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     expect(emissions.some((e) => e.room === "document:todos:doc-1")).toBe(true);
   });
 
-  it("forwards deletes to every query room without filtering", () => {
+  it("forwards hard deletes to every query room for non-owner strategies", () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1253,8 +1254,66 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["delete"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {},
+      routePath: "/todos",
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
     expect(emissions.some((e) => e.room === `query:${queryId}` && e.event === "sync")).toBe(true);
+  });
+
+  it("does NOT forward hard deletes to query rooms for owner-strategy collections", () => {
+    const queryId = computeQueryId("todos", {ownerId: "user-1"});
+    addQuerySubscription("socket-a", "todos", {ownerId: "user-1"}, queryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      id: "doc-1",
+      method: "delete",
+      model: "Todo",
+      timestamp: 1,
+    };
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["delete"], roomStrategy: "owner"},
+      modelName: "Todo",
+      options: {},
+      routePath: "/todos",
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
+    // Document room still receives the event, but query rooms must not — otherwise users
+    // would see deletes for docs they don't own.
+    expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
+    expect(emissions.some((e) => e.room === "document:todos:doc-1")).toBe(true);
+  });
+
+  it("forwards soft deletes only to query rooms whose filter the document satisfies", () => {
+    const matchingQueryId = computeQueryId("todos", {priority: 1});
+    const nonMatchingQueryId = computeQueryId("todos", {priority: 9});
+    addQuerySubscription("socket-a", "todos", {priority: 1}, matchingQueryId);
+    addQuerySubscription("socket-b", "todos", {priority: 9}, nonMatchingQueryId);
+    const {emissions, io} = makeIo();
+    const event: any = {
+      collection: "todos",
+      data: {deleted: true, priority: 1},
+      id: "doc-1",
+      method: "delete",
+      model: "Todo",
+      timestamp: 1,
+    };
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["delete"], roomStrategy: "owner"},
+      modelName: "Todo",
+      options: {},
+      routePath: "/todos",
+    };
+    emitToDocumentAndQueryRooms(io, "todos", event, {deleted: true, priority: 1}, () => {}, entry);
+    expect(emissions.some((e) => e.room === `query:${matchingQueryId}`)).toBe(true);
+    expect(emissions.some((e) => e.room === `query:${nonMatchingQueryId}`)).toBe(false);
   });
 
   it("skips matching when fullDocument is missing on non-delete events", () => {
@@ -1336,5 +1395,29 @@ describe("emitToDocumentAndQueryRooms", () => {
     const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
     expect(queryEmissions.length).toBe(1);
     expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// redactCredentials — Redis URL logging
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("redactCredentials", () => {
+  it("redacts user:password@ in a redis URL", () => {
+    expect(redactCredentials("redis://user:secret@host:6379/0")).toBe("redis://***@host:6379/0");
+  });
+
+  it("redacts password-only userinfo", () => {
+    expect(redactCredentials("redis://:secret@host:6379")).toBe("redis://***@host:6379");
+  });
+
+  it("returns the URL unchanged when there are no credentials", () => {
+    expect(redactCredentials("redis://host:6379/0")).toBe("redis://host:6379/0");
+  });
+
+  it("falls back to regex replacement on unparsable URLs", () => {
+    // Some non-URL strings still match the userinfo regex.
+    expect(redactCredentials("rediss://u:p@example.com")).toContain("***@");
+    expect(redactCredentials("rediss://u:p@example.com")).not.toContain("u:p");
   });
 });

@@ -904,9 +904,20 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
 
         const docRecord = doc as {updated?: Date | string};
-        const serverTimestamp = docRecord.updated
-          ? DateTime.fromJSDate(new Date(docRecord.updated))
-          : null;
+        let serverTimestamp: DateTime | null = null;
+        if (docRecord.updated instanceof Date) {
+          serverTimestamp = DateTime.fromJSDate(docRecord.updated);
+        } else if (typeof docRecord.updated === "string") {
+          serverTimestamp = DateTime.fromISO(docRecord.updated);
+        }
+
+        if (serverTimestamp && !serverTimestamp.isValid) {
+          throw new APIError({
+            detail: "Document's `updated` field could not be parsed as a date",
+            status: 400,
+            title: "Invalid server timestamp",
+          });
+        }
 
         if (serverTimestamp && clientTimestamp < serverTimestamp) {
           throw new APIError({
