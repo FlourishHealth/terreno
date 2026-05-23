@@ -219,6 +219,12 @@ interface RealtimeListOptions {
   getQuery?: (arg: any) => Record<string, any> | undefined;
 }
 
+interface QuerySubscribedPayload {
+  clientQueryId?: string;
+  collection: string;
+  queryId: string;
+}
+
 /**
  * Factory that returns an `onCacheEntryAdded` callback for real-time
  * updates on a **list of documents**, optionally filtered by query.
@@ -265,9 +271,21 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
 
     const query = getQuery(arg);
     let queryId: string | undefined;
+    let canonicalQueryId: string | undefined;
+    let handleQuerySubscribed: ((payload: QuerySubscribedPayload) => void) | undefined;
 
     if (query) {
       queryId = hashQuery(collection, query);
+      handleQuerySubscribed = (payload: QuerySubscribedPayload): void => {
+        if (payload.collection !== collection) {
+          return;
+        }
+        if (payload.clientQueryId && payload.clientQueryId !== queryId) {
+          return;
+        }
+        canonicalQueryId = payload.queryId;
+      };
+      socket.on("query:subscribed", handleQuerySubscribed);
       socket.emit("subscribe:query", {collection, query, queryId});
     } else {
       socket.emit("subscribe:model", collection);
@@ -351,9 +369,12 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
 
     await cacheEntryRemoved;
     socket.off("sync", handleSync);
+    if (handleQuerySubscribed) {
+      socket.off("query:subscribed", handleQuerySubscribed);
+    }
 
     if (queryId) {
-      socket.emit("unsubscribe:query", {queryId});
+      socket.emit("unsubscribe:query", {queryId: canonicalQueryId ?? queryId});
     } else {
       socket.emit("unsubscribe:model", collection);
     }

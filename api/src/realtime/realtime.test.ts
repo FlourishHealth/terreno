@@ -13,6 +13,7 @@ import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 
 import {
+  emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
   mapOperationType,
   resolveRooms,
@@ -662,7 +663,15 @@ describe("installRealtimeSocketHandlers", () => {
       collectionName: "todos",
       config: {methods: ["create", "update", "delete"], roomStrategy: "owner"},
       modelName: "Todo",
-      options: {} as any,
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
       routePath: "/todos",
     });
   };
@@ -672,8 +681,34 @@ describe("installRealtimeSocketHandlers", () => {
       collectionName: "broadcasts",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
       modelName: "Broadcast",
-      options: {} as any,
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
       routePath: "/broadcasts",
+    });
+  };
+
+  const registerAdminOnlyCollection = (): void => {
+    registerRealtime({
+      collectionName: "secrets",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "Secret",
+      options: {
+        permissions: {
+          create: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          delete: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          list: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          read: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          update: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+        },
+      } as any,
+      routePath: "/secrets",
     });
   };
 
@@ -737,6 +772,22 @@ describe("installRealtimeSocketHandlers", () => {
       expect(socket.rooms.has("model:broadcasts")).toBe(true);
     });
 
+    it("denies model-strategy collections when modelRouter list permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(false);
+    });
+
+    it("allows model-strategy collections when modelRouter list permission passes", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(true);
+    });
+
     it("ignores empty or non-string model names", async () => {
       registerModelCollection();
       const socket = createMockSocket({id: "user1"});
@@ -755,7 +806,15 @@ describe("installRealtimeSocketHandlers", () => {
           collectionName: `coll${i}`,
           config: {methods: ["create"], roomStrategy: "model"},
           modelName: `Coll${i}`,
-          options: {} as any,
+          options: {
+            permissions: {
+              create: [() => true],
+              delete: [() => true],
+              list: [() => true],
+              read: [() => true],
+              update: [() => true],
+            },
+          } as any,
           routePath: `/coll${i}`,
         });
       }
@@ -800,6 +859,14 @@ describe("installRealtimeSocketHandlers", () => {
       installRealtimeSocketHandlers(socket);
       await socket.trigger("subscribe:document", {collection: "broadcasts", id: "doc1"});
       expect(socket.rooms.has("document:broadcasts:doc1")).toBe(true);
+    });
+
+    it("denies document subscriptions when modelRouter read permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "secrets", id: "doc1"});
+      expect(socket.rooms.has("document:secrets:doc1")).toBe(false);
     });
 
     it("ignores malformed payloads", async () => {
@@ -881,6 +948,78 @@ describe("installRealtimeSocketHandlers", () => {
       expect(payload.queryId).toBe(computeQueryId("todos", {completed: false}));
     });
 
+    it("denies query subscriptions when modelRouter list permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "secrets",
+        query: {classification: "restricted"},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+      expect(getQuerySubscriptionsForCollection("secrets")).toHaveLength(0);
+    });
+
+    it("applies modelRouter queryFilter before storing a query subscription", async () => {
+      registerRealtime({
+        collectionName: "filtered",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Filtered",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+          queryFilter: () => ({tenantId: "tenant-1"}),
+        } as any,
+        routePath: "/filtered",
+      });
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "filtered",
+        query: {status: "active"},
+      });
+      const subs = getQuerySubscriptionsForCollection("filtered");
+      expect(subs).toHaveLength(1);
+      expect(subs[0].query).toEqual({status: "active", tenantId: "tenant-1"});
+    });
+
+    it("denies query subscriptions when modelRouter queryFilter throws", async () => {
+      registerRealtime({
+        collectionName: "filtered",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Filtered",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+          queryFilter: () => {
+            throw new Error("tenant lookup failed");
+          },
+        } as any,
+        routePath: "/filtered",
+      });
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "filtered",
+        query: {status: "active"},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+      expect(getQuerySubscriptionsForCollection("filtered")).toHaveLength(0);
+      expect(socket.emitted.some((e) => e.event === "query:subscribed")).toBe(false);
+    });
+
     it("ignores malformed query payloads", async () => {
       registerOwnerCollection();
       const socket = createMockSocket({id: "user1"});
@@ -915,7 +1054,15 @@ describe("installRealtimeSocketHandlers", () => {
         collectionName: "other",
         config: {methods: ["create"], roomStrategy: "model"},
         modelName: "Other",
-        options: {} as any,
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+        } as any,
         routePath: "/other",
       });
       const socket = createMockSocket({id: "user1"});
@@ -1207,19 +1354,55 @@ describe("resolveRooms", () => {
 });
 
 describe("emitToDocumentAndQueryRooms", () => {
+  const permissiveOptions = {
+    permissions: {
+      create: [() => true],
+      delete: [() => true],
+      list: [() => true],
+      read: [() => true],
+      update: [() => true],
+    },
+  };
+
   const makeIo = (): {
+    addSocketToRoom: (room: string, decodedToken?: {id?: string; admin?: boolean}) => void;
     emissions: Array<{room: string; event: string; payload: unknown}>;
     io: any;
   } => {
     const emissions: Array<{room: string; event: string; payload: unknown}> = [];
+    const roomSockets = new Map<string, Set<string>>();
+    const sockets = new Map<string, any>();
+    let nextSocketId = 1;
+    const addSocketToRoom = (
+      room: string,
+      decodedToken: {id?: string; admin?: boolean} = {admin: true, id: "admin"}
+    ): void => {
+      const socketId = `socket-${nextSocketId}`;
+      nextSocketId += 1;
+      if (!roomSockets.has(room)) {
+        roomSockets.set(room, new Set());
+      }
+      roomSockets.get(room)?.add(socketId);
+      sockets.set(socketId, {
+        decodedToken,
+        emit: (event: string, payload: unknown): void => {
+          emissions.push({event, payload, room});
+        },
+        id: socketId,
+      });
+    };
     const io = {
+      sockets: {
+        adapter: {rooms: roomSockets},
+        sockets,
+      },
       to: (room: string) => ({
         emit: (event: string, payload: unknown): void => {
           emissions.push({event, payload, room});
         },
       }),
     };
-    return {emissions, io};
+    return {addSocketToRoom, emissions, io};
   };
 
   beforeEach(() => {
@@ -1230,7 +1413,7 @@ describe("emitToDocumentAndQueryRooms", () => {
     clearQueryStore();
   });
 
-  it("emits to the document room", () => {
+  it("emits to the document room", async () => {
     const {emissions, io} = makeIo();
     const event: any = {
       collection: "todos",
@@ -1239,14 +1422,15 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {}, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, {}, () => {});
     expect(emissions.some((e) => e.room === "document:todos:doc-1")).toBe(true);
   });
 
-  it("forwards hard deletes to every query room for non-owner strategies", () => {
+  it("forwards hard deletes to every query room for non-owner strategies", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
-    const {emissions, io} = makeIo();
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom(`query:${queryId}`);
     const event: any = {
       collection: "todos",
       id: "doc-1",
@@ -1258,17 +1442,19 @@ describe("emitToDocumentAndQueryRooms", () => {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "model"},
       modelName: "Todo",
-      options: {},
+      options: permissiveOptions,
       routePath: "/todos",
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
+    await emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
     expect(emissions.some((e) => e.room === `query:${queryId}` && e.event === "sync")).toBe(true);
   });
 
-  it("does NOT forward hard deletes to query rooms for owner-strategy collections", () => {
+  it("does NOT forward hard deletes to query rooms for owner-strategy collections", async () => {
     const queryId = computeQueryId("todos", {ownerId: "user-1"});
     addQuerySubscription("socket-a", "todos", {ownerId: "user-1"}, queryId);
-    const {emissions, io} = makeIo();
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("document:todos:doc-1");
+    addSocketToRoom(`query:${queryId}`);
     const event: any = {
       collection: "todos",
       id: "doc-1",
@@ -1280,22 +1466,24 @@ describe("emitToDocumentAndQueryRooms", () => {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "owner"},
       modelName: "Todo",
-      options: {},
+      options: permissiveOptions,
       routePath: "/todos",
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
+    await emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {}, entry);
     // Document room still receives the event, but query rooms must not — otherwise users
     // would see deletes for docs they don't own.
     expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
     expect(emissions.some((e) => e.room === "document:todos:doc-1")).toBe(true);
   });
 
-  it("forwards soft deletes only to query rooms whose filter the document satisfies", () => {
+  it("forwards soft deletes only to query rooms whose filter the document satisfies", async () => {
     const matchingQueryId = computeQueryId("todos", {priority: 1});
     const nonMatchingQueryId = computeQueryId("todos", {priority: 9});
     addQuerySubscription("socket-a", "todos", {priority: 1}, matchingQueryId);
     addQuerySubscription("socket-b", "todos", {priority: 9}, nonMatchingQueryId);
-    const {emissions, io} = makeIo();
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom(`query:${matchingQueryId}`);
+    addSocketToRoom(`query:${nonMatchingQueryId}`);
     const event: any = {
       collection: "todos",
       data: {deleted: true, priority: 1},
@@ -1308,15 +1496,22 @@ describe("emitToDocumentAndQueryRooms", () => {
       collectionName: "todos",
       config: {methods: ["delete"], roomStrategy: "owner"},
       modelName: "Todo",
-      options: {},
+      options: permissiveOptions,
       routePath: "/todos",
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {deleted: true, priority: 1}, () => {}, entry);
+    await emitToDocumentAndQueryRooms(
+      io,
+      "todos",
+      event,
+      {deleted: true, priority: 1},
+      () => {},
+      entry
+    );
     expect(emissions.some((e) => e.room === `query:${matchingQueryId}`)).toBe(true);
     expect(emissions.some((e) => e.room === `query:${nonMatchingQueryId}`)).toBe(false);
   });
 
-  it("skips matching when fullDocument is missing on non-delete events", () => {
+  it("skips matching when fullDocument is missing on non-delete events", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1327,11 +1522,11 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, undefined, () => {});
     expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
   });
 
-  it("emits create events to query rooms when the doc matches", () => {
+  it("emits create events to query rooms when the doc matches", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1342,13 +1537,13 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
     const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
     expect(queryEmissions.length).toBe(1);
     expect(queryEmissions[0].payload).toMatchObject({method: "create"});
   });
 
-  it("does not emit create events to query rooms when the doc does not match", () => {
+  it("does not emit create events to query rooms when the doc does not match", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1359,11 +1554,11 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
     expect(emissions.some((e) => e.room === `query:${queryId}`)).toBe(false);
   });
 
-  it("emits update as-is when the document still matches the query", () => {
+  it("emits update as-is when the document still matches the query", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1374,13 +1569,13 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, {priority: 1}, () => {});
     const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
     expect(queryEmissions.length).toBe(1);
     expect(queryEmissions[0].payload).toMatchObject({method: "update"});
   });
 
-  it("converts updates that no longer match into delete events for the query", () => {
+  it("converts updates that no longer match into delete events for the query", async () => {
     const queryId = computeQueryId("todos", {priority: 1});
     addQuerySubscription("socket-a", "todos", {priority: 1}, queryId);
     const {emissions, io} = makeIo();
@@ -1391,10 +1586,147 @@ describe("emitToDocumentAndQueryRooms", () => {
       model: "Todo",
       timestamp: 1,
     };
-    emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
+    await emitToDocumentAndQueryRooms(io, "todos", event, {priority: 9}, () => {});
     const queryEmissions = emissions.filter((e) => e.room === `query:${queryId}`);
     expect(queryEmissions.length).toBe(1);
     expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
+  });
+
+  it("filters socket emissions by object read permission and responseHandler", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("model:todos", {id: "owner-1"});
+    addSocketToRoom("model:todos", {id: "other-user"});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["update"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [
+            (_method: string, user?: {admin?: boolean; id?: string}, obj?: {ownerId?: string}) =>
+              user?.admin === true || user?.id === obj?.ownerId,
+          ],
+          update: [() => true],
+        },
+        responseHandler: (doc: any, _method: string, req: any) => ({
+          id: doc._id,
+          title: doc.title,
+          visibleTo: req.user?.id,
+        }),
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "model:todos",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      {_id: "todo-1", ownerId: "owner-1", secret: "hidden", title: "Visible"},
+      () => {}
+    );
+
+    expect(emissions).toHaveLength(1);
+    expect(emissions[0].payload).toMatchObject({
+      data: {id: "todo-1", title: "Visible", visibleTo: "owner-1"},
+    });
+  });
+
+  it("continues emitting to other sockets when per-socket serialization fails", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("model:todos", {id: "bad-user"});
+    addSocketToRoom("model:todos", {id: "good-user"});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["update"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+        responseHandler: (doc: any, _method: string, req: any) => {
+          if (req.user?.id === "bad-user") {
+            throw new Error("cannot serialize for bad user");
+          }
+
+          return {...doc, visibleTo: req.user?.id};
+        },
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "model:todos",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      {_id: "todo-1", title: "Visible"},
+      () => {}
+    );
+
+    expect(emissions).toHaveLength(1);
+    expect(emissions[0].payload).toMatchObject({
+      data: {id: "todo-1", title: "Visible", visibleTo: "good-user"},
+    });
+  });
+
+  it("does not emit hard delete metadata when read permission requires an object owner", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("model:todos", {id: "other-user"});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["delete"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [
+            (_method: string, user?: {admin?: boolean; id?: string}, obj?: {ownerId?: string}) =>
+              user?.admin === true || user?.id === obj?.ownerId,
+          ],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "model:todos",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "delete",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      undefined,
+      () => {}
+    );
+
+    expect(emissions).toEqual([]);
   });
 });
 
