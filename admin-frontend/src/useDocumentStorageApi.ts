@@ -1,10 +1,10 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
+import type {AdminApi, EndpointBuilder} from "./types";
 
-export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: string) => {
+export const useDocumentStorageApi = (api: AdminApi, basePath: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         documentStorageCreateFolder: build.mutation({
           invalidatesTags: ["documentStorage"],
           query: ({folderName, prefix}: {folderName: string; prefix?: string}) => ({
@@ -85,12 +85,14 @@ export const useDocumentStorageApi = (api: Api<any, any, any, any>, basePath: st
     });
   }, [api, basePath]);
 
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
   return {
-    useCreateFolderMutation: (enhancedApi as any).useDocumentStorageCreateFolderMutation,
-    useDeleteFolderMutation: (enhancedApi as any).useDocumentStorageDeleteFolderMutation,
-    useDeleteMutation: (enhancedApi as any).useDocumentStorageDeleteMutation,
-    useLazyDownloadQuery: (enhancedApi as any).useLazyDocumentStorageDownloadQuery,
-    useListQuery: (enhancedApi as any).useDocumentStorageListQuery,
-    useUploadMutation: (enhancedApi as any).useDocumentStorageUploadMutation,
+    useCreateFolderMutation: enhanced.useDocumentStorageCreateFolderMutation,
+    useDeleteFolderMutation: enhanced.useDocumentStorageDeleteFolderMutation,
+    useDeleteMutation: enhanced.useDocumentStorageDeleteMutation,
+    useLazyDownloadQuery: enhanced.useLazyDocumentStorageDownloadQuery,
+    useListQuery: enhanced.useDocumentStorageListQuery,
+    useUploadMutation: enhanced.useDocumentStorageUploadMutation,
   };
 };

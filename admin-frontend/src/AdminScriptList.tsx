@@ -1,13 +1,12 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import React, {useCallback, useState} from "react";
 import {AdminScriptRunModal} from "./AdminScriptRunModal";
-import type {AdminScriptConfig} from "./types";
+import type {AdminApi, AdminScriptConfig} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminScriptListProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   /** When false, the Run button is disabled. Defaults to true. */
   isAdmin?: boolean;
 }
@@ -88,6 +87,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api, i
         api={api}
         baseUrl={baseUrl}
         onDismiss={handleDismiss}
+        scriptDescription={selectedScript?.description}
         scriptName={selectedScript?.name ?? null}
         visible={modalVisible}
       />

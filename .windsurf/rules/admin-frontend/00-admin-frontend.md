@@ -1,3 +1,9 @@
+---
+title: >-
+  @terreno/admin-frontend - Admin panel frontend screens for @terreno/api
+  backends
+trigger: always_on
+---
 # @terreno/admin-frontend
 
 Admin panel frontend screens for @terreno/api backends. Provides reusable React Native components for building admin interfaces with CRUD operations. This is a **frontend-only** package — no Express, no Mongoose, no backend code.

@@ -1,10 +1,13 @@
 import type express from "express";
+import {Router} from "express";
+import type {Schema} from "mongoose";
 import passport from "passport";
 import {Strategy as GitHubStrategy, type Profile} from "passport-github2";
-import {generateTokens, type UserModel} from "./auth";
+import {generateTokens, type User, type UserModel} from "./auth";
 import {APIError} from "./errors";
 import type {AuthOptions} from "./expressServer";
 import {logger} from "./logger";
+import {findOneOrNoneFor} from "./plugins";
 
 /** Options for configuring GitHub OAuth authentication */
 export interface GitHubAuthOptions {
@@ -30,7 +33,9 @@ export interface GitHubAuthOptions {
     profile: Profile,
     accessToken: string,
     refreshToken: string,
+    // biome-ignore lint/suspicious/noExplicitAny: user shape varies per consumer's User model
     existingUser?: any
+    // biome-ignore lint/suspicious/noExplicitAny: passport user value remains untyped
   ) => Promise<any>;
 }
 
@@ -57,28 +62,36 @@ export interface GitHubUserFields {
  * userSchema.plugin(githubUserPlugin);
  * ```
  */
-export function githubUserPlugin(schema: any) {
+// biome-ignore lint/suspicious/noExplicitAny: Schema generics must be loose to accept arbitrary consumer schemas
+export const githubUserPlugin = (schema: Schema<any, any, any, any>): void => {
   schema.add({
-    githubAvatarUrl: {type: String},
-    githubId: {index: true, sparse: true, type: String, unique: true},
-    githubProfileUrl: {type: String},
-    githubUsername: {type: String},
+    githubAvatarUrl: {description: "GitHub avatar image URL", type: String},
+    githubId: {
+      description: "GitHub user ID",
+      index: true,
+      sparse: true,
+      type: String,
+      unique: true,
+    },
+    githubProfileUrl: {description: "GitHub profile URL", type: String},
+    githubUsername: {description: "GitHub username", type: String},
   });
-}
+};
 
 /**
  * Sets up GitHub OAuth authentication strategy.
  * Call this after setupAuth() in your server initialization.
  */
-export function setupGitHubAuth(
+export const setupGitHubAuth = (
   _app: express.Application,
   userModel: UserModel,
   githubOptions: GitHubAuthOptions
-) {
+): void => {
   const scope = githubOptions.scope ?? ["user:email"];
 
   passport.use(
     "github",
+    // biome-ignore lint/suspicious/noExplicitAny: passport-github2's typed constructor overloads don't match passReqToCallback variant
     new (GitHubStrategy as any)(
       {
         callbackURL: githubOptions.callbackURL,
@@ -87,12 +100,12 @@ export function setupGitHubAuth(
         passReqToCallback: true,
         scope,
       },
-      (async (
-        req: any,
+      async (
+        req: express.Request,
         accessToken: string,
         refreshToken: string,
         profile: Profile,
-        done: (error: any, user?: any) => void
+        done: (error: unknown, user?: unknown) => void
       ) => {
         try {
           const existingUser = req.user;
@@ -112,7 +125,7 @@ export function setupGitHubAuth(
           const githubId = profile.id;
 
           // Check if user with this GitHub ID already exists
-          const existingGitHubUser = await userModel.findOne({githubId} as any);
+          const existingGitHubUser = await findOneOrNoneFor(userModel, {githubId});
 
           // Case 1: User is authenticated and wants to link GitHub account
           if (existingUser) {
@@ -135,10 +148,11 @@ export function setupGitHubAuth(
             // Link GitHub to existing user
             const user = await userModel.findById(existingUser._id);
             if (user) {
-              (user as any).githubId = githubId;
-              (user as any).githubUsername = profile.username;
-              (user as any).githubProfileUrl = profile.profileUrl;
-              (user as any).githubAvatarUrl = profile.photos?.[0]?.value;
+              const userWithGitHub = user as unknown as GitHubUserFields;
+              userWithGitHub.githubId = githubId;
+              userWithGitHub.githubUsername = profile.username;
+              userWithGitHub.githubProfileUrl = profile.profileUrl;
+              userWithGitHub.githubAvatarUrl = profile.photos?.[0]?.value;
               await user.save();
               return done(null, user);
             }
@@ -155,14 +169,15 @@ export function setupGitHubAuth(
 
           // Check if user with this email already exists
           if (email) {
-            const existingEmailUser = await userModel.findOne({email} as any);
+            const existingEmailUser = await findOneOrNoneFor(userModel, {email});
             if (existingEmailUser) {
               // If account linking is allowed, link GitHub to existing email account
               if (githubOptions.allowAccountLinking !== false) {
-                (existingEmailUser as any).githubId = githubId;
-                (existingEmailUser as any).githubUsername = profile.username;
-                (existingEmailUser as any).githubProfileUrl = profile.profileUrl;
-                (existingEmailUser as any).githubAvatarUrl = profile.photos?.[0]?.value;
+                const emailUserWithGitHub = existingEmailUser as unknown as GitHubUserFields;
+                emailUserWithGitHub.githubId = githubId;
+                emailUserWithGitHub.githubUsername = profile.username;
+                emailUserWithGitHub.githubProfileUrl = profile.profileUrl;
+                emailUserWithGitHub.githubAvatarUrl = profile.photos?.[0]?.value;
                 await existingEmailUser.save();
                 return done(null, existingEmailUser);
               }
@@ -184,7 +199,7 @@ export function setupGitHubAuth(
             githubId,
             githubProfileUrl: profile.profileUrl,
             githubUsername: profile.username,
-          } as any);
+          } as unknown as Partial<User>);
 
           await newUser.save();
           return done(null, newUser);
@@ -192,10 +207,10 @@ export function setupGitHubAuth(
           logger.error(`GitHub auth error: ${error}`);
           return done(error);
         }
-      }) as any
+      }
     ) as passport.Strategy
   );
-}
+};
 
 /**
  * Adds GitHub OAuth routes to the Express application.
@@ -206,13 +221,13 @@ export function setupGitHubAuth(
  * - POST /auth/github/link - Links GitHub account to authenticated user (requires JWT auth)
  * - DELETE /auth/github/unlink - Unlinks GitHub account from authenticated user (requires JWT auth)
  */
-export function addGitHubAuthRoutes(
+export const addGitHubAuthRoutes = (
   app: express.Application,
   userModel: UserModel,
   githubOptions: GitHubAuthOptions,
   authOptions?: AuthOptions
-): void {
-  const router = require("express").Router();
+): void => {
+  const router = Router();
 
   // Initiate GitHub OAuth flow
   router.get(
@@ -221,8 +236,9 @@ export function addGitHubAuthRoutes(
       // Store the return URL in session or query for redirect after auth
       const returnTo = req.query.returnTo as string | undefined;
       if (returnTo) {
-        (req as any).session = (req as any).session || {};
-        (req as any).session.returnTo = returnTo;
+        const reqWithSession = req as express.Request & {session?: {returnTo?: string}};
+        reqWithSession.session = reqWithSession.session ?? {};
+        reqWithSession.session.returnTo = returnTo;
       }
       next();
     },
@@ -239,16 +255,17 @@ export function addGitHubAuthRoutes(
     async (req: express.Request, res: express.Response) => {
       try {
         const tokens = await generateTokens(req.user, authOptions);
-        const returnTo = (req as any).session?.returnTo;
+        const returnTo = (req as express.Request & {session?: {returnTo?: string}}).session
+          ?.returnTo;
 
         // If there's a return URL, redirect with tokens as query params
         if (returnTo) {
           const url = new URL(returnTo);
-          url.searchParams.set("token", tokens.token || "");
+          url.searchParams.set("token", tokens.token ?? "");
           if (tokens.refreshToken) {
             url.searchParams.set("refreshToken", tokens.refreshToken);
           }
-          url.searchParams.set("userId", (req.user as any)?._id?.toString() || "");
+          url.searchParams.set("userId", req.user?._id ? String(req.user._id) : "");
           return res.redirect(url.toString());
         }
 
@@ -257,7 +274,7 @@ export function addGitHubAuthRoutes(
           data: {
             refreshToken: tokens.refreshToken,
             token: tokens.token,
-            userId: (req.user as any)?._id,
+            userId: req.user?._id,
           },
         });
       } catch (error) {
@@ -278,14 +295,18 @@ export function addGitHubAuthRoutes(
       "/github/link",
       (req: express.Request, res: express.Response, next: express.NextFunction): void => {
         // Require JWT authentication for linking
-        passport.authenticate("jwt", {session: false}, (err: any, user: any) => {
-          if (err || !user) {
-            res.status(401).json({message: "Authentication required to link GitHub account"});
-            return;
+        passport.authenticate(
+          "jwt",
+          {session: false},
+          (err: unknown, user: User | false | null) => {
+            if (err || !user) {
+              res.status(401).json({message: "Authentication required to link GitHub account"});
+              return;
+            }
+            req.user = user as unknown as express.Request["user"];
+            next();
           }
-          req.user = user;
-          next();
-        })(req, res, next);
+        )(req, res, next);
       },
       passport.authenticate("github", {session: false})
     );
@@ -301,14 +322,15 @@ export function addGitHubAuthRoutes(
 
         try {
           // Explicitly select hash and salt fields which may be hidden by default
-          const user = await userModel.findById((req.user as any)._id).select("+hash +salt");
+          const user = await userModel.findById(req.user._id).select("+hash +salt");
           if (!user) {
             return res.status(404).json({message: "User not found"});
           }
 
           // Check if user has other authentication methods before unlinking
           // passport-local-mongoose stores password in hash and salt fields
-          const hasPassword = !!(user as any).hash || !!(user as any).salt;
+          const userWithAuth = user as unknown as {hash?: string; salt?: string};
+          const hasPassword = !!userWithAuth.hash || !!userWithAuth.salt;
           if (!hasPassword) {
             return res.status(400).json({
               message:
@@ -316,10 +338,11 @@ export function addGitHubAuthRoutes(
             });
           }
 
-          (user as any).githubId = undefined;
-          (user as any).githubUsername = undefined;
-          (user as any).githubProfileUrl = undefined;
-          (user as any).githubAvatarUrl = undefined;
+          const userWithGitHub = user as unknown as GitHubUserFields;
+          userWithGitHub.githubId = undefined;
+          userWithGitHub.githubUsername = undefined;
+          userWithGitHub.githubProfileUrl = undefined;
+          userWithGitHub.githubAvatarUrl = undefined;
           await user.save();
 
           return res.json({data: {message: "GitHub account unlinked successfully"}});
@@ -332,4 +355,4 @@ export function addGitHubAuthRoutes(
   }
 
   app.use("/auth", router);
-}
+};

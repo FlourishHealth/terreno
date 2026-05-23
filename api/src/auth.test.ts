@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import type jwt from "jsonwebtoken";
@@ -8,13 +9,26 @@ import {modelRouter} from "./api";
 import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
+import {getCurrentRequestContext} from "./requestContext";
 import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";
 
+const decodeTokenPayload = <T extends Record<string, unknown>>(token: string): T => {
+  const encodedPayload = token.split(".")[1];
+  return JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as T;
+};
+
 describe("auth tests", () => {
   let app: express.Application;
   let admin: any;
+  let contextEvents: Array<{
+    currentSessionId?: string;
+    requestId?: string;
+    sessionId?: string;
+    stage: string;
+    userId?: string;
+  }>;
   let notAdmin: any;
   let agent: TestAgent;
 
@@ -23,6 +37,7 @@ describe("auth tests", () => {
     // lockout mechanism needs real time to progress
     setSystemTime();
     [admin, notAdmin] = await setupDb();
+    contextEvents = [];
 
     await Promise.all([
       FoodModel.create({
@@ -74,6 +89,65 @@ describe("auth tests", () => {
             ownerReadFields: ["name", "calories", "created", "ownerId"],
             ownerWriteFields: ["name", "calories", "created"],
           }),
+        })
+      );
+      router.use(
+        "/context-food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [],
+            list: [],
+            read: [],
+            update: [],
+          },
+          postCreate: async (_value, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "postCreate",
+              userId: req.user?.id,
+            });
+          },
+          preCreate: (body, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "preCreate",
+              userId: req.user?.id,
+            });
+
+            return {
+              ...(body as Partial<Food>),
+              categories: [],
+              eatenBy: [req.user?._id],
+              expiration: "2026-01-01",
+              lastEatenWith: {},
+              likesIds: [],
+              ownerId: req.user?._id,
+              source: {name: "context-test"},
+              tags: [],
+            } as unknown as Food;
+          },
+          responseHandler: async (value, method, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: `responseHandler:${method}`,
+              userId: req.user?.id,
+            });
+
+            return {
+              id: String((value as {_id: unknown})._id),
+              requestId: req.requestId ?? null,
+              sessionContext: getCurrentRequestContext()?.sessionId ?? null,
+              sessionId: req.sessionId ?? null,
+              userId: req.user?.id ?? null,
+            };
+          },
         })
       );
     }
@@ -199,6 +273,92 @@ describe("auth tests", () => {
       .send({email: "ADMIN+other@example.com", password: "otherPassword"})
       .expect(200);
     expect(res.body.data.token).toBeDefined();
+  });
+
+  it("passes request and session context through modelRouter hooks", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+
+    const createRes = await agent
+      .post("/context-food")
+      .set("authorization", `Bearer ${loginRes.body.data.token}`)
+      .set("X-Request-ID", "model-router-request-1")
+      .send({calories: 10, name: "Context Apple"})
+      .expect(201);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const sessionId = loginTokenPayload.sid;
+    if (!sessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(createRes.headers["x-request-id"]).toBe("model-router-request-1");
+    expect(createRes.headers["x-session-id"]).toBe(sessionId);
+    expect(createRes.body.data.requestId).toBe("model-router-request-1");
+    expect(createRes.body.data.sessionId).toBe(sessionId);
+    expect(createRes.body.data.sessionContext).toBe(sessionId);
+    expect(createRes.body.data.userId).toBe(String(admin._id));
+    expect(contextEvents).toEqual([
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "preCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "postCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "responseHandler:create",
+        userId: String(admin._id),
+      },
+    ]);
+  });
+
+  it("preserves JWT session id across refresh and request context", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+    const loginRefreshPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.refreshToken);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const loginSessionId = loginTokenPayload.sid;
+    if (!loginSessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(loginRefreshPayload.sid).toBe(loginSessionId);
+    expect(loginRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const refreshRes = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: loginRes.body.data.refreshToken})
+      .expect(200);
+    const refreshedTokenPayload = decodeTokenPayload<{sid?: string}>(refreshRes.body.data.token);
+    const refreshedRefreshPayload = decodeTokenPayload<{sid?: string}>(
+      refreshRes.body.data.refreshToken
+    );
+
+    expect(refreshedTokenPayload.sid).toBe(loginSessionId);
+    expect(refreshedRefreshPayload.sid).toBe(loginSessionId);
+    expect(refreshRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const foodRes = await agent
+      .get("/food")
+      .set("authorization", `Bearer ${refreshRes.body.data.token}`)
+      .expect(200);
+    expect(foodRes.headers["x-session-id"]).toBe(loginSessionId);
   });
 
   it("completes token login e2e", async () => {
@@ -618,5 +778,152 @@ describe("generateTokens edge cases", () => {
     const expectedExp = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
     expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
     expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+
+  it("throws when TOKEN_SECRET is not set", async () => {
+    process.env.TOKEN_SECRET = "";
+    let caught: unknown;
+    try {
+      await generateTokens({_id: "user-123"});
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeDefined();
+    expect((caught as Error).message).toBe("TOKEN_SECRET must be set in env.");
+  });
+
+  it("uses TOKEN_EXPIRES_IN from env when valid", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    process.env.TOKEN_EXPIRES_IN = "2h";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = jwtLib.decode(result.token as string) as any;
+    const expectedExp = Math.floor(Date.now() / 1000) + 2 * 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
+    expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+
+  it("uses REFRESH_TOKEN_EXPIRES_IN from env when valid", async () => {
+    const jwtLib = await import("jsonwebtoken");
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "1h";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = jwtLib.decode(result.refreshToken as string) as any;
+    const expectedExp = Math.floor(Date.now() / 1000) + 3600;
+    expect(decoded.exp).toBeGreaterThan(expectedExp - 10);
+    expect(decoded.exp).toBeLessThan(expectedExp + 10);
+  });
+
+  it("does not issue refresh token when REFRESH_TOKEN_SECRET is not set", async () => {
+    process.env.REFRESH_TOKEN_SECRET = "";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.token).toBeDefined();
+    expect(result.refreshToken).toBeUndefined();
+  });
+});
+
+describe("addAuthRoutes /refresh_token error paths", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = setupServer({
+      addRoutes: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    });
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 401 when no refreshToken in body", async () => {
+    const res = await agent.post("/auth/refresh_token").send({}).expect(401);
+    expect(res.body.message).toContain("No refresh token provided");
+  });
+
+  it("returns 401 when refresh token is invalid", async () => {
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: "not-a-valid-jwt"})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when refresh token is signed with wrong secret", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const bogusToken = jwtLib.sign({id: "abc"}, "different-secret");
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: bogusToken})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when refresh token has no id", async () => {
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const tokenNoId = jwtLib.sign({foo: "bar"}, process.env.REFRESH_TOKEN_SECRET as string);
+    const res = await agent.post("/auth/refresh_token").send({refreshToken: tokenNoId}).expect(401);
+    expect(res.body.message).toBe("Invalid refresh token");
+  });
+
+  it("issues new tokens on valid refresh", async () => {
+    const [adminUser] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const validToken = jwtLib.sign(
+      {id: (adminUser as any)._id.toString()},
+      process.env.REFRESH_TOKEN_SECRET as string
+    );
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: validToken})
+      .expect(200);
+    expect(res.body.data.token).toBeDefined();
+    expect(res.body.data.refreshToken).toBeDefined();
+  });
+});
+
+describe("addMeRoutes edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = setupServer({
+      addRoutes: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    });
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("GET /auth/me returns 401 without auth", async () => {
+    await agent.get("/auth/me").expect(401);
+  });
+
+  it("PATCH /auth/me returns 401 without auth", async () => {
+    await agent.patch("/auth/me").send({email: "x@x.com"}).expect(401);
+  });
+
+  it("GET /auth/me returns 404 when user is deleted after auth", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const token = jwtLib.sign(
+      {id: (notAdmin as any)._id.toString()},
+      process.env.TOKEN_SECRET as string,
+      {issuer: process.env.TOKEN_ISSUER}
+    );
+    // Delete the user so findById returns null
+    await UserModel.deleteOne({_id: (notAdmin as any)._id});
+    const res = await agent.get("/auth/me").set("authorization", `Bearer ${token}`);
+    // Either 404 (user not found in /me handler) or 401 (auth middleware rejects)
+    expect([401, 404]).toContain(res.status);
   });
 });

@@ -18,6 +18,10 @@ export const Signature: FC<Props> = ({onChange, onStart, onEnd}: Props) => {
 
   const handleClear = () => {
     ref.current?.clearSignature();
+    // `clearSignature` on the underlying canvas does not fire `onOK`, so the
+    // parent never learns the signature is gone. Push an empty value so any
+    // "signature required" gating reflects the cleared state immediately.
+    onChange("");
   };
 
   const onBegin = () => {

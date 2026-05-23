@@ -101,7 +101,9 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           <TextField
             disabled={disabled}
             id="customOptions"
-            inputRef={(ref: any) => (textInputRef.current = ref)}
+            inputRef={(ref: TextInput | null) => {
+              textInputRef.current = ref;
+            }}
             onChange={onChange}
             placeholder="None selected"
             type="text"
@@ -109,7 +111,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           />
         </View>
       )}
-      {helperText && <FieldHelperText text={helperText} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
     </View>
   );
 };

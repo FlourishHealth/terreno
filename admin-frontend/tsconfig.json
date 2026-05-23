@@ -24,6 +24,11 @@
     "target": "es2017",
     "types": []
   },
-  "exclude": ["node_modules", "src/**/*.test.tsx", "src/**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts",
+    "src/isolated/**"
+  ],
   "include": ["src"]
 }

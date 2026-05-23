@@ -12,13 +12,25 @@ import {
   Text,
 } from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
+import type {AdminApi} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentFormListProps {
   baseUrl: string;
-  api: any;
+  api: AdminApi;
   onCreateNew?: () => void;
   onRowClick?: (id: string) => void;
+}
+
+/** Row shape returned by the consent forms list endpoint. */
+interface ConsentFormListItem {
+  _id: string;
+  title?: string;
+  type?: string;
+  version?: number;
+  active?: boolean;
+  order?: number;
+  [key: string]: unknown;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -103,7 +115,7 @@ export const ConsentFormList: React.FC<ConsentFormListProps> = ({
       : []),
   ];
 
-  const rows = (listData?.data ?? []).map((item: any) => {
+  const rows = ((listData?.data ?? []) as ConsentFormListItem[]).map((item) => {
     const dataCells = DATA_COLUMN_KEYS.map((key) => {
       const value = item[key];
       if (key === "active") {

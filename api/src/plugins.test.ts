@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import {type Document, type Model, model, Schema} from "mongoose";
@@ -8,10 +9,13 @@ import {addAuthRoutes, setupAuth} from "./auth";
 import type {APIErrorConstructor} from "./errors";
 import {Permissions} from "./permissions";
 import {
+  baseUserPlugin,
   createdUpdatedPlugin,
   DateOnly,
   findExactlyOne,
   findOneOrNone,
+  findOneOrNoneFor,
+  firebaseJWTPlugin,
   type IsDeleted,
   isDeletedPlugin,
   upsertPlugin,
@@ -51,6 +55,32 @@ stuffSchema.plugin(upsertPlugin);
 stuffSchema.plugin(createdUpdatedPlugin);
 
 const StuffModel = model<Stuff>("Stuff", stuffSchema) as unknown as StuffModelType;
+
+describe("baseUserPlugin", () => {
+  it("adds admin and email fields to the schema", () => {
+    const testSchema = new Schema({});
+    baseUserPlugin(testSchema as Schema<any, any, any, any>);
+
+    const adminPath = testSchema.path("admin");
+    expect(adminPath).toBeDefined();
+    expect((adminPath as unknown as {options: {default: boolean}}).options.default).toBe(false);
+
+    const emailPath = testSchema.path("email");
+    expect(emailPath).toBeDefined();
+    expect((emailPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+});
+
+describe("firebaseJWTPlugin", () => {
+  it("adds firebaseId field to the schema", () => {
+    const testSchema = new Schema({});
+    firebaseJWTPlugin(testSchema);
+
+    const firebaseIdPath = testSchema.path("firebaseId");
+    expect(firebaseIdPath).toBeDefined();
+    expect((firebaseIdPath as unknown as {options: {index: boolean}}).options.index).toBe(true);
+  });
+});
 
 describe("createdUpdate", () => {
   it("sets created and updated on save", async () => {
@@ -155,6 +185,106 @@ describe("findOneOrNone", () => {
       expect(error.status).toBe(400);
       expect(error.detail).toBe('query: {"ownerId":"123"}');
     }
+  });
+});
+
+interface BareThing {
+  name: string;
+  ownerId: string;
+}
+
+const bareThingSchema = new Schema<BareThing>({
+  name: {description: "The name of the bare item", type: String},
+  ownerId: {description: "The owner of the bare item", type: String},
+});
+
+const BareThingModel = model<BareThing>("BareThing", bareThingSchema);
+
+describe("findOneOrNoneFor", () => {
+  beforeEach(async () => {
+    await StuffModel.deleteMany({});
+    await BareThingModel.deleteMany({});
+    await setupDb();
+  });
+
+  describe("when the schema has the findOneOrNone plugin", () => {
+    let things: any;
+
+    beforeEach(async () => {
+      [things] = await Promise.all([
+        StuffModel.create({name: "Things", ownerId: "123"}),
+        StuffModel.create({name: "StuffNThings", ownerId: "123"}),
+      ]);
+    });
+
+    it("returns null with no matches", async () => {
+      const result = await findOneOrNoneFor(StuffModel, {name: "OtherStuff"});
+      expect(result).toBeNull();
+    });
+
+    it("returns a single match", async () => {
+      const result = await findOneOrNoneFor(StuffModel, {name: "Things"});
+      expect(result).not.toBeNull();
+      expect(result?._id.toString()).toBe(things._id.toString());
+    });
+
+    it("throws when multiple documents match", async () => {
+      const fn = () => findOneOrNoneFor(StuffModel, {ownerId: "123"});
+      await expect(fn()).rejects.toThrow(/Stuff\.findOne query returned multiple documents/);
+    });
+
+    it("forwards errorArgs to the thrown APIError", async () => {
+      const fn = () =>
+        findOneOrNoneFor(StuffModel, {ownerId: "123"}, {status: 400, title: "Oh no!"});
+
+      try {
+        await fn();
+        throw new Error("Expected promise to reject");
+      } catch (error: any) {
+        expect(error.title).toBe("Oh no!");
+        expect(error.status).toBe(400);
+      }
+    });
+  });
+
+  describe("when the schema does NOT have the findOneOrNone plugin", () => {
+    let bareThings: any;
+
+    beforeEach(async () => {
+      [bareThings] = await Promise.all([
+        BareThingModel.create({name: "Things", ownerId: "123"}),
+        BareThingModel.create({name: "StuffNThings", ownerId: "123"}),
+      ]);
+    });
+
+    it("returns null with no matches", async () => {
+      const result = await findOneOrNoneFor(BareThingModel, {name: "OtherStuff"});
+      expect(result).toBeNull();
+    });
+
+    it("returns a single match", async () => {
+      const result = await findOneOrNoneFor(BareThingModel, {name: "Things"});
+      expect(result).not.toBeNull();
+      expect((result as any)?._id?.toString()).toBe(bareThings._id?.toString());
+    });
+
+    it("throws when multiple documents match", async () => {
+      const fn = () => findOneOrNoneFor(BareThingModel, {ownerId: "123"});
+      await expect(fn()).rejects.toThrow(/BareThing\.findOne query returned multiple documents/);
+    });
+
+    it("forwards errorArgs to the thrown APIError", async () => {
+      const fn = () =>
+        findOneOrNoneFor(BareThingModel, {ownerId: "123"}, {status: 400, title: "Oh no!"});
+
+      try {
+        await fn();
+        throw new Error("Expected promise to reject");
+      } catch (error: any) {
+        expect(error.title).toBe("Oh no!");
+        expect(error.status).toBe(400);
+      }
+    });
   });
 });
 

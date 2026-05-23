@@ -1,6 +1,9 @@
-import {afterEach, beforeEach, describe, expect, it} from "bun:test";
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {Writable} from "node:stream";
 import express from "express";
 import supertest from "supertest";
+import winston from "winston";
 
 import {
   createRouter,
@@ -9,7 +12,9 @@ import {
   logRequests,
   setupEnvironment,
   setupServer,
+  wrapScript,
 } from "./expressServer";
+import {logger, winstonLogger} from "./logger";
 import {UserModel} from "./tests";
 
 describe("expressServer", () => {
@@ -57,6 +62,52 @@ describe("expressServer", () => {
   });
 
   describe("logRequests", () => {
+    it("attaches request and session context to route logs", async () => {
+      const logs: string[] = [];
+      const logStream = new Writable({
+        write(chunk, _encoding, callback) {
+          logs.push(chunk.toString());
+          callback();
+        },
+      });
+      const transport = new winston.transports.Stream({
+        format: winston.format.json(),
+        stream: logStream,
+      });
+
+      const app = setupServer({
+        addRoutes: (router) => {
+          router.get("/context-test", (req, res) => {
+            logger.info("context route log");
+            return res.json({requestId: req.requestId, sessionId: req.sessionId});
+          });
+        },
+        logRequests: false,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+      winstonLogger.add(transport);
+
+      const res = await supertest(app)
+        .get("/context-test")
+        .set("X-Request-ID", "req-123")
+        .set("X-Session-ID", "session-123")
+        .expect(200);
+
+      expect(res.headers["x-request-id"]).toBe("req-123");
+      expect(res.headers["x-session-id"]).toBe("session-123");
+      expect(res.body).toEqual({requestId: "req-123", sessionId: "session-123"});
+
+      const parsedLog = logs
+        .map((entry) => JSON.parse(entry))
+        .find((entry) => entry.message === "context route log");
+      expect(parsedLog).toBeDefined();
+      expect(parsedLog.requestId).toBe("req-123");
+      expect(parsedLog.sessionId).toBe("session-123");
+
+      winstonLogger.remove(transport);
+    });
+
     it("logs request with admin user type", () => {
       const req = {
         body: {},
@@ -310,21 +361,14 @@ describe("expressServer", () => {
       );
     });
 
-    // Note: The "hourly" and "minutely" aliases have a bug - they convert the
-    // schedule to a cron expression but then use the original schedule string.
-    // This test documents that current (buggy) behavior.
-    it("hourly alias fails due to bug in implementation", () => {
+    it("accepts hourly alias", () => {
       const callback = () => {};
-      expect(() => cronjob("test-hourly-alias", "hourly", callback)).toThrow(
-        "Failed to create cronjob"
-      );
+      expect(() => cronjob("test-hourly-alias", "hourly", callback)).not.toThrow();
     });
 
-    it("minutely alias fails due to bug in implementation", () => {
+    it("accepts minutely alias", () => {
       const callback = () => {};
-      expect(() => cronjob("test-minutely-alias", "minutely", callback)).toThrow(
-        "Failed to create cronjob"
-      );
+      expect(() => cronjob("test-minutely-alias", "minutely", callback)).not.toThrow();
     });
   });
 
@@ -574,6 +618,190 @@ describe("expressServer", () => {
       });
 
       await supertest(app).get("/test").expect(200);
+    });
+
+    it("re-throws when addRoutes throws during route initialization", () => {
+      const addRoutes = () => {
+        throw new Error("Route init boom");
+      };
+
+      expect(() =>
+        setupServer({
+          addRoutes,
+          skipListen: true,
+          userModel: UserModel as any,
+        })
+      ).toThrow("Route init boom");
+    });
+  });
+
+  describe("wrapScript", () => {
+    const originalExit = process.exit;
+
+    beforeEach(() => {
+      process.env = {
+        ...process.env,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+      // Prevent process.exit from killing the test runner
+      process.exit = mock(() => {
+        throw new Error("__EXIT__");
+      }) as unknown as typeof process.exit;
+    });
+
+    afterEach(() => {
+      process.exit = originalExit;
+    });
+
+    it("calls process.exit(0) on success", async () => {
+      const func = async () => "done";
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("calls process.exit(1) on error", async () => {
+      const func = async () => {
+        throw new Error("script failed");
+      };
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it("calls onFinish with the result", async () => {
+      let finishResult: unknown;
+      const func = async () => "result-value";
+      const onFinish = async (r: unknown) => {
+        finishResult = r;
+      };
+      await expect(wrapScript(func, {onFinish, terminateTimeout: 0})).rejects.toThrow("__EXIT__");
+      expect(finishResult).toBe("result-value");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("sets up warn and terminate timeouts when terminateTimeout is not 0", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 600})).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("passes slackChannel option through", async () => {
+      const func = async () => "ok";
+      await expect(
+        wrapScript(func, {slackChannel: "test-channel", terminateTimeout: 0})
+      ).rejects.toThrow("__EXIT__");
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("wrapScript", () => {
+    const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
+
+    beforeEach(() => {
+      process.exit = mock(() => {
+        throw new Error("process.exit called");
+      }) as unknown as typeof process.exit;
+      // Capture timer handles so we can clear them after each test
+      globalThis.setTimeout = ((...args: Parameters<typeof setTimeout>) => {
+        const id = originalSetTimeout(...args);
+        timerIds.push(id);
+        return id;
+      }) as typeof setTimeout;
+    });
+
+    afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
+      timerIds.length = 0;
+      globalThis.setTimeout = originalSetTimeout;
+      process.exit = originalExit;
+    });
+
+    it("runs a successful script and calls process.exit(0)", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("process.exit called");
+
+      expect(func).toHaveBeenCalled();
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+
+    it("calls onFinish callback on success", async () => {
+      const onFinish = mock(async () => {});
+      const func = mock(async () => "result");
+
+      await expect(wrapScript(func, {onFinish, terminateTimeout: 0})).rejects.toThrow(
+        "process.exit called"
+      );
+
+      expect(onFinish).toHaveBeenCalledWith("result");
+    });
+
+    it("calls process.exit(1) when script throws", async () => {
+      const func = mock(async () => {
+        throw new Error("script failure");
+      });
+
+      await expect(wrapScript(func, {terminateTimeout: 0})).rejects.toThrow("process.exit called");
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+    });
+
+    it("sets up timeout warnings when terminateTimeout is not 0", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func, {terminateTimeout: 600})).rejects.toThrow(
+        "process.exit called"
+      );
+
+      expect(func).toHaveBeenCalled();
+    });
+
+    it("uses default terminateTimeout when not specified", async () => {
+      const func = mock(async () => "done");
+
+      await expect(wrapScript(func)).rejects.toThrow("process.exit called");
+
+      expect(func).toHaveBeenCalled();
+    });
+  });
+
+  describe("setupServer error handling", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("catches and rethrows errors from initializeRoutes", () => {
+      const addRoutes = () => {
+        throw new Error("route initialization failed");
+      };
+
+      expect(() =>
+        setupServer({
+          addRoutes,
+          skipListen: true,
+          userModel: UserModel as any,
+        })
+      ).toThrow("route initialization failed");
     });
   });
 });

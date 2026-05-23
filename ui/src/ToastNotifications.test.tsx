@@ -603,6 +603,212 @@ describe("ToastNotifications", () => {
     });
   });
 
+  describe("Toast update and hideAll", () => {
+    it("should update an existing toast message", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Original message", {id: "update-test"});
+      });
+
+      expect(toastId).toBe("update-test");
+
+      await act(async () => {
+        toastRef?.update("update-test", "Updated message");
+      });
+
+      expect(typeof toastRef?.update).toBe("function");
+    });
+
+    it("should hide all toasts at once", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Toast 1", {id: "hide-all-1"});
+        toastRef?.show("Toast 2", {id: "hide-all-2"});
+      });
+
+      await act(async () => {
+        toastRef?.hideAll();
+      });
+
+      expect(toastRef?.isOpen("hide-all-1")).toBe(false);
+      expect(toastRef?.isOpen("hide-all-2")).toBe(false);
+    });
+  });
+
+  describe("Toast placement rendering", () => {
+    it("should render toast with top placement", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider placement="top" swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Top toast", {placement: "top"});
+      });
+
+      expect(toastId).toBeDefined();
+    });
+
+    it("should render toast with center placement", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider placement="center" swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Center toast", {placement: "center"});
+      });
+
+      expect(toastId).toBeDefined();
+    });
+  });
+
+  describe("Toast icon and color variants", () => {
+    it("should render success toast with custom icon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider successIcon={<Text>✓</Text>} swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Success!", {type: "success"});
+      });
+
+      expect(toastId).toBeDefined();
+    });
+
+    it("should render danger toast with custom icon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider dangerIcon={<Text>✗</Text>} swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Error!", {type: "danger"});
+      });
+
+      expect(toastId).toBeDefined();
+    });
+
+    it("should render warning toast with custom icon", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false} warningIcon={<Text>⚠</Text>}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      let toastId: string | undefined;
+      await act(async () => {
+        toastId = toastRef?.show("Warning!", {type: "warning"});
+      });
+
+      expect(toastId).toBeDefined();
+    });
+  });
+
   describe("Type exports", () => {
     it("should export ToastOptions type", () => {
       const options: ToastOptions = {

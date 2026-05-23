@@ -3,15 +3,16 @@ import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Image} from "react-native";
 import {generateConsentPdf} from "./generateConsentPdf";
+import type {AdminApi} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentResponseViewerProps {
   baseUrl: string;
-  api: any;
+  api: AdminApi;
   id: string;
 }
 
-const formatDate = (value: any): string => {
+const formatDate = (value: unknown): string => {
   if (!value) {
     return "";
   }
@@ -27,6 +28,25 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({bas
   const {useReadQuery} = useAdminApi(api, routePath, "ConsentResponse");
 
   const {data: response, isLoading} = useReadQuery(id, {skip: !id});
+
+  // Hooks must run before any early returns to keep React's hook order stable across
+  // the loading → loaded transition (otherwise: "Rendered more hooks than during the
+  // previous render", React error #310).
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!response) {
+      return;
+    }
+    setIsDownloading(true);
+    try {
+      await generateConsentPdf(response);
+    } catch (err) {
+      console.error("Failed to generate PDF", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [response]);
 
   if (isLoading) {
     return (
@@ -74,19 +94,6 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({bas
     response.userAgent ||
     response.contentSnapshot ||
     response.formVersionSnapshot;
-
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownloadPdf = useCallback(async () => {
-    setIsDownloading(true);
-    try {
-      await generateConsentPdf(response);
-    } catch (err) {
-      console.error("Failed to generate PDF", err);
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [response]);
 
   return (
     <Page maxWidth="100%" scroll>

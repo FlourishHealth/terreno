@@ -1,15 +1,53 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
+import type React from "react";
+
+/**
+ * Type alias for an RTK Query API instance with type-erased generic parameters.
+ *
+ * The admin panel dynamically injects endpoints into the consumer's RTK Query API at
+ * runtime via `api.injectEndpoints()`. The consumer's API is built from a generated
+ * OpenAPI SDK with thousands of distinct endpoint types — there is no shared base
+ * type we can constrain to, so the generic parameters are erased.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query's Api generics are erased at the dynamic endpoint injection boundary
+export type AdminApi = Api<any, any, any, any>;
+
+/**
+ * Generic field/document value used throughout the admin panel.
+ *
+ * Admin screens operate over arbitrary Mongoose documents whose field types are not
+ * known statically — they are discovered at runtime via the `/admin/config` endpoint.
+ * Read sites must narrow with `typeof` checks before passing to typed UI components.
+ */
+export type AdminFieldValue = unknown;
+
+/**
+ * RTK Query's `build` argument from `api.injectEndpoints({ endpoints: (build) => ... })`.
+ *
+ * The build helper is generic over the full endpoint set; since the admin panel injects
+ * endpoints dynamically into a consumer-supplied API, the endpoint shapes are not
+ * statically expressible here.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: build helper from RTK Query's dynamic injectEndpoints API
+export type EndpointBuilder = any;
 
 export interface AdminFieldConfig {
   type: string;
   required: boolean;
   description?: string;
   enum?: string[];
-  default?: any;
+  default?: AdminFieldValue;
   ref?: string;
+  searchable?: boolean;
   widget?: string;
-  /** For array fields: metadata about each item's sub-fields */
+  /** For array fields of sub-documents: metadata about each item's sub-fields */
   items?: Record<string, AdminFieldConfig>;
+  /** For array fields of primitives: the item type (string/number/boolean/objectid) */
+  itemType?: string;
+  /** For array fields of primitives: enum values for each item */
+  itemEnum?: string[];
+  /** For array fields of ObjectId refs: the referenced model name */
+  itemRef?: string;
 }
 
 export interface AdminModelConfig {
@@ -20,6 +58,8 @@ export interface AdminModelConfig {
   defaultSort: string;
   fields: Record<string, AdminFieldConfig>;
   fieldOrder?: string[];
+  /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
+  listColumnWidths?: Record<string, number>;
 }
 
 export interface AdminCustomScreen {
@@ -68,8 +108,33 @@ export interface BackgroundTask {
 
 export interface AdminScreenProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
 }
+
+/**
+ * Props passed to a custom ref-field renderer. Matches AdminRefField's interface so a
+ * custom renderer is a drop-in replacement.
+ */
+export interface RefFieldRendererProps {
+  api: AdminApi;
+  baseUrl: string;
+  routePath: string;
+  refModelName: string;
+  title: string;
+  value: string;
+  onChange: (value: string) => void;
+  errorText?: string;
+  helperText?: string;
+}
+
+/**
+ * Map from referenced model name (e.g. "User") to a custom component used to render
+ * fields that reference that model. When a key matches `fieldConfig.ref` (single ref)
+ * or `fieldConfig.itemRef` (primitive array of refs), the custom component renders in
+ * place of the built-in {@link AdminRefField}. Falls back to AdminRefField when no
+ * key matches.
+ */
+export type RefRendererMap = Record<string, React.ComponentType<RefFieldRendererProps>>;
 
 // System fields that should be skipped in forms
 export const SYSTEM_FIELDS = new Set(["_id", "id", "__v", "created", "updated", "deleted"]);
@@ -90,7 +155,7 @@ export interface DocumentListResponse {
 }
 
 export interface DocumentStorageBrowserProps {
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   basePath: string;
   title?: string;
   allowDelete?: boolean;

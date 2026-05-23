@@ -61,6 +61,17 @@ describe("openApiEtagMiddleware", () => {
     expect(res.json).toBe(originalJson);
   });
 
+  it("skips GET requests for non-openapi.json paths", () => {
+    const req = buildRequest({method: "GET", path: "/health"});
+    const {res, originalJson} = buildResponse();
+    const next = mock(() => {}) as NextFunction;
+
+    openApiEtagMiddleware(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(res.json).toBe(originalJson);
+  });
+
   it("sets ETag and returns json body when no matching If-None-Match header is provided", () => {
     const req = buildRequest();
     const {res, originalJson, set, status, end} = buildResponse();

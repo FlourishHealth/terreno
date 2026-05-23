@@ -8,13 +8,14 @@ import {
 import startCase from "lodash/startCase";
 import React from "react";
 import {AdminNestedArrayField} from "./AdminNestedArrayField";
+import {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 import {AdminRefField} from "./AdminRefField";
 import {CheckboxListEditor} from "./CheckboxListEditor";
 import {LocaleContentEditor} from "./LocaleContentEditor";
-import type {AdminFieldConfig, AdminScreenProps} from "./types";
+import type {AdminFieldConfig, AdminFieldValue, AdminScreenProps, RefRendererMap} from "./types";
 
 // Attempts to parse a string as JSON, returning the parsed value or the raw string
-const parseJsonValue = (text: string): any => {
+const parseJsonValue = (text: string): AdminFieldValue => {
   const trimmed = text.trim();
   if (trimmed === "") {
     return undefined;
@@ -27,7 +28,7 @@ const parseJsonValue = (text: string): any => {
 };
 
 // Serializes any value to a display string for the JSON editor
-const serializeJsonValue = (val: any): string => {
+const serializeJsonValue = (val: AdminFieldValue): string => {
   if (val == null) {
     return "";
   }
@@ -40,12 +41,20 @@ const serializeJsonValue = (val: any): string => {
 interface AdminFieldRendererProps extends AdminScreenProps {
   fieldKey: string;
   fieldConfig: AdminFieldConfig;
-  value: any;
-  onChange: (value: any) => void;
+  value: AdminFieldValue;
+  onChange: (value: AdminFieldValue) => void;
   errorText?: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
   /** Parent document form state, used to derive dynamic options for sub-fields */
-  parentFormState?: Record<string, any>;
+  parentFormState?: Record<string, AdminFieldValue>;
+  /**
+   * Optional map of custom ref-field renderers keyed by referenced model name.
+   * When `fieldConfig.ref` (single ref) or `fieldConfig.itemRef` (primitive array
+   * of refs) matches a key, the custom component renders in place of the built-in
+   * {@link AdminRefField}. Forwarded to {@link AdminNestedArrayField} and
+   * {@link AdminPrimitiveArrayField} so nested fields participate in the override.
+   */
+  refRenderers?: RefRendererMap;
 }
 
 /**
@@ -94,6 +103,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   api,
   modelConfigs,
   parentFormState,
+  refRenderers,
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
@@ -104,10 +114,10 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     const pluralKey = `${fieldKey}s`;
     const siblingArray = parentFormState[pluralKey];
     if (Array.isArray(siblingArray) && siblingArray.length > 0 && siblingArray[0]?.key != null) {
-      const dynamicOptions = siblingArray
-        .map((item: any) => item.key)
+      const dynamicOptions = (siblingArray as Array<{key?: string}>)
+        .map((item) => item.key)
         .filter(Boolean)
-        .map((k: string) => ({label: k, value: k}));
+        .map((k) => ({label: k as string, value: k as string}));
       if (dynamicOptions.length > 0) {
         return (
           <SelectField
@@ -116,16 +126,32 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
             onChange={onChange}
             options={dynamicOptions}
             title={label}
-            value={value ?? ""}
+            value={typeof value === "string" ? value : ""}
           />
         );
       }
     }
   }
 
-  // ObjectId with ref -> reference field
-  if (fieldConfig.ref && modelConfigs) {
-    const refModel = modelConfigs.find((m) => m.name === fieldConfig.ref);
+  // ObjectId with ref -> reference field (skip arrays — those go to AdminPrimitiveArrayField)
+  if (fieldConfig.ref && fieldConfig.type !== "array") {
+    const CustomRenderer = refRenderers?.[fieldConfig.ref];
+    const refModel = modelConfigs?.find((m) => m.name === fieldConfig.ref);
+    if (CustomRenderer) {
+      return (
+        <CustomRenderer
+          api={api}
+          baseUrl={baseUrl}
+          errorText={errorText}
+          helperText={helperText}
+          onChange={onChange}
+          refModelName={fieldConfig.ref}
+          routePath={refModel?.routePath ?? ""}
+          title={label}
+          value={typeof value === "string" ? value : ""}
+        />
+      );
+    }
     if (refModel) {
       return (
         <AdminRefField
@@ -137,7 +163,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
           refModelName={fieldConfig.ref}
           routePath={refModel.routePath}
           title={label}
-          value={value ?? ""}
+          value={typeof value === "string" ? value : ""}
         />
       );
     }
@@ -151,16 +177,16 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? false}
+        value={typeof value === "boolean" ? value : false}
       />
     );
   }
 
   // Enum -> SelectField
   if (fieldConfig.enum && fieldConfig.enum.length > 0) {
-    const includesNullOption = fieldConfig.enum.some((value: any) => value == null);
+    const includesNullOption = fieldConfig.enum.some((v) => v == null);
     const enumOptions = fieldConfig.enum
-      .filter((value: any): value is string => typeof value === "string")
+      .filter((v): v is string => typeof v === "string")
       .map((v: string) => ({label: startCase(v), value: v}));
     const options = includesNullOption ? [{label: "None", value: ""}, ...enumOptions] : enumOptions;
     return (
@@ -170,7 +196,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={(nextValue: string) => onChange(nextValue === "" ? undefined : nextValue)}
         options={options}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -189,7 +215,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         testID={`admin-field-${fieldKey}`}
         title={label}
         type="datetime"
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -213,13 +239,17 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
 
   // Locale content widget (Map<locale, markdown>)
   if (fieldConfig.widget === "locale-content") {
+    const localeValue =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value as Record<string, string>)
+        : {};
     return (
       <LocaleContentEditor
         errorText={errorText}
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? {}}
+        value={localeValue}
       />
     );
   }
@@ -245,7 +275,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         options={options}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -267,6 +297,26 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     );
   }
 
+  // Array of primitives (string, number, boolean) or ObjectId refs
+  if (fieldConfig.type === "array" && fieldConfig.itemType && !fieldConfig.items) {
+    return (
+      <AdminPrimitiveArrayField
+        api={api}
+        baseUrl={baseUrl}
+        errorText={errorText}
+        helperText={helperText}
+        itemEnum={fieldConfig.itemEnum}
+        itemRef={fieldConfig.itemRef}
+        itemType={fieldConfig.itemType}
+        modelConfigs={modelConfigs}
+        onChange={onChange}
+        refRenderers={refRenderers}
+        title={label}
+        value={Array.isArray(value) ? value : []}
+      />
+    );
+  }
+
   // Array of sub-documents
   if (fieldConfig.type === "array" && fieldConfig.items) {
     return (
@@ -279,8 +329,9 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         modelConfigs={modelConfigs}
         onChange={onChange}
         parentFormState={parentFormState}
+        refRenderers={refRenderers}
         title={label}
-        value={value ?? []}
+        value={Array.isArray(value) ? (value as Record<string, unknown>[]) : []}
       />
     );
   }
@@ -319,7 +370,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         testID={`admin-field-${fieldKey}`}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -332,7 +383,11 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         helperText={helperText}
         onChange={onChange}
         title={label}
-        value={value ?? []}
+        value={
+          Array.isArray(value)
+            ? (value as React.ComponentProps<typeof CheckboxListEditor>["value"])
+            : []
+        }
       />
     );
   }
@@ -349,7 +404,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         rows={6}
         testID={`admin-field-${fieldKey}`}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -362,7 +417,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
       onChange={onChange}
       testID={`admin-field-${fieldKey}`}
       title={label}
-      value={value ?? ""}
+      value={typeof value === "string" ? value : ""}
     />
   );
 };

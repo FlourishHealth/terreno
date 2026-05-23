@@ -1,16 +1,26 @@
-import {Box, Button, DataTable, type DataTableColumn, Text} from "@terreno/ui";
+import {
+  Box,
+  Button,
+  DataTable,
+  type DataTableCellData,
+  type DataTableColumn,
+  Text,
+} from "@terreno/ui";
 import type React from "react";
 import {type FC, useState} from "react";
 
-const CustomColumnComponent: FC<{column: DataTableColumn; cellData: {value: {text: string}}}> = ({
+const CustomColumnComponent: FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
   cellData,
 }) => {
-  return <Text>Custom: {cellData?.value.text}</Text>;
+  const customValue = cellData.value as {text?: string} | undefined;
+  return <Text>Custom: {customValue?.text ?? ""}</Text>;
 };
 
-const MoreModalContent: FC<{column: DataTableColumn; rowData: any[]; rowIndex: number}> = ({
-  rowIndex,
-}) => {
+const MoreModalContent: FC<{
+  column: DataTableColumn;
+  rowData: DataTableCellData[];
+  rowIndex: number;
+}> = ({rowIndex}) => {
   return (
     <Box paddingY={8}>
       <Text>Drawer contents for row {rowIndex}</Text>

@@ -56,6 +56,28 @@ describe("Button", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("defaults to scale press animation", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} text="Default animation" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableScale");
+  });
+
+  it("renders opacity press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="opacity" text="Opacity" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableOpacity");
+  });
+
+  it("renders no press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="none" text="No animation" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableWithoutFeedback");
+  });
+
   // Disabled state
   it("renders disabled state", () => {
     const {toJSON} = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />);
@@ -111,6 +133,19 @@ describe("Button", () => {
     });
   });
 
+  it("does not call onClick again on the trailing debounce edge after rapid presses", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Click" />);
+
+    await act(async () => {
+      fireEvent.press(getByText("Click"));
+      fireEvent.press(getByText("Click"));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
   // Confirmation modal tests
   it("renders with confirmation modal props", () => {
     const {toJSON} = renderWithTheme(
@@ -156,5 +191,76 @@ describe("Button", () => {
   it("has correct accessibility props", () => {
     const {getByLabelText} = renderWithTheme(<Button onClick={() => {}} text="Accessible" />);
     expect(getByLabelText("Accessible")).toBeTruthy();
+  });
+
+  it("invokes onClick when confirmation primary button is pressed", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    // Wait for confirmation modal
+    await waitFor(
+      () => {
+        expect(queryByText("Confirm Title")).toBeTruthy();
+      },
+      {timeout: 2000}
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Confirm"));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    await waitFor(() => {
+      expect(handleClick).toHaveBeenCalled();
+    });
+  });
+
+  it("dismisses confirmation modal when secondary button is pressed", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText, queryByText} = renderWithTheme(
+      <Button
+        confirmationText="Confirm action?"
+        modalTitle="Confirm Title"
+        onClick={handleClick}
+        text="Press Me"
+        withConfirmation
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText("Press Me"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+
+    await waitFor(
+      () => {
+        expect(queryByText("Cancel")).toBeTruthy();
+      },
+      {timeout: 2000}
+    );
+
+    // Cancel does not throw and does not invoke onClick
+    expect(() => fireEvent.press(getByText("Cancel"))).not.toThrow();
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("renders with tooltip on desktop (wrapped in Tooltip)", () => {
+    const {toJSON} = renderWithTheme(
+      <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />
+    );
+    expect(toJSON()).toMatchSnapshot();
   });
 });

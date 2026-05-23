@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   Box,
   Button,
@@ -14,18 +13,26 @@ import {
   Spinner,
   Text,
 } from "@terreno/ui";
+import type {Href} from "expo-router";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminFieldConfig, AdminModelConfig} from "./types";
+import type {AdminApi, AdminFieldConfig, AdminFieldValue, AdminModelConfig} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelTableProps {
   baseUrl: string;
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   modelName: string;
   columns?: string[];
+  /**
+   * Optional pixel widths for individual list columns, keyed by field name. Falls
+   * back to {@link AdminModelConfig.listColumnWidths} from the backend, then to the
+   * built-in column-type defaults. Useful when the default heuristics pick the wrong
+   * width for a given model.
+   */
+  columnWidths?: Record<string, number>;
 }
 
 const ACTIONS_COLUMN_TYPE = "adminActions";
@@ -67,7 +74,7 @@ const getColumnWidth = (fieldKey: string, columnType: string): number => {
   return 200;
 };
 
-const formatCellValue = (value: any, columnType: string): string => {
+const formatCellValue = (value: AdminFieldValue, columnType: string): string => {
   if (value == null) {
     return "";
   }
@@ -81,7 +88,7 @@ const formatCellValue = (value: any, columnType: string): string => {
     return `${value.length} item${value.length === 1 ? "" : "s"}`;
   }
   if (typeof value === "object") {
-    return value._id ?? JSON.stringify(value);
+    return (value as {_id?: string})._id ?? JSON.stringify(value);
   }
   return String(value);
 };
@@ -104,7 +111,7 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   cellData,
 }) => {
   const {text, href} = cellData.value as {text: string; href: string};
-  return <Link onClick={() => router.push(href as any)} text={text} />;
+  return <Link onClick={() => router.push(href as Href)} text={text} />;
 };
 
 const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
@@ -122,14 +129,14 @@ const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCe
       <IconButton
         accessibilityLabel="View"
         iconName="eye"
-        onClick={() => router.push(href as any)}
+        onClick={() => router.push(href as Href)}
         tooltipText="View"
         variant="muted"
       />
       <IconButton
         accessibilityLabel="Edit"
         iconName="pen-to-square"
-        onClick={() => router.push(href as any)}
+        onClick={() => router.push(href as Href)}
         tooltipText="Edit"
         variant="muted"
       />
@@ -192,6 +199,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   api,
   modelName,
   columns: columnsProp,
+  columnWidths,
 }) => {
   const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
   const [page, setPage] = useState(1);
@@ -211,7 +219,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       headerRight: () => (
         <Box alignItems="center" justifyContent="center" marginRight={3}>
           <Button
-            onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+            onClick={() => router.push(`${baseUrl}/${modelName}/create` as Href)}
             testID="admin-create-button"
             text="Create"
             variant="primary"
@@ -274,11 +282,12 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const fieldConfig = modelConfig.fields[fieldKey];
     const isFirst = index === 0;
     const columnType = getColumnType(fieldKey, fieldConfig);
+    const widthOverride = columnWidths?.[fieldKey] ?? modelConfig.listColumnWidths?.[fieldKey];
     return {
       columnType: isFirst ? LINK_COLUMN_TYPE : columnType,
       sortable: true,
       title: startCase(fieldKey),
-      width: getColumnWidth(fieldKey, columnType),
+      width: widthOverride ?? getColumnWidth(fieldKey, columnType),
     };
   });
 
@@ -292,7 +301,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     },
   ];
 
-  const data = (listData?.data ?? []).map((item: any) => {
+  const listItems = (listData?.data ?? []) as Array<Record<string, AdminFieldValue>>;
+  const data = listItems.map((item) => {
     const fieldCells = displayFields.map((fieldKey, index) => {
       const fieldConfig = modelConfig.fields[fieldKey];
       const isFirst = index === 0;

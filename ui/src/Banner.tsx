@@ -54,7 +54,7 @@ const BannerButton = ({
         alignItems: "center",
         alignSelf: "stretch",
         backgroundColor: theme.surface.base,
-        borderRadius: theme.radius.rounded as any,
+        borderRadius: theme.radius.rounded,
         flexDirection: "column",
         justifyContent: "center",
         paddingHorizontal: 12,
@@ -86,9 +86,9 @@ const BannerButton = ({
   );
 };
 
-function getKey(id: string): string {
+const getKey = (id: string): string => {
   return `@TerrenoUI:${id}`;
-}
+};
 
 export const hideBanner = (id: string): Promise<void> => {
   console.debug(`[banner] Hiding ${getKey(id)} `);
@@ -112,9 +112,9 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
 
   const [show, setShow] = useState(true);
 
-  // Load seen from async storage.
+  // Load seen from async storage (only when id is provided).
   useEffect(() => {
-    if (dismissible) {
+    if (dismissible && id) {
       void Unifier.storage.getItem(getKey(id)).then((isSeen) => {
         console.debug(`[banner] ${getKey(id)} seen? ${isSeen}`);
         setShow(!isSeen);
@@ -126,7 +126,9 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
     if (!dismissible) {
       return;
     }
-    await hideBanner(id);
+    if (id) {
+      await hideBanner(id);
+    }
     setShow(false);
   };
 

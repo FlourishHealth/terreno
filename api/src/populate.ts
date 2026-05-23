@@ -1,5 +1,5 @@
 import isArray from "lodash/isArray";
-import type {Document} from "mongoose";
+import type {Document, Schema} from "mongoose";
 import m2s from "mongoose-to-swagger";
 
 import {APIError} from "./errors";
@@ -8,7 +8,19 @@ const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
 };
 
-export type PopulatePath = {
+interface OpenApiSchemaNode {
+  description?: string;
+  items?: OpenApiSchemaNode;
+  properties?: Record<string, OpenApiSchemaNode>;
+  type?: string;
+}
+
+interface SchemaPathInfo {
+  instance: string;
+  schema?: Schema;
+}
+
+export interface PopulatePath {
   // Mongoose style path population.
   // "ownerId" // populates the User that matches `ownerId`
   // "ownerId.organizationId" Nested. Populates the User that matches `ownerId`, as well as their organization.
@@ -17,28 +29,28 @@ export type PopulatePath = {
   // If not provided and path is provided, will use the path and optionally fields to
   // automatically generate the types. If only generatePathFields is provided, the type will be
   // any.
-  openApiComponent?: any;
+  openApiComponent?: string;
   // An array of strings to filter on the populated objects, following Mongoose's select
   // rules. If each field starts a preceding "-", will act as a block list and only remove those
   // fields. If each field does not start with a "-", will act as an allow list and only
   // return those fields.
   fields?: string[];
-};
+}
 
 // This function filters an object to only include specified keys.
 // It supports nested keys using dot notation (e.g., 'user.name').
 // If no keys are provided, it returns the original object.
 // The function recursively traverses the object structure to handle nested properties.
-const filterKeys = (obj: Record<string, any>, keysToKeep?: string[]): Record<string, any> => {
+const filterKeys = (obj: Record<string, unknown>, keysToKeep?: string[]): Record<string, unknown> => {
   if (!keysToKeep) {
     return obj;
   }
 
-  const result: Record<string, any> = {};
+  const result: Record<string, unknown> = {};
 
   const filterNestedKeys = (
-    currentObj: Record<string, any>,
-    currentResult: Record<string, any>,
+    currentObj: Record<string, unknown>,
+    currentResult: Record<string, unknown>,
     remainingKeys: string[]
   ) => {
     const currentKey = remainingKeys[0];
@@ -52,7 +64,7 @@ const filterKeys = (obj: Record<string, any>, keysToKeep?: string[]): Record<str
       if (!currentResult[firstKey]) {
         currentResult[firstKey] = {};
       }
-      filterNestedKeys(currentObj[firstKey], currentResult[firstKey], [
+      filterNestedKeys(currentObj[firstKey] as Record<string, unknown>, currentResult[firstKey] as Record<string, unknown>, [
         rest.join("."),
         ...remainingKeys.slice(1),
       ]);
@@ -73,7 +85,7 @@ const filterKeys = (obj: Record<string, any>, keysToKeep?: string[]): Record<str
 
 // Helper function to get the path in the OpenAPI schema, so we can swap out the type for the
 // populated model component or generated type.
-function getPathInSchema(schema: any, path: string): string {
+const getPathInSchema = (schema: OpenApiSchemaNode, path: string): string => {
   const keys = path.split(".");
   let currentSchema = schema;
   let fullPath = "";
@@ -94,52 +106,53 @@ function getPathInSchema(schema: any, path: string): string {
       // If we're at the last key and it's an array, we don't need to add anything
       break;
     } else {
-      throw new Error(`Path ${path} not found in schema at key ${key}`);
+      throw new APIError({status: 500, title: `Path ${path} not found in schema at key ${key}`});
     }
   }
 
   return fullPath;
-}
+};
 
 // Replaces populated properties with the populated schema.
 // Recursively walks a Mongoose schema and fixes any Mixed fields in the
 // OpenAPI properties so they use an empty schema (accepts any type) instead
 // of the `{type: "object", properties: {}}` that mongoose-to-swagger emits.
-export const fixMixedFields = (schema: any, properties: Record<string, any>): void => {
+export const fixMixedFields = (schema: Schema | null, properties: Record<string, OpenApiSchemaNode> | Record<string, unknown> | null): void => {
   if (!properties || !schema) {
     return;
   }
 
-  for (const key of Object.keys(properties)) {
-    const schemaPath = schema.path(key);
+  const props = properties as Record<string, OpenApiSchemaNode>;
+  for (const key of Object.keys(props)) {
+    const schemaPath = schema.path(key) as unknown as SchemaPathInfo | undefined;
     if (!schemaPath) {
       continue;
     }
 
     // Direct Mixed field
     if (schemaPath.instance === "Mixed") {
-      properties[key] = {description: properties[key]?.description};
+      props[key] = {description: props[key]?.description};
       continue;
     }
 
     // Array of sub-documents — check each sub-field for Mixed
-    if (
-      schemaPath.instance === "Array" &&
-      schemaPath.schema &&
-      properties[key]?.items?.properties
-    ) {
-      fixMixedFields(schemaPath.schema, properties[key].items.properties);
+    if (schemaPath.instance === "Array" && schemaPath.schema) {
+      const itemProperties = props[key]?.items?.properties;
+      if (itemProperties) {
+        fixMixedFields(schemaPath.schema, itemProperties);
+      }
     }
   }
 };
 
-export function getOpenApiSpecForModel(
+export const getOpenApiSpecForModel = (
+  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: Mongoose Model param uses deep internal APIs (schema.path().options.ref, schema.virtuals, schema.childSchemas, db.model) that are not exposed in public type definitions
   model: any,
   {
     populatePaths,
     extraModelProperties,
-  }: {populatePaths?: PopulatePath[]; extraModelProperties?: any} = {}
-): {properties: any; required: string[]} {
+  }: {populatePaths?: PopulatePath[]; extraModelProperties?: Record<string, unknown>} = {}
+): {properties: Record<string, unknown>; required: string[]} => {
   const modelSwagger = m2s(model, {
     props: ["required", "enum"],
   });
@@ -241,19 +254,20 @@ export function getOpenApiSpecForModel(
     properties: {...modelSwagger.properties, ...extraModelProperties},
     required: modelSwagger.required ?? [],
   };
-}
+};
 
 // Helper function to unpopulate a document that has been populated.
 // This is helpful for supporting backwards compatibility. E.g. you use populatePaths
 // to populate a document but if the version header for the request is below the version
 // that the populatePath was added, we remove the population and just return the _id.
-export function unpopulate<T>(doc: Document<T>, path: string): Document<T> {
+export const unpopulate = <T>(doc: Document<T>, path: string): Document<T> => {
   if (!path) {
     throw new APIError({status: 500, title: "path is required for unpopulate"});
   }
   const pathParts = path.split(".");
 
   // Recursive because we need to support nested paths.
+  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: recursive document traversal uses bracket-notation indexing on arbitrary nested document shapes that Mongoose Document types do not expose
   const recursiveUnpopulate = (current: any, parts: string[]): any => {
     const part = parts[0];
 
@@ -266,7 +280,7 @@ export function unpopulate<T>(doc: Document<T>, path: string): Document<T> {
       // Base case: we've reached the last part of the path
       if (Array.isArray(current[part])) {
         // If the field is an array, recursively unpopulate each element
-        current[part] = current[part].map((item: any) => {
+        current[part] = current[part].map((item) => {
           return item?._id ? item._id : item;
         });
       } else if (current[part]?._id) {
@@ -288,4 +302,4 @@ export function unpopulate<T>(doc: Document<T>, path: string): Document<T> {
   };
 
   return recursiveUnpopulate(doc, pathParts);
-}
+};

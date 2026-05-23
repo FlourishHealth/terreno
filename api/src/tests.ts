@@ -1,6 +1,6 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
+import passportLocalMongoose, {type PassportLocalMongooseDocument} from "passport-local-mongoose";
 import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
@@ -62,19 +62,22 @@ const userSchema = new Schema<User>({
   username: {description: "The user's username", type: String},
 });
 
-userSchema.plugin(passportLocalMongoose as any, {
-  attemptsField: "attempts",
-  interval: process.env.NODE_ENV === "test" ? 1 : 100,
-  limitAttempts: true,
-  maxAttempts: 3,
-  maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
-  usernameCaseInsensitive: true,
-  usernameField: "email",
-});
+userSchema.plugin(
+  passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
+  {
+    attemptsField: "attempts",
+    interval: process.env.NODE_ENV === "test" ? 1 : 100,
+    limitAttempts: true,
+    maxAttempts: 3,
+    maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
+    usernameCaseInsensitive: true,
+    usernameField: "email",
+  }
+);
 // userSchema.plugin(tokenPlugin);
 userSchema.plugin(createdUpdatedPlugin);
 userSchema.plugin(isDisabledPlugin);
-userSchema.methods.postCreate = async function (body: any) {
+userSchema.methods.postCreate = async function (body: {age?: number}) {
   this.age = body.age;
   return this.save();
 };
@@ -103,7 +106,12 @@ const foodCategorySchema = new Schema<FoodCategory>(
   {timestamps: {createdAt: "created", updatedAt: "updated"}}
 );
 
-const likesSchema = new Schema<any>({
+interface Likes {
+  likes: boolean;
+  userId: mongoose.Types.ObjectId;
+}
+
+const likesSchema = new Schema<Likes>({
   likes: {description: "Whether the user liked the item", type: Boolean},
   userId: {description: "The user who liked the item", ref: "User", type: "ObjectId"},
 });
@@ -121,6 +129,7 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
+    // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
     expiration: {description: "Expiration date of the food", type: DateOnly as any},
     hidden: {
       default: false,
@@ -162,7 +171,7 @@ const requiredSchema = new Schema<RequiredField>({
 });
 export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
-export function getBaseServer(): Express {
+export const getBaseServer = (): Express => {
   const app = express();
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
 
@@ -186,12 +195,12 @@ export function getBaseServer(): Express {
   });
   app.use(express.json());
   return app;
-}
+};
 
-export async function authAsUser(
+export const authAsUser = async (
   app: express.Application,
   type: "admin" | "notAdmin"
-): Promise<TestAgent> {
+): Promise<TestAgent> => {
   const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
   const password = type === "admin" ? "securePassword" : "password";
 
@@ -199,9 +208,9 @@ export async function authAsUser(
   const res = await agent.post("/auth/login").send({email, password}).expect(200);
   await agent.set("authorization", `Bearer ${res.body.data.token}`);
   return agent;
-}
+};
 
-export async function setupDb() {
+export const setupDb = async () => {
   await mongoose
     .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
     .catch(logger.catch);
@@ -221,19 +230,19 @@ export async function setupDb() {
       UserModel.create({admin: true, email: "admin@example.com", name: "Admin"}),
       UserModel.create({admin: true, email: "admin+other@example.com", name: "Admin Other"}),
     ]);
-    await (notAdmin as any).setPassword("password");
+    await (notAdmin as unknown as PassportLocalMongooseDocument).setPassword("password");
     await notAdmin.save();
 
-    await (admin as any).setPassword("securePassword");
+    await (admin as unknown as PassportLocalMongooseDocument).setPassword("securePassword");
     await admin.save();
 
-    await (adminOther as any).setPassword("otherPassword");
+    await (adminOther as unknown as PassportLocalMongooseDocument).setPassword("otherPassword");
 
     await adminOther.save();
 
     return [admin, notAdmin, adminOther];
   } catch (error) {
-    console.error("Error setting up DB", error);
+    logger.error("Error setting up DB", error);
     throw error;
   }
-}
+};

@@ -94,7 +94,7 @@ When testing services that throw APIError, check for properties:
 
 ```typescript
 try {
-  await userService.createUser("", "");
+  await userService.createUser({email: "", name: ""});
   throw new Error("Should have thrown error");
 } catch (error: unknown) {
   const err = error as {status?: number; title?: string};

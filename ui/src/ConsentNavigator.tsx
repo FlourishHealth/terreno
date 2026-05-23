@@ -10,11 +10,12 @@ import type {SubmitConsentBody} from "./useSubmitConsent";
 import {useSubmitConsent} from "./useSubmitConsent";
 
 interface ConsentNavigatorProps {
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query api instance is a complex generic type that varies per consumer
   api: any;
   baseUrl?: string;
   children: React.ReactNode;
   extraScreens?: React.ReactNode[];
-  onError?: (error: any) => void;
+  onError?: (error: unknown) => void;
   variables?: Record<string, string>;
 }
 
@@ -48,7 +49,8 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
   }
 
   if (error) {
-    const status = (error as any)?.status ?? (error as any)?.originalStatus;
+    const errorObj = error as {status?: number; originalStatus?: number};
+    const status = errorObj?.status ?? errorObj?.originalStatus;
     console.warn("[ConsentNavigator] Error fetching pending consents:", {error, status});
     // On auth errors, pass through to let the app handle re-authentication
     if (status === 401 || status === 403) {
@@ -80,7 +82,7 @@ export const ConsentNavigator: React.FC<ConsentNavigatorProps> = ({
         `[ConsentNavigator] Showing extra screen ${extraScreenIndex + 1}/${validExtraScreens.length}`
       );
       if (React.isValidElement(currentScreen)) {
-        return React.cloneElement(currentScreen as React.ReactElement<any>, {
+        return React.cloneElement(currentScreen as React.ReactElement<{onNext?: () => void}>, {
           onNext: () => setExtraScreenIndex((i) => i + 1),
         });
       }

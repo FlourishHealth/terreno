@@ -1,3 +1,7 @@
+---
+title: Terreno monorepo root guidelines
+trigger: always_on
+---
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
@@ -316,24 +320,6 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 - Always support React-Native Web
 
 ## CI/CD Workflows
-
-### Expo Builds (EAS)
-
-Native iOS and Android builds run via EAS workflows and are **not triggered automatically**. They only run when the `build-expo` label is added to a pull request.
-
-**Add the `build-expo` label when a PR includes:**
-- Changes to `example-frontend/` or `demo/` app code (screens, navigation, app config)
-- Changes to `ui/` components that affect native rendering (animations, gestures, platform-specific behavior)
-- Changes to `rtk/` that affect native token storage or platform detection
-- Updates to `eas.json`, `app.json`, or Expo/Metro config in any app
-- Changes to native dependencies (anything affecting iOS/Android builds)
-- Any change you want to verify builds successfully on device before merging
-
-**Do not add the `build-expo` label for:**
-- Backend-only changes (`api/`, `example-backend/`)
-- Documentation or config file updates
-- Pure web changes that don't affect native builds
-- `ui/` changes limited to web rendering or test snapshots
 
 ### Required Secret Validation
 

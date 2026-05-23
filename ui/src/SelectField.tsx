@@ -19,23 +19,23 @@ export const SelectField: FC<SelectFieldProps> = ({
   const clearOption = {label: placeholder ?? "---", value: ""};
 
   return (
-    <View>
-      {title && <FieldTitle text={title} />}
+    <View style={{width: "100%"}}>
+      {Boolean(title) && <FieldTitle text={title!} />}
       {Boolean(errorText) && <FieldError text={errorText!} />}
       <RNPickerSelect
         disabled={disabled}
         items={options}
         onValueChange={(v) => {
-          if (v === undefined || v === "") {
+          if (v === undefined || v === null || v === "") {
             onChange("");
           } else {
-            onChange(v);
+            onChange(String(v));
           }
         }}
         placeholder={!requireValue ? clearOption : {}}
         value={value ?? ""}
       />
-      {helperText && <FieldHelperText text={helperText} />}
+      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
     </View>
   );
 };

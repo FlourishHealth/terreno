@@ -42,7 +42,7 @@ interface BackgroundTaskLog {
   message: string;
 }
 
-export type BackgroundTaskMethods = {
+export interface BackgroundTaskMethods {
   addLog: (
     this: BackgroundTaskDocument,
     level: "info" | "warn" | "error",
@@ -54,35 +54,31 @@ export type BackgroundTaskMethods = {
     stage?: string,
     message?: string
   ) => Promise<void>;
-};
+}
 
-export type BackgroundTaskDocument = Document &
-  BackgroundTaskMethods & {
-    taskType: string;
-    status: "pending" | "running" | "completed" | "failed" | "cancelled";
-    progress?: BackgroundTaskProgress;
-    createdBy?: mongoose.Types.ObjectId;
-    isDryRun: boolean;
-    result?: string[];
-    error?: string;
-    logs: BackgroundTaskLog[];
-    startedAt?: Date;
-    completedAt?: Date;
-    created: Date;
-    updated: Date;
-    deleted: boolean;
-  };
+export interface BackgroundTaskDocument extends Document, BackgroundTaskMethods {
+  taskType: string;
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  progress?: BackgroundTaskProgress;
+  createdBy?: mongoose.Types.ObjectId;
+  isDryRun: boolean;
+  result?: string[];
+  error?: string;
+  logs: BackgroundTaskLog[];
+  startedAt?: Date;
+  completedAt?: Date;
+  created: Date;
+  updated: Date;
+  deleted: boolean;
+}
 
-export type BackgroundTaskStatics = {
+export interface BackgroundTaskStatics {
   checkCancellation: (taskId: string) => Promise<void>;
-};
+}
 
-export type BackgroundTaskModel = Model<
-  BackgroundTaskDocument,
-  Record<string, never>,
-  BackgroundTaskMethods
-> &
-  BackgroundTaskStatics;
+export interface BackgroundTaskModel
+  extends Model<BackgroundTaskDocument, Record<string, never>, BackgroundTaskMethods>,
+    BackgroundTaskStatics {}
 
 const progressSchema = new Schema(
   {
@@ -90,7 +86,7 @@ const progressSchema = new Schema(
     percentage: {description: "Progress percentage from 0 to 100", max: 100, min: 0, type: Number},
     stage: {description: "Current stage of the task", type: String},
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const logSchema = new Schema(
@@ -104,7 +100,7 @@ const logSchema = new Schema(
     message: {description: "Log message", required: true, type: String},
     timestamp: {description: "When this log entry was created", required: true, type: Date},
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const backgroundTaskSchema = new Schema<

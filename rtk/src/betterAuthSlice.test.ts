@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
 import {
@@ -6,6 +7,7 @@ import {
   selectBetterAuthError,
   selectBetterAuthIsAuthenticated,
   selectBetterAuthIsLoading,
+  selectBetterAuthState,
   selectBetterAuthUser,
   selectBetterAuthUserId,
 } from "./betterAuthSlice";
@@ -78,7 +80,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("creates a slice with initial state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     const initialState = betterAuthSlice.reducer(undefined, {type: "@@INIT"});
@@ -91,7 +92,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setSession action updates state correctly", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     const user: BetterAuthUser = {
@@ -117,7 +117,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("clearSession action resets state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     // First set a session
@@ -146,7 +145,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setLoading action updates loading state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     let state = betterAuthSlice.reducer(undefined, betterAuthSlice.actions.setLoading(true));
@@ -157,7 +155,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("setError action updates error state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     const state = betterAuthSlice.reducer(
@@ -170,7 +167,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("logout action clears session state", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     // First set a session
@@ -199,7 +195,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("returns middleware array", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
     expect(Array.isArray(betterAuthSlice.middleware)).toBe(true);
@@ -207,20 +202,15 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("returns authClient reference", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type comparison
     expect(betterAuthSlice.authClient).toBe(mockAuthClient as any);
   });
 
   it("syncSession function updates state from auth client", async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock for dispatched actions
     const dispatchedActions: any[] = [];
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock dispatch function
     const mockDispatch = (action: any) => {
       dispatchedActions.push(action);
     };
@@ -241,12 +231,9 @@ describe("generateBetterAuthSlice", () => {
         },
       })
     ) as unknown as typeof mockAuthClient.getSession;
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock for dispatched actions
     const dispatchedActions: any[] = [];
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock dispatch function
     const mockDispatch = (action: any) => {
       dispatchedActions.push(action);
     };
@@ -265,12 +252,9 @@ describe("generateBetterAuthSlice", () => {
     ) as unknown as typeof mockAuthClient.getSession;
     const originalConsoleError = console.error;
     console.error = mock(() => {});
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
 
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock for dispatched actions
     const dispatchedActions: any[] = [];
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock dispatch function
     const mockDispatch = (action: any) => {
       dispatchedActions.push(action);
     };
@@ -286,7 +270,6 @@ describe("generateBetterAuthSlice", () => {
   });
 
   it("logout middleware calls signOut for slice logout action", async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
@@ -302,8 +285,65 @@ describe("generateBetterAuthSlice", () => {
     expect(mockAuthClient.signOut).toHaveBeenCalledTimes(1);
   });
 
+  it("logs and swallows signOut errors triggered by the slice logout action", async () => {
+    mockAuthClient.signOut = mock(() =>
+      Promise.reject(new Error("slice-signout-fail"))
+    ) as unknown as typeof mockAuthClient.signOut;
+    const originalError = console.error;
+    const errorCalls: unknown[][] = [];
+    console.error = (...args: unknown[]): void => {
+      errorCalls.push(args);
+    };
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {betterAuth: betterAuthSlice.reducer},
+    });
+
+    try {
+      store.dispatch(betterAuthSlice.actions.logout());
+      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const logged = errorCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("Error signing out"))
+      );
+      expect(logged).toBeDefined();
+    } finally {
+      console.error = originalError;
+    }
+  });
+
+  it("logs and swallows signOut errors triggered by the global auth/logout action", async () => {
+    mockAuthClient.signOut = mock(() =>
+      Promise.reject(new Error("global-signout-fail"))
+    ) as unknown as typeof mockAuthClient.signOut;
+    const originalError = console.error;
+    const errorCalls: unknown[][] = [];
+    console.error = (...args: unknown[]): void => {
+      errorCalls.push(args);
+    };
+    const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware().concat(...betterAuthSlice.middleware),
+      reducer: {betterAuth: betterAuthSlice.reducer},
+    });
+
+    try {
+      store.dispatch({type: "auth/logout"});
+      await Promise.resolve();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const logged = errorCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("Error signing out"))
+      );
+      expect(logged).toBeDefined();
+    } finally {
+      console.error = originalError;
+    }
+  });
+
   it("global auth/logout action signs out and clears session", async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Mock client type
     const betterAuthSlice = generateBetterAuthSlice({authClient: mockAuthClient as any});
     const store = configureStore({
       middleware: (getDefaultMiddleware) =>
@@ -339,7 +379,6 @@ describe("generateBetterAuthSlice", () => {
 });
 
 describe("Better Auth selectors", () => {
-  // biome-ignore lint/suspicious/noExplicitAny: Test mock state factory
   const createMockState = (betterAuth: Partial<BetterAuthState> = {}): any => ({
     betterAuth: {
       error: null,
@@ -388,7 +427,6 @@ describe("Better Auth selectors", () => {
   });
 
   it("selectors handle missing betterAuth state gracefully", () => {
-    // biome-ignore lint/suspicious/noExplicitAny: Test empty state for selector edge case
     const emptyState = {} as any;
 
     expect(selectBetterAuthIsAuthenticated(emptyState)).toBe(false);
@@ -396,6 +434,11 @@ describe("Better Auth selectors", () => {
     expect(selectBetterAuthUser(emptyState)).toBeNull();
     expect(selectBetterAuthIsLoading(emptyState)).toBe(false);
     expect(selectBetterAuthError(emptyState)).toBeNull();
+  });
+
+  it("selectBetterAuthState returns the raw betterAuth slice of state", () => {
+    expect(selectBetterAuthState(createMockState({userId: "user-zzz"}))?.userId).toBe("user-zzz");
+    expect(selectBetterAuthState({} as any)).toBeUndefined();
   });
 });
 

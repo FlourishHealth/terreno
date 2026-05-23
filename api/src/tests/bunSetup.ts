@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeAll, beforeEach, mock} from "bun:test";
 import {Writable} from "node:stream";
 import mongoose from "mongoose";
@@ -6,17 +7,23 @@ import winston from "winston";
 import {setupEnvironment} from "../expressServer";
 import {logger, winstonLogger} from "../logger";
 
+const shouldConnectToTestDb = process.env.BUN_TEST_DISABLE_DB !== "true";
+
 // Connect to MongoDB once for all tests
-beforeAll(async () => {
-  await mongoose
-    .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
-    .catch(logger.catch);
-});
+if (shouldConnectToTestDb) {
+  beforeAll(async () => {
+    await mongoose
+      .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
+      .catch(logger.catch);
+  });
+}
 
 // Close MongoDB connection after all tests
-afterAll(async () => {
-  await mongoose.connection.close();
-});
+if (shouldConnectToTestDb) {
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
+}
 
 let logs: string[] = [];
 

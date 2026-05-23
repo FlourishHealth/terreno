@@ -1,22 +1,29 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeAll, beforeEach, mock} from "bun:test";
 import {Writable} from "node:stream";
 import {setupEnvironment, winstonLogger} from "@terreno/api";
 import mongoose from "mongoose";
 import winston from "winston";
 
+const shouldConnectToTestDb = process.env.BUN_TEST_DISABLE_DB !== "true";
+
 // Connect to MongoDB once for all tests
-beforeAll(async () => {
-  await mongoose
-    .connect("mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000")
-    .catch((err) => {
-      console.error("Failed to connect to MongoDB:", err);
-    });
-});
+if (shouldConnectToTestDb) {
+  beforeAll(async () => {
+    await mongoose
+      .connect("mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000")
+      .catch((err) => {
+        console.error("Failed to connect to MongoDB:", err);
+      });
+  });
+}
 
 // Close MongoDB connection after all tests
-afterAll(async () => {
-  await mongoose.connection.close();
-});
+if (shouldConnectToTestDb) {
+  afterAll(async () => {
+    await mongoose.connection.close();
+  });
+}
 
 let logs: string[] = [];
 
@@ -91,6 +98,65 @@ beforeEach(() => {
 // Clear logs after each test
 afterEach(() => {
   logs = [];
+});
+
+// Mock @langfuse/client globally so the real `./langfuseClient` module runs
+// without making network calls. Each `new LangfuseClient(...)` gets its own
+// mock functions so tests can customize per-instance behavior (via
+// `getLangfuseClient()` after `initLangfuseClient(...)`). Mocking the SDK
+// here, rather than mocking `./langfuseClient` per-test-file, prevents the
+// `mock.module()` global cache from leaking different shapes across files.
+mock.module("@langfuse/client", () => {
+  return {
+    LangfuseClient: class FakeLangfuseClient {
+      baseUrl: string;
+      publicKey: string;
+      secretKey: string;
+      api = {
+        prompts: {
+          list: mock(async () => ({
+            data: [],
+            meta: {limit: 20, page: 1, total: 0, totalPages: 0},
+          })),
+        },
+        trace: {
+          get: mock(async (id: string) => ({id, name: "Trace"})),
+          list: mock(async () => ({
+            data: [],
+            meta: {limit: 20, page: 1, total: 0, totalPages: 0},
+          })),
+        },
+      };
+      prompt = {
+        create: mock(async (_params: Record<string, unknown>) => undefined),
+        get: mock(async (name: string) => ({
+          config: {},
+          labels: [],
+          name,
+          prompt: "",
+          tags: [],
+          type: "text" as const,
+          version: 1,
+        })),
+      };
+      score = {create: mock(() => {})};
+      flush = mock(async () => {});
+      shutdown = mock(async () => {});
+
+      constructor(opts: {baseUrl: string; publicKey: string; secretKey: string}) {
+        this.baseUrl = opts.baseUrl;
+        this.publicKey = opts.publicKey;
+        this.secretKey = opts.secretKey;
+      }
+    },
+  };
+});
+
+// Ensure no langfuse client instance leaks across tests in different files.
+// The real langfuseInstance module variable is reset to null between tests.
+beforeEach(async () => {
+  const {shutdownLangfuseClient} = await import("../langfuseClient");
+  await shutdownLangfuseClient();
 });
 
 // Mock @sentry/bun module

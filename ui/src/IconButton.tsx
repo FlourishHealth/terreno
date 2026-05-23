@@ -159,7 +159,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
             display: "flex",
             height: 12,
             justifyContent: "center",
-            padding: theme.spacing.xs as any,
+            padding: theme.spacing.xs,
             position: "absolute",
             right: 0,
             width: 12,

@@ -110,9 +110,9 @@ let globalConfig: OpenApiValidatorConfig = {
  * Check whether `configureOpenApiValidator()` has been called.
  * Validation middleware is a no-op when this returns false.
  */
-export function isOpenApiValidatorConfigured(): boolean {
+export const isOpenApiValidatorConfigured = (): boolean => {
   return isConfigured;
-}
+};
 
 /**
  * Configure the global OpenAPI validator settings.
@@ -131,28 +131,28 @@ export function isOpenApiValidatorConfigured(): boolean {
  * });
  * ```
  */
-export function configureOpenApiValidator(config: Partial<OpenApiValidatorConfig> = {}): void {
+export const configureOpenApiValidator = (config: Partial<OpenApiValidatorConfig> = {}): void => {
   isConfigured = true;
   globalConfig = {...globalConfig, ...config};
   // Clear cached AJV instances so new config takes effect
   ajvCache.clear();
   validatorCache.clear();
   logger.debug(`OpenAPI validator configured: ${JSON.stringify(globalConfig)}`);
-}
+};
 
 /**
  * Get the current global validator configuration.
  */
-export function getOpenApiValidatorConfig(): OpenApiValidatorConfig {
+export const getOpenApiValidatorConfig = (): OpenApiValidatorConfig => {
   return {...globalConfig};
-}
+};
 
 /**
  * Reset the global validator configuration to defaults.
  * Also resets `isConfigured` to false.
  * Useful for testing.
  */
-export function resetOpenApiValidatorConfig(): void {
+export const resetOpenApiValidatorConfig = (): void => {
   isConfigured = false;
   globalConfig = {
     coerceTypes: true,
@@ -163,7 +163,7 @@ export function resetOpenApiValidatorConfig(): void {
   };
   ajvCache.clear();
   validatorCache.clear();
-}
+};
 
 // Lazy AJV instance cache keyed by coerceTypes + removeAdditional
 const ajvCache = new Map<string, Ajv>();
@@ -171,7 +171,7 @@ const ajvCache = new Map<string, Ajv>();
 /**
  * Get or create an AJV instance with the current config settings.
  */
-function getAjvInstance(): Ajv {
+const getAjvInstance = (): Ajv => {
   const key = `coerce:${globalConfig.coerceTypes ?? true},remove:${globalConfig.removeAdditional ?? true}`;
   let instance = ajvCache.get(key);
 
@@ -184,12 +184,13 @@ function getAjvInstance(): Ajv {
       useDefaults: true,
       validateSchema: false,
     });
+    // biome-ignore lint/suspicious/noExplicitAny: ajv-formats has a known type compat issue with AJV instances
     addFormats(instance as any);
     ajvCache.set(key, instance);
   }
 
   return instance;
-}
+};
 
 // Cache compiled validators by schema hash + config key
 const validatorCache = new Map<string, ValidateFunction>();
@@ -197,9 +198,9 @@ const validatorCache = new Map<string, ValidateFunction>();
 /**
  * Generate a simple hash for a schema to use as a cache key.
  */
-function hashSchema(schema: OpenApiSchema): string {
+const hashSchema = (schema: OpenApiSchema): string => {
   return JSON.stringify(schema);
-}
+};
 
 const VALID_JSON_SCHEMA_TYPES = new Set([
   "string",
@@ -221,7 +222,7 @@ const MONGOOSE_TYPE_MAP: Record<string, {type: string; format?: string}> = {
  * Recursively replace non-standard mongoose-to-swagger types with valid JSON Schema types
  * so AJV can compile the schema.
  */
-function sanitizeSchemaForAjv(schema: Record<string, unknown>): Record<string, unknown> {
+const sanitizeSchemaForAjv = (schema: Record<string, unknown>): Record<string, unknown> => {
   if (!schema || typeof schema !== "object") {
     return schema;
   }
@@ -262,7 +263,7 @@ function sanitizeSchemaForAjv(schema: Record<string, unknown>): Record<string, u
   }
 
   return result;
-}
+};
 
 /**
  * Get or create a compiled validator for a schema.
@@ -270,7 +271,7 @@ function sanitizeSchemaForAjv(schema: Record<string, unknown>): Record<string, u
  * Sanitizes non-standard mongoose-to-swagger types before compilation.
  * Returns null if the schema still cannot be compiled after sanitization.
  */
-function getValidator(schema: OpenApiSchema): ValidateFunction | null {
+const getValidator = (schema: OpenApiSchema): ValidateFunction | null => {
   const ajv = getAjvInstance();
   const configKey = `coerce:${globalConfig.coerceTypes ?? true},remove:${globalConfig.removeAdditional ?? true}`;
   const hash = `${configKey}:${hashSchema(schema)}`;
@@ -293,12 +294,12 @@ function getValidator(schema: OpenApiSchema): ValidateFunction | null {
     validatorCache.set(hash, null as unknown as ValidateFunction);
     return null;
   }
-}
+};
 
 /**
  * Format AJV errors into a human-readable string.
  */
-function formatValidationErrors(errors: ErrorObject[]): string {
+const formatValidationErrors = (errors: ErrorObject[]): string => {
   return errors
     .map((err) => {
       const path = err.instancePath || "/";
@@ -306,17 +307,17 @@ function formatValidationErrors(errors: ErrorObject[]): string {
       return `${path}: ${message}`;
     })
     .join("; ");
-}
+};
 
 /**
  * Convert OpenApiSchemaProperty to a full OpenApiSchema suitable for AJV.
  * Strips `required` from individual properties (OpenAPI-style) and moves it
  * to the schema-level `required` array (JSON Schema-style) for AJV compatibility.
  */
-function propertiesToSchema(
+const propertiesToSchema = (
   properties: Record<string, OpenApiSchemaProperty>,
   requiredFields?: string[]
-): OpenApiSchema {
+): OpenApiSchema => {
   // Extract required fields from properties that have required: true
   const autoRequired = Object.entries(properties)
     .filter(([_, prop]) => prop.required)
@@ -344,7 +345,7 @@ function propertiesToSchema(
   }
 
   return schema;
-}
+};
 
 /**
  * Options for the request body validator middleware.
@@ -388,10 +389,10 @@ export interface RequestBodyValidatorOptions {
  * @param options - Optional configuration for this validator
  * @returns Express middleware function
  */
-export function validateRequestBody(
+export const validateRequestBody = (
   schema: Record<string, OpenApiSchemaProperty>,
   options?: RequestBodyValidatorOptions
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const fullSchema = propertiesToSchema(schema, options?.required);
 
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -491,7 +492,7 @@ export function validateRequestBody(
 
     next();
   };
-}
+};
 
 /**
  * Options for the query parameter validator middleware.
@@ -515,10 +516,10 @@ export interface QueryValidatorOptions {
  * @param options - Optional configuration for this validator
  * @returns Express middleware function
  */
-export function validateQueryParams(
+export const validateQueryParams = (
   schema: Record<string, OpenApiSchemaProperty>,
   options?: QueryValidatorOptions
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const fullSchema = propertiesToSchema(schema);
 
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -591,7 +592,7 @@ export function validateQueryParams(
 
     next();
   };
-}
+};
 
 /**
  * Options for creating a combined validation middleware.
@@ -630,9 +631,9 @@ export interface CreateValidatorOptions {
  * ], handler);
  * ```
  */
-export function createValidator(
+export const createValidator = (
   options: CreateValidatorOptions
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   const bodyValidator = options.body
     ? validateRequestBody(options.body, {enabled: options.enabled})
     : null;
@@ -644,7 +645,7 @@ export function createValidator(
   return (req: Request, res: Response, next: NextFunction): void => {
     // Run body validation first
     if (bodyValidator) {
-      bodyValidator(req, res, ((err?: any) => {
+      bodyValidator(req, res, ((err?: unknown) => {
         if (err) {
           next(err);
           return;
@@ -663,7 +664,7 @@ export function createValidator(
       next();
     }
   };
-}
+};
 
 /**
  * Validates response data against a schema.
@@ -673,10 +674,10 @@ export function createValidator(
  * @param schema - The expected schema
  * @returns Object with valid flag and any errors
  */
-export function validateResponseData(
+export const validateResponseData = (
   data: unknown,
   schema: Record<string, OpenApiSchemaProperty>
-): {valid: boolean; errors?: ErrorObject[]} {
+): {valid: boolean; errors?: ErrorObject[]} => {
   if (!globalConfig.validateResponses) {
     return {valid: true};
   }
@@ -698,7 +699,7 @@ export function validateResponseData(
   }
 
   return {valid: true};
-}
+};
 
 const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
@@ -712,19 +713,19 @@ const m2sOptions = {
  * @param model - A Mongoose model
  * @returns Schema properties suitable for validation
  */
-export function getSchemaFromModel<T>(model: Model<T>): Record<string, OpenApiSchemaProperty> {
+export const getSchemaFromModel = <T>(model: Model<T>): Record<string, OpenApiSchemaProperty> => {
   const modelSwagger = m2s(model, m2sOptions);
-  fixMixedFields((model as any).schema, modelSwagger.properties);
+  fixMixedFields(model.schema, modelSwagger.properties);
   return modelSwagger.properties as Record<string, OpenApiSchemaProperty>;
-}
+};
 
 /**
  * Extract required field names from a Mongoose model's swagger schema.
  */
-function getRequiredFieldsFromModel<T>(model: Model<T>): string[] {
+const getRequiredFieldsFromModel = <T>(model: Model<T>): string[] => {
   const modelSwagger = m2s(model, m2sOptions);
   return (modelSwagger.required as string[]) ?? [];
-}
+};
 
 /**
  * Creates a request body validator middleware from a Mongoose model.
@@ -734,10 +735,10 @@ function getRequiredFieldsFromModel<T>(model: Model<T>): string[] {
  * @param options - Optional configuration for the validator
  * @returns Express middleware function
  */
-export function validateModelRequestBody<T>(
+export const validateModelRequestBody = <T>(
   model: Model<T>,
   options?: RequestBodyValidatorOptions
-): (req: Request, res: Response, next: NextFunction) => void {
+): ((req: Request, res: Response, next: NextFunction) => void) => {
   let schema = getSchemaFromModel(model);
   let requiredFields = getRequiredFieldsFromModel(model);
 
@@ -751,7 +752,7 @@ export function validateModelRequestBody<T>(
     ...options,
     required: [...(options?.required ?? []), ...requiredFields],
   });
-}
+};
 
 /**
  * Options for creating validation middleware for a modelRouter.
@@ -805,13 +806,13 @@ export interface ModelRouterValidationOptions {
  * @param options - Configuration options
  * @returns Object with create and update validation middleware
  */
-export function createModelValidators<T>(
+export const createModelValidators = <T>(
   model: Model<T>,
   options?: ModelRouterValidationOptions
 ): {
   create: (req: Request, res: Response, next: NextFunction) => void;
   update: (req: Request, res: Response, next: NextFunction) => void;
-} {
+} => {
   const schema = getSchemaFromModel(model);
 
   return {
@@ -826,7 +827,7 @@ export function createModelValidators<T>(
       onError: options?.onError,
     }),
   };
-}
+};
 
 /**
  * Build a query parameter schema from a model's Mongoose schema and queryFields array.
@@ -836,10 +837,10 @@ export function createModelValidators<T>(
  * @param queryFields - Array of field names allowed for querying
  * @returns Schema properties suitable for query validation
  */
-export function buildQuerySchemaFromFields<T>(
+export const buildQuerySchemaFromFields = <T>(
   model: Model<T>,
   queryFields: string[] = []
-): Record<string, OpenApiSchemaProperty> {
+): Record<string, OpenApiSchemaProperty> => {
   const modelSchema = getSchemaFromModel(model);
   const querySchema: Record<string, OpenApiSchemaProperty> = {
     limit: {type: "number"},
@@ -859,4 +860,4 @@ export function buildQuerySchemaFromFields<T>(
   }
 
   return querySchema;
-}
+};

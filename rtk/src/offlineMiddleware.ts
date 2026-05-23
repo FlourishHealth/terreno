@@ -172,7 +172,9 @@ const replayMutation = async (
 
   // For update operations, include If-Unmodified-Since for conflict detection
   if (mutation.type === "update") {
-    headers["If-Unmodified-Since"] = new Date(mutation.timestamp).toISOString();
+    const timestamp = new Date(mutation.timestamp);
+    headers["If-Unmodified-Since"] = timestamp.toUTCString();
+    headers["X-Unmodified-Since-ISO"] = timestamp.toISOString();
   }
 
   const args = mutation.args as {id?: string; body?: unknown};
@@ -280,6 +282,7 @@ export const createOfflineMiddleware = (
 
   const listenerMiddleware = createListenerMiddleware();
   let _networkCleanup: (() => void) | undefined;
+  let isReplayInProgress = false;
 
   // Listener 1: Set up network monitoring on first action (lazy init)
   let networkInitialized = false;
@@ -348,6 +351,11 @@ export const createOfflineMiddleware = (
         return;
       }
 
+      if (isReplayInProgress) {
+        return;
+      }
+      listenerApi.cancelActiveListeners();
+
       const state = listenerApi.getState() as {offline: OfflineState};
       const queue = selectOfflineQueue(state);
 
@@ -355,53 +363,57 @@ export const createOfflineMiddleware = (
         return;
       }
 
+      isReplayInProgress = true;
       listenerApi.dispatch(setSyncing(true));
 
-      // Replay mutations in FIFO order
-      for (const mutation of queue) {
-        try {
-          const result = await replayMutation(mutation);
+      try {
+        // Replay mutations in FIFO order
+        for (const mutation of queue) {
+          try {
+            const result = await replayMutation(mutation);
 
-          if (result.status === 409) {
-            // Conflict detected - server version is newer
-            const conflict: ConflictRecord = {
-              args: mutation.args,
-              dismissed: false,
-              endpointName: mutation.endpointName,
-              id: mutation.id,
-              serverDocument: (result.data as {data?: unknown})?.data ?? result.data,
-              timestamp: DateTime.now().toISO(),
-            };
-            listenerApi.dispatch(addConflict(conflict));
-            listenerApi.dispatch(dequeue(mutation.id));
-          } else if (result.status >= 200 && result.status < 300) {
-            // Success
-            listenerApi.dispatch(dequeue(mutation.id));
-          } else {
-            // Other error - leave in queue for retry
-            console.warn(
-              `[offline] Replay failed for ${mutation.endpointName}: status ${result.status}`,
-              result.data
-            );
-            // Dequeue anyway to avoid infinite retry loops for permanent errors (400, 403, etc.)
-            if (result.status >= 400 && result.status < 500 && result.status !== 409) {
+            if (result.status === 409) {
+              // Conflict detected - server version is newer
+              const conflict: ConflictRecord = {
+                args: mutation.args,
+                dismissed: false,
+                endpointName: mutation.endpointName,
+                id: mutation.id,
+                serverDocument: (result.data as {data?: unknown})?.data ?? result.data,
+                timestamp: DateTime.now().toISO(),
+              };
+              listenerApi.dispatch(addConflict(conflict));
               listenerApi.dispatch(dequeue(mutation.id));
+            } else if (result.status >= 200 && result.status < 300) {
+              // Success
+              listenerApi.dispatch(dequeue(mutation.id));
+            } else {
+              // Other error - leave in queue for retry
+              console.warn(
+                `[offline] Replay failed for ${mutation.endpointName}: status ${result.status}`,
+                result.data
+              );
+              // Dequeue anyway to avoid infinite retry loops for permanent errors (400, 403, etc.)
+              if (result.status >= 400 && result.status < 500 && result.status !== 409) {
+                listenerApi.dispatch(dequeue(mutation.id));
+              }
             }
+          } catch (error) {
+            // Network error during replay - stop syncing, will retry when online again
+            console.warn(`[offline] Replay error for ${mutation.endpointName}:`, error);
+            break;
           }
-        } catch (error) {
-          // Network error during replay - stop syncing, will retry when online again
-          console.warn(`[offline] Replay error for ${mutation.endpointName}:`, error);
-          break;
         }
-      }
 
-      // Invalidate tags to refresh cache with server state
-      const tagTypes = [...new Set(queue.map((m) => inferTagType(m.endpointName)))];
-      for (const tagType of tagTypes) {
-        listenerApi.dispatch(api.util.invalidateTags([tagType]));
+        // Invalidate tags to refresh cache with server state
+        const tagTypes = [...new Set(queue.map((m) => inferTagType(m.endpointName)))];
+        for (const tagType of tagTypes) {
+          listenerApi.dispatch(api.util.invalidateTags([tagType]));
+        }
+      } finally {
+        isReplayInProgress = false;
+        listenerApi.dispatch(setSyncing(false));
       }
-
-      listenerApi.dispatch(setSyncing(false));
     },
   });
 

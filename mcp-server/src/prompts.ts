@@ -64,7 +64,7 @@ export const prompts: Prompt[] = [
     ],
     description:
       "Generate a complete CRUD feature including model, routes, and frontend screens for Terreno",
-    name: "create_crud_feature",
+    name: "terreno_create_crud_feature",
   },
   {
     arguments: [
@@ -85,7 +85,7 @@ export const prompts: Prompt[] = [
       },
     ],
     description: "Generate a custom API endpoint with OpenAPI documentation for @terreno/api",
-    name: "create_api_endpoint",
+    name: "terreno_create_api_endpoint",
   },
   {
     arguments: [
@@ -101,7 +101,7 @@ export const prompts: Prompt[] = [
       },
     ],
     description: "Generate a reusable UI component using @terreno/ui patterns",
-    name: "create_ui_component",
+    name: "terreno_create_ui_component",
   },
   {
     arguments: [
@@ -123,7 +123,7 @@ export const prompts: Prompt[] = [
       },
     ],
     description: "Generate a form screen with validation using @terreno/ui and RTK Query",
-    name: "create_form_screen",
+    name: "terreno_create_form_screen",
   },
   {
     arguments: [
@@ -135,7 +135,7 @@ export const prompts: Prompt[] = [
     ],
     description:
       "Generate authentication setup including login/signup screens and auth state management",
-    name: "add_authentication",
+    name: "terreno_add_authentication",
   },
   {
     arguments: [],
@@ -153,7 +153,7 @@ export const prompts: Prompt[] = [
     ],
     description:
       "Guide migration from the legacy setupServer function to the new TerrenoApp builder API with plugin support",
-    name: "migrate_to_terreno_app",
+    name: "terreno_migrate_to_terreno_app",
   },
 ];
 
@@ -481,9 +481,10 @@ const ${name}Screen: React.FC = () => {
     try {
       await ${endpoint}({ /* fields */ }).unwrap();
       // Success handling
-    } catch (err: any) {
-      if (err.data?.fields) {
-        setErrors(err.data.fields);
+    } catch (err: unknown) {
+      const apiError = err as {data?: {fields?: FormErrors}};
+      if (apiError.data?.fields) {
+        setErrors(apiError.data.fields);
       }
     }
   }, [validate, ${endpoint}]);
@@ -615,32 +616,32 @@ export const handlePromptRequest = (
   args: Record<string, string>
 ): {messages: Array<{role: "user"; content: {type: "text"; text: string}}>} => {
   // Handle bootstrap prompts
-  if (name === "bootstrap_terreno_app") {
+  if (name === "terreno_bootstrap") {
     return handleBootstrapPromptRequest(name, args);
   }
 
   let content: string;
 
   switch (name) {
-    case "create_crud_feature":
+    case "terreno_create_crud_feature":
       content = createCrudFeaturePrompt(args as Parameters<typeof createCrudFeaturePrompt>[0]);
       break;
-    case "create_api_endpoint":
+    case "terreno_create_api_endpoint":
       content = createApiEndpointPrompt(args as Parameters<typeof createApiEndpointPrompt>[0]);
       break;
-    case "create_ui_component":
+    case "terreno_create_ui_component":
       content = createUiComponentPrompt(args as Parameters<typeof createUiComponentPrompt>[0]);
       break;
-    case "create_form_screen":
+    case "terreno_create_form_screen":
       content = createFormScreenPrompt(args as Parameters<typeof createFormScreenPrompt>[0]);
       break;
-    case "add_authentication":
+    case "terreno_add_authentication":
       content = addAuthenticationPrompt(args as Parameters<typeof addAuthenticationPrompt>[0]);
       break;
     case "terreno_style_guide":
       content = styleGuidePrompt();
       break;
-    case "migrate_to_terreno_app":
+    case "terreno_migrate_to_terreno_app":
       content = migrateToTerrenoAppPrompt(args as Parameters<typeof migrateToTerrenoAppPrompt>[0]);
       break;
     default:

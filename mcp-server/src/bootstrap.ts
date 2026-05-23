@@ -28,7 +28,7 @@ export const bootstrapTools: Tool[] = [
       required: ["appName", "appDisplayName"],
       type: "object",
     },
-    name: "bootstrap_app",
+    name: "terreno_bootstrap_app",
   },
   {
     description:
@@ -52,7 +52,7 @@ export const bootstrapTools: Tool[] = [
       required: ["appName", "appDisplayName"],
       type: "object",
     },
-    name: "bootstrap_ai_rules",
+    name: "terreno_bootstrap_ai_rules",
   },
 ];
 
@@ -209,7 +209,6 @@ const generateBackendPackageJson = (args: BootstrapArgs): string => {
       dependencies: {
         "@terreno/admin-backend": "latest",
         "@terreno/api": "latest",
-        dotenv: "^16.4.7",
         luxon: "^3.7.2",
         mongoose: "^8.18.1",
         "passport-local-mongoose": "^9.0.1",
@@ -2661,11 +2660,11 @@ export const handleBootstrapToolCall = (
   name: string,
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
-  if (name === "bootstrap_ai_rules") {
+  if (name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapAiRulesToolCall(args);
   }
 
-  if (name !== "bootstrap_app") {
+  if (name !== "terreno_bootstrap_app") {
     return {
       content: [{text: `Unknown bootstrap tool: ${name}`, type: "text"}],
     };
@@ -2814,7 +2813,7 @@ export const bootstrapPrompts: BootstrapPrompt[] = [
     ],
     description:
       "Bootstrap a new Terreno full-stack application with frontend, backend, Cursor rules, and MCP integration",
-    name: "bootstrap_terreno_app",
+    name: "terreno_bootstrap",
   },
 ];
 
@@ -2822,7 +2821,7 @@ export const handleBootstrapPromptRequest = (
   name: string,
   args: Record<string, string>
 ): {messages: Array<{role: "user"; content: {type: "text"; text: string}}>} => {
-  if (name !== "bootstrap_terreno_app") {
+  if (name !== "terreno_bootstrap") {
     return {
       messages: [
         {
@@ -2843,7 +2842,7 @@ export const handleBootstrapPromptRequest = (
 - **App Name** (kebab-case): ${appName}
 - **Display Name**: ${appDisplayName}
 
-Use the \`bootstrap_app\` tool to generate all the necessary files for the application.
+Use the \`terreno_bootstrap_app\` tool to generate all the necessary files for the application.
 
 After generating the files:
 1. Create all directories and files as specified
@@ -2862,7 +2861,7 @@ The application should include:
 - Cursor rules for AI assistance
 - MCP integration for development assistance
 
-**IMPORTANT: After completing the bootstrap_app steps, also run the \`bootstrap_ai_rules\` tool** with the same appName and appDisplayName to set up AI coding assistant rules for Cursor, Windsurf, Claude Code, and GitHub Copilot. This will create:
+**IMPORTANT: After completing the terreno_bootstrap_app steps, also run the \`terreno_bootstrap_ai_rules\` tool** with the same appName and appDisplayName to set up AI coding assistant rules for Cursor, Windsurf, Claude Code, and GitHub Copilot. This will create:
 - AGENTS.md files for each directory
 - .cursorrules and .windsurfrules files
 - GitHub Copilot instructions

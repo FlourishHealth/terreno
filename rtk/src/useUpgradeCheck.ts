@@ -1,7 +1,10 @@
-import {useToast} from "@terreno/ui";
 import Constants from "expo-constants";
 import {useCallback, useEffect, useRef, useState} from "react";
-import {AppState, Linking} from "react-native";
+// Use a namespace import + lazy property access so per-test `mock.module` swaps
+// reach the runtime values. A destructured `import {AppState, Linking}` fails
+// bun's static-export check against react-native's CJS getter exports under the
+// version pinned in CI.
+import * as ReactNative from "react-native";
 
 import {useLazyGetVersionCheckQuery} from "./emptyApi";
 import {IsWeb} from "./platform";
@@ -25,6 +28,8 @@ interface UseUpgradeCheckResult {
   isWarning: boolean;
   requiredMessage?: string;
   warningMessage?: string;
+  /** Increments each time a poll returns "warning" status. Useful as a React key to force remount. */
+  warningCheckCount: number;
   onUpdate: () => void;
 }
 
@@ -37,31 +42,76 @@ interface UseUpgradeCheckResult {
  * - `isWarning` — the build is below the warning threshold; the caller
  *   can render a dismissible `Banner` or similar prompt.
  *
- * By default a single check runs on mount. Pass `pollingIntervalMs` and/or
- * `recheckOnForeground` to keep long-lived sessions up to date.
+ * The polling interval is server-driven: the first successful `/version-check`
+ * response returns `pollingIntervalMs` from the backend's VersionConfig and the
+ * hook uses that value for all subsequent intervals. Pass `pollingIntervalMs` in
+ * options as a local fallback that is active until the first server response
+ * arrives. Pass `recheckOnForeground` to also re-check when the app/tab
+ * returns to the foreground.
  *
- * @param options - Optional polling and foreground re-check configuration.
+ * @param options - Optional fallback polling interval and foreground re-check configuration.
  * @returns Current upgrade status, messages, and an `onUpdate` callback.
  */
 export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeCheckResult => {
-  const {pollingIntervalMs, recheckOnForeground = false} = options ?? {};
+  const {pollingIntervalMs: fallbackPollingIntervalMs, recheckOnForeground = false} = options ?? {};
 
   const [isRequired, setIsRequired] = useState(false);
   const [isWarning, setIsWarning] = useState(false);
   const [requiredMessage, setRequiredMessage] = useState<string>();
   const [warningMessage, setWarningMessage] = useState<string>();
   const [updateUrl, setUpdateUrl] = useState<string>();
-  const toast = useToast();
-  const [triggerVersionCheck, result] = useLazyGetVersionCheckQuery();
+  const [warningCheckCount, setWarningCheckCount] = useState(0);
+  // Starts with the local fallback; updated to the server-configured value after the first response.
+  const [activePollingIntervalMs, setActivePollingIntervalMs] = useState<number | undefined>(
+    fallbackPollingIntervalMs
+  );
+  const [triggerVersionCheck] = useLazyGetVersionCheckQuery();
   const buildNumber = Constants.expoConfig?.extra?.buildNumber as number | undefined;
-  const appState = useRef(AppState.currentState);
+  const appState = useRef(ReactNative.AppState.currentState);
 
+  // Process version-check response inline via .unwrap() so every poll trigger
+  // is handled, even when RTK Query returns a structurally-shared cached response
+  // (which would prevent a useEffect from re-firing).
   const runCheck = useCallback(() => {
     if (buildNumber === undefined || buildNumber === null) {
       return;
     }
     const platform = IsWeb ? "web" : "mobile";
-    void triggerVersionCheck({platform, version: buildNumber});
+    triggerVersionCheck({platform, version: buildNumber})
+      .unwrap()
+      .then((data) => {
+        const {
+          message,
+          pollingIntervalMs: serverPollingIntervalMs,
+          status,
+          updateUrl: responseUpdateUrl,
+        } = data;
+
+        if (status === "required") {
+          setIsRequired(true);
+          setRequiredMessage(message);
+          setIsWarning(false);
+        } else if (status === "warning") {
+          setIsWarning(true);
+          setWarningMessage(message);
+          setWarningCheckCount((c) => c + 1);
+        } else {
+          setIsWarning(false);
+          setIsRequired(false);
+        }
+
+        if (responseUpdateUrl) {
+          setUpdateUrl(responseUpdateUrl);
+        }
+
+        // Adopt the server-configured polling interval once it's available.
+        if (serverPollingIntervalMs !== undefined) {
+          setActivePollingIntervalMs(serverPollingIntervalMs);
+        }
+      })
+      .catch((error: unknown) => {
+        console.debug("Version check failed, continuing normally", error);
+      });
   }, [buildNumber, triggerVersionCheck]);
 
   const onUpdate = useCallback(() => {
@@ -70,7 +120,7 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
       return;
     }
     if (updateUrl) {
-      void Linking.openURL(updateUrl).catch((err: unknown) => {
+      void ReactNative.Linking.openURL(updateUrl).catch((err: unknown) => {
         console.warn("Failed to open update URL", err);
       });
     } else {
@@ -83,21 +133,21 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     runCheck();
   }, [runCheck]);
 
-  // Periodic re-check at the configured interval
+  // Periodic re-check using the server-driven interval (falls back to the local prop until first response).
   useEffect(() => {
-    if (!pollingIntervalMs) {
+    if (!activePollingIntervalMs) {
       return;
     }
-    const interval = setInterval(runCheck, pollingIntervalMs);
+    const interval = setInterval(runCheck, activePollingIntervalMs);
     return () => clearInterval(interval);
-  }, [runCheck, pollingIntervalMs]);
+  }, [runCheck, activePollingIntervalMs]);
 
   // Re-check when app/tab returns to foreground
   useEffect(() => {
     if (!recheckOnForeground) {
       return;
     }
-    const subscription = AppState.addEventListener("change", (nextAppState) => {
+    const subscription = ReactNative.AppState.addEventListener("change", (nextAppState) => {
       const wasBackground = /inactive|background/.test(appState.current);
       const isNowActive = nextAppState === "active";
 
@@ -111,50 +161,15 @@ export const useUpgradeCheck = (options?: UseUpgradeCheckOptions): UseUpgradeChe
     return () => subscription.remove();
   }, [runCheck, recheckOnForeground]);
 
-  // Show warning toast in a separate effect. ToastProvider initializes its ref
-  // in useEffect, so we may need to retry when toast becomes available.
-  useEffect(() => {
-    if (!warningMessage) {
-      return;
-    }
-    const toastId = toast.warn(warningMessage, {persistent: true});
-    if (toastId) {
-      setWarningMessage(undefined);
-    } else {
-      console.warn("useUpgradeCheck: toast not yet available, will retry on next render");
-    }
-  }, [warningMessage, toast]);
-
-  // Process version-check response — update warning/required state
-  useEffect(() => {
-    if (result.isError) {
-      console.debug("Version check failed, continuing normally", result.error);
-      return;
-    }
-    if (!result.isSuccess || !result.data) {
-      return;
-    }
-
-    const {message, status, updateUrl: responseUpdateUrl} = result.data;
-
-    if (status === "required") {
-      setIsRequired(true);
-      setRequiredMessage(message);
-      setIsWarning(false);
-    } else if (status === "warning") {
-      setIsWarning(true);
-      setWarningMessage(message);
-    } else {
-      setIsWarning(false);
-      setIsRequired(false);
-    }
-
-    if (responseUpdateUrl) {
-      setUpdateUrl(responseUpdateUrl);
-    }
-  }, [result.data, result.error, result.isError, result.isSuccess]);
-
   const canUpdate = IsWeb || !!updateUrl;
 
-  return {canUpdate, isRequired, isWarning, onUpdate, requiredMessage, warningMessage};
+  return {
+    canUpdate,
+    isRequired,
+    isWarning,
+    onUpdate,
+    requiredMessage,
+    warningCheckCount,
+    warningMessage,
+  };
 };

@@ -39,7 +39,7 @@ Most apps need the same foundational pieces: authentication, user management, CR
 
 ### The best way to build with AI
 
-Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
+Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `terreno_bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
 
 ### Philosophy
 
@@ -108,6 +108,7 @@ bun run demo:compile
 bun run demo:lint
 bun run demo:start     # Start dev server
 ```
+**Note:** Make sure to run `bun run ui:compile` or `bun run ui:dev` when running the demo app to ensure you have the latest changes in ui while testing or in development
 
 You can also use Bun's filter syntax directly:
 

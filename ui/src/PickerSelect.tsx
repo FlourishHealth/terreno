@@ -25,21 +25,26 @@
 
 import {Picker} from "@react-native-picker/picker";
 import isEqual from "lodash/isEqual";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import {type ComponentType, type ReactNode, useCallback, useEffect, useMemo, useState} from "react";
 import {
   Keyboard,
   Modal,
+  type ModalProps,
+  type NativeSyntheticEvent,
   Platform,
   Pressable,
+  type PressableProps,
   StyleSheet,
   Text,
   TextInput,
+  type TextInputProps,
   TouchableOpacity,
   View,
 } from "react-native";
 
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {useWebDropdownAnchor, WebDropdownMenu, type WebDropdownMenuOption} from "./WebDropdownMenu";
 
 export const defaultStyles = StyleSheet.create({
   chevron: {
@@ -66,14 +71,23 @@ export const defaultStyles = StyleSheet.create({
   },
 });
 
+/** A single option for the picker select component. */
+export interface PickerSelectItem {
+  label: string;
+  value: string | number | null;
+  key?: string | number;
+  color?: string;
+  inputLabel?: string;
+}
+
 export interface RNPickerSelectProps {
-  onValueChange: (value: any, index: any) => void;
-  items: any[];
-  value?: any;
-  placeholder?: any;
+  onValueChange: (value: string | number | null, index: number) => void;
+  items: PickerSelectItem[];
+  value?: string | number | null;
+  placeholder?: Partial<PickerSelectItem>;
   disabled?: boolean;
   itemKey?: string | number;
-  children?: any;
+  children?: ReactNode;
   onOpen?: () => void;
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
@@ -86,18 +100,18 @@ export interface RNPickerSelectProps {
   onClose?: () => void;
 
   // Modal props (iOS only)
-  modalProps?: any;
+  modalProps?: Partial<ModalProps>;
 
   // TextInput props
-  textInputProps?: any;
+  textInputProps?: Partial<TextInputProps>;
 
   // Touchable Done props (iOS only)
-  touchableDoneProps?: any;
+  touchableDoneProps?: Partial<PressableProps>;
 
   // Touchable wrapper props
-  touchableWrapperProps?: any;
+  touchableWrapperProps?: Partial<PressableProps>;
 
-  InputAccessoryView?: any;
+  InputAccessoryView?: ComponentType<{testID?: string}>;
 }
 
 export function RNPickerSelect({
@@ -124,10 +138,19 @@ export function RNPickerSelect({
   InputAccessoryView,
 }: RNPickerSelectProps) {
   const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [animationType, setAnimationType] = useState(undefined);
+  const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
   const [doneDepressed, setDoneDepressed] = useState<boolean>(false);
   const {theme} = useTheme();
+
+  // Web-only: anchor the custom dropdown menu to the trigger element so that
+  // Safari/Firefox/Chrome all render the same styled menu instead of the
+  // browser's native <select> UI.
+  const {
+    anchor: webAnchor,
+    measure: measureWebAnchor,
+    triggerRef: webTriggerRef,
+  } = useWebDropdownAnchor();
 
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
@@ -149,25 +172,25 @@ export function RNPickerSelect({
   }, [items, placeholder]);
 
   const getSelectedItem = useCallback(
-    (key: any, val: any) => {
-      let idx = options.findIndex((item: any) => {
-        if (item.key && key) {
+    (key: string | number | undefined, val: string | number | null | undefined) => {
+      let idx = options.findIndex((item) => {
+        if (item?.key && key) {
           return isEqual(item.key, key);
         }
-        return isEqual(item.value, val);
+        return isEqual(item?.value, val);
       });
       if (idx === -1) {
         idx = 0;
       }
       return {
         idx,
-        selectedItem: options[idx] || {},
+        selectedItem: (options[idx] || {}) as Partial<PickerSelectItem>,
       };
     },
     [options]
   );
 
-  const [selectedItem, setSelectedItem] = useState<any>(() => {
+  const [selectedItem, setSelectedItem] = useState<Partial<PickerSelectItem>>(() => {
     return getSelectedItem(itemKey, value).selectedItem;
   });
 
@@ -185,13 +208,15 @@ export function RNPickerSelect({
     togglePicker(false, onDownArrow);
   };
 
-  const onValueChangeEvent = (val: any, index: any) => {
+  const onValueChangeEvent = (val: string | number | null, index: number) => {
     const item = getSelectedItem(itemKey, val);
     onValueChange(val, index);
     setSelectedItem(item.selectedItem);
   };
 
-  const onOrientationChange = ({nativeEvent}: any) => {
+  const onOrientationChange = ({
+    nativeEvent,
+  }: NativeSyntheticEvent<{orientation: "portrait" | "landscape"}>) => {
     setOrientation(nativeEvent.orientation);
   };
 
@@ -205,7 +230,7 @@ export function RNPickerSelect({
     }
   };
 
-  const togglePicker = (animate = false, postToggleCallback?: any) => {
+  const togglePicker = (animate = false, postToggleCallback?: () => void) => {
     if (disabled) {
       return;
     }
@@ -227,7 +252,8 @@ export function RNPickerSelect({
   };
 
   const renderPickerItems = () => {
-    return options?.map((item: any) => {
+    return options?.map((item) => {
+      if (!item) return null;
       return (
         <Picker.Item
           color={item.color}
@@ -398,7 +424,6 @@ export function RNPickerSelect({
         ]}
       >
         <Pressable
-          activeOpacity={1}
           onPress={() => {
             togglePicker(true);
           }}
@@ -457,14 +482,16 @@ export function RNPickerSelect({
   };
 
   const renderAndroidHeadless = () => {
-    const Component: any = fixAndroidTouchableBug ? View : Pressable;
+    // `View` and `Pressable` accept disjoint prop sets; the fork swaps between them to work
+    // around an Android touchable bug, so we cast to a structural component type that accepts
+    // the union of props actually used in JSX below.
+    const Component = (fixAndroidTouchableBug ? View : Pressable) as ComponentType<{
+      onPress?: PressableProps["onPress"];
+      testID?: string;
+      children?: ReactNode;
+    }>;
     return (
-      <Component
-        activeOpacity={1}
-        onPress={onOpen}
-        testID="android_touchable_wrapper"
-        {...touchableWrapperProps}
-      >
+      <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
         <View>
           {renderTextInputOrChildren()}
           <Picker
@@ -520,10 +547,61 @@ export function RNPickerSelect({
     );
   };
 
-  // TODO: Create custom React component for web in order to apply library style rules
+  // Custom web dropdown. Rendering the native <Picker> on web delegates
+  // styling to each browser (Safari in particular looks very different from
+  // Chrome/Firefox). Instead, we render a styled trigger + popup menu so the
+  // dropdown looks identical across browsers and matches the Terreno design.
+  const openWebMenu = (): void => {
+    if (disabled) {
+      return;
+    }
+    measureWebAnchor(() => {
+      setShowPicker(true);
+      if (onOpen) {
+        onOpen();
+      }
+    });
+  };
+
+  const closeWebMenu = (): void => {
+    setShowPicker(false);
+    if (onClose) {
+      onClose();
+    }
+  };
+
+  // Build the dropdown option list AND track each option's original index in
+  // `options` so `onValueChange` receives the same index that the native
+  // Picker would have reported (needed when a placeholder is present).
+  const {menuOptions: webMenuOptions, originalIndexes: webMenuOptionIndexes} = useMemo<{
+    menuOptions: WebDropdownMenuOption[];
+    originalIndexes: number[];
+  }>(() => {
+    const menuOptions: WebDropdownMenuOption[] = [];
+    const originalIndexes: number[] = [];
+    for (let i = 0; i < options.length; i++) {
+      const item = options[i];
+      if (!item || typeof item !== "object" || typeof item.label !== "string") {
+        continue;
+      }
+      menuOptions.push({
+        color: item.color,
+        key: item.key,
+        label: item.label,
+        value: String(item.value ?? ""),
+      });
+      originalIndexes.push(i);
+    }
+    return {menuOptions, originalIndexes};
+  }, [options]);
+
   const renderWeb = () => {
+    const displayLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
+    const webSelectedIndex = webMenuOptionIndexes.indexOf(selectedOriginalIdx);
     return (
       <View
+        ref={webTriggerRef}
         style={[
           defaultStyles.viewContainer,
           {
@@ -535,31 +613,55 @@ export function RNPickerSelect({
           },
         ]}
       >
-        <Picker
-          enabled={!disabled}
-          onValueChange={onValueChangeEvent}
-          selectedValue={selectedItem?.value}
-          style={[
-            {
-              backgroundColor: theme.surface.base,
-              borderColor: "black",
-              borderRadius: 4,
-              borderWidth: 0,
-              height: "100%",
-              paddingHorizontal: 8,
-              paddingVertical: 8,
-              width: "100%",
-            },
-            disabled && {
-              backgroundColor: theme.surface.neutralLight,
-              color: theme.text.secondaryLight,
-              opacity: 1,
-            },
-          ]}
+        <Pressable
+          aria-role="button"
+          disabled={disabled}
+          onPress={openWebMenu}
+          style={{
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            minHeight: 40,
+            paddingHorizontal: 8,
+            width: "100%",
+          }}
           testID="web_picker"
+          {...touchableWrapperProps}
         >
-          {renderPickerItems()}
-        </Picker>
+          <Text
+            numberOfLines={1}
+            style={{
+              color: disabled ? theme.text.secondaryLight : theme.text.primary,
+              flex: 1,
+              paddingRight: 8,
+            }}
+            testID="text_input"
+          >
+            {displayLabel}
+          </Text>
+          <Icon
+            color={disabled ? "secondaryLight" : "primary"}
+            iconName={showPicker ? "angle-up" : "angle-down"}
+            size="sm"
+          />
+        </Pressable>
+        <WebDropdownMenu
+          anchor={webAnchor}
+          onClose={closeWebMenu}
+          onSelect={(_val, idx) => {
+            const originalIndex = webMenuOptionIndexes[idx] ?? idx;
+            // Pass the original (non-stringified) value through so lodash
+            // `isEqual` matching in `getSelectedItem` works for number /
+            // object values.
+            const originalValue = options[originalIndex]?.value ?? null;
+            onValueChangeEvent(originalValue, originalIndex);
+            closeWebMenu();
+          }}
+          options={webMenuOptions}
+          selectedIndex={webSelectedIndex >= 0 ? webSelectedIndex : undefined}
+          testIDPrefix="web_dropdown"
+          visible={showPicker}
+        />
       </View>
     );
   };

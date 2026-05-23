@@ -1,3 +1,5 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
@@ -576,7 +578,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1324,7 +1326,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1918,6 +1920,10 @@ describe("@terreno/api", () => {
         name: "Spinach",
         ownerId: admin._id,
       });
+      await FoodModel.collection.updateOne(
+        {_id: (spinach as any)._id},
+        {$set: {updated: new Date("2025-06-15T12:00:00.000Z")}}
+      );
 
       app = getBaseServer();
       setupAuth(app, UserModel as any);
@@ -1987,6 +1993,24 @@ describe("@terreno/api", () => {
         .expect(200);
 
       expect(res.body.data.name).toBe("Exact Match");
+    });
+
+    it("prefers precise conflict timestamp header when present", async () => {
+      await FoodModel.collection.updateOne(
+        {_id: (spinach as any)._id},
+        {$set: {updated: new Date("2025-06-15T12:00:00.500Z")}}
+      );
+
+      const standardTimestamp = new Date("2025-06-15T12:00:00.000Z").toUTCString();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", standardTimestamp)
+        .set("X-Unmodified-Since-ISO", "2025-06-15T12:00:00.750Z")
+        .send({name: "Precise Match"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Precise Match");
     });
   });
 });

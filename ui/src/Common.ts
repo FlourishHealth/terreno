@@ -1,7 +1,15 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
 import type {ReactElement, ReactNode} from "react";
-import type {ListRenderItemInfo, StyleProp, TextStyle, ViewStyle} from "react-native";
+import type {
+  ImageStyle,
+  ListRenderItemInfo,
+  ScrollView,
+  StyleProp,
+  TextInput,
+  TextStyle,
+  ViewStyle,
+} from "react-native";
 import type {DimensionValue} from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 import type {Styles} from "react-native-google-places-autocomplete";
 import type {SvgProps} from "react-native-svg";
@@ -456,6 +464,7 @@ export interface BoxPropsBase {
   lgColumn?: UnsignedUpTo12;
   dangerouslySetInlineStyle?: {
     __style: {
+      // biome-ignore lint/suspicious/noExplicitAny: escape hatch for arbitrary inline style values that users may need to set
       [key: string]: any;
     };
   };
@@ -528,7 +537,7 @@ export interface BoxPropsBase {
 
   onClick?: () => void | Promise<void>;
   className?: string;
-  style?: any;
+  style?: StyleProp<ViewStyle>;
   onHoverStart?: () => void | Promise<void>;
   onHoverEnd?: () => void | Promise<void>;
   scroll?: boolean;
@@ -541,7 +550,7 @@ export interface BoxPropsBase {
 
   avoidKeyboard?: boolean;
   keyboardOffset?: number;
-  scrollRef?: React.RefObject<any>;
+  scrollRef?: React.RefObject<ScrollView | null>;
   onScroll?: (offsetY: number) => void;
   onLayout?: (event: LayoutChangeEvent) => void;
   testID?: string;
@@ -554,7 +563,7 @@ export type BoxProps =
 export type BoxColor = SurfaceColor | "transparent";
 
 export interface ErrorBoundaryProps {
-  onError?: (error: Error, stack: any) => void;
+  onError?: (error: Error, stack: string) => void;
   children?: ReactNode;
 }
 
@@ -652,7 +661,7 @@ export interface TextFieldProps extends BaseFieldProps, HelperTextProps, ErrorTe
   multiline?: boolean;
   rows?: number;
 
-  inputRef?: any;
+  inputRef?: (ref: TextInput | null) => void;
   trimOnBlur?: boolean;
 
   aiSuggestion?: AiSuggestionProps;
@@ -782,7 +791,7 @@ export interface ImageProps {
   size?: string;
   srcSet?: string;
   fullWidth?: boolean;
-  style?: any;
+  style?: ImageStyle;
 }
 
 export interface BackButtonInterface {
@@ -850,14 +859,17 @@ export interface SplitPageProps {
   loading?: boolean;
   color?: SurfaceColor;
   keyboardOffset?: number;
+  // biome-ignore lint/suspicious/noExplicitAny: ListRenderItemInfo generic type depends on the consumer's data shape
   renderListViewItem: (itemInfo: ListRenderItemInfo<any>) => ReactElement | null;
   renderListViewHeader?: () => ReactElement | null;
   renderContent?: (index?: number) => ReactElement | ReactElement[] | null;
+  // biome-ignore lint/suspicious/noExplicitAny: list data type varies by consumer's data model
   listViewData: any[];
-  listViewExtraData?: any;
+  listViewExtraData?: unknown;
   listViewWidth?: number;
   listViewMaxWidth?: number;
   renderChild?: () => ReactChild;
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer's data model
   onSelectionChange?: (value?: any) => void | Promise<void>;
 }
 
@@ -896,7 +908,7 @@ export interface AddressInterface {
 export interface TransformValueOptions {
   func?: (value: string) => string;
   options?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -1447,8 +1459,10 @@ export interface BannerButtonProps {
 export interface BannerPropsBase {
   /**
    * Used to identify if banner has been dismissed by the user.
+   * When provided, dismissal state is persisted to AsyncStorage.
+   * When omitted, dismissal is ephemeral (resets on remount).
    */
-  id: string;
+  id?: string;
   /**
    * The text to display in the main body of the banner.
    */
@@ -1486,6 +1500,8 @@ export interface BodyProps {
   avoidKeyboard?: boolean; // default true
   children?: ReactNode;
 }
+
+export type ButtonPressAnimation = "scale" | "opacity" | "none";
 
 export interface ButtonProps {
   /**
@@ -1525,6 +1541,11 @@ export interface ButtonProps {
    * The subtitle of the confirmation modal.
    */
   modalSubTitle?: string;
+  /**
+   * The press animation to use when the button is touched.
+   * @default "scale"
+   */
+  pressAnimation?: ButtonPressAnimation;
   /**
    * The test ID for the button, used for testing purposes.
    */
@@ -1662,6 +1683,7 @@ export interface DateTimeActionSheetProps {
   type?: "date" | "time" | "datetime";
   // Returns an ISO 8601 string. If mode is "time", the date portion is today.
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   visible: boolean;
   onDismiss: () => void;
@@ -1673,6 +1695,7 @@ export interface DecimalRangeActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
@@ -1732,6 +1755,7 @@ export type FieldProps =
 export interface HeightActionSheetProps {
   value?: string;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
   /** Minimum height in total inches */
   min?: number;
@@ -1743,13 +1767,17 @@ export interface HeightActionSheetProps {
 
 export interface HyperlinkProps {
   linkDefault?: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: linkify-it library's main export lacks a TypeScript type definition
   linkify?: any;
+  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous (TextStyle | ViewStyle) for link contexts
   linkStyle?: StyleProp<any>;
   linkText?: string | ((url: string) => string);
   onPress?: (url: string) => void;
   onLongPress?: (url: string, text: string) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: returned view props are spread onto a heterogeneous View; consumers pass arbitrary props
   injectViewProps?: (url: string) => any;
   children?: React.ReactNode;
+  // biome-ignore lint/suspicious/noExplicitAny: StyleProp's generic is heterogeneous for the container which holds mixed Text/View children
   style?: StyleProp<any>;
 }
 
@@ -1899,10 +1927,12 @@ export interface ModalProps {
   /**
    * The function to call when the primary button is clicked.
    */
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   primaryButtonOnClick?: (value?: any) => void | Promise<void>;
   /**
    * The function to call when the secondary button is clicked.
    */
+  // biome-ignore lint/suspicious/noExplicitAny: callback value type varies by consumer context
   secondaryButtonOnClick?: (value?: any) => void | Promise<void>;
 }
 
@@ -1911,10 +1941,12 @@ export interface NumberPickerActionSheetProps {
   min: number;
   max: number;
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
 export interface PageProps {
+  // biome-ignore lint/suspicious/noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
   loading?: boolean;
@@ -1928,11 +1960,11 @@ export interface PageProps {
   color?: SurfaceColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
-  footer?: any;
+  footer?: ReactNode;
   rightButton?: string;
   rightButtonOnClick?: () => void;
-  children?: any;
-  onError?: (error: Error, stack: any) => void;
+  children?: ReactChildren;
+  onError?: (error: Error, stack: string) => void;
 }
 
 export interface ProgressBarProps {
@@ -1955,7 +1987,7 @@ export interface RadioFieldProps {
 export interface SignatureFieldProps {
   disabled?: boolean; // default "default"
   value?: string;
-  onChange: (value: any) => void;
+  onChange: (value: string) => void;
   title?: string; // default "Signature"
   onStart?: () => void;
   onEnd?: () => void;
@@ -2066,7 +2098,7 @@ export interface PaginationProps {
  * Data Table
  */
 export interface DataTableCellData {
-  value: any;
+  value: unknown;
   highlight?: SurfaceColor;
   textSize?: "sm" | "md" | "lg";
 }
@@ -2085,7 +2117,7 @@ export interface DataTableColumn {
 }
 
 export interface DataTableProps {
-  data: {value: any; highlight?: SurfaceColor; textSize?: "sm" | "md" | "lg"}[][];
+  data: DataTableCellData[][];
   columns: DataTableColumn[];
   alternateRowBackground?: boolean;
   totalPages?: number;
@@ -2100,19 +2132,21 @@ export interface DataTableProps {
   /**
    * When tapping the eye icon, a modal is shown with more info about the row.
    */
-  moreContentComponent?: React.ComponentType<{
-    column: DataTableColumn;
-    rowData: any[];
-    rowIndex: number;
-  }>;
+  moreContentComponent?: React.ComponentType<
+    {
+      column: DataTableColumn;
+      rowData: DataTableCellData[];
+      rowIndex: number;
+    } & Record<string, unknown>
+  >;
   // Extra data to pass to the more modal.
-  moreContentExtraData?: any[];
+  moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.
   customColumnComponentMap?: DataTableCustomComponentMap;
 }
 
 export interface DataTableCellProps {
-  value: any;
+  value: DataTableCellData;
   columnDef: DataTableColumn;
   colIndex: number;
   isPinnedHorizontal: boolean;
@@ -2233,6 +2267,7 @@ export interface TextFieldPickerActionSheetProps {
   value?: string;
   mode?: "date" | "time";
   onChange: OnChangeCallback;
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class lives in ActionSheet.tsx which imports from Common.ts; typing this would create a circular import
   actionSheetRef: React.RefObject<any>;
 }
 
@@ -2352,16 +2387,19 @@ export type TapToEditProps =
 
 export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value"> {
   title: string;
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types (text, number, date, etc.)
   value: any;
 
   /**
    * Not required if not editable.
    */
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   setValue?: (value: any) => void;
 
   /**
    * Not required if not editable.
    */
+  // biome-ignore lint/suspicious/noExplicitAny: value type varies across TapToEdit field types
   onSave?: (value: any) => void | Promise<void>;
 
   /**
@@ -2374,6 +2412,7 @@ export interface BaseTapToEditProps extends Omit<FieldProps, "onChange" | "value
    * Enable edit mode from outside the component.
    */
   isEditing?: boolean;
+  // biome-ignore lint/suspicious/noExplicitAny: input value type varies across TapToEdit field types
   transform?: (value: any) => string;
   /**
    * Show a confirmation modal before saving the value.
@@ -2429,7 +2468,7 @@ export interface APIError {
     source?: string;
     pointer?: string;
     parameter?: string;
-    meta?: {[id: string]: any};
+    meta?: {[id: string]: unknown};
   };
 }
 
@@ -2462,10 +2501,12 @@ export interface ModelFields {
 
 export interface OpenAPISpec {
   paths: {
+    // biome-ignore lint/suspicious/noExplicitAny: OpenAPI path items are deeply accessed with chained property lookups
     [key: string]: any;
   };
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: ModelFieldConfig is a passthrough for arbitrary field configuration objects from various model contexts
 export type ModelFieldConfig = any;
 
 export interface OpenAPIProviderProps {
@@ -2494,7 +2535,8 @@ export interface ModelAdminFieldConfig {
 
 // The props for a custom column component for ModelAdmin.
 export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name"> {
-  doc: any; // The rest of the document.
+  // biome-ignore lint/suspicious/noExplicitAny: document shape varies by model used with ModelAdmin
+  doc: any;
   fieldKey: string; // Dot notation representation of the field.
   // user: User;
   editing: boolean; // Allow for inline editing of the field.
@@ -3019,4 +3061,17 @@ export interface SidebarNavigationPanelProps {
    * Additional styles applied to each navigation item.
    */
   itemStyle?: StyleProp<ViewStyle>;
+  /**
+   * Controlled open state. When provided, the panel hides its internal hamburger
+   * button and defers open/close to the caller.
+   *
+   * @platform mobile — the web sidebar is always visible; this prop is ignored on web.
+   */
+  isOpen?: boolean;
+  /**
+   * Called when the panel requests an open or close (controlled mode only).
+   *
+   * @platform mobile — the web sidebar is always visible; this prop is ignored on web.
+   */
+  onOpenChange?: (isOpen: boolean) => void;
 }

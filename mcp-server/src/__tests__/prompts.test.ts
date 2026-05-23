@@ -5,12 +5,14 @@ describe("prompts", () => {
   test("should export all required prompts", () => {
     const promptNames = prompts.map((p) => p.name);
 
-    expect(promptNames).toContain("create_crud_feature");
-    expect(promptNames).toContain("create_api_endpoint");
-    expect(promptNames).toContain("create_ui_component");
-    expect(promptNames).toContain("create_form_screen");
-    expect(promptNames).toContain("add_authentication");
+    expect(promptNames).toContain("terreno_create_crud_feature");
+    expect(promptNames).toContain("terreno_create_api_endpoint");
+    expect(promptNames).toContain("terreno_create_ui_component");
+    expect(promptNames).toContain("terreno_create_form_screen");
+    expect(promptNames).toContain("terreno_add_authentication");
     expect(promptNames).toContain("terreno_style_guide");
+    expect(promptNames).toContain("terreno_migrate_to_terreno_app");
+    expect(promptNames).toContain("terreno_bootstrap");
   });
 
   test("should have valid prompt structure", () => {
@@ -27,9 +29,9 @@ describe("prompts", () => {
     }
   });
 
-  describe("create_crud_feature", () => {
+  describe("terreno_create_crud_feature", () => {
     test("should generate CRUD feature prompt", () => {
-      const result = handlePromptRequest("create_crud_feature", {
+      const result = handlePromptRequest("terreno_create_crud_feature", {
         fields: "title:string,price:number",
         name: "Product",
       });
@@ -47,7 +49,7 @@ describe("prompts", () => {
     });
 
     test("should include owner documentation when hasOwner is yes", () => {
-      const result = handlePromptRequest("create_crud_feature", {
+      const result = handlePromptRequest("terreno_create_crud_feature", {
         fields: "title:string",
         hasOwner: "yes",
         name: "Todo",
@@ -62,7 +64,7 @@ describe("prompts", () => {
     });
 
     test("should include code style requirements", () => {
-      const result = handlePromptRequest("create_crud_feature", {
+      const result = handlePromptRequest("terreno_create_crud_feature", {
         fields: "name:string",
         name: "Item",
       });
@@ -76,9 +78,9 @@ describe("prompts", () => {
     });
   });
 
-  describe("create_api_endpoint", () => {
+  describe("terreno_create_api_endpoint", () => {
     test("should generate API endpoint prompt", () => {
-      const result = handlePromptRequest("create_api_endpoint", {
+      const result = handlePromptRequest("terreno_create_api_endpoint", {
         description: "Verify user email address",
         method: "POST",
         path: "/users/:id/verify",
@@ -95,7 +97,7 @@ describe("prompts", () => {
     });
 
     test("should include OpenAPI documentation requirements", () => {
-      const result = handlePromptRequest("create_api_endpoint", {
+      const result = handlePromptRequest("terreno_create_api_endpoint", {
         description: "Test endpoint",
         method: "GET",
         path: "/test",
@@ -109,9 +111,9 @@ describe("prompts", () => {
     });
   });
 
-  describe("create_ui_component", () => {
+  describe("terreno_create_ui_component", () => {
     test("should generate display component prompt", () => {
-      const result = handlePromptRequest("create_ui_component", {
+      const result = handlePromptRequest("terreno_create_ui_component", {
         name: "UserCard",
         type: "display",
       });
@@ -125,7 +127,7 @@ describe("prompts", () => {
     });
 
     test("should generate interactive component prompt", () => {
-      const result = handlePromptRequest("create_ui_component", {
+      const result = handlePromptRequest("terreno_create_ui_component", {
         name: "ToggleSwitch",
         type: "interactive",
       });
@@ -137,7 +139,7 @@ describe("prompts", () => {
     });
 
     test("should generate form component prompt", () => {
-      const result = handlePromptRequest("create_ui_component", {
+      const result = handlePromptRequest("terreno_create_ui_component", {
         name: "SearchInput",
         type: "form",
       });
@@ -149,7 +151,7 @@ describe("prompts", () => {
     });
 
     test("should generate layout component prompt", () => {
-      const result = handlePromptRequest("create_ui_component", {
+      const result = handlePromptRequest("terreno_create_ui_component", {
         name: "GridContainer",
         type: "layout",
       });
@@ -161,7 +163,7 @@ describe("prompts", () => {
     });
 
     test("should include component best practices", () => {
-      const result = handlePromptRequest("create_ui_component", {
+      const result = handlePromptRequest("terreno_create_ui_component", {
         name: "Test",
         type: "display",
       });
@@ -174,9 +176,9 @@ describe("prompts", () => {
     });
   });
 
-  describe("create_form_screen", () => {
+  describe("terreno_create_form_screen", () => {
     test("should generate form screen prompt", () => {
-      const result = handlePromptRequest("create_form_screen", {
+      const result = handlePromptRequest("terreno_create_form_screen", {
         endpoint: "createProduct",
         fields: "title:text,price:number,description:textarea",
         name: "CreateProduct",
@@ -192,7 +194,7 @@ describe("prompts", () => {
     });
 
     test("should include required imports", () => {
-      const result = handlePromptRequest("create_form_screen", {
+      const result = handlePromptRequest("terreno_create_form_screen", {
         endpoint: "updateUser",
         fields: "name:text,email:email",
         name: "EditUser",
@@ -207,7 +209,7 @@ describe("prompts", () => {
     });
 
     test("should include validation requirements", () => {
-      const result = handlePromptRequest("create_form_screen", {
+      const result = handlePromptRequest("terreno_create_form_screen", {
         endpoint: "createTest",
         fields: "name:text",
         name: "Test",
@@ -222,9 +224,9 @@ describe("prompts", () => {
     });
   });
 
-  describe("add_authentication", () => {
+  describe("terreno_add_authentication", () => {
     test("should generate authentication prompt with email", () => {
-      const result = handlePromptRequest("add_authentication", {
+      const result = handlePromptRequest("terreno_add_authentication", {
         features: "email",
       });
 
@@ -238,7 +240,7 @@ describe("prompts", () => {
     });
 
     test("should include password reset when requested", () => {
-      const result = handlePromptRequest("add_authentication", {
+      const result = handlePromptRequest("terreno_add_authentication", {
         features: "email,passwordReset",
       });
 
@@ -250,7 +252,7 @@ describe("prompts", () => {
     });
 
     test("should include auth state management", () => {
-      const result = handlePromptRequest("add_authentication", {});
+      const result = handlePromptRequest("terreno_add_authentication", {});
 
       const content = result.messages[0].content.text;
 
@@ -315,6 +317,43 @@ describe("prompts", () => {
       const result = handlePromptRequest("unknown_prompt", {});
 
       expect(result.messages[0].content.text).toContain("Unknown prompt");
+    });
+  });
+
+  describe("terreno_migrate_to_terreno_app", () => {
+    test("should return generic guide without serverFile", () => {
+      const result = handlePromptRequest("terreno_migrate_to_terreno_app", {});
+      const content = result.messages[0].content.text;
+
+      expect(content.length).toBeGreaterThan(0);
+      expect(content).not.toContain("Your Task");
+    });
+
+    test("should include task-specific instructions when serverFile is provided", () => {
+      const result = handlePromptRequest("terreno_migrate_to_terreno_app", {
+        serverFile: "src/myServer.ts",
+      });
+      const content = result.messages[0].content.text;
+
+      expect(content).toContain("src/myServer.ts");
+      expect(content).toContain("Your Task");
+      expect(content).toContain("TerrenoApp.create");
+      expect(content).toContain("HealthApp");
+    });
+  });
+
+  describe("terreno_bootstrap", () => {
+    test("should delegate to bootstrap prompt handler", () => {
+      const result = handlePromptRequest("terreno_bootstrap", {
+        appDisplayName: "My Bootstrap App",
+        appName: "my-bootstrap-app",
+      });
+      const content = result.messages[0].content.text;
+
+      expect(content).toContain("my-bootstrap-app");
+      expect(content).toContain("My Bootstrap App");
+      expect(content).toContain("terreno_bootstrap_app");
+      expect(content).toContain("terreno_bootstrap_ai_rules");
     });
   });
 });

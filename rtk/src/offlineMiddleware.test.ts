@@ -1,15 +1,18 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {configureStore} from "@reduxjs/toolkit";
-import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
 
-import {createOfflineMiddleware} from "./offlineMiddleware";
-import {
-  selectConflicts,
-  selectIsOnline,
-  selectIsSyncing,
-  selectOfflineQueue,
-  setOnlineStatus,
-} from "./offlineSlice";
+mock.module("react-native", () => ({
+  Platform: {OS: "web"},
+  StyleSheet: {create: (styles: unknown) => styles},
+}));
+mock.module("./platform", () => ({IsWeb: true}));
+mock.module("./authSlice", () => ({getAuthToken: async () => null}));
+mock.module("./constants", () => ({baseUrl: "http://localhost:4000"}));
+
+const {configureStore} = await import("@reduxjs/toolkit");
+const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
+const {createOfflineMiddleware} = await import("./offlineMiddleware");
+const {selectConflicts, selectIsOnline, selectIsSyncing, selectOfflineQueue, setOnlineStatus} =
+  await import("./offlineSlice");
 
 // Mock fetch for replay tests
 const mockFetch = mock(() =>
@@ -230,7 +233,7 @@ describe("createOfflineMiddleware", () => {
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);
     });
 
-    it("sends If-Unmodified-Since header for update mutations", async () => {
+    it("sends HTTP-date and precise timestamp headers for update mutations", async () => {
       store.dispatch(setOnlineStatus(false));
       store.dispatch({
         error: {message: "fetch failed"},
@@ -251,6 +254,11 @@ describe("createOfflineMiddleware", () => {
       const fetchOptions = fetchCall[1];
       const headers = fetchOptions.headers as Record<string, string>;
       expect(headers["If-Unmodified-Since"]).toBeDefined();
+      expect(headers["If-Unmodified-Since"]).toContain("GMT");
+      expect(headers["X-Unmodified-Since-ISO"]).toBeDefined();
+      expect(new Date(headers["X-Unmodified-Since-ISO"]).toISOString()).toBe(
+        headers["X-Unmodified-Since-ISO"]
+      );
     });
 
     it("creates a conflict record on 409 response", async () => {
@@ -382,6 +390,43 @@ describe("createOfflineMiddleware", () => {
       // First call should be POST (create), second should be PATCH (update)
       expect(fetchOrder[0]).toContain("/todos");
       expect(fetchOrder[1]).toContain("/todos/456");
+    });
+
+    it("does not start concurrent replay for repeated online events", async () => {
+      mockFetch.mockImplementationOnce(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  json: () => Promise.resolve({data: {_id: "123", title: "Synced"}}),
+                  status: 200,
+                }),
+              50
+            )
+          )
+      );
+
+      store.dispatch(setOnlineStatus(false));
+      store.dispatch({
+        error: {message: "fetch failed"},
+        meta: {
+          arg: {
+            endpointName: "patchTodosById",
+            originalArgs: {body: {title: "Updated"}, id: "123"},
+          },
+        },
+        payload: {status: "FETCH_ERROR"},
+        type: "terreno-rtk/executeMutation/rejected",
+      });
+
+      store.dispatch(setOnlineStatus(true));
+      store.dispatch(setOnlineStatus(true));
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
     });
   });
 });

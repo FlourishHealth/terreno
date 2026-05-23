@@ -4,7 +4,9 @@ import {
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
   BackgroundTask,
+  type ScriptRunner,
   setupAuth,
+  type UserModel as UserModelType,
 } from "@terreno/api";
 import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/src/tests";
 import type express from "express";
@@ -13,7 +15,11 @@ import type TestAgent from "supertest/lib/agent";
 
 import {AdminApp} from "./adminApp";
 
-const createTestScript = (overrides?: {runner?: any; name?: string; description?: string}) => ({
+const createTestScript = (overrides?: {
+  runner?: ScriptRunner;
+  name?: string;
+  description?: string;
+}) => ({
   description: overrides?.description ?? "A test script",
   name: overrides?.name ?? "test-script",
   runner:
@@ -43,8 +49,8 @@ const createFailingScript = () => ({
 
 const buildApp = (scripts = [createTestScript()]): express.Application => {
   const app = getBaseServer();
-  setupAuth(app, UserModel as any);
-  addAuthRoutes(app, UserModel as any);
+  setupAuth(app, UserModel as unknown as UserModelType);
+  addAuthRoutes(app, UserModel as unknown as UserModelType);
 
   const admin = new AdminApp({
     basePath: "/admin",
@@ -91,8 +97,8 @@ describe("AdminApp script routes", () => {
       // Verify the task was created in the database
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.taskType).toBe("test-script");
-      expect(task!.isDryRun).toBe(true);
+      expect(task?.taskType).toBe("test-script");
+      expect(task?.isDryRun).toBe(true);
     });
 
     it("creates a wet run task when wetRun=true", async () => {
@@ -100,7 +106,7 @@ describe("AdminApp script routes", () => {
 
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.isDryRun).toBe(false);
+      expect(task?.isDryRun).toBe(false);
     });
 
     it("creates a dry run task by default", async () => {
@@ -108,7 +114,7 @@ describe("AdminApp script routes", () => {
 
       const task = await BackgroundTask.findById(res.body.taskId);
       expect(task).not.toBeNull();
-      expect(task!.isDryRun).toBe(true);
+      expect(task?.isDryRun).toBe(true);
     });
 
     it("returns 404 for unknown script", async () => {
@@ -132,9 +138,9 @@ describe("AdminApp script routes", () => {
       const res = await adminAgent.post("/admin/scripts/test-script/run").expect(201);
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.logs).toHaveLength(1);
-      expect(task!.logs[0].level).toBe("info");
-      expect(task!.logs[0].message).toInclude("Script started by");
+      expect(task?.logs).toHaveLength(1);
+      expect(task?.logs[0].level).toBe("info");
+      expect(task?.logs[0].message).toInclude("Script started by");
     });
 
     it("completes the task asynchronously with results", async () => {
@@ -144,10 +150,10 @@ describe("AdminApp script routes", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.status).toBe("completed");
-      expect(task!.result).toContain("Ran in dry mode");
-      expect(task!.completedAt).toBeDefined();
-      expect(task!.progress?.percentage).toBe(100);
+      expect(task?.status).toBe("completed");
+      expect(task?.result).toContain("Ran in dry mode");
+      expect(task?.completedAt).toBeDefined();
+      expect(task?.progress?.percentage).toBe(100);
     });
 
     it("marks task as failed when script throws", async () => {
@@ -159,9 +165,9 @@ describe("AdminApp script routes", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const task = await BackgroundTask.findById(res.body.taskId);
-      expect(task!.status).toBe("failed");
+      expect(task?.status).toBe("failed");
       expect(task?.error).toBe("Script exploded");
-      expect(task!.result).toContain("Script exploded");
+      expect(task?.result).toContain("Script exploded");
     });
   });
 
@@ -241,7 +247,9 @@ describe("AdminApp script routes", () => {
       const res = await adminAgent.delete(`/admin/scripts/tasks/${res1.body.taskId}`).expect(200);
 
       const logs = res.body.task.logs;
-      const cancelLog = logs.find((l: any) => l.message.includes("cancelled"));
+      const cancelLog = logs.find((l: {message: string; level: string}) =>
+        l.message.includes("cancelled")
+      );
       expect(cancelLog).toBeDefined();
       expect(cancelLog.level).toBe("info");
     });
@@ -292,7 +300,7 @@ describe("AdminApp script routes", () => {
     });
 
     it("includes scripts in config response", async () => {
-      const res = await supertest(app).get("/admin/config").expect(200);
+      const res = await adminAgent.get("/admin/config").expect(200);
 
       expect(res.body.scripts).toHaveLength(2);
       expect(res.body.scripts[0].name).toBe("migrate-data");
@@ -303,7 +311,8 @@ describe("AdminApp script routes", () => {
 
     it("returns empty scripts array when no scripts configured", async () => {
       app = buildApp([]);
-      const res = await supertest(app).get("/admin/config").expect(200);
+      const freshAdmin = await authAsUser(app, "admin");
+      const res = await freshAdmin.get("/admin/config").expect(200);
 
       expect(res.body.scripts).toHaveLength(0);
     });

@@ -1,5 +1,12 @@
 import {DateTime} from "luxon";
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
 function getDate(date: string, {timezone}: {timezone?: string} = {}): DateTime {
   if (!date) {
     throw new Error("Passed undefined");
@@ -54,11 +61,11 @@ export function humanDate(
   date: string,
   {timezone, dontShowTime}: {timezone?: string; dontShowTime?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`humanDate: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`humanDate: ${getErrorMessage(error)}`);
   }
   if (isTomorrow(date, {timezone})) {
     return "Tomorrow";
@@ -88,11 +95,11 @@ export function humanDateAndTime(
   date: string,
   {timezone, showTimezone = true}: {timezone?: string; showTimezone?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`humanDateAndTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`humanDateAndTime: ${getErrorMessage(error)}`);
   }
   // This should maybe use printTime()
   let time: string = "";
@@ -155,11 +162,11 @@ export const printDate = (
     return justDate.startOf("day").toFormat("M/d/yyyy");
   }
 
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printDate: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printDate: ${getErrorMessage(error)}`);
   }
 
   return clonedDate.toLocaleString(DateTime.DATE_SHORT);
@@ -207,14 +214,14 @@ export function printTime(
   if (!date) {
     return defaultValue ?? "Invalid Date";
   }
-  let clonedDate;
+  let clonedDate: DateTime;
   if (!timezone) {
     throw new Error("printTime: timezone is required");
   }
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printTime: ${getErrorMessage(error)}`);
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
@@ -243,11 +250,11 @@ export function printDateAndTime(
   if (!date) {
     return defaultValue ?? "Invalid Datetime";
   }
-  let clonedDate;
+  let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printDateAndTime: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printDateAndTime: ${getErrorMessage(error)}`);
   }
   if (showTimezone) {
     return clonedDate.toLocaleString({
@@ -300,12 +307,12 @@ export function printSince(
   date: string,
   {timezone, showAgo = true}: {timezone?: string; showAgo?: boolean} = {}
 ): string {
-  let clonedDate;
+  let clonedDate: DateTime;
   const ago = showAgo ? " ago" : "";
   try {
     clonedDate = getDate(date, {timezone});
-  } catch (error: any) {
-    throw new Error(`printSince: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`printSince: ${getErrorMessage(error)}`);
   }
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.diff(clonedDate, "months");
@@ -349,7 +356,11 @@ export function getTimezoneOptions(location: "USA" | "Worldwide", shortTimezone 
   if (location === "USA") {
     timezones = usTimezoneOptions.map((tz) => [tz.label, tz.value]);
   } else {
-    timezones = (Intl as any).supportedValuesOf("timeZone").map((tz: any) => {
+    const intlWithSupportedValuesOf = Intl as typeof Intl & {
+      supportedValuesOf?: (key: "timeZone") => string[];
+    };
+    const supportedValues = intlWithSupportedValuesOf.supportedValuesOf?.("timeZone") ?? [];
+    timezones = supportedValues.map((tz) => {
       return [tz, tz];
     });
   }
