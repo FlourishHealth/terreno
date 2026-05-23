@@ -15,6 +15,7 @@ import {
   offlineSlice,
   type QueuedMutation,
   selectIsOnline,
+  selectIsSyncing,
   selectOfflineQueue,
   setOnlineStatus,
   setSyncing,
@@ -367,12 +368,46 @@ export const createOfflineMiddleware = (
       const endpointName = action.meta.arg.endpointName as string;
       const originalArgs = action.meta.arg.originalArgs;
 
+      const mutationType = inferMutationType(endpointName);
+
+      // For updates, use the document's last-known `updated` timestamp from cache
+      // rather than the current time. This ensures conflict detection compares against
+      // when the document was last fetched, not when the mutation was queued.
+      let timestamp = DateTime.now().toISO();
+      if (mutationType === "update") {
+        const args = originalArgs as {id?: string};
+        if (args?.id) {
+          const tagType = inferTagType(endpointName);
+          const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
+          const cachedArgs = getCachedQueryArgs(listenerApi.getState, api, listEndpointName);
+          for (const queryArg of cachedArgs) {
+            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
+            const endpoint = (api.endpoints as any)[listEndpointName];
+            if (!endpoint?.select) {
+              continue;
+            }
+            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
+            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState() as any) as any;
+            const items = cacheEntry?.data?.data;
+            if (Array.isArray(items)) {
+              const doc = items.find(
+                (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
+              );
+              if (doc?.updated) {
+                timestamp = typeof doc.updated === "string" ? doc.updated : DateTime.fromJSDate(doc.updated).toISO();
+                break;
+              }
+            }
+          }
+        }
+      }
+
       const mutation: QueuedMutation = {
         args: originalArgs,
         endpointName,
         id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
-        timestamp: DateTime.now().toISO(),
-        type: inferMutationType(endpointName),
+        timestamp,
+        type: mutationType,
       };
 
       listenerApi.dispatch(enqueue(mutation));
@@ -458,6 +493,10 @@ export const createOfflineMiddleware = (
       const queue = selectOfflineQueue(state);
 
       if (queue.length === 0) {
+        // Reset isSyncing if it was stuck from a crash/reload during sync
+        if (selectIsSyncing(state)) {
+          listenerApi.dispatch(setSyncing(false));
+        }
         return;
       }
 
@@ -493,8 +532,7 @@ export const createOfflineMiddleware = (
               }
             } else {
               console.warn(
-                `[offline] Replay failed for ${mutation.endpointName}: status ${result.status}`,
-                result.data
+                `[offline] Replay failed for ${mutation.endpointName}: status ${result.status}`
               );
               if (result.status >= 400 && result.status < 500 && result.status !== 409) {
                 listenerApi.dispatch(dequeue(mutation.id));
@@ -504,7 +542,9 @@ export const createOfflineMiddleware = (
               }
             }
           } catch (error) {
-            console.warn(`[offline] Replay error for ${mutation.endpointName}:`, error);
+            console.warn(
+              `[offline] Replay network error for ${mutation.endpointName}`
+            );
             break;
           }
         }
@@ -523,6 +563,37 @@ export const createOfflineMiddleware = (
         isReplayInProgress = false;
         listenerApi.dispatch(setSyncing(false));
       }
+    },
+  });
+
+  // Listener 6: On startup, if the persisted queue has items and we're online,
+  // trigger a replay. This handles the case where the app reloads while online
+  // with a non-empty queue (rehydrated state already has isOnline: true, so no
+  // offline→online transition would otherwise occur).
+  let startupReplayTriggered = false;
+  listenerMiddleware.startListening({
+    effect: (_action, listenerApi) => {
+      startupReplayTriggered = true;
+      const state = listenerApi.getState() as {offline: OfflineState};
+      const queue = selectOfflineQueue(state);
+      const isOnline = selectIsOnline(state);
+
+      // Reset stuck isSyncing from a crash during prior sync
+      if (selectIsSyncing(state) && !isReplayInProgress) {
+        listenerApi.dispatch(setSyncing(false));
+      }
+
+      if (queue.length > 0 && isOnline && !isReplayInProgress) {
+        // Re-dispatch setOnlineStatus(true) to trigger the sync listener
+        listenerApi.dispatch(setOnlineStatus(true));
+      }
+    },
+    predicate: (action) => {
+      if (startupReplayTriggered) {
+        return false;
+      }
+      // redux-persist dispatches "persist/REHYDRATE" after loading stored state
+      return typeof action?.type === "string" && action.type === "persist/REHYDRATE";
     },
   });
 

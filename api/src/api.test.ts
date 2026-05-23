@@ -2,6 +2,8 @@
 // biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
+import {DateTime} from "luxon";
+import type mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -16,6 +18,7 @@ import {
   getBaseServer,
   RequiredModel,
   setupDb,
+  type User,
   UserModel,
 } from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
@@ -1905,8 +1908,8 @@ describe("@terreno/api", () => {
   });
 
   describe("conflict detection (If-Unmodified-Since)", () => {
-    let admin: any;
-    let _notAdmin: any;
+    let admin: mongoose.HydratedDocument<User>;
+    let _notAdmin: mongoose.HydratedDocument<User>;
     let agent: TestAgent;
     let spinach: Food;
 
@@ -1915,19 +1918,19 @@ describe("@terreno/api", () => {
 
       spinach = await FoodModel.create({
         calories: 10,
-        created: new Date("2025-06-15T12:00:00.000Z"),
+        created: DateTime.fromISO("2025-06-15T12:00:00.000Z").toJSDate(),
         hidden: false,
         name: "Spinach",
         ownerId: admin._id,
       });
       await FoodModel.collection.updateOne(
-        {_id: (spinach as any)._id},
-        {$set: {updated: new Date("2025-06-15T12:00:00.000Z")}}
+        {_id: spinach._id as unknown as mongoose.Types.ObjectId},
+        {$set: {updated: DateTime.fromISO("2025-06-15T12:00:00.000Z").toJSDate()}}
       );
 
       app = getBaseServer();
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      setupAuth(app, UserModel as unknown as Parameters<typeof setupAuth>[1]);
+      addAuthRoutes(app, UserModel as unknown as Parameters<typeof addAuthRoutes>[1]);
       app.use(
         "/food",
         modelRouter(FoodModel, {
@@ -1945,8 +1948,7 @@ describe("@terreno/api", () => {
     });
 
     it("returns 409 when If-Unmodified-Since is older than doc.updated", async () => {
-      // The doc was updated at 2025-06-15T12:00:00, send a header from before that
-      const staleTimestamp = new Date("2025-06-15T11:00:00.000Z").toUTCString();
+      const staleTimestamp = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1962,8 +1964,7 @@ describe("@terreno/api", () => {
     });
 
     it("succeeds when If-Unmodified-Since matches or is newer than doc.updated", async () => {
-      // Send a timestamp that is after the doc's updated time
-      const freshTimestamp = new Date("2025-06-15T13:00:00.000Z").toUTCString();
+      const freshTimestamp = DateTime.fromISO("2025-06-15T13:00:00.000Z").toHTTP();
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1984,7 +1985,7 @@ describe("@terreno/api", () => {
     });
 
     it("succeeds when If-Unmodified-Since exactly matches doc.updated", async () => {
-      const exactTimestamp = new Date("2025-06-15T12:00:00.000Z").toUTCString();
+      const exactTimestamp = DateTime.fromISO("2025-06-15T12:00:00.000Z").toHTTP();
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1996,7 +1997,7 @@ describe("@terreno/api", () => {
     });
 
     it("prefers precise conflict timestamp header when present", async () => {
-      const roundedStaleTimestamp = new Date("2025-06-15T11:59:59.000Z").toUTCString();
+      const roundedStaleTimestamp = DateTime.fromISO("2025-06-15T11:59:59.000Z").toHTTP();
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -2011,18 +2012,21 @@ describe("@terreno/api", () => {
     it("returns 409 when precise conflict timestamp is older than doc.updated", async () => {
       await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", new Date("2025-06-15T12:00:01.000Z").toUTCString())
+        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T12:00:01.000Z").toHTTP()!)
         .set("X-Unmodified-Since-ISO", "2025-06-15T11:59:59.500Z")
         .send({name: "Precise Stale"})
         .expect(409);
     });
 
     it("falls back to doc.created when doc.updated is unavailable", async () => {
-      await FoodModel.collection.updateOne({_id: (spinach as any)._id}, {$unset: {updated: ""}});
+      await FoodModel.collection.updateOne(
+        {_id: spinach._id as unknown as mongoose.Types.ObjectId},
+        {$unset: {updated: ""}}
+      );
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", new Date("2025-06-15T11:59:59.999Z").toUTCString())
+        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T11:59:59.999Z").toHTTP()!)
         .send({name: "Created Fallback"})
         .expect(409);
 

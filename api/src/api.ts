@@ -882,9 +882,45 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         });
       }
 
-      // Conflict detection: compare the client's last-seen timestamp against the
-      // document's server timestamp. A precise ISO header avoids HTTP-date
-      // millisecond truncation while preserving the standard header for proxies.
+      // Remove _updatedAt from body before preUpdate processes it
+      const bodyUpdatedAt = req.body._updatedAt;
+      delete req.body._updatedAt;
+      if (body && typeof body === "object") {
+        delete (body as Record<string, unknown>)._updatedAt;
+      }
+
+      if (options.preUpdate) {
+        try {
+          body = await options.preUpdate(body, req);
+        } catch (error: unknown) {
+          if (isAPIError(error)) {
+            throw error;
+          }
+          throw new APIError({
+            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
+            error,
+            status: 400,
+            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
+          });
+        }
+        if (body === undefined) {
+          throw new APIError({
+            detail: "A body must be returned from preUpdate",
+            status: 403,
+            title: "Update not allowed",
+          });
+        }
+        if (body === null) {
+          throw new APIError({
+            detail: `preUpdate hook on ${req.params.id} returned null`,
+            status: 403,
+            title: "Update not allowed",
+          });
+        }
+      }
+
+      // Conflict detection runs after preUpdate so that unauthorized mutations
+      // are rejected before we leak document data in a 409 response.
       const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
       const httpUnmodifiedSince = req.headers["if-unmodified-since"];
       const timestampValue = Array.isArray(preciseUnmodifiedSince)
@@ -893,18 +929,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
       const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
         ? httpUnmodifiedSince[0]
         : httpUnmodifiedSince;
-      if (timestampValue || httpTimestampValue || req.body._updatedAt) {
+      if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
         const usingPreciseHeader = Boolean(timestampValue);
         const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
         const clientTimestamp = timestampValue
           ? DateTime.fromISO(timestampValue)
           : httpTimestampValue
             ? DateTime.fromHTTP(httpTimestampValue)
-            : DateTime.fromISO(req.body._updatedAt);
+            : DateTime.fromISO(bodyUpdatedAt);
 
-        // Malformed timestamps must not silently bypass conflict detection.
-        // Invalid DateTime returns NaN from valueOf(), and `NaN < anything` is
-        // false — so without this guard the check would silently pass.
         if (!clientTimestamp.isValid) {
           throw new APIError({
             detail: usingPreciseHeader
@@ -940,45 +973,6 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             data: serialized,
             error: "Conflict",
             message: "Document was modified since your last read",
-          });
-        }
-        // Remove _updatedAt from body so it doesn't get saved
-        delete req.body._updatedAt;
-        if (body && typeof body === "object") {
-          delete (body as Record<string, unknown>)._updatedAt;
-        }
-      }
-
-      if (options.preUpdate) {
-        try {
-          // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
-          // with the original body, maintaining the dot notation. This way we don't have to write
-          // two preUpdate branches downstream, one looking at the dot notation style and
-          // one looking at normal object style.
-          body = await options.preUpdate(body, req);
-        } catch (error: unknown) {
-          if (isAPIError(error)) {
-            throw error;
-          }
-          throw new APIError({
-            disableExternalErrorTracking: getDisableExternalErrorTracking(error),
-            error,
-            status: 400,
-            title: `preUpdate hook error on ${req.params.id}: ${errorMessage(error)}`,
-          });
-        }
-        if (body === undefined) {
-          throw new APIError({
-            detail: "A body must be returned from preUpdate",
-            status: 403,
-            title: "Update not allowed",
-          });
-        }
-        if (body === null) {
-          throw new APIError({
-            detail: `preUpdate hook on ${req.params.id} returned null`,
-            status: 403,
-            title: "Update not allowed",
           });
         }
       }
