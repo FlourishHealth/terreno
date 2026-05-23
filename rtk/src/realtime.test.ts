@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
-import {afterEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it} from "bun:test";
 
 const {realtimeList, setRealtimeSocket} = await import("./realtime");
 
