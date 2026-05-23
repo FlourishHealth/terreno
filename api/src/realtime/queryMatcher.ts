@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: MongoDB query matcher evaluates dynamic filter shapes
 /**
  * Simple in-memory MongoDB query matcher.
  * Evaluates a MongoDB-style query object against a document without hitting the database.

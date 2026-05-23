@@ -11,7 +11,6 @@ import {
   getAPIErrorBody,
   getDisableExternalErrorTracking,
   isAPIError,
-  mongooseErrorToAPIError,
 } from "./errors";
 
 interface MockResponse {

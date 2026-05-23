@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: Socket.io handler signatures require dynamic args
 import type http from "node:http";
 import * as Sentry from "@sentry/bun";
 import {authorize} from "@thream/socketio-jwt";

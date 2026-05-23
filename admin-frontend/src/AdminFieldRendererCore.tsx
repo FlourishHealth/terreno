@@ -74,7 +74,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   const helperText = fieldConfig.description;
 
   // Dynamic enum: look for a sibling array field whose items have a `key` property.
-  // E.g. sub-field "variant" → parent field "variants" → extract key values as options.
   if (!fieldConfig.enum && parentFormState && fieldConfig.type === "string") {
     const pluralKey = `${fieldKey}s`;
     const siblingArray = parentFormState[pluralKey];
@@ -134,7 +133,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     }
   }
 
-  // Boolean
   if (fieldConfig.type === "boolean") {
     return (
       <BooleanField
@@ -147,11 +145,10 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Enum -> SelectField
   if (fieldConfig.enum && fieldConfig.enum.length > 0) {
-    const includesNullOption = fieldConfig.enum.some((v) => v == null);
+    const includesNullOption = fieldConfig.enum.some((enumValue) => enumValue == null);
     const enumOptions = fieldConfig.enum
-      .filter((v): v is string => typeof v === "string")
+      .filter((enumValue): enumValue is string => typeof enumValue === "string")
       .map((v: string) => ({label: startCase(v), value: v}));
     const options = includesNullOption ? [{label: "None", value: ""}, ...enumOptions] : enumOptions;
     return (
@@ -166,7 +163,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Date/datetime
   if (
     fieldConfig.type === "date" ||
     fieldConfig.type === "datetime" ||
@@ -185,7 +181,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Number
   if (fieldConfig.type === "number") {
     return (
       <TextField
@@ -202,7 +197,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Locale content widget (Map<locale, markdown>)
   if (fieldConfig.widget === "locale-content") {
     const localeValue =
       value && typeof value === "object" && !Array.isArray(value)
@@ -219,7 +213,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Locale default widget — dropdown populated from sibling content field's locale keys
   if (fieldConfig.widget === "locale-default") {
     const contentMap = parentFormState?.content;
     const localeKeys =
@@ -245,7 +238,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Mixed / object type — JSON-aware single-line field for schemaless fields (e.g., Mongoose Mixed)
   if (fieldConfig.type === "object" || fieldConfig.type === "mixed") {
     const displayValue = serializeJsonValue(value);
     return (
@@ -262,7 +254,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Array of primitives (string, number, boolean) or ObjectId refs
   if (fieldConfig.type === "array" && fieldConfig.itemType && !fieldConfig.items) {
     return (
       <AdminPrimitiveArrayField
@@ -282,9 +273,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Array without item metadata — show as JSON text.
-  // Note: arrays of sub-documents (fieldConfig.items present) are handled by AdminFieldRenderer
-  // before delegating here, to break a require cycle with AdminNestedArrayField.
   if (fieldConfig.type === "array") {
     const jsonValue =
       value != null ? (typeof value === "string" ? value : JSON.stringify(value, null, 2)) : "[]";
@@ -309,7 +297,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Markdown widget
   if (fieldConfig.widget === "markdown") {
     return (
       <MarkdownEditorField
@@ -323,7 +310,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Checkbox list widget
   if (fieldConfig.widget === "checkbox-list") {
     return (
       <CheckboxListEditor
@@ -340,7 +326,6 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     );
   }
 
-  // Textarea widget
   if (fieldConfig.widget === "textarea") {
     return (
       <TextField

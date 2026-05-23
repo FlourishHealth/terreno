@@ -903,9 +903,9 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
           });
         }
 
-        const docWithUpdated = doc as mongoose.Document & T & {updated?: Date | string};
-        const serverTimestamp = docWithUpdated.updated
-          ? DateTime.fromJSDate(new Date(docWithUpdated.updated))
+        const docRecord = doc as {updated?: Date | string};
+        const serverTimestamp = docRecord.updated
+          ? DateTime.fromJSDate(new Date(docRecord.updated))
           : null;
 
         if (serverTimestamp && clientTimestamp < serverTimestamp) {
@@ -920,8 +920,8 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         }
         // Remove _updatedAt from body so it doesn't get saved
         delete req.body._updatedAt;
-        if (body) {
-          delete (body as Partial<T> & {_updatedAt?: unknown})._updatedAt;
+        if (body && typeof body === "object") {
+          delete (body as Record<string, unknown>)._updatedAt;
         }
       }
 

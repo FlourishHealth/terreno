@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: realtime config callbacks receive dynamic document shapes
 import type express from "express";
 
 /**

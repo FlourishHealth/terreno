@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: query filters are dynamic MongoDB query objects
 /**
  * Manages query subscriptions for Socket.io clients.
  *
