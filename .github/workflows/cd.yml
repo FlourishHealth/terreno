@@ -260,7 +260,7 @@ jobs:
           env_vars: |
             NODE_ENV=production
           secrets: |
-            MONGODB_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
             LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
           flags: |
@@ -382,7 +382,7 @@ jobs:
           env_vars: |
             NODE_ENV=production
           secrets: |
-            MONGODB_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
             LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
           flags: |
@@ -475,7 +475,7 @@ jobs:
             BACKEND_SERVICE=tasks
             FLOURISH_SERVICE=${{ env.GCP_TASKS_SERVICE }}
           secrets: |
-            MONGODB_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
             LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
           flags: |
