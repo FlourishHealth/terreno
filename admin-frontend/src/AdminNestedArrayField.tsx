@@ -1,7 +1,8 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, Card, DraggableList, Heading, IconButton, Text} from "@terreno/ui";
+import startCase from "lodash/startCase";
 import React, {useCallback, useMemo, useRef} from "react";
-import {AdminFieldRenderer} from "./AdminFieldRenderer";
+import {AdminFieldRendererCore} from "./AdminFieldRendererCore";
 import type {AdminFieldConfig, RefRendererMap} from "./types";
 
 const FIELD_HEIGHT_ESTIMATE = 76;
@@ -21,9 +22,66 @@ interface AdminNestedArrayFieldProps {
   modelConfigs?: Array<{name: string; routePath: string}>;
   /** Parent document form state, used to derive dynamic options for sub-fields */
   parentFormState?: Record<string, any>;
-  /** Forwarded to nested {@link AdminFieldRenderer} so refs in sub-documents can use custom renderers. */
+  /** Forwarded to nested field renderers so refs in sub-documents can use custom renderers. */
   refRenderers?: RefRendererMap;
 }
+
+const renderNestedSubField = ({
+  api,
+  baseUrl,
+  fieldKey,
+  fieldConfig,
+  fieldValue,
+  index,
+  modelConfigs,
+  onSubFieldChange,
+  parentFormState,
+  refRenderers,
+}: {
+  api: Api<any, any, any, any>;
+  baseUrl: string;
+  fieldKey: string;
+  fieldConfig: AdminFieldConfig;
+  fieldValue: any;
+  index: number;
+  modelConfigs?: Array<{name: string; routePath: string}>;
+  onSubFieldChange: (index: number, fieldKey: string, fieldValue: any) => void;
+  parentFormState?: Record<string, any>;
+  refRenderers?: RefRendererMap;
+}): React.ReactElement => {
+  if (fieldConfig.type === "array" && fieldConfig.items) {
+    return (
+      <AdminNestedArrayField
+        api={api}
+        baseUrl={baseUrl}
+        helperText={fieldConfig.description}
+        items={fieldConfig.items}
+        key={fieldKey}
+        modelConfigs={modelConfigs}
+        onChange={(val) => onSubFieldChange(index, fieldKey, val)}
+        parentFormState={parentFormState}
+        refRenderers={refRenderers}
+        title={startCase(fieldKey)}
+        value={fieldValue ?? []}
+      />
+    );
+  }
+
+  return (
+    <AdminFieldRendererCore
+      api={api}
+      baseUrl={baseUrl}
+      fieldConfig={fieldConfig}
+      fieldKey={fieldKey}
+      key={fieldKey}
+      modelConfigs={modelConfigs}
+      onChange={(val) => onSubFieldChange(index, fieldKey, val)}
+      parentFormState={parentFormState}
+      refRenderers={refRenderers}
+      value={fieldValue}
+    />
+  );
+};
 
 const buildDefaultItem = (items: Record<string, AdminFieldConfig>): Record<string, any> => {
   const newItem: Record<string, any> = {};
@@ -163,20 +221,20 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
                 variant="destructive"
               />
             </Box>
-            {subFieldEntries.map(([fieldKey, fieldConfig]) => (
-              <AdminFieldRenderer
-                api={api}
-                baseUrl={baseUrl}
-                fieldConfig={fieldConfig}
-                fieldKey={fieldKey}
-                key={fieldKey}
-                modelConfigs={modelConfigs}
-                onChange={(val: any) => handleSubFieldChange(index, fieldKey, val)}
-                parentFormState={parentFormState}
-                refRenderers={refRenderers}
-                value={itemData[fieldKey]}
-              />
-            ))}
+            {subFieldEntries.map(([fieldKey, fieldConfig]) =>
+              renderNestedSubField({
+                api,
+                baseUrl,
+                fieldConfig,
+                fieldKey,
+                fieldValue: itemData[fieldKey],
+                index,
+                modelConfigs,
+                onSubFieldChange: handleSubFieldChange,
+                parentFormState,
+                refRenderers,
+              })
+            )}
           </Box>
         </Card>
       );

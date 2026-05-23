@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
-import {Schema} from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 import {
   APIError,
@@ -11,6 +11,7 @@ import {
   getAPIErrorBody,
   getDisableExternalErrorTracking,
   isAPIError,
+  mongooseErrorToAPIError,
 } from "./errors";
 
 interface MockResponse {
@@ -298,5 +299,23 @@ describe("apiErrorMiddleware", () => {
     apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
     expect(next).toHaveBeenCalledWith(err);
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  it("converts Mongoose CastError to a 400 APIError response", () => {
+    const err = new mongoose.Error.CastError("Number", "not-a-number", "general.maxUploadSizeMb");
+    apiErrorMiddleware(err, req, res as unknown as Response, next as unknown as NextFunction);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          fields: expect.objectContaining({
+            "general.maxUploadSizeMb": expect.stringContaining("Expected Number"),
+          }),
+        }),
+        status: 400,
+        title: "Validation failed",
+      })
+    );
+    expect(next).not.toHaveBeenCalled();
   });
 });

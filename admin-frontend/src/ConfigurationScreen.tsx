@@ -76,8 +76,14 @@ const ConfigField: React.FC<{
       <TextField
         helperText={helperText}
         onChange={(text: string) => {
+          if (text === "") {
+            onChange("");
+            return;
+          }
           const num = Number(text);
-          onChange(Number.isNaN(num) ? text : num);
+          if (!Number.isNaN(num)) {
+            onChange(num);
+          }
         }}
         testID={testID}
         title={label}

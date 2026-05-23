@@ -91,6 +91,21 @@ export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: str
 };
 
 /**
+ * Ensure serialized documents include `id` to match REST API responses.
+ * Change stream fullDocument payloads are raw BSON objects with `_id` only.
+ */
+export const ensureApiId = (data: unknown): unknown => {
+  if (data == null || typeof data !== "object" || Array.isArray(data)) {
+    return data;
+  }
+  const serialized = data as Record<string, unknown>;
+  if (serialized._id != null && serialized.id == null) {
+    return {...serialized, id: serialized._id};
+  }
+  return data;
+};
+
+/**
  * Serialize a document for emission.
  *
  * Precedence:
@@ -111,7 +126,7 @@ export const serializeDoc = async (
 ): Promise<any> => {
   if (entry.config.realtimeResponseHandler) {
     try {
-      return await entry.config.realtimeResponseHandler(doc, method);
+      return ensureApiId(await entry.config.realtimeResponseHandler(doc, method));
     } catch (error) {
       logger.error(
         `[realtime] realtimeResponseHandler threw for ${entry.modelName}/${method}: ${error}. ` +
@@ -130,7 +145,9 @@ export const serializeDoc = async (
       // We intentionally do not pass a user — handlers must not depend on per-recipient context
       // for realtime serialization (events fan out to many rooms).
       const syntheticReq = {params: {}, query: {}, user: undefined} as any;
-      return await responseHandler(doc, restMethod as any, syntheticReq, entry.options);
+      return ensureApiId(
+        await responseHandler(doc, restMethod as any, syntheticReq, entry.options)
+      );
     } catch (error) {
       logger.error(
         `[realtime] modelRouter responseHandler threw during realtime serialization for ` +
@@ -139,7 +156,7 @@ export const serializeDoc = async (
     }
   }
 
-  return typeof doc.toJSON === "function" ? doc.toJSON() : doc;
+  return ensureApiId(typeof doc.toJSON === "function" ? doc.toJSON() : doc);
 };
 
 /**
@@ -361,6 +378,7 @@ export const startChangeStreamWatcher = (
         logDebug(
           `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
         );
+        logInfo(`[realtime] sync event: ${JSON.stringify(event)}`);
       } catch (error) {
         logger.error(`[realtime] Error processing change event: ${error}`);
         Sentry.captureException(error);

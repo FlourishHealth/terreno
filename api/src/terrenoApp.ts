@@ -6,7 +6,11 @@ import qs from "qs";
 import type {ModelRouterRegistration} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
 import {ConfigurationApp, type ConfigurationAppOptions} from "./configurationApp";
-import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import {
+  apiErrorMiddleware,
+  apiFallthroughErrorMiddleware,
+  apiUnauthorizedMiddleware,
+} from "./errors";
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
@@ -342,12 +346,7 @@ export class TerrenoApp {
     app.use(apiUnauthorizedMiddleware);
     app.use(apiErrorMiddleware);
 
-    app.use(function onError(err: any, _req: any, res: any, _next: any) {
-      logger.error(`Fallthrough error: ${err}${err?.stack ? `\n${err.stack}` : ""}}`);
-      Sentry.captureException(err);
-      res.statusCode = 500;
-      res.end(`${res.sentry}\n`);
-    });
+    app.use(apiFallthroughErrorMiddleware);
 
     return app;
   }

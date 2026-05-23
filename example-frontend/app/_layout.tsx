@@ -7,9 +7,10 @@ import "react-native-reanimated";
 import {
   baseUrl,
   getAuthToken,
+  setRealtimeSocket,
+  useRealtimeDebug,
   useSelectCurrentUserId,
   useSocketConnection,
-  useSyncConnection,
   useUpgradeCheck,
 } from "@terreno/rtk";
 import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
@@ -98,12 +99,16 @@ function RootLayoutNav(): React.ReactElement {
     shouldConnect: !!userId,
   });
 
-  // Sync WebSocket events with RTK Query cache
-  useSyncConnection({
-    api: terrenoApi,
-    socket,
-    tagTypes: ["todos"],
-  });
+  // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)
+  useRealtimeDebug(baseUrl, socket?.connected);
+
+  // Provide socket to per-endpoint realtime handlers (realtimeList / realtimeDocument)
+  useEffect(() => {
+    setRealtimeSocket(socket);
+    return (): void => {
+      setRealtimeSocket(null);
+    };
+  }, [socket]);
 
   // Validate stored auth token on mount
   useEffect(() => {

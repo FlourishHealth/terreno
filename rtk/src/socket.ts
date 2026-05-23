@@ -37,6 +37,7 @@ export const useSocketConnection = ({
   isSocketConnected: SocketConnection;
 } => {
   const toast = useToast();
+  const socketRef = useRef<Socket | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const isConnectedRef = useRef<SocketConnection>(undefined);
   const [isSocketConnected, setIsSocketConnected] = useState<SocketConnection>({
@@ -59,13 +60,17 @@ export const useSocketConnection = ({
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      transports: ["websocket"],
+      // Start with polling so dev server restarts don't fail the initial websocket-only
+      // handshake; Socket.io upgrades to websocket once the connection is established.
+      transports: ["polling", "websocket"],
     });
 
+    socketRef.current = socketIo;
     setSocket(socketIo);
 
     return (): void => {
       socketIo.disconnect();
+      socketRef.current = null;
     };
   }, [baseUrl]);
 
@@ -97,17 +102,18 @@ export const useSocketConnection = ({
       logAuth("[SocketConnection] Token received from getAuthToken.");
     }
 
-    if (socket) {
+    if (socketRef.current) {
+      const socketInstance = socketRef.current;
       // Enhanced logging for Option 1 (token status)
       logAuth(
-        `[SocketConnection] Socket connecting ${token ? "with" : "without"} token. Current socket state: ${socket.connected ? "connected" : "disconnected"}`
+        `[SocketConnection] Socket connecting ${token ? "with" : "without"} token. Current socket state: ${socketInstance.connected ? "connected" : "disconnected"}`
       );
-      socket.auth = {token: `Bearer ${token}`};
-      socket.connect();
+      socketInstance.auth = {token: `Bearer ${token}`};
+      socketInstance.connect();
     } else {
-      console.warn("[SocketConnection] connectSocket called but socket instance is null.");
+      logAuth("[SocketConnection] connectSocket skipped — socket not initialized yet.");
     }
-  }, [socket, getAuthToken]);
+  }, [getAuthToken]);
 
   // Extracted logic for checking token expiration, refreshing token, and handling related UI
   const checkAndRefreshTokenLogic = useCallback(
@@ -130,11 +136,12 @@ export const useSocketConnection = ({
           );
           await refreshAuthToken();
           // Attempt to reconnect after token refresh
-          if (shouldConnect && socket && !socket.connected) {
+          const socketInstance = socketRef.current;
+          if (shouldConnect && socketInstance && !socketInstance.connected) {
             logAuth(
               `[SocketConnection] Attempting to reconnect socket after token refresh due to ${context}.`
             );
-            socket.connect();
+            socketInstance.connect();
           }
         }
       } catch (error) {
@@ -171,7 +178,7 @@ export const useSocketConnection = ({
         }
       }
     },
-    [shouldConnect, socket, captureEvent, hideDisconnectedToast, toast, hideTokenErrorToast]
+    [shouldConnect, captureEvent, hideDisconnectedToast, toast, hideTokenErrorToast]
   );
 
   // Use Redux state for token refresh signal
@@ -200,8 +207,12 @@ export const useSocketConnection = ({
     previousTokenRefreshTimestampRef.current = lastTokenRefreshTimestamp;
   }, [lastTokenRefreshTimestamp, socket, shouldConnect, connectSocket, hideTokenErrorToast]);
 
-  // Connect/disconnect socket based on shouldConnect flag
+  // Connect/disconnect socket based on shouldConnect flag (waits until socket is initialized)
   useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
     if (shouldConnect) {
       if (!isSocketConnected.isConnected) {
         logAuth(
@@ -230,18 +241,6 @@ export const useSocketConnection = ({
       }
     }
   }, [connectSocket, shouldConnect, isSocketConnected, socket]);
-
-  // Attempt to reconnect if token was refreshed and we are disconnected
-  useEffect(() => {
-    if (shouldConnect && !isSocketConnected.isConnected && socket) {
-      logAuth("[SocketConnection] Token refresh detected, attempting to reconnect socket.");
-      // We might want to ensure the socket isn't already in a connecting state here
-      // if socket.io-client provides such a state.
-      // Forcing a disconnect first can help if it's stuck in a bad state.
-      socket.disconnect();
-      void connectSocket();
-    }
-  }, [shouldConnect, isSocketConnected.isConnected, socket, connectSocket]);
 
   // Show toast when disconnected
   useEffect(() => {
