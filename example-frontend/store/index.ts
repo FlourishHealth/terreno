@@ -47,7 +47,7 @@ const createSafeStorage = (): Storage => {
 };
 
 const persistConfig = {
-  blacklist: ["tracking", "terreno-rtk", "profiles", "offline"],
+  blacklist: ["tracking", "terreno-rtk", "profiles"],
   key: "root",
   storage: createSafeStorage(),
   timeout: 0, // The code base checks for falsy, so 0 disables

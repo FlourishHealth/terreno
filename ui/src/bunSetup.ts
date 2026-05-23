@@ -571,7 +571,8 @@ mock.module("react-signature-canvas", () => {
 mock.module("react-native-portalize", () => ({
   Host: ({children}: MockComponentProps) =>
     React.createElement("View", {testID: "portal-host"}, children),
-  Portal: ({children}: MockComponentProps) => React.createElement("View", {testID: "portal"}, children),
+  Portal: ({children}: MockComponentProps) =>
+    React.createElement("View", {testID: "portal"}, children),
 }));
 
 // Mock IconButton component
