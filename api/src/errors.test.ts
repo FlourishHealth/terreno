@@ -6,6 +6,7 @@ import mongoose, {Schema} from "mongoose";
 import {
   APIError,
   apiErrorMiddleware,
+  apiFallthroughErrorMiddleware,
   apiUnauthorizedMiddleware,
   errorsPlugin,
   getAPIErrorBody,
@@ -316,5 +317,98 @@ describe("apiErrorMiddleware", () => {
       })
     );
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it("converts Mongoose ValidationError to a 400 APIError response with field-level errors", () => {
+    const validationError = new mongoose.Error.ValidationError();
+    validationError.addError(
+      "email",
+      new mongoose.Error.ValidatorError({message: "Email is required", path: "email"})
+    );
+    validationError.addError(
+      "name",
+      new mongoose.Error.ValidatorError({message: "Name too short", path: "name"})
+    );
+
+    apiErrorMiddleware(
+      validationError,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: expect.objectContaining({
+          fields: expect.objectContaining({
+            email: "Email is required",
+            name: "Name too short",
+          }),
+        }),
+        status: 400,
+        title: "Validation failed",
+      })
+    );
+    expect(next).not.toHaveBeenCalled();
+  });
+});
+
+describe("apiFallthroughErrorMiddleware", () => {
+  let res: MockResponse & {headersSent: boolean};
+  let next: ReturnType<typeof mock>;
+  const req = {} as Request;
+  const captureExceptionSpy = Sentry.captureException as unknown as ReturnType<typeof mock>;
+
+  const buildResponseWithHeaders = (
+    headersSent: boolean
+  ): MockResponse & {headersSent: boolean} => {
+    const base = buildResponse();
+    return Object.assign(base, {headersSent});
+  };
+
+  beforeEach(() => {
+    res = buildResponseWithHeaders(false);
+    next = mock(() => {});
+    captureExceptionSpy.mockClear?.();
+  });
+
+  it("responds with a 500 JSON body when headers have not been sent", () => {
+    const err = new Error("unexpected boom");
+    apiFallthroughErrorMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({status: 500, title: "Internal server error"});
+    expect(res.send).toHaveBeenCalled();
+  });
+
+  it("captures the exception with Sentry", () => {
+    const err = new Error("unexpected boom");
+    apiFallthroughErrorMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(captureExceptionSpy).toHaveBeenCalledWith(err);
+  });
+
+  it("does not attempt to write the response when headers have already been sent", () => {
+    res = buildResponseWithHeaders(true);
+    const err = new Error("late boom");
+    apiFallthroughErrorMiddleware(
+      err,
+      req,
+      res as unknown as Response,
+      next as unknown as NextFunction
+    );
+    expect(res.status).not.toHaveBeenCalled();
+    expect(res.json).not.toHaveBeenCalled();
+    expect(res.send).not.toHaveBeenCalled();
+    // Even when we can't respond, the error still gets reported to Sentry for observability.
+    expect(captureExceptionSpy).toHaveBeenCalledWith(err);
   });
 });

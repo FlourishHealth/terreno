@@ -109,4 +109,12 @@ export interface QuerySubscription {
   query: Record<string, any>;
   /** Client-provided queryId (ignored — server computes a canonical ID) */
   queryId?: string;
+  /**
+   * Optional client-generated correlation id. Server echoes it back on the
+   * `query:subscribed` ack so clients can match the ack to the originating
+   * subscription request. Required for clients that need the server's canonical
+   * queryId (e.g. owner-strategy collections, where the server injects ownerId
+   * into the query before hashing).
+   */
+  clientRequestId?: string;
 }

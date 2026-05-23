@@ -12,6 +12,7 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 
+import {Permissions} from "../permissions";
 import {
   emitToDocumentAndQueryRooms,
   mapOperationType,
@@ -657,12 +658,31 @@ describe("installRealtimeSocketHandlers", () => {
     clearQueryStore();
   });
 
+  // Default modelRouter permissions used by the helpers below. Mirrors a typical owner-scoped
+  // todo router (IsAuthenticated for list, IsOwner for read) and a typical broadcast router
+  // (IsAuthenticated for both).
+  const ownerPermissions = {
+    create: [Permissions.IsAuthenticated],
+    delete: [Permissions.IsOwner],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsOwner],
+    update: [Permissions.IsOwner],
+  };
+
+  const broadcastPermissions = {
+    create: [Permissions.IsAuthenticated],
+    delete: [Permissions.IsAuthenticated],
+    list: [Permissions.IsAuthenticated],
+    read: [Permissions.IsAuthenticated],
+    update: [Permissions.IsAuthenticated],
+  };
+
   const registerOwnerCollection = (): void => {
     registerRealtime({
       collectionName: "todos",
       config: {methods: ["create", "update", "delete"], roomStrategy: "owner"},
       modelName: "Todo",
-      options: {} as any,
+      options: {permissions: ownerPermissions} as any,
       routePath: "/todos",
     });
   };
@@ -672,7 +692,7 @@ describe("installRealtimeSocketHandlers", () => {
       collectionName: "broadcasts",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
       modelName: "Broadcast",
-      options: {} as any,
+      options: {permissions: broadcastPermissions} as any,
       routePath: "/broadcasts",
     });
   };
@@ -755,7 +775,7 @@ describe("installRealtimeSocketHandlers", () => {
           collectionName: `coll${i}`,
           config: {methods: ["create"], roomStrategy: "model"},
           modelName: `Coll${i}`,
-          options: {} as any,
+          options: {permissions: broadcastPermissions} as any,
           routePath: `/coll${i}`,
         });
       }
@@ -906,6 +926,183 @@ describe("installRealtimeSocketHandlers", () => {
       const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
       expect(queryRooms.length).toBe(MAX_QUERY_SUBSCRIPTIONS);
     });
+
+    it("echoes clientRequestId on the query:subscribed ack when provided", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        clientRequestId: "req-42",
+        collection: "todos",
+        query: {completed: false},
+      });
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      expect(subscribed).toBeDefined();
+      const ack = subscribed?.payload as {clientRequestId?: string; queryId: string};
+      expect(ack.clientRequestId).toBe("req-42");
+      // Owner-strategy injection means the canonical queryId encodes the userId, which the
+      // client cannot reproduce locally — so the ack's queryId is the authoritative one.
+      expect(ack.queryId).toContain("user1");
+    });
+
+    it("omits clientRequestId from the ack when not provided", async () => {
+      registerOwnerCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "todos",
+        query: {completed: false},
+      });
+      const subscribed = socket.emitted.find((e) => e.event === "query:subscribed");
+      const ack = subscribed?.payload as {clientRequestId?: string; queryId: string};
+      expect(ack.clientRequestId).toBeUndefined();
+    });
+  });
+
+  describe("modelRouter permissions are enforced on subscriptions", () => {
+    // A collection whose modelRouter denies non-admins from listing/reading (admin-only).
+    const registerAdminOnlyCollection = (): void => {
+      registerRealtime({
+        collectionName: "secrets",
+        config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+        modelName: "Secret",
+        options: {
+          permissions: {
+            create: [Permissions.IsAdmin],
+            delete: [Permissions.IsAdmin],
+            list: [Permissions.IsAdmin],
+            read: [Permissions.IsAdmin],
+            update: [Permissions.IsAdmin],
+          },
+        } as any,
+        routePath: "/secrets",
+      });
+    };
+
+    it("denies subscribe:model when list permission rejects the user", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(false);
+    });
+
+    it("allows subscribe:model when list permission accepts the user", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(true);
+    });
+
+    it("denies subscribe:document when read permission rejects the user", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "secrets", id: "doc1"});
+      expect(socket.rooms.has("document:secrets:doc1")).toBe(false);
+    });
+
+    it("denies subscribe:query when list permission rejects the user", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "secrets",
+        query: {priority: 1},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+    });
+
+    it("fails closed when modelRouter has no permissions configured", async () => {
+      registerRealtime({
+        collectionName: "unconfigured",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Unconfigured",
+        // No permissions at all — should be treated as deny-all.
+        options: {} as any,
+        routePath: "/unconfigured",
+      });
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "unconfigured");
+      expect(socket.rooms.has("model:unconfigured")).toBe(false);
+    });
+
+    it("treats a permission predicate that throws as a denial", async () => {
+      registerRealtime({
+        collectionName: "explodes",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Explodes",
+        options: {
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [Permissions.IsAuthenticated],
+            list: [
+              () => {
+                throw new Error("permission predicate exploded");
+              },
+            ],
+            read: [Permissions.IsAuthenticated],
+            update: [Permissions.IsAuthenticated],
+          },
+        } as any,
+        routePath: "/explodes",
+      });
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "explodes");
+      expect(socket.rooms.has("model:explodes")).toBe(false);
+    });
+
+    it("admins bypass the permission predicate even when it would reject them", async () => {
+      // The admin short-circuit prevents predicate evaluation entirely — matches how
+      // modelRouter typically grants admins broad access.
+      registerRealtime({
+        collectionName: "denyall",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "DenyAll",
+        options: {
+          permissions: {
+            create: [() => false],
+            delete: [() => false],
+            list: [() => false],
+            read: [() => false],
+            update: [() => false],
+          },
+        } as any,
+        routePath: "/denyall",
+      });
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "denyall");
+      expect(socket.rooms.has("model:denyall")).toBe(true);
+    });
+
+    it("fails closed when only Permissions.IsOwner is configured for read (non-admin)", async () => {
+      // Document subscriptions cannot evaluate IsOwner without the document. When IsOwner
+      // is the only permission, we cannot prove ownership, so deny.
+      registerRealtime({
+        collectionName: "ownerOnly",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "OwnerOnly",
+        options: {
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [Permissions.IsOwner],
+            list: [Permissions.IsAuthenticated],
+            read: [Permissions.IsOwner],
+            update: [Permissions.IsOwner],
+          },
+        } as any,
+        routePath: "/ownerOnly",
+      });
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "ownerOnly", id: "doc1"});
+      expect(socket.rooms.has("document:ownerOnly:doc1")).toBe(false);
+    });
   });
 
   describe("unsubscribe and counters", () => {
@@ -915,7 +1112,7 @@ describe("installRealtimeSocketHandlers", () => {
         collectionName: "other",
         config: {methods: ["create"], roomStrategy: "model"},
         modelName: "Other",
-        options: {} as any,
+        options: {permissions: broadcastPermissions} as any,
         routePath: "/other",
       });
       const socket = createMockSocket({id: "user1"});

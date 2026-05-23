@@ -5,7 +5,9 @@ import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import {Server, type Socket} from "socket.io";
 
+import type {User} from "../auth";
 import {logger} from "../logger";
+import {type PermissionMethod, Permissions, type RESTPermissions} from "../permissions";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -14,7 +16,7 @@ import {
   removeAllSocketQueries,
   removeQuerySubscription,
 } from "./queryStore";
-import {findRegistryEntryByRoutePath} from "./registry";
+import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -63,6 +65,70 @@ export interface RealtimeSocketLike {
 }
 
 /**
+ * Evaluate the given permission predicates for a socket subscription. Returns true if every
+ * predicate allows the operation; false otherwise. Errors thrown by predicates are treated
+ * as denials (fail closed).
+ *
+ * For subscriptions where the document is not yet known (model rooms, query rooms, document
+ * rooms keyed by ID only), `Permissions.IsOwner` is skipped because it requires the document.
+ * If `IsOwner` is the ONLY permission, this returns false (fail closed) since we cannot verify
+ * ownership without the document.
+ */
+const evaluateSubscriptionPermissions = async <T>(
+  method: "list" | "read",
+  permissions: PermissionMethod<T>[] | undefined,
+  user: User | undefined,
+  isAdmin: boolean
+): Promise<boolean> => {
+  // No permissions configured — deny. Realtime always requires modelRouter to set permissions.
+  if (!permissions || permissions.length === 0) {
+    return false;
+  }
+
+  // Admins always pass — they bypass IsOwner via the predicate itself, and modelRouter typically
+  // grants admins broad access.
+  if (isAdmin) {
+    return true;
+  }
+
+  let evaluated = 0;
+  for (const perm of permissions) {
+    // IsOwner cannot be evaluated without a document. Skip it here; if it's the only permission
+    // we'll fall through to the fail-closed branch below.
+    if (perm === (Permissions.IsOwner as unknown as PermissionMethod<T>)) {
+      continue;
+    }
+    try {
+      const ok = await perm(method, user);
+      if (!ok) {
+        return false;
+      }
+      evaluated += 1;
+    } catch {
+      return false;
+    }
+  }
+
+  // If we skipped every permission (only IsOwner present), fail closed for non-admins.
+  return evaluated > 0;
+};
+
+/**
+ * Resolve the permission array for a given subscription method on a registry entry. Returns
+ * undefined when the modelRouter did not configure permissions for that method.
+ */
+const getPermissionsForMethod = (
+  entry: RealtimeRegistryEntry,
+  method: "list" | "read"
+): PermissionMethod<unknown>[] | undefined => {
+  const perms = entry.options.permissions as RESTPermissions<unknown> | undefined;
+  if (!perms) {
+    return undefined;
+  }
+  return perms[method];
+};
+
+/**
  * Install the realtime subscription handlers on a single socket. Extracted from the
  * RealtimeApp connection handler so this logic can be unit-tested with a mock socket
  * (no real Socket.io / HTTP server / JWT handshake required).
@@ -72,6 +138,8 @@ export interface RealtimeSocketLike {
  *   - registry membership (only realtime-enabled collections can be subscribed)
  *   - owner-strategy isolation (non-admin users cannot subscribe to other users' rooms)
  *   - server-side queryId computation (clients can't hijack queries by colliding ids)
+ *   - modelRouter read/list permissions are evaluated for every subscription so WebSocket
+ *     subscribers cannot bypass REST authorization
  */
 export const installRealtimeSocketHandlers = (
   socket: RealtimeSocketLike,
@@ -82,6 +150,9 @@ export const installRealtimeSocketHandlers = (
   const isAdmin = socket.decodedToken?.admin === true;
 
   const counts = {document: 0, model: 0, query: 0};
+  const syntheticUser: User | undefined = userId
+    ? {_id: userId, admin: isAdmin, id: userId}
+    : undefined;
 
   const joinUserRooms = async (): Promise<void> => {
     if (userId) {
@@ -122,6 +193,23 @@ export const installRealtimeSocketHandlers = (
       logInfo(
         `[realtime] User ${userId} denied model subscription for ${modelName}: ` +
           "owner strategy restricts model room to admins"
+      );
+      return;
+    }
+
+    // Evaluate modelRouter's `list` permission — a model room broadcasts list-style events.
+    // This prevents WebSocket subscribers from bypassing REST authorization.
+    const listPermissions = getPermissionsForMethod(entry, "list");
+    const allowed = await evaluateSubscriptionPermissions(
+      "list",
+      listPermissions,
+      syntheticUser,
+      isAdmin
+    );
+    if (!allowed) {
+      logInfo(
+        `[realtime] User ${userId} denied model subscription for ${modelName}: ` +
+          "list permission check failed"
       );
       return;
     }
@@ -170,6 +258,23 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
+    // Evaluate modelRouter's `read` permission. The document is not loaded here, so IsOwner
+    // is skipped — owner-strategy collections fall back to the admin short-circuit above.
+    const readPermissions = getPermissionsForMethod(entry, "read");
+    const allowed = await evaluateSubscriptionPermissions(
+      "read",
+      readPermissions,
+      syntheticUser,
+      isAdmin
+    );
+    if (!allowed) {
+      logInfo(
+        `[realtime] User ${userId} denied document subscription for ` +
+          `${payload.collection}/${payload.id}: read permission check failed`
+      );
+      return;
+    }
+
     counts.document += 1;
     const room = `document:${payload.collection}:${payload.id}`;
     await socket.join(room);
@@ -209,6 +314,22 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
+    // Evaluate modelRouter's `list` permission — a query room broadcasts list-style events.
+    const listPermissions = getPermissionsForMethod(entry, "list");
+    const allowed = await evaluateSubscriptionPermissions(
+      "list",
+      listPermissions,
+      syntheticUser,
+      isAdmin
+    );
+    if (!allowed) {
+      logInfo(
+        `[realtime] User ${userId} denied query subscription for ${payload.collection}: ` +
+          "list permission check failed"
+      );
+      return;
+    }
+
     let query = {...payload.query};
     if (entry.config.roomStrategy === "owner" && !isAdmin) {
       if (!userId) {
@@ -222,7 +343,18 @@ export const installRealtimeSocketHandlers = (
     addQuerySubscription(socket.id, payload.collection, query, queryId);
     counts.query += 1;
     await socket.join(`query:${queryId}`);
-    socket.emit("query:subscribed", {collection: payload.collection, queryId});
+    // Echo any client-provided correlation id so the client can match this ack to its
+    // originating subscription request. The server's canonical `queryId` differs from
+    // the client's locally-hashed id whenever owner-strategy injection mutates the query,
+    // so the client MUST use this canonical id when later sending `unsubscribe:query`.
+    const ack: {collection: string; queryId: string; clientRequestId?: string} = {
+      collection: payload.collection,
+      queryId,
+    };
+    if (typeof payload.clientRequestId === "string" && payload.clientRequestId.length > 0) {
+      ack.clientRequestId = payload.clientRequestId;
+    }
+    socket.emit("query:subscribed", ack);
     logInfo(`[realtime] User ${userId} subscribed to query:${queryId} on ${payload.collection}`);
   });
 

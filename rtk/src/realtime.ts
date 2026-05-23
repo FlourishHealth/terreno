@@ -114,14 +114,17 @@ const normalizeRealtimeData = (data: any): any => {
   return data;
 };
 
-/** Deterministic hash for a query object — used as the room ID. */
-const hashQuery = (collection: string, query: Record<string, any>): string => {
-  const sortedKeys = Object.keys(query).sort();
-  const normalized: Record<string, any> = {};
-  for (const key of sortedKeys) {
-    normalized[key] = query[key];
-  }
-  return `${collection}:${JSON.stringify(normalized)}`;
+/**
+ * Generate a unique correlation id for a subscribe:query request. The server echoes this
+ * back in the `query:subscribed` ack so the client can match the ack to the originating
+ * subscription. This is required because the server may mutate the query (e.g. owner-strategy
+ * injection of `ownerId`) before hashing the canonical queryId — clients cannot reproduce
+ * that hash locally.
+ */
+let _clientRequestCounter = 0;
+const generateClientRequestId = (): string => {
+  _clientRequestCounter += 1;
+  return `crid-${Date.now().toString(36)}-${_clientRequestCounter}`;
 };
 
 // ---------------------------------------------------------------------------
@@ -265,10 +268,26 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
 
     const query = getQuery(arg);
     let queryId: string | undefined;
+    // Listener for `query:subscribed` acks. The server is authoritative on the canonical
+    // queryId — we MUST use whatever it echoes back, because owner-strategy injection can
+    // mutate the query before it is hashed (e.g. adding `ownerId`). Hashing locally would
+    // leak subscriptions on unsubscribe.
+    let handleSubscribed: ((payload: {clientRequestId?: string; queryId: string}) => void) | null =
+      null;
 
     if (query) {
-      queryId = hashQuery(collection, query);
-      socket.emit("subscribe:query", {collection, query, queryId});
+      const clientRequestId = generateClientRequestId();
+      handleSubscribed = (payload): void => {
+        if (payload?.clientRequestId === clientRequestId && typeof payload.queryId === "string") {
+          queryId = payload.queryId;
+          if (handleSubscribed) {
+            socket.off("query:subscribed", handleSubscribed);
+            handleSubscribed = null;
+          }
+        }
+      };
+      socket.on("query:subscribed", handleSubscribed);
+      socket.emit("subscribe:query", {clientRequestId, collection, query});
     } else {
       socket.emit("subscribe:model", collection);
     }
@@ -351,9 +370,24 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
 
     await cacheEntryRemoved;
     socket.off("sync", handleSync);
+    // Detach the subscribe ack listener if it never fired (or fired but for a different request).
+    if (handleSubscribed) {
+      socket.off("query:subscribed", handleSubscribed);
+      handleSubscribed = null;
+    }
 
-    if (queryId) {
-      socket.emit("unsubscribe:query", {queryId});
+    if (query) {
+      // Only emit unsubscribe:query if we received the server's canonical queryId. If the ack
+      // never arrived (e.g. cache entry removed before the round-trip completed), skip — the
+      // server will reap the subscription on socket disconnect via removeAllSocketQueries.
+      if (queryId) {
+        socket.emit("unsubscribe:query", {queryId});
+      } else if (isWebsocketsDebugEnabled()) {
+        logSocket(
+          true,
+          `realtimeList(${collection}) cleanup: no queryId received from server, skipping unsubscribe`
+        );
+      }
     } else {
       socket.emit("unsubscribe:model", collection);
     }
