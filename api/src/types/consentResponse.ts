@@ -1,18 +1,16 @@
 import type mongoose from "mongoose";
 import type {FindExactlyOnePlugin, FindOneOrNonePlugin} from "../plugins";
 
-// biome-ignore lint/complexity/noBannedTypes: No methods.
-export type ConsentResponseMethods = {};
+// biome-ignore lint/suspicious/noEmptyInterface: Prefer interface over type per project rules
+export interface ConsentResponseMethods {}
 
-export type ConsentResponseStatics = FindExactlyOnePlugin<ConsentResponseDocument> &
-  FindOneOrNonePlugin<ConsentResponseDocument>;
+export interface ConsentResponseStatics
+  extends FindExactlyOnePlugin<ConsentResponseDocument>,
+    FindOneOrNonePlugin<ConsentResponseDocument> {}
 
-export type ConsentResponseModel = mongoose.Model<
-  ConsentResponseDocument,
-  object,
-  ConsentResponseMethods
-> &
-  ConsentResponseStatics;
+export interface ConsentResponseModel
+  extends mongoose.Model<ConsentResponseDocument, object, ConsentResponseMethods>,
+    ConsentResponseStatics {}
 
 export interface ConsentResponseDocument extends mongoose.Document {
   _id: mongoose.Types.ObjectId;

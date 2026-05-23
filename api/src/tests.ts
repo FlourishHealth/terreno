@@ -106,7 +106,12 @@ const foodCategorySchema = new Schema<FoodCategory>(
   {timestamps: {createdAt: "created", updatedAt: "updated"}}
 );
 
-const likesSchema = new Schema<any>({
+interface Likes {
+  likes: boolean;
+  userId: mongoose.Types.ObjectId;
+}
+
+const likesSchema = new Schema<Likes>({
   likes: {description: "Whether the user liked the item", type: Boolean},
   userId: {description: "The user who liked the item", ref: "User", type: "ObjectId"},
 });
@@ -124,7 +129,7 @@ const foodSchema = new Schema<Food>(
         type: Schema.Types.ObjectId,
       },
     ],
-    // noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
+    // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
     expiration: {description: "Expiration date of the food", type: DateOnly as any},
     hidden: {
       default: false,

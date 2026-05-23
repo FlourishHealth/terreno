@@ -1,6 +1,9 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {Writable} from "node:stream";
 import express from "express";
 import supertest from "supertest";
+import winston from "winston";
 
 import {
   createRouter,
@@ -11,6 +14,7 @@ import {
   setupServer,
   wrapScript,
 } from "./expressServer";
+import {logger, winstonLogger} from "./logger";
 import {UserModel} from "./tests";
 
 describe("expressServer", () => {
@@ -58,6 +62,52 @@ describe("expressServer", () => {
   });
 
   describe("logRequests", () => {
+    it("attaches request and session context to route logs", async () => {
+      const logs: string[] = [];
+      const logStream = new Writable({
+        write(chunk, _encoding, callback) {
+          logs.push(chunk.toString());
+          callback();
+        },
+      });
+      const transport = new winston.transports.Stream({
+        format: winston.format.json(),
+        stream: logStream,
+      });
+
+      const app = setupServer({
+        addRoutes: (router) => {
+          router.get("/context-test", (req, res) => {
+            logger.info("context route log");
+            return res.json({requestId: req.requestId, sessionId: req.sessionId});
+          });
+        },
+        logRequests: false,
+        skipListen: true,
+        userModel: UserModel as any,
+      });
+      winstonLogger.add(transport);
+
+      const res = await supertest(app)
+        .get("/context-test")
+        .set("X-Request-ID", "req-123")
+        .set("X-Session-ID", "session-123")
+        .expect(200);
+
+      expect(res.headers["x-request-id"]).toBe("req-123");
+      expect(res.headers["x-session-id"]).toBe("session-123");
+      expect(res.body).toEqual({requestId: "req-123", sessionId: "session-123"});
+
+      const parsedLog = logs
+        .map((entry) => JSON.parse(entry))
+        .find((entry) => entry.message === "context route log");
+      expect(parsedLog).toBeDefined();
+      expect(parsedLog.requestId).toBe("req-123");
+      expect(parsedLog.sessionId).toBe("session-123");
+
+      winstonLogger.remove(transport);
+    });
+
     it("logs request with admin user type", () => {
       const req = {
         body: {},
@@ -653,7 +703,6 @@ describe("expressServer", () => {
     const timerIds: ReturnType<typeof setTimeout>[] = [];
 
     beforeEach(() => {
-      // biome-ignore lint/suspicious/noExplicitAny: Mock requires type override for process.exit.
       process.exit = mock(() => {
         throw new Error("process.exit called");
       }) as unknown as typeof process.exit;
@@ -750,7 +799,6 @@ describe("expressServer", () => {
         setupServer({
           addRoutes,
           skipListen: true,
-          // biome-ignore lint/suspicious/noExplicitAny: Test mock for UserModel.
           userModel: UserModel as any,
         })
       ).toThrow("route initialization failed");

@@ -48,7 +48,7 @@ export const useToast = (): {
   };
   return {
     catch: (error: unknown, message?: string, options?: UseToastVariantOptions): void => {
-      let exceptionMsg;
+      let exceptionMsg: string;
       if (isAPIError(error)) {
         // Get the error without details.
         exceptionMsg = `${message}: ${printAPIError(error)}`;

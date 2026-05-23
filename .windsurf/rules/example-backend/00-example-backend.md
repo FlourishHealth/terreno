@@ -1,3 +1,7 @@
+---
+title: example-backend - Express backend demonstrating @terreno/api usage
+trigger: always_on
+---
 # example-backend
 
 Example Express backend demonstrating @terreno/api usage with Mongoose models, permissions, and OpenAPI generation. This is a **backend-only** app — no React, no UI components, no frontend code.

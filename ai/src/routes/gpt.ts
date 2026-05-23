@@ -16,7 +16,12 @@ import {GptHistory} from "../models/gptHistory";
 import {Project} from "../models/project";
 import {AIService} from "../service/aiService";
 import {TITLE_GENERATION_PROMPT} from "../service/prompts";
-import type {GptHistoryPrompt, GptRouteOptions, MessageContentPart} from "../types";
+import type {
+  GptHistoryDocument,
+  GptHistoryPrompt,
+  GptRouteOptions,
+  MessageContentPart,
+} from "../types";
 
 const DEMO_RESPONSE =
   "This is demo mode. To use AI features, paste your Gemini API key in Settings.";
@@ -90,7 +95,7 @@ const generateTitle = async (
   }
 };
 
-export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
+export const addGptRoutes = (router: express.Router, options: GptRouteOptions): void => {
   const {mcpService, tools: routeTools, createRequestTools, toolChoice, maxSteps} = options;
 
   router.post(
@@ -135,7 +140,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           model: requestModel,
           projectId,
         } = req.body;
-        const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+        const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
         if (!prompt || typeof prompt !== "string") {
           throw new APIError({status: 400, title: "prompt is required"});
@@ -158,7 +163,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         }
 
         // Load or create history
-        let history;
+        let history: GptHistoryDocument | null;
         if (historyId) {
           history = await GptHistory.findById(historyId);
           if (!history) {
@@ -228,7 +233,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
         if (attachments && Array.isArray(attachments)) {
           logger.debug("Processing attachments", {
             count: attachments.length,
-            types: attachments.map((a: any) => ({
+            types: attachments.map((a: {mimeType?: string; type?: string; url?: string}) => ({
               mimeType: a.mimeType,
               type: a.type,
               urlLength: a.url?.length ?? 0,
@@ -311,7 +316,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
           const result = streamText({
             experimental_telemetry: telemetry,
             messages,
-            model: (aiService as any).model,
+            model: aiService.model,
             providerOptions: !supportsTools
               ? {
                   google: {responseModalities: ["TEXT", "IMAGE"]},
@@ -320,7 +325,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               : undefined,
             stopWhen: allTools ? stepCountIs(maxSteps ?? 5) : stepCountIs(1),
             system: effectiveSystemPrompt ?? undefined,
-            temperature: (aiService as any).defaultTemperature,
+            temperature: aiService.defaultTemperature,
             toolChoice: allTools ? (toolChoice ?? "auto") : undefined,
             tools: allTools,
           });
@@ -332,7 +337,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
 
           for await (const part of result.fullStream as AsyncIterable<{
             type: string;
-            [key: string]: any;
+            [key: string]: unknown;
           }>) {
             partCount++;
             if (partCount <= 5 || part.type === "error" || part.type === "file") {
@@ -407,9 +412,9 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               // Persist tool call in history
               history.prompts.push({
                 args: part.input as Record<string, unknown>,
-                text: `Tool call: ${part.toolName}`,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
+                text: `Tool call: ${part.toolName as string}`,
+                toolCallId: part.toolCallId as string,
+                toolName: part.toolName as string,
                 type: "tool-call",
               });
             } else if (part.type === "tool-result") {
@@ -447,9 +452,9 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
               // Persist tool result in history (without the large file data)
               history.prompts.push({
                 result: cleanResult as unknown,
-                text: `Tool result: ${part.toolName}`,
-                toolCallId: part.toolCallId,
-                toolName: part.toolName,
+                text: `Tool result: ${part.toolName as string}`,
+                toolCallId: part.toolCallId as string,
+                toolName: part.toolName as string,
                 type: "tool-result",
               });
             }
@@ -615,7 +620,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {id} = req.params;
       const {promptIndex, rating} = req.body;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       if (typeof promptIndex !== "number" || promptIndex < 0) {
         throw new APIError({status: 400, title: "promptIndex must be a non-negative number"});
@@ -662,7 +667,7 @@ export const addGptRoutes = (router: any, options: GptRouteOptions): void => {
     ],
     asyncHandler(async (req: express.Request, res: express.Response) => {
       const {text} = req.body;
-      const userId = (req as any).user?._id as mongoose.Types.ObjectId | undefined;
+      const userId = (req.user as {_id?: mongoose.Types.ObjectId} | undefined)?._id;
 
       if (!text || typeof text !== "string") {
         throw new APIError({status: 400, title: "text is required"});

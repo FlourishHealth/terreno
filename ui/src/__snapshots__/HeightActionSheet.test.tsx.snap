@@ -183,9 +183,12 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Done",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Done",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": false,
+                                        },
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -202,7 +205,7 @@ exports[`HeightActionSheet renders correctly 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {
@@ -874,9 +877,12 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                       ],
                                       "props": {
                                         "accessibilityHint": "Press to perform action",
-                                        "aria-label": "Done",
-                                        "aria-role": "button",
-                                        "disabled": undefined,
+                                        "accessibilityLabel": "Done",
+                                        "accessibilityRole": "button",
+                                        "accessibilityState": {
+                                          "disabled": false,
+                                        },
+                                        "disabled": false,
                                         "onPress": [Function: debounced],
                                         "style": {
                                           "alignItems": "center",
@@ -893,7 +899,7 @@ exports[`HeightActionSheet renders with different height value 1`] = `
                                         },
                                         "testID": undefined,
                                       },
-                                      "type": "Pressable",
+                                      "type": "PressableScale",
                                     },
                                   ],
                                   "props": {

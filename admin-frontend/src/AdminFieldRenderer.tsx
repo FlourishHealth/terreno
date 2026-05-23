@@ -2,6 +2,7 @@ import startCase from "lodash/startCase";
 import React from "react";
 import {AdminFieldRendererCore, type AdminFieldRendererCoreProps} from "./AdminFieldRendererCore";
 import {AdminNestedArrayField} from "./AdminNestedArrayField";
+import type {AdminFieldValue} from "./types";
 
 export type AdminFieldRendererProps = AdminFieldRendererCoreProps;
 
@@ -39,7 +40,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         parentFormState={parentFormState}
         refRenderers={refRenderers}
         title={startCase(fieldKey)}
-        value={value ?? []}
+        value={Array.isArray(value) ? (value as Record<string, AdminFieldValue>[]) : []}
       />
     );
   }

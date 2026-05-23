@@ -13,7 +13,7 @@ import {Project} from "../models/project";
 import type {ProjectDocument} from "../types";
 
 export const addProjectRoutes = (
-  router: any,
+  router: express.Router,
   options?: {openApiOptions?: Record<string, unknown>}
 ): void => {
   // Add memory to a project (registered before modelRouter so it isn't shadowed)

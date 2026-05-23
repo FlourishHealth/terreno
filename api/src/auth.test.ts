@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import type jwt from "jsonwebtoken";
@@ -8,13 +9,26 @@ import {modelRouter} from "./api";
 import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
+import {getCurrentRequestContext} from "./requestContext";
 import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";
 
+const decodeTokenPayload = <T extends Record<string, unknown>>(token: string): T => {
+  const encodedPayload = token.split(".")[1];
+  return JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as T;
+};
+
 describe("auth tests", () => {
   let app: express.Application;
   let admin: any;
+  let contextEvents: Array<{
+    currentSessionId?: string;
+    requestId?: string;
+    sessionId?: string;
+    stage: string;
+    userId?: string;
+  }>;
   let notAdmin: any;
   let agent: TestAgent;
 
@@ -23,6 +37,7 @@ describe("auth tests", () => {
     // lockout mechanism needs real time to progress
     setSystemTime();
     [admin, notAdmin] = await setupDb();
+    contextEvents = [];
 
     await Promise.all([
       FoodModel.create({
@@ -74,6 +89,65 @@ describe("auth tests", () => {
             ownerReadFields: ["name", "calories", "created", "ownerId"],
             ownerWriteFields: ["name", "calories", "created"],
           }),
+        })
+      );
+      router.use(
+        "/context-food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAuthenticated],
+            delete: [],
+            list: [],
+            read: [],
+            update: [],
+          },
+          postCreate: async (_value, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "postCreate",
+              userId: req.user?.id,
+            });
+          },
+          preCreate: (body, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: "preCreate",
+              userId: req.user?.id,
+            });
+
+            return {
+              ...(body as Partial<Food>),
+              categories: [],
+              eatenBy: [req.user?._id],
+              expiration: "2026-01-01",
+              lastEatenWith: {},
+              likesIds: [],
+              ownerId: req.user?._id,
+              source: {name: "context-test"},
+              tags: [],
+            } as unknown as Food;
+          },
+          responseHandler: async (value, method, req) => {
+            contextEvents.push({
+              currentSessionId: getCurrentRequestContext()?.sessionId,
+              requestId: req.requestId,
+              sessionId: req.sessionId,
+              stage: `responseHandler:${method}`,
+              userId: req.user?.id,
+            });
+
+            return {
+              id: String((value as {_id: unknown})._id),
+              requestId: req.requestId ?? null,
+              sessionContext: getCurrentRequestContext()?.sessionId ?? null,
+              sessionId: req.sessionId ?? null,
+              userId: req.user?.id ?? null,
+            };
+          },
         })
       );
     }
@@ -199,6 +273,92 @@ describe("auth tests", () => {
       .send({email: "ADMIN+other@example.com", password: "otherPassword"})
       .expect(200);
     expect(res.body.data.token).toBeDefined();
+  });
+
+  it("passes request and session context through modelRouter hooks", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+
+    const createRes = await agent
+      .post("/context-food")
+      .set("authorization", `Bearer ${loginRes.body.data.token}`)
+      .set("X-Request-ID", "model-router-request-1")
+      .send({calories: 10, name: "Context Apple"})
+      .expect(201);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const sessionId = loginTokenPayload.sid;
+    if (!sessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(createRes.headers["x-request-id"]).toBe("model-router-request-1");
+    expect(createRes.headers["x-session-id"]).toBe(sessionId);
+    expect(createRes.body.data.requestId).toBe("model-router-request-1");
+    expect(createRes.body.data.sessionId).toBe(sessionId);
+    expect(createRes.body.data.sessionContext).toBe(sessionId);
+    expect(createRes.body.data.userId).toBe(String(admin._id));
+    expect(contextEvents).toEqual([
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "preCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "postCreate",
+        userId: String(admin._id),
+      },
+      {
+        currentSessionId: sessionId,
+        requestId: "model-router-request-1",
+        sessionId,
+        stage: "responseHandler:create",
+        userId: String(admin._id),
+      },
+    ]);
+  });
+
+  it("preserves JWT session id across refresh and request context", async () => {
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "admin@example.com", password: "securePassword"})
+      .expect(200);
+    const loginTokenPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.token);
+    const loginRefreshPayload = decodeTokenPayload<{sid?: string}>(loginRes.body.data.refreshToken);
+
+    expect(loginTokenPayload.sid).toBeDefined();
+    const loginSessionId = loginTokenPayload.sid;
+    if (!loginSessionId) {
+      throw new Error("Expected login token to include a session id");
+    }
+    expect(loginRefreshPayload.sid).toBe(loginSessionId);
+    expect(loginRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const refreshRes = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: loginRes.body.data.refreshToken})
+      .expect(200);
+    const refreshedTokenPayload = decodeTokenPayload<{sid?: string}>(refreshRes.body.data.token);
+    const refreshedRefreshPayload = decodeTokenPayload<{sid?: string}>(
+      refreshRes.body.data.refreshToken
+    );
+
+    expect(refreshedTokenPayload.sid).toBe(loginSessionId);
+    expect(refreshedRefreshPayload.sid).toBe(loginSessionId);
+    expect(refreshRes.headers["x-session-id"]).toBe(loginSessionId);
+
+    const foodRes = await agent
+      .get("/food")
+      .set("authorization", `Bearer ${refreshRes.body.data.token}`)
+      .expect(200);
+    expect(foodRes.headers["x-session-id"]).toBe(loginSessionId);
   });
 
   it("completes token login e2e", async () => {

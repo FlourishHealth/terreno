@@ -42,7 +42,7 @@ export interface APIErrorConstructor {
   };
   // A meta object containing non-standard meta-information about the error.
   meta?: {[id: string]: string};
-  error?: Error;
+  error?: unknown;
   // If true, this error will not be sent to external error reporting tools like Sentry.
   disableExternalErrorTracking?: boolean;
 }
@@ -82,19 +82,17 @@ export class APIError extends Error {
       }
     | undefined;
 
-  meta: {[id: string]: any} | undefined;
+  meta: {[id: string]: unknown} | undefined;
 
-  error?: Error;
+  error?: unknown;
 
   disableExternalErrorTracking?: boolean;
 
   constructor(data: APIErrorConstructor) {
+    const errorStack =
+      data.error instanceof Error && data.error.stack ? `\n${data.error.stack}` : "";
     // Include details in when the error is printed to the console or sent to Sentry.
-    super(
-      `${data.title}${data.detail ? `: ${data.detail}` : ""}${
-        data.error ? `\n${data.error.stack}` : ""
-      }`
-    );
+    super(`${data.title}${data.detail ? `: ${data.detail}` : ""}${errorStack}`);
     this.name = "APIError";
 
     let {title, id, links, status, code, detail, source, meta, fields, error} = data;
@@ -120,9 +118,9 @@ export class APIError extends Error {
       this.meta.fields = fields;
     }
     this.error = error;
-    const logMessage = `APIError(${status}): ${title} ${detail ? detail : ""}${
-      data.error?.stack ? `\n${data.error?.stack}` : ""
-    }`;
+    const dataErrorStack =
+      data.error instanceof Error && data.error.stack ? `\n${data.error.stack}` : "";
+    const logMessage = `APIError(${status}): ${title} ${detail ? detail : ""}${dataErrorStack}`;
     if (data.disableExternalErrorTracking) {
       logger.warn(logMessage);
     } else {
@@ -162,8 +160,24 @@ export const errorsPlugin = (schema: Schema): void => {
   schema.add({apiErrors: errorSchema});
 };
 
-export const isAPIError = (error: Error): error is APIError => {
-  return error.name === "APIError";
+export const isAPIError = (error: unknown): error is APIError => {
+  return error instanceof Error && error.name === "APIError";
+};
+
+/** Extract a human-readable message from an unknown error. */
+export const errorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+};
+
+/** Extract a stack trace string from an unknown error. */
+export const errorStack = (error: unknown): string => {
+  if (error instanceof Error && error.stack) {
+    return error.stack;
+  }
+  return String(error);
 };
 
 /**
@@ -186,8 +200,9 @@ export const getDisableExternalErrorTracking = (error: unknown): boolean | undef
 // Creates an APIError body to send to clients as JSON. Errors don't have a toJSON defined,
 // and we want to strip out things like message, name, and stack for the client.
 // There is almost certainly a more elegant solution to this.
-export const getAPIErrorBody = (error: APIError): {[id: string]: any} => {
-  const errorData = {status: error.status, title: error.title};
+export const getAPIErrorBody = (error: APIError): Record<string, unknown> => {
+  const errorData: Record<string, unknown> = {status: error.status, title: error.title};
+  const indexable = error as unknown as Record<string, unknown>;
   for (const key of [
     "id",
     "links",
@@ -198,8 +213,8 @@ export const getAPIErrorBody = (error: APIError): {[id: string]: any} => {
     "meta",
     "disableExternalErrorTracking",
   ]) {
-    if (error[key]) {
-      errorData[key] = error[key];
+    if (indexable[key]) {
+      errorData[key] = indexable[key];
     }
   }
   return errorData;
