@@ -111,7 +111,6 @@ const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] =>
 const canReadDocument = async (
   entry: RealtimeRegistryEntry,
   user?: User,
-  // biome-ignore lint/suspicious/noExplicitAny: document shape varies per consumer model
   doc?: any
 ): Promise<boolean> => {
   return checkPermissions("read", entry.options.permissions.read, user, doc);
@@ -121,12 +120,7 @@ const canReadDocument = async (
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
-export const resolveRooms = (
-  entry: RealtimeRegistryEntry,
-  // biome-ignore lint/suspicious/noExplicitAny: doc shape varies per consumer model; resolver is at the framework boundary
-  doc: any,
-  method: string
-): string[] => {
+export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): string[] => {
   const {roomStrategy} = entry.config;
   // Use the collection tag (e.g. "todos") for model rooms, matching what the frontend subscribes to
   const collectionTag = getCollectionTag(entry.routePath);
@@ -188,11 +182,9 @@ export const ensureApiId = (data: unknown): unknown => {
  */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
-  // biome-ignore lint/suspicious/noExplicitAny: doc is a Mongoose document for an arbitrary consumer model
   doc: any,
   method: "create" | "update" | "delete",
   user?: User
-  // biome-ignore lint/suspicious/noExplicitAny: serializer return shape is consumer-defined
 ): Promise<any> => {
   if (entry.config.realtimeResponseHandler) {
     try {
@@ -232,7 +224,6 @@ export const emitToAuthorizedRoom = async (
   room: string,
   event: RealtimeEvent,
   entry: RealtimeRegistryEntry,
-  // biome-ignore lint/suspicious/noExplicitAny: fullDocument shape varies per consumer model
   fullDocument: any,
   logDebug: (msg: string) => void
 ): Promise<void> => {
@@ -275,7 +266,6 @@ export const emitToDocumentAndQueryRooms = async (
   io: Server,
   collection: string,
   event: RealtimeEvent,
-  // biome-ignore lint/suspicious/noExplicitAny: fullDocument shape varies per consumer model
   fullDocument: any,
   logDebug: (msg: string) => void,
   entry?: RealtimeRegistryEntry
