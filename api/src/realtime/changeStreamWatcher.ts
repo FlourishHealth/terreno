@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
-import type {Server} from "socket.io";
+import type {Server, Socket} from "socket.io";
 
 type ChangeStream = mongoose.mongo.ChangeStream;
 type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
@@ -19,7 +19,9 @@ type WatchedChange = Extract<
   {operationType: "insert" | "update" | "replace" | "delete"}
 >;
 
+import type {User} from "../auth";
 import {logger} from "../logger";
+import {checkPermissions} from "../permissions";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
@@ -72,6 +74,48 @@ export const mapOperationType = (
  * E.g. "/todos" -> "todos"
  */
 const getCollectionTag = (routePath: string): string => routePath.replace(/^\//, "");
+
+interface RealtimeSocketWithAuth extends Socket {
+  decodedToken?: {id?: string; admin?: boolean; isAnonymous?: boolean};
+}
+
+const getSocketUser = (socket: RealtimeSocketWithAuth): User | undefined => {
+  const userId = socket.decodedToken?.id;
+  if (!userId) {
+    return undefined;
+  }
+  return {
+    _id: userId,
+    admin: socket.decodedToken?.admin === true,
+    id: userId,
+    isAnonymous: socket.decodedToken?.isAnonymous,
+  };
+};
+
+const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] => {
+  const socketIds = io.sockets.adapter.rooms.get(room);
+  if (!socketIds) {
+    return [];
+  }
+
+  const sockets: RealtimeSocketWithAuth[] = [];
+  for (const socketId of socketIds) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (socket) {
+      sockets.push(socket as RealtimeSocketWithAuth);
+    }
+  }
+  return sockets;
+};
+
+const canReadDocument = async (
+  entry: RealtimeRegistryEntry,
+  user?: User,
+  // biome-ignore lint/suspicious/noExplicitAny: document shape varies per consumer model
+  doc?: any
+): Promise<boolean> => {
+  return checkPermissions("read", entry.options.permissions.read, user, doc);
+};
 
 /**
  * Determine which Socket.io rooms to emit to based on the room strategy.
@@ -146,7 +190,8 @@ export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
   // biome-ignore lint/suspicious/noExplicitAny: doc is a Mongoose document for an arbitrary consumer model
   doc: any,
-  method: "create" | "update" | "delete"
+  method: "create" | "update" | "delete",
+  user?: User
   // biome-ignore lint/suspicious/noExplicitAny: serializer return shape is consumer-defined
 ): Promise<any> => {
   if (entry.config.realtimeResponseHandler) {
@@ -167,10 +212,8 @@ export const serializeDoc = async (
       // The REST responseHandler signature expects a "list" | "create" | "read" | "update" method.
       // Map "delete" → "read" so handlers that branch on method receive a sane value.
       const restMethod = method === "delete" ? "read" : method;
-      // Synthesize the minimal request shape a sanitizing responseHandler is likely to read.
-      // We intentionally do not pass a user — handlers must not depend on per-recipient context
-      // for realtime serialization (events fan out to many rooms).
-      const syntheticReq = {params: {}, query: {}, user: undefined} as unknown as express.Request;
+      // Synthesize the minimal request shape responseHandlers commonly inspect.
+      const syntheticReq = {params: {}, query: {}, user} as unknown as express.Request;
       return ensureApiId(await responseHandler(doc, restMethod, syntheticReq, entry.options));
     } catch (error) {
       logger.error(
@@ -182,6 +225,34 @@ export const serializeDoc = async (
   }
 
   return ensureApiId(typeof doc.toJSON === "function" ? doc.toJSON() : doc);
+};
+
+export const emitToAuthorizedRoom = async (
+  io: Server,
+  room: string,
+  event: RealtimeEvent,
+  entry: RealtimeRegistryEntry,
+  // biome-ignore lint/suspicious/noExplicitAny: fullDocument shape varies per consumer model
+  fullDocument: any,
+  logDebug: (msg: string) => void
+): Promise<void> => {
+  const sockets = getSocketsInRoom(io, room);
+  for (const socket of sockets) {
+    const user = getSocketUser(socket);
+    const canRead = await canReadDocument(entry, user, fullDocument);
+    if (!canRead) {
+      logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);
+      continue;
+    }
+
+    if (!fullDocument) {
+      socket.emit("sync", event);
+      continue;
+    }
+
+    const data = await serializeDoc(entry, fullDocument, event.method, user);
+    socket.emit("sync", {...event, data});
+  }
 };
 
 /**
@@ -200,7 +271,7 @@ export const serializeDoc = async (
  *
  * Exported for testing.
  */
-export const emitToDocumentAndQueryRooms = (
+export const emitToDocumentAndQueryRooms = async (
   io: Server,
   collection: string,
   event: RealtimeEvent,
@@ -208,10 +279,14 @@ export const emitToDocumentAndQueryRooms = (
   fullDocument: any,
   logDebug: (msg: string) => void,
   entry?: RealtimeRegistryEntry
-): void => {
+): Promise<void> => {
   // Emit to document-specific room
   const docRoom = `document:${collection}:${event.id}`;
-  io.to(docRoom).emit("sync", event);
+  if (entry) {
+    await emitToAuthorizedRoom(io, docRoom, event, entry, fullDocument, logDebug);
+  } else {
+    io.to(docRoom).emit("sync", event);
+  }
   logDebug(`[realtime] Emitted ${event.method} to ${docRoom}`);
 
   const isOwnerStrategy = entry?.config.roomStrategy === "owner";
@@ -232,14 +307,22 @@ export const emitToDocumentAndQueryRooms = (
           );
           continue;
         }
-        io.to(queryRoom).emit("sync", event);
+        if (entry) {
+          await emitToAuthorizedRoom(io, queryRoom, event, entry, fullDocument, logDebug);
+        } else {
+          io.to(queryRoom).emit("sync", event);
+        }
         logDebug(`[realtime] Emitted hard delete to ${queryRoom}`);
         continue;
       }
 
       // Soft delete: only forward to query rooms whose filter the document satisfies.
       if (matchesQuery(fullDocument, query)) {
-        io.to(queryRoom).emit("sync", event);
+        if (entry) {
+          await emitToAuthorizedRoom(io, queryRoom, event, entry, fullDocument, logDebug);
+        } else {
+          io.to(queryRoom).emit("sync", event);
+        }
         logDebug(`[realtime] Emitted soft delete to ${queryRoom} (query matched)`);
       }
       continue;
@@ -253,12 +336,20 @@ export const emitToDocumentAndQueryRooms = (
 
     if (event.method === "create" && docMatches) {
       // New document matches the query — send create event
-      io.to(queryRoom).emit("sync", event);
+      if (entry) {
+        await emitToAuthorizedRoom(io, queryRoom, event, entry, fullDocument, logDebug);
+      } else {
+        io.to(queryRoom).emit("sync", event);
+      }
       logDebug(`[realtime] Emitted create to ${queryRoom} (query matched)`);
     } else if (event.method === "update") {
       if (docMatches) {
         // Document still matches (or newly matches) — send update event
-        io.to(queryRoom).emit("sync", event);
+        if (entry) {
+          await emitToAuthorizedRoom(io, queryRoom, event, entry, fullDocument, logDebug);
+        } else {
+          io.to(queryRoom).emit("sync", event);
+        }
         logDebug(`[realtime] Emitted update to ${queryRoom} (query matched)`);
       } else {
         // Document no longer matches the query — send delete event so client removes it
@@ -266,7 +357,11 @@ export const emitToDocumentAndQueryRooms = (
           ...event,
           method: "delete",
         };
-        io.to(queryRoom).emit("sync", removeEvent);
+        if (entry) {
+          await emitToAuthorizedRoom(io, queryRoom, removeEvent, entry, fullDocument, logDebug);
+        } else {
+          io.to(queryRoom).emit("sync", removeEvent);
+        }
         logDebug(`[realtime] Emitted delete to ${queryRoom} (query no longer matched)`);
       }
     }
@@ -413,17 +508,10 @@ export const startChangeStreamWatcher = (
           rooms = resolveRooms(entry, fullDocument, method);
         }
 
-        // Serialize the document. Shape varies per consumer model, so the variable is unknown.
-        let data: unknown;
-        if (!isHardDelete && fullDocument) {
-          data = await serializeDoc(entry, fullDocument, method);
-        }
-
         const collection = getCollectionTag(entry.routePath);
 
         const event: RealtimeEvent = {
           collection,
-          data,
           id: docId,
           method,
           model: entry.modelName,
@@ -435,11 +523,11 @@ export const startChangeStreamWatcher = (
 
         // Emit to strategy-based rooms (model/owner/broadcast)
         for (const room of rooms) {
-          io.to(room).emit("sync", event);
+          await emitToAuthorizedRoom(io, room, event, entry, fullDocument, logDebug);
         }
 
         // Emit to document-specific and query rooms
-        emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
+        await emitToDocumentAndQueryRooms(io, collection, event, fullDocument, logDebug, entry);
 
         logDebug(
           `[realtime] Emitted ${method} for ${entry.modelName}/${docId} to rooms: ${rooms.join(", ")}`
