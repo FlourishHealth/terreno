@@ -56,9 +56,7 @@ describe("AUTH_DEBUG enabled path", () => {
       loaded.logAuth("hello");
       expect(debugCalls.length).toBe(preLength + 1);
       loaded.logSocket(undefined, "ws on");
-      expect(infoCalls.some((args) => args[0] === "[websocket]" && args[1] === "ws on")).toBe(
-        true
-      );
+      expect(infoCalls.some((args) => args[0] === "[websocket]" && args[1] === "ws on")).toBe(true);
     } finally {
       console.debug = originalDebug;
       console.info = originalInfo;
