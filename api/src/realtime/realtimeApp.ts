@@ -257,6 +257,7 @@ export class RealtimeApp implements TerrenoPlugin {
       const connected = this.io?.engine?.clientsCount ?? 0;
       res.json({
         clients: connected,
+        debug: this.config.debug ?? false,
         status: this.io ? "running" : "not_started",
       });
     });

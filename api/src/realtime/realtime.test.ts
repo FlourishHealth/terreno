@@ -1078,6 +1078,20 @@ describe("serializeDoc (change stream serializer)", () => {
     const result = await serializeDoc(entry as any, {name: "Alice"}, "create");
     expect(result).toEqual({name: "Alice"});
   });
+
+  it("adds id from _id when handlers omit it (change stream raw document shape)", async () => {
+    const entry = makeEntry();
+    const result = await serializeDoc(
+      entry as any,
+      {_id: "507f1f77bcf86cd799439011", name: "Alice"},
+      "create"
+    );
+    expect(result).toEqual({
+      _id: "507f1f77bcf86cd799439011",
+      id: "507f1f77bcf86cd799439011",
+      name: "Alice",
+    });
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

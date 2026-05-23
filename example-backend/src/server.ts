@@ -28,7 +28,7 @@ import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
-import {isDeployed} from "./conf";
+import {isDeployed, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -154,6 +154,9 @@ export async function start(skipListen = false): Promise<express.Application> {
   try {
     const betterAuthConfig = buildBetterAuthConfig();
 
+    const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
+    const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
+
     const terraApp = new TerrenoApp({
       loggingOptions: {
         disableConsoleColors: isDeployed,
@@ -195,6 +198,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           changeStream: {
             ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },
+          debug: websocketsDebug,
         })
       )
       .register(

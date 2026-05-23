@@ -2,6 +2,8 @@
 import {DateTime} from "luxon";
 import type {Socket} from "socket.io-client";
 
+import {isWebsocketsDebugEnabled, logSocket} from "./constants";
+
 /**
  * A real-time sync event received from the server via WebSocket.
  * Must be kept in sync with the backend RealtimeEvent in @terreno/api.
@@ -101,6 +103,17 @@ const extractQueryFilter = (arg: any): Record<string, any> | undefined => {
   return Object.keys(filter).length > 0 ? filter : undefined;
 };
 
+/** Normalize websocket document payloads to match REST API shape (`id` from `_id`). */
+const normalizeRealtimeData = (data: any): any => {
+  if (data == null || typeof data !== "object") {
+    return data;
+  }
+  if (data._id != null && data.id == null) {
+    return {...data, id: data._id};
+  }
+  return data;
+};
+
 /** Deterministic hash for a query object — used as the room ID. */
 const hashQuery = (collection: string, query: Record<string, any>): string => {
   const sortedKeys = Object.keys(query).sort();
@@ -170,13 +183,18 @@ export const realtimeDocument = (collection: string, options?: RealtimeDocumentO
     socket.emit("subscribe:document", {collection, id});
 
     const handleSync = (event: RealtimeEvent): void => {
+      if (isWebsocketsDebugEnabled()) {
+        logSocket(true, `realtimeDocument(${collection}/${id}) sync: ${JSON.stringify(event)}`);
+      }
+
       if (event.collection !== collection || event.id !== id) {
         return;
       }
 
       if (event.method === "update" && event.data) {
+        const data = normalizeRealtimeData(event.data);
         updateCachedData((draft: any) => {
-          Object.assign(draft, event.data);
+          Object.assign(draft, data);
         });
       }
 
@@ -256,6 +274,10 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
     }
 
     const handleSync = (event: RealtimeEvent): void => {
+      if (isWebsocketsDebugEnabled()) {
+        logSocket(true, `realtimeList(${collection}) sync: ${JSON.stringify(event)}`);
+      }
+
       if (event.collection !== collection) {
         return;
       }
@@ -263,9 +285,10 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
       switch (event.method) {
         case "create": {
           if (event.data) {
+            const data = normalizeRealtimeData(event.data);
             updateCachedData((draft: any) => {
               if (draft?.data && Array.isArray(draft.data)) {
-                draft.data.unshift(event.data);
+                draft.data.unshift(data);
                 if (typeof draft.total === "number") {
                   draft.total += 1;
                 }
@@ -277,6 +300,7 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
 
         case "update": {
           if (event.data) {
+            const data = normalizeRealtimeData(event.data);
             updateCachedData((draft: any) => {
               if (draft?.data && Array.isArray(draft.data)) {
                 const index = draft.data.findIndex(
@@ -287,15 +311,15 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
                   const cachedUpdated = draft.data[index].updated;
                   if (
                     cachedUpdated &&
-                    event.data.updated &&
-                    DateTime.fromISO(cachedUpdated) > DateTime.fromISO(event.data.updated)
+                    data.updated &&
+                    DateTime.fromISO(cachedUpdated) > DateTime.fromISO(data.updated)
                   ) {
                     return;
                   }
-                  Object.assign(draft.data[index], event.data);
+                  Object.assign(draft.data[index], data);
                 } else {
                   // Document newly matches query — add it to the list
-                  draft.data.unshift(event.data);
+                  draft.data.unshift(data);
                   if (typeof draft.total === "number") {
                     draft.total += 1;
                   }

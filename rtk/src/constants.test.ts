@@ -154,7 +154,7 @@ describe("module-level exports", () => {
   });
 });
 
-describe("logAuth / logSocket", () => {
+describe("logAuth", () => {
   const originalDebug = console.debug;
   const calls: unknown[][] = [];
 
@@ -172,6 +172,22 @@ describe("logAuth / logSocket", () => {
   it("logAuth is a no-op when AUTH_DEBUG is disabled", () => {
     logAuth("auth message");
     expect(calls).toEqual([]);
+  });
+});
+
+describe("logSocket", () => {
+  const originalInfo = console.info;
+  const calls: unknown[][] = [];
+
+  beforeEach(() => {
+    calls.length = 0;
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+  });
+
+  afterEach(() => {
+    console.info = originalInfo;
   });
 
   it("logSocket logs when passed boolean true", () => {

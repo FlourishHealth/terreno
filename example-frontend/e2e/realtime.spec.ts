@@ -76,8 +76,7 @@ test.describe("Realtime sync", () => {
       });
       expect(createRes.ok()).toBe(true);
 
-      // No manual refetch — the WebSocket sync must invalidate the list cache
-      // and trigger a re-render with the new todo.
+      // No manual refetch — realtimeList patches the cache when the sync event arrives.
       await expect(page.getByText("Created via API").first()).toBeVisible({timeout: 10_000});
       await expect(page.getByTestId("todos-empty-text").first()).not.toBeVisible();
     } finally {

@@ -4,6 +4,7 @@ import {useEffect, useRef} from "react";
 import {useDispatch, useStore} from "react-redux";
 import type {Socket} from "socket.io-client";
 
+import {isWebsocketsDebugEnabled, logSocket} from "./constants";
 import type {RealtimeEvent} from "./realtime";
 
 interface UseSyncConnectionOptions {
@@ -87,10 +88,19 @@ export const useSyncConnection = ({
     }
 
     const log = (message: string): void => {
-      if (debug) {
-        console.debug(`[sync] ${message}`);
+      if (isDebug) {
+        logSocket(true, message);
       }
     };
+
+    const logEvent = (event: RealtimeEvent): void => {
+      if (!isDebug) {
+        return;
+      }
+      logSocket(true, `sync event: ${JSON.stringify(event)}`);
+    };
+
+    const isDebug = debug ?? isWebsocketsDebugEnabled();
 
     const getApiQueries = (): Record<string, any> | null => {
       try {
@@ -112,6 +122,7 @@ export const useSyncConnection = ({
       }
 
       log(`Received ${method} event for ${collection}/${id}`);
+      logEvent(event);
 
       switch (method) {
         case "update": {
