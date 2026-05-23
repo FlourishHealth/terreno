@@ -28,6 +28,7 @@ env:
   GCP_PROJECT_ID: flourish-terreno
   GCP_BACKEND_REGION: us-central1
   GCP_BACKEND_SERVICE: terreno-backend-example
+  GCP_TASKS_SERVICE: terreno-backend-example-tasks
   GCP_MCP_REGION: us-east1
   GCP_MCP_SERVICE: terreno-mcp
   TF_DEPLOYMENT: terreno-prod
@@ -41,6 +42,7 @@ jobs:
     outputs:
       terraform: ${{ steps.filter.outputs.terraform }}
       backend: ${{ steps.filter.outputs.backend }}
+      tasks: ${{ steps.filter.outputs.tasks }}
       mcp: ${{ steps.filter.outputs.mcp }}
     steps:
       - uses: actions/checkout@v6
@@ -52,6 +54,13 @@ jobs:
               - 'terraform/**'
               - '.github/workflows/cd.yml'
             backend:
+              - 'example-backend/**'
+              - 'api/**'
+              - 'api-health/**'
+              - 'admin-backend/**'
+              - 'ai/**'
+              - '.github/workflows/cd.yml'
+            tasks:
               - 'example-backend/**'
               - 'api/**'
               - 'api-health/**'
@@ -410,6 +419,73 @@ jobs:
               state: 'failure',
               description: 'Backend preview deployment failed'
             });
+
+  # ───────────────────────────── Backend tasks worker ─────────────────────────────
+
+  tasks-deploy-prod:
+    name: Tasks deploy (prod)
+    needs: [detect, terraform-apply]
+    if: |
+      always() &&
+      needs.detect.outputs.tasks == 'true' &&
+      github.event_name == 'push' &&
+      (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate required vars
+        run: |
+          missing=()
+          [ -z "${{ vars.GCP_WIF_PROVIDER_PROD }}" ] && missing+=("GCP_WIF_PROVIDER_PROD")
+          [ -z "${{ vars.GCP_CD_DEPLOYER_SA_PROD }}" ] && missing+=("GCP_CD_DEPLOYER_SA_PROD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required repository variables: ${missing[*]}"
+            exit 1
+          fi
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER_PROD }}
+          service_account: ${{ vars.GCP_CD_DEPLOYER_SA_PROD }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev --quiet
+      - name: Build Docker image
+        run: |
+          docker build \
+            --file ./example-backend/Dockerfile \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }} \
+            --tag ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:latest \
+            .
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
+          docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:latest
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v3
+        with:
+          service: ${{ env.GCP_TASKS_SERVICE }}
+          region: ${{ env.GCP_BACKEND_REGION }}
+          image: ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_TASKS_SERVICE }}/${{ env.GCP_TASKS_SERVICE }}:${{ github.sha }}
+          tag: prod
+          env_vars: |
+            NODE_ENV=production
+            BACKEND_SERVICE=tasks
+            FLOURISH_SERVICE=${{ env.GCP_TASKS_SERVICE }}
+          secrets: |
+            MONGODB_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
+            LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
+            LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+          flags: |
+            --port=3000
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=10
+            --concurrency=80
+            --timeout=300
+            --allow-unauthenticated
 
   # ───────────────────────────── MCP server ─────────────────────────────
 
