@@ -989,6 +989,37 @@ describe("installRealtimeSocketHandlers", () => {
       expect(subs[0].query).toEqual({status: "active", tenantId: "tenant-1"});
     });
 
+    it("denies query subscriptions when modelRouter queryFilter throws", async () => {
+      registerRealtime({
+        collectionName: "filtered",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Filtered",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+          queryFilter: () => {
+            throw new Error("tenant lookup failed");
+          },
+        } as any,
+        routePath: "/filtered",
+      });
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "filtered",
+        query: {status: "active"},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+      expect(getQuerySubscriptionsForCollection("filtered")).toHaveLength(0);
+      expect(socket.emitted.some((e) => e.event === "query:subscribed")).toBe(false);
+    });
+
     it("ignores malformed query payloads", async () => {
       registerOwnerCollection();
       const socket = createMockSocket({id: "user1"});
@@ -1607,6 +1638,54 @@ describe("emitToDocumentAndQueryRooms", () => {
     expect(emissions).toHaveLength(1);
     expect(emissions[0].payload).toMatchObject({
       data: {id: "todo-1", title: "Visible", visibleTo: "owner-1"},
+    });
+  });
+
+  it("continues emitting to other sockets when per-socket serialization fails", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("model:todos", {id: "bad-user"});
+    addSocketToRoom("model:todos", {id: "good-user"});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["update"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+        responseHandler: (doc: any, _method: string, req: any) => {
+          if (req.user?.id === "bad-user") {
+            throw new Error("cannot serialize for bad user");
+          }
+
+          return {...doc, visibleTo: req.user?.id};
+        },
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "model:todos",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      {_id: "todo-1", title: "Visible"},
+      () => {}
+    );
+
+    expect(emissions).toHaveLength(1);
+    expect(emissions[0].payload).toMatchObject({
+      data: {id: "todo-1", title: "Visible", visibleTo: "good-user"},
     });
   });
 

@@ -25,6 +25,7 @@ import {checkPermissions} from "../permissions";
 import {matchesQuery} from "./queryMatcher";
 import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
+import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
 
 let changeWatcher: ChangeStream | null = null;
@@ -75,22 +76,7 @@ export const mapOperationType = (
  */
 const getCollectionTag = (routePath: string): string => routePath.replace(/^\//, "");
 
-interface RealtimeSocketWithAuth extends Socket {
-  decodedToken?: {id?: string; admin?: boolean; isAnonymous?: boolean};
-}
-
-const getSocketUser = (socket: RealtimeSocketWithAuth): User | undefined => {
-  const userId = socket.decodedToken?.id;
-  if (!userId) {
-    return undefined;
-  }
-  return {
-    _id: userId,
-    admin: socket.decodedToken?.admin === true,
-    id: userId,
-    isAnonymous: socket.decodedToken?.isAnonymous,
-  };
-};
+interface RealtimeSocketWithAuth extends Socket, SocketWithDecodedToken {}
 
 const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] => {
   const socketIds = io.sockets.adapter.rooms.get(room);
@@ -230,22 +216,30 @@ export const emitToAuthorizedRoom = async (
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
     const user = getSocketUser(socket);
-    // Hard deletes have no document context; use an empty object so object-scoped
-    // permission helpers fail closed instead of treating the check as preflight.
-    const permissionDocument = fullDocument ?? {};
-    const canRead = await canReadDocument(entry, user, permissionDocument);
-    if (!canRead) {
-      logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);
+    try {
+      // Hard deletes have no document context; use an empty object so object-scoped
+      // permission helpers fail closed instead of treating the check as preflight.
+      const permissionDocument = fullDocument ?? {};
+      const canRead = await canReadDocument(entry, user, permissionDocument);
+      if (!canRead) {
+        logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);
+        continue;
+      }
+
+      if (!fullDocument) {
+        socket.emit("sync", event);
+        continue;
+      }
+
+      const data = await serializeDoc(entry, fullDocument, event.method, user);
+      socket.emit("sync", {...event, data});
+    } catch (error) {
+      logger.error(
+        `[realtime] Failed to emit ${entry.modelName}/${event.method} to socket ${socket.id}: ${error}`
+      );
+      Sentry.captureException(error);
       continue;
     }
-
-    if (!fullDocument) {
-      socket.emit("sync", event);
-      continue;
-    }
-
-    const data = await serializeDoc(entry, fullDocument, event.method, user);
-    socket.emit("sync", {...event, data});
   }
 };
 

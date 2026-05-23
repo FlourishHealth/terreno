@@ -17,6 +17,7 @@ import {
   removeQuerySubscription,
 } from "./queryStore";
 import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
+import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -54,28 +55,14 @@ export const redactCredentials = (url: string): string => {
  * Minimal shape this module requires from a Socket.io socket. Lets tests pass a
  * mock without standing up a real server.
  */
-export interface RealtimeSocketLike {
+export interface RealtimeSocketLike extends SocketWithDecodedToken {
   id: string;
-  decodedToken?: {id?: string; admin?: boolean; isAnonymous?: boolean};
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
   // biome-ignore lint/suspicious/noExplicitAny: Socket.io event handlers accept arbitrary argument shapes per event name
   on: (event: string, handler: (...args: any[]) => any) => void;
 }
-
-const getSocketUser = (socket: RealtimeSocketLike): User | undefined => {
-  const userId = socket.decodedToken?.id;
-  if (!userId) {
-    return undefined;
-  }
-  return {
-    _id: userId,
-    admin: socket.decodedToken?.admin === true,
-    id: userId,
-    isAnonymous: socket.decodedToken?.isAnonymous,
-  };
-};
 
 const canSubscribe = async (
   entry: RealtimeRegistryEntry,
@@ -99,7 +86,17 @@ const getAuthorizedQuery = async (
     return query;
   }
 
-  const filteredQuery = await entry.options.queryFilter(user, query);
+  let filteredQuery: Record<string, any> | null;
+  try {
+    filteredQuery = await entry.options.queryFilter(user, query);
+  } catch (error) {
+    logger.error(
+      `[realtime] queryFilter threw for ${entry.modelName}/list: ${error}. Denying query subscription.`
+    );
+    Sentry.captureException(error);
+    return null;
+  }
+
   if (filteredQuery === null) {
     return null;
   }
