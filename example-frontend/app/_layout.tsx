@@ -4,7 +4,15 @@ import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
 import "react-native-reanimated";
-import {baseUrl, getAuthToken, useSelectCurrentUserId, useUpgradeCheck} from "@terreno/rtk";
+import {
+  baseUrl,
+  getAuthToken,
+  setRealtimeSocket,
+  useRealtimeDebug,
+  useSelectCurrentUserId,
+  useSocketConnection,
+  useUpgradeCheck,
+} from "@terreno/rtk";
 import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
 import {Provider} from "react-redux";
 import {PersistGate} from "redux-persist/integration/react";
@@ -83,6 +91,24 @@ function RootLayoutNav(): React.ReactElement {
     warningCheckCount,
     warningMessage,
   } = useUpgradeCheck({pollingIntervalMs: 300_000, recheckOnForeground: true});
+
+  // Connect to WebSocket for real-time sync
+  const {socket} = useSocketConnection({
+    baseUrl,
+    getAuthToken,
+    shouldConnect: !!userId,
+  });
+
+  // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)
+  useRealtimeDebug(baseUrl, socket?.connected);
+
+  // Provide socket to per-endpoint realtime handlers (realtimeList / realtimeDocument)
+  useEffect(() => {
+    setRealtimeSocket(socket);
+    return (): void => {
+      setRealtimeSocket(null);
+    };
+  }, [socket]);
 
   // Validate stored auth token on mount
   useEffect(() => {

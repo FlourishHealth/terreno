@@ -51,6 +51,17 @@ const getGsmClient = (): SecretManagerServiceClient => {
 };
 
 /**
+ * Reset the GSM client (for testing only)
+ * Closes any open connections and clears the cached client
+ */
+const resetGsmClient = (): void => {
+  if (gsmClient) {
+    gsmClient.close().catch(() => {});
+    gsmClient = null;
+  }
+};
+
+/**
  * Change stream for watching configuration changes
  */
 let changeStream: ReturnType<typeof ConfigurationDB.watch> | null = null;
@@ -242,8 +253,6 @@ export class Configuration {
    * Supports both short names (resolved via GCP_PROJECT_ID) and full resource paths
    */
   static async fetchSecret(secretName: string): Promise<string> {
-    const client = getGsmClient();
-
     let resourceName: string;
     if (secretName.startsWith("projects/")) {
       resourceName = secretName.endsWith("/versions/latest")
@@ -257,6 +266,7 @@ export class Configuration {
       resourceName = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     }
 
+    const client = getGsmClient();
     const [version] = await client.accessSecretVersion({name: resourceName});
     const payload = version.payload?.data;
     if (!payload) {
@@ -327,6 +337,14 @@ export class Configuration {
    */
   static getSecretKeys(): string[] {
     return Array.from(secretsCache.keys());
+  }
+
+  /**
+   * Reset the Google Secret Manager client (for testing only)
+   * Closes any open connections and clears the cached client instance
+   */
+  static resetGsmClient(): void {
+    resetGsmClient();
   }
 
   /**
