@@ -2,12 +2,14 @@ import {createListenerMiddleware, type Middleware} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {DateTime} from "luxon";
 
-import {getAuthToken} from "./authSlice";
-import {baseUrl} from "./constants";
+import {getAuthToken, selectCurrentUserId} from "./authSlice";
+import {baseUrl, LOGOUT_ACTION_TYPE, type RootState} from "./constants";
 import {configureOfflineMutationEndpoints} from "./offlineGate";
 import {
   addConflict,
   type ConflictRecord,
+  clearConflicts,
+  clearQueue,
   dequeue,
   enqueue,
   type OfflineState,
@@ -87,6 +89,38 @@ export const isNetworkFetchError = (
   return NETWORK_PATTERNS.some((p) => combined.includes(p));
 };
 
+/**
+ * Whether a queued mutation may be replayed for the currently signed-in user.
+ * Legacy entries without userId are discarded to avoid cross-account replay after account switch.
+ */
+export const shouldReplayQueuedMutation = (
+  mutation: QueuedMutation,
+  currentUserId: string | undefined
+): boolean => {
+  if (!currentUserId) {
+    return false;
+  }
+  if (mutation.userId === undefined) {
+    return false;
+  }
+  return mutation.userId === currentUserId;
+};
+
+/** Optimistic list item for a queued create; temp IDs are applied after body spread. */
+export const buildOptimisticCreateItem = (
+  mutation: QueuedMutation,
+  body?: Record<string, unknown>
+): Record<string, unknown> => {
+  const tempId = `temp-${mutation.id}`;
+  return {
+    ...(body ?? {}),
+    _id: tempId,
+    created: mutation.timestamp,
+    id: tempId,
+    updated: mutation.timestamp,
+  };
+};
+
 const inferTagType = (endpointName: string): string => {
   // Infer tag type from endpoint name for cache invalidation.
   // Convention: patchTodosById -> "todos", postTodos -> "todos", deleteTodosById -> "todos"
@@ -151,13 +185,7 @@ const applyOptimisticUpdate = (
 
   if (mutation.type === "create") {
     const args = mutation.args as {body?: Record<string, unknown>};
-    const tempItem = {
-      _id: `temp-${mutation.id}`,
-      created: mutation.timestamp,
-      id: `temp-${mutation.id}`,
-      updated: mutation.timestamp,
-      ...args?.body,
-    };
+    const tempItem = buildOptimisticCreateItem(mutation, args?.body);
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
     updateAllCacheEntries((draft: any) => {
       if (draft?.data && Array.isArray(draft.data)) {
@@ -405,12 +433,15 @@ export const createOfflineMiddleware = (
         }
       }
 
+      const currentUserId = selectCurrentUserId(listenerApi.getState() as RootState);
+
       const mutation: QueuedMutation = {
         args: originalArgs,
         endpointName,
         id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp,
         type: mutationType,
+        userId: currentUserId,
       };
 
       listenerApi.dispatch(enqueue(mutation));
@@ -494,6 +525,7 @@ export const createOfflineMiddleware = (
 
       const state = listenerApi.getState() as {offline: OfflineState};
       const queue = selectOfflineQueue(state);
+      const currentUserId = selectCurrentUserId(listenerApi.getState() as RootState);
 
       if (queue.length === 0) {
         // Reset isSyncing if it was stuck from a crash/reload during sync
@@ -511,6 +543,14 @@ export const createOfflineMiddleware = (
       try {
         // Replay mutations in FIFO order
         for (const mutation of queue) {
+          if (!shouldReplayQueuedMutation(mutation, currentUserId)) {
+            console.warn(
+              `[offline] Dropping queued mutation ${mutation.endpointName} — not owned by current user`
+            );
+            listenerApi.dispatch(dequeue(mutation.id));
+            continue;
+          }
+
           try {
             const result = await replayMutation(mutation);
 
@@ -567,7 +607,16 @@ export const createOfflineMiddleware = (
     },
   });
 
-  // Listener 6: On startup, if the persisted queue has items and we're online,
+  // Listener 6: Clear persisted queue on logout so mutations are not replayed for the next user
+  listenerMiddleware.startListening({
+    effect: (_action, listenerApi) => {
+      listenerApi.dispatch(clearQueue());
+      listenerApi.dispatch(clearConflicts());
+    },
+    type: LOGOUT_ACTION_TYPE,
+  });
+
+  // Listener 7: On startup, if the persisted queue has items and we're online,
   // trigger a replay. This handles the case where the app reloads while online
   // with a non-empty queue (rehydrated state already has isOnline: true, so no
   // offline→online transition would otherwise occur).

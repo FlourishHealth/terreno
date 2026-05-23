@@ -20,6 +20,8 @@ export interface QueuedMutation {
   timestamp: string;
   /** The type of CRUD operation */
   type: "create" | "update" | "delete";
+  /** Auth user ID when the mutation was queued; replay is skipped if it does not match the current user */
+  userId?: string;
 }
 
 export interface ConflictRecord {
@@ -100,6 +102,10 @@ export const offlineReducer = offlineSlice.reducer;
 
 // Selectors
 export const selectIsOnline = (state: {offline: OfflineState}): boolean => state.offline.isOnline;
+
+/** Safe online check when the offline reducer may not be mounted (defaults to online). */
+export const selectIsOnlineSafe = (state: {offline?: OfflineState}): boolean =>
+  state.offline?.isOnline ?? true;
 
 export const selectOfflineQueue = (state: {offline: OfflineState}): QueuedMutation[] =>
   state.offline.queue;

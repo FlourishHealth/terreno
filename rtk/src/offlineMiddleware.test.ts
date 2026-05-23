@@ -1,6 +1,11 @@
 import {describe, expect, it} from "bun:test";
 
-import {isNetworkFetchError} from "./offlineMiddleware";
+import {
+  buildOptimisticCreateItem,
+  isNetworkFetchError,
+  shouldReplayQueuedMutation,
+} from "./offlineMiddleware";
+import type {QueuedMutation} from "./offlineSlice";
 
 describe("isNetworkFetchError", () => {
   it("returns true for TypeError error name", () => {
@@ -54,5 +59,57 @@ describe("isNetworkFetchError", () => {
 
   it("returns false for empty object", () => {
     expect(isNetworkFetchError({})).toBe(false);
+  });
+});
+
+describe("shouldReplayQueuedMutation", () => {
+  const baseMutation: QueuedMutation = {
+    args: {body: {title: "Test"}},
+    endpointName: "postTodos",
+    id: "m1",
+    timestamp: "2026-04-15T10:00:00.000Z",
+    type: "create",
+    userId: "user-a",
+  };
+
+  it("replays when userId matches current user", () => {
+    expect(shouldReplayQueuedMutation(baseMutation, "user-a")).toBe(true);
+  });
+
+  it("does not replay when userId differs from current user", () => {
+    expect(shouldReplayQueuedMutation(baseMutation, "user-b")).toBe(false);
+  });
+
+  it("does not replay legacy mutations without userId", () => {
+    const legacy = {...baseMutation, userId: undefined};
+    expect(shouldReplayQueuedMutation(legacy, "user-a")).toBe(false);
+  });
+
+  it("does not replay when current user is missing", () => {
+    expect(shouldReplayQueuedMutation(baseMutation, undefined)).toBe(false);
+  });
+});
+
+describe("buildOptimisticCreateItem", () => {
+  const mutation: QueuedMutation = {
+    args: {body: {title: "New"}},
+    endpointName: "postTodos",
+    id: "queue-1",
+    timestamp: "2026-04-15T10:00:00.000Z",
+    type: "create",
+  };
+
+  it("applies temp ids after body spread so client ids cannot win", () => {
+    const item = buildOptimisticCreateItem(mutation, {
+      _id: "client-id",
+      id: "client-id",
+      title: "New",
+    });
+
+    expect(item._id).toBe("temp-queue-1");
+    expect(item.id).toBe("temp-queue-1");
+    expect(item.title).toBe("New");
+    expect(item.created).toBe(mutation.timestamp);
+    expect(item.updated).toBe(mutation.timestamp);
   });
 });

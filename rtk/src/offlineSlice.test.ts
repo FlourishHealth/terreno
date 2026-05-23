@@ -13,6 +13,7 @@ import {
   type QueuedMutation,
   selectConflicts,
   selectIsOnline,
+  selectIsOnlineSafe,
   selectIsSyncing,
   selectOfflineQueue,
   selectQueueLength,
@@ -163,6 +164,17 @@ describe("offlineSlice", () => {
       store.dispatch(clearConflicts());
 
       expect(selectConflicts(store.getState())).toHaveLength(0);
+    });
+  });
+
+  describe("selectIsOnlineSafe", () => {
+    it("defaults to online when offline reducer is absent", () => {
+      expect(selectIsOnlineSafe({})).toBe(true);
+    });
+
+    it("reflects offline state when reducer is mounted", () => {
+      store.dispatch(setOnlineStatus(false));
+      expect(selectIsOnlineSafe(store.getState())).toBe(false);
     });
   });
 
