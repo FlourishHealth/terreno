@@ -1,5 +1,14 @@
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
 
+import {IsWeb} from "./platform";
+
+const getInitialOnlineStatus = (): boolean => {
+  if (IsWeb && typeof navigator !== "undefined" && typeof navigator.onLine === "boolean") {
+    return navigator.onLine;
+  }
+  return true;
+};
+
 export interface QueuedMutation {
   /** Unique identifier for this queued mutation */
   id: string;
@@ -37,7 +46,7 @@ export interface OfflineState {
 
 const initialState: OfflineState = {
   conflicts: [],
-  isOnline: true,
+  isOnline: getInitialOnlineStatus(),
   isSyncing: false,
   queue: [],
 };

@@ -10,6 +10,7 @@ import {
   setRealtimeSocket,
   useRealtimeDebug,
   useSelectCurrentUserId,
+  useServerStatus,
   useSocketConnection,
   useUpgradeCheck,
 } from "@terreno/rtk";
@@ -78,6 +79,7 @@ export default function RootLayout(): React.ReactElement | null {
 
 function RootLayoutNav(): React.ReactElement {
   const userId = useSelectCurrentUserId();
+  const {isOnline} = useServerStatus({skip: !userId});
   const profile = useReadProfile();
   const dispatch = useAppDispatch();
   const segments = useSegments();
@@ -96,7 +98,7 @@ function RootLayoutNav(): React.ReactElement {
   const {socket} = useSocketConnection({
     baseUrl,
     getAuthToken,
-    shouldConnect: !!userId,
+    shouldConnect: !!userId && isOnline,
   });
 
   // Sync frontend debug logging with backend debug.websocketsDebug (via /realtime/health)

@@ -28,6 +28,8 @@ export interface OfflineStatus {
   dismissConflict: (id: string) => void;
   /** Clear all conflict records */
   clearConflicts: () => void;
+  /** Returns true if the item exists only locally (not yet synced to server) */
+  isLocalOnly: (id: string) => boolean;
 }
 
 /**
@@ -63,10 +65,15 @@ export const useOfflineStatus = (): OfflineStatus => {
     dispatch(clearConflicts());
   }, [dispatch]);
 
+  const isLocalOnly = useCallback((id: string): boolean => {
+    return typeof id === "string" && id.startsWith("temp-");
+  }, []);
+
   return {
     clearConflicts: handleClearConflicts,
     conflicts,
     dismissConflict: handleDismissConflict,
+    isLocalOnly,
     isOnline,
     isSyncing,
     queueLength,

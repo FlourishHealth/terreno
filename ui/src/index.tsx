@@ -58,6 +58,7 @@ export * from "./ModalSheet";
 export * from "./MultiselectField";
 export * from "./NumberField";
 export * from "./NumberPickerActionSheet";
+export * from "./OfflineBanner";
 export * from "./OpenAPIContext";
 export * from "./Page";
 export * from "./Pagination";

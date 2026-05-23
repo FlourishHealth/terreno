@@ -176,25 +176,18 @@ describe("createOfflineMiddleware", () => {
       expect(selectIsOnline(store.getState())).toBe(true);
     });
 
-    it("uses browser online/offline events when window is available", async () => {
-      const handlers: Record<string, () => void> = {};
+    it("does not set up web event listeners (web uses useServerStatus)", async () => {
+      const addedEvents: string[] = [];
       const globalWithDom = globalThis as unknown as {navigator?: unknown; window?: unknown};
-      const originalNavigator = globalWithDom.navigator;
       const originalWindow = globalWithDom.window;
 
-      Object.defineProperty(globalThis, "navigator", {
-        configurable: true,
-        value: {onLine: false},
-      });
       Object.defineProperty(globalThis, "window", {
         configurable: true,
         value: {
-          addEventListener: (event: string, handler: () => void) => {
-            handlers[event] = handler;
+          addEventListener: (event: string) => {
+            addedEvents.push(event);
           },
-          removeEventListener: (event: string) => {
-            Reflect.deleteProperty(handlers, event);
-          },
+          removeEventListener: () => {},
         },
       });
 
@@ -203,16 +196,9 @@ describe("createOfflineMiddleware", () => {
         webStore.dispatch({type: "init-network-monitoring"});
         await waitForEffects();
 
-        expect(selectIsOnline(webStore.getState())).toBe(false);
-        handlers.online();
-        expect(selectIsOnline(webStore.getState())).toBe(true);
-        handlers.offline();
-        expect(selectIsOnline(webStore.getState())).toBe(false);
+        expect(addedEvents).not.toContain("online");
+        expect(addedEvents).not.toContain("offline");
       } finally {
-        Object.defineProperty(globalThis, "navigator", {
-          configurable: true,
-          value: originalNavigator,
-        });
         Object.defineProperty(globalThis, "window", {
           configurable: true,
           value: originalWindow,
@@ -232,9 +218,45 @@ describe("createOfflineMiddleware", () => {
       expect(queue[0].args).toEqual({body: {title: "Updated"}, id: "123"});
     });
 
-    it("does not queue mutations when online", () => {
-      queueRejectedMutation(store);
+    it("queues mutations on network errors even when the browser reports online", () => {
+      store.dispatch(setOnlineStatus(true));
+      queueRejectedMutation(store, {
+        error: {message: "Failed to fetch", name: "TypeError"},
+        payload: {error: "TypeError: Failed to fetch", status: "FETCH_ERROR"},
+      });
 
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(selectIsOnline(store.getState())).toBe(false);
+    });
+
+    it("does not queue auth-related FETCH_ERROR responses when online", () => {
+      queueRejectedMutation(store, {
+        error: {message: "No token found for postTodos"},
+        payload: {error: "No token found for postTodos", status: "FETCH_ERROR"},
+      });
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("does not queue non-network errors when online", () => {
+      queueRejectedMutation(store, {
+        error: {message: "Validation error"},
+        payload: {data: {message: "Validation error"}, status: 400},
+      });
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("marks offline when a query fails with a network error while online", () => {
+      store.dispatch(setOnlineStatus(true));
+      store.dispatch({
+        error: {message: "Failed to fetch", name: "TypeError"},
+        meta: {arg: {endpointName: "getTodos", originalArgs: {}}},
+        payload: {error: "TypeError: Failed to fetch", status: "FETCH_ERROR"},
+        type: "terreno-rtk/executeQuery/rejected",
+      });
+
+      expect(selectIsOnline(store.getState())).toBe(false);
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);
     });
 

@@ -1,13 +1,18 @@
-import {useFeatureFlags, useOfflineStatus, useSelectCurrentUserId} from "@terreno/rtk";
+import {
+  isNetworkFetchError,
+  useFeatureFlags,
+  useSelectCurrentUserId,
+  useServerStatus,
+} from "@terreno/rtk";
 import {
   Badge,
-  Banner,
   Box,
   Button,
   Card,
   CheckBox,
   Heading,
   IconButton,
+  OfflineBanner,
   Page,
   Spinner,
   Text,
@@ -27,9 +32,10 @@ import {
 
 const TodoItem: React.FC<{
   todo: Todo;
+  isLocalOnly: boolean;
   onToggle: (id: string, completed: boolean) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-}> = ({todo, onToggle, onDelete}) => {
+}> = ({todo, isLocalOnly: localOnly, onToggle, onDelete}) => {
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const handleToggle = useCallback(async (): Promise<void> => {
@@ -63,10 +69,13 @@ const TodoItem: React.FC<{
           <Box marginRight={3}>
             <CheckBox selected={todo.completed} size="md" />
           </Box>
-          <Box flex="grow">
+          <Box alignItems="center" direction="row" flex="grow" gap={2}>
             <Text color={todo.completed ? "secondaryLight" : "primary"} underline={todo.completed}>
               {todo.title}
             </Text>
+            {localOnly && (
+              <Badge status="warning" testID={`todos-local-${todo.id}`} value="Local" />
+            )}
           </Box>
         </Box>
         <IconButton
@@ -96,8 +105,8 @@ const TodosScreen: React.FC = () => {
   const {getFlag} = useFeatureFlags(terrenoApi, {skip: !userId});
   const showSummaryCard = getFlag("todo-summary-card");
 
-  const {isOnline, queueLength, isSyncing, undismissedConflicts, dismissConflict} =
-    useOfflineStatus();
+  const {isOnline, queueLength, isSyncing, undismissedConflicts, dismissConflict, isLocalOnly} =
+    useServerStatus({skip: !userId});
 
   const todos = todosData?.data ?? [];
   const incompleteTodos = todos.filter((todo) => !todo.completed);
@@ -112,6 +121,10 @@ const TodosScreen: React.FC = () => {
       await createTodo({body: {title: newTodoTitle.trim()}}).unwrap();
       setNewTodoTitle("");
     } catch (err) {
+      if (isNetworkFetchError(err)) {
+        setNewTodoTitle("");
+        return;
+      }
       console.error("Error creating todo:", err);
     }
   }, [newTodoTitle, createTodo]);
@@ -122,6 +135,9 @@ const TodosScreen: React.FC = () => {
         const todo = todos.find((t) => t.id === id);
         await updateTodo({body: {completed, title: todo?.title ?? ""}, id}).unwrap();
       } catch (err) {
+        if (isNetworkFetchError(err)) {
+          return;
+        }
         console.error("Error updating todo:", err);
       }
     },
@@ -133,6 +149,9 @@ const TodosScreen: React.FC = () => {
       try {
         await deleteTodo({id}).unwrap();
       } catch (err) {
+        if (isNetworkFetchError(err)) {
+          return;
+        }
         console.error("Error deleting todo:", err);
       }
     },
@@ -165,23 +184,7 @@ const TodosScreen: React.FC = () => {
     >
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>
-          {/* Offline indicator */}
-          {!isOnline && (
-            <Box marginBottom={4} testID="offline-banner">
-              <Banner
-                id="offline-status"
-                status="warning"
-                text={`You're offline. ${queueLength} pending change${queueLength !== 1 ? "s" : ""} will sync when you reconnect.`}
-              />
-            </Box>
-          )}
-
-          {/* Syncing indicator */}
-          {isSyncing && (
-            <Box marginBottom={4} testID="syncing-banner">
-              <Banner id="syncing-status" status="info" text="Syncing offline changes..." />
-            </Box>
-          )}
+          <OfflineBanner isOnline={isOnline} isSyncing={isSyncing} queueLength={queueLength} />
 
           {/* Conflict notifications */}
           {undismissedConflicts.map((conflict) => (
@@ -261,6 +264,7 @@ const TodosScreen: React.FC = () => {
             ) : (
               incompleteTodos.map((todo) => (
                 <TodoItem
+                  isLocalOnly={isLocalOnly(todo.id)}
                   key={todo.id}
                   onDelete={handleDeleteTodo}
                   onToggle={handleToggleTodo}
@@ -288,6 +292,7 @@ const TodosScreen: React.FC = () => {
               {showCompleted &&
                 completedTodos.map((todo) => (
                   <TodoItem
+                    isLocalOnly={isLocalOnly(todo.id)}
                     key={todo.id}
                     onDelete={handleDeleteTodo}
                     onToggle={handleToggleTodo}
