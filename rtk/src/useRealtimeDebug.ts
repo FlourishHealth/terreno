@@ -1,6 +1,8 @@
 import {useEffect, useState} from "react";
+import {useSelector} from "react-redux";
 
 import {isWebsocketsDebugEnabled, setRealtimeDebug} from "./constants";
+import {selectIsOnlineSafe} from "./offlineSlice";
 
 interface RealtimeHealthResponse {
   debug?: boolean;
@@ -12,8 +14,13 @@ interface RealtimeHealthResponse {
  */
 export const useRealtimeDebug = (baseUrl: string, refreshKey?: unknown): boolean => {
   const [debugEnabled, setDebugEnabled] = useState(isWebsocketsDebugEnabled);
+  const isOnline = useSelector(selectIsOnlineSafe);
 
   useEffect(() => {
+    if (!isOnline) {
+      return;
+    }
+
     let cancelled = false;
 
     const loadDebugFlag = async (): Promise<void> => {
@@ -38,7 +45,7 @@ export const useRealtimeDebug = (baseUrl: string, refreshKey?: unknown): boolean
     return (): void => {
       cancelled = true;
     };
-  }, [baseUrl, refreshKey]);
+  }, [baseUrl, refreshKey, isOnline]);
 
   return debugEnabled;
 };

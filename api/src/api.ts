@@ -882,66 +882,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         });
       }
 
-      // Conflict detection: if client sends If-Unmodified-Since header or _updatedAt body field,
-      // check if the document has been modified since the client last fetched it.
-      if (req.headers["if-unmodified-since"] || req.body._updatedAt) {
-        const usingHeader = Boolean(req.headers["if-unmodified-since"]);
-        const clientTimestamp = usingHeader
-          ? DateTime.fromHTTP(req.headers["if-unmodified-since"] as string)
-          : DateTime.fromISO(req.body._updatedAt);
-
-        // Malformed timestamps must not silently bypass conflict detection.
-        // Invalid DateTime returns NaN from valueOf(), and `NaN < anything` is
-        // false — so without this guard the check would silently pass.
-        if (!clientTimestamp.isValid) {
-          throw new APIError({
-            detail: usingHeader
-              ? "If-Unmodified-Since header could not be parsed as an HTTP date"
-              : "_updatedAt body field could not be parsed as an ISO date",
-            status: 400,
-            title: "Invalid conflict-detection timestamp",
-          });
-        }
-
-        const docRecord = doc as {updated?: Date | string};
-        let serverTimestamp: DateTime | null = null;
-        if (docRecord.updated instanceof Date) {
-          serverTimestamp = DateTime.fromJSDate(docRecord.updated);
-        } else if (typeof docRecord.updated === "string") {
-          serverTimestamp = DateTime.fromISO(docRecord.updated);
-        }
-
-        if (serverTimestamp && !serverTimestamp.isValid) {
-          throw new APIError({
-            detail: "Document's `updated` field could not be parsed as a date",
-            status: 400,
-            title: "Invalid server timestamp",
-          });
-        }
-
-        if (serverTimestamp && clientTimestamp < serverTimestamp) {
-          throw new APIError({
-            detail: JSON.stringify({
-              clientUpdated: clientTimestamp.toISO(),
-              serverUpdated: serverTimestamp.toISO(),
-            }),
-            status: 409,
-            title: "Conflict: document has been modified since you last fetched it",
-          });
-        }
-        // Remove _updatedAt from body so it doesn't get saved
-        delete req.body._updatedAt;
-        if (body && typeof body === "object") {
-          delete (body as Record<string, unknown>)._updatedAt;
-        }
+      // Remove _updatedAt from body before preUpdate processes it
+      const bodyUpdatedAt = req.body._updatedAt;
+      delete req.body._updatedAt;
+      if (body && typeof body === "object") {
+        delete (body as Record<string, unknown>)._updatedAt;
       }
 
       if (options.preUpdate) {
         try {
-          // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
-          // with the original body, maintaining the dot notation. This way we don't have to write
-          // two preUpdate branches downstream, one looking at the dot notation style and
-          // one looking at normal object style.
           body = await options.preUpdate(body, req);
         } catch (error: unknown) {
           if (isAPIError(error)) {
@@ -966,6 +915,64 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             detail: `preUpdate hook on ${req.params.id} returned null`,
             status: 403,
             title: "Update not allowed",
+          });
+        }
+      }
+
+      // Conflict detection runs after preUpdate so that unauthorized mutations
+      // are rejected before we leak document data in a 409 response.
+      const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
+      const httpUnmodifiedSince = req.headers["if-unmodified-since"];
+      const timestampValue = Array.isArray(preciseUnmodifiedSince)
+        ? preciseUnmodifiedSince[0]
+        : preciseUnmodifiedSince;
+      const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
+        ? httpUnmodifiedSince[0]
+        : httpUnmodifiedSince;
+      if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
+        const usingPreciseHeader = Boolean(timestampValue);
+        const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
+        const clientTimestamp = timestampValue
+          ? DateTime.fromISO(timestampValue)
+          : httpTimestampValue
+            ? DateTime.fromHTTP(httpTimestampValue)
+            : DateTime.fromISO(bodyUpdatedAt);
+
+        if (!clientTimestamp.isValid) {
+          throw new APIError({
+            detail: usingPreciseHeader
+              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+              : usingHttpHeader
+                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+                : "_updatedAt body field could not be parsed as an ISO date",
+            status: 400,
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
+        const docRecord = doc as {created?: Date | string; updated?: Date | string};
+        let serverTimestamp: DateTime | null = null;
+        const serverTimestampValue = docRecord.updated ?? docRecord.created;
+        if (serverTimestampValue instanceof Date) {
+          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
+        } else if (typeof serverTimestampValue === "string") {
+          serverTimestamp = DateTime.fromISO(serverTimestampValue);
+        }
+
+        if (serverTimestamp && !serverTimestamp.isValid) {
+          throw new APIError({
+            detail: "Document timestamp could not be parsed as a date",
+            status: 400,
+            title: "Invalid server timestamp",
+          });
+        }
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          const serialized = await responseHandler(doc, "update", req, options);
+          return res.status(409).json({
+            data: serialized,
+            error: "Conflict",
+            message: "Document was modified since your last read",
           });
         }
       }

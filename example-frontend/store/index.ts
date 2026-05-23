@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {combineReducers, configureStore} from "@reduxjs/toolkit";
-import {generateAuthSlice} from "@terreno/rtk";
+import {createOfflineMiddleware, generateAuthSlice} from "@terreno/rtk";
 import {createSentryReduxEnhancer} from "@utils";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
@@ -16,6 +16,11 @@ export {useSentryAndToast} from "./errors";
 export * from "./utils";
 
 const authSlice = generateAuthSlice(terrenoApi);
+
+const offlineConfig = createOfflineMiddleware({
+  api: terrenoApi,
+  endpoints: ["postTodos", "patchTodosById", "deleteTodosById"],
+});
 
 export const {logout} = authSlice;
 
@@ -52,6 +57,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   appState,
   auth: authSlice.authReducer,
+  offline: offlineConfig.offlineReducer,
   // Must match the reducerPath in @terreno/rtk's emptySplitApi ("terreno-rtk")
   "terreno-rtk": terrenoApi.reducer,
 });
@@ -86,6 +92,7 @@ const store = configureStore({
       // RTK Query middleware must be cast as it doesn't match exact Redux middleware type
       // biome-ignore lint/suspicious/noExplicitAny: RTK Query middleware has non-standard typing
       terrenoApi.middleware as any,
+      offlineConfig.middleware,
       rtkQueryErrorMiddleware,
       // Return value needs casting as concat creates a union type that Redux doesn't accept
       // biome-ignore lint/suspicious/noExplicitAny: Middleware array type inference is complex

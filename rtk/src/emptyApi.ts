@@ -18,6 +18,7 @@ import {DateTime} from "luxon";
 import qs from "qs";
 import {generateProfileEndpoints, getAuthToken} from "./authSlice";
 import {AUTH_DEBUG, baseUrl, LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} from "./constants";
+import {shouldDeferOfflineMutation} from "./offlineGate";
 import {IsWeb} from "./platform";
 
 const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : (): void => {};
@@ -212,6 +213,11 @@ export const getBaseQuery = (
 
 export const staggeredBaseQuery = retry(
   async (args: string | FetchArgs, api, extraOptions) => {
+    // Short-circuit immediately when offline for configured mutation endpoints
+    if (api.type === "mutation" && shouldDeferOfflineMutation(api.endpoint, api.getState)) {
+      retry.fail({error: "Network unavailable", status: "FETCH_ERROR"});
+    }
+
     // wait until the mutex is available without locking it
     await mutex.waitForUnlock();
     let token = await getAuthToken();

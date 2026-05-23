@@ -225,19 +225,13 @@ export const useSocketConnection = ({
         );
       }
     } else {
+      logAuth(`[SocketConnection] Disconnecting socket because shouldConnect is false.`);
+      socket?.disconnect();
       if (isSocketConnected.isConnected) {
-        logAuth(
-          `[SocketConnection] Attempting to disconnect socket because shouldConnect is false and socket is connected.`
-        );
-        socket?.disconnect();
         setIsSocketConnected({
           isConnected: false,
-          lastDisconnectedAt: null, // null because this was intentional
+          lastDisconnectedAt: null,
         });
-      } else {
-        logAuth(
-          `[SocketConnection] Socket is already disconnected and shouldConnect is false. No action needed.`
-        );
       }
     }
   }, [connectSocket, shouldConnect, isSocketConnected, socket]);
@@ -349,6 +343,14 @@ export const useSocketConnection = ({
 
     const handleConnectError = async (connectionError: Error): Promise<void> => {
       const tokenInfo = await getFriendlyExpirationInfo();
+      const browserOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      if (browserOffline) {
+        logAuth(
+          `[SocketConnection] Socket connection skipped while offline: ${connectionError.message}`
+        );
+        return;
+      }
 
       console.error(
         "[SocketConnection] Socket connection error:",
