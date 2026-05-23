@@ -394,7 +394,10 @@ export const createOfflineMiddleware = (
                 (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
               );
               if (doc?.updated) {
-                timestamp = typeof doc.updated === "string" ? doc.updated : DateTime.fromJSDate(doc.updated).toISO();
+                timestamp =
+                  typeof doc.updated === "string"
+                    ? doc.updated
+                    : DateTime.fromJSDate(doc.updated).toISO();
                 break;
               }
             }
@@ -541,10 +544,8 @@ export const createOfflineMiddleware = (
                 }
               }
             }
-          } catch (error) {
-            console.warn(
-              `[offline] Replay network error for ${mutation.endpointName}`
-            );
+          } catch (_error) {
+            console.warn(`[offline] Replay network error for ${mutation.endpointName}`);
             break;
           }
         }

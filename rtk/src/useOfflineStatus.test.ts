@@ -1,6 +1,6 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
-import {renderHook, act} from "@testing-library/react-native";
+import {act, renderHook} from "@testing-library/react-native";
 import React from "react";
 import {Provider} from "react-redux";
 
@@ -22,7 +22,7 @@ const createTestStore = () =>
 
 const createWrapper = (store: ReturnType<typeof createTestStore>) => {
   const Wrapper: React.FC<{children: React.ReactNode}> = ({children}) =>
-    React.createElement(Provider, {store, children});
+    React.createElement(Provider, {children, store});
   return Wrapper;
 };
 
