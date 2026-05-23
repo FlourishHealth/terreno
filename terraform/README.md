@@ -11,8 +11,8 @@ It is applied by **[Google Cloud Infrastructure Manager](https://cloud.google.co
   - `terraform-admin` — used by `cd.yml`'s terraform-* jobs (project-admin scope)
   - `gh-deployer` — used by `cd.yml`'s backend-deploy-* and mcp-deploy jobs with the narrow set of roles needed to push images and roll Cloud Run
 - Artifact Registry repos for each Cloud Run service
-- Cloud Run services (`terreno-backend-example`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
-- Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the deploy workflow mounts them via `secrets:` so plaintext never traverses GitHub Actions runners.
+- Cloud Run services (`terreno-backend-example`, `terreno-backend-example-tasks`, `terreno-mcp`) — **structural definition only** (resources, scaling, IAM, labels). Image and env vars are still set by the CD workflows on every deploy; Terraform's `lifecycle.ignore_changes` keeps it out of the way.
+- Secret Manager containers for the backend's sensitive env vars: `terreno-backend-example-mongodb-uri`, `terreno-backend-example-langfuse-secret-key`, `terreno-backend-example-langfuse-public-key`. Values are seeded out-of-band; the backend and tasks deploy workflows mount them via `secrets:` so plaintext never traverses GitHub Actions runners.
 
 The pre-existing `EXAMPLE_*` Secret Manager secrets (`EXAMPLE_MONGO_CONNECTION`, `EXAMPLE_TOKEN_SECRET`, `EXAMPLE_REFRESH_TOKEN_SECRET`) feeding `MONGO_URI`/`TOKEN_SECRET`/`REFRESH_TOKEN_SECRET` are not yet Terraform-managed but already use proper SM mounts. They can be imported in a follow-up. The MCP server's `SENTRY_DSN` is also still inline-from-GH-secret and could be migrated.
 
@@ -137,6 +137,15 @@ terraform import 'module.github_oidc.google_iam_workload_identity_pool_provider.
 ```
 
 After import, `terraform plan` should show only safe metadata updates on the imported resources (description, cleanup_policies, labels, attribute_mapping additions). Cloud Run env vars and image are excluded from the plan via `lifecycle.ignore_changes`.
+
+The tasks service and Artifact Registry repo are new Terraform-owned resources. If they were created manually before Terraform applies this configuration, import them with the same patterns:
+
+```bash
+terraform import 'module.tasks_service.google_cloud_run_v2_service.this' \
+  projects/flourish-terreno/locations/us-central1/services/terreno-backend-example-tasks
+terraform import 'module.tasks_artifact_registry.google_artifact_registry_repository.this' \
+  projects/flourish-terreno/locations/us-central1/repositories/terreno-backend-example-tasks
+```
 
 ## Adding a third service account
 

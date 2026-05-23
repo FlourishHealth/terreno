@@ -18,6 +18,11 @@ output "backend_url" {
   description = "Default URL of the example backend Cloud Run service."
 }
 
+output "tasks_url" {
+  value       = module.tasks_service.uri
+  description = "Default URL of the example backend tasks Cloud Run service."
+}
+
 output "mcp_url" {
   value       = module.mcp_service.uri
   description = "Default URL of the MCP Cloud Run service."
@@ -26,6 +31,11 @@ output "mcp_url" {
 output "backend_image_repo" {
   value       = module.backend_artifact_registry.docker_repo_url
   description = "Docker image prefix for the example backend."
+}
+
+output "tasks_image_repo" {
+  value       = module.tasks_artifact_registry.docker_repo_url
+  description = "Docker image prefix for the example backend tasks worker."
 }
 
 output "mcp_image_repo" {

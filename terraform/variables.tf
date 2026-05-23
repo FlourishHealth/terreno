@@ -46,6 +46,11 @@ variable "backend_service_name" {
   type        = string
 }
 
+variable "tasks_service_name" {
+  description = "Cloud Run service name for the example backend's background tasks worker."
+  type        = string
+}
+
 variable "mcp_service_name" {
   description = "Cloud Run service name for the MCP server."
   type        = string
@@ -65,6 +70,18 @@ variable "backend_min_instances" {
 
 variable "backend_max_instances" {
   description = "Max instances for the example backend."
+  type        = number
+  default     = 10
+}
+
+variable "tasks_min_instances" {
+  description = "Min instances for the example backend's background tasks worker."
+  type        = number
+  default     = 0
+}
+
+variable "tasks_max_instances" {
+  description = "Max instances for the example backend's background tasks worker."
   type        = number
   default     = 10
 }
