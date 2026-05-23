@@ -76,7 +76,7 @@ export const mapOperationType = (
  */
 const getCollectionTag = (routePath: string): string => routePath.replace(/^\//, "");
 
-interface RealtimeSocketWithAuth extends Socket, SocketWithDecodedToken {}
+type RealtimeSocketWithAuth = Socket & SocketWithDecodedToken;
 
 const getSocketsInRoom = (io: Server, room: string): RealtimeSocketWithAuth[] => {
   const socketIds = io.sockets.adapter.rooms.get(room);
