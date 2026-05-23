@@ -570,9 +570,8 @@ mock.module("react-signature-canvas", () => {
 // mock used by Tooltip.test.tsx so the two don't disagree.
 mock.module("react-native-portalize", () => ({
   Host: ({children}: MockComponentProps) =>
-    React.createElement("View", {style: undefined, testID: "portal-host"}, children),
-  Portal: ({children}: MockComponentProps) =>
-    React.createElement("View", {style: undefined, testID: "portal"}, children),
+    React.createElement("View", {testID: "portal-host"}, children),
+  Portal: ({children}: MockComponentProps) => React.createElement("View", {testID: "portal"}, children),
 }));
 
 // Mock IconButton component
