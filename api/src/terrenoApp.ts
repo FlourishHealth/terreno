@@ -16,13 +16,13 @@ import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./gi
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
+import {RealtimeApp} from "./realtime/realtimeApp";
+import type {RealtimeAppOptions} from "./realtime/types";
 import {
   getCurrentRequestContext,
   requestContextMiddleware,
   updateRequestContextFromRequest,
 } from "./requestContext";
-import {RealtimeApp} from "./realtime/realtimeApp";
-import type {RealtimeAppOptions} from "./realtime/types";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import openapi from "./vendor/wesleytodd-openapi/index";
 

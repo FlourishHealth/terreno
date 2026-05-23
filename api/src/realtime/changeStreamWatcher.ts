@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
 import * as Sentry from "@sentry/bun";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";

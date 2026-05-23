@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mocks use dynamic shapes for registry entries and documents
 /**
  * Tests for the realtime module's pure functions and classes:
  *   - queryMatcher.ts (matchesQuery)
