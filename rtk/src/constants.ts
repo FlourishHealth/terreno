@@ -17,11 +17,22 @@ export const logAuth = (...args: string[]): void => {
 };
 
 // Handy debug logging socket events, but not enabled by default.
-// Can also be enabled by user feature flag.
+// Can also be enabled by user feature flag or runtime via setRealtimeDebug (admin config).
 const WEBSOCKETS_DEBUG = Constants.expoConfig?.extra?.WEBSOCKETS_DEBUG === "true";
 if (WEBSOCKETS_DEBUG) {
   console.debug("WEBSOCKETS_DEBUG is enabled");
 }
+
+let runtimeWebsocketsDebug = false;
+
+/** Enable websocket debug logging at runtime (e.g. from admin debug.websocketsDebug). */
+export const setRealtimeDebug = (enabled: boolean): void => {
+  runtimeWebsocketsDebug = enabled;
+};
+
+export const isWebsocketsDebugEnabled = (): boolean => {
+  return WEBSOCKETS_DEBUG || runtimeWebsocketsDebug;
+};
 
 // Handy debug logging for websockets, enabled by user.featureFlags.debugWebsockets.enabled or passing in true.
 export const logSocket = (
@@ -31,9 +42,9 @@ export const logSocket = (
   if (
     typeof user === "boolean"
       ? user
-      : user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG
+      : user?.featureFlags?.debugWebsockets?.enabled || isWebsocketsDebugEnabled()
   ) {
-    console.debug(`[websocket]`, ...args);
+    console.info("[websocket]", ...args);
   }
 };
 

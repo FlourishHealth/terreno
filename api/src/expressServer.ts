@@ -9,7 +9,11 @@ import passport from "passport";
 import qs from "qs";
 import type {ModelRouterOptions} from "./api";
 import {addAuthRoutes, addMeRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {apiErrorMiddleware, apiUnauthorizedMiddleware} from "./errors";
+import {
+  apiErrorMiddleware,
+  apiFallthroughErrorMiddleware,
+  apiUnauthorizedMiddleware,
+} from "./errors";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
 import {sendToSlack} from "./notifiers";
@@ -289,20 +293,7 @@ const initializeRoutes = (
   app.use(apiUnauthorizedMiddleware);
   app.use(apiErrorMiddleware);
 
-  app.use(
-    (
-      err: unknown,
-      _req: express.Request,
-      res: express.Response & {sentry?: string},
-      _next: express.NextFunction
-    ) => {
-      const stack = err instanceof Error && err.stack ? `\n${err.stack}` : "";
-      logger.error(`Fallthrough error: ${err}${stack}}`);
-      Sentry.captureException(err);
-      res.statusCode = 500;
-      res.end(`${res.sentry}\n`);
-    }
-  );
+  app.use(apiFallthroughErrorMiddleware);
 
   return app;
 };

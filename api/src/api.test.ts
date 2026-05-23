@@ -1996,21 +1996,37 @@ describe("@terreno/api", () => {
     });
 
     it("prefers precise conflict timestamp header when present", async () => {
-      await FoodModel.collection.updateOne(
-        {_id: (spinach as any)._id},
-        {$set: {updated: new Date("2025-06-15T12:00:00.500Z")}}
-      );
-
-      const standardTimestamp = new Date("2025-06-15T12:00:00.000Z").toUTCString();
+      const roundedStaleTimestamp = new Date("2025-06-15T11:59:59.000Z").toUTCString();
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", standardTimestamp)
+        .set("If-Unmodified-Since", roundedStaleTimestamp)
         .set("X-Unmodified-Since-ISO", "2025-06-15T12:00:00.750Z")
         .send({name: "Precise Match"})
         .expect(200);
 
       expect(res.body.data.name).toBe("Precise Match");
+    });
+
+    it("returns 409 when precise conflict timestamp is older than doc.updated", async () => {
+      await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", new Date("2025-06-15T12:00:01.000Z").toUTCString())
+        .set("X-Unmodified-Since-ISO", "2025-06-15T11:59:59.500Z")
+        .send({name: "Precise Stale"})
+        .expect(409);
+    });
+
+    it("falls back to doc.created when doc.updated is unavailable", async () => {
+      await FoodModel.collection.updateOne({_id: (spinach as any)._id}, {$unset: {updated: ""}});
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", new Date("2025-06-15T11:59:59.999Z").toUTCString())
+        .send({name: "Created Fallback"})
+        .expect(409);
+
+      expect(res.body.data.name).toBe("Spinach");
     });
   });
 });

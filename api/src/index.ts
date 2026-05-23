@@ -24,6 +24,7 @@ export * from "./openApiValidator";
 export * from "./permissions";
 export * from "./plugins";
 export * from "./populate";
+export * from "./realtime";
 export * from "./requestContext";
 export * from "./scriptRunner";
 export * from "./secretProviders";

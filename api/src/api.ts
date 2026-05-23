@@ -6,6 +6,7 @@
 import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
+import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
 import {authenticateMiddleware, type User} from "./auth";
@@ -33,6 +34,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {registerRealtime} from "./realtime/registry";
+import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -319,6 +322,14 @@ export interface ModelRouterOptions<T> {
    * This option overrides the global setting for this specific router.
    */
   validation?: boolean | ModelRouterValidationOptions;
+  /**
+   * Enable real-time sync for this model via WebSocket events.
+   * When configured, CRUD operations will emit events to connected clients
+   * through the RealtimeApp plugin's change stream watcher.
+   *
+   * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   */
+  realtime?: RealtimeConfig;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -500,6 +511,16 @@ export function modelRouter<T>(
   const router = _buildModelRouter(model, options);
 
   if (path !== undefined) {
+    // Register for real-time sync if configured
+    if (options.realtime) {
+      registerRealtime({
+        collectionName: model.collection.collectionName,
+        config: options.realtime,
+        modelName: model.modelName,
+        options,
+        routePath: path,
+      });
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
@@ -508,6 +529,14 @@ export function modelRouter<T>(
       router,
     };
   }
+
+  if (options.realtime) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
+        "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+
   return router;
 }
 
@@ -853,6 +882,73 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         });
       }
 
+      // Conflict detection: compare the client's last-seen timestamp against the
+      // document's server timestamp. A precise ISO header avoids HTTP-date
+      // millisecond truncation while preserving the standard header for proxies.
+      const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
+      const httpUnmodifiedSince = req.headers["if-unmodified-since"];
+      const timestampValue = Array.isArray(preciseUnmodifiedSince)
+        ? preciseUnmodifiedSince[0]
+        : preciseUnmodifiedSince;
+      const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
+        ? httpUnmodifiedSince[0]
+        : httpUnmodifiedSince;
+      if (timestampValue || httpTimestampValue || req.body._updatedAt) {
+        const usingPreciseHeader = Boolean(timestampValue);
+        const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
+        const clientTimestamp = timestampValue
+          ? DateTime.fromISO(timestampValue)
+          : httpTimestampValue
+            ? DateTime.fromHTTP(httpTimestampValue)
+            : DateTime.fromISO(req.body._updatedAt);
+
+        // Malformed timestamps must not silently bypass conflict detection.
+        // Invalid DateTime returns NaN from valueOf(), and `NaN < anything` is
+        // false — so without this guard the check would silently pass.
+        if (!clientTimestamp.isValid) {
+          throw new APIError({
+            detail: usingPreciseHeader
+              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+              : usingHttpHeader
+                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+                : "_updatedAt body field could not be parsed as an ISO date",
+            status: 400,
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
+        const docRecord = doc as {created?: Date | string; updated?: Date | string};
+        let serverTimestamp: DateTime | null = null;
+        const serverTimestampValue = docRecord.updated ?? docRecord.created;
+        if (serverTimestampValue instanceof Date) {
+          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
+        } else if (typeof serverTimestampValue === "string") {
+          serverTimestamp = DateTime.fromISO(serverTimestampValue);
+        }
+
+        if (serverTimestamp && !serverTimestamp.isValid) {
+          throw new APIError({
+            detail: "Document timestamp could not be parsed as a date",
+            status: 400,
+            title: "Invalid server timestamp",
+          });
+        }
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          const serialized = await responseHandler(doc, "update", req, options);
+          return res.status(409).json({
+            data: serialized,
+            error: "Conflict",
+            message: "Document was modified since your last read",
+          });
+        }
+        // Remove _updatedAt from body so it doesn't get saved
+        delete req.body._updatedAt;
+        if (body && typeof body === "object") {
+          delete (body as Record<string, unknown>)._updatedAt;
+        }
+      }
+
       if (options.preUpdate) {
         try {
           // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
@@ -883,29 +979,6 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             detail: `preUpdate hook on ${req.params.id} returned null`,
             status: 403,
             title: "Update not allowed",
-          });
-        }
-      }
-
-      // Conflict detection: when the If-Unmodified-Since header is present, compare
-      // against the document's updated timestamp. If the server version is newer, return
-      // 409 Conflict with the current server document so the client can resolve.
-      const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
-      const ifUnmodifiedSince = preciseUnmodifiedSince ?? req.headers["if-unmodified-since"];
-      const timestampValue = Array.isArray(ifUnmodifiedSince)
-        ? ifUnmodifiedSince[0]
-        : ifUnmodifiedSince;
-      if (timestampValue) {
-        const clientTimestamp = new Date(timestampValue);
-        const docWithTimestamps = doc as {created?: Date; updated?: Date};
-        const serverUpdated: Date | undefined =
-          docWithTimestamps.updated ?? docWithTimestamps.created;
-        if (serverUpdated && clientTimestamp < serverUpdated) {
-          const serialized = await responseHandler(doc, "update", req, options);
-          return res.status(409).json({
-            data: serialized,
-            error: "Conflict",
-            message: "Document was modified since your last read",
           });
         }
       }
