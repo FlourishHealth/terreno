@@ -64,7 +64,7 @@ module "github_oidc" {
 }
 
 # ---------------------------------------------------------------------------
-# Example backend
+# Example backend + tasks worker
 #
 # Cloud Run service env vars + image are managed by the CD workflow
 # (deploy-example-gcp.yml), which sources values from GitHub Actions secrets.
@@ -78,6 +78,21 @@ module "backend_artifact_registry" {
   region        = var.backend_region
   repository_id = var.backend_service_name
   description   = "Container images for ${var.backend_service_name}."
+
+  writer_members = {
+    gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
+module "tasks_artifact_registry" {
+  source = "./modules/artifact_registry"
+
+  project_id    = var.project_id
+  region        = var.backend_region
+  repository_id = var.tasks_service_name
+  description   = "Container images for ${var.tasks_service_name}."
 
   writer_members = {
     gh-deployer = "serviceAccount:${module.github_oidc.service_account_emails["gh-deployer"]}"
@@ -147,6 +162,35 @@ module "backend_service" {
 
   depends_on = [
     module.backend_artifact_registry,
+    module.backend_secret_mongodb_uri,
+    module.backend_secret_langfuse_secret_key,
+    module.backend_secret_langfuse_public_key,
+  ]
+}
+
+module "tasks_service" {
+  source = "./modules/cloud_run_service"
+
+  project_id            = var.project_id
+  region                = var.backend_region
+  service_name          = var.tasks_service_name
+  image                 = var.placeholder_image
+  port                  = 3000
+  memory                = "512Mi"
+  cpu                   = "1"
+  min_instances         = var.tasks_min_instances
+  max_instances         = var.tasks_max_instances
+  concurrency           = 80
+  timeout_seconds       = 300
+  allow_unauthenticated = true
+  labels                = local.common_labels
+
+  env = {
+    BACKEND_SERVICE = "tasks"
+  }
+
+  depends_on = [
+    module.tasks_artifact_registry,
     module.backend_secret_mongodb_uri,
     module.backend_secret_langfuse_secret_key,
     module.backend_secret_langfuse_public_key,
