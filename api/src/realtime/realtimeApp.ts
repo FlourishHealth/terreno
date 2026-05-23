@@ -5,7 +5,9 @@ import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
 import {Server, type Socket} from "socket.io";
 
+import type {User} from "../auth";
 import {logger} from "../logger";
+import {checkPermissions} from "../permissions";
 import type {TerrenoPlugin} from "../terrenoPlugin";
 import {startChangeStreamWatcher, stopChangeStreamWatcher} from "./changeStreamWatcher";
 import {
@@ -14,7 +16,7 @@ import {
   removeAllSocketQueries,
   removeQuerySubscription,
 } from "./queryStore";
-import {findRegistryEntryByRoutePath} from "./registry";
+import {findRegistryEntryByRoutePath, type RealtimeRegistryEntry} from "./registry";
 import type {DocumentSubscription, QuerySubscription, RealtimeAppOptions} from "./types";
 
 /**
@@ -54,13 +56,56 @@ export const redactCredentials = (url: string): string => {
  */
 export interface RealtimeSocketLike {
   id: string;
-  decodedToken?: {id?: string; admin?: boolean};
+  decodedToken?: {id?: string; admin?: boolean; isAnonymous?: boolean};
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
   // biome-ignore lint/suspicious/noExplicitAny: Socket.io event handlers accept arbitrary argument shapes per event name
   on: (event: string, handler: (...args: any[]) => any) => void;
 }
+
+const getSocketUser = (socket: RealtimeSocketLike): User | undefined => {
+  const userId = socket.decodedToken?.id;
+  if (!userId) {
+    return undefined;
+  }
+  return {
+    _id: userId,
+    admin: socket.decodedToken?.admin === true,
+    id: userId,
+    isAnonymous: socket.decodedToken?.isAnonymous,
+  };
+};
+
+const canSubscribe = async (
+  entry: RealtimeRegistryEntry,
+  method: "list" | "read",
+  user?: User
+): Promise<boolean> => {
+  const permissions = entry.options.permissions[method];
+  return checkPermissions(method, permissions, user);
+};
+
+const getAuthorizedQuery = async (
+  entry: RealtimeRegistryEntry,
+  query: Record<string, any>,
+  user?: User
+): Promise<Record<string, any> | null> => {
+  if (!(await canSubscribe(entry, "list", user))) {
+    return null;
+  }
+
+  if (!entry.options.queryFilter) {
+    return query;
+  }
+
+  const filteredQuery = await entry.options.queryFilter(user, query);
+  if (filteredQuery === null) {
+    return null;
+  }
+
+  return {...query, ...filteredQuery};
+};
 
 /**
  * Install the realtime subscription handlers on a single socket. Extracted from the
@@ -80,6 +125,7 @@ export const installRealtimeSocketHandlers = (
   const logInfo = options.logInfo ?? ((): void => {});
   const userId = socket.decodedToken?.id;
   const isAdmin = socket.decodedToken?.admin === true;
+  const user = getSocketUser(socket);
 
   const counts = {document: 0, model: 0, query: 0};
 
@@ -126,6 +172,13 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
+    if (!(await canSubscribe(entry, "list", user))) {
+      logInfo(
+        `[realtime] User ${userId} denied model subscription for ${modelName}: list permission denied`
+      );
+      return;
+    }
+
     counts.model += 1;
     await socket.join(`model:${modelName}`);
     logInfo(`[realtime] User ${userId} subscribed to model:${modelName}`);
@@ -158,6 +211,14 @@ export const installRealtimeSocketHandlers = (
       logInfo(
         `[realtime] User ${userId} denied document subscription: ` +
           `collection "${payload.collection}" not registered`
+      );
+      return;
+    }
+
+    if (!(await canSubscribe(entry, "read", user))) {
+      logInfo(
+        `[realtime] User ${userId} denied document subscription for ` +
+          `${payload.collection}/${payload.id}: read permission denied`
       );
       return;
     }
@@ -209,7 +270,15 @@ export const installRealtimeSocketHandlers = (
       return;
     }
 
-    let query = {...payload.query};
+    let query = await getAuthorizedQuery(entry, {...payload.query}, user);
+    if (!query) {
+      logInfo(
+        `[realtime] User ${userId} denied query subscription for ${payload.collection}: ` +
+          "list permission or query filter denied"
+      );
+      return;
+    }
+
     if (entry.config.roomStrategy === "owner" && !isAdmin) {
       if (!userId) {
         return;
@@ -222,7 +291,11 @@ export const installRealtimeSocketHandlers = (
     addQuerySubscription(socket.id, payload.collection, query, queryId);
     counts.query += 1;
     await socket.join(`query:${queryId}`);
-    socket.emit("query:subscribed", {collection: payload.collection, queryId});
+    socket.emit("query:subscribed", {
+      clientQueryId: payload.queryId,
+      collection: payload.collection,
+      queryId,
+    });
     logInfo(`[realtime] User ${userId} subscribed to query:${queryId} on ${payload.collection}`);
   });
 

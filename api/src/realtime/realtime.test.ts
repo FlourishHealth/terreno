@@ -662,7 +662,15 @@ describe("installRealtimeSocketHandlers", () => {
       collectionName: "todos",
       config: {methods: ["create", "update", "delete"], roomStrategy: "owner"},
       modelName: "Todo",
-      options: {} as any,
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
       routePath: "/todos",
     });
   };
@@ -672,8 +680,34 @@ describe("installRealtimeSocketHandlers", () => {
       collectionName: "broadcasts",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
       modelName: "Broadcast",
-      options: {} as any,
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
       routePath: "/broadcasts",
+    });
+  };
+
+  const registerAdminOnlyCollection = (): void => {
+    registerRealtime({
+      collectionName: "secrets",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "Secret",
+      options: {
+        permissions: {
+          create: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          delete: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          list: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          read: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+          update: [(_method: string, user?: {admin?: boolean}) => user?.admin === true],
+        },
+      } as any,
+      routePath: "/secrets",
     });
   };
 
@@ -737,6 +771,22 @@ describe("installRealtimeSocketHandlers", () => {
       expect(socket.rooms.has("model:broadcasts")).toBe(true);
     });
 
+    it("denies model-strategy collections when modelRouter list permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(false);
+    });
+
+    it("allows model-strategy collections when modelRouter list permission passes", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: true, id: "admin1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:model", "secrets");
+      expect(socket.rooms.has("model:secrets")).toBe(true);
+    });
+
     it("ignores empty or non-string model names", async () => {
       registerModelCollection();
       const socket = createMockSocket({id: "user1"});
@@ -755,7 +805,15 @@ describe("installRealtimeSocketHandlers", () => {
           collectionName: `coll${i}`,
           config: {methods: ["create"], roomStrategy: "model"},
           modelName: `Coll${i}`,
-          options: {} as any,
+          options: {
+            permissions: {
+              create: [() => true],
+              delete: [() => true],
+              list: [() => true],
+              read: [() => true],
+              update: [() => true],
+            },
+          } as any,
           routePath: `/coll${i}`,
         });
       }
@@ -800,6 +858,14 @@ describe("installRealtimeSocketHandlers", () => {
       installRealtimeSocketHandlers(socket);
       await socket.trigger("subscribe:document", {collection: "broadcasts", id: "doc1"});
       expect(socket.rooms.has("document:broadcasts:doc1")).toBe(true);
+    });
+
+    it("denies document subscriptions when modelRouter read permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:document", {collection: "secrets", id: "doc1"});
+      expect(socket.rooms.has("document:secrets:doc1")).toBe(false);
     });
 
     it("ignores malformed payloads", async () => {
@@ -881,6 +947,47 @@ describe("installRealtimeSocketHandlers", () => {
       expect(payload.queryId).toBe(computeQueryId("todos", {completed: false}));
     });
 
+    it("denies query subscriptions when modelRouter list permission fails", async () => {
+      registerAdminOnlyCollection();
+      const socket = createMockSocket({admin: false, id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "secrets",
+        query: {classification: "restricted"},
+      });
+      const queryRooms = Array.from(socket.rooms).filter((r) => r.startsWith("query:"));
+      expect(queryRooms).toHaveLength(0);
+      expect(getQuerySubscriptionsForCollection("secrets")).toHaveLength(0);
+    });
+
+    it("applies modelRouter queryFilter before storing a query subscription", async () => {
+      registerRealtime({
+        collectionName: "filtered",
+        config: {methods: ["create"], roomStrategy: "model"},
+        modelName: "Filtered",
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+          queryFilter: () => ({tenantId: "tenant-1"}),
+        } as any,
+        routePath: "/filtered",
+      });
+      const socket = createMockSocket({id: "user1"});
+      installRealtimeSocketHandlers(socket);
+      await socket.trigger("subscribe:query", {
+        collection: "filtered",
+        query: {status: "active"},
+      });
+      const subs = getQuerySubscriptionsForCollection("filtered");
+      expect(subs).toHaveLength(1);
+      expect(subs[0].query).toEqual({status: "active", tenantId: "tenant-1"});
+    });
+
     it("ignores malformed query payloads", async () => {
       registerOwnerCollection();
       const socket = createMockSocket({id: "user1"});
@@ -915,7 +1022,15 @@ describe("installRealtimeSocketHandlers", () => {
         collectionName: "other",
         config: {methods: ["create"], roomStrategy: "model"},
         modelName: "Other",
-        options: {} as any,
+        options: {
+          permissions: {
+            create: [() => true],
+            delete: [() => true],
+            list: [() => true],
+            read: [() => true],
+            update: [() => true],
+          },
+        } as any,
         routePath: "/other",
       });
       const socket = createMockSocket({id: "user1"});
