@@ -169,19 +169,52 @@ jobs:
         run: |
           set -euo pipefail
           LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
-          gcloud infra-manager deployments apply "${TF_DEPLOYMENT}" \
-            --project="${{ env.GCP_PROJECT_ID }}" \
-            --location="$LOCATION" \
-            --service-account="projects/${{ env.GCP_PROJECT_ID }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
-            --local-source="terraform" \
-            --quiet
+          for attempt in 1 2 3; do
+            if gcloud infra-manager deployments apply "${TF_DEPLOYMENT}" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --location="$LOCATION" \
+              --service-account="projects/${{ env.GCP_PROJECT_ID }}/serviceAccounts/${{ vars.GCP_TF_ADMIN_SA_PROD }}" \
+              --local-source="terraform" \
+              --quiet; then
+              break
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "::error::Infra Manager apply failed after 3 attempts."
+              exit 1
+            fi
+
+            backoff_seconds=$((attempt * 15))
+            echo "Retrying Terraform apply in ${backoff_seconds}s (attempt $((attempt + 1))/3)..."
+            sleep "$backoff_seconds"
+          done
       - name: Show deployment status
+        if: always()
         run: |
+          set -euo pipefail
           LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
           gcloud infra-manager deployments describe "${TF_DEPLOYMENT}" \
             --project="${{ env.GCP_PROJECT_ID }}" \
             --location="$LOCATION" \
-            --format='yaml(state,latestRevision,errorCode)'
+            --format='yaml(state,latestRevision,errorCode,errorLogs)' || true
+      - name: Show latest Terraform revision diagnostics
+        if: failure()
+        run: |
+          set -euo pipefail
+          LOCATION="${{ vars.GCP_INFRA_MANAGER_LOCATION || 'us-central1' }}"
+          REVISION="$(gcloud infra-manager deployments describe "${TF_DEPLOYMENT}" \
+            --project="${{ env.GCP_PROJECT_ID }}" \
+            --location="$LOCATION" \
+            --format='value(latestRevision)' || true)"
+
+          if [ -n "$REVISION" ]; then
+            gcloud infra-manager revisions describe "$REVISION" \
+              --project="${{ env.GCP_PROJECT_ID }}" \
+              --location="$LOCATION" \
+              --format='yaml(state,errorCode,errorLogs,buildResults)' || true
+          else
+            echo "No latest revision found for deployment ${TF_DEPLOYMENT}."
+          fi
 
   # ───────────────────────────── Backend (example-backend) ─────────────────────────────
 
