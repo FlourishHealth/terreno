@@ -206,11 +206,11 @@ const applyOptimisticUpdate = (
   if (mutation.type === "create") {
     const args = mutation.args as {body?: Record<string, unknown>};
     const tempItem = {
+      ...args?.body,
       _id: `temp-${mutation.id}`,
       created: mutation.timestamp,
       id: `temp-${mutation.id}`,
       updated: mutation.timestamp,
-      ...args?.body,
     };
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
     updateAllCacheEntries((draft: any) => {

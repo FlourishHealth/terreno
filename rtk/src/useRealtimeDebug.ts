@@ -14,7 +14,9 @@ interface RealtimeHealthResponse {
  */
 export const useRealtimeDebug = (baseUrl: string, refreshKey?: unknown): boolean => {
   const [debugEnabled, setDebugEnabled] = useState(isWebsocketsDebugEnabled);
-  const isOnline = useSelector((state: {offline: OfflineState}) => selectIsOnline(state));
+  const isOnline = useSelector((state: {offline?: OfflineState}) =>
+    state.offline ? selectIsOnline(state as {offline: OfflineState}) : true
+  );
 
   useEffect(() => {
     if (!isOnline) {
