@@ -463,12 +463,7 @@ export const createOfflineMiddleware = (
 
       const mutation: QueuedMutation = {
         args: originalArgs,
-        baseUpdatedAt: extractBaseUpdatedAt(
-          endpointName,
-          originalArgs,
-          listenerApi.getState,
-          api
-        ),
+        baseUpdatedAt: extractBaseUpdatedAt(endpointName, originalArgs, listenerApi.getState, api),
         endpointName,
         id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp,
