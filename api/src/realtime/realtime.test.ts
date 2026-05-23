@@ -1609,6 +1609,46 @@ describe("emitToDocumentAndQueryRooms", () => {
       data: {id: "todo-1", title: "Visible", visibleTo: "owner-1"},
     });
   });
+
+  it("does not emit hard delete metadata when read permission requires an object owner", async () => {
+    const {addSocketToRoom, emissions, io} = makeIo();
+    addSocketToRoom("model:todos", {id: "other-user"});
+    const entry: any = {
+      collectionName: "todos",
+      config: {methods: ["delete"], roomStrategy: "model"},
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [
+            (_method: string, user?: {admin?: boolean; id?: string}, obj?: {ownerId?: string}) =>
+              user?.admin === true || user?.id === obj?.ownerId,
+          ],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    };
+
+    await emitToAuthorizedRoom(
+      io,
+      "model:todos",
+      {
+        collection: "todos",
+        id: "todo-1",
+        method: "delete",
+        model: "Todo",
+        timestamp: 1,
+      },
+      entry,
+      undefined,
+      () => {}
+    );
+
+    expect(emissions).toEqual([]);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

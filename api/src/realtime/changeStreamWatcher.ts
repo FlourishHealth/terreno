@@ -230,7 +230,10 @@ export const emitToAuthorizedRoom = async (
   const sockets = getSocketsInRoom(io, room);
   for (const socket of sockets) {
     const user = getSocketUser(socket);
-    const canRead = await canReadDocument(entry, user, fullDocument);
+    // Hard deletes have no document context; use an empty object so object-scoped
+    // permission helpers fail closed instead of treating the check as preflight.
+    const permissionDocument = fullDocument ?? {};
+    const canRead = await canReadDocument(entry, user, permissionDocument);
     if (!canRead) {
       logDebug(`[realtime] Skipped ${room} for ${socket.id}: read permission denied`);
       continue;
