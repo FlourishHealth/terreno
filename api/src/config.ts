@@ -36,7 +36,9 @@ export interface ConfigRegistration {
   secret?: boolean;
 }
 
-const REGISTRY: Record<string, ConfigRegistration> = {};
+// Null-prototype object so lookups don't resolve inherited keys like
+// `constructor` / `toString` as accidentally-registered entries.
+const REGISTRY: Record<string, ConfigRegistration> = Object.create(null);
 
 /**
  * Registers a configuration key, its default, and metadata. Re-registration
@@ -64,8 +66,10 @@ const getString = (key: string): string | undefined => {
       return v;
     }
   }
+  // Guard against process.env keys like "toString" / "constructor" inheriting
+  // a function from Object.prototype. Only accept string values.
   const fromProcess = process.env[key];
-  if (fromProcess !== undefined && fromProcess !== "") {
+  if (typeof fromProcess === "string" && fromProcess !== "") {
     return fromProcess;
   }
   return REGISTRY[key]?.default;
@@ -80,7 +84,9 @@ const getNumber = (key: string): number | undefined => {
   if (raw === undefined) {
     return undefined;
   }
-  const parsed = Number.parseFloat(raw);
+  // Number() rejects partially-numeric strings like "5000ms" (returns NaN)
+  // whereas parseFloat would silently truncate to 5000.
+  const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
     throw new Error(`Config key "${key}" is not a valid number: ${JSON.stringify(raw)}`);
   }

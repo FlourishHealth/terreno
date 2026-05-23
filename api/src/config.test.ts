@@ -111,6 +111,11 @@ describe("Config", () => {
       expect(() => Config.getNumber("TERRENO_CFG_NUM")).toThrow(/not a valid number/);
     });
 
+    it("throws on partially-numeric strings like '5000ms'", () => {
+      process.env.TERRENO_CFG_NUM = "5000ms";
+      expect(() => Config.getNumber("TERRENO_CFG_NUM")).toThrow(/not a valid number/);
+    });
+
     it("supports floats", () => {
       process.env.TERRENO_CFG_NUM = "3.14";
       expect(Config.getNumber("TERRENO_CFG_NUM")).toBe(3.14);
@@ -200,6 +205,15 @@ describe("Config", () => {
 
     it("re-registering the same key throws", () => {
       expect(() => Config.register("TERRENO_CFG_STRING")).toThrow(/registered more than once/);
+    });
+
+    it("does not treat Object prototype keys as registered", () => {
+      expect(Config.isRegistered("constructor")).toBe(false);
+      expect(Config.isRegistered("toString")).toBe(false);
+      expect(Config.isRegistered("hasOwnProperty")).toBe(false);
+      // And re-registering one of these names should still succeed.
+      expect(() => Config.register("toString", {default: "x"})).not.toThrow();
+      expect(Config.get("toString")).toBe("x");
     });
   });
 

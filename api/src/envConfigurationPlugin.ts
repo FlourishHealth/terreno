@@ -2,6 +2,7 @@ import type {Document, Model, Schema} from "mongoose";
 
 import {Config} from "./config";
 import {logger} from "./logger";
+import {findOneOrNoneFor} from "./plugins";
 
 /**
  * Adds an admin-editable `env: Map<string, string>` field to a Mongoose schema
@@ -23,9 +24,11 @@ import {logger} from "./logger";
  * model into `Config.refresh()` — typically:
  *
  * ```typescript
+ * import {findOneOrNoneFor} from "@terreno/api";
+ *
  * Config.setEnvLoader(async () => {
- *   const doc = await EnvConfig.findOne({}).lean();
- *   return doc?.env ? {...(doc.env as Record<string, string>)} : {};
+ *   const doc = await findOneOrNoneFor(EnvConfig, {});
+ *   return doc?.env ? Object.fromEntries(doc.env) : {};
  * });
  * await Config.refresh();
  * ```
@@ -58,9 +61,9 @@ const mapToObject = (
 const refreshFromDoc = async (Model: Model<unknown>): Promise<void> => {
   try {
     // biome-ignore lint/suspicious/noExplicitAny: doc shape determined by consumer schema
-    const doc = (await (Model as Model<any>).findOne({}).lean()) as {
-      env?: Map<string, string> | Record<string, string>;
-    } | null;
+    const doc = (await findOneOrNoneFor(Model as Model<any>, {})) as
+      | (Document & {env?: Map<string, string> | Record<string, string>})
+      | null;
     Config.setCachedEnv(mapToObject(doc?.env));
   } catch (error) {
     logger.warn(

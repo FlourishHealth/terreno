@@ -98,6 +98,19 @@ describe("envConfigurationPlugin", () => {
     expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("updated");
   });
 
+  it("post-updateOne hook refreshes the cache", async () => {
+    const doc = new TestEnvConfig();
+    doc.env.set("TERRENO_PLUGIN_KEY", "initial");
+    await doc.save();
+
+    await TestEnvConfig.updateOne(
+      {_id: doc._id},
+      {env: new Map([["TERRENO_PLUGIN_KEY", "updatedViaUpdateOne"]])}
+    );
+
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("updatedViaUpdateOne");
+  });
+
   it("empty-string env values fall through to process.env", async () => {
     process.env.TERRENO_PLUGIN_KEY = "fromEnv";
     const doc = new TestEnvConfig();
