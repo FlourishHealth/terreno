@@ -1,5 +1,4 @@
 import {describe, expect, it} from "bun:test";
-import React from "react";
 
 import {OfflineBanner} from "./OfflineBanner";
 import {renderWithTheme} from "./test-utils";

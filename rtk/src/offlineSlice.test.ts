@@ -1,5 +1,6 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
+import {REHYDRATE} from "redux-persist";
 
 import {
   addConflict,
@@ -179,6 +180,12 @@ describe("offlineSlice", () => {
     it("clears syncing state", () => {
       store.dispatch(setSyncing(true));
       store.dispatch(setSyncing(false));
+      expect(selectIsSyncing(store.getState())).toBe(false);
+    });
+
+    it("resets syncing on redux-persist rehydrate", () => {
+      store.dispatch(setSyncing(true));
+      store.dispatch({payload: undefined, type: REHYDRATE});
       expect(selectIsSyncing(store.getState())).toBe(false);
     });
   });

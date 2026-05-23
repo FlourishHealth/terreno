@@ -27,7 +27,6 @@ exports[`TerrenoProvider renders correctly with default props 1`] = `
       },
     ],
     "props": {
-      "style": undefined,
       "testID": "portal-host",
     },
     "type": "View",
@@ -116,7 +115,6 @@ exports[`TerrenoProvider renders with openAPISpecUrl 1`] = `
       },
     ],
     "props": {
-      "style": undefined,
       "testID": "portal-host",
     },
     "type": "View",
