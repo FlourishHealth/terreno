@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {forwardRef, useRef} from "react";
 import {Text, View} from "react-native";

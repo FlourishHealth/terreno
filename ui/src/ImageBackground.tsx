@@ -1,11 +1,10 @@
 import React from "react";
-import {ImageBackground as ImageBackgroundNative} from "react-native";
+import {
+  ImageBackground as ImageBackgroundNative,
+  type ImageBackgroundProps as NativeImageBackgroundProps,
+} from "react-native";
 
-interface ImageBackgroundProps {
-  children?: any;
-  style?: any;
-  source: any;
-}
+type ImageBackgroundProps = NativeImageBackgroundProps;
 
 export class ImageBackground extends React.Component<ImageBackgroundProps, {}> {
   render() {

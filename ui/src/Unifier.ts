@@ -8,6 +8,7 @@ import {requestPermissions} from "./Permissions";
 
 declare global {
   interface Window {
+    // biome-ignore lint/suspicious/noExplicitAny: Google Maps JS SDK global type is loaded dynamically and not bundled as a typed dependency
     google: any;
   }
 }
@@ -25,7 +26,7 @@ export function changeColorLuminance(hex: string, luminanceChange: Luminance) {
   } else if (hex.length !== 6) {
     throw new Error(`Invalid color hex: ${hex}`);
   }
-  let luminance;
+  let luminance: number;
   switch (luminanceChange) {
     case "light":
       luminance = -0.2;
@@ -127,7 +128,7 @@ class UnifierClass {
   };
 
   storage = {
-    getItem: async (key: string, defaultValue?: any) => {
+    getItem: async (key: string, defaultValue?: unknown) => {
       try {
         const jsonValue = await AsyncStorage.getItem(key);
         if (jsonValue) {
@@ -147,13 +148,13 @@ class UnifierClass {
         return defaultValue || null;
       }
     },
-    setItem: async (key: string, item: any) => {
+    setItem: async (key: string, item: unknown) => {
       try {
         const jsonValue = JSON.stringify(item);
         await AsyncStorage.setItem(key, jsonValue);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`[storage] Error storing ${key}`, item, error);
-        throw new Error(error);
+        throw new Error(error instanceof Error ? error.message : String(error));
       }
     },
   };

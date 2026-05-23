@@ -1,10 +1,17 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
-import {type FC, lazy, Suspense, useMemo, useState} from "react";
-import {ActivityIndicator, Pressable, Text, View} from "react-native";
+import {
+  type CustomPressableProps,
+  PressableOpacity,
+  PressableScale,
+  PressableWithoutFeedback,
+} from "pressto";
+import type React from "react";
+import {lazy, Suspense, useCallback, useMemo, useState} from "react";
+import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "react-native";
 
 import {Box} from "./Box";
-import type {ButtonProps} from "./Common";
+import type {ButtonPressAnimation, ButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
@@ -14,7 +21,20 @@ import {isNative} from "./Utilities";
 // Lazy load Modal to break the circular dependency: Modal -> Button -> Modal
 const LazyModal = lazy(() => import("./Modal").then((module) => ({default: module.Modal})));
 
-const ButtonComponent: FC<ButtonProps> = ({
+const DEFAULT_BUTTON_PRESS_ANIMATION: ButtonPressAnimation = "scale";
+
+const PRESSABLE_BY_ANIMATION: Record<
+  ButtonPressAnimation,
+  React.ComponentType<CustomPressableProps>
+> = {
+  none: PressableWithoutFeedback,
+  opacity: PressableOpacity,
+  scale: PressableScale,
+};
+
+type ButtonPressableProps = CustomPressableProps & PressableProps;
+
+const ButtonComponent: React.FC<ButtonProps> = ({
   confirmationText = "Are you sure you want to continue?",
   disabled = false,
   fullWidth = false,
@@ -23,6 +43,7 @@ const ButtonComponent: FC<ButtonProps> = ({
   loading: propsLoading,
   modalTitle = "Confirm",
   modalSubTitle,
+  pressAnimation = DEFAULT_BUTTON_PRESS_ANIMATION,
   testID,
   text,
   variant = "primary",
@@ -66,41 +87,51 @@ const ButtonComponent: FC<ButtonProps> = ({
     };
   }, [disabled, variant, theme]);
 
+  const handlePress = useCallback(async (): Promise<void> => {
+    await Unifier.utils.haptic();
+    setLoading(true);
+
+    try {
+      // If a confirmation is required, and the confirmation modal is not currently open,
+      // open it.
+      if (withConfirmation && !showConfirmation) {
+        setShowConfirmation(true);
+      } else if (!withConfirmation && onClick) {
+        // If a confirmation is not required, perform the action.
+        await onClick();
+      }
+    } catch (error) {
+      setLoading(false);
+      throw error;
+    }
+    setLoading(false);
+  }, [onClick, showConfirmation, withConfirmation]);
+
+  const debouncedHandlePress = useMemo(
+    () => debounce(handlePress, 500, {leading: true, trailing: false}),
+    [handlePress]
+  );
+
   if (!theme) {
     return null;
   }
 
+  const isPressDisabled = disabled || Boolean(loading);
+  const PressableComponent = (
+    isPressDisabled ? Pressable : PRESSABLE_BY_ANIMATION[pressAnimation]
+  ) as React.ComponentType<ButtonPressableProps>;
+  const pressableInteractionProps = isPressDisabled ? {disabled: true} : {enabled: true};
+
   return (
-    <Pressable
+    <PressableComponent
       accessibilityHint={
         withConfirmation ? "Opens a confirmation dialog" : "Press to perform action"
       }
-      aria-label={text}
-      aria-role="button"
-      disabled={disabled || loading}
-      onPress={debounce(
-        async () => {
-          await Unifier.utils.haptic();
-          setLoading(true);
-
-          try {
-            // If a confirmation is required, and the confirmation modal is not currently open,
-            // open it
-            if (withConfirmation && !showConfirmation) {
-              setShowConfirmation(true);
-            } else if (!withConfirmation && onClick) {
-              // If a confirmation is not required, perform the action.
-              await onClick();
-            }
-          } catch (error) {
-            setLoading(false);
-            throw error;
-          }
-          setLoading(false);
-        },
-        500,
-        {leading: true}
-      )}
+      accessibilityLabel={text}
+      accessibilityRole="button"
+      accessibilityState={{disabled: isPressDisabled}}
+      {...pressableInteractionProps}
+      onPress={debouncedHandlePress}
       style={{
         alignItems: "center",
         alignSelf: fullWidth ? "stretch" : "flex-start",
@@ -141,7 +172,7 @@ const ButtonComponent: FC<ButtonProps> = ({
         <Suspense fallback={null}>
           <LazyModal
             onDismiss={() => setShowConfirmation(false)}
-            primaryButtonOnClick={async () => {
+            primaryButtonOnClick={async (): Promise<void> => {
               await onClick();
               setShowConfirmation(false);
             }}
@@ -155,11 +186,11 @@ const ButtonComponent: FC<ButtonProps> = ({
           />
         </Suspense>
       )}
-    </Pressable>
+    </PressableComponent>
   );
 };
 
-export const Button: FC<ButtonProps> = (props) => {
+export const Button: React.FC<ButtonProps> = (props) => {
   const {tooltipText, tooltipIdealPosition, tooltipIncludeArrow = false} = props;
   const isMobileOrNative = isMobileDevice() || isNative();
 

@@ -6,6 +6,10 @@ type MockComponentProps = Record<string, unknown> & {
   style?: unknown;
   testID?: string;
 };
+type MockPresstoPressableProps = MockComponentProps & {
+  enabled?: boolean;
+  onPress?: (...args: unknown[]) => unknown;
+};
 type MockStyleValue = unknown;
 type MockAnimation = {
   start?: (callback?: (result: {finished: boolean}) => void) => void;
@@ -447,6 +451,25 @@ mock.module("react-native", () => {
   };
 });
 
+const createMockPresstoPressable = (name: string): React.FC<MockPresstoPressableProps> => {
+  return ({children, enabled = true, onPress, ...props}) =>
+    React.createElement(
+      name,
+      {
+        ...props,
+        disabled: !enabled,
+        onPress: enabled ? onPress : undefined,
+      },
+      children
+    );
+};
+
+mock.module("pressto", () => ({
+  PressableOpacity: createMockPresstoPressable("PressableOpacity"),
+  PressableScale: createMockPresstoPressable("PressableScale"),
+  PressableWithoutFeedback: createMockPresstoPressable("PressableWithoutFeedback"),
+}));
+
 // Initialize globalThis.expo early for expo-modules-core
 if (typeof globalThis.expo === "undefined") {
   const EventEmitterClass = class EventEmitter {
@@ -699,6 +722,14 @@ mock.module("@expo/vector-icons/FontAwesome6", () => ({
 // Mock linkify-it - need to mock the Hyperlink component directly instead
 mock.module("./Hyperlink", () => ({
   Hyperlink: ({children}: MockComponentProps) => React.createElement("View", {}, children),
+}));
+
+// Mock react-native-portalize so Portal renders inline in tests
+mock.module("react-native-portalize", () => ({
+  Host: ({children}: {children?: React.ReactNode}) =>
+    React.createElement("View", {testID: "portal-host"}, children),
+  Portal: ({children}: {children?: React.ReactNode}) =>
+    React.createElement("View", {testID: "portal"}, children),
 }));
 
 // Mock react-native internal modules with Flow types

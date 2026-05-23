@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing — fixtures construct arbitrary document/event shapes and assert on dynamic payloads
 /**
  * Tests for the realtime module's pure functions and classes:
  *   - queryMatcher.ts (matchesQuery)

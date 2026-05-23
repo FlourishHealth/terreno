@@ -134,7 +134,7 @@ export const Pagination: FC<PaginationProps> = ({totalPages, page, setPage}) => 
         alignItems: "center",
         display: "flex",
         flexDirection: "row",
-        gap: theme.spacing.xs as any,
+        gap: theme.spacing.xs,
       }}
     >
       <PaginationButton

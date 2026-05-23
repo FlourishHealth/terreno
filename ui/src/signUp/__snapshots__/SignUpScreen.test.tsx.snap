@@ -669,8 +669,11 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Sign Up",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Sign Up",
+                                "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": [Function: debounced],
                                 "style": {
@@ -748,8 +751,11 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Already have an account? Log in",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Already have an account? Log in",
+                                "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": [Function: debounced],
                                 "style": {

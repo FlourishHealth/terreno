@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/bun";
+import type express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import type {Server} from "socket.io";
@@ -6,6 +7,16 @@ import type {Server} from "socket.io";
 type ChangeStream = mongoose.mongo.ChangeStream;
 type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
 type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
+
+/**
+ * The subset of ChangeStreamDocument variants this watcher actually processes.
+ * The pipeline filters for ["insert", "update", "replace", "delete"], so we never
+ * see drop / rename / invalidate / index events at runtime.
+ */
+type WatchedChange = Extract<
+  ChangeStreamDocument,
+  {operationType: "insert" | "update" | "replace" | "delete"}
+>;
 
 import {logger} from "../logger";
 import {matchesQuery} from "./queryMatcher";
@@ -38,9 +49,12 @@ export const mapOperationType = (
     return "create";
   }
   if (operationType === "update" || operationType === "replace") {
+    // Soft delete on an update event: the document was patched with deleted=true.
+    // `change` is typed as the full union (without operationType narrowing) because
+    // callers/tests pass change objects without setting `operationType` on the change.
+    const updateChange = change as Extract<ChangeStreamDocument, {operationType: "update"}>;
     const isSoftDelete =
-      operationType === "update" &&
-      (change as any).updateDescription?.updatedFields?.deleted === true;
+      operationType === "update" && updateChange.updateDescription?.updatedFields?.deleted === true;
     if (isSoftDelete && enabledMethods.includes("delete")) {
       return "delete";
     }
@@ -62,14 +76,20 @@ const getCollectionTag = (routePath: string): string => routePath.replace(/^\//,
  * Determine which Socket.io rooms to emit to based on the room strategy.
  * Exported for testing.
  */
-export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: string): string[] => {
+export const resolveRooms = (
+  entry: RealtimeRegistryEntry,
+  // biome-ignore lint/suspicious/noExplicitAny: doc shape varies per consumer model; resolver is at the framework boundary
+  doc: any,
+  method: string
+): string[] => {
   const {roomStrategy} = entry.config;
   // Use the collection tag (e.g. "todos") for model rooms, matching what the frontend subscribes to
   const collectionTag = getCollectionTag(entry.routePath);
 
   if (typeof roomStrategy === "function") {
-    // Custom room resolver — pass a minimal pseudo-request
-    return roomStrategy(doc, method, {} as any);
+    // Custom room resolver — pass a minimal pseudo-request. The strategy only inspects
+    // doc/method; we never read fields off req here, so an empty cast is safe.
+    return roomStrategy(doc, method, {} as unknown as express.Request);
   }
 
   switch (roomStrategy) {
@@ -106,8 +126,10 @@ export const resolveRooms = (entry: RealtimeRegistryEntry, doc: any, method: str
  */
 export const serializeDoc = async (
   entry: RealtimeRegistryEntry,
+  // biome-ignore lint/suspicious/noExplicitAny: doc is a Mongoose document for an arbitrary consumer model
   doc: any,
   method: "create" | "update" | "delete"
+  // biome-ignore lint/suspicious/noExplicitAny: serializer return shape is consumer-defined
 ): Promise<any> => {
   if (entry.config.realtimeResponseHandler) {
     try {
@@ -129,8 +151,8 @@ export const serializeDoc = async (
       // Synthesize the minimal request shape a sanitizing responseHandler is likely to read.
       // We intentionally do not pass a user — handlers must not depend on per-recipient context
       // for realtime serialization (events fan out to many rooms).
-      const syntheticReq = {params: {}, query: {}, user: undefined} as any;
-      return await responseHandler(doc, restMethod as any, syntheticReq, entry.options);
+      const syntheticReq = {params: {}, query: {}, user: undefined} as unknown as express.Request;
+      return await responseHandler(doc, restMethod, syntheticReq, entry.options);
     } catch (error) {
       logger.error(
         `[realtime] modelRouter responseHandler threw during realtime serialization for ` +
@@ -154,6 +176,7 @@ export const emitToDocumentAndQueryRooms = (
   io: Server,
   collection: string,
   event: RealtimeEvent,
+  // biome-ignore lint/suspicious/noExplicitAny: fullDocument shape varies per consumer model
   fullDocument: any,
   logDebug: (msg: string) => void
 ): void => {
@@ -262,16 +285,27 @@ export const startChangeStreamWatcher = (
       maxAwaitTimeMS: 1000,
     };
 
-    changeWatcher = nativeDb.watch(pipeline, options as any) as any;
+    changeWatcher = nativeDb.watch(pipeline, options);
 
     if (!changeWatcher) {
       throw new Error("Failed to create change stream watcher");
     }
 
-    changeWatcher.on("change", async (change: ChangeStreamDocument) => {
+    changeWatcher.on("change", async (rawChange: ChangeStreamDocument) => {
       try {
-        const collectionName = (change as any).ns?.coll;
-        const docId = (change as any).documentKey?._id?.toString();
+        // The pipeline restricts operationType to a subset that always has ns/documentKey;
+        // narrow once here so downstream code doesn't need repeated casts.
+        if (
+          rawChange.operationType !== "insert" &&
+          rawChange.operationType !== "update" &&
+          rawChange.operationType !== "replace" &&
+          rawChange.operationType !== "delete"
+        ) {
+          return;
+        }
+        const change = rawChange as WatchedChange;
+        const collectionName = change.ns?.coll;
+        const docId = change.documentKey?._id?.toString();
 
         if (!collectionName || !docId) {
           return;
@@ -306,7 +340,8 @@ export const startChangeStreamWatcher = (
           return;
         }
 
-        const fullDocument = (change as any).fullDocument;
+        // fullDocument is present on insert/update/replace; absent on delete.
+        const fullDocument = change.operationType === "delete" ? undefined : change.fullDocument;
 
         // For hard deletes, we don't have the full document
         const isHardDelete = method === "delete" && !fullDocument;
@@ -330,8 +365,8 @@ export const startChangeStreamWatcher = (
           rooms = resolveRooms(entry, fullDocument, method);
         }
 
-        // Serialize the document
-        let data: any;
+        // Serialize the document. Shape varies per consumer model, so the variable is unknown.
+        let data: unknown;
         if (!isHardDelete && fullDocument) {
           data = await serializeDoc(entry, fullDocument, method);
         }
@@ -345,8 +380,8 @@ export const startChangeStreamWatcher = (
           method,
           model: entry.modelName,
           timestamp: DateTime.now().toMillis(),
-          ...(change.operationType === "update" && (change as any).updateDescription?.updatedFields
-            ? {updatedFields: Object.keys((change as any).updateDescription.updatedFields)}
+          ...(change.operationType === "update" && change.updateDescription?.updatedFields
+            ? {updatedFields: Object.keys(change.updateDescription.updatedFields)}
             : {}),
         };
 
@@ -367,7 +402,7 @@ export const startChangeStreamWatcher = (
       }
     });
 
-    changeWatcher.on("error", (err: any) => {
+    changeWatcher.on("error", (err: Error) => {
       Sentry.captureException(err);
       logger.error(`[realtime] Change stream error: ${err?.message || err}`);
     });

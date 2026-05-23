@@ -54,7 +54,7 @@ const BannerButton = ({
         alignItems: "center",
         alignSelf: "stretch",
         backgroundColor: theme.surface.base,
-        borderRadius: theme.radius.rounded as any,
+        borderRadius: theme.radius.rounded,
         flexDirection: "column",
         justifyContent: "center",
         paddingHorizontal: 12,

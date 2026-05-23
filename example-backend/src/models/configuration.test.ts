@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 
 // Mock @google-cloud/secret-manager to prevent real GCP credential lookups
@@ -119,7 +120,6 @@ describe("ConfigurationDB Model", () => {
 
     it("should reject undefined values", async () => {
       try {
-        // biome-ignore lint/suspicious/noExplicitAny: Unset value
         await Configuration.setDB("TEST_KEY", undefined as any);
         throw new Error("Should have thrown error for undefined value");
       } catch (error) {

@@ -2,7 +2,7 @@ import type http from "node:http";
 import * as Sentry from "@sentry/bun";
 import {authorize} from "@thream/socketio-jwt";
 import type express from "express";
-import {Server} from "socket.io";
+import {Server, type Socket} from "socket.io";
 
 import {logger} from "../logger";
 import type {TerrenoPlugin} from "../terrenoPlugin";
@@ -34,6 +34,7 @@ export interface RealtimeSocketLike {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: Socket.io event handlers accept arbitrary argument shapes per event name
   on: (event: string, handler: (...args: any[]) => any) => void;
 }
 
@@ -305,9 +306,11 @@ export class RealtimeApp implements TerrenoPlugin {
       this.setupAdapter(logInfo);
 
       // Connection handling
-      this.io.on("connection", (socket: any): void => {
+      this.io.on("connection", (socket: Socket): void => {
         try {
-          installRealtimeSocketHandlers(socket, {logInfo});
+          // socketio-jwt's authorize middleware adds `decodedToken` at runtime; cast through
+          // RealtimeSocketLike (a structural subset) to keep socket handler logic testable.
+          installRealtimeSocketHandlers(socket as unknown as RealtimeSocketLike, {logInfo});
         } catch (error) {
           logger.error(`[realtime] Error handling connection: ${error}`);
           Sentry.captureException(error);

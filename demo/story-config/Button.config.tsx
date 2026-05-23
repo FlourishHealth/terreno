@@ -3,6 +3,7 @@ import {
   ButtonDemo,
   ButtonIconPosition,
   ButtonLoading,
+  ButtonPressAnimations,
   ButtonVariants,
   ConfirmationButton,
   FullWidthButtons,
@@ -48,7 +49,7 @@ export const ButtonConfiguration: DemoConfiguration = {
     ],
   },
   props: {},
-  demo: ButtonDemo,
+  demo: (props) => <ButtonDemo {...props} />,
   demoOptions: {
     controls: {
       variant: {
@@ -84,6 +85,15 @@ export const ButtonConfiguration: DemoConfiguration = {
         type: "boolean",
         defaultValue: false,
       },
+      pressAnimation: {
+        type: "select",
+        defaultValue: "scale",
+        options: [
+          {label: "Scale", value: "scale"},
+          {label: "Opacity", value: "opacity"},
+          {label: "None", value: "none"},
+        ],
+      },
       withConfirmation: {
         type: "boolean",
         defaultValue: false,
@@ -91,11 +101,12 @@ export const ButtonConfiguration: DemoConfiguration = {
     },
   },
   stories: {
-    Variants: {render: ButtonVariants},
-    IconPosition: {render: ButtonIconPosition},
-    Loading: {render: ButtonLoading},
-    Confirmation: {render: ConfirmationButton},
-    FullWidth: {render: FullWidthButtons},
-    Multiline: {render: MultilineButtons},
+    Variants: {render: () => <ButtonVariants />},
+    IconPosition: {render: () => <ButtonIconPosition />},
+    Loading: {render: () => <ButtonLoading />},
+    Confirmation: {render: () => <ConfirmationButton />},
+    FullWidth: {render: () => <FullWidthButtons />},
+    PressAnimations: {render: () => <ButtonPressAnimations />},
+    Multiline: {render: () => <MultilineButtons />},
   },
 };

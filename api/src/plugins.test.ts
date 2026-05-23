@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, setSystemTime} from "bun:test";
 import type express from "express";
 import {type Document, type Model, model, Schema} from "mongoose";
@@ -58,7 +59,6 @@ const StuffModel = model<Stuff>("Stuff", stuffSchema) as unknown as StuffModelTy
 describe("baseUserPlugin", () => {
   it("adds admin and email fields to the schema", () => {
     const testSchema = new Schema({});
-    // biome-ignore lint/suspicious/noExplicitAny: test schema
     baseUserPlugin(testSchema as Schema<any, any, any, any>);
 
     const adminPath = testSchema.path("admin");

@@ -18,10 +18,10 @@ export interface RealtimeConfig {
     | "owner"
     | "model"
     | "broadcast"
-    // noExplicitAny: doc is an arbitrary Mongoose document; consumers cast to their model type
+    // biome-ignore lint/suspicious/noExplicitAny: doc is an arbitrary Mongoose document; consumers cast to their model type
     | ((doc: any, method: string, req: express.Request) => string[]);
   /** Custom serializer for real-time events. Falls back to the modelRouter responseHandler. */
-  // noExplicitAny: doc shape and return value are consumer-defined per model
+  // biome-ignore lint/suspicious/noExplicitAny: doc shape and return value are consumer-defined per model
   realtimeResponseHandler?: (doc: any, method: string) => any;
 }
 
@@ -38,7 +38,7 @@ export interface RealtimeEvent {
   /** Document ID */
   id: string;
   /** Serialized document data (omitted for hard deletes) */
-  // noExplicitAny: emitted document shape varies by model and serializer
+  // biome-ignore lint/suspicious/noExplicitAny: emitted document shape varies by model and serializer
   data?: any;
   /** Fields that were updated (for update events from change streams) */
   updatedFields?: string[];
@@ -104,6 +104,7 @@ export interface QuerySubscription {
   /** Collection tag (e.g. "todos") */
   collection: string;
   /** MongoDB-style query filter (e.g. {completed: false}) */
+  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
   query: Record<string, any>;
   /** Client-provided queryId (ignored — server computes a canonical ID) */
   queryId?: string;

@@ -1,5 +1,10 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
+import type {AdminApi, EndpointBuilder} from "./types";
+
+// biome-ignore lint/suspicious/noExplicitAny: payload bodies vary across admin models — handled at runtime
+type AdminPayload = any;
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query tag callback args have a complex generic shape we erase here
+type TagArg = any;
 
 /**
  * Hook that generates RTK Query CRUD hooks for a specific admin model.
@@ -44,7 +49,7 @@ import {useMemo} from "react";
  * @see useAdminConfig for fetching model configurations
  * @see AdminModelTable for usage in the table view
  */
-export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, modelName: string) => {
+export const useAdminApi = (api: AdminApi, routePath: string, modelName: string) => {
   const enhancedApi = useMemo(() => {
     const listKey = `adminList_${modelName}`;
     const readKey = `adminRead_${modelName}`;
@@ -54,17 +59,17 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
 
     const tagType = `admin_${modelName}`;
     return api.enhanceEndpoints({addTagTypes: [tagType]}).injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [listKey]: build.query({
           providesTags: [`admin_${modelName}`],
-          query: (params: any) => ({
+          query: (params: Record<string, unknown> | undefined) => ({
             method: "GET",
             params: params ?? {},
             url: routePath,
           }),
         }),
         [readKey]: build.query({
-          providesTags: (_result: any, _error: any, id: string) => [
+          providesTags: (_result: TagArg, _error: TagArg, id: string) => [
             {id, type: `admin_${modelName}`},
           ],
           query: (id: string) => ({
@@ -74,18 +79,18 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
         }),
         [createKey]: build.mutation({
           invalidatesTags: [`admin_${modelName}`],
-          query: (body: any) => ({
+          query: (body: AdminPayload) => ({
             body,
             method: "POST",
             url: routePath,
           }),
         }),
         [updateKey]: build.mutation({
-          invalidatesTags: (_result: any, _error: any, {id}: {id: string}) => [
+          invalidatesTags: (_result: TagArg, _error: TagArg, {id}: {id: string}) => [
             {id, type: `admin_${modelName}`},
             `admin_${modelName}`,
           ],
-          query: ({id, body}: {id: string; body: any}) => ({
+          query: ({id, body}: {id: string; body: AdminPayload}) => ({
             body,
             method: "PATCH",
             url: `${routePath}/${id}`,
@@ -111,11 +116,15 @@ export const useAdminApi = (api: Api<any, any, any, any>, routePath: string, mod
   const updateKey = `adminUpdate_${modelName}`;
   const deleteKey = `adminDelete_${modelName}`;
 
+  // RTK Query generates these hook names dynamically from the endpoint keys; the resulting
+  // shape is not statically expressible through @reduxjs/toolkit's public types.
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
   return {
-    useCreateMutation: (enhancedApi as any)[`use${capitalize(createKey)}Mutation`],
-    useDeleteMutation: (enhancedApi as any)[`use${capitalize(deleteKey)}Mutation`],
-    useListQuery: (enhancedApi as any)[`use${capitalize(listKey)}Query`],
-    useReadQuery: (enhancedApi as any)[`use${capitalize(readKey)}Query`],
-    useUpdateMutation: (enhancedApi as any)[`use${capitalize(updateKey)}Mutation`],
+    useCreateMutation: enhanced[`use${capitalize(createKey)}Mutation`],
+    useDeleteMutation: enhanced[`use${capitalize(deleteKey)}Mutation`],
+    useListQuery: enhanced[`use${capitalize(listKey)}Query`],
+    useReadQuery: enhanced[`use${capitalize(readKey)}Query`],
+    useUpdateMutation: enhanced[`use${capitalize(updateKey)}Mutation`],
   };
 };

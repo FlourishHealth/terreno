@@ -1,3 +1,7 @@
+---
+title: Terreno monorepo root guidelines
+trigger: always_on
+---
 # Terreno
 
 A monorepo containing shared packages for building full-stack applications with React Native and Express/Mongoose.
