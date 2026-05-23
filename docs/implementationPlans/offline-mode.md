@@ -1,107 +1,311 @@
 # Implementation Plan: Offline Mode
 
-**Status:** Placeholder
-**Priority:** TBD
-**Effort:** TBD
-
-*This placeholder reserves the offline-mode planning surface. Before implementation begins, replace TBD sections with the shaped design, get engineering feedback, and tag Josh with the @ symbol for review.*
+**Status:** Draft - model/API alignment
+**Priority:** High
+**Effort:** Medium
 
 ## Context
 
-Terreno already has initial offline primitives in `@terreno/rtk`, including `offlineSlice`, `offlineMiddleware`, `useOfflineStatus`, and `useServerStatus`. This IP should decide whether offline mode means polishing those primitives, adding UI components around them, integrating them into the example app, or expanding backend conflict support.
+Terreno already has offline primitives in `@terreno/rtk`, including `offlineSlice`, `offlineMiddleware`, `offlineGate`, `useOfflineStatus`, and `useServerStatus`. The offline-mode plan should harden those primitives into an opt-in offline-first framework that starts with generated `modelRouter` CRUD endpoints, keeps local data through token refresh failures, and gives app teams reusable UI without blocking custom sync logic later.
+
+## Core Concept
+
+Offline mode v1 is a configurable client-side sync layer for modelRouter endpoints. Apps opt in per model/endpoint, RTK Query caches receive optimistic updates, mutations are queued in persisted Redux state while offline or auth-blocked, and queued work replays when connection and auth are healthy.
+
+The backend remains the existing modelRouter API. Backend work is limited to formalizing two modelRouter capabilities that are already present or aligned with Mongoose:
+
+- optimistic create with client-provided ObjectId-compatible `_id` values,
+- update conflict detection with `If-Unmodified-Since` / `X-Unmodified-Since-ISO` and a `409 Conflict` server document response.
 
 ## Models
 
-TBD.
+No new server-side Mongoose models are required for v1. Offline queue and conflict records are local client state in `@terreno/rtk` and should be persisted through the consuming app's Redux persistence configuration.
 
-Questions to answer:
-- Do queued mutation records need durable storage beyond Redux persistence?
-- Do conflict records need a server-side representation or are local-only records enough?
-- Are per-model sync metadata fields required, or can existing `created` and `updated` timestamps support conflict detection?
+### Client state: offline slice
+
+```typescript
+interface OfflineState {
+  connectionQuality: "online" | "spotty" | "offline";
+  queue: QueuedMutation[];
+  conflicts: ConflictRecord[];
+  isSyncing: boolean;
+  isReplayPausedForAuth: boolean;
+  lastHealthCheck?: HealthCheckSnapshot;
+}
+
+interface QueuedMutation {
+  id: string;
+  endpointName: string;
+  modelName: string;
+  operation: "create" | "update" | "delete" | "arrayPush" | "arrayUpdate" | "arrayRemove";
+  args: unknown;
+  body?: Record<string, unknown>;
+  optimisticId?: string;
+  serverId?: string;
+  idempotencyKey: string;
+  createdAt: string;
+  lastAttemptAt?: string;
+  attemptCount: number;
+  baseUpdatedAt?: string;
+  status: "queued" | "replaying" | "authBlocked" | "conflicted" | "failed";
+  error?: string;
+}
+
+interface ConflictRecord {
+  id: string;
+  queueId: string;
+  endpointName: string;
+  modelName: string;
+  operation: "update" | "delete" | "arrayUpdate" | "arrayRemove";
+  localArgs: unknown;
+  localBody?: Record<string, unknown>;
+  serverValue: unknown;
+  baseUpdatedAt?: string;
+  serverUpdatedAt?: string;
+  dismissed: boolean;
+  createdAt: string;
+}
+
+interface HealthCheckSnapshot {
+  checkedAt: string;
+  latencyMs?: number;
+  consecutiveFailures: number;
+  recentFailureRate: number;
+}
+```
+
+### Configuration model
+
+```typescript
+interface OfflineModelRouterConfig {
+  enabled: boolean;
+  models: OfflineModelConfig[];
+  connectionQuality?: ConnectionQualityConfig;
+  auth?: OfflineAuthConfig;
+}
+
+interface OfflineModelConfig {
+  modelName: string;
+  tagType: string;
+  endpoints: {
+    create?: OfflineEndpointConfig;
+    update?: OfflineEndpointConfig;
+    delete?: OfflineEndpointConfig;
+    arrayPush?: OfflineEndpointConfig;
+    arrayUpdate?: OfflineEndpointConfig;
+    arrayRemove?: OfflineEndpointConfig;
+  };
+  idStrategy?: OfflineIdStrategy;
+  conflictStrategy?: "manual" | "keepMine" | "useServer";
+}
+
+interface OfflineEndpointConfig {
+  endpointName: string;
+  enabled?: boolean;
+  optimisticUpdate?: OfflineOptimisticUpdate;
+}
+
+interface OfflineIdStrategy {
+  generateId?: () => string;
+  requestField?: string;
+  reconcile?: "assumeClientId" | "mapServerId";
+}
+
+interface ConnectionQualityConfig {
+  healthUrl?: string;
+  pollIntervalMs?: number;
+  timeoutMs?: number;
+  spottyLatencyMs?: number;
+  offlineFailureCount?: number;
+  spottyFailureRate?: number;
+}
+
+interface OfflineAuthConfig {
+  pauseReplayWhileRefreshing?: boolean;
+  pauseReplayOnRefreshFailure?: boolean;
+  clearCacheOnLogoutOnly?: boolean;
+}
+```
+
+### ID strategy
+
+Default behavior:
+
+- generate an ObjectId-compatible string for optimistic creates,
+- send it as `_id` in the modelRouter create body,
+- assume the server returns the same ID,
+- keep cache keys stable from optimistic create through replay confirmation.
+
+Overrides:
+
+- apps can provide `generateId`,
+- apps can choose another request field,
+- apps can reconcile a server-returned ID if the backend does not preserve the client ID.
 
 ## APIs
 
-TBD.
+### Server API surface
 
-Questions to answer:
-- Which APIs must support offline mutation replay?
-- Should modelRouter expose a standard conflict response when `If-Unmodified-Since` or equivalent precondition checks fail?
-- Is a generic sync/status endpoint needed, or should apps rely on existing health checks?
+No custom sync endpoints for v1. Offline mode targets standard modelRouter endpoints only:
+
+| Method | Path | modelRouter operation | Offline behavior |
+| --- | --- | --- | --- |
+| `POST` | `/{resource}` | create | Queue and optimistically insert a local item when offline or spotty; default `_id` comes from client ID strategy. |
+| `PATCH` | `/{resource}/:id` | update | Queue and optimistically patch cache; replay with `If-Unmodified-Since` / `X-Unmodified-Since-ISO` when a base timestamp is known. |
+| `DELETE` | `/{resource}/:id` | delete | Queue and optimistically remove/mark local item based on app strategy. |
+| `POST` | `/{resource}/:id/:field` | array push | Queue and optimistically append item to cached field. |
+| `PATCH` | `/{resource}/:id/:field/:itemId` | array update | Queue and optimistically patch array item. |
+| `DELETE` | `/{resource}/:id/:field/:itemId` | array remove | Queue and optimistically remove array item. |
+
+### Backend requirements
+
+- modelRouter create should accept client-provided ObjectId-compatible `_id` values when the schema allows them.
+- modelRouter update should keep returning `409 Conflict` when precondition headers are older than the current server `updated` timestamp.
+- The conflict response should include the current server document in a stable response field.
+- No server-side queue, sync cursor, or batch replay endpoint is included in v1.
+
+### Client API surface
+
+```typescript
+const offlineMiddleware = createOfflineMiddleware({
+  api,
+  offline: {
+    enabled: true,
+    models: [
+      {
+        modelName: "Todo",
+        tagType: "todos",
+        endpoints: {
+          create: {endpointName: "postTodos"},
+          update: {endpointName: "patchTodosById"},
+          delete: {endpointName: "deleteTodosById"},
+        },
+      },
+    ],
+  },
+});
+```
+
+New or hardened exports from `@terreno/rtk`:
+
+- `createOfflineMiddleware(options)` - opt-in middleware with modelRouter config.
+- `offlineReducer` - persisted local queue/conflict state.
+- `useOfflineStatus()` - queue, sync, conflict, and auth-blocked state.
+- `useServerStatus(config)` - computes `online`, `spotty`, or `offline`.
+- `resolveConflict({conflictId, resolution})` - supports `resolution: "keepMine" | "useServer"`.
+- `selectConnectionQuality`, `selectQueuedMutations`, `selectConflicts`.
+
+### Auth behavior
+
+- Token refresh attempts continue using the existing mutex in `emptyApi`.
+- If refresh cannot complete because the network/server is unavailable, replay pauses and queued mutations move to `authBlocked` instead of failing permanently.
+- Cached RTK Query data, queued mutations, conflicts, and optimistic local records remain intact.
+- Cache/queue clearing only happens after an explicit logout action.
+
+### Conflict resolution behavior
+
+`useServer`:
+
+- remove the queued mutation,
+- patch the RTK Query cache with the server document,
+- mark the conflict resolved/dismissed.
+
+`keepMine`:
+
+- update the queued mutation's `baseUpdatedAt` to the server `updated` timestamp,
+- keep or reapply the local optimistic cache patch,
+- replay the mutation again with the new precondition headers.
 
 ## Notifications
 
-TBD.
+No push, email, or SMS notifications are required for v1.
 
-Likely candidates:
-- In-app banner while offline.
-- In-app sync progress indicator while queued mutations replay.
-- Conflict notification when a queued mutation cannot be applied cleanly.
+In-app notifications:
+
+- offline/spotty/syncing banner,
+- pending mutation count,
+- auth-blocked sync message when replay needs re-auth,
+- conflict notification with actions for "keep mine" and "use server".
 
 ## UI
 
-TBD.
+Reusable `@terreno/ui` components and hooks:
 
-Potential surfaces:
-- Reusable offline banner in `@terreno/ui`.
-- Example frontend integration using `useServerStatus`.
-- Conflict list/resolution UI for queued mutation failures.
-
-## Phases
-
-TBD.
-
-Suggested starting breakdown:
-1. Research existing offline primitives and test coverage.
-2. Shape the minimum framework API for app teams to enable offline mode.
-3. Add examples and documentation once the API surface is confirmed.
+- `OfflineBanner` evolves to render `online`, `spotty`, `offline`, `syncing`, and `authBlocked` states.
+- `OfflineConflictList` renders unresolved conflicts.
+- `OfflineConflictCard` shows local/server values and resolution buttons.
+- `useOfflineStatus` remains the low-level hook for custom app UI.
+- Example frontend wires the status monitor and banner at the root layout and shows conflicts on the todos screen.
 
 ## Feature Flags & Migrations
 
-TBD.
-
-Consider whether offline mode should be opt-in at the app/store level and whether any queue persistence migration is needed for existing consumers.
+- Offline mode is default off.
+- Apps enable it in store setup by mounting `offlineReducer` and adding `createOfflineMiddleware`.
+- Existing consumers are unaffected unless they opt in.
+- Queue persistence should include a version number so future changes can migrate or discard incompatible queue records safely.
+- No backend data migration is required.
 
 ## Activity Log & User Updates
 
-TBD.
+No new activity log system is required for v1. Replayed modelRouter mutations should behave like normal API mutations on the backend. A future version can add audit metadata such as `X-Terreno-Offline-Replay` if consuming apps need to distinguish offline-originated changes.
 
-Clarify whether replayed mutations should create normal activity log entries, special "synced from offline" entries, or no additional audit metadata.
+## Phases
+
+1. **RTK core hardening**
+   - Formalize modelRouter endpoint config.
+   - Add create ID strategy defaults and overrides.
+   - Add auth-blocked replay state.
+   - Add conflict resolution actions.
+   - Add queue persistence versioning.
+
+2. **Connection status and UI**
+   - Upgrade `useServerStatus` to emit `online`, `spotty`, and `offline`.
+   - Update `OfflineBanner`.
+   - Add conflict resolution UI components.
+
+3. **Backend formalization and tests**
+   - Add/verify modelRouter tests for client-provided IDs.
+   - Add/verify conflict response contract tests.
+   - Document modelRouter offline requirements.
+
+4. **Example app integration and docs**
+   - Configure todos for offline mode.
+   - Demonstrate optimistic create/update/delete.
+   - Demonstrate offline, spotty, auth-blocked, and conflict states.
 
 ## Not Included / Future Work
 
-TBD.
-
-Potential exclusions:
-- Full collaborative conflict resolution.
+- Custom route sync strategies.
+- Server-side mutation queues.
+- Batch sync/cursor endpoints.
 - Background sync while the app is closed.
 - Binary/file upload offline queues.
+- Multi-user collaborative merge UI beyond "keep mine" / "use server".
+- Local relational database adapters.
+
+## Risks & Mitigations
+
+- **Generic optimistic updates can become too magical:** Keep modelRouter defaults simple and expose per-endpoint custom optimistic update functions.
+- **Create ID reconciliation can break cache keys:** Default to client-provided ObjectId values and only support server ID remapping through an explicit strategy.
+- **Auth refresh failures can look like logout:** Introduce a separate auth-blocked replay state and reserve destructive clearing for explicit logout.
+- **Spotty detection can be noisy:** Make thresholds configurable and expose raw health metrics for app tuning.
+- **Conflict UI can balloon:** Limit v1 to "keep mine" and "use server"; defer field-level merge tooling.
 
 ## Acceptance Criteria
 
-Placeholder. Replace with concrete acceptance criteria after the full offline-mode scope is shaped.
+- Offline mode is opt-in and disabled by default.
+- A modelRouter-backed model can opt into offline create/update/delete through `@terreno/rtk` configuration.
+- Offline create uses a stable default client ID and supports a custom ID strategy.
+- Queued mutations persist through app reload when the consuming app persists the offline slice.
+- Failed token refresh pauses replay without clearing RTK Query cache or queued mutations.
+- Explicit logout clears auth and configured offline/cache state.
+- Conflicts from modelRouter `409` responses can be resolved with "keep mine" or "use server".
+- Connection status can represent `online`, `spotty`, and `offline` with configurable thresholds.
+- Reusable UI surfaces show offline/spotty/syncing/auth-blocked/conflict states.
+- Example frontend demonstrates offline todos with optimistic create/update/delete and conflict resolution.
 
 ---
 
-## Task List (Bot Consumption)
+## Alignment Question
 
-*Structured task breakdown placeholder. Expand into implementation tasks after research and shaping.*
-
-### Phase 0: Plan Completion
-
-- [ ] **Task 0.1**: Research existing offline-mode implementation
-  - Description: Review `rtk/src/offlineSlice.ts`, `rtk/src/offlineMiddleware.ts`, `rtk/src/useOfflineStatus.ts`, `rtk/src/useServerStatus.ts`, related tests, and any example app usage.
-  - Files: `rtk/src/*offline*`, `rtk/src/useServerStatus.ts`, relevant tests and docs
-  - Depends on: none
-  - Acceptance: Research notes identify current capabilities, gaps, and risky assumptions.
-
-- [ ] **Task 0.2**: Shape offline-mode scope
-  - Description: Decide the intended product/API scope for offline mode, including queue persistence, replay semantics, conflict handling, UI surfaces, and example app integration.
-  - Files: `docs/implementationPlans/offline-mode.md`
-  - Depends on: Task 0.1
-  - Acceptance: This placeholder IP is replaced with a concrete implementation plan.
-
-- [ ] **Task 0.3**: Generate implementation tasks
-  - Description: Create the final bot-consumable task list once the implementation plan is approved.
-  - Files: `docs/tasks/offline-mode.md`
-  - Depends on: Task 0.2
-  - Acceptance: Task list is specific enough for implementation agents to execute independently.
+Are these client models and the modelRouter-only API contract the right foundation before the task list is expanded?
