@@ -1,6 +1,6 @@
 # Implementation Plan: Offline Mode
 
-**Status:** Draft - model/API alignment
+**Status:** Approved for implementation tasking
 **Priority:** High
 **Effort:** Medium
 
@@ -306,6 +306,6 @@ No new activity log system is required for v1. Replayed modelRouter mutations sh
 
 ---
 
-## Alignment Question
+## Approval Notes
 
-Are these client models and the modelRouter-only API contract the right foundation before the task list is expanded?
+The modelRouter-only client/API foundation has been approved. Implementation tasks live in `docs/tasks/offline-mode.md`.
