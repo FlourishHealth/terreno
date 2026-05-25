@@ -16,8 +16,8 @@ interface ListCacheDraft {
   [key: string]: unknown;
 }
 
-interface CacheLifecycleApi {
-  updateCachedData: (updateRecipe: (draft: ListCacheDraft) => void) => void;
+interface CacheLifecycleApi<TDraft> {
+  updateCachedData: (updateRecipe: (draft: TDraft) => void) => void;
   cacheDataLoaded: Promise<unknown>;
   cacheEntryRemoved: Promise<void>;
 }
@@ -185,7 +185,7 @@ export const realtimeDocument = (collection: string, options?: RealtimeDocumentO
       return (obj?.id as string | undefined) ?? (obj?._id as string | undefined);
     });
 
-  return async (arg: unknown, api: CacheLifecycleApi): Promise<void> => {
+  return async (arg: unknown, api: CacheLifecycleApi<DocumentData>): Promise<void> => {
     const {updateCachedData, cacheDataLoaded, cacheEntryRemoved} = api;
 
     const id = getId(arg);
@@ -217,7 +217,7 @@ export const realtimeDocument = (collection: string, options?: RealtimeDocumentO
 
       if (event.method === "update" && event.data) {
         const data = normalizeRealtimeData(event.data);
-        updateCachedData((draft: ListCacheDraft) => {
+        updateCachedData((draft: DocumentData) => {
           Object.assign(draft, data);
         });
       }
@@ -281,7 +281,7 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
     options?.getQuery ??
     ((arg: unknown) => extractQueryFilter(arg as Record<string, unknown> | null | undefined));
 
-  return async (arg: unknown, api: CacheLifecycleApi): Promise<void> => {
+  return async (arg: unknown, api: CacheLifecycleApi<ListCacheDraft>): Promise<void> => {
     const {updateCachedData, cacheDataLoaded, cacheEntryRemoved} = api;
 
     try {
