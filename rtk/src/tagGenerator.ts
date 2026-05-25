@@ -1,23 +1,38 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: Generics
-
 // use this with enhanceEndpoints since the code generator doesn't invalidate by individual ids,
 // only at the full collection level
 
+interface TagProviderResult {
+  data?: Array<{_id: string}>;
+  _id?: string;
+}
+
+type TagEntry = string | {type: string; id?: string};
+type TagProviderFn = (result: TagProviderResult | null | undefined) => TagEntry[];
+
+interface EndpointTagConfig {
+  providesTags: TagProviderFn;
+  invalidatesTags: TagProviderFn;
+}
+
+interface ApiWithEndpoints {
+  endpoints: Record<string, unknown>;
+}
+
 const providesIdTags =
   (path: string) =>
-  (result: any): string[] | [{type: string; id?: string}] =>
-    result ? [...(result?.data?.map(({_id}: any) => ({id: _id, type: path})) ?? []), path] : [path];
+  (result: TagProviderResult | null | undefined): TagEntry[] =>
+    result ? [...(result?.data?.map(({_id}) => ({id: _id, type: path})) ?? []), path] : [path];
 
 const providesIdTag =
   (path: string) =>
-  (result: any): string[] | [{type: string; id?: string}] => {
+  (result: TagProviderResult | null | undefined): TagEntry[] => {
     return result ? [{id: result._id, type: path}] : [path];
   };
 
 const invalidatesIdTags =
   (path: string) =>
-  (result: any): string[] | [{type: string; id?: string}] =>
-    result ? [...(result?.data?.map(({_id}: any) => ({id: _id, type: path})) ?? []), path] : [path];
+  (result: TagProviderResult | null | undefined): TagEntry[] =>
+    result ? [...(result?.data?.map(({_id}) => ({id: _id, type: path})) ?? []), path] : [path];
 
 const cleanEndpointStringToGenerateTag = (string: string): string => {
   // Define the prefixes and suffix
@@ -33,14 +48,17 @@ const cleanEndpointStringToGenerateTag = (string: string): string => {
   return string.replace(regex, "")?.toLowerCase();
 };
 
-export const generateTags = (api: any, tagTypes: string[]): any => {
+export const generateTags = (
+  api: ApiWithEndpoints,
+  tagTypes: string[]
+): Record<string, EndpointTagConfig> => {
   // take the api, and for each get and list endpoint, generate tags that invalidate the cache by id
   // and by the list endpoint
   const endpoints = api.endpoints;
-  const tags: any = {};
+  const tags: Record<string, Partial<EndpointTagConfig>> = {};
   Object.keys(endpoints).forEach((endpoint) => {
     if (endpoint === "getConversations") {
-      tags[endpoint] = {invalidatesTags: ["conversations", "messages"]};
+      tags[endpoint] = {invalidatesTags: (): TagEntry[] => ["conversations", "messages"]};
     }
     if (endpoint.toLowerCase().includes("get")) {
       // List endpoints
@@ -76,5 +94,5 @@ export const generateTags = (api: any, tagTypes: string[]): any => {
       }
     }
   });
-  return tags;
+  return tags as Record<string, EndpointTagConfig>;
 };
