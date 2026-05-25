@@ -1,8 +1,26 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: RTK Query internal types require dynamic access patterns
 import {DateTime} from "luxon";
 import type {Socket} from "socket.io-client";
 
 import {isWebsocketsDebugEnabled, logSocket} from "./constants";
+
+interface DocumentData {
+  _id?: string;
+  id?: string;
+  updated?: string;
+  [key: string]: unknown;
+}
+
+interface ListCacheDraft {
+  data?: DocumentData[];
+  total?: number;
+  [key: string]: unknown;
+}
+
+interface CacheLifecycleApi {
+  updateCachedData: (updateRecipe: (draft: ListCacheDraft) => void) => void;
+  cacheDataLoaded: Promise<unknown>;
+  cacheEntryRemoved: Promise<void>;
+}
 
 /**
  * A real-time sync event received from the server via WebSocket.
@@ -18,7 +36,7 @@ export interface RealtimeEvent {
   /** Document ID */
   id: string;
   /** Serialized document data (omitted for hard deletes) */
-  data?: any;
+  data?: DocumentData;
   /** Fields that were updated (for update events) */
   updatedFields?: string[];
   /** Epoch milliseconds when the event was generated */
@@ -90,11 +108,13 @@ const PAGINATION_KEYS = new Set(["limit", "page", "sort", "skip", "offset", "cur
  * Strip pagination params from a query argument to get just the filter.
  * Returns undefined if no filter fields remain.
  */
-const extractQueryFilter = (arg: any): Record<string, any> | undefined => {
+const extractQueryFilter = (
+  arg: Record<string, unknown> | null | undefined
+): Record<string, unknown> | undefined => {
   if (!arg || typeof arg !== "object") {
     return undefined;
   }
-  const filter: Record<string, any> = {};
+  const filter: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(arg)) {
     if (!PAGINATION_KEYS.has(key)) {
       filter[key] = value;
@@ -104,10 +124,7 @@ const extractQueryFilter = (arg: any): Record<string, any> | undefined => {
 };
 
 /** Normalize websocket document payloads to match REST API shape (`id` from `_id`). */
-const normalizeRealtimeData = (data: any): any => {
-  if (data == null || typeof data !== "object") {
-    return data;
-  }
+const normalizeRealtimeData = (data: DocumentData): DocumentData => {
   if (data._id != null && data.id == null) {
     return {...data, id: data._id};
   }
@@ -115,9 +132,9 @@ const normalizeRealtimeData = (data: any): any => {
 };
 
 /** Deterministic hash for a query object — used as the room ID. */
-const hashQuery = (collection: string, query: Record<string, any>): string => {
+const hashQuery = (collection: string, query: Record<string, unknown>): string => {
   const sortedKeys = Object.keys(query).sort();
-  const normalized: Record<string, any> = {};
+  const normalized: Record<string, unknown> = {};
   for (const key of sortedKeys) {
     normalized[key] = query[key];
   }
@@ -133,7 +150,7 @@ interface RealtimeDocumentOptions {
    * Extract the document ID from the RTK Query argument.
    * Defaults to `arg` if string, or `arg.id ?? arg._id`.
    */
-  getId?: (arg: any) => string | undefined;
+  getId?: (arg: unknown) => string | undefined;
 }
 
 /**
@@ -159,9 +176,16 @@ interface RealtimeDocumentOptions {
  */
 export const realtimeDocument = (collection: string, options?: RealtimeDocumentOptions) => {
   const getId =
-    options?.getId ?? ((arg: any) => (typeof arg === "string" ? arg : (arg?.id ?? arg?._id)));
+    options?.getId ??
+    ((arg: unknown): string | undefined => {
+      if (typeof arg === "string") {
+        return arg;
+      }
+      const obj = arg as Record<string, unknown> | null | undefined;
+      return (obj?.id as string | undefined) ?? (obj?._id as string | undefined);
+    });
 
-  return async (arg: any, api: any): Promise<void> => {
+  return async (arg: unknown, api: CacheLifecycleApi): Promise<void> => {
     const {updateCachedData, cacheDataLoaded, cacheEntryRemoved} = api;
 
     const id = getId(arg);
@@ -193,7 +217,7 @@ export const realtimeDocument = (collection: string, options?: RealtimeDocumentO
 
       if (event.method === "update" && event.data) {
         const data = normalizeRealtimeData(event.data);
-        updateCachedData((draft: any) => {
+        updateCachedData((draft: ListCacheDraft) => {
           Object.assign(draft, data);
         });
       }
@@ -216,7 +240,7 @@ interface RealtimeListOptions {
    * Defaults to stripping pagination keys (limit, page, sort, skip, offset, cursor).
    * Return undefined to subscribe to the model room instead of a query room.
    */
-  getQuery?: (arg: any) => Record<string, any> | undefined;
+  getQuery?: (arg: unknown) => Record<string, unknown> | undefined;
 }
 
 interface QuerySubscribedPayload {
@@ -253,9 +277,11 @@ interface QuerySubscribedPayload {
  * ```
  */
 export const realtimeList = (collection: string, options?: RealtimeListOptions) => {
-  const getQuery = options?.getQuery ?? extractQueryFilter;
+  const getQuery =
+    options?.getQuery ??
+    ((arg: unknown) => extractQueryFilter(arg as Record<string, unknown> | null | undefined));
 
-  return async (arg: any, api: any): Promise<void> => {
+  return async (arg: unknown, api: CacheLifecycleApi): Promise<void> => {
     const {updateCachedData, cacheDataLoaded, cacheEntryRemoved} = api;
 
     try {
@@ -304,7 +330,7 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
         case "create": {
           if (event.data) {
             const data = normalizeRealtimeData(event.data);
-            updateCachedData((draft: any) => {
+            updateCachedData((draft: ListCacheDraft) => {
               if (draft?.data && Array.isArray(draft.data)) {
                 draft.data.unshift(data);
                 if (typeof draft.total === "number") {
@@ -319,10 +345,10 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
         case "update": {
           if (event.data) {
             const data = normalizeRealtimeData(event.data);
-            updateCachedData((draft: any) => {
+            updateCachedData((draft: ListCacheDraft) => {
               if (draft?.data && Array.isArray(draft.data)) {
                 const index = draft.data.findIndex(
-                  (item: any) => item._id === event.id || item.id === event.id
+                  (item: DocumentData) => item._id === event.id || item.id === event.id
                 );
                 if (index !== -1) {
                   // Stale event check
@@ -349,11 +375,11 @@ export const realtimeList = (collection: string, options?: RealtimeListOptions) 
         }
 
         case "delete": {
-          updateCachedData((draft: any) => {
+          updateCachedData((draft: ListCacheDraft) => {
             if (draft?.data && Array.isArray(draft.data)) {
               const before = draft.data.length;
               draft.data = draft.data.filter(
-                (item: any) => item._id !== event.id && item.id !== event.id
+                (item: DocumentData) => item._id !== event.id && item.id !== event.id
               );
               if (draft.data.length < before && typeof draft.total === "number") {
                 draft.total = Math.max(0, draft.total - 1);
