@@ -1464,6 +1464,22 @@ describe("AI Routes", () => {
       expect(res.body.total).toBe(1);
     });
 
+    it("returns 400 for invalid startDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?startDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid startDate");
+    });
+
+    it("returns 400 for invalid endDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?endDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid endDate");
+    });
+
     it("filters by startDate and endDate range", async () => {
       const a = await AIRequest.create({
         aiModel: "gpt-4",
