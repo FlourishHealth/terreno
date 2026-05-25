@@ -94,4 +94,32 @@ describe("DecimalRangeActionSheet", () => {
     });
     expect(handleChange).toHaveBeenCalled();
   });
+
+  it("invokes actionSheetRef.setModalVisible(false) when Close is pressed", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const {UNSAFE_getAllByProps} = render(
+      <ThemeProvider>
+        <DecimalRangeActionSheet
+          actionSheetRef={actionSheetRef}
+          max={10}
+          min={0}
+          onChange={() => {}}
+          value="5.5"
+        />
+      </ThemeProvider>
+    );
+
+    // Spy on the ActionSheet instance's setModalVisible after React assigns the ref
+    const spy = mock(() => {});
+    if (actionSheetRef.current) {
+      actionSheetRef.current.setModalVisible = spy;
+    }
+
+    const closeButtons = UNSAFE_getAllByProps({text: "Close"});
+    const buttonOnClick = closeButtons[0].props.onClick as () => void;
+    act(() => {
+      buttonOnClick();
+    });
+    expect(spy).toHaveBeenCalledWith(false);
+  });
 });

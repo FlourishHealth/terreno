@@ -5,9 +5,11 @@ import {
   baseTasksUrl,
   baseUrl,
   baseWebsocketsUrl,
+  isWebsocketsDebugEnabled,
   logAuth,
   logSocket,
   resolveBaseUrls,
+  setRealtimeDebug,
 } from "./constants";
 
 describe("resolveBaseUrls", () => {
@@ -213,6 +215,42 @@ describe("logSocket", () => {
   it("logSocket does not log with undefined user", () => {
     logSocket(undefined, "no user");
     expect(calls).toEqual([]);
+  });
+});
+
+describe("setRealtimeDebug / isWebsocketsDebugEnabled", () => {
+  afterEach(() => {
+    setRealtimeDebug(false);
+  });
+
+  it("isWebsocketsDebugEnabled returns false by default", () => {
+    expect(isWebsocketsDebugEnabled()).toBe(false);
+  });
+
+  it("setRealtimeDebug(true) makes isWebsocketsDebugEnabled return true", () => {
+    setRealtimeDebug(true);
+    expect(isWebsocketsDebugEnabled()).toBe(true);
+  });
+
+  it("setRealtimeDebug(false) disables runtime debug", () => {
+    setRealtimeDebug(true);
+    expect(isWebsocketsDebugEnabled()).toBe(true);
+    setRealtimeDebug(false);
+    expect(isWebsocketsDebugEnabled()).toBe(false);
+  });
+
+  it("logSocket logs when runtime websocket debug is enabled via setRealtimeDebug", () => {
+    const originalInfo = console.info;
+    const calls: unknown[][] = [];
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+
+    setRealtimeDebug(true);
+    logSocket(undefined, "runtime debug message");
+    expect(calls).toEqual([["[websocket]", "runtime debug message"]]);
+
+    console.info = originalInfo;
   });
 });
 
