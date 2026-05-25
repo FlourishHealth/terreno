@@ -219,7 +219,9 @@ describe("logSocket", () => {
 });
 
 describe("setRealtimeDebug / isWebsocketsDebugEnabled", () => {
+  const originalInfo = console.info;
   afterEach(() => {
+    console.info = originalInfo;
     setRealtimeDebug(false);
   });
 
@@ -240,7 +242,6 @@ describe("setRealtimeDebug / isWebsocketsDebugEnabled", () => {
   });
 
   it("logSocket logs when runtime websocket debug is enabled via setRealtimeDebug", () => {
-    const originalInfo = console.info;
     const calls: unknown[][] = [];
     console.info = (...args: unknown[]): void => {
       calls.push(args);
@@ -249,8 +250,6 @@ describe("setRealtimeDebug / isWebsocketsDebugEnabled", () => {
     setRealtimeDebug(true);
     logSocket(undefined, "runtime debug message");
     expect(calls).toEqual([["[websocket]", "runtime debug message"]]);
-
-    console.info = originalInfo;
   });
 });
 
