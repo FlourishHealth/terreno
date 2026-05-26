@@ -1,7 +1,7 @@
 import mongoose, {type Document} from "mongoose";
 
 import type {APIErrorConstructor} from "../errors";
-import {createdUpdatedPlugin, findOneOrNone} from "../plugins";
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 
 export interface VersionConfigDocument extends mongoose.Document {
   webWarningVersion: number;
@@ -24,7 +24,7 @@ export interface VersionConfigModel extends mongoose.Model<VersionConfigDocument
   ): Promise<(Document & VersionConfigDocument) | null>;
 }
 
-const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
+const versionConfigSchema = new mongoose.Schema<VersionConfigDocument, VersionConfigModel>(
   {
     mobileRequiredVersion: {
       default: 0,
@@ -93,7 +93,9 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
 versionConfigSchema.index({_singleton: 1}, {unique: true});
 
 versionConfigSchema.plugin(createdUpdatedPlugin);
+versionConfigSchema.plugin(isDeletedPlugin);
 versionConfigSchema.plugin(findOneOrNone);
+versionConfigSchema.plugin(findExactlyOne);
 
 export const VersionConfig = mongoose.model<VersionConfigDocument, VersionConfigModel>(
   "VersionConfig",

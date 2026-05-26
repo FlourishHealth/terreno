@@ -37,10 +37,7 @@ export interface PopulatePath {
   fields?: string[];
 }
 
-// This function filters an object to only include specified keys.
-// It supports nested keys using dot notation (e.g., 'user.name').
-// If no keys are provided, it returns the original object.
-// The function recursively traverses the object structure to handle nested properties.
+// Keeps only the specified dot-notation keys from an object.
 const filterKeys = (obj: Record<string, unknown>, keysToKeep?: string[]): Record<string, unknown> => {
   if (!keysToKeep) {
     return obj;
@@ -113,10 +110,7 @@ const getPathInSchema = (schema: OpenApiSchemaNode, path: string): string => {
   return fullPath;
 };
 
-// Replaces populated properties with the populated schema.
-// Recursively walks a Mongoose schema and fixes any Mixed fields in the
-// OpenAPI properties so they use an empty schema (accepts any type) instead
-// of the `{type: "object", properties: {}}` that mongoose-to-swagger emits.
+// Corrects Mixed-type fields in OpenAPI properties so they accept any value.
 export const fixMixedFields = (schema: Schema | null, properties: Record<string, OpenApiSchemaNode> | Record<string, unknown> | null): void => {
   if (!properties || !schema) {
     return;
