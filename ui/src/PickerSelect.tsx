@@ -38,6 +38,7 @@ import {
   Text,
   TextInput,
   type TextInputProps,
+  type TextProps,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -398,7 +399,15 @@ export function RNPickerSelect({
         }}
       >
         {disabled ? (
-          <Text style={{color: theme.text.secondaryLight}} testID="text_input">
+          <Text
+            {...(textInputProps as Partial<TextProps>)}
+            style={
+              (textInputProps as Partial<TextProps>)?.style
+                ? [{color: theme.text.secondaryLight}, (textInputProps as Partial<TextProps>).style]
+                : {color: theme.text.secondaryLight}
+            }
+            testID={textInputProps?.testID ?? "text_input"}
+          >
             {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
           </Text>
         ) : (
