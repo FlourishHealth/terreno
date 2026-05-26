@@ -5,8 +5,14 @@ mock.module("react-native", () => ({
   StyleSheet: {create: (styles: unknown) => styles},
 }));
 mock.module("../platform", () => ({IsWeb: false}));
-mock.module("../authSlice", () => ({getAuthToken: async () => null}));
-mock.module("../constants", () => ({baseUrl: "http://localhost:4000"}));
+mock.module("../authSlice", () => ({
+  getAuthToken: async () => null,
+  selectCurrentUserId: (state: {auth?: {userId?: string}}) => state.auth?.userId,
+}));
+mock.module("../constants", () => ({
+  baseUrl: "http://localhost:4000",
+  LOGOUT_ACTION_TYPE: "auth/logout",
+}));
 
 let networkListener: ((state: {isConnected?: boolean}) => void) | undefined;
 const removeNetworkListener = mock(() => {});

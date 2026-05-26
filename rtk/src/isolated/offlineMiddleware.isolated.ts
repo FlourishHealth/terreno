@@ -7,10 +7,16 @@ mock.module("react-native", () => ({
 mock.module("../platform", () => ({IsWeb: true}));
 
 let authToken: string | null = null;
+let currentUserId: string | undefined = "test-user";
+
 mock.module("../authSlice", () => ({
   getAuthToken: async () => authToken,
+  selectCurrentUserId: (state: {auth?: {userId?: string}}) => state.auth?.userId,
 }));
-mock.module("../constants", () => ({baseUrl: "http://localhost:4000"}));
+mock.module("../constants", () => ({
+  baseUrl: "http://localhost:4000",
+  LOGOUT_ACTION_TYPE: "auth/logout",
+}));
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
@@ -92,6 +98,7 @@ const createTestStore = (endpoints = ["postTodos", "patchTodosById", "deleteTodo
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, offline.middleware),
     reducer: {
+      auth: (state = {userId: currentUserId}) => state,
       [api.reducerPath]: api.reducer,
       offline: offline.offlineReducer,
     },
@@ -173,6 +180,7 @@ describe("createOfflineMiddleware", () => {
   let store: TestStore;
 
   beforeEach(() => {
+    currentUserId = "test-user";
     store = createTestStore();
     authToken = null;
     mockFetch.mockReset();

@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: RTK Query internal types require dynamic access patterns
 import {DateTime} from "luxon";
 import {useEffect, useRef} from "react";
 import {useDispatch, useStore} from "react-redux";
@@ -7,10 +6,41 @@ import type {Socket} from "socket.io-client";
 import {isWebsocketsDebugEnabled, logSocket} from "./constants";
 import type {RealtimeEvent} from "./realtime";
 
+interface DocumentItem {
+  _id?: string;
+  id?: string;
+  updated?: string;
+  [key: string]: unknown;
+}
+
+interface CacheEntryData {
+  data?: DocumentItem[];
+  _id?: string;
+  id?: string;
+  updated?: string;
+  total?: number;
+  [key: string]: unknown;
+}
+
+interface QueryCacheEntry {
+  status: string;
+  data?: CacheEntryData;
+  endpointName: string;
+  originalArgs: unknown;
+}
+
+interface RtkApiState {
+  queries?: Record<string, QueryCacheEntry>;
+}
+
+// noExplicitAny: RTK Query's Api type requires four generic parameters (BaseQuery, Definitions,
+// ReducerPath, TagTypes) that vary per consumer. A structural interface would lose dispatch
+// compatibility for thunk-returning util methods like updateQueryData.
 interface UseSyncConnectionOptions {
   /** Socket.io client instance (from useSocketConnection) */
   socket: Socket | null;
   /** RTK Query API instance (the enhanced API with tag types) */
+  // biome-ignore lint/suspicious/noExplicitAny: noExplicitAny: RTK Query Api generic requires four app-specific type parameters
   api: any;
   /** Tag types to listen for (e.g. ["todos", "users"]) — these should match the collection field in events */
   tagTypes: string[];
@@ -102,9 +132,9 @@ export const useSyncConnection = ({
 
     const isDebug = debug ?? isWebsocketsDebugEnabled();
 
-    const getApiQueries = (): Record<string, any> | null => {
+    const getApiQueries = (): Record<string, QueryCacheEntry> | null => {
       try {
-        const state = store.getState() as Record<string, any>;
+        const state = store.getState() as Record<string, RtkApiState>;
         return state?.[apiRef.current.reducerPath]?.queries ?? null;
       } catch {
         return null;
@@ -139,7 +169,7 @@ export const useSyncConnection = ({
 
           let patched = false;
           for (const [_cacheKey, queryEntry] of Object.entries(queries)) {
-            const entry = queryEntry as any;
+            const entry = queryEntry as QueryCacheEntry;
             if (entry?.status !== "fulfilled" || !entry?.data) {
               continue;
             }
@@ -149,30 +179,34 @@ export const useSyncConnection = ({
             // List response: {data: [...], total, page, more}
             if (entry.data?.data && Array.isArray(entry.data.data)) {
               const hasEntity = entry.data.data.some(
-                (item: any) => item._id === id || item.id === id
+                (item: DocumentItem) => item._id === id || item.id === id
               );
               if (hasEntity) {
                 dispatch(
-                  currentApi.util.updateQueryData(endpointName, originalArgs, (draft: any) => {
-                    if (draft?.data && Array.isArray(draft.data)) {
-                      const index = draft.data.findIndex(
-                        (item: any) => item._id === id || item.id === id
-                      );
-                      if (index !== -1) {
-                        // Stale event check via updated timestamp
-                        const cachedUpdated = draft.data[index].updated;
-                        if (
-                          cachedUpdated &&
-                          data.updated &&
-                          DateTime.fromISO(cachedUpdated) > DateTime.fromISO(data.updated)
-                        ) {
-                          log(`Skipping stale update for ${collection}/${id}`);
-                          return;
+                  currentApi.util.updateQueryData(
+                    endpointName,
+                    originalArgs,
+                    (draft: CacheEntryData) => {
+                      if (draft?.data && Array.isArray(draft.data)) {
+                        const index = draft.data.findIndex(
+                          (item: DocumentItem) => item._id === id || item.id === id
+                        );
+                        if (index !== -1) {
+                          // Stale event check via updated timestamp
+                          const cachedUpdated = draft.data[index].updated;
+                          if (
+                            cachedUpdated &&
+                            data.updated &&
+                            DateTime.fromISO(cachedUpdated) > DateTime.fromISO(data.updated)
+                          ) {
+                            log(`Skipping stale update for ${collection}/${id}`);
+                            return;
+                          }
+                          Object.assign(draft.data[index], data);
                         }
-                        Object.assign(draft.data[index], data);
                       }
                     }
-                  })
+                  )
                 );
                 patched = true;
               }
@@ -189,9 +223,13 @@ export const useSyncConnection = ({
                 continue;
               }
               dispatch(
-                currentApi.util.updateQueryData(endpointName, originalArgs, (draft: any) => {
-                  Object.assign(draft, data);
-                })
+                currentApi.util.updateQueryData(
+                  endpointName,
+                  originalArgs,
+                  (draft: CacheEntryData) => {
+                    Object.assign(draft, data);
+                  }
+                )
               );
               patched = true;
             }
@@ -212,7 +250,7 @@ export const useSyncConnection = ({
 
           let patched = false;
           for (const [_cacheKey, queryEntry] of Object.entries(queries)) {
-            const entry = queryEntry as any;
+            const entry = queryEntry as QueryCacheEntry;
             if (entry?.status !== "fulfilled" || !entry?.data) {
               continue;
             }
@@ -222,20 +260,24 @@ export const useSyncConnection = ({
             // List response with data array
             if (entry.data?.data && Array.isArray(entry.data.data)) {
               const hasEntity = entry.data.data.some(
-                (item: any) => item._id === id || item.id === id
+                (item: DocumentItem) => item._id === id || item.id === id
               );
               if (hasEntity) {
                 dispatch(
-                  currentApi.util.updateQueryData(endpointName, originalArgs, (draft: any) => {
-                    if (draft?.data && Array.isArray(draft.data)) {
-                      draft.data = draft.data.filter(
-                        (item: any) => item._id !== id && item.id !== id
-                      );
-                      if (typeof draft.total === "number") {
-                        draft.total = Math.max(0, draft.total - 1);
+                  currentApi.util.updateQueryData(
+                    endpointName,
+                    originalArgs,
+                    (draft: CacheEntryData) => {
+                      if (draft?.data && Array.isArray(draft.data)) {
+                        draft.data = draft.data.filter(
+                          (item: DocumentItem) => item._id !== id && item.id !== id
+                        );
+                        if (typeof draft.total === "number") {
+                          draft.total = Math.max(0, draft.total - 1);
+                        }
                       }
                     }
-                  })
+                  )
                 );
                 patched = true;
               }
