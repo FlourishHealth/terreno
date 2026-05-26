@@ -81,13 +81,8 @@ export const TapToEdit: FC<TapToEditProps> = ({
   ...fieldProps
 }) => {
   const [editing, setEditing] = useState(false);
-  const [initialValue, setInitialValue] = useState<unknown>();
+  const initialValueRef = useRef<unknown>(undefined);
   const helperText: string | undefined = propsHelperText;
-  // setInitialValue is called after initial render to handle the case where the value is updated
-  useEffect(() => {
-    setInitialValue(value);
-    // do not update if value changes
-  }, [value]);
 
   // TODO: Auto focus on input when editing for field types other than text for accessibility
   // biome-ignore lint/suspicious/noExplicitAny: inputRef references various RN input components (TextInput, etc.) depending on the field type
@@ -134,7 +129,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
               <Button
                 onClick={(): void => {
                   if (setValue) {
-                    setValue(initialValue);
+                    setValue(initialValueRef.current);
                   }
                   setEditing(false);
                 }}
@@ -146,7 +141,6 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   onClick={(): void => {
                     if (setValue) {
                       setValue("");
-                      setInitialValue("");
                     }
                     if (onSave) {
                       onSave("");
@@ -165,7 +159,6 @@ export const TapToEdit: FC<TapToEditProps> = ({
                     if (!onSave) {
                       console.error("No onSave provided for editable TapToEdit");
                     } else {
-                      setInitialValue(value);
                       await onSave(value);
                     }
                     setEditing(false);
@@ -275,7 +268,10 @@ export const TapToEdit: FC<TapToEditProps> = ({
                 accessibilityHint=""
                 accessibilityLabel="Edit"
                 marginLeft={2}
-                onClick={(): void => setEditing(true)}
+                onClick={(): void => {
+                  initialValueRef.current = value;
+                  setEditing(true);
+                }}
                 width={16}
               >
                 <Icon iconName="pencil" size="md" />
