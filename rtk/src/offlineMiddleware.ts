@@ -430,6 +430,7 @@ export const createOfflineMiddleware = (
       // rather than the current time. This ensures conflict detection compares against
       // when the document was last fetched, not when the mutation was queued.
       let timestamp = DateTime.now().toISO();
+      let listCacheBaseUpdatedAt: string | undefined;
       if (mutationType === "update") {
         const args = originalArgs as {id?: string};
         if (args?.id) {
@@ -454,6 +455,7 @@ export const createOfflineMiddleware = (
                   typeof doc.updated === "string"
                     ? doc.updated
                     : DateTime.fromJSDate(doc.updated).toISO();
+              listCacheBaseUpdatedAt = timestamp ?? undefined;
                 break;
               }
             }
@@ -461,9 +463,13 @@ export const createOfflineMiddleware = (
         }
       }
 
+      const baseUpdatedAt =
+        extractBaseUpdatedAt(endpointName, originalArgs, listenerApi.getState, api) ??
+        listCacheBaseUpdatedAt;
+
       const mutation: QueuedMutation = {
         args: originalArgs,
-        baseUpdatedAt: extractBaseUpdatedAt(endpointName, originalArgs, listenerApi.getState, api),
+        baseUpdatedAt,
         endpointName,
         id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp,

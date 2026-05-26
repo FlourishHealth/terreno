@@ -50,13 +50,20 @@ describe("OfflineBanner", () => {
     const {getByTestId, getByText} = renderWithTheme(
       <OfflineBanner isOnline={false} isSyncing={true} queueLength={2} />
     );
-    expect(getByTestId("syncing-banner")).toBeTruthy();
+    expect(getByTestId("offline-banner")).toBeTruthy();
     expect(getByText("Syncing offline changes...")).toBeTruthy();
   });
 
   it("uses custom testID prop", () => {
     const {getByTestId} = renderWithTheme(
       <OfflineBanner isOnline={false} isSyncing={false} queueLength={0} testID="custom-banner" />
+    );
+    expect(getByTestId("custom-banner")).toBeTruthy();
+  });
+
+  it("uses custom testID prop while syncing", () => {
+    const {getByTestId} = renderWithTheme(
+      <OfflineBanner isOnline={false} isSyncing={true} queueLength={2} testID="custom-banner" />
     );
     expect(getByTestId("custom-banner")).toBeTruthy();
   });
