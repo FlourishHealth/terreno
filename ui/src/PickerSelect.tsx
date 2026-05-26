@@ -397,13 +397,19 @@ export function RNPickerSelect({
           width: "100%",
         }}
       >
-        <TextInput
-          readOnly
-          style={{color: disabled ? theme.text.secondaryLight : theme.text.primary}}
-          testID="text_input"
-          value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-          {...textInputProps}
-        />
+        {disabled ? (
+          <Text style={{color: theme.text.secondaryLight}} testID="text_input">
+            {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+          </Text>
+        ) : (
+          <TextInput
+            readOnly
+            style={{color: theme.text.primary}}
+            testID="text_input"
+            value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+            {...textInputProps}
+          />
+        )}
         {renderIcon()}
       </View>
     );
@@ -629,7 +635,7 @@ export function RNPickerSelect({
           {...touchableWrapperProps}
         >
           <Text
-            numberOfLines={1}
+            numberOfLines={disabled ? undefined : 1}
             style={{
               color: disabled ? theme.text.secondaryLight : theme.text.primary,
               flex: 1,
