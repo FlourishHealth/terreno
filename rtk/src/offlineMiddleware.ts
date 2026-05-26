@@ -455,7 +455,7 @@ export const createOfflineMiddleware = (
                   typeof doc.updated === "string"
                     ? doc.updated
                     : DateTime.fromJSDate(doc.updated).toISO();
-              listCacheBaseUpdatedAt = timestamp ?? undefined;
+                listCacheBaseUpdatedAt = timestamp ?? undefined;
                 break;
               }
             }

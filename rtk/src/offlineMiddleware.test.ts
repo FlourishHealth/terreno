@@ -1,7 +1,7 @@
 import {describe, it} from "bun:test";
+import assert from "node:assert";
 import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
-import assert from "node:assert";
 
 import {createOfflineMiddleware} from "./offlineMiddleware";
 import {type OfflineState, selectOfflineQueue} from "./offlineSlice";
@@ -61,6 +61,7 @@ const createTestApi = (): Api<any, any, any, any> => {
       invalidateTags: () => ({type: "testApi/invalidateTags"}),
       updateQueryData: () => ({type: "testApi/updateQueryData"}),
     },
+    // biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
   } as unknown as Api<any, any, any, any>;
 };
 
