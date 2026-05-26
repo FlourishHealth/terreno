@@ -124,4 +124,20 @@ describe("envConfigurationPlugin", () => {
     await Config.refresh();
     expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("fallback");
   });
+
+  it("refreshFromDoc handles null document via Mongoose hook when collection is empty", async () => {
+    // Ensure collection is empty — no documents to find
+    await mongoose.connection.db?.collection("testenvconfigs").deleteMany({});
+
+    // Override the cache so we can verify it gets cleared by the hook
+    Config.setCachedEnv({TERRENO_PLUGIN_KEY: "stale"});
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("stale");
+
+    // Trigger findOneAndUpdate hook on a non-existent doc — refreshFromDoc
+    // calls findOneOrNone which returns null, so mapToObject(undefined) runs
+    await TestEnvConfig.findOneAndUpdate({_id: new mongoose.Types.ObjectId()}, {$set: {__v: 1}});
+
+    // mapToObject(undefined) returns {}, so Config falls back to the registered default
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("fallback");
+  });
 });
