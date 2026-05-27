@@ -238,7 +238,6 @@ export const emitToAuthorizedRoom = async (
         `[realtime] Failed to emit ${entry.modelName}/${event.method} to socket ${socket.id}: ${error}`
       );
       Sentry.captureException(error);
-      continue;
     }
   }
 };
