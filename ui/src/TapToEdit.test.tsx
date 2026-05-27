@@ -212,6 +212,22 @@ describe("TapToEdit", () => {
     expect(setValue).toHaveBeenCalled();
   });
 
+  it("reverts to original value (not edited value) when Cancel is pressed", async () => {
+    const setValue = mock((_v: unknown) => {});
+    const {getByLabelText, getByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Name" value="Jane" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    // Simulate user having changed the value during editing
+    setValue("Edited Value");
+    await act(async () => {
+      fireEvent.press(getByText("Cancel"));
+    });
+    expect(setValue).toHaveBeenLastCalledWith("Jane");
+  });
+
   it("clears value when Clear button is pressed", async () => {
     const setValue = mock(() => {});
     const onSave = mock(() => Promise.resolve());
