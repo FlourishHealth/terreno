@@ -16,7 +16,7 @@ export const addProjectRoutes = (
   router: express.Router,
   options?: {openApiOptions?: Record<string, unknown>}
 ): void => {
-  // Add memory to a project (registered before modelRouter so it isn't shadowed)
+  // Registered before modelRouter so it isn't shadowed by catch-all routes
   router.post(
     "/gpt/projects/:id/memories",
     [
@@ -56,7 +56,6 @@ export const addProjectRoutes = (
     })
   );
 
-  // Remove memory from a project
   router.delete(
     "/gpt/projects/:id/memories/:memoryId",
     [

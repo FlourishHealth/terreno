@@ -24,7 +24,9 @@ export interface RequestContext {
   userId?: string;
 }
 
-export type RequestContextAttributes = Record<string, string>;
+export interface RequestContextAttributes {
+  [key: string]: string;
+}
 
 export const REQUEST_CONTEXT_ATTRIBUTE_NAMES = {
   jobId: JOB_ID_HEADER,
