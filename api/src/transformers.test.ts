@@ -1,7 +1,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
-import type {ObjectId} from "mongoose";
+import type {Document, ObjectId} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -207,7 +207,7 @@ describe("query and transform", () => {
 describe("transform (deprecated helper)", () => {
   const mockTransformFn = (obj: Partial<Food>, _method: "create" | "update") => ({
     ...obj,
-    name: `${(obj as any).name}_transformed`,
+    name: `${obj.name}_transformed`,
   });
 
   it("returns data unchanged when no transformer is configured", () => {
@@ -221,7 +221,7 @@ describe("transform (deprecated helper)", () => {
       transformer: {transform: mockTransformFn},
     } as unknown as ModelRouterOptions<Food>;
     const result = transform(options, {name: "Apple"} as Partial<Food>, "create");
-    expect((result as any).name).toBe("Apple_transformed");
+    expect((result as Partial<Food>).name).toBe("Apple_transformed");
   });
 
   it("transforms an array of objects", () => {
@@ -231,8 +231,8 @@ describe("transform (deprecated helper)", () => {
     const data = [{name: "Apple"}, {name: "Banana"}] as Partial<Food>[];
     const result = transform(options, data, "update") as Partial<Food>[];
     expect(result).toHaveLength(2);
-    expect((result[0] as any).name).toBe("Apple_transformed");
-    expect((result[1] as any).name).toBe("Banana_transformed");
+    expect(result[0].name).toBe("Apple_transformed");
+    expect(result[1].name).toBe("Banana_transformed");
   });
 });
 
@@ -255,7 +255,7 @@ describe("defaultResponseHandler", () => {
     const fakeDoc = {
       _id: "abc",
       toObject: () => ({name: "Apple"}),
-    } as any;
+    } as unknown as Document<unknown, unknown, unknown> & Food;
     const req = {} as express.Request;
 
     try {
