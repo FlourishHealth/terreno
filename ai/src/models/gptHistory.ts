@@ -5,47 +5,37 @@ import type {GptHistoryDocument, GptHistoryModel} from "../types";
 
 const contentPartSchema = new mongoose.Schema(
   {
-    filename: {description: "Original filename for file-type content parts", type: String},
-    mimeType: {description: "MIME type of the file or image content", type: String},
-    text: {description: "Text content for text-type parts", type: String},
+    filename: {description: "Original filename of the attached file", type: String},
+    mimeType: {description: "MIME type of the content part", type: String},
+    text: {description: "Text content of this part", type: String},
     type: {
       description: "The kind of content this part represents",
       enum: ["text", "image", "file"],
       required: true,
       type: String,
     },
-    url: {description: "URL for image or file content", type: String},
+    url: {description: "URL pointing to the content resource", type: String},
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const gptHistoryPromptSchema = new mongoose.Schema(
   {
-    args: {
-      description: "Arguments passed when invoking a tool call",
-      type: mongoose.Schema.Types.Mixed,
-    },
-    content: {
-      description: "Structured content parts for multimodal messages",
-      type: [contentPartSchema],
-    },
-    model: {description: "AI model identifier used to generate this message", type: String},
+    args: {description: "Arguments passed to a tool call", type: mongoose.Schema.Types.Mixed},
+    content: {description: "Multipart content attached to this prompt", type: [contentPartSchema]},
+    model: {description: "AI model identifier used for this prompt", type: String},
     rating: {
       description: "User feedback rating for this prompt",
       enum: ["up", "down"],
       type: String,
     },
-    result: {
-      description: "Result returned from a tool invocation",
-      type: mongoose.Schema.Types.Mixed,
-    },
-    text: {
-      description: "Text content of the prompt or response message",
-      required: true,
+    result: {description: "Result returned from a tool call", type: mongoose.Schema.Types.Mixed},
+    text: {description: "Text content of the prompt or response", required: true, type: String},
+    toolCallId: {
+      description: "Identifier linking a tool result to its originating call",
       type: String,
     },
-    toolCallId: {description: "Unique identifier linking a tool call to its result", type: String},
-    toolName: {description: "Name of the tool that was called", type: String},
+    toolName: {description: "Name of the tool that was invoked", type: String},
     type: {
       description: "Role of this message in the conversation",
       enum: ["user", "assistant", "system", "tool-call", "tool-result"],
@@ -53,7 +43,7 @@ const gptHistoryPromptSchema = new mongoose.Schema(
       type: String,
     },
   },
-  {_id: false}
+  {_id: false, strict: "throw"}
 );
 
 const gptHistorySchema = new mongoose.Schema<GptHistoryDocument, GptHistoryModel>(
@@ -66,13 +56,10 @@ const gptHistorySchema = new mongoose.Schema<GptHistoryDocument, GptHistoryModel
     },
     prompts: {
       default: [],
-      description: "Ordered list of conversation messages",
+      description: "Ordered list of messages in this conversation",
       type: [gptHistoryPromptSchema],
     },
-    title: {
-      description: "Display title auto-generated from the first assistant response",
-      type: String,
-    },
+    title: {description: "Auto-generated title from the first assistant response", type: String},
     userId: {
       description: "The user who owns this conversation history",
       index: true,
