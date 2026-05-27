@@ -354,8 +354,11 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Log In",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Log In",
+                                "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": [Function: debounced],
                                 "style": {
@@ -433,8 +436,11 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Forgot password?",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Forgot password?",
+                                "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": [Function: debounced],
                                 "style": {
@@ -513,8 +519,11 @@ exports[`LoginScreen renders correctly with all props 1`] = `
                               ],
                               "props": {
                                 "accessibilityHint": "Press to perform action",
-                                "aria-label": "Need an account? Sign Up",
-                                "aria-role": "button",
+                                "accessibilityLabel": "Need an account? Sign Up",
+                                "accessibilityRole": "button",
+                                "accessibilityState": {
+                                  "disabled": true,
+                                },
                                 "disabled": true,
                                 "onPress": [Function: debounced],
                                 "style": {

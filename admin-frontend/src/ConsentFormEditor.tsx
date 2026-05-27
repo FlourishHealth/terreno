@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import type {AdminApi, EndpointBuilder} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface CheckboxConfig {
@@ -23,13 +24,33 @@ interface CheckboxConfig {
   confirmationPrompt?: string;
 }
 
+/** Consent form document — shape comes from the consumer's Mongoose model. */
+interface ConsentFormDocument {
+  _id?: string;
+  title?: string;
+  slug?: string;
+  type?: string;
+  order?: number;
+  required?: boolean;
+  active?: boolean;
+  captureSignature?: boolean;
+  requireScrollToBottom?: boolean;
+  defaultLocale?: string;
+  agreeButtonText?: string;
+  allowDecline?: boolean;
+  declineButtonText?: string;
+  content?: Record<string, string>;
+  checkboxes?: CheckboxConfig[];
+  [key: string]: unknown;
+}
+
 interface ConsentFormEditorProps {
   baseUrl: string;
-  api: any;
+  api: AdminApi;
   id?: string;
   supportedLocales?: string[];
   hasAiSupport?: boolean;
-  onSave?: (form: any) => void;
+  onSave?: (form: ConsentFormDocument | undefined) => void;
   onCancel?: () => void;
 }
 
@@ -116,7 +137,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const enhancedApi = useMemo(
     () =>
       api.injectEndpoints({
-        endpoints: (build: any) => ({
+        endpoints: (build: EndpointBuilder) => ({
           generateConsentContent: build.mutation({
             query: (body: {type: string; description: string; locale: string}) => ({
               body,
@@ -143,17 +164,12 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     [api, consentApiPath]
   );
 
-  const [publishConsentForm, {isLoading: isPublishing}] = (
-    enhancedApi as any
-  ).usePublishConsentFormMutation();
-
-  const [generateContent, {isLoading: isGenerating}] = (
-    enhancedApi as any
-  ).useGenerateConsentContentMutation();
-
-  const [translateContent, {isLoading: isTranslating}] = (
-    enhancedApi as any
-  ).useTranslateConsentContentMutation();
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
+  const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
+  const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
+  const [translateContent, {isLoading: isTranslating}] =
+    enhanced.useTranslateConsentContentMutation();
 
   const {data: formData, isLoading: isFormLoading} = useReadQuery(id ?? "", {
     skip: !isEditMode || !id,
@@ -224,7 +240,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   }, []);
 
   const handleCheckboxChange = useCallback(
-    (index: number, field: keyof CheckboxConfig, value: any) => {
+    (index: number, field: keyof CheckboxConfig, value: string | boolean) => {
       setCheckboxes((prev) => {
         const updated = [...prev];
         updated[index] = {...updated[index], [field]: value};
@@ -285,11 +301,11 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     const payload = buildPayload();
 
     try {
-      let result: any;
+      let result: ConsentFormDocument | undefined;
       if (isEditMode && id) {
-        result = await updateForm({body: payload, id}).unwrap();
+        result = (await updateForm({body: payload, id}).unwrap()) as ConsentFormDocument;
       } else {
-        result = await createForm(payload).unwrap();
+        result = (await createForm(payload).unwrap()) as ConsentFormDocument;
       }
       console.info("Consent form saved", {id: result?._id ?? id});
       onSave?.(result);

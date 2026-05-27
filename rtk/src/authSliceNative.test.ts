@@ -1,6 +1,16 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
+// Keep this mock a superset of the preload's react-native mock so that other
+// test files (e.g. useUpgradeCheck.test.ts) can still find AppState and Linking
+// on the cached `react-native` module after authSliceNative.test.ts runs first.
+// Bun caches the module by URL, so the last mock.module wins for subsequent loaders.
 mock.module("react-native", () => ({
+  AppState: {
+    addEventListener: () => ({remove: () => {}}),
+    currentState: "active",
+  },
+  Linking: {openURL: async () => true},
   Platform: {OS: "ios"},
   StyleSheet: {create: (s: unknown) => s},
 }));
@@ -59,10 +69,7 @@ const api = createApi({
 });
 
 const createTestStore = () => {
-  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(
-    // biome-ignore lint/suspicious/noExplicitAny: Test mock
-    api as any
-  );
+  const {authReducer, middleware, authSlice} = auth.generateAuthSlice(api as any);
   const store = configureStore({
     middleware: (getDefault) =>
       getDefault({serializableCheck: false}).concat(api.middleware, ...middleware),

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
@@ -150,6 +151,7 @@ describe("AdminVersionConfig", () => {
     apiState.data = {
       mobileRequiredVersion: 1,
       mobileWarningVersion: 2,
+      pollingIntervalMinutes: 120,
       requiredMessage: "R",
       updateUrl: " https://x.com ",
       warningMessage: "W",
@@ -165,6 +167,25 @@ describe("AdminVersionConfig", () => {
     });
     expect(updateCalls.length).toBe(1);
     expect(updateCalls[0].updateUrl).toBe("https://x.com");
+    expect(updateCalls[0].pollingIntervalMinutes).toBe(120);
+  });
+
+  it("saves default pollingIntervalMinutes (1440) when not provided by backend", async () => {
+    apiState.data = {
+      mobileRequiredVersion: 0,
+      mobileWarningVersion: 0,
+      webRequiredVersion: 0,
+      webWarningVersion: 0,
+    };
+    const {getByText} = renderWithTheme(
+      <AdminVersionConfig api={makeApi() as any} baseUrl="/admin" />
+    );
+    await act(async () => {
+      fireEvent.press(getByText("Save"));
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(updateCalls.length).toBe(1);
+    expect(updateCalls[0].pollingIntervalMinutes).toBe(1440);
   });
 
   it("handles save failures gracefully", async () => {
