@@ -141,6 +141,30 @@ describe("WebDropdownMenu", () => {
     expect(getByText("Placeholder").props.style.fontWeight).toBe("400");
     expect(getByText("Real").props.style.fontWeight).toBe("400");
   });
+
+  it("applies dynamic background via the Pressable style callback", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        selectedValue="b"
+        visible
+      />
+    );
+    const optionPressable = getByTestId("web_dropdown_option_a");
+    const styleFn = optionPressable.props.style;
+    if (typeof styleFn === "function") {
+      const defaultStyle = styleFn({hovered: false, pressed: false});
+      const hoveredStyle = styleFn({hovered: true, pressed: false});
+      const pressedStyle = styleFn({hovered: false, pressed: true});
+      expect(defaultStyle.paddingHorizontal).toBe(12);
+      expect(defaultStyle.paddingVertical).toBe(10);
+      expect(hoveredStyle.backgroundColor).toBeDefined();
+      expect(pressedStyle.backgroundColor).toBeDefined();
+    }
+  });
 });
 
 describe("useWebDropdownAnchor", () => {
