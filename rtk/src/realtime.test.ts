@@ -1,5 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
 import {afterEach, describe, expect, it} from "bun:test";
+import type {Socket} from "socket.io-client";
 
 const {realtimeDocument, realtimeList, setRealtimeSocket} = await import("./realtime");
 
@@ -177,10 +178,10 @@ describe("realtimeDocument", () => {
 
     setRealtimeDebug(true);
     try {
-      const draft: any = {id: "doc-1", title: "Old"};
+      const draft = {id: "doc-1", title: "Old"};
       const api = createCacheApi(draft);
       const socket = createMockSocket();
-      setRealtimeSocket(socket as any);
+      setRealtimeSocket(socket as unknown as Socket);
       const task = realtimeDocument("todos")("doc-1", api);
       await flushPromises();
 
@@ -375,7 +376,7 @@ describe("realtimeList", () => {
     setRealtimeDebug(true);
     try {
       const socket = createMockSocket();
-      setRealtimeSocket(socket as any);
+      setRealtimeSocket(socket as unknown as Socket);
       const draft = {data: [{id: "todo-1", title: "Existing"}], total: 1};
       const api = createCacheApi(draft);
       const task = realtimeList("todos")({limit: 20}, api);
