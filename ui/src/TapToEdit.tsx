@@ -26,7 +26,7 @@ const TapToEditTitle: FC<{
   );
 };
 
-export function formatAddress(address: AddressInterface, asString = false): string {
+export const formatAddress = (address: AddressInterface, asString = false): string => {
   let city = "";
   if (address?.city) {
     city = address?.state || address.zipcode ? `${address.city}, ` : `${address.city}`;
@@ -49,7 +49,6 @@ export function formatAddress(address: AddressInterface, asString = false): stri
   const addressLineFour = `${countyName}${address?.countyCode ? ` (${countyCode})` : ""}`;
 
   if (!asString) {
-    // Only add new lines if lines before and after are not empty to avoid awkward whitespace
     return `${addressLineOne}${
       addressLineOne && (addressLineTwo || addressLineThree) ? `\n` : ""
     }${addressLineTwo}${addressLineTwo && addressLineThree ? `\n` : ""}${addressLineThree}${
@@ -62,7 +61,7 @@ export function formatAddress(address: AddressInterface, asString = false): stri
       addressLineThree && addressLineFour ? `, ` : ""
     }${addressLineFour}`;
   }
-}
+};
 
 export const TapToEdit: FC<TapToEditProps> = ({
   value,
