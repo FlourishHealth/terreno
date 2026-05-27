@@ -1,6 +1,5 @@
 import {beforeAll, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
-import {View} from "react-native";
 
 import {Text} from "./Text";
 import {Tooltip} from "./Tooltip";
@@ -19,12 +18,6 @@ interface TestNode {
   };
   children: null | Array<TestNode | string>;
 }
-
-// Mock react-native-portalize so Portal renders inline in tests
-mock.module("react-native-portalize", () => ({
-  Host: ({children}: {children: React.ReactNode}) => <View testID="portal-host">{children}</View>,
-  Portal: ({children}: {children: React.ReactNode}) => <View testID="portal">{children}</View>,
-}));
 
 beforeAll(() => {
   globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {

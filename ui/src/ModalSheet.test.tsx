@@ -15,11 +15,6 @@ mock.module("react-native-modalize", () => ({
   )),
 }));
 
-// Mock react-native-portalize
-mock.module("react-native-portalize", () => ({
-  Portal: ({children}: {children: React.ReactNode}) => <View testID="portal">{children}</View>,
-}));
-
 describe("ModalSheet", () => {
   it("renders correctly with children", () => {
     const {toJSON} = renderWithTheme(

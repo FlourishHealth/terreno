@@ -1,63 +1,99 @@
 import {describe, expect, it} from "bun:test";
+import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
+import type {Api} from "@reduxjs/toolkit/query/react";
 
 import {
   buildOptimisticCreateItem,
+  createOfflineMiddleware,
   isNetworkFetchError,
   shouldReplayQueuedMutation,
 } from "./offlineMiddleware";
-import type {QueuedMutation} from "./offlineSlice";
+import {type OfflineState, type QueuedMutation, selectOfflineQueue} from "./offlineSlice";
+
+interface QueryEntry {
+  data?: {data: Record<string, unknown>[]};
+  originalArgs: unknown;
+}
+
+interface TestApiState {
+  queries: Record<string, QueryEntry>;
+}
+
+interface TestState {
+  auth: {userId?: string};
+  offline: OfflineState;
+  testApi: TestApiState;
+}
+
+const LIST_QUERY_ARGS = {};
+const LIST_UPDATED_AT = "2026-05-23T21:00:00.123Z";
+
+const initialTestApiState: TestApiState = {
+  queries: {
+    "getTodos({})": {
+      data: {
+        data: [
+          {
+            _id: "todo-1",
+            title: "Original",
+            updated: LIST_UPDATED_AT,
+          },
+        ],
+      },
+      originalArgs: LIST_QUERY_ARGS,
+    },
+  },
+};
+
+const testApiReducer = (state: TestApiState = initialTestApiState): TestApiState => state;
+
+// biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
+const createTestApi = (): Api<any, any, any, any> => {
+  return {
+    endpoints: {
+      getTodos: {
+        select: (queryArg: unknown) => {
+          return (state: TestState): QueryEntry | undefined => {
+            return Object.values(state.testApi.queries).find(
+              (entry) => entry.originalArgs === queryArg
+            );
+          };
+        },
+      },
+    },
+    reducerPath: "testApi",
+    util: {
+      invalidateTags: () => ({type: "testApi/invalidateTags"}),
+      updateQueryData: () => ({type: "testApi/updateQueryData"}),
+    },
+    // biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
+  } as unknown as Api<any, any, any, any>;
+};
 
 describe("isNetworkFetchError", () => {
   it("returns true for TypeError error name", () => {
     expect(isNetworkFetchError({error: {name: "TypeError"}})).toBe(true);
   });
 
-  it("returns true for 'failed to fetch' in error.message", () => {
+  it("returns true for network error messages", () => {
     expect(isNetworkFetchError({error: {message: "Failed to fetch"}})).toBe(true);
-  });
-
-  it("returns true for 'fetch failed' in error.message", () => {
     expect(isNetworkFetchError({error: {message: "fetch failed"}})).toBe(true);
-  });
-
-  it("returns true for 'network error' in error.message", () => {
     expect(isNetworkFetchError({error: {message: "Network Error"}})).toBe(true);
-  });
-
-  it("returns true for 'network unavailable' in error.message", () => {
     expect(isNetworkFetchError({error: {message: "Network unavailable"}})).toBe(true);
-  });
-
-  it("returns true for 'load failed' in error.message", () => {
     expect(isNetworkFetchError({error: {message: "Load failed"}})).toBe(true);
   });
 
-  it("returns true for string error field", () => {
+  it("returns true for string error fields", () => {
     expect(isNetworkFetchError({error: "fetch failed"})).toBe(true);
-  });
-
-  it("returns true for payload.error string", () => {
     expect(isNetworkFetchError({payload: {error: "network error"}})).toBe(true);
-  });
-
-  it("returns true for FETCH_ERROR status with network error string", () => {
     expect(isNetworkFetchError({error: "Failed to fetch", status: "FETCH_ERROR"})).toBe(true);
   });
 
-  it("returns false for FETCH_ERROR status with non-network error", () => {
-    expect(isNetworkFetchError({error: "Unauthorized", status: "FETCH_ERROR"})).toBe(false);
-  });
-
   it("returns false for non-network errors", () => {
+    expect(isNetworkFetchError({error: "Unauthorized", status: "FETCH_ERROR"})).toBe(false);
     expect(isNetworkFetchError({error: {message: "Unauthorized"}})).toBe(false);
-  });
-
-  it("returns false for null/undefined", () => {
     expect(isNetworkFetchError(null)).toBe(false);
     expect(isNetworkFetchError(undefined)).toBe(false);
-  });
-
-  it("returns false for empty object", () => {
     expect(isNetworkFetchError({})).toBe(false);
   });
 });
@@ -72,21 +108,15 @@ describe("shouldReplayQueuedMutation", () => {
     userId: "user-a",
   };
 
-  it("replays when userId matches current user", () => {
+  it("replays only mutations owned by the current user", () => {
     expect(shouldReplayQueuedMutation(baseMutation, "user-a")).toBe(true);
-  });
-
-  it("does not replay when userId differs from current user", () => {
     expect(shouldReplayQueuedMutation(baseMutation, "user-b")).toBe(false);
+    expect(shouldReplayQueuedMutation(baseMutation, undefined)).toBe(false);
   });
 
   it("does not replay legacy mutations without userId", () => {
     const legacy = {...baseMutation, userId: undefined};
     expect(shouldReplayQueuedMutation(legacy, "user-a")).toBe(false);
-  });
-
-  it("does not replay when current user is missing", () => {
-    expect(shouldReplayQueuedMutation(baseMutation, undefined)).toBe(false);
   });
 });
 
@@ -111,5 +141,47 @@ describe("buildOptimisticCreateItem", () => {
     expect(item.title).toBe("New");
     expect(item.created).toBe(mutation.timestamp);
     expect(item.updated).toBe(mutation.timestamp);
+  });
+});
+
+describe("offlineMiddleware", () => {
+  it("uses list-cache updated timestamp for queued update conflict headers", async () => {
+    const api = createTestApi();
+    const offline = createOfflineMiddleware({
+      api,
+      endpoints: ["patchTodosById"],
+    });
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({serializableCheck: false}).concat(offline.middleware),
+      reducer: {
+        auth: (state = {userId: "user-a"}) => state,
+        offline: offline.offlineReducer,
+        testApi: testApiReducer,
+      },
+    });
+
+    const rejectedMutation: UnknownAction = {
+      error: {message: "Network unavailable"},
+      meta: {
+        arg: {
+          endpointName: "patchTodosById",
+          originalArgs: {
+            body: {title: "Queued title"},
+            id: "todo-1",
+          },
+        },
+      },
+      type: "testApi/executeMutation/rejected",
+    };
+
+    store.dispatch(rejectedMutation);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    const queue = selectOfflineQueue(store.getState());
+    expect(queue).toHaveLength(1);
+    expect(queue[0].baseUpdatedAt).toBe(LIST_UPDATED_AT);
+    expect(queue[0].timestamp).toBe(LIST_UPDATED_AT);
+    expect(queue[0].userId).toBe("user-a");
   });
 });

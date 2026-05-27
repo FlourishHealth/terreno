@@ -66,6 +66,9 @@ const api = createApi({
     getTodos: builder.query<ListResponse, Record<string, unknown> | undefined>({
       query: () => "/todos",
     }),
+    getTodosById: builder.query<{data: TodoRecord}, {id: string}>({
+      query: ({id}) => `/todos/${id}`,
+    }),
     patchTodosById: builder.mutation({
       query: (args: {id: string; body: Record<string, unknown>}) => ({
         body: args.body,
@@ -155,6 +158,15 @@ const seedTodosCache = async (
   todos: TodoRecord[]
 ): Promise<void> => {
   store.dispatch(api.util.upsertQueryData("getTodos", args, {data: todos}));
+  await waitForEffects();
+};
+
+const seedTodoByIdCache = async (
+  store: TestStore,
+  id: string,
+  todo: TodoRecord & {updated: string}
+): Promise<void> => {
+  store.dispatch(api.util.upsertQueryData("getTodosById", {id}, {data: todo}));
   await waitForEffects();
 };
 
@@ -426,6 +438,11 @@ describe("createOfflineMiddleware", () => {
     });
 
     it("replays updates with PATCH, JSON body, HTTP-date and precise timestamp headers", async () => {
+      await seedTodoByIdCache(store, "123", {
+        _id: "123",
+        title: "Original",
+        updated: "2025-06-15T12:00:00.000Z",
+      });
       goOfflineAndQueue(store, {
         endpointName: "patchTodosById",
         originalArgs: {body: {title: "Updated offline"}, id: "123"},

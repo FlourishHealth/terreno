@@ -1,4 +1,5 @@
 import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import {REHYDRATE} from "redux-persist";
 
 import {IsWeb} from "./platform";
 
@@ -16,8 +17,10 @@ export interface QueuedMutation {
   endpointName: string;
   /** Original mutation arguments */
   args: unknown;
-  /** ISO timestamp of when the mutation was queued (used for If-Unmodified-Since) */
+  /** ISO timestamp of when the mutation was queued */
   timestamp: string;
+  /** Document `_updatedAt` at queue time (used for If-Unmodified-Since on replay) */
+  baseUpdatedAt?: string;
   /** The type of CRUD operation */
   type: "create" | "update" | "delete";
   /** Auth user ID when the mutation was queued; replay is skipped if it does not match the current user */
@@ -54,6 +57,11 @@ const initialState: OfflineState = {
 };
 
 export const offlineSlice = createSlice({
+  extraReducers: (builder) => {
+    builder.addCase(REHYDRATE, (state) => {
+      state.isSyncing = false;
+    });
+  },
   initialState,
   name: "offline",
   reducers: {
