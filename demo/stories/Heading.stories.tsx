@@ -1,6 +1,5 @@
 import {Box, Heading, type HeadingProps, type TextColor} from "@terreno/ui";
 import type React from "react";
-import {View} from "react-native";
 
 import {StorybookContainer} from "./StorybookContainer";
 
@@ -32,9 +31,9 @@ export const Headings = (): React.ReactElement => {
         "success",
       ].map((color) => renderHeadingText(color, {color: color as TextColor}))}
 
-      <View style={{backgroundColor: "black", paddingBottom: 8, paddingTop: 8}}>
+      <Box style={{backgroundColor: "black", paddingBottom: 8, paddingTop: 8}}>
         {renderHeadingText("inverted", {color: "inverted"})}
-      </View>
+      </Box>
       {renderHeadingText("center", {align: "center"})}
     </StorybookContainer>
   );

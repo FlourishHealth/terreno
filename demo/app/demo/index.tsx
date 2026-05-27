@@ -1,10 +1,10 @@
 import {DemoHomePage} from "@components";
+import {Box} from "@terreno/ui";
 import {router} from "expo-router";
-import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
-export default function App() {
+const App = () => {
   const insets = useSafeAreaInsets();
 
   // Update when we have new fonts picked, these look baaad.
@@ -22,45 +22,39 @@ export default function App() {
 
   return (
     <Host>
-      <View
+      <Box
         style={{
-          ...styles.container,
           backgroundColor: "#fff",
+          height: "100%",
+          maxHeight: "100%",
+          overflow: "hidden",
           paddingBottom: insets.bottom,
           paddingLeft: insets.left,
           paddingRight: insets.right,
           paddingTop: insets.top,
+          position: "absolute",
           width: "100%",
         }}
       >
-        <View style={styles.body}>
+        <Box
+          direction="column"
+          flex="grow"
+          style={{
+            backgroundColor: "#eee",
+            maxHeight: "100%",
+            overflow: "scroll",
+            width: "100%",
+          }}
+        >
           <DemoHomePage
             onPress={(component: string) => {
               router.push(`demo/${encodeURIComponent(component)}`);
             }}
           />
-        </View>
-      </View>
+        </Box>
+      </Box>
     </Host>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  body: {
-    backgroundColor: "#eee",
-    display: "flex",
-    flex: 1,
-    flexDirection: "column",
-    maxHeight: "100%",
-    overflow: "scroll",
-    width: "100%",
-  },
-  container: {
-    backgroundColor: "#fff",
-    height: "100%",
-    maxHeight: "100%",
-    overflow: "hidden",
-    position: "absolute",
-    width: "100%",
-  },
-});
+export default App;

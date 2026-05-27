@@ -1,13 +1,13 @@
 import {DevHomePage} from "@components";
 import {DemoConfig} from "@config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {Box} from "@terreno/ui";
 import {router, useRootNavigationState} from "expo-router";
 import {type ReactElement, useEffect} from "react";
-import {StyleSheet, View} from "react-native";
 
 const ASYNC_STORAGE_KEY = "CURRENT_ROUTE";
 
-export default function Dev(): ReactElement {
+const Dev = (): ReactElement => {
   // TODO create a shared hook for saving navigation state to AsyncStorage
   const navigationState = useRootNavigationState();
   // Save the current navigation state to AsyncStorage
@@ -55,10 +55,13 @@ export default function Dev(): ReactElement {
   }, []);
 
   return (
-    <View
+    <Box
       style={{
-        ...styles.container,
         backgroundColor: "#fff",
+        height: "100%",
+        maxHeight: "100%",
+        overflow: "hidden",
+        position: "absolute",
         width: "100%",
       }}
     >
@@ -68,17 +71,8 @@ export default function Dev(): ReactElement {
           router.navigate(`dev/${component}?story=${story}`);
         }}
       />
-    </View>
+    </Box>
   );
-}
+};
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: "#fff",
-    height: "100%",
-    maxHeight: "100%",
-    overflow: "hidden",
-    position: "absolute",
-    width: "100%",
-  },
-});
+export default Dev;

@@ -1,8 +1,8 @@
 import {DemoConfig} from "@config";
-import {Box, Heading} from "@terreno/ui";
+import {Box, Heading, Text} from "@terreno/ui";
 import {useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
-import {Pressable, ScrollView, Text, View} from "react-native";
+import {Pressable, ScrollView} from "react-native";
 
 export const DemoHomePage: FC<{
   onPress: (componentName: string) => void;
@@ -29,12 +29,11 @@ export const DemoHomePage: FC<{
         }
         return (
           <Pressable key={c.name} onPress={() => onPress(c.name)}>
-            <View
+            <Box
               style={{
                 borderColor: "#ccc",
                 borderRadius: 4,
                 borderWidth: 1,
-                flex: 1,
                 height: 280,
                 margin: 8,
                 maxHeight: 280,
@@ -56,7 +55,7 @@ export const DemoHomePage: FC<{
                   <Text>{c.shortDescription ?? c.description}</Text>
                 </Box>
               </Box>
-            </View>
+            </Box>
           </Pressable>
         );
       })}

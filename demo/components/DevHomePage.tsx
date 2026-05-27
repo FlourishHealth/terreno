@@ -1,7 +1,8 @@
 import type {DemoConfiguration} from "@config";
+import {Box, Heading, Text} from "@terreno/ui";
 import {useNavigation} from "expo-router";
 import React, {useEffect} from "react";
-import {Pressable, ScrollView, Text, View} from "react-native";
+import {Pressable, ScrollView} from "react-native";
 
 interface DevHomePageProps {
   demoConfig: DemoConfiguration[];
@@ -17,12 +18,12 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
 
   return (
     <ScrollView>
-      <View
+      <Box
+        direction="column"
+        flex="grow"
         style={{
-          display: "flex",
-          flex: 1,
           overflow: "scroll",
-          paddingBottom: 120, // ScrollView isn't the proper height so you can't get to the bottom.
+          paddingBottom: 120,
           paddingLeft: 16,
           paddingRight: 16,
           paddingTop: 16,
@@ -30,7 +31,9 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
       >
         {demoConfig.map((config) => (
           <React.Fragment key={config.name}>
-            <Text style={{fontSize: 20, fontWeight: "bold", marginBottom: 12}}>{config.name}</Text>
+            <Box marginBottom={3}>
+              <Heading size="sm">{config.name}</Heading>
+            </Box>
             {Object.keys(config.stories).map((title) => (
               <Pressable
                 key={title}
@@ -38,12 +41,14 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
                   void onPress(config.name, title);
                 }}
               >
-                <Text style={{fontSize: 16, marginBottom: 8}}>{title}</Text>
+                <Box marginBottom={2}>
+                  <Text size="md">{title}</Text>
+                </Box>
               </Pressable>
             ))}
           </React.Fragment>
         ))}
-      </View>
+      </Box>
     </ScrollView>
   );
 };

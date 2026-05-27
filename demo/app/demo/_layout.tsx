@@ -1,9 +1,9 @@
-import {isMobileDevice} from "@terreno/ui";
+import {isMobileDevice, Text} from "@terreno/ui";
 import {router, Stack} from "expo-router";
 import {StatusBar} from "expo-status-bar";
-import {Pressable, StyleSheet, Text} from "react-native";
+import {Pressable, StyleSheet} from "react-native";
 
-export default function Layout() {
+const Layout = () => {
   return (
     <>
       <StatusBar style="auto" />
@@ -18,7 +18,7 @@ export default function Layout() {
               }}
               style={styles.header}
             >
-              <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
+              <Text bold>Dev Mode</Text>
             </Pressable>
           ),
         }}
@@ -27,7 +27,9 @@ export default function Layout() {
       </Stack>
     </>
   );
-}
+};
+
+export default Layout;
 
 const styles = StyleSheet.create({
   header: {

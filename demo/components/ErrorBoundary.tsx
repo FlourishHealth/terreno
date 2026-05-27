@@ -1,7 +1,7 @@
-// Stuck as a class component because React doesn't support error boundaries in functional
-// components yet.
+// React does not support error boundaries in functional components yet.
+import {Text} from "@terreno/ui";
 import React, {type ReactNode} from "react";
-import {Pressable, Text} from "react-native";
+import {Pressable} from "react-native";
 
 interface Props {
   children?: ReactNode;
