@@ -71,9 +71,9 @@ export const TableHeaderCell = ({
           <Box
             alignItems="center"
             color="primary"
-            rounding="rounded"
             height={16}
             justifyContent="center"
+            rounding="rounded"
             width={16}
           >
             <FontAwesome6

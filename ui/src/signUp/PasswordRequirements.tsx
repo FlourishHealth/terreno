@@ -28,10 +28,10 @@ export const PasswordRequirements: FC<PasswordRequirementsProps> = ({
         const isMet = password.length > 0 && req.validate(password);
         return (
           <Box
-            key={req.key}
             alignItems="center"
             direction="row"
             gap={2}
+            key={req.key}
             marginBottom={1}
             testID={`${testID}-${req.key}`}
           >
