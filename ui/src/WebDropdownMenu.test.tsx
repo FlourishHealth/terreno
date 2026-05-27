@@ -155,15 +155,14 @@ describe("WebDropdownMenu", () => {
     );
     const optionPressable = getByTestId("web_dropdown_option_a");
     const styleFn = optionPressable.props.style;
-    if (typeof styleFn === "function") {
-      const defaultStyle = styleFn({hovered: false, pressed: false});
-      const hoveredStyle = styleFn({hovered: true, pressed: false});
-      const pressedStyle = styleFn({hovered: false, pressed: true});
-      expect(defaultStyle.paddingHorizontal).toBe(12);
-      expect(defaultStyle.paddingVertical).toBe(10);
-      expect(hoveredStyle.backgroundColor).toBeDefined();
-      expect(pressedStyle.backgroundColor).toBeDefined();
-    }
+    expect(typeof styleFn).toBe("function");
+    const defaultStyle = styleFn({hovered: false, pressed: false});
+    const hoveredStyle = styleFn({hovered: true, pressed: false});
+    const pressedStyle = styleFn({hovered: false, pressed: true});
+    expect(defaultStyle.paddingHorizontal).toBe(12);
+    expect(defaultStyle.paddingVertical).toBe(10);
+    expect(hoveredStyle.backgroundColor).toBeDefined();
+    expect(pressedStyle.backgroundColor).toBeDefined();
   });
 });
 
