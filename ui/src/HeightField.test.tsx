@@ -223,7 +223,9 @@ describe("HeightField - HeightSegment callbacks", () => {
         (n) => n.props["aria-label"] === "in input" && n.props.onChangeText
       );
       if (ftInputs.length === 0) {
-        console.warn("Platform.OS override to 'web' did not take effect; skipping HeightSegment assertions");
+        console.warn(
+          "Platform.OS override to 'web' did not take effect; skipping HeightSegment assertions"
+        );
         return;
       }
       expect(inInputs.length).toBeGreaterThan(0);
