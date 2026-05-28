@@ -2,6 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
+import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -335,22 +336,24 @@ describe("ConsentFormScreen", () => {
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
   });
 
-  it("renders signature field and exercises its callbacks", () => {
+  it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
     const form: ConsentFormPublic = {
       ...baseForm,
       captureSignature: true,
     };
-    const {getByTestId, root} = renderWithTheme(
+    const {UNSAFE_getByType} = renderWithTheme(
       <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
     );
-    expect(getByTestId("consent-form-signature")).toBeTruthy();
-    // Find SignatureField and invoke its callbacks
-    const sigField = root.findAll((n) => n.props.title === "Signature" && n.props.onChange);
-    expect(sigField.length).toBeGreaterThan(0);
+    const sig = UNSAFE_getByType(SignatureField);
     act(() => {
-      sigField[0].props.onChange("data:image/png;base64,abc");
-      sigField[0].props.onEnd?.();
-      sigField[0].props.onStart?.();
+      sig.props.onChange("data:image/png;base64,abc");
     });
+    act(() => {
+      sig.props.onStart();
+    });
+    act(() => {
+      sig.props.onEnd();
+    });
+    expect(sig).toBeTruthy();
   });
 });

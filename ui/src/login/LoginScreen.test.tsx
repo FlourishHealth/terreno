@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {fireEvent} from "@testing-library/react-native";
+import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import {renderWithTheme} from "../test-utils";
 import {LoginScreen} from "./LoginScreen";
 
@@ -156,5 +156,27 @@ describe("LoginScreen", () => {
       />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("calls onSubmit with form values when submit button is pressed", async () => {
+    const onSubmit = mock(() => Promise.resolve());
+    const {getByTestId} = renderWithTheme(
+      <LoginScreen fields={defaultFields} onSubmit={onSubmit} />
+    );
+
+    await act(async () => {
+      fireEvent.changeText(getByTestId("login-screen-email-input"), "user@test.com");
+    });
+    await act(async () => {
+      fireEvent.changeText(getByTestId("login-screen-password-input"), "secret123");
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("login-screen-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+    });
+    expect(onSubmit.mock.calls[0][0]).toEqual({email: "user@test.com", password: "secret123"});
   });
 });

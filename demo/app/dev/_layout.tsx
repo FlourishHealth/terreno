@@ -3,7 +3,7 @@ import {router, Stack} from "expo-router";
 import {StatusBar} from "expo-status-bar";
 import {Pressable, StyleSheet, Text} from "react-native";
 
-export default function Layout() {
+const Layout = () => {
   return (
     <>
       <StatusBar style="auto" />
@@ -25,7 +25,9 @@ export default function Layout() {
       />
     </>
   );
-}
+};
+
+export default Layout;
 
 const styles = StyleSheet.create({
   header: {

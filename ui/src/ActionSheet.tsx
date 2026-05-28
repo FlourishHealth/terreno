@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   },
 });
 
-export function getDeviceHeight(statusBarTranslucent: boolean | undefined): number {
+export const getDeviceHeight = (statusBarTranslucent: boolean | undefined): number => {
   const height = Dimensions.get("window").height;
 
   if (Platform.OS === "android" && !statusBarTranslucent) {
@@ -64,7 +64,7 @@ export function getDeviceHeight(statusBarTranslucent: boolean | undefined): numb
   }
 
   return height;
-}
+};
 
 export const getElevation = (elevation?: number) => {
   if (!elevation) {

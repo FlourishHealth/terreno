@@ -61,7 +61,7 @@ import {
 // useDimensions hook
 // ============================================================================
 
-function useDimensions() {
+const useDimensions = () => {
   const [dimensions, setDimensions] = useState(Dimensions.get("window"));
 
   const onChange = useCallback(({window}: {window: ScaledSize}) => {
@@ -77,7 +77,7 @@ function useDimensions() {
   }, [onChange]);
 
   return dimensions;
-}
+};
 
 // ============================================================================
 // Toast Options and Props

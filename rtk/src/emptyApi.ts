@@ -42,10 +42,10 @@ interface TokenPayload {
   exp: number;
 }
 
-export async function getTokenExpirationTimes(): Promise<{
+export const getTokenExpirationTimes = async (): Promise<{
   refreshRemainingSecs?: number;
   authRemainingSecs?: number;
-}> {
+}> => {
   let refreshToken: string | null;
   let authToken: string | null;
   if (!IsWeb) {
@@ -81,7 +81,7 @@ export async function getTokenExpirationTimes(): Promise<{
   }
 
   return {authRemainingSecs: authTimeRemaining, refreshRemainingSecs: refreshTimeRemaining};
-}
+};
 
 // Helper function to decode token and get expiration info
 export const getFriendlyExpirationInfo = async (): Promise<string> => {

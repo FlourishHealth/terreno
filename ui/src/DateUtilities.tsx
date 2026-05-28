@@ -7,7 +7,7 @@ const getErrorMessage = (error: unknown): string => {
   return String(error);
 };
 
-function getDate(date: string, {timezone}: {timezone?: string} = {}): DateTime {
+const getDate = (date: string, {timezone}: {timezone?: string} = {}): DateTime => {
   if (!date) {
     throw new Error("Passed undefined");
   }
@@ -19,48 +19,48 @@ function getDate(date: string, {timezone}: {timezone?: string} = {}): DateTime {
     throw new Error(`Invalid date: ${date}`);
   }
   return clonedDate;
-}
+};
 
-export function isTomorrow(date: string, {timezone}: {timezone?: string} = {}): boolean {
+export const isTomorrow = (date: string, {timezone}: {timezone?: string} = {}): boolean => {
   const clonedDate = getDate(date, {timezone});
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.startOf("day").diff(clonedDate.startOf("day"), "days");
   return diff.days <= -1 && diff.days > -2;
-}
+};
 
-export function isYesterday(date: string, {timezone}: {timezone?: string} = {}): boolean {
+export const isYesterday = (date: string, {timezone}: {timezone?: string} = {}): boolean => {
   const clonedDate = getDate(date, {timezone});
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.startOf("day").diff(clonedDate.startOf("day"), "days");
   return diff.days <= 1 && diff.days > -1;
-}
+};
 
-export function isToday(date: string, {timezone}: {timezone?: string} = {}): boolean {
+export const isToday = (date: string, {timezone}: {timezone?: string} = {}): boolean => {
   const clonedDate = getDate(date, {timezone});
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.startOf("day").diff(clonedDate.startOf("day"), "days");
   return diff.days === 0;
-}
+};
 
-export function isThisYear(date: string, {timezone}: {timezone?: string} = {}): boolean {
+export const isThisYear = (date: string, {timezone}: {timezone?: string} = {}): boolean => {
   const clonedDate = getDate(date, {timezone});
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   return clonedDate.year === now.year;
-}
+};
 
-export function isWithinWeek(date: string, {timezone}: {timezone?: string} = {}): boolean {
+export const isWithinWeek = (date: string, {timezone}: {timezone?: string} = {}): boolean => {
   const clonedDate = getDate(date, {timezone});
   const now = timezone ? DateTime.now().setZone(timezone) : DateTime.now();
   const diff = now.startOf("day").diff(clonedDate.startOf("day"), "days");
   return diff.days > -7 && diff.days < 7;
-}
+};
 
 // Prints a human friendly date, e.g. "Tomorrow", "Yesterday", "Monday", "June 19", "December 25,
 // 2022".
-export function humanDate(
+export const humanDate = (
   date: string,
   {timezone, dontShowTime}: {timezone?: string; dontShowTime?: boolean} = {}
-): string {
+): string => {
   let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
@@ -87,14 +87,14 @@ export function humanDate(
     // December 25, 2022
     return clonedDate.toFormat("MMM d, yyyy");
   }
-}
+};
 
 // Prints a human friendly date and time, e.g. "Tomorrow 9:00 AM", "Yesterday 9:00 AM", "Monday
 // 9:00 AM", "June 19 9:00 AM", "December 25, 2022 9:00 AM".
-export function humanDateAndTime(
+export const humanDateAndTime = (
   date: string,
   {timezone, showTimezone = true}: {timezone?: string; showTimezone?: boolean} = {}
-): string {
+): string => {
   let clonedDate: DateTime;
   try {
     clonedDate = getDate(date, {timezone});
@@ -128,7 +128,7 @@ export function humanDateAndTime(
     // December 25, 2022
     return `${clonedDate.toFormat("MMM d, yyyy")} ${time}`;
   }
-}
+};
 
 // Print date in the format of M/D/YY, taking timezones into account.
 export const printDate = (
@@ -199,7 +199,7 @@ export const printOnlyDate = (
 };
 
 // Print time in the format of HH:mm A, taking timezones into account.
-export function printTime(
+export const printTime = (
   date?: string,
   {
     timezone,
@@ -210,7 +210,7 @@ export function printTime(
     showTimezone?: boolean;
     defaultValue?: string;
   } = {defaultValue: "Invalid Date", timezone: "America/New_York"}
-): string {
+): string => {
   if (!date) {
     return defaultValue ?? "Invalid Date";
   }
@@ -232,10 +232,10 @@ export function printTime(
   } else {
     return clonedDate.toLocaleString(DateTime.TIME_SIMPLE);
   }
-}
+};
 
 // Print date in the format of M/D/YY HH:mm A, taking timezones into account.
-export function printDateAndTime(
+export const printDateAndTime = (
   date?: string,
   {
     timezone,
@@ -246,7 +246,7 @@ export function printDateAndTime(
     showTimezone?: boolean;
     defaultValue?: string;
   } = {}
-): string {
+): string => {
   if (!date) {
     return defaultValue ?? "Invalid Datetime";
   }
@@ -268,12 +268,12 @@ export function printDateAndTime(
   } else {
     return clonedDate.toLocaleString(DateTime.DATETIME_SHORT);
   }
-}
+};
 
 // Prints a date range in the format of M/D/YY HH:mm A - M/D/YY HH:mm A EST, taking timezones into
 // account. If the dates are the same, it will print the date only once, e.g. M/D/YY HH:mm A - HH:mm
 // A EST.
-export function printDateRange(
+export const printDateRange = (
   start: string,
   end: string,
   {
@@ -281,7 +281,7 @@ export function printDateRange(
     showTimezone = true,
     timeOnly,
   }: {timezone: string; showTimezone?: boolean; timeOnly?: boolean}
-): string {
+): string => {
   const startDate = printDate(start, {showTimezone: false, timezone});
   const endDate = printDate(end, {showTimezone: false, timezone});
 
@@ -299,14 +299,14 @@ export function printDateRange(
   } else {
     return `${startDate} ${startTime} - ${endDate} ${endTime}`;
   }
-}
+};
 
 // Print since nicely. If less than 2 months, print days, otherwise print months. If over 1 year,
 // print years.
-export function printSince(
+export const printSince = (
   date: string,
   {timezone, showAgo = true}: {timezone?: string; showAgo?: boolean} = {}
-): string {
+): string => {
   let clonedDate: DateTime;
   const ago = showAgo ? " ago" : "";
   try {
@@ -326,20 +326,20 @@ export function printSince(
     const years = Math.floor(now.diff(clonedDate, "years").years);
     return `${years} ${years === 1 ? "year" : "years"}${ago}`;
   }
-}
+};
 
-export function convertNullToUndefined(value: string | null): string | undefined {
+export const convertNullToUndefined = (value: string | null): string | undefined => {
   return value ?? undefined;
-}
+};
 
 // Get the ISO date string from a date string. If the date string is undefined,
 // return undefined instead of null so MongoDB can handle it.
-export function getIsoDate(date: string | undefined): string | undefined {
+export const getIsoDate = (date: string | undefined): string | undefined => {
   if (!date) {
     return undefined;
   }
   return convertNullToUndefined(DateTime.fromISO(date).toUTC().toISO());
-}
+};
 
 const usTimezoneOptions = [
   {label: "Eastern", value: "America/New_York"},
@@ -351,7 +351,7 @@ const usTimezoneOptions = [
   {label: "Arizona", value: "America/Phoenix"},
 ];
 
-export function getTimezoneOptions(location: "USA" | "Worldwide", shortTimezone = false) {
+export const getTimezoneOptions = (location: "USA" | "Worldwide", shortTimezone = false) => {
   let timezones: [string, string][];
   if (location === "USA") {
     timezones = usTimezoneOptions.map((tz) => [tz.label, tz.value]);
@@ -366,9 +366,8 @@ export function getTimezoneOptions(location: "USA" | "Worldwide", shortTimezone 
   }
   return timezones.map(([name, tz]) => {
     const dateTime = DateTime.now().setZone(tz);
-    let tzAbbr = dateTime.toFormat("ZZZZ"); // Gets timezone abbreviation like "EST", "CST", etc.
+    let tzAbbr = dateTime.toFormat("ZZZZ");
 
-    // Special case for Arizona which returns MST during standard time
     if (tz === "America/Phoenix") {
       tzAbbr = "AZ";
     }
@@ -378,4 +377,4 @@ export function getTimezoneOptions(location: "USA" | "Worldwide", shortTimezone 
       value: tz,
     };
   });
-}
+};

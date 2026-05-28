@@ -1,8 +1,8 @@
 import {DemoConfig} from "@config";
-import {Box, Heading} from "@terreno/ui";
+import {Box, Heading, Text} from "@terreno/ui";
 import {useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
-import {Pressable, ScrollView, Text, View} from "react-native";
+import {Pressable, ScrollView, View} from "react-native";
 
 export const DemoHomePage: FC<{
   onPress: (componentName: string) => void;
