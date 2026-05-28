@@ -1,8 +1,9 @@
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock, spyOn} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
 import {HeightActionSheet} from "./HeightActionSheet";
 import {HeightField} from "./HeightField";
 import {renderWithTheme} from "./test-utils";
+import * as Utilities from "./Utilities";
 
 describe("HeightField", () => {
   let mockOnChange: ReturnType<typeof mock>;
@@ -278,13 +279,16 @@ describe("HeightField - Android platform", () => {
 describe("HeightField - Desktop platform", () => {
   const {Platform} = require("react-native") as {Platform: {OS: string}};
   const originalOS = Platform.OS;
+  let isNativeSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
     Platform.OS = "web";
+    isNativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
   });
 
   afterEach(() => {
     Platform.OS = originalOS;
+    isNativeSpy.mockRestore();
   });
 
   it("fires handleBlur on HeightSegment and calls onChange", () => {
