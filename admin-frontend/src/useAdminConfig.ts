@@ -47,6 +47,7 @@ export const useAdminConfig = (api: AdminApi, baseUrl: string) => {
     });
   }, [api, baseUrl]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
 

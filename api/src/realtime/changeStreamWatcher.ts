@@ -20,6 +20,7 @@ type WatchedChange = Extract<
 >;
 
 import type {User} from "../auth";
+import {APIError} from "../errors";
 import {logger} from "../logger";
 import {checkPermissions} from "../permissions";
 import {matchesQuery} from "./queryMatcher";
@@ -402,7 +403,10 @@ export const startChangeStreamWatcher = (
 
     const nativeDb = mongoose.connection.db;
     if (!nativeDb) {
-      throw new Error("MongoDB connection not available for change stream");
+      throw new APIError({
+        status: 500,
+        title: "MongoDB connection not available for change stream",
+      });
     }
 
     const options: ChangeStreamOptions = {
@@ -417,7 +421,7 @@ export const startChangeStreamWatcher = (
     changeWatcher = nativeDb.watch(pipeline, options);
 
     if (!changeWatcher) {
-      throw new Error("Failed to create change stream watcher");
+      throw new APIError({status: 500, title: "Failed to create change stream watcher"});
     }
 
     changeWatcher.on("change", async (rawChange: ChangeStreamDocument) => {

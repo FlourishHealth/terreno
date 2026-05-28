@@ -166,4 +166,51 @@ describe("useStoredState", () => {
     expect(result.current[0]).toBe("initial value");
     expect(result.current[2]).toBe(true);
   });
+
+  it("should handle the outer catch when fetchData rejects unexpectedly", async () => {
+    const originalConsoleError = console.error;
+    console.error = mock((...args: unknown[]) => {
+      const msg = String(args[0]);
+      if (msg.includes("Error reading data from AsyncStorage")) {
+        throw new Error("unexpected failure in error handler");
+      }
+    });
+
+    getItemMock = mock(() => Promise.reject(new Error("Storage read failure")));
+    Unifier.storage.getItem = getItemMock;
+
+    const {result} = renderHook(() => useStoredState("testKey", "fallback"));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(result.current[2]).toBe(false);
+    console.error = originalConsoleError;
+  });
+
+  it("should not update state in outer catch if unmounted", async () => {
+    const originalConsoleError = console.error;
+    console.error = mock((...args: unknown[]) => {
+      const msg = String(args[0]);
+      if (msg.includes("Error reading data from AsyncStorage")) {
+        throw new Error("force outer catch");
+      }
+    });
+
+    getItemMock = mock(() => Promise.reject(new Error("fail")));
+    Unifier.storage.getItem = getItemMock;
+
+    const {result, unmount} = renderHook(() => useStoredState("testKey", "init"));
+
+    unmount();
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(result.current[0]).toBe("init");
+    expect(result.current[2]).toBe(true);
+    console.error = originalConsoleError;
+  });
 });

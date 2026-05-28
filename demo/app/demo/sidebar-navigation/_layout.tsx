@@ -17,7 +17,7 @@ const bottomItems: SidebarNavigationItem[] = [
 
 const headerRight = () => (
   <Pressable onPress={() => router.navigate("/dev")} style={styles.headerButton}>
-    <Text style={styles.headerButtonText}>Dev Mode</Text>
+    <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
   </Pressable>
 );
 
@@ -27,12 +27,9 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
   },
-  headerButtonText: {
-    fontWeight: "bold",
-  },
 });
 
-export default function SidebarNavigationLayout() {
+const SidebarNavigationLayout = () => {
   return (
     <SidebarNavigation
       bottomItems={bottomItems}
@@ -47,4 +44,6 @@ export default function SidebarNavigationLayout() {
       <SidebarNavigation.Screen name="help" options={{title: "Help"}} />
     </SidebarNavigation>
   );
-}
+};
+
+export default SidebarNavigationLayout;

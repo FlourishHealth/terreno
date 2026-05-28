@@ -87,7 +87,7 @@ export * from "./TextArea";
 export * from "./TextField";
 export * from "./Theme";
 export * from "./Toast";
-export * from "./Tooltip";
+export {Tooltip} from "./Tooltip";
 export * from "./table/Table";
 export * from "./table/Table";
 export * from "./table/TableBadge";
