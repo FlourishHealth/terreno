@@ -812,13 +812,14 @@ describe("expressServer", () => {
       // Mock app.listen on the Express prototype to avoid opening a real port
       const express = await import("express");
       const originalListen = express.default.application.listen;
-      express.default.application.listen = mock(function (this: any, ...args: any[]) {
-        const cb = args.find((a: unknown) => typeof a === "function");
+      // biome-ignore lint/suspicious/noExplicitAny: mocking Express internals requires type escape
+      express.default.application.listen = mock(function (this: unknown, ...args: unknown[]) {
+        const cb = args.find((a: unknown) => typeof a === "function") as (() => void) | undefined;
         if (cb) {
           cb();
         }
         return this;
-      }) as any;
+      }) as unknown as typeof originalListen;
       try {
         const app = setupServer({
           addRoutes,
@@ -836,7 +837,7 @@ describe("expressServer", () => {
       const addRoutes = () => {};
       // Using an invalid port should trigger the catch block and process.exit(1)
       const originalExit = process.exit;
-      process.exit = (() => {}) as any;
+      process.exit = (() => {}) as unknown as typeof process.exit;
       try {
         setupServer({
           addRoutes,
