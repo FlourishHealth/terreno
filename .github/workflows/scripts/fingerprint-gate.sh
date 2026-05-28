@@ -33,9 +33,13 @@ set -euo pipefail
 : "${ACK_LABEL:?missing}"
 : "${COMMENT_MARKER:?missing}"
 
+# Filter by author so a PR author can't seed a comment with a forged ack
+# marker that the gate then trusts. Anyone with write access can still edit
+# the bot's own comment body, but at that point they could self-add the
+# label too — same threat model.
 find_sticky_comment_id() {
   gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
-    --jq "map(select(.body | contains(\"$COMMENT_MARKER\"))) | first | .id // empty"
+    --jq "map(select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$COMMENT_MARKER\")))) | first | .id // empty"
 }
 
 read_existing_ack_marker() {
@@ -63,8 +67,10 @@ upsert_comment() {
 delete_sticky_comment() {
   local existing
   existing=$(find_sticky_comment_id)
-  [ -n "$existing" ] && gh api --method DELETE \
-    "repos/$GITHUB_REPOSITORY/issues/comments/$existing" >/dev/null
+  if [ -n "$existing" ]; then
+    gh api --method DELETE \
+      "repos/$GITHUB_REPOSITORY/issues/comments/$existing" >/dev/null
+  fi
 }
 
 ensure_label_exists() {
