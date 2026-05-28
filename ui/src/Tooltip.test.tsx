@@ -305,37 +305,38 @@ describe("Tooltip", () => {
     const {Platform} = require("react-native") as {Platform: {OS: string}};
     const origOS = Platform.OS;
     Platform.OS = "web";
+    try {
+      const {toJSON, queryByTestId} = renderWithTheme(
+        <Tooltip text="Click test">
+          <Text>Click me</Text>
+        </Tooltip>
+      );
 
-    const {toJSON, queryByTestId} = renderWithTheme(
-      <Tooltip text="Click test">
-        <Text>Click me</Text>
-      </Tooltip>
-    );
+      const tree = toJSON() as TestNode;
+      const root = tree.children?.[0] as TestNode;
 
-    const tree = toJSON() as TestNode;
-    const root = tree.children?.[0] as TestNode;
-
-    // Show tooltip via touch
-    await act(async () => {
-      root.props.onTouchStart?.({nativeEvent: {}});
-    });
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 150));
-    });
-    expect(queryByTestId("tooltip-container")).toBeTruthy();
-
-    // Click (web handler) should hide tooltip
-    const onPress = (root.props as {onPress?: () => void}).onPress;
-    if (onPress) {
+      // Show tooltip via touch
       await act(async () => {
-        onPress();
+        root.props.onTouchStart?.({nativeEvent: {}});
       });
       await act(async () => {
-        await new Promise((r) => setTimeout(r, 50));
+        await new Promise((r) => setTimeout(r, 150));
       });
+      expect(queryByTestId("tooltip-container")).toBeTruthy();
+
+      // Click (web handler) should hide tooltip
+      const onPress = (root.props as {onPress?: () => void}).onPress;
+      if (onPress) {
+        await act(async () => {
+          onPress();
+        });
+        await act(async () => {
+          await new Promise((r) => setTimeout(r, 50));
+        });
+      }
+    } finally {
+      Platform.OS = origOS;
     }
-
-    Platform.OS = origOS;
   });
 
   it("mobilePressProps.onPress calls children onClick when not touched", async () => {
