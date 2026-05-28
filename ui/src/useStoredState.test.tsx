@@ -122,26 +122,28 @@ describe("useStoredState", () => {
 
   it("handles error in fetchData outer catch", async () => {
     const originalConsoleError = console.error;
-    // Make getItem reject so fetchData's inner catch fires
-    getItemMock = mock(() => Promise.reject(new Error("storage fail")));
-    Unifier.storage.getItem = getItemMock;
-    // Only throw for the inner fetchData catch message, let React's own console.error pass
-    console.error = mock((...args: unknown[]) => {
-      if (typeof args[0] === "string" && args[0].startsWith("Error reading")) {
-        throw new Error("console.error crashed");
-      }
-      originalConsoleError(...args);
-    });
+    try {
+      // Make getItem reject so fetchData's inner catch fires
+      getItemMock = mock(() => Promise.reject(new Error("storage fail")));
+      Unifier.storage.getItem = getItemMock;
+      // Only throw for the inner fetchData catch message, let React's own console.error pass
+      console.error = mock((...args: unknown[]) => {
+        if (typeof args[0] === "string" && args[0].startsWith("Error reading")) {
+          throw new Error("console.error crashed");
+        }
+        originalConsoleError(...args);
+      });
 
-    const {result} = renderHook(() => useStoredState("testKey", "fallback"));
+      const {result} = renderHook(() => useStoredState("testKey", "fallback"));
 
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
 
-    expect(result.current[2]).toBe(false);
-
-    console.error = originalConsoleError;
+      expect(result.current[2]).toBe(false);
+    } finally {
+      console.error = originalConsoleError;
+    }
   });
 
   it("should not update state if component unmounts before storage resolves", async () => {

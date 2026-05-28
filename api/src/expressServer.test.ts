@@ -809,15 +809,26 @@ describe("expressServer", () => {
 
     it("starts the server when skipListen is false", async () => {
       const addRoutes = () => {};
-      const app = setupServer({
-        addRoutes,
-        skipListen: false,
-        userModel: UserModel as any,
-      });
-
-      expect(app).toBeDefined();
-      // Wait briefly for the listen callback to fire
-      await new Promise((r) => setTimeout(r, 50));
+      // Mock app.listen on the Express prototype to avoid opening a real port
+      const express = await import("express");
+      const originalListen = express.default.application.listen;
+      express.default.application.listen = mock(function (this: any, ...args: any[]) {
+        const cb = args.find((a: unknown) => typeof a === "function");
+        if (cb) {
+          cb();
+        }
+        return this;
+      }) as any;
+      try {
+        const app = setupServer({
+          addRoutes,
+          skipListen: false,
+          userModel: UserModel as any,
+        });
+        expect(app).toBeDefined();
+      } finally {
+        express.default.application.listen = originalListen;
+      }
     });
 
     it("handles listen error with invalid port", () => {
