@@ -1,5 +1,6 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {Platform} from "react-native";
 
 import {RNPickerSelect} from "./PickerSelect";
 import {renderWithTheme} from "./test-utils";
@@ -158,6 +159,150 @@ describe("PickerSelect", () => {
     const {rerender, toJSON} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
     rerender(<RNPickerSelect {...defaultProps} value="3" />);
     expect(toJSON()).toBeTruthy();
+  });
+
+  describe("web platform rendering", () => {
+    const originalOS = Platform.OS;
+    beforeEach(() => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: "web"});
+    });
+    afterEach(() => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: originalOS});
+    });
+
+    it("renders web dropdown with trigger and menu", () => {
+      const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+      expect(getByTestId("web_picker")).toBeTruthy();
+    });
+
+    it("does not open web dropdown when disabled", async () => {
+      const onOpen = mock(() => {});
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} disabled onOpen={onOpen} value="1" />
+      );
+      await act(async () => {
+        fireEvent.press(getByTestId("web_picker"));
+      });
+      expect(onOpen).not.toHaveBeenCalled();
+    });
+
+    it("renders selected item label in web dropdown", () => {
+      const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="2" />);
+      const textInput = getByTestId("text_input");
+      expect(textInput).toBeTruthy();
+    });
+
+    it("renders inputLabel when provided", () => {
+      const itemsWithInputLabel = [
+        {inputLabel: "Short 1", label: "Long Option 1", value: "1"},
+        {label: "Option 2", value: "2"},
+      ];
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} items={itemsWithInputLabel} value="1" />
+      );
+      expect(getByTestId("text_input")).toBeTruthy();
+    });
+
+    it("handles items with null values in web dropdown", () => {
+      const itemsWithNull = [
+        {label: "None", value: null},
+        {label: "Option 1", value: "1"},
+      ];
+      const {toJSON} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} items={itemsWithNull} value={null} />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+
+    it("handles items with number values", () => {
+      const numberItems = [
+        {label: "One", value: 1},
+        {label: "Two", value: 2},
+      ];
+      const {toJSON} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} items={numberItems} value={1} />
+      );
+      expect(toJSON()).toBeTruthy();
+    });
+  });
+
+  describe("android platform rendering", () => {
+    const originalOS = Platform.OS;
+    beforeEach(() => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: "android"});
+    });
+    afterEach(() => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: originalOS});
+    });
+
+    it("renders native android picker style by default", () => {
+      const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+      expect(getByTestId("android_picker")).toBeTruthy();
+    });
+
+    it("renders headless android picker when useNativeAndroidPickerStyle is false", () => {
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} useNativeAndroidPickerStyle={false} value="1" />
+      );
+      expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+    });
+
+    it("renders headless android picker when children are provided", () => {
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} value="1">
+          <>Custom child</>
+        </RNPickerSelect>
+      );
+      expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+    });
+
+    it("renders disabled native android picker", () => {
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} disabled value="1" />
+      );
+      expect(getByTestId("android_picker")).toBeTruthy();
+    });
+
+    it("calls onValueChange on android picker change", async () => {
+      const mockOnValueChange = mock(() => {});
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+      );
+      const picker = getByTestId("android_picker");
+      await act(async () => {
+        picker.props.onValueChange?.("2", 1);
+      });
+      expect(mockOnValueChange).toHaveBeenCalledWith("2", 1);
+    });
+
+    it("calls onValueChange on headless android picker change", async () => {
+      const mockOnValueChange = mock(() => {});
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect
+          {...defaultProps}
+          onValueChange={mockOnValueChange}
+          useNativeAndroidPickerStyle={false}
+          value="1"
+        />
+      );
+      const picker = getByTestId("android_picker_headless");
+      await act(async () => {
+        picker.props.onValueChange?.("3", 2);
+      });
+      expect(mockOnValueChange).toHaveBeenCalledWith("3", 2);
+    });
+
+    it("renders headless android with fixAndroidTouchableBug", () => {
+      const {getByTestId} = renderWithTheme(
+        <RNPickerSelect
+          {...defaultProps}
+          fixAndroidTouchableBug
+          useNativeAndroidPickerStyle={false}
+          value="1"
+        />
+      );
+      expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+    });
   });
 
   describe("interactions on iOS", () => {

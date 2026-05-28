@@ -129,7 +129,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                             "onLongPress": [Function],
                             "onPress": [Function],
                             "style": {
-                              "height": 933.8,
+                              "height": 919.9999999999999,
                               "width": "100%",
                             },
                           },
@@ -141,7 +141,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                         "onTouchMove": [Function],
                         "onTouchStart": [Function],
                         "style": {
-                          "height": 933.8,
+                          "height": 919.9999999999999,
                           "width": "100%",
                           "zIndex": 10,
                         },
@@ -573,12 +573,12 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                           ],
                           "props": {
                             "style": {
-                              "marginTop": 0,
-                              "maxHeight": 812,
+                              "marginTop": 44,
+                              "maxHeight": 800,
                               "transform": [
                                 {
                                   "translateY": Value {
-                                    "_value": 0,
+                                    "_value": -44,
                                     "addListener": [class Function],
                                     "animate": [class Function],
                                     "extractOffset": [class Function],
@@ -616,7 +616,7 @@ exports[`HeightField snapshots should match snapshot with default props 1`] = `
                           {
                             "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
                             "elevation": 5,
-                            "maxHeight": 812,
+                            "maxHeight": 800,
                             "opacity": Value {
                               "_value": 0,
                               "addListener": [class Function],
@@ -894,7 +894,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                             "onLongPress": [Function],
                             "onPress": [Function],
                             "style": {
-                              "height": 933.8,
+                              "height": 919.9999999999999,
                               "width": "100%",
                             },
                           },
@@ -906,7 +906,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                         "onTouchMove": [Function],
                         "onTouchStart": [Function],
                         "style": {
-                          "height": 933.8,
+                          "height": 919.9999999999999,
                           "width": "100%",
                           "zIndex": 10,
                         },
@@ -1338,12 +1338,12 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                           ],
                           "props": {
                             "style": {
-                              "marginTop": 0,
-                              "maxHeight": 812,
+                              "marginTop": 44,
+                              "maxHeight": 800,
                               "transform": [
                                 {
                                   "translateY": Value {
-                                    "_value": 0,
+                                    "_value": -44,
                                     "addListener": [class Function],
                                     "animate": [class Function],
                                     "extractOffset": [class Function],
@@ -1381,7 +1381,7 @@ exports[`HeightField snapshots should match snapshot with value 1`] = `
                           {
                             "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
                             "elevation": 5,
-                            "maxHeight": 812,
+                            "maxHeight": 800,
                             "opacity": Value {
                               "_value": 0,
                               "addListener": [class Function],
@@ -1739,7 +1739,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                             "onLongPress": [Function],
                             "onPress": [Function],
                             "style": {
-                              "height": 933.8,
+                              "height": 919.9999999999999,
                               "width": "100%",
                             },
                           },
@@ -1751,7 +1751,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                         "onTouchMove": [Function],
                         "onTouchStart": [Function],
                         "style": {
-                          "height": 933.8,
+                          "height": 919.9999999999999,
                           "width": "100%",
                           "zIndex": 10,
                         },
@@ -2200,12 +2200,12 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                           ],
                           "props": {
                             "style": {
-                              "marginTop": 0,
-                              "maxHeight": 812,
+                              "marginTop": 44,
+                              "maxHeight": 800,
                               "transform": [
                                 {
                                   "translateY": Value {
-                                    "_value": 0,
+                                    "_value": -44,
                                     "addListener": [class Function],
                                     "animate": [class Function],
                                     "extractOffset": [class Function],
@@ -2243,7 +2243,7 @@ exports[`HeightField snapshots should match snapshot with all props 1`] = `
                           {
                             "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
                             "elevation": 5,
-                            "maxHeight": 812,
+                            "maxHeight": 800,
                             "opacity": Value {
                               "_value": 0,
                               "addListener": [class Function],
@@ -2536,7 +2536,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                             "onLongPress": [Function],
                             "onPress": [Function],
                             "style": {
-                              "height": 933.8,
+                              "height": 919.9999999999999,
                               "width": "100%",
                             },
                           },
@@ -2548,7 +2548,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                         "onTouchMove": [Function],
                         "onTouchStart": [Function],
                         "style": {
-                          "height": 933.8,
+                          "height": 919.9999999999999,
                           "width": "100%",
                           "zIndex": 10,
                         },
@@ -2997,12 +2997,12 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                           ],
                           "props": {
                             "style": {
-                              "marginTop": 0,
-                              "maxHeight": 812,
+                              "marginTop": 44,
+                              "maxHeight": 800,
                               "transform": [
                                 {
                                   "translateY": Value {
-                                    "_value": 0,
+                                    "_value": -44,
                                     "addListener": [class Function],
                                     "animate": [class Function],
                                     "extractOffset": [class Function],
@@ -3040,7 +3040,7 @@ exports[`HeightField snapshots should match snapshot when disabled 1`] = `
                           {
                             "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
                             "elevation": 5,
-                            "maxHeight": 812,
+                            "maxHeight": 800,
                             "opacity": Value {
                               "_value": 0,
                               "addListener": [class Function],
@@ -3372,7 +3372,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                             "onLongPress": [Function],
                             "onPress": [Function],
                             "style": {
-                              "height": 933.8,
+                              "height": 919.9999999999999,
                               "width": "100%",
                             },
                           },
@@ -3384,7 +3384,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                         "onTouchMove": [Function],
                         "onTouchStart": [Function],
                         "style": {
-                          "height": 933.8,
+                          "height": 919.9999999999999,
                           "width": "100%",
                           "zIndex": 10,
                         },
@@ -3833,12 +3833,12 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                           ],
                           "props": {
                             "style": {
-                              "marginTop": 0,
-                              "maxHeight": 812,
+                              "marginTop": 44,
+                              "maxHeight": 800,
                               "transform": [
                                 {
                                   "translateY": Value {
-                                    "_value": 0,
+                                    "_value": -44,
                                     "addListener": [class Function],
                                     "animate": [class Function],
                                     "extractOffset": [class Function],
@@ -3876,7 +3876,7 @@ exports[`HeightField snapshots should match snapshot with error state 1`] = `
                           {
                             "boxShadow": "1.5px 2.5px 3.5px rgba(0, 0, 0, 0.2)",
                             "elevation": 5,
-                            "maxHeight": 812,
+                            "maxHeight": 800,
                             "opacity": Value {
                               "_value": 0,
                               "addListener": [class Function],

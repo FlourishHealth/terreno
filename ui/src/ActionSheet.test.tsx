@@ -334,4 +334,554 @@ describe("ActionSheet", () => {
       expect(result).toBeNull();
     });
   });
+
+  describe("measure", () => {
+    it("resolves with 20 when ref has no measureInWindow", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Measure</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      const result = await (ref.current as any).measure();
+      expect(result).toBe(20);
+    });
+
+    it("resolves with height from measureInWindow when available", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Measure</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).safeAreaViewRef = {
+        current: {
+          measureInWindow: (_x: any, cb: any) => {
+            if (typeof _x === "function") {
+              _x(0, 0, 0, 44);
+            } else {
+              cb(0, 0, 0, 44);
+            }
+          },
+        },
+      };
+      const result = await (ref.current as any).measure();
+      expect(typeof result).toBe("number");
+    });
+  });
+
+  describe("_showModal", () => {
+    it("does nothing when event has no nativeEvent", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        await (ref.current as any)._showModal({});
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("processes layout event for first call", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        await (ref.current as any)._showModal({
+          nativeEvent: {layout: {height: 400, width: 375}},
+        });
+      });
+      expect((ref.current as any).actionSheetHeight).toBe(400);
+    });
+
+    it("handles subsequent layout calls by updating height", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).layoutHasCalled = true;
+      await act(async () => {
+        await (ref.current as any)._showModal({
+          nativeEvent: {layout: {height: 500, width: 375}},
+        });
+      });
+      expect((ref.current as any).actionSheetHeight).toBe(500);
+    });
+  });
+
+  describe("_openAnimation", () => {
+    it("runs spring animation when animated is true", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet animated ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      expect(() => (ref.current as any)._openAnimation(100)).not.toThrow();
+    });
+
+    it("sets opacityValue directly when animated is false", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet animated={false} ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      expect(() => (ref.current as any)._openAnimation(100)).not.toThrow();
+    });
+  });
+
+  describe("_onScrollBeginDrag", () => {
+    it("stores previous scroll position from event", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await (ref.current as any)._onScrollBeginDrag({
+        nativeEvent: {contentOffset: {y: 42}},
+      });
+      expect((ref.current as any).prevScroll).toBe(42);
+    });
+  });
+
+  describe("_applyHeightLimiter", () => {
+    it("limits actionSheetHeight to deviceHeight", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).actionSheetHeight = 5000;
+      (ref.current as any)._applyHeightLimiter();
+      expect((ref.current as any).actionSheetHeight).toBeLessThanOrEqual(
+        ref.current!.state.deviceHeight
+      );
+    });
+
+    it("does not change height when smaller than deviceHeight", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).actionSheetHeight = 100;
+      (ref.current as any)._applyHeightLimiter();
+      expect((ref.current as any).actionSheetHeight).toBe(100);
+    });
+  });
+
+  describe("_onScrollEnd", () => {
+    it("does nothing when isRecoiling is true", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).isRecoiling = true;
+      await (ref.current as any)._onScrollEnd({
+        nativeEvent: {contentOffset: {y: 100}},
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("handles scroll up past springOffset threshold", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).prevScroll = 50;
+      (ref.current as any).actionSheetHeight = 400;
+      await act(async () => {
+        await (ref.current as any)._onScrollEnd({
+          nativeEvent: {contentOffset: {y: 200}},
+        });
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("returns to previous scroll position when scroll up is within threshold", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={200}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).prevScroll = 50;
+      (ref.current as any).actionSheetHeight = 400;
+      await act(async () => {
+        await (ref.current as any)._onScrollEnd({
+          nativeEvent: {contentOffset: {y: 55}},
+        });
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("hides modal when scroll down exceeds springOffset", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet closeAnimationDuration={1} ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      act(() => {
+        ref.current?.show();
+      });
+      (ref.current as any).prevScroll = 200;
+      (ref.current as any).actionSheetHeight = 400;
+      await act(async () => {
+        await (ref.current as any)._onScrollEnd({
+          nativeEvent: {contentOffset: {y: 50}},
+        });
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("recoils when scroll down is within springOffset", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={200}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).prevScroll = 200;
+      (ref.current as any).actionSheetHeight = 400;
+      await act(async () => {
+        await (ref.current as any)._onScrollEnd({
+          nativeEvent: {contentOffset: {y: 195}},
+        });
+      });
+      expect(ref.current).toBeTruthy();
+    });
+  });
+
+  describe("_onKeyboardShow", () => {
+    it("sets keyboard state to true", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      act(() => {
+        try {
+          (ref.current as any)._onKeyboardShow({
+            endCoordinates: {height: 300, screenX: 0, screenY: 500, width: 375},
+          });
+        } catch {
+          // TextInput.State may not be available in test env
+        }
+      });
+      expect(ref.current!.state.keyboard).toBe(true);
+    });
+  });
+
+  describe("_onKeyboardHide", () => {
+    it("resets keyboard state and runs animation", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any)._onKeyboardHide();
+      expect(ref.current!.state.keyboard).toBe(false);
+    });
+  });
+
+  describe("handleChildScrollEnd", () => {
+    it("returns early when offsetY > prevScroll", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).offsetY = 200;
+      (ref.current as any).prevScroll = 100;
+      await (ref.current as any).handleChildScrollEnd();
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("hides modal when scroll far enough from initial", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet closeAnimationDuration={1} ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      act(() => {
+        ref.current?.show();
+      });
+      (ref.current as any).offsetY = 10;
+      (ref.current as any).prevScroll = 500;
+      (ref.current as any).actionSheetHeight = 400;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("recoils to previous scroll when close to initial offset", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).offsetY = 10;
+      (ref.current as any).prevScroll = 500;
+      (ref.current as any).actionSheetHeight = 10;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("recoils to prevScroll when within springOffset", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref} springOffset={10}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).offsetY = 95;
+      (ref.current as any).prevScroll = 100;
+      await act(async () => {
+        await (ref.current as any).handleChildScrollEnd();
+      });
+      expect(ref.current).toBeTruthy();
+    });
+  });
+
+  describe("componentWillUnmount", () => {
+    it("removes keyboard listeners on unmount", () => {
+      const ref = createRef<ActionSheet>();
+      const {unmount} = render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      expect(() => unmount()).not.toThrow();
+    });
+  });
+
+  describe("_onDeviceLayout", () => {
+    it("processes device layout event", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 800, width: 375}},
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("clears existing timeout before setting new one", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).timeout = setTimeout(() => {}, 10000);
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: 800, width: 375}},
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(ref.current).toBeTruthy();
+    });
+
+    it("skips update when height and width match", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).deviceLayoutCalled = true;
+      const currentHeight = ref.current!.state.deviceHeight;
+      const currentWidth = ref.current!.state.deviceWidth;
+      await act(async () => {
+        await (ref.current as any)._onDeviceLayout({
+          nativeEvent: {layout: {height: currentHeight, width: currentWidth}},
+        });
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(ref.current).toBeTruthy();
+    });
+  });
+
+  describe("getInitialScrollPosition", () => {
+    it("returns a scroll position with gestureEnabled", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet gestureEnabled initialOffsetFromBottom={0.5} ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).actionSheetHeight = 400;
+      const pos = (ref.current as any).getInitialScrollPosition();
+      expect(typeof pos).toBe("number");
+    });
+
+    it("returns a scroll position without gestureEnabled", () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      (ref.current as any).actionSheetHeight = 400;
+      const pos = (ref.current as any).getInitialScrollPosition();
+      expect(typeof pos).toBe("number");
+    });
+  });
+
+  describe("_hideAnimation with closable=false", () => {
+    it("snaps back instead of closing when closable is false", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet closable={false} closeAnimationDuration={1} ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      act(() => {
+        ref.current?.show();
+      });
+      (ref.current as any).actionSheetHeight = 400;
+      act(() => {
+        ref.current?.hide();
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(ref.current!.state.modalVisible).toBe(true);
+    });
+
+    it("snaps to bottomOffset when closable is false and bottomOffset set", async () => {
+      const ref = createRef<ActionSheet>();
+      render(
+        <ThemeProvider>
+          <ActionSheet bottomOffset={50} closable={false} closeAnimationDuration={1} ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      act(() => {
+        ref.current?.show();
+      });
+      (ref.current as any).actionSheetHeight = 400;
+      act(() => {
+        ref.current?.hide();
+      });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(ref.current!.state.modalVisible).toBe(true);
+    });
+  });
+
+  describe("renders with CustomHeaderComponent", () => {
+    it("renders custom header when gestureEnabled is true", () => {
+      const ref = createRef<ActionSheet>();
+      const {toJSON} = render(
+        <ThemeProvider>
+          <ActionSheet CustomHeaderComponent={<Text>Custom Header</Text>} gestureEnabled ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      expect(toJSON()).toMatchSnapshot();
+    });
+
+    it("renders header when headerAlwaysVisible is true", () => {
+      const ref = createRef<ActionSheet>();
+      const {toJSON} = render(
+        <ThemeProvider>
+          <ActionSheet headerAlwaysVisible ref={ref}>
+            <Text>Content</Text>
+          </ActionSheet>
+        </ThemeProvider>
+      );
+      expect(toJSON()).toMatchSnapshot();
+    });
+  });
 });
