@@ -1,27 +1,62 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterEach, beforeEach, describe, expect, it, type mock as MockType, mock} from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type mock as MockType,
+  mock,
+} from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
 import {DateTime} from "luxon";
 
 import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
 
+const setDesktop = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => false,
+    mediaQuery: () => "lg" as const,
+    mediaQueryLargerThan: () => true,
+    mediaQuerySmallerThan: () => false,
+  }));
+};
+
+const setMobile = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => true,
+    mediaQuery: () => "xs" as const,
+    mediaQueryLargerThan: () => false,
+    mediaQuerySmallerThan: () => true,
+  }));
+};
+
+// Restore MediaQuery to bunSetup defaults after all tests to prevent cross-file pollution.
+// bunSetup mocks: isMobileDevice → false, mediaQueryLargerThan → false.
+const restoreDefault = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: mock(() => false),
+    mediaQueryLargerThan: mock(() => false),
+  }));
+};
+
+afterAll(() => {
+  restoreDefault();
+});
+
 describe("DateTimeField", () => {
   let mockOnChange: ReturnType<MockType>;
 
   beforeEach(() => {
-    // Reset MediaQuery to desktop mode to avoid cross-file mock.module pollution
-    mock.module("./MediaQuery", () => ({
-      isMobileDevice: () => false,
-      mediaQuery: () => "lg" as const,
-      mediaQueryLargerThan: () => true,
-      mediaQuerySmallerThan: () => false,
-    }));
+    setDesktop();
     const mocks = setupComponentTest();
     mockOnChange = mocks.onChange;
   });
 
   afterEach(() => {
+    setDesktop();
     teardownComponentTest();
   });
 
@@ -665,12 +700,7 @@ describe("DateTimeField", () => {
 
   describe("mobile time display", () => {
     it("should render MobileTimeDisplay on mobile with time type", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
+      setMobile();
       const {getByAccessibilityHint} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -683,12 +713,7 @@ describe("DateTimeField", () => {
     });
 
     it("should render disabled MobileTimeDisplay", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
+      setMobile();
       const {getByAccessibilityHint} = renderWithTheme(
         <DateTimeField
           disabled
@@ -702,12 +727,7 @@ describe("DateTimeField", () => {
     });
 
     it("should render MobileTimeDisplay placeholder when no value", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
+      setMobile();
       const {getByAccessibilityHint} = renderWithTheme(
         <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
       );
@@ -715,12 +735,7 @@ describe("DateTimeField", () => {
     });
 
     it("should render mobile datetime with time display", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
+      setMobile();
       const {getByAccessibilityHint} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -735,12 +750,7 @@ describe("DateTimeField", () => {
 
   describe("onActionSheetChange", () => {
     it("should handle action sheet date selection", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -753,21 +763,15 @@ describe("DateTimeField", () => {
       const actionSheet = UNSAFE_root.findAll(
         (n: any) => n.props?.onChange && n.props?.visible !== undefined
       );
-      if (actionSheet.length > 0) {
-        await act(async () => {
-          actionSheet[0].props.onChange("2023-06-20T00:00:00.000Z");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onChange("2023-06-20T00:00:00.000Z");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
 
     it("should handle action sheet clear (empty string)", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -780,21 +784,15 @@ describe("DateTimeField", () => {
       const actionSheet = UNSAFE_root.findAll(
         (n: any) => n.props?.onChange && n.props?.visible !== undefined
       );
-      if (actionSheet.length > 0) {
-        await act(async () => {
-          actionSheet[0].props.onChange("");
-        });
-        expect(mockOnChange).toHaveBeenCalledWith("");
-      }
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onChange("");
+      });
+      expect(mockOnChange).toHaveBeenCalledWith("");
     });
 
     it("should handle action sheet time selection", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -807,21 +805,15 @@ describe("DateTimeField", () => {
       const actionSheet = UNSAFE_root.findAll(
         (n: any) => n.props?.onChange && n.props?.visible !== undefined
       );
-      if (actionSheet.length > 0) {
-        await act(async () => {
-          actionSheet[0].props.onChange("2023-05-15T18:45:00.000Z");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onChange("2023-05-15T18:45:00.000Z");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
 
     it("should handle action sheet datetime selection", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -834,23 +826,17 @@ describe("DateTimeField", () => {
       const actionSheet = UNSAFE_root.findAll(
         (n: any) => n.props?.onChange && n.props?.visible !== undefined
       );
-      if (actionSheet.length > 0) {
-        await act(async () => {
-          actionSheet[0].props.onChange("2023-06-20T10:00:00.000Z");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onChange("2023-06-20T10:00:00.000Z");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
   });
 
   describe("handleAmPmChange", () => {
     it("should toggle AM to PM and emit new value", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       // 15:30 UTC = 11:30 AM in New York => toggling to PM should change the time
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
@@ -862,23 +848,17 @@ describe("DateTimeField", () => {
       );
 
       const amPmSelects = UNSAFE_root.findAll((n: any) => n.props?.onAmPmChange);
-      if (amPmSelects.length > 0) {
-        await act(async () => {
-          amPmSelects[0].props.onAmPmChange("pm");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(amPmSelects.length).toBeGreaterThan(0);
+      await act(async () => {
+        amPmSelects[0].props.onAmPmChange("pm");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
   });
 
   describe("handleTimezoneChange", () => {
     it("should call onTimezoneChange callback and emit new value", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const mockTzChange = mock(() => {});
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
@@ -891,21 +871,15 @@ describe("DateTimeField", () => {
       );
 
       const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
-      if (tzPickers.length > 0) {
-        await act(async () => {
-          tzPickers[0].props.onTimezoneChange("America/Chicago");
-        });
-        expect(mockTzChange).toHaveBeenCalledWith("America/Chicago");
-      }
+      expect(tzPickers.length).toBeGreaterThan(0);
+      await act(async () => {
+        tzPickers[0].props.onTimezoneChange("America/Chicago");
+      });
+      expect(mockTzChange).toHaveBeenCalledWith("America/Chicago");
     });
 
     it("should use local timezone state when onTimezoneChange not provided", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -916,12 +890,11 @@ describe("DateTimeField", () => {
       );
 
       const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
-      if (tzPickers.length > 0) {
-        await act(async () => {
-          tzPickers[0].props.onTimezoneChange("America/Chicago");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(tzPickers.length).toBeGreaterThan(0);
+      await act(async () => {
+        tzPickers[0].props.onTimezoneChange("America/Chicago");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
   });
 
@@ -988,12 +961,7 @@ describe("DateTimeField", () => {
 
   describe("onBlur edge cases", () => {
     it("should handle onBlur with AM/PM override in time mode", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const user = userEvent.setup();
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
@@ -1015,12 +983,7 @@ describe("DateTimeField", () => {
 
   describe("onDismiss and onLayout", () => {
     it("should handle DateTimeActionSheet onDismiss", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -1033,21 +996,15 @@ describe("DateTimeField", () => {
       const actionSheet = UNSAFE_root.findAll(
         (n: any) => n.props?.onDismiss && n.props?.visible !== undefined
       );
-      if (actionSheet.length > 0) {
-        await act(async () => {
-          actionSheet[0].props.onDismiss();
-        });
-      }
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onDismiss();
+      });
       expect(UNSAFE_root).toBeTruthy();
     });
 
     it("should handle Pressable onLayout", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -1058,23 +1015,17 @@ describe("DateTimeField", () => {
       );
 
       const pressables = UNSAFE_root.findAll((n: any) => n.props?.onLayout);
-      if (pressables.length > 0) {
-        await act(async () => {
-          pressables[0].props.onLayout({nativeEvent: {layout: {width: 500}}});
-        });
-      }
+      expect(pressables.length).toBeGreaterThan(0);
+      await act(async () => {
+        pressables[0].props.onLayout({nativeEvent: {layout: {width: 500}}});
+      });
       expect(UNSAFE_root).toBeTruthy();
     });
   });
 
   describe("SelectField AM/PM onChange inline callback", () => {
     it("should trigger SelectField onChange to call onAmPmChange", async () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {UNSAFE_root} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}
@@ -1083,32 +1034,25 @@ describe("DateTimeField", () => {
           value="2023-05-15T15:30:00.000Z"
         />
       );
-      // Find the SelectField for AM/PM (it will have items like [{label: "AM"}, {label: "PM"}])
-
       const selects = UNSAFE_root.findAll((n: any) => {
-        const items = n.props?.items;
+        const opts = n.props?.options;
         return (
-          Array.isArray(items) &&
-          items.some((item: {label?: string}) => item?.label === "AM" || item?.label === "PM")
+          Array.isArray(opts) &&
+          opts.some((o: {value?: string}) => o?.value === "am" || o?.value === "pm")
         );
       });
-      if (selects.length > 0 && selects[0].props.onChange) {
-        await act(async () => {
-          selects[0].props.onChange("pm");
-        });
-        expect(mockOnChange).toHaveBeenCalled();
-      }
+      expect(selects.length).toBeGreaterThan(0);
+      expect(selects[0].props.onChange).toBeDefined();
+      await act(async () => {
+        selects[0].props.onChange("pm");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
   });
 
   describe("inputRef onRef callback", () => {
     it("should set ref when segment renders", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
+      setDesktop();
       const {getByPlaceholderText} = renderWithTheme(
         <DateTimeField
           onChange={mockOnChange}

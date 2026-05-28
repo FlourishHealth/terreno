@@ -779,7 +779,7 @@ describe("ActionSheet", () => {
   });
 
   describe("_onDeviceLayout", () => {
-    it("processes layout changes and updates state", async () => {
+    it("clears existing timeout before scheduling new one", () => {
       const ref = createRef<ActionSheet>();
       render(
         <ThemeProvider>
@@ -788,33 +788,14 @@ describe("ActionSheet", () => {
           </ActionSheet>
         </ThemeProvider>
       );
-      (ref.current as any).deviceLayoutCalled = false;
-      await act(async () => {
-        await (ref.current as any)._onDeviceLayout({
-          nativeEvent: {layout: {height: 800, width: 400}},
-        });
-        await new Promise((r) => setTimeout(r, 50));
+      const existingTimeout = setTimeout(() => {}, 1000);
+      (ref.current as any).timeout = existingTimeout;
+      (ref.current as any)._onDeviceLayout({
+        nativeEvent: {layout: {height: 812, width: 375}},
       });
-      expect(ref.current).toBeTruthy();
-    });
-
-    it("clears existing timeout before scheduling new one", async () => {
-      const ref = createRef<ActionSheet>();
-      render(
-        <ThemeProvider>
-          <ActionSheet ref={ref}>
-            <Text>Content</Text>
-          </ActionSheet>
-        </ThemeProvider>
-      );
-      (ref.current as any).timeout = setTimeout(() => {}, 1000);
-      await act(async () => {
-        await (ref.current as any)._onDeviceLayout({
-          nativeEvent: {layout: {height: 800, width: 400}},
-        });
-        await new Promise((r) => setTimeout(r, 50));
-      });
-      expect(ref.current).toBeTruthy();
+      const newTimeout = (ref.current as any).timeout;
+      expect(newTimeout).not.toBe(existingTimeout);
+      clearTimeout(newTimeout);
     });
   });
 

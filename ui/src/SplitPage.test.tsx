@@ -1,14 +1,10 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {describe, expect, it, mock} from "bun:test";
+import {afterAll, afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
-import {Dimensions, View} from "react-native";
+import {View} from "react-native";
 
 import {SplitPage} from "./SplitPage";
 import {renderWithTheme} from "./test-utils";
-
-type MockableDimensionsGet = {
-  mockImplementation?: (impl: () => any) => void;
-};
 
 // Mock react-native-swiper-flatlist
 mock.module("react-native-swiper-flatlist", () => ({
@@ -16,6 +12,37 @@ mock.module("react-native-swiper-flatlist", () => ({
     <View testID="swiper-flatlist">{children}</View>
   ),
 }));
+
+const setDesktop = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => false,
+    mediaQuery: () => "lg" as const,
+    mediaQueryLargerThan: () => true,
+    mediaQuerySmallerThan: () => false,
+  }));
+};
+
+const setMobile = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: () => true,
+    mediaQuery: () => "xs" as const,
+    mediaQueryLargerThan: () => false,
+    mediaQuerySmallerThan: () => true,
+  }));
+};
+
+// Restore MediaQuery to bunSetup defaults after all tests to prevent cross-file pollution.
+// bunSetup mocks: isMobileDevice → false, mediaQueryLargerThan → false.
+const restoreDefault = () => {
+  mock.module("./MediaQuery", () => ({
+    isMobileDevice: mock(() => false),
+    mediaQueryLargerThan: mock(() => false),
+  }));
+};
+
+afterAll(() => {
+  restoreDefault();
+});
 
 describe("SplitPage", () => {
   const defaultProps = {
@@ -27,6 +54,14 @@ describe("SplitPage", () => {
       <View testID={`item-${item.id}`} />
     ),
   };
+
+  beforeEach(() => {
+    setDesktop();
+  });
+
+  afterEach(() => {
+    setDesktop();
+  });
 
   it("renders correctly with renderContent", () => {
     const {toJSON} = renderWithTheme(
@@ -183,27 +218,8 @@ describe("SplitPage", () => {
   });
 
   describe("desktop viewport (mediaQueryLargerThan('sm') true)", () => {
-    const desktopDims = {fontScale: 1, height: 1000, scale: 2, width: 1400};
-
-    it("verifies Dimensions mock is overridden", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
-      expect(Dimensions.get("window").width).toBe(1400);
-    });
-
     it("renders renderList/renderContent on desktop", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
+      setDesktop();
       const {toJSON} = renderWithTheme(
         <SplitPage
           {...defaultProps}
@@ -214,13 +230,7 @@ describe("SplitPage", () => {
     });
 
     it("renders renderList/renderChildrenContent on desktop with 2 children", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
+      setDesktop();
       const {toJSON} = renderWithTheme(
         <SplitPage {...defaultProps}>
           <View testID="child-1" />
@@ -231,13 +241,7 @@ describe("SplitPage", () => {
     });
 
     it("renders renderChildrenContent with >2 children and tabs on desktop", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
+      setDesktop();
       const {toJSON} = renderWithTheme(
         <SplitPage {...defaultProps} tabs={["A", "B", "C"]}>
           <View testID="child-1" />
@@ -249,13 +253,7 @@ describe("SplitPage", () => {
     });
 
     it("renders with listViewWidth/listViewMaxWidth applied", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
+      setDesktop();
       const {toJSON} = renderWithTheme(
         <SplitPage
           {...defaultProps}
@@ -269,17 +267,6 @@ describe("SplitPage", () => {
   });
 
   describe("mobile viewport (mediaQueryLargerThan('sm') false)", () => {
-    const setMobile = () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
-      const mobileDims = {fontScale: 1, height: 812, scale: 2, width: 375};
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => mobileDims);
-    };
-
     it("renders mobile list view when no item is selected", () => {
       setMobile();
       const {toJSON} = renderWithTheme(
@@ -402,11 +389,11 @@ describe("SplitPage", () => {
       expect(toJSON()).toBeTruthy();
     });
 
-    it("renders mobile split page with bottomNavBarHeight", async () => {
+    it("renders mobile with bottomNavBarHeight", async () => {
       setMobile();
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, toJSON} = renderWithTheme(
-        <SplitPage {...defaultProps} bottomNavBarHeight={80}>
+        <SplitPage {...defaultProps} bottomNavBarHeight={50}>
           <View testID="child-1" />
           <View testID="child-2" />
         </SplitPage>
@@ -420,17 +407,6 @@ describe("SplitPage", () => {
   });
 
   describe("desktop renderChildrenContent >2 children with tabs", () => {
-    const setDesktop = () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      const desktopDims = {fontScale: 1, height: 1000, scale: 2, width: 1400};
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
-    };
-
     it("renders segmented control tabs and content on desktop with >2 children", () => {
       setDesktop();
       const {toJSON} = renderWithTheme(
@@ -484,19 +460,8 @@ describe("SplitPage", () => {
   });
 
   describe("item selection callbacks", () => {
-    const resetToMobile = () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => true,
-        mediaQuery: () => "xs" as const,
-        mediaQueryLargerThan: () => false,
-        mediaQuerySmallerThan: () => true,
-      }));
-      const mobileDims = {fontScale: 1, height: 812, scale: 2, width: 375};
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => mobileDims);
-    };
-
     it("onItemSelect runs onSelectionChange when item clicked via Box press", async () => {
-      resetToMobile();
+      setMobile();
       const {fireEvent} = await import("@testing-library/react-native");
       const onSelectionChange = mock(async (_arg: unknown) => {});
       const {getAllByLabelText} = renderWithTheme(
@@ -516,7 +481,7 @@ describe("SplitPage", () => {
     });
 
     it("selecting an item shows mobile children content when no renderContent", async () => {
-      resetToMobile();
+      setMobile();
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, queryByTestId} = renderWithTheme(
         <SplitPage {...defaultProps}>
@@ -532,7 +497,7 @@ describe("SplitPage", () => {
     });
 
     it("uses default onSelectionChange without throwing", async () => {
-      resetToMobile();
+      setMobile();
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, toJSON} = renderWithTheme(
         <SplitPage {...defaultProps} renderContent={(id) => <View testID={`content-${id}`} />} />
@@ -545,7 +510,7 @@ describe("SplitPage", () => {
     });
 
     it("covers elementArray.map in renderMobileChildrenContent", async () => {
-      resetToMobile();
+      setMobile();
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, queryByTestId} = renderWithTheme(
         <SplitPage {...defaultProps} bottomNavBarHeight={50}>
@@ -560,14 +525,7 @@ describe("SplitPage", () => {
     });
 
     it("covers activeTabs.map in renderChildrenContent on desktop", () => {
-      mock.module("./MediaQuery", () => ({
-        isMobileDevice: () => false,
-        mediaQuery: () => "lg" as const,
-        mediaQueryLargerThan: () => true,
-        mediaQuerySmallerThan: () => false,
-      }));
-      const desktopDims = {fontScale: 1, height: 1000, scale: 2, width: 1400};
-      (Dimensions.get as MockableDimensionsGet).mockImplementation?.(() => desktopDims);
+      setDesktop();
       const {toJSON} = renderWithTheme(
         <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
           <View testID="child-a" />
@@ -579,7 +537,7 @@ describe("SplitPage", () => {
     });
 
     it("selection deselect when showItemList becomes true", async () => {
-      resetToMobile();
+      setMobile();
       const onSelectionChange = mock(async () => {});
       const {rerender} = renderWithTheme(
         <SplitPage

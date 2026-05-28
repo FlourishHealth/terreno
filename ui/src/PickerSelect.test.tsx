@@ -165,13 +165,26 @@ describe("PickerSelect", () => {
     const PlatformModule = require("react-native").Platform;
     let savedOS: any;
 
+    let hadDocument = false;
+    let savedDocument: any;
+
     const ensureDocument = () => {
+      hadDocument = "document" in globalThis;
+      savedDocument = (globalThis as any).document;
       if (typeof (globalThis as any).HTMLElement === "undefined") {
         (globalThis as any).HTMLElement = class HTMLElement {};
       }
       const el = new (globalThis as any).HTMLElement();
       el.blur = () => {};
       (globalThis as any).document = {activeElement: el};
+    };
+
+    const restoreDocument = () => {
+      if (hadDocument) {
+        (globalThis as any).document = savedDocument;
+      } else {
+        delete (globalThis as any).document;
+      }
     };
 
     it("renders web dropdown with display label", () => {
@@ -183,6 +196,7 @@ describe("PickerSelect", () => {
         expect(getByTestId("text_input")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -201,6 +215,7 @@ describe("PickerSelect", () => {
         expect(onOpen).toHaveBeenCalled();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -219,6 +234,7 @@ describe("PickerSelect", () => {
         expect(onOpen).not.toHaveBeenCalled();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -236,8 +252,13 @@ describe("PickerSelect", () => {
           fireEvent.press(getByTestId("web_picker"));
         });
         expect(onOpen).toHaveBeenCalled();
+        await act(async () => {
+          fireEvent.press(getByTestId("web_dropdown_backdrop"));
+        });
+        expect(onClose).toHaveBeenCalled();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -250,6 +271,7 @@ describe("PickerSelect", () => {
         expect(getByTestId("web_picker")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -268,6 +290,7 @@ describe("PickerSelect", () => {
         expect(getByTestId("text_input")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
 
@@ -282,6 +305,7 @@ describe("PickerSelect", () => {
         expect(getByTestId("web_picker")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
+        restoreDocument();
       }
     });
   });
