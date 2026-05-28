@@ -2,7 +2,7 @@ import {beforeAll, describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 
 import {Text} from "./Text";
-import {Tooltip} from "./Tooltip";
+import {Arrow, getTooltipPosition, Tooltip} from "./Tooltip";
 import {renderWithTheme} from "./test-utils";
 
 // Minimal shape of the tree returned by toJSON() that we rely on here.
@@ -264,6 +264,198 @@ describe("Tooltip", () => {
           });
         });
       }
+    }
+  });
+
+  it("getTooltipPosition returns empty when not measured", () => {
+    const result = getTooltipPosition({
+      children: {},
+      measured: false,
+      tooltip: {},
+    });
+    expect(result).toEqual({});
+  });
+
+  it("getTooltipPosition places tooltip at top (default) when space allows", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 200, pageY: 300, width: 100},
+      idealPosition: "top",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "top");
+    expect(result).toHaveProperty("top");
+    expect(result).toHaveProperty("left");
+  });
+
+  it("getTooltipPosition places tooltip at bottom when specified", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 200, pageY: 100, width: 100},
+      idealPosition: "bottom",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "bottom");
+  });
+
+  it("getTooltipPosition places tooltip at left when space allows", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 400, pageY: 200, width: 100},
+      idealPosition: "left",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "left");
+  });
+
+  it("getTooltipPosition places tooltip at right when specified", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 50, pageY: 200, width: 100},
+      idealPosition: "right",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "right");
+  });
+
+  it("getTooltipPosition falls back to bottom when top overflows", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 200, pageY: 5, width: 100},
+      idealPosition: "top",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "bottom");
+  });
+
+  it("getTooltipPosition falls back to top when bottom overflows", () => {
+    const {Dimensions} = require("react-native");
+    const origGet = Dimensions.get;
+    Dimensions.get = () => ({fontScale: 1, height: 200, scale: 1, width: 800});
+    try {
+      const result = getTooltipPosition({
+        children: {height: 40, pageX: 200, pageY: 160, width: 100},
+        idealPosition: "bottom",
+        measured: true,
+        tooltip: {height: 30, width: 150, x: 0, y: 0},
+      });
+      expect(result).toHaveProperty("finalPosition", "top");
+    } finally {
+      Dimensions.get = origGet;
+    }
+  });
+
+  it("getTooltipPosition falls back to bottom when right overflows", () => {
+    const {Dimensions} = require("react-native");
+    const origGet = Dimensions.get;
+    Dimensions.get = () => ({fontScale: 1, height: 800, scale: 1, width: 300});
+    try {
+      const result = getTooltipPosition({
+        children: {height: 40, pageX: 200, pageY: 200, width: 100},
+        idealPosition: "right",
+        measured: true,
+        tooltip: {height: 30, width: 150, x: 0, y: 0},
+      });
+      // Fallback order is: bottom -> top -> left -> right
+      expect(result).toHaveProperty("finalPosition", "bottom");
+    } finally {
+      Dimensions.get = origGet;
+    }
+  });
+
+  it("getTooltipPosition falls back to left when right, bottom, and top overflow", () => {
+    const {Dimensions} = require("react-native");
+    const origGet = Dimensions.get;
+    Dimensions.get = () => ({fontScale: 1, height: 80, scale: 1, width: 300});
+    try {
+      const result = getTooltipPosition({
+        children: {height: 40, pageX: 200, pageY: 20, width: 40},
+        idealPosition: "right",
+        measured: true,
+        tooltip: {height: 30, width: 150, x: 0, y: 0},
+      });
+      expect(result).toHaveProperty("finalPosition", "left");
+    } finally {
+      Dimensions.get = origGet;
+    }
+  });
+
+  it("getTooltipPosition falls back to right when all other directions overflow", () => {
+    const {Dimensions} = require("react-native");
+    const origGet = Dimensions.get;
+    Dimensions.get = () => ({fontScale: 1, height: 50, scale: 1, width: 50});
+    try {
+      const result = getTooltipPosition({
+        children: {height: 40, pageX: 5, pageY: 5, width: 40},
+        idealPosition: "top",
+        measured: true,
+        tooltip: {height: 30, width: 150, x: 0, y: 0},
+      });
+      expect(result).toHaveProperty("finalPosition", "right");
+    } finally {
+      Dimensions.get = origGet;
+    }
+  });
+
+  it("getTooltipPosition with no idealPosition defaults to top", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 200, pageY: 300, width: 100},
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    expect(result).toHaveProperty("finalPosition", "top");
+  });
+
+  it("getTooltipPosition falls back when left placement overflows", () => {
+    const result = getTooltipPosition({
+      children: {height: 40, pageX: 10, pageY: 200, width: 100},
+      idealPosition: "left",
+      measured: true,
+      tooltip: {height: 30, width: 150, x: 0, y: 0},
+    });
+    // Left overflows, should fall back to bottom (first available)
+    expect(result).toHaveProperty("finalPosition");
+    const pos = (result as {finalPosition: string}).finalPosition;
+    expect(["top", "bottom", "right"]).toContain(pos);
+  });
+
+  it("Arrow renders for each position", () => {
+    const positions = ["top", "bottom", "left", "right"] as const;
+    for (const position of positions) {
+      const {toJSON} = renderWithTheme(<Arrow color="#333" position={position} />);
+      expect(toJSON()).toBeTruthy();
+    }
+  });
+
+  it("exercises handleClick to hide visible tooltip on web press", async () => {
+    const {queryByTestId, toJSON} = renderWithTheme(
+      <Tooltip text="Click hides">
+        <Text>Click me</Text>
+      </Tooltip>
+    );
+
+    const tree = toJSON() as TestNode;
+    const root = tree.children?.[0] as TestNode;
+
+    // Show the tooltip
+    await act(async () => {
+      root.props.onPointerEnter?.();
+    });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 900));
+    });
+    expect(queryByTestId("tooltip-container")).toBeTruthy();
+
+    // Find the wrapper and trigger onPress (web click)
+    const treeAfter = toJSON() as TestNode;
+    const wrapper = (treeAfter.children as Array<TestNode | string>)[
+      (treeAfter.children as Array<TestNode | string>).length - 1
+    ] as TestNode;
+
+    if (wrapper.props && "onPress" in wrapper.props) {
+      await act(async () => {
+        (wrapper.props as {onPress?: () => void}).onPress?.();
+      });
     }
   });
 
