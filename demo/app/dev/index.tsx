@@ -1,9 +1,9 @@
 import {DevHomePage} from "@components";
 import {DemoConfig} from "@config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {Box} from "@terreno/ui";
 import {router, useRootNavigationState} from "expo-router";
 import {type ReactElement, useEffect} from "react";
+import {StyleSheet, View} from "react-native";
 
 const ASYNC_STORAGE_KEY = "CURRENT_ROUTE";
 
@@ -55,13 +55,10 @@ const Dev = (): ReactElement => {
   }, []);
 
   return (
-    <Box
+    <View
       style={{
+        ...styles.container,
         backgroundColor: "#fff",
-        height: "100%",
-        maxHeight: "100%",
-        overflow: "hidden",
-        position: "absolute",
         width: "100%",
       }}
     >
@@ -71,8 +68,19 @@ const Dev = (): ReactElement => {
           router.navigate(`dev/${component}?story=${story}`);
         }}
       />
-    </Box>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: "#fff",
+    height: "100%",
+    maxHeight: "100%",
+    overflow: "hidden",
+    position: "absolute",
+    width: "100%",
+  },
+});
 
 export default Dev;

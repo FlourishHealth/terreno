@@ -1,8 +1,8 @@
 import {ErrorBoundary} from "@components";
 import {DemoConfig} from "@config";
-import {Box} from "@terreno/ui";
 import {router, useLocalSearchParams, useNavigation} from "expo-router";
 import {type FC, useEffect} from "react";
+import {View} from "react-native";
 
 export const generateStaticParams = () => DemoConfig.map((c) => ({component: c.name}));
 
@@ -23,11 +23,12 @@ const DevComponentPage: FC = () => {
 
   return (
     <ErrorBoundary>
-      <Box
-        direction="column"
-        flex="grow"
+      <View
         style={{
           backgroundColor: "#eee",
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
           maxHeight: "100%",
           overflow: "scroll",
           padding: 20,
@@ -35,7 +36,7 @@ const DevComponentPage: FC = () => {
         }}
       >
         {config!.stories[story!]?.render()}
-      </Box>
+      </View>
     </ErrorBoundary>
   );
 };

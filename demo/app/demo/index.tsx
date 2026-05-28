@@ -1,6 +1,6 @@
 import {DemoHomePage} from "@components";
-import {Box} from "@terreno/ui";
 import {router} from "expo-router";
+import {StyleSheet, View} from "react-native";
 import {Host} from "react-native-portalize";
 import {useSafeAreaInsets} from "react-native-safe-area-context";
 
@@ -22,39 +22,47 @@ const App = () => {
 
   return (
     <Host>
-      <Box
+      <View
         style={{
+          ...styles.container,
           backgroundColor: "#fff",
-          height: "100%",
-          maxHeight: "100%",
-          overflow: "hidden",
           paddingBottom: insets.bottom,
           paddingLeft: insets.left,
           paddingRight: insets.right,
           paddingTop: insets.top,
-          position: "absolute",
           width: "100%",
         }}
       >
-        <Box
-          direction="column"
-          flex="grow"
-          style={{
-            backgroundColor: "#eee",
-            maxHeight: "100%",
-            overflow: "scroll",
-            width: "100%",
-          }}
-        >
+        <View style={styles.body}>
           <DemoHomePage
             onPress={(component: string) => {
               router.push(`demo/${encodeURIComponent(component)}`);
             }}
           />
-        </Box>
-      </Box>
+        </View>
+      </View>
     </Host>
   );
 };
+
+const styles = StyleSheet.create({
+  body: {
+    backgroundColor: "#eee",
+    display: "flex",
+    flex: 1,
+    flexDirection: "column",
+    maxHeight: "100%",
+    overflow: "scroll",
+    width: "100%",
+  },
+  container: {
+    backgroundColor: "#fff",
+    height: "100%",
+    maxHeight: "100%",
+    overflow: "hidden",
+    position: "absolute",
+    width: "100%",
+  },
+});
 
 export default App;

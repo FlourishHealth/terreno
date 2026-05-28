@@ -1,10 +1,11 @@
-import {Box, RadioField, type RadioFieldProps} from "@terreno/ui";
+import {RadioField, type RadioFieldProps} from "@terreno/ui";
 import React from "react";
+import {View} from "react-native";
 
 export const RadioFieldDemo = (props: Partial<RadioFieldProps>): React.ReactElement => {
   const [selectedOption, setSelectedOption] = React.useState("Option 1");
   return (
-    <Box style={{width: 200}}>
+    <View style={{width: 200}}>
       <RadioField
         onChange={setSelectedOption}
         options={[
@@ -16,7 +17,7 @@ export const RadioFieldDemo = (props: Partial<RadioFieldProps>): React.ReactElem
         value={selectedOption}
         {...props}
       />
-    </Box>
+    </View>
   );
 };
 
@@ -24,7 +25,7 @@ export const RadioFieldsLeftText = (): React.ReactElement => {
   const [selectedOption, setSelectedOption] = React.useState("Option 1");
 
   return (
-    <Box style={{paddingVertical: 10, width: 200}}>
+    <View style={{paddingVertical: 10, width: 200}}>
       <RadioField
         onChange={setSelectedOption}
         options={[
@@ -36,7 +37,7 @@ export const RadioFieldsLeftText = (): React.ReactElement => {
         value={selectedOption}
         variant="leftText"
       />
-    </Box>
+    </View>
   );
 };
 
@@ -44,7 +45,7 @@ export const RadioFieldsRightText = (): React.ReactElement => {
   const [selectedOption, setSelectedOption] = React.useState("Option 1");
 
   return (
-    <Box style={{paddingVertical: 10, width: 200}}>
+    <View style={{paddingVertical: 10, width: 200}}>
       <RadioField
         onChange={setSelectedOption}
         options={[
@@ -56,6 +57,6 @@ export const RadioFieldsRightText = (): React.ReactElement => {
         value={selectedOption}
         variant="rightText"
       />
-    </Box>
+    </View>
   );
 };

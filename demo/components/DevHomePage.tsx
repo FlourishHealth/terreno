@@ -2,7 +2,7 @@ import type {DemoConfiguration} from "@config";
 import {Box, Heading, Text} from "@terreno/ui";
 import {useNavigation} from "expo-router";
 import React, {useEffect} from "react";
-import {Pressable, ScrollView} from "react-native";
+import {Pressable, ScrollView, View} from "react-native";
 
 interface DevHomePageProps {
   demoConfig: DemoConfiguration[];
@@ -18,10 +18,10 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
 
   return (
     <ScrollView>
-      <Box
-        direction="column"
-        flex="grow"
+      <View
         style={{
+          display: "flex",
+          flex: 1,
           overflow: "scroll",
           paddingBottom: 120,
           paddingLeft: 16,
@@ -48,7 +48,7 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
             ))}
           </React.Fragment>
         ))}
-      </Box>
+      </View>
     </ScrollView>
   );
 };
