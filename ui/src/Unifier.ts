@@ -18,13 +18,18 @@ export type PlatformOS = "ios" | "android" | "web";
 type Luminance = "light" | "lighter" | "dark" | "darker";
 
 // Changes a color luminance
-export function changeColorLuminance(hex: string, luminanceChange: Luminance) {
-  // Validate hex string, strip "#" if present.
-  hex = String(hex).replace(/[^0-9a-f]/gi, "");
-  if (hex.length === 3) {
-    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  } else if (hex.length !== 6) {
-    throw new Error(`Invalid color hex: ${hex}`);
+export const changeColorLuminance = (hex: string, luminanceChange: Luminance) => {
+  let normalizedHex = String(hex).replace(/[^0-9a-f]/gi, "");
+  if (normalizedHex.length === 3) {
+    normalizedHex =
+      normalizedHex[0] +
+      normalizedHex[0] +
+      normalizedHex[1] +
+      normalizedHex[1] +
+      normalizedHex[2] +
+      normalizedHex[2];
+  } else if (normalizedHex.length !== 6) {
+    throw new Error(`Invalid color hex: ${normalizedHex}`);
   }
   let luminance: number;
   switch (luminanceChange) {
@@ -44,19 +49,17 @@ export function changeColorLuminance(hex: string, luminanceChange: Luminance) {
       throw new Error(`Cannot change luminance to ${luminanceChange}`);
   }
 
-  // Convert to decimal and change luminosity
   let rgb = "#";
   for (let i = 0; i < 3; i++) {
-    const decimal = parseInt(hex.substr(i * 2, 2), 16);
+    const decimal = parseInt(normalizedHex.substr(i * 2, 2), 16);
     const appliedLuminance = Math.round(
       Math.min(Math.max(0, decimal + decimal * luminance), 255)
     ).toString(16);
-    // 0 pad, if necessary.
     rgb += `00${appliedLuminance}`.substr(appliedLuminance.length);
   }
 
   return rgb;
-}
+};
 
 class UnifierClass {
   private _web = false;
