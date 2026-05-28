@@ -24,19 +24,21 @@ describe("useConsentHistory", () => {
       isLoading: queryResult.isLoading ?? false,
       refetch,
     }));
+    const injectEndpoints = mock((opts: MockInjectOpts) => {
+      const build = {
+        query: mock((def: MockQueryDef) => {
+          // Exercise the URL builder so the closure captures `base`
+          const url = def.query();
+          expect(url).toContain("/consents/my");
+          return "my-consents-query";
+        }),
+      };
+      opts.endpoints(build);
+      return {useGetMyConsentsQuery};
+    });
     const api = {
-      injectEndpoints: mock((opts: MockInjectOpts) => {
-        const build = {
-          query: mock((def: MockQueryDef) => {
-            // Exercise the URL builder so the closure captures `base`
-            const url = def.query();
-            expect(url).toContain("/consents/my");
-            return "my-consents-query";
-          }),
-        };
-        opts.endpoints(build);
-        return {useGetMyConsentsQuery};
-      }),
+      enhanceEndpoints: mock(() => api),
+      injectEndpoints,
     };
     return {api, refetch};
   };
@@ -84,6 +86,7 @@ describe("useConsentHistory", () => {
       refetch,
     }));
     const api = {
+      enhanceEndpoints: () => api,
       injectEndpoints: () => {
         injectCallCount += 1;
         return {useGetMyConsentsQuery};

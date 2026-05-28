@@ -3,6 +3,7 @@ import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {
   baseUrl,
@@ -67,13 +68,15 @@ const RootLayout = (): React.ReactElement | null => {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
-          <RootLayoutNav />
-        </TerrenoProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
+            <RootLayoutNav />
+          </TerrenoProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
 };
 

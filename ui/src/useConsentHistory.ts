@@ -40,6 +40,7 @@ interface ConsentHistoryEnhancedApi {
 }
 
 interface ConsentHistoryApi {
+  enhanceEndpoints: (options: {addTagTypes: string[]}) => ConsentHistoryApi;
   injectEndpoints: (options: {
     endpoints: (build: ConsentHistoryQueryBuilder) => {getMyConsents: unknown};
     overrideExisting: boolean;
@@ -65,7 +66,7 @@ const getEnhancedApi = (api: ConsentHistoryApi, base: string): ConsentHistoryEnh
   if (cached) {
     return cached;
   }
-  const enhanced = api.injectEndpoints({
+  const enhanced = api.enhanceEndpoints({addTagTypes: ["MyConsents"]}).injectEndpoints({
     endpoints: (build) => ({
       getMyConsents: build.query({
         providesTags: ["MyConsents"],
