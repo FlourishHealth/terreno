@@ -2069,7 +2069,7 @@ describe("startChangeStreamWatcher", () => {
     startChangeStreamWatcher(io, {ignoredCollections: ["audit_logs"]}, true);
 
     // Verify the pipeline passed to watch includes the ignored collections
-    const pipeline = mockDb.watch.mock.calls[0][0];
+    const pipeline = (mockDb.watch.mock.calls[0] as any[])[0];
     const matchStage = pipeline[0].$match;
     expect(matchStage["ns.coll"].$nin).toContain("audit_logs");
     expect(matchStage["ns.coll"].$nin).toContain("socketio");
@@ -2193,7 +2193,7 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {batchSize: 100, fullDocument: "whenAvailable"}, true);
 
-    const options = mockDb.watch.mock.calls[0][1];
+    const options = (mockDb.watch.mock.calls[0] as any[])[1];
     expect(options.batchSize).toBe(100);
     expect(options.fullDocument).toBe("whenAvailable");
   });
