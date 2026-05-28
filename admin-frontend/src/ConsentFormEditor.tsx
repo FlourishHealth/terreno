@@ -73,6 +73,49 @@ const slugify = (text: string): string => {
     .replace(/^-+|-+$/g, "");
 };
 
+/**
+ * Cache the enhanced api per api object. `injectEndpoints` is a side-effecting
+ * operation against the global RTK Query slice — calling it on every render of
+ * every editor instance is wasteful, and with `overrideExisting: false` would
+ * log a re-injection warning. WeakMap-by-api lets the GC reclaim entries when
+ * the api is unreachable.
+ */
+const enhancedApiCache = new WeakMap<AdminApi, unknown>();
+
+const getEnhancedApi = (api: AdminApi): unknown => {
+  const cached = enhancedApiCache.get(api);
+  if (cached) {
+    return cached;
+  }
+  const enhanced = api.injectEndpoints({
+    endpoints: (build: EndpointBuilder) => ({
+      generateConsentContent: build.mutation({
+        query: (body: {type: string; description: string; locale: string}) => ({
+          body,
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/generate`,
+        }),
+      }),
+      publishConsentForm: build.mutation({
+        query: (formId: string) => ({
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/${formId}/publish`,
+        }),
+      }),
+      translateConsentContent: build.mutation({
+        query: (body: {content: string; fromLocale: string; toLocale: string}) => ({
+          body,
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/translate`,
+        }),
+      }),
+    }),
+    overrideExisting: false,
+  });
+  enhancedApiCache.set(api, enhanced);
+  return enhanced;
+};
+
 export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   baseUrl,
   api,
@@ -125,8 +168,6 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [generateType, setGenerateType] = useState(type);
 
   const routePath = `${baseUrl}${CONSENT_FORM_ROUTE}`;
-  // publish/generate/translate are registered directly under /consent-forms, not the admin base path
-  const consentApiPath = CONSENT_FORM_ROUTE;
 
   const {useReadQuery, useCreateMutation, useUpdateMutation} = useAdminApi(
     api,
@@ -134,39 +175,8 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     "ConsentForm"
   );
 
-  const enhancedApi = useMemo(
-    () =>
-      api.injectEndpoints({
-        endpoints: (build: EndpointBuilder) => ({
-          generateConsentContent: build.mutation({
-            query: (body: {type: string; description: string; locale: string}) => ({
-              body,
-              method: "POST",
-              url: `${consentApiPath}/generate`,
-            }),
-          }),
-          publishConsentForm: build.mutation({
-            query: (formId: string) => ({
-              method: "POST",
-              url: `${consentApiPath}/${formId}/publish`,
-            }),
-          }),
-          translateConsentContent: build.mutation({
-            query: (body: {content: string; fromLocale: string; toLocale: string}) => ({
-              body,
-              method: "POST",
-              url: `${consentApiPath}/translate`,
-            }),
-          }),
-        }),
-        overrideExisting: true,
-      }),
-    [api, consentApiPath]
-  );
-
-  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
-  const enhanced = enhancedApi as any;
+  const enhanced = getEnhancedApi(api) as any;
   const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
   const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
   const [translateContent, {isLoading: isTranslating}] =

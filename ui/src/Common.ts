@@ -1965,6 +1965,12 @@ export interface PageProps {
   rightButtonOnClick?: () => void;
   children?: ReactChildren;
   onError?: (error: Error, stack: string) => void;
+  /**
+   * When true, wraps content in SafeAreaView so it respects top/bottom device
+   * insets (camera notches, home indicator, status bar). Opt-in to avoid
+   * regressing existing screens that handle insets at the navigation level.
+   */
+  safeArea?: boolean;
 }
 
 export interface ProgressBarProps {
