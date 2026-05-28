@@ -772,6 +772,92 @@ describe("expressServer", () => {
     });
   });
 
+  describe("setupServer with listen", () => {
+    const originalEnv = process.env;
+    const http = require("node:http");
+    let activeServer: any = null;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0",
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+
+      const originalListen = http.Server.prototype.listen;
+      http.Server.prototype.listen = function (...args: any[]) {
+        activeServer = this;
+        return originalListen.apply(this, args);
+      };
+    });
+
+    afterEach(async () => {
+      process.env = originalEnv;
+      if (activeServer) {
+        await new Promise<void>((resolve) => activeServer.close(() => resolve()));
+        activeServer = null;
+      }
+    });
+
+    it("starts listening on a port when skipListen is false", async () => {
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: false,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+  });
+
+  describe("wrapScript timeout callbacks", () => {
+    const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerCallbacks: Array<{callback: () => void; delay: number}> = [];
+
+    beforeEach(() => {
+      process.env = {
+        ...process.env,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+      process.exit = mock(() => {
+        throw new Error("__EXIT__");
+      }) as unknown as typeof process.exit;
+
+      timerCallbacks.length = 0;
+      globalThis.setTimeout = ((cb: () => void, delay: number) => {
+        timerCallbacks.push({callback: cb, delay});
+        return originalSetTimeout(cb, delay);
+      }) as typeof setTimeout;
+    });
+
+    afterEach(() => {
+      globalThis.setTimeout = originalSetTimeout;
+      process.exit = originalExit;
+    });
+
+    it("registers warn and terminate timeouts with correct delays", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 100})).rejects.toThrow("__EXIT__");
+
+      const warnTimer = timerCallbacks.find((t) => t.delay === 50000);
+      const closeTimer = timerCallbacks.find((t) => t.delay === 100000);
+      expect(warnTimer).toBeDefined();
+      expect(closeTimer).toBeDefined();
+    });
+  });
+
   describe("setupServer error handling", () => {
     const originalEnv = process.env;
 

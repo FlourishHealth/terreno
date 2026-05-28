@@ -15,9 +15,12 @@ import express from "express";
 import {
   emitToAuthorizedRoom,
   emitToDocumentAndQueryRooms,
+  ensureApiId,
   mapOperationType,
   resolveRooms,
   serializeDoc,
+  startChangeStreamWatcher,
+  stopChangeStreamWatcher,
 } from "./changeStreamWatcher";
 import {matchesQuery} from "./queryMatcher";
 import {
@@ -1733,6 +1736,680 @@ describe("emitToDocumentAndQueryRooms", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // redactCredentials — Redis URL logging
 // ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ensureApiId
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("ensureApiId", () => {
+  it("returns null as-is", () => {
+    expect(ensureApiId(null)).toBeNull();
+  });
+
+  it("returns undefined as-is", () => {
+    expect(ensureApiId(undefined)).toBeUndefined();
+  });
+
+  it("returns arrays as-is", () => {
+    const arr = [1, 2, 3];
+    expect(ensureApiId(arr)).toBe(arr);
+  });
+
+  it("returns primitive values as-is (non-object)", () => {
+    expect(ensureApiId("string")).toBe("string");
+  });
+
+  it("adds id from _id when id is missing", () => {
+    expect(ensureApiId({_id: "abc"})).toEqual({_id: "abc", id: "abc"});
+  });
+
+  it("does not overwrite existing id", () => {
+    expect(ensureApiId({_id: "abc", id: "existing"})).toEqual({_id: "abc", id: "existing"});
+  });
+
+  it("returns object without _id unchanged", () => {
+    const obj = {name: "test"};
+    expect(ensureApiId(obj)).toBe(obj);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// startChangeStreamWatcher & stopChangeStreamWatcher
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("startChangeStreamWatcher & stopChangeStreamWatcher", () => {
+  const makeMockIo = (): any => {
+    const emissions: any[] = [];
+    const rooms = new Map<string, Set<string>>();
+    const sockets = new Map<string, any>();
+    return {
+      emissions,
+      sockets: {
+        adapter: {rooms},
+        sockets,
+      },
+      to: (_room: string) => ({
+        emit: (): void => {},
+      }),
+    };
+  };
+
+  afterEach(async () => {
+    await stopChangeStreamWatcher();
+    clearRealtimeRegistry();
+  });
+
+  it("starts and stops without error when MongoDB is connected", async () => {
+    const io = makeMockIo();
+    expect(() => startChangeStreamWatcher(io, {}, false)).not.toThrow();
+    await stopChangeStreamWatcher();
+  });
+
+  it("starts with debug mode enabled", async () => {
+    const io = makeMockIo();
+    expect(() => startChangeStreamWatcher(io, {}, true)).not.toThrow();
+    await stopChangeStreamWatcher();
+  });
+
+  it("starts with custom config options", async () => {
+    const io = makeMockIo();
+    expect(() =>
+      startChangeStreamWatcher(
+        io,
+        {
+          batchSize: 10,
+          fullDocument: "whenAvailable",
+          ignoredCollections: ["logs"],
+          ignoredOperations: ["delete"],
+        },
+        false
+      )
+    ).not.toThrow();
+    await stopChangeStreamWatcher();
+  });
+
+  it("stopChangeStreamWatcher is safe to call when no watcher is active", async () => {
+    await expect(stopChangeStreamWatcher()).resolves.toBeUndefined();
+  });
+
+  it("stopChangeStreamWatcher can be called multiple times", async () => {
+    const io = makeMockIo();
+    startChangeStreamWatcher(io, {}, false);
+    await stopChangeStreamWatcher();
+    await stopChangeStreamWatcher();
+  });
+});
+
+describe("startChangeStreamWatcher — change event integration", () => {
+  const mongoose = require("mongoose");
+
+  const realtimeTestSchema = new mongoose.Schema(
+    {
+      deleted: {default: false, type: Boolean},
+      name: {type: String},
+      ownerId: {type: String},
+    },
+    {collection: "realtimetests", strict: "throw"}
+  );
+
+  let RealtimeTestModel: any;
+  try {
+    RealtimeTestModel = mongoose.model("RealtimeTest");
+  } catch {
+    RealtimeTestModel = mongoose.model("RealtimeTest", realtimeTestSchema);
+  }
+
+  const makeTrackedIo = (): any => {
+    const emissions: any[] = [];
+    const rooms = new Map<string, Set<string>>();
+    const sockets = new Map<string, any>();
+
+    const addSocketToRoom = (
+      room: string,
+      decodedToken: {id?: string; admin?: boolean} = {admin: true, id: "admin"}
+    ): void => {
+      const socketId = `socket-${Math.random().toString(36).slice(2, 9)}`;
+      if (!rooms.has(room)) {
+        rooms.set(room, new Set());
+      }
+      rooms.get(room)?.add(socketId);
+      sockets.set(socketId, {
+        decodedToken,
+        emit: (event: string, payload: unknown): void => {
+          emissions.push({event, payload, room, socketId});
+        },
+        id: socketId,
+      });
+    };
+
+    return {
+      addSocketToRoom,
+      emissions,
+      sockets: {
+        adapter: {rooms},
+        sockets,
+      },
+      to: (room: string) => ({
+        emit: (event: string, payload: unknown): void => {
+          emissions.push({event, payload, room});
+        },
+      }),
+    };
+  };
+
+  beforeEach(async () => {
+    clearRealtimeRegistry();
+    clearQueryStore();
+    await RealtimeTestModel.deleteMany({});
+  });
+
+  afterEach(async () => {
+    await stopChangeStreamWatcher();
+    clearRealtimeRegistry();
+    clearQueryStore();
+    await RealtimeTestModel.deleteMany({});
+  });
+
+  it("processes insert events from MongoDB change stream", async () => {
+    registerRealtime({
+      collectionName: "realtimetests",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "RealtimeTest",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
+      routePath: "/realtimetests",
+    });
+
+    const io = makeTrackedIo();
+    io.addSocketToRoom("model:realtimetests");
+    startChangeStreamWatcher(io, {}, true);
+
+    await RealtimeTestModel.create({name: "test-item", ownerId: "user-1"});
+
+    // Wait for the change stream event to be processed
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const createEmissions = io.emissions.filter(
+      (e: any) => e.event === "sync" && e.payload?.method === "create"
+    );
+    expect(createEmissions.length).toBeGreaterThanOrEqual(1);
+    await stopChangeStreamWatcher();
+  });
+
+  it("processes update events from MongoDB change stream", async () => {
+    registerRealtime({
+      collectionName: "realtimetests",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "RealtimeTest",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
+      routePath: "/realtimetests",
+    });
+
+    const doc = await RealtimeTestModel.create({name: "item-to-update", ownerId: "user-1"});
+
+    const io = makeTrackedIo();
+    io.addSocketToRoom("model:realtimetests");
+    startChangeStreamWatcher(io, {}, true);
+
+    await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {name: "updated-item"}});
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const updateEmissions = io.emissions.filter(
+      (e: any) => e.event === "sync" && e.payload?.method === "update"
+    );
+    expect(updateEmissions.length).toBeGreaterThanOrEqual(1);
+    await stopChangeStreamWatcher();
+  });
+
+  it("processes hard delete events from MongoDB change stream", async () => {
+    registerRealtime({
+      collectionName: "realtimetests",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "RealtimeTest",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
+      routePath: "/realtimetests",
+    });
+
+    const doc = await RealtimeTestModel.create({name: "item-to-delete"});
+
+    const io = makeTrackedIo();
+    io.addSocketToRoom("model:realtimetests");
+    startChangeStreamWatcher(io, {}, true);
+
+    await RealtimeTestModel.deleteOne({_id: doc._id});
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const deleteEmissions = io.emissions.filter(
+      (e: any) => e.event === "sync" && e.payload?.method === "delete"
+    );
+    expect(deleteEmissions.length).toBeGreaterThanOrEqual(1);
+    await stopChangeStreamWatcher();
+  });
+
+  it("processes soft delete events from MongoDB change stream", async () => {
+    registerRealtime({
+      collectionName: "realtimetests",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "RealtimeTest",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
+      routePath: "/realtimetests",
+    });
+
+    const doc = await RealtimeTestModel.create({name: "item-to-soft-delete"});
+
+    const io = makeTrackedIo();
+    io.addSocketToRoom("model:realtimetests");
+    startChangeStreamWatcher(io, {}, true);
+
+    await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {deleted: true}});
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const deleteEmissions = io.emissions.filter(
+      (e: any) => e.event === "sync" && e.payload?.method === "delete"
+    );
+    expect(deleteEmissions.length).toBeGreaterThanOrEqual(1);
+    await stopChangeStreamWatcher();
+  });
+
+  it("includes updatedFields and emits to document rooms", async () => {
+    registerRealtime({
+      collectionName: "realtimetests",
+      config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
+      modelName: "RealtimeTest",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      } as any,
+      routePath: "/realtimetests",
+    });
+
+    const doc = await RealtimeTestModel.create({name: "fields-test"});
+    const docId = doc._id.toString();
+
+    const io = makeTrackedIo();
+    io.addSocketToRoom("model:realtimetests");
+    io.addSocketToRoom(`document:realtimetests:${docId}`);
+    startChangeStreamWatcher(io, {}, true);
+
+    await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {name: "fields-updated"}});
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    const updateEmissions = io.emissions.filter(
+      (e: any) => e.event === "sync" && e.payload?.method === "update"
+    );
+    expect(updateEmissions.length).toBeGreaterThanOrEqual(1);
+    if (updateEmissions.length > 0) {
+      expect(updateEmissions[0].payload.updatedFields).toBeDefined();
+      expect(updateEmissions[0].payload.updatedFields).toContain("name");
+    }
+    await stopChangeStreamWatcher();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// emitToDocumentAndQueryRooms — no-entry path
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("emitToDocumentAndQueryRooms — no registry entry", () => {
+  const makeIoSimple = (): any => {
+    const emissions: Array<{room: string; event: string; payload: unknown}> = [];
+    return {
+      emissions,
+      sockets: {
+        adapter: {rooms: new Map()},
+        sockets: new Map(),
+      },
+      to: (room: string) => ({
+        emit: (event: string, payload: unknown): void => {
+          emissions.push({event, payload, room});
+        },
+      }),
+    };
+  };
+
+  beforeEach(() => {
+    clearQueryStore();
+  });
+
+  afterEach(() => {
+    clearQueryStore();
+  });
+
+  it("emits to document room via io.to when no entry is provided", async () => {
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "update",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, {}, () => {});
+    expect(io.emissions.some((e: any) => e.room === "document:items:doc-1")).toBe(true);
+  });
+
+  it("emits hard deletes to query rooms via io.to when no entry", async () => {
+    const queryId = computeQueryId("items", {status: "active"});
+    addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "delete",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, undefined, () => {});
+    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+  });
+
+  it("emits soft delete to query rooms via io.to when no entry and doc matches", async () => {
+    const queryId = computeQueryId("items", {status: "active"});
+    addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "delete",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
+    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+  });
+
+  it("emits create events to query rooms via io.to when no entry and doc matches", async () => {
+    const queryId = computeQueryId("items", {status: "active"});
+    addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "create",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
+    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+  });
+
+  it("emits update events to query rooms via io.to when no entry and doc matches", async () => {
+    const queryId = computeQueryId("items", {status: "active"});
+    addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "update",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, {status: "active"}, () => {});
+    expect(io.emissions.some((e: any) => e.room === `query:${queryId}`)).toBe(true);
+  });
+
+  it("emits delete to query rooms via io.to when update no longer matches and no entry", async () => {
+    const queryId = computeQueryId("items", {status: "active"});
+    addQuerySubscription("socket-a", "items", {status: "active"}, queryId);
+    const io = makeIoSimple();
+    const event: any = {
+      collection: "items",
+      id: "doc-1",
+      method: "update",
+      model: "Item",
+      timestamp: 1,
+    };
+    await emitToDocumentAndQueryRooms(io, "items", event, {status: "inactive"}, () => {});
+    const queryEmissions = io.emissions.filter((e: any) => e.room === `query:${queryId}`);
+    expect(queryEmissions.length).toBe(1);
+    expect(queryEmissions[0].payload).toMatchObject({method: "delete"});
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RealtimeApp — onServerCreated, setupAdapter, close
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("RealtimeApp — onServerCreated and setupAdapter", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = {
+      ...originalEnv,
+      TOKEN_SECRET: "test-secret",
+    };
+  });
+
+  afterEach(async () => {
+    process.env = originalEnv;
+    clearRealtimeRegistry();
+  });
+
+  it("register adds /realtime/health endpoint with debug flag", async () => {
+    const expressApp = express();
+    const app = new RealtimeApp({debug: true});
+    app.register(expressApp);
+    const supertest = await import("supertest");
+    const st = supertest.default(expressApp);
+    const res = await st.get("/realtime/health").expect(200);
+    expect(res.body.status).toBe("not_started");
+    expect(res.body.debug).toBe(true);
+    expect(res.body.clients).toBe(0);
+  });
+
+  it("onServerCreated sets up Socket.io with JWT auth", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({debug: true, tokenSecret: "test-secret"});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+  });
+
+  it("onServerCreated throws when TOKEN_SECRET is missing", () => {
+    const http = require("node:http");
+    const origSecret = process.env.TOKEN_SECRET;
+    process.env.TOKEN_SECRET = "";
+    const app = new RealtimeApp({});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+    process.env.TOKEN_SECRET = origSecret;
+    server.close();
+  });
+
+  it("onServerCreated uses default TOKEN_SECRET from env", async () => {
+    const http = await import("node:http");
+    process.env.TOKEN_SECRET = "env-secret";
+    const app = new RealtimeApp({debug: false});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+  });
+
+  it("setupAdapter logs info for redis adapter with URL", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({
+      adapter: "redis",
+      debug: true,
+      redisUrl: "redis://user:pass@localhost:6379",
+      tokenSecret: "test-secret",
+    });
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+  });
+
+  it("setupAdapter warns when redis adapter has no URL", async () => {
+    const http = await import("node:http");
+    const origValkey = process.env.VALKEY_URL;
+    const origRedis = process.env.REDIS_URL;
+    delete process.env.VALKEY_URL;
+    delete process.env.REDIS_URL;
+
+    const app = new RealtimeApp({
+      adapter: "redis",
+      debug: true,
+      tokenSecret: "test-secret",
+    });
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+    process.env.VALKEY_URL = origValkey;
+    process.env.REDIS_URL = origRedis;
+  });
+
+  it("setupAdapter with none adapter does nothing extra", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({
+      adapter: "none",
+      debug: true,
+      tokenSecret: "test-secret",
+    });
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+  });
+
+  it("close is safe after onServerCreated", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({tokenSecret: "test-secret"});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    await app.close();
+    expect(app.getIo()).toBeNull();
+    server.close();
+  });
+
+  it("health endpoint reports running after onServerCreated", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({tokenSecret: "test-secret"});
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+
+    const supertest = await import("supertest");
+    const st = supertest.default(expressApp);
+    const res = await st.get("/realtime/health").expect(200);
+    expect(res.body.status).toBe("running");
+
+    await app.close();
+    server.close();
+  });
+
+  it("onServerCreated with custom cors option", async () => {
+    const http = await import("node:http");
+    const app = new RealtimeApp({
+      cors: {methods: ["GET"], origin: "https://example.com"},
+      tokenSecret: "test-secret",
+    });
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+  });
+
+  it("setupAdapter uses VALKEY_URL when redisUrl not provided", async () => {
+    const http = await import("node:http");
+    process.env.VALKEY_URL = "redis://localhost:6379";
+    const app = new RealtimeApp({
+      adapter: "redis",
+      debug: true,
+      tokenSecret: "test-secret",
+    });
+    const expressApp = express();
+    app.register(expressApp);
+    const server = http.createServer(expressApp);
+
+    app.onServerCreated(server);
+    expect(app.getIo()).not.toBeNull();
+
+    await app.close();
+    server.close();
+    delete process.env.VALKEY_URL;
+  });
+});
 
 describe("redactCredentials", () => {
   it("redacts user:password@ in a redis URL", () => {
