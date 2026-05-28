@@ -277,6 +277,34 @@ describe("TapToEdit", () => {
     expect(errorMock).toHaveBeenCalled();
     console.error = originalError;
   });
+
+  it("sets inputRef when editing with explicit type text", async () => {
+    const setValue = mock(() => {});
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Name" type="text" value="Jane" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(queryByText("Cancel")).toBeTruthy();
+    expect(queryByText("Save")).toBeTruthy();
+  });
+
+  it("shows Clear button for date field type in editing mode", async () => {
+    const setValue = mock(() => {});
+    const onSave = mock(() => Promise.resolve());
+    const {getByLabelText, getByText} = renderWithTheme(
+      <TapToEdit onSave={onSave} setValue={setValue} title="Date" type="date" value="2024-01-01" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Clear"));
+    });
+    expect(setValue).toHaveBeenCalledWith("");
+    expect(onSave).toHaveBeenCalledWith("");
+  });
 });
 
 describe("formatAddress", () => {
@@ -330,6 +358,19 @@ describe("formatAddress", () => {
     const result = formatAddress(address);
     expect(result).toContain("Dallas County");
     expect(result).toContain("(113)");
+  });
+
+  it("handles address with county name but no county code", () => {
+    const address = {
+      address1: "100 County Rd",
+      city: "Rural Town",
+      countyName: "Dallas County",
+      state: "TX",
+      zipcode: "75001",
+    };
+    const result = formatAddress(address);
+    expect(result).toContain("Dallas County");
+    expect(result).not.toContain("(");
   });
 });
 

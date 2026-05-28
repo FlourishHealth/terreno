@@ -1,6 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
-import {createRef} from "react";
+import React, {createRef} from "react";
 
 import type {ActionSheet} from "./ActionSheet";
 import {Button} from "./Button";

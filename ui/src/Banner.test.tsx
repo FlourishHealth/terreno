@@ -2,7 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import React from "react";
 
-import {Banner} from "./Banner";
+import {Banner, hideBanner} from "./Banner";
 import {renderWithTheme} from "./test-utils";
 import {Unifier} from "./Unifier";
 
@@ -238,5 +238,40 @@ describe("Banner", () => {
     }
 
     expect(handleClick).toHaveBeenCalled();
+  });
+
+  it("hideBanner persists the banner id to storage", async () => {
+    const setItemMock = Unifier.storage.setItem as ReturnType<typeof mock>;
+    setItemMock.mockClear();
+
+    await hideBanner("my-banner");
+    expect(setItemMock).toHaveBeenCalledWith("@TerrenoUI:my-banner", "true");
+  });
+
+  it("renders with button loading state", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {toJSON} = renderWithTheme(
+      <Banner
+        buttonOnClick={handleClick}
+        buttonText="Loading"
+        id="test-banner"
+        loading
+        text="Banner loading"
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders banner with dismissible=true and no id (non-persistent dismiss)", async () => {
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <Banner dismissible text="Non persistent" />
+    );
+    expect(queryByText("Non persistent")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByLabelText("Dismiss"));
+    });
+    await waitFor(() => {
+      expect(queryByText("Non persistent")).toBeNull();
+    });
   });
 });
