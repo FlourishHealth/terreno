@@ -1,11 +1,13 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "./types";
 
 interface ReadState {
-  data: any;
+  data: unknown;
   isLoading: boolean;
 }
 const readState: ReadState = {data: undefined, isLoading: false};
@@ -21,10 +23,10 @@ mock.module("./useAdminApi", () => ({
   }),
 }));
 
-const pdfCalls: any[] = [];
-let pdfImpl: (r: any) => Promise<void> = async () => {};
+const pdfCalls: unknown[] = [];
+let pdfImpl: (r: unknown) => Promise<void> = async () => {};
 mock.module("./generateConsentPdf", () => ({
-  generateConsentPdf: async (r: any) => {
+  generateConsentPdf: async (r: unknown) => {
     pdfCalls.push(r);
     return pdfImpl(r);
   },
@@ -43,7 +45,7 @@ describe("ConsentResponseViewer", () => {
   it("renders loading state", () => {
     readState.isLoading = true;
     const {toJSON} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -55,19 +57,19 @@ describe("ConsentResponseViewer", () => {
   it("survives the loading → loaded transition without a hook-order error", async () => {
     readState.isLoading = true;
     const {rerender, getByText} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
     await act(async () => {
       readState.isLoading = false;
       readState.data = {agreed: true, consentFormId: "raw-id", userId: "u1"};
-      rerender(<ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />);
+      rerender(<ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />);
     });
     expect(getByText("Download PDF")).toBeDefined();
   });
 
   it("shows not-found state when there is no id / data", () => {
     const {getByText} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="" />
     );
     expect(getByText(/Response not found\./)).toBeDefined();
   });
@@ -87,7 +89,7 @@ describe("ConsentResponseViewer", () => {
       userId: {_id: "u1"},
     };
     const {getByText} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
     await act(async () => {
       fireEvent.press(getByText("Download PDF"));
@@ -103,7 +105,7 @@ describe("ConsentResponseViewer", () => {
       userId: "u2",
     };
     const {toJSON} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r2" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r2" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -114,7 +116,7 @@ describe("ConsentResponseViewer", () => {
       throw new Error("broken");
     };
     const {getByText} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
     await act(async () => {
       fireEvent.press(getByText("Download PDF"));
@@ -126,7 +128,7 @@ describe("ConsentResponseViewer", () => {
   it("formats invalid dates gracefully", () => {
     readState.data = {agreed: true, agreedAt: "not-a-date"};
     const {toJSON} = renderWithTheme(
-      <ConsentResponseViewer api={{} as any} baseUrl="/admin" id="r1" />
+      <ConsentResponseViewer api={{} as unknown as AdminApi} baseUrl="/admin" id="r1" />
     );
     expect(toJSON()).toBeDefined();
   });

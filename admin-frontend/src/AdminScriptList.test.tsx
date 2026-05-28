@@ -1,19 +1,21 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
 import {AdminScriptList} from "./AdminScriptList";
+import type {AdminApi, AdminConfigResponse} from "./types";
 
 // Mock useAdminConfig to control returned data
 const mockUseAdminConfig = mock(() => ({
-  config: null as any,
-  error: null as any,
+  config: null as AdminConfigResponse | null,
+  error: null as Error | null,
   isLoading: false,
 }));
 
 mock.module("./useAdminConfig", () => ({
-  useAdminConfig: (...args: any[]) => mockUseAdminConfig(...args),
+  useAdminConfig: (...args: unknown[]) => mockUseAdminConfig(...args),
 }));
 
 const modalCallbacks: {
@@ -36,7 +38,7 @@ mock.module("./AdminScriptRunModal", () => ({
   },
 }));
 
-const mockApi = {} as any;
+const mockApi = {} as unknown as AdminApi;
 
 describe("AdminScriptList", () => {
   beforeEach(() => {
