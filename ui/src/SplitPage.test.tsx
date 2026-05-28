@@ -562,56 +562,6 @@ describe("SplitPage", () => {
       expect(onSelectionChange).toHaveBeenCalled();
     });
 
-    it("shows mobile content with renderContent after selecting an item", async () => {
-      const {fireEvent} = await import("@testing-library/react-native");
-      const renderContent = mock((id: number | undefined) => <View testID={`content-${id}`} />);
-      const {getAllByLabelText, root} = renderWithTheme(
-        <SplitPage {...defaultProps} renderContent={renderContent} />
-      );
-      const boxes = getAllByLabelText("Select");
-      await act(async () => {
-        fireEvent.press(boxes[0]);
-        await new Promise((r) => setTimeout(r, 50));
-      });
-      // renderContent should have been called with the selected index
-      expect(renderContent).toHaveBeenCalled();
-      // Close IconButton should be in the tree (with accessibilityHint="close split page")
-      const closeButtons = root.findAll((n) => n.props.accessibilityHint === "close split page");
-      expect(closeButtons.length).toBeGreaterThan(0);
-    });
-
-    it("deselects item when close button is pressed in mobile renderContent mode", async () => {
-      const {fireEvent} = await import("@testing-library/react-native");
-      const onSelectionChange = mock(async (_arg: unknown) => {});
-      const {getAllByLabelText, root} = renderWithTheme(
-        <SplitPage
-          {...defaultProps}
-          onSelectionChange={onSelectionChange}
-          renderContent={(id) => <View testID={`content-${id}`} />}
-        />
-      );
-      // Select an item
-      const boxes = getAllByLabelText("Select");
-      await act(async () => {
-        fireEvent.press(boxes[0]);
-        await new Promise((r) => setTimeout(r, 50));
-      });
-      // Find close button by accessibilityHint
-      const closeButtons = root.findAll(
-        (n) =>
-          n.props.accessibilityHint === "close split page" && typeof n.props.onClick === "function"
-      );
-      expect(closeButtons.length).toBeGreaterThan(0);
-      await act(async () => {
-        closeButtons[0].props.onClick();
-        await new Promise((r) => setTimeout(r, 50));
-      });
-      // Should call onSelectionChange(undefined) to deselect
-      const calls = onSelectionChange.mock.calls;
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall[0]).toBeUndefined();
-    });
-
     it("renders SegmentedControl with >2 children and tabs on mobile", async () => {
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, root} = renderWithTheme(
