@@ -123,7 +123,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_IOS: ${{ steps.pr_fp.outputs.ios }}
           PR_ANDROID: ${{ steps.pr_fp.outputs.android }}
           MASTER_IOS: ${{ steps.master_fp.outputs.ios }}

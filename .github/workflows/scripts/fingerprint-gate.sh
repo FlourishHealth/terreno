@@ -12,7 +12,6 @@
 #   GH_TOKEN           GitHub token with pull-requests + issues write
 #   GITHUB_REPOSITORY  owner/repo
 #   PR_NUMBER          PR number
-#   PR_HEAD_SHA        PR head commit SHA (for the marker, not enforced here)
 #   PR_IOS             PR iOS fingerprint hash
 #   PR_ANDROID         PR Android fingerprint hash
 #   MASTER_IOS         master iOS fingerprint hash
@@ -25,7 +24,6 @@ set -euo pipefail
 : "${GH_TOKEN:?missing}"
 : "${GITHUB_REPOSITORY:?missing}"
 : "${PR_NUMBER:?missing}"
-: "${PR_HEAD_SHA:?missing}"
 : "${PR_IOS:?missing}"
 : "${PR_ANDROID:?missing}"
 : "${MASTER_IOS:?missing}"
