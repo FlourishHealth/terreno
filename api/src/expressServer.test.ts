@@ -820,6 +820,7 @@ describe("expressServer", () => {
   });
 
   describe("wrapScript timeout callbacks", () => {
+    const originalEnv = process.env;
     const originalExit = process.exit;
     const originalSetTimeout = globalThis.setTimeout;
     const timerIds: ReturnType<typeof setTimeout>[] = [];
@@ -854,6 +855,7 @@ describe("expressServer", () => {
       }
       globalThis.setTimeout = originalSetTimeout;
       process.exit = originalExit;
+      process.env = originalEnv;
     });
 
     it("registers warn and terminate timeouts with correct delays", async () => {
