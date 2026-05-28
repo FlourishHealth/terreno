@@ -7,7 +7,7 @@ import {StyleSheet, View} from "react-native";
 
 const ASYNC_STORAGE_KEY = "CURRENT_ROUTE";
 
-export default function Dev(): ReactElement {
+const Dev = (): ReactElement => {
   // TODO create a shared hook for saving navigation state to AsyncStorage
   const navigationState = useRootNavigationState();
   // Save the current navigation state to AsyncStorage
@@ -70,7 +70,7 @@ export default function Dev(): ReactElement {
       />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -82,3 +82,5 @@ const styles = StyleSheet.create({
     width: "100%",
   },
 });
+
+export default Dev;
