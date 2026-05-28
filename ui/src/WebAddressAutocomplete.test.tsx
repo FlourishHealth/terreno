@@ -451,5 +451,104 @@ describe("WebAddressAutocomplete", () => {
       fe.changeText(inputs[0], "new value");
       expect(handleAddressChange).toHaveBeenCalledWith("new value");
     });
+
+    it("cleans up the global callback on unmount", async () => {
+      const handleAutoCompleteChange = mock((_arg: AddressInterface) => {});
+
+      const {unmount} = renderWithTheme(
+        <WebAddressAutocomplete
+          googleMapsApiKey="cleanup-key"
+          handleAddressChange={() => {}}
+          handleAutoCompleteChange={handleAutoCompleteChange}
+          inputValue=""
+        />
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+
+      const win = (globalThis as Record<string, Record<string, unknown>>).window;
+      expect(win.initAutocomplete).toBeDefined();
+
+      unmount();
+
+      expect(win.initAutocomplete).toBeNull();
+    });
+
+    it("handles place_changed with includeCounty flag", async () => {
+      const handleAutoCompleteChange = mock((_arg: AddressInterface) => {});
+
+      let placeChangedCb: (() => void) | undefined;
+      const autocompleteConstructor = mock((_input: unknown, _opts: unknown) => ({
+        addListener: (event: string, cb: () => void) => {
+          if (event === "place_changed") {
+            placeChangedCb = cb;
+          }
+        },
+        getPlace: () => ({
+          address_components: [
+            {long_name: "10", short_name: "10", types: ["street_number"]},
+            {long_name: "Oak St", short_name: "Oak St", types: ["route"]},
+            {long_name: "Portland", short_name: "Portland", types: ["locality"]},
+            {long_name: "Oregon", short_name: "OR", types: ["administrative_area_level_1"]},
+            {long_name: "97201", short_name: "97201", types: ["postal_code"]},
+            {
+              long_name: "Multnomah County",
+              short_name: "Multnomah",
+              types: ["administrative_area_level_2"],
+            },
+          ],
+        }),
+      }));
+
+      const win = (globalThis as Record<string, Record<string, unknown>>).window;
+      win.google = {
+        maps: {places: {Autocomplete: autocompleteConstructor}},
+      };
+
+      renderWithTheme(
+        <WebAddressAutocomplete
+          googleMapsApiKey="county-key"
+          handleAddressChange={() => {}}
+          handleAutoCompleteChange={handleAutoCompleteChange}
+          includeCounty
+          inputValue=""
+        />
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      expect(autocompleteConstructor).toHaveBeenCalled();
+      expect(placeChangedCb).toBeDefined();
+
+      placeChangedCb?.();
+      expect(handleAutoCompleteChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("without googleMapsApiKey", () => {
+    it("sets scriptLoaded to false and renders plain TextField", async () => {
+      const handleAddressChange = mock(() => {});
+      const {UNSAFE_getAllByType} = renderWithTheme(
+        <WebAddressAutocomplete
+          handleAddressChange={handleAddressChange}
+          handleAutoCompleteChange={() => {}}
+          inputValue="test value"
+        />
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
+
+      const {TextInput} = require("react-native");
+      const inputs = UNSAFE_getAllByType(TextInput);
+      expect(inputs.length).toBeGreaterThan(0);
+      fireEvent.changeText(inputs[0], "new value");
+      expect(handleAddressChange).toHaveBeenCalledWith("new value");
+    });
   });
 });

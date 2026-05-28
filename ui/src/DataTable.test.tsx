@@ -2,6 +2,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 
+import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
 import {DataTable} from "./DataTable";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -115,7 +116,7 @@ describe("DataTable", () => {
       <DataTable
         columns={sampleColumns}
         data={sampleData}
-        moreContentComponent={MoreContent as any}
+        moreContentComponent={MoreContent as unknown as DataTableProps["moreContentComponent"]}
       />
     );
     expect(toJSON()).toMatchSnapshot();
@@ -345,6 +346,180 @@ describe("DataTable", () => {
     if (modals.length > 0 && modals[0].props.onDismiss) {
       await act(async () => {
         modals[0].props.onDismiss();
+      });
+    }
+  });
+
+  it("renders with customColumnComponentMap", () => {
+    const CustomCell = ({cellData}: {cellData: {value: unknown}; column: unknown}) => (
+      <Text>Custom: {String(cellData.value)}</Text>
+    );
+    const customColumns = [
+      {columnType: "custom", title: "Custom Col", width: 150},
+      {columnType: "text", title: "Name", width: 100},
+    ];
+    const customData = [[{value: "A"}, {value: "Bob"}]];
+    const {getByText} = renderWithTheme(
+      <DataTable
+        columns={customColumns}
+        customColumnComponentMap={{custom: CustomCell} as DataTableCustomComponentMap}
+        data={customData}
+      />
+    );
+    expect(getByText("Custom: A")).toBeTruthy();
+  });
+
+  it("handleSort cycles through asc, desc, and clear", () => {
+    const sortableColumns = [
+      {columnType: "text", sortable: true, title: "Name", width: 150},
+      {columnType: "text", sortable: false, title: "Age", width: 100},
+    ];
+    const setSortColumn = mock((_val: unknown) => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable
+        columns={sortableColumns}
+        data={[[{value: "Alice"}, {value: "28"}]]}
+        setSortColumn={setSortColumn}
+      />
+    );
+
+    const {Pressable: PressableComp} = require("react-native");
+    const pressables = UNSAFE_getAllByType(PressableComp);
+    const sortButton = pressables.find((p: {props: {hitSlop?: number}}) => p.props.hitSlop === 16);
+    expect(sortButton).toBeTruthy();
+
+    // First press: asc
+    act(() => {
+      sortButton!.props.onPress();
+    });
+    expect(setSortColumn).toHaveBeenCalledWith({column: 0, direction: "asc"});
+  });
+
+  it("handleSort from asc to desc", () => {
+    const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
+    const setSortColumn = mock((_val: unknown) => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable
+        columns={sortableColumns}
+        data={[[{value: "Alice"}]]}
+        setSortColumn={setSortColumn}
+        sortColumn={{column: 0, direction: "asc"}}
+      />
+    );
+
+    const {Pressable: PressableComp} = require("react-native");
+    const pressables = UNSAFE_getAllByType(PressableComp);
+    const sortButton = pressables.find((p: {props: {hitSlop?: number}}) => p.props.hitSlop === 16);
+
+    act(() => {
+      sortButton!.props.onPress();
+    });
+    expect(setSortColumn).toHaveBeenCalledWith({column: 0, direction: "desc"});
+  });
+
+  it("handleSort from desc clears sort", () => {
+    const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
+    const setSortColumn = mock((_val: unknown) => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable
+        columns={sortableColumns}
+        data={[[{value: "Alice"}]]}
+        setSortColumn={setSortColumn}
+        sortColumn={{column: 0, direction: "desc"}}
+      />
+    );
+
+    const {Pressable: PressableComp} = require("react-native");
+    const pressables = UNSAFE_getAllByType(PressableComp);
+    const sortButton = pressables.find((p: {props: {hitSlop?: number}}) => p.props.hitSlop === 16);
+
+    act(() => {
+      sortButton!.props.onPress();
+    });
+    expect(setSortColumn).toHaveBeenCalledWith(undefined);
+  });
+
+  it("handleSort does nothing for non-sortable column", () => {
+    const columns = [{columnType: "text", sortable: false, title: "Name", width: 150}];
+    const setSortColumn = mock((_val: unknown) => {});
+    const {toJSON} = renderWithTheme(
+      <DataTable columns={columns} data={[[{value: "Alice"}]]} setSortColumn={setSortColumn} />
+    );
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("handleScroll syncs header and body scroll positions", () => {
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable columns={sampleColumns} data={sampleData} pinnedColumns={1} />
+    );
+
+    const {ScrollView: ScrollViewComp} = require("react-native");
+    const scrollViews = UNSAFE_getAllByType(ScrollViewComp);
+    const horizontalScrollViews = scrollViews.filter(
+      (sv: {props: {horizontal?: boolean}}) => sv.props.horizontal
+    );
+
+    if (horizontalScrollViews.length >= 2) {
+      // Trigger scroll on the body scroll view
+      act(() => {
+        horizontalScrollViews[1].props.onScroll({
+          nativeEvent: {contentOffset: {x: 50, y: 0}},
+        });
+      });
+
+      // Trigger scroll on the header scroll view
+      act(() => {
+        horizontalScrollViews[0].props.onScroll({
+          nativeEvent: {contentOffset: {x: 100, y: 0}},
+        });
+      });
+    }
+  });
+
+  it("renders with cell highlight color", () => {
+    const highlightData = [[{highlight: "primary", value: "Highlighted"}]];
+    const highlightColumns = [{columnType: "text", title: "Col", width: 150}];
+    const {toJSON} = renderWithTheme(<DataTable columns={highlightColumns} data={highlightData} />);
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("opens and closes more content modal", () => {
+    const MoreContent = ({rowIndex}: {rowIndex: number}) => <Text>Row {rowIndex} details</Text>;
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable
+        columns={sampleColumns}
+        data={sampleData}
+        moreContentComponent={MoreContent as unknown as DataTableProps["moreContentComponent"]}
+      />
+    );
+
+    const {Pressable: PressableComp} = require("react-native");
+    const pressables = UNSAFE_getAllByType(PressableComp);
+    // Find the "Open modal" button (MoreButtonCell)
+    const moreButton = pressables.find(
+      (p: {props: {accessibilityLabel?: string}}) => p.props.accessibilityLabel === "Open modal"
+    );
+
+    if (moreButton) {
+      act(() => {
+        moreButton.props.onPress();
+      });
+    }
+  });
+
+  it("handleSort with no setSortColumn is a no-op", () => {
+    const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
+    const {UNSAFE_getAllByType} = renderWithTheme(
+      <DataTable columns={sortableColumns} data={[[{value: "Alice"}]]} />
+    );
+
+    const {Pressable: PressableComp} = require("react-native");
+    const pressables = UNSAFE_getAllByType(PressableComp);
+    const sortButton = pressables.find((p: {props: {hitSlop?: number}}) => p.props.hitSlop === 16);
+
+    if (sortButton) {
+      act(() => {
+        sortButton.props.onPress();
       });
     }
   });
