@@ -164,6 +164,131 @@ describe("request context job propagation", () => {
     });
   });
 
+  it("parses Google Cloud trace context header in middleware", async () => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.get("/trace-gcloud", (_req, res) => {
+      const ctx = getCurrentRequestContext();
+      res.json({
+        spanId: ctx?.spanId,
+        traceId: ctx?.traceId,
+        traceSampled: ctx?.traceSampled,
+      });
+    });
+
+    const res = await supertest(app)
+      .get("/trace-gcloud")
+      .set("X-Cloud-Trace-Context", "105445aa7843bc8bf206b12000100000/1;o=1")
+      .expect(200);
+
+    expect(res.body.traceId).toBe("105445aa7843bc8bf206b12000100000");
+    expect(res.body.spanId).toBe("1");
+    expect(res.body.traceSampled).toBe(true);
+  });
+
+  it("parses Google Cloud trace context without trace sampling", async () => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.get("/trace-gcloud-nosample", (_req, res) => {
+      const ctx = getCurrentRequestContext();
+      res.json({
+        spanId: ctx?.spanId,
+        traceId: ctx?.traceId,
+        traceSampled: ctx?.traceSampled,
+      });
+    });
+
+    const res = await supertest(app)
+      .get("/trace-gcloud-nosample")
+      .set("X-Cloud-Trace-Context", "abc123/42;o=0")
+      .expect(200);
+
+    expect(res.body.traceId).toBe("abc123");
+    expect(res.body.spanId).toBe("42");
+    expect(res.body.traceSampled).toBe(false);
+  });
+
+  it("falls back to traceparent when cloud trace context is absent", async () => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.get("/trace-parent", (_req, res) => {
+      const ctx = getCurrentRequestContext();
+      res.json({
+        spanId: ctx?.spanId,
+        traceId: ctx?.traceId,
+        traceSampled: ctx?.traceSampled,
+      });
+    });
+
+    const res = await supertest(app)
+      .get("/trace-parent")
+      .set("traceparent", "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+      .expect(200);
+
+    expect(res.body.traceId).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+    expect(res.body.spanId).toBe("00f067aa0ba902b7");
+    expect(res.body.traceSampled).toBe(true);
+  });
+
+  it("uses trace id as request id when no explicit request id header is set", async () => {
+    const app = express();
+    app.use(requestContextMiddleware);
+    app.get("/trace-request-id", (_req, res) => {
+      const ctx = getCurrentRequestContext();
+      res.json({requestId: ctx?.requestId});
+    });
+
+    const res = await supertest(app)
+      .get("/trace-request-id")
+      .set("X-Cloud-Trace-Context", "trace-as-rid/99;o=1")
+      .expect(200);
+
+    expect(res.body.requestId).toBe("trace-as-rid");
+  });
+
+  it("handles traceSampled attribute values 'true', '1', 'false', '0'", () => {
+    const ctxTrue = getRequestContextFromAttributes({
+      "x-request-id": "r1",
+      "x-trace-sampled": "true",
+    });
+    expect(ctxTrue.traceSampled).toBe(true);
+
+    const ctx1 = getRequestContextFromAttributes({
+      "x-request-id": "r2",
+      "x-trace-sampled": "1",
+    });
+    expect(ctx1.traceSampled).toBe(true);
+
+    const ctxFalse = getRequestContextFromAttributes({
+      "x-request-id": "r3",
+      "x-trace-sampled": "false",
+    });
+    expect(ctxFalse.traceSampled).toBe(false);
+
+    const ctx0 = getRequestContextFromAttributes({
+      "x-request-id": "r4",
+      "x-trace-sampled": "0",
+    });
+    expect(ctx0.traceSampled).toBe(false);
+  });
+
+  it("parses Google Cloud trace context with missing span id", () => {
+    const ctx = getRequestContextFromAttributes({
+      "x-cloud-trace-context": "only-trace-id",
+      "x-request-id": "r5",
+    });
+    expect(ctx.traceId).toBe("only-trace-id");
+    expect(ctx.spanId).toBeUndefined();
+  });
+
+  it("returns undefined trace when traceparent has empty trace id", () => {
+    const ctx = getRequestContextFromAttributes({
+      traceparent: "00--span-01",
+      "x-request-id": "r6",
+    });
+    expect(ctx.traceId).toBeUndefined();
+  });
+
   it("adds job id to logger context", () => {
     let output = "";
     const stream = new Writable({
