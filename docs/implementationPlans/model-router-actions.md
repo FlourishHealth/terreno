@@ -41,9 +41,9 @@ export interface ActionContext<TDoc, TBody, TQuery> {
   doc: TDoc;      // only present for instance actions
 }
 
-interface BaseActionConfig<TBody, TQuery, TResponse> {
+interface BaseActionConfig<TDoc, TBody, TQuery, TResponse> {
   method: 'GET' | 'POST';
-  permissions: PermissionMethod<any>[];
+  permissions: PermissionMethod<TDoc>[];
   body?: ZodSchema<TBody>;
   query?: ZodSchema<TQuery>;
   response?: ZodSchema<TResponse>;
@@ -54,13 +54,13 @@ interface BaseActionConfig<TBody, TQuery, TResponse> {
 }
 
 export interface InstanceActionConfig<TDoc, TBody, TQuery, TResponse>
-    extends BaseActionConfig<TBody, TQuery, TResponse> {
+    extends BaseActionConfig<TDoc, TBody, TQuery, TResponse> {
   handler: (ctx: ActionContext<TDoc, TBody, TQuery>) =>
     TResponse | Promise<TResponse>;
 }
 
 export interface CollectionActionConfig<TBody, TQuery, TResponse>
-    extends BaseActionConfig<TBody, TQuery, TResponse> {
+    extends BaseActionConfig<never, TBody, TQuery, TResponse> {
   handler: (ctx: Omit<ActionContext<never, TBody, TQuery>, 'doc'>) =>
     TResponse | Promise<TResponse>;
 }
@@ -71,14 +71,14 @@ export interface CollectionActionConfig<TBody, TQuery, TResponse>
 ```typescript
 export interface ModelRouterOptions<T> {
   // ... existing fields ...
-  instanceActions?: Record<string, InstanceActionConfig<T, any, any, any>>;
-  collectionActions?: Record<string, CollectionActionConfig<any, any, any>>;
+  instanceActions?: Record<string, InstanceActionConfig<T, unknown, unknown, unknown>>;
+  collectionActions?: Record<string, CollectionActionConfig<unknown, unknown, unknown>>;
 }
 ```
 
 ### Type-preserving action factories
 
-The `Record<string, ...<any, any, any>>` boundary above erases per-action generics. To let call-sites keep full inference of `body`/`query`/`response` types inside handlers, ship two const-friendly factory helpers:
+The `Record<string, ...<unknown, unknown, unknown>>` boundary above erases per-action generics. To let call-sites keep full inference of `body`/`query`/`response` types inside handlers, ship two const-friendly factory helpers:
 
 ```typescript
 // Returns the config as-is, but with per-action generics preserved by the `const` capture.
@@ -112,7 +112,7 @@ instanceActions: {
 }
 ```
 
-The factories are zero-runtime-cost (identity functions). They're optional — bare object literals still work, just with `any` widening on the per-action generics.
+The factories are zero-runtime-cost (identity functions). They're optional — bare object literals still work, just with `unknown` widening on the per-action generics.
 
 ### Call-site example
 
@@ -222,7 +222,7 @@ Preserves the soft-delete-aware 404 metadata behavior. Used by both the existing
 
 ```typescript
 async function runActionPermissions<T>(
-  action: BaseActionConfig<any, any, any>,
+  action: BaseActionConfig<unknown, unknown, unknown, unknown>,
   scope: 'instance' | 'collection',
   req: Request,
   doc?: T  // undefined for pre-doc check or for collection actions
@@ -605,7 +605,7 @@ Each criterion is independently testable. Most are exercised by the bun-test sui
 |---|---|---|
 | 1 | Adding `zod` + `zod-to-openapi` to `@terreno/api` is a new direction (today's validation is AJV/JSON-schema). | Action validation is parallel, not replacing AJV. Coexists. Pin `@asteasolutions/zod-to-openapi ^8.5.0` so the Zod 4 peer-dep is satisfied. |
 | 2 | `loadDocOr404` extraction touches the hot permission middleware path. | Extract to a neutral `api/src/docLoader.ts` module to avoid circular imports. Refactor must be behavior-preserving — added test asserting current 404 metadata behavior. |
-| 3 | TypeScript inference across `Record<string, InstanceActionConfig<T, any, any, any>>` loses per-action body/query/response types at the record boundary. | Ship `defineInstanceAction()` / `defineCollectionAction()` identity helpers that preserve per-action generics (`TBody`, `TQuery`, `TResponse`) for full handler-side inference. Bare object literals still work, just with `any` widening. |
+| 3 | TypeScript inference across `Record<string, InstanceActionConfig<T, unknown, unknown, unknown>>` loses per-action body/query/response types at the record boundary. | Ship `defineInstanceAction()` / `defineCollectionAction()` identity helpers that preserve per-action generics (`TBody`, `TQuery`, `TResponse`) for full handler-side inference. Bare object literals still work, just with `unknown` widening. |
 | 4 | `IsAuthenticatedOrReadOnly` on collection POST → mapped to `'create'`, denies anon access. | Cover in test + docs. |
 | 5 | Generated SDK changes — frontends consuming `@terreno/rtk` will see new endpoints with deterministic `operationId`-based hook names. | Expected. Standard SDK regeneration step in Phase 3. `operationId: '${tag}_${actionName}'` ensures stable names. |
 | 6 | Existing `endpoints` callers might want to migrate piecemeal — both APIs need to coexist. | They do: actions sit on top of the `endpoints` slot internally. Document `endpoints` as the escape hatch. AC25 explicitly tests this. |
