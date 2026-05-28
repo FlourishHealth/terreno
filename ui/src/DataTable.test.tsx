@@ -156,9 +156,7 @@ describe("DataTable", () => {
 
   it("cycles sort direction: asc -> desc -> clear", () => {
     const setSortColumn = mock((_col: unknown) => {});
-    const sortableColumns = [
-      {columnType: "text", sortable: true, title: "Name", width: 150},
-    ];
+    const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
     const {root} = renderWithTheme(
       <DataTable
         columns={sortableColumns}
@@ -177,9 +175,7 @@ describe("DataTable", () => {
 
   it("clears sort when clicking desc column", () => {
     const setSortColumn = mock((_col: unknown) => {});
-    const sortableColumns = [
-      {columnType: "text", sortable: true, title: "Name", width: 150},
-    ];
+    const sortableColumns = [{columnType: "text", sortable: true, title: "Name", width: 150}];
     const {root} = renderWithTheme(
       <DataTable
         columns={sortableColumns}

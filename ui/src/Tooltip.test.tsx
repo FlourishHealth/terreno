@@ -420,7 +420,8 @@ describe("Tooltip", () => {
 
     // Find the wrapper View that has onTouchStart
     const wrapper = root.findAll(
-      (n) => typeof n.props.onTouchStart === "function" && typeof n.props.onPointerEnter === "function"
+      (n) =>
+        typeof n.props.onTouchStart === "function" && typeof n.props.onPointerEnter === "function"
     );
     expect(wrapper.length).toBeGreaterThan(0);
 

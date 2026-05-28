@@ -327,10 +327,7 @@ describe("SplitPage", () => {
       const {fireEvent} = await import("@testing-library/react-native");
       const renderContent = mock((id: number | undefined) => <View testID={`content-${id}`} />);
       const {getAllByLabelText, root} = renderWithTheme(
-        <SplitPage
-          {...defaultProps}
-          renderContent={renderContent}
-        />
+        <SplitPage {...defaultProps} renderContent={renderContent} />
       );
       const boxes = getAllByLabelText("Select");
       await act(async () => {
@@ -340,9 +337,7 @@ describe("SplitPage", () => {
       // renderContent should have been called with the selected index
       expect(renderContent).toHaveBeenCalled();
       // Close IconButton should be in the tree (with accessibilityHint="close split page")
-      const closeButtons = root.findAll(
-        (n) => n.props.accessibilityHint === "close split page"
-      );
+      const closeButtons = root.findAll((n) => n.props.accessibilityHint === "close split page");
       expect(closeButtons.length).toBeGreaterThan(0);
     });
 
@@ -364,7 +359,8 @@ describe("SplitPage", () => {
       });
       // Find close button by accessibilityHint
       const closeButtons = root.findAll(
-        (n) => n.props.accessibilityHint === "close split page" && typeof n.props.onClick === "function"
+        (n) =>
+          n.props.accessibilityHint === "close split page" && typeof n.props.onClick === "function"
       );
       expect(closeButtons.length).toBeGreaterThan(0);
       await act(async () => {
@@ -380,10 +376,7 @@ describe("SplitPage", () => {
     it("renders SegmentedControl with >2 children and tabs on mobile", async () => {
       const {fireEvent} = await import("@testing-library/react-native");
       const {getAllByLabelText, root} = renderWithTheme(
-        <SplitPage
-          {...defaultProps}
-          tabs={["Tab A", "Tab B", "Tab C"]}
-        >
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
           <View testID="child-a" />
           <View testID="child-b" />
           <View testID="child-c" />

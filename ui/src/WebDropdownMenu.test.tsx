@@ -182,7 +182,10 @@ describe("useWebDropdownAnchor", () => {
         anchor={{height: 40, width: 100, x: 0, y: 50}}
         onClose={() => {}}
         onSelect={() => {}}
-        options={[{label: "A", value: "a"}, {label: "B", value: "b"}]}
+        options={[
+          {label: "A", value: "a"},
+          {label: "B", value: "b"},
+        ]}
         visible
       />
     );

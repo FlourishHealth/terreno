@@ -230,27 +230,21 @@ describe("HeightField - Web platform (HeightSegment path)", () => {
 
   it("handles feet input change on web", () => {
     const onChange = mock(() => {});
-    const {getByLabelText} = renderWithTheme(
-      <HeightField onChange={onChange} value="70" />
-    );
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
     fireEvent.changeText(getByLabelText("ft input"), "6");
     expect(onChange).toHaveBeenCalledWith("82");
   });
 
   it("handles inches input change on web", () => {
     const onChange = mock(() => {});
-    const {getByLabelText} = renderWithTheme(
-      <HeightField onChange={onChange} value="70" />
-    );
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
     fireEvent.changeText(getByLabelText("in input"), "3");
     expect(onChange).toHaveBeenCalledWith("63");
   });
 
   it("clears value when both feet and inches are empty", () => {
     const onChange = mock(() => {});
-    const {getByLabelText} = renderWithTheme(
-      <HeightField onChange={onChange} value="" />
-    );
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="" />);
     // With value="" both feet and inches start empty
     fireEvent.changeText(getByLabelText("ft input"), "3");
     expect(onChange).toHaveBeenCalledWith("36");
@@ -258,9 +252,7 @@ describe("HeightField - Web platform (HeightSegment path)", () => {
 
   it("strips non-numeric characters in HeightSegment", () => {
     const onChange = mock(() => {});
-    const {getByLabelText} = renderWithTheme(
-      <HeightField onChange={onChange} value="" />
-    );
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="" />);
     fireEvent.changeText(getByLabelText("ft input"), "abc");
     // "abc" stripped to "" -> handleFeetChange("") -> onChange("")
     expect(onChange).toHaveBeenCalledWith("");
