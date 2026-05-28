@@ -22,6 +22,7 @@
  */
 
 import {APIError} from "./errors";
+import {logger} from "./logger";
 
 const overrides = new Map<string, string | undefined>();
 
@@ -90,9 +91,10 @@ const getNumber = (key: string): number | undefined => {
   // whereas parseFloat would silently truncate to 5000.
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) {
+    logger.error(`Config key "${key}" is not a valid number: ${JSON.stringify(raw)}`);
     throw new APIError({
       status: 500,
-      title: `Config key "${key}" is not a valid number: ${JSON.stringify(raw)}`,
+      title: `Config key "${key}" is not a valid number`,
     });
   }
   return parsed;
@@ -120,9 +122,10 @@ const getJSON = <T = unknown>(key: string): T | undefined => {
   try {
     return JSON.parse(raw) as T;
   } catch (error) {
+    logger.error(`Config key "${key}" is not valid JSON: ${(error as Error).message}`);
     throw new APIError({
       status: 500,
-      title: `Config key "${key}" is not valid JSON: ${(error as Error).message}`,
+      title: `Config key "${key}" is not valid JSON`,
     });
   }
 };
