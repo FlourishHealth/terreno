@@ -31,7 +31,7 @@ export const OfflineBanner: React.FC<OfflineBannerProps> = ({
 }) => {
   if (isSyncing) {
     return (
-      <Box marginBottom={4} testID="syncing-banner">
+      <Box marginBottom={4} testID={testID}>
         <Banner id="syncing-status" status="info" text="Syncing offline changes..." />
       </Box>
     );

@@ -95,8 +95,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 
 // const ComponentTestMatrix = ({config}: {config: DemoConfiguration}): React.ReactElement | null => {
 //   // TODO: accordion this whole thing, default folded up, just for testing.
+//   // noExplicitAny: Dead commented-out code; types for testMatrix values and return type cannot be resolved without the full uncommented context
 //   function generateCombinations(testMatrix: {[prop: string]: any[]}): any[] {
 //     const keys = Object.keys(testMatrix);
+//     // noExplicitAny: Dead commented-out code; prevCombination shape depends on dynamic testMatrix keys
 //     const generate = (objIndex: number, prevCombination: any): any[] => {
 //       if (objIndex === keys.length) {
 //         return [prevCombination];
@@ -104,6 +106,7 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 //
 //       const key = keys[objIndex];
 //       const values = testMatrix[key];
+//       // noExplicitAny: Dead commented-out code; combination type depends on dynamic testMatrix keys
 //       const allCombinations: any[] = [];
 //
 //       for (const value of values) {
@@ -118,8 +121,10 @@ const ComponentStories: FC<{config: DemoConfiguration}> = ({config}) => {
 //     return generate(0, {});
 //   }
 //
+//   // noExplicitAny: Dead commented-out code; combination type depends on dynamic testMatrix keys
 //   const combinations: any[] = [];
 //
+//   // noExplicitAny: Dead commented-out code; combination values are dynamic from testMatrix
 //   const generateTitleForCombination = (combination: {[prop: string]: any}): string =>
 //     Object.entries(combination)
 //       .map(([key, value]) => `${key}: ${value}`)

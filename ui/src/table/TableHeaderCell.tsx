@@ -1,7 +1,6 @@
 // TableHeaderCell.tsx
 import {FontAwesome6} from "@expo/vector-icons";
 import {type ReactElement, useCallback} from "react";
-import {View} from "react-native";
 
 import {Box} from "../Box";
 import type {AlignItems, TableHeaderCellProps} from "../Common";
@@ -69,15 +68,13 @@ export const TableHeaderCell = ({
       {Boolean(sort) && (
         <Box alignSelf="end" paddingX={2}>
           {/* Make it look like an IconButton, but we can't nest buttons and the whole row is clickable. */}
-          <View
-            style={{
-              alignItems: "center",
-              backgroundColor: theme.surface.primary,
-              borderRadius: theme.radius.rounded,
-              height: 16,
-              justifyContent: "center",
-              width: 16,
-            }}
+          <Box
+            alignItems="center"
+            color="primary"
+            height={16}
+            justifyContent="center"
+            rounding="rounded"
+            width={16}
           >
             <FontAwesome6
               color={theme.text.inverted}
@@ -86,7 +83,7 @@ export const TableHeaderCell = ({
               size={10}
               solid
             />
-          </View>
+          </Box>
         </Box>
       )}
     </Box>

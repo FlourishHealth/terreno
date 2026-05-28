@@ -126,6 +126,25 @@ describe("HeightField (desktop/web path)", () => {
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 
+    it("tracks focused segment when inputs are focused", () => {
+      const {getAllByLabelText, toJSON} = renderWithTheme(
+        <HeightField onChange={mockOnChange} value="70" />
+      );
+      const feetInput = getAllByLabelText("ft input")[0];
+      const inchesInput = getAllByLabelText("in input")[0];
+
+      fireEvent(feetInput, "focus");
+      const snapshotFeetFocused = toJSON();
+      fireEvent(feetInput, "blur");
+
+      fireEvent(inchesInput, "focus");
+      const snapshotInchesFocused = toJSON();
+      fireEvent(inchesInput, "blur");
+
+      expect(snapshotFeetFocused).toBeTruthy();
+      expect(snapshotInchesFocused).toBeTruthy();
+    });
+
     it("does not call onChange with values exceeding max feet", () => {
       const {getAllByLabelText} = renderWithTheme(
         <HeightField max={95} onChange={mockOnChange} value="" />

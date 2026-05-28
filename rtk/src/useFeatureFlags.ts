@@ -1,7 +1,9 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {useCallback, useEffect, useMemo, useRef} from "react";
 
-type FlagValues = Record<string, boolean | string | null>;
+interface FlagValues {
+  [key: string]: boolean | string | null;
+}
 
 interface UseFeatureFlagsResult {
   flags: FlagValues;
@@ -62,13 +64,11 @@ export const resolveFeatureFlagsOptions = (
   return {basePath, skip};
 };
 
-// Overloaded signature preserves backwards compatibility with callers that
-// pass a string basePath as the second argument.
-export function useFeatureFlags(
+export const useFeatureFlags = (
   // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
   api: Api<any, any, any, any>,
   basePathOrOptions?: string | UseFeatureFlagsOptions
-): UseFeatureFlagsResult {
+): UseFeatureFlagsResult => {
   const {basePath, skip} = resolveFeatureFlagsOptions(basePathOrOptions);
 
   const enhancedApi = useMemo(
@@ -157,4 +157,4 @@ export function useFeatureFlags(
   );
 
   return {error, flags, getFlag, getVariant, isLoading, refetch};
-}
+};

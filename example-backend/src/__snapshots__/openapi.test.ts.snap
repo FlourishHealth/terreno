@@ -175,6 +175,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "betterAuthId": {
+                            "description": "Identifier linking to the Better Auth session provider",
                             "type": "string",
                           },
                           "created": {
@@ -198,6 +199,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "oauthProvider": {
+                            "description": "OAuth provider used for authentication",
                             "enum": [
                               "google",
                               "github",
@@ -307,6 +309,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -330,6 +333,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -367,6 +371,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -390,6 +395,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4332,6 +4338,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "betterAuthId": {
+                            "description": "Identifier linking to the Better Auth session provider",
                             "type": "string",
                           },
                           "created": {
@@ -4355,6 +4362,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "oauthProvider": {
+                            "description": "OAuth provider used for authentication",
                             "enum": [
                               "google",
                               "github",
@@ -4464,6 +4472,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -4487,6 +4496,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -4524,6 +4534,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4547,6 +4558,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4715,6 +4727,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4738,6 +4751,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4840,6 +4854,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -4863,6 +4878,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -4900,6 +4916,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4923,6 +4940,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -7821,6 +7839,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -7844,6 +7863,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -7946,6 +7966,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -7969,6 +7990,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -8006,6 +8028,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -8029,6 +8052,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",

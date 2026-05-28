@@ -107,6 +107,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
   }, [api, routePath, searchEndpointKey, readEndpointKey]);
 
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   const useSearchQuery = enhanced[`use${capitalize(searchEndpointKey)}Query`];

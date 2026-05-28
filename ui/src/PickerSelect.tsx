@@ -115,7 +115,7 @@ export interface RNPickerSelectProps {
   InputAccessoryView?: ComponentType<{testID?: string}>;
 }
 
-export function RNPickerSelect({
+export const RNPickerSelect = ({
   onValueChange,
   value,
   items,
@@ -137,7 +137,7 @@ export function RNPickerSelect({
   touchableWrapperProps,
 
   InputAccessoryView,
-}: RNPickerSelectProps) {
+}: RNPickerSelectProps) => {
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
@@ -699,4 +699,4 @@ export function RNPickerSelect({
   };
 
   return render();
-}
+};

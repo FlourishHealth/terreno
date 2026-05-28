@@ -121,13 +121,65 @@ export const buildOptimisticCreateItem = (
   };
 };
 
+/** Derives the collection tag from an endpoint name (e.g. "patchTodosById" → "todos"). */
 const inferTagType = (endpointName: string): string => {
-  // Infer tag type from endpoint name for cache invalidation.
-  // Convention: patchTodosById -> "todos", postTodos -> "todos", deleteTodosById -> "todos"
   let name = endpointName.replace(/^(post|patch|delete)/, "").replace(/ById$/, "");
-  // Convert first char to lowercase
   name = name.charAt(0).toLowerCase() + name.slice(1);
   return name;
+};
+
+const inferGetByIdEndpointName = (endpointName: string): string => {
+  const tagType = inferTagType(endpointName);
+  const capitalized = tagType.charAt(0).toUpperCase() + tagType.slice(1);
+  return `get${capitalized}ById`;
+};
+
+/**
+ * Last-seen document `updated` timestamp for conflict headers on replay.
+ * Prefer the patch body's `_updatedAt`, then a cached get-by-id entry.
+ */
+const extractBaseUpdatedAt = (
+  endpointName: string,
+  originalArgs: unknown,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
+  getState: () => any,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
+  api: Api<any, any, any, any>
+): string | undefined => {
+  if (inferMutationType(endpointName) !== "update") {
+    return undefined;
+  }
+
+  const args = originalArgs as {body?: Record<string, unknown>; id?: string};
+  const bodyUpdatedAt = args?.body?._updatedAt;
+  if (typeof bodyUpdatedAt === "string") {
+    return bodyUpdatedAt;
+  }
+
+  if (!args?.id) {
+    return undefined;
+  }
+
+  const getByIdEndpoint = inferGetByIdEndpointName(endpointName);
+  const state = getState();
+  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
+  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
+  for (const key of Object.keys(queries)) {
+    if (!key.startsWith(`${getByIdEndpoint}(`)) {
+      continue;
+    }
+    const queryEntry = queries[key];
+    if (queryEntry?.originalArgs?.id !== args.id) {
+      continue;
+    }
+    const data = queryEntry?.data as {data?: {updated?: string}} | undefined;
+    const updated = data?.data?.updated;
+    if (typeof updated === "string") {
+      return updated;
+    }
+  }
+
+  return undefined;
 };
 
 /**
@@ -272,11 +324,13 @@ const replayMutation = async (
     headers.authorization = `Bearer ${token}`;
   }
 
-  // For update operations, include If-Unmodified-Since for conflict detection
-  if (mutation.type === "update") {
-    const timestamp = new Date(mutation.timestamp);
-    headers["If-Unmodified-Since"] = timestamp.toUTCString();
-    headers["X-Unmodified-Since-ISO"] = timestamp.toISOString();
+  // For update operations, include If-Unmodified-Since from the document version at queue time
+  if (mutation.type === "update" && mutation.baseUpdatedAt) {
+    const timestamp = DateTime.fromISO(mutation.baseUpdatedAt);
+    if (timestamp.isValid) {
+      headers["If-Unmodified-Since"] = timestamp.toHTTP();
+      headers["X-Unmodified-Since-ISO"] = mutation.baseUpdatedAt;
+    }
   }
 
   const args = mutation.args as {id?: string; body?: unknown};
@@ -402,6 +456,7 @@ export const createOfflineMiddleware = (
       // rather than the current time. This ensures conflict detection compares against
       // when the document was last fetched, not when the mutation was queued.
       let timestamp = DateTime.now().toISO();
+      let listCacheBaseUpdatedAt: string | undefined;
       if (mutationType === "update") {
         const args = originalArgs as {id?: string};
         if (args?.id) {
@@ -426,6 +481,7 @@ export const createOfflineMiddleware = (
                   typeof doc.updated === "string"
                     ? doc.updated
                     : DateTime.fromJSDate(doc.updated).toISO();
+                listCacheBaseUpdatedAt = timestamp ?? undefined;
                 break;
               }
             }
@@ -433,10 +489,15 @@ export const createOfflineMiddleware = (
         }
       }
 
+      const baseUpdatedAt =
+        extractBaseUpdatedAt(endpointName, originalArgs, listenerApi.getState, api) ??
+        listCacheBaseUpdatedAt;
+
       const currentUserId = selectCurrentUserId(listenerApi.getState() as RootState);
 
       const mutation: QueuedMutation = {
         args: originalArgs,
+        baseUpdatedAt,
         endpointName,
         id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp,

@@ -4,17 +4,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {createListenerMiddleware, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import type {Api, BaseQueryFn, EndpointBuilder} from "@reduxjs/toolkit/query/react";
 import * as SecureStore from "expo-secure-store";
+import {DateTime} from "luxon";
 import {useSelector} from "react-redux";
 
 import {LOGOUT_ACTION_TYPE, type RootState} from "./constants";
 import {IsWeb} from "./platform";
 
-type AuthState = {
+interface AuthState {
   userId: string | null;
   error: string | null;
   isAuthenticating: boolean;
   lastTokenRefreshTimestamp: number | null;
-};
+}
 
 export interface UserResponse {
   data: {
@@ -46,12 +47,11 @@ export interface GoogleLoginRequest {
   idToken: string;
 }
 
-// Define a service using a base URL and expected endpoints
-export function generateProfileEndpoints(
+export const generateProfileEndpoints = (
   // biome-ignore lint/suspicious/noExplicitAny: Generic
   builder: EndpointBuilder<BaseQueryFn<unknown, unknown, unknown>, any, string>,
   path: string
-) {
+) => {
   return {
     // This is a slightly different version of emailSignUp for creating another user using the
     // auth/signup endpoint. This is useful for things like creating a user from an admin account.
@@ -99,7 +99,7 @@ export function generateProfileEndpoints(
       }),
     }),
   };
-}
+};
 
 // biome-ignore lint/suspicious/noExplicitAny: Generic
 export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
@@ -183,7 +183,7 @@ export const generateAuthSlice = (api: Api<any, any, any, any, any>) => {
         state.isAuthenticating = false;
       },
       tokenRefreshedSuccess: (state) => {
-        state.lastTokenRefreshTimestamp = Date.now();
+        state.lastTokenRefreshTimestamp = DateTime.now().toMillis();
       },
     },
   });
@@ -298,7 +298,7 @@ export const useSelectIsAuthenticating = (): boolean => {
   return useSelector((state: RootState): boolean => state.auth?.isAuthenticating ?? false);
 };
 
-export async function getAuthToken(): Promise<string | null> {
+export const getAuthToken = async (): Promise<string | null> => {
   let token: string | null;
 
   if (!IsWeb) {
@@ -313,4 +313,4 @@ export async function getAuthToken(): Promise<string | null> {
     }
   }
   return token;
-}
+};
