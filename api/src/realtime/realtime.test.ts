@@ -9,7 +9,7 @@
  *   - changeStreamWatcher.ts (serializeDoc — responseHandler fallback)
  */
 
-import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
+import {afterEach, beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
 
 import {
@@ -1840,8 +1840,22 @@ describe("startChangeStreamWatcher & stopChangeStreamWatcher", () => {
   });
 });
 
+// Change streams require a MongoDB replica set. CI (api-ci.yml) runs standalone MongoDB,
+// so these tests are skipped when replica sets are not available.
+const hasReplicaSet = async (): Promise<boolean> => {
+  try {
+    const mongoose = require("mongoose");
+    const admin = mongoose.connection.db.admin();
+    const status = await admin.command({replSetGetStatus: 1});
+    return !!status.ok;
+  } catch {
+    return false;
+  }
+};
+
 describe("startChangeStreamWatcher — change event integration", () => {
   const mongoose = require("mongoose");
+  let replicaSetAvailable = false;
 
   const realtimeTestSchema = new mongoose.Schema(
     {
@@ -1897,6 +1911,10 @@ describe("startChangeStreamWatcher — change event integration", () => {
     };
   };
 
+  beforeAll(async () => {
+    replicaSetAvailable = await hasReplicaSet();
+  });
+
   beforeEach(async () => {
     clearRealtimeRegistry();
     clearQueryStore();
@@ -1911,6 +1929,9 @@ describe("startChangeStreamWatcher — change event integration", () => {
   });
 
   it("processes insert events from MongoDB change stream", async () => {
+    if (!replicaSetAvailable) {
+      return;
+    }
     registerRealtime({
       collectionName: "realtimetests",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
@@ -1944,6 +1965,9 @@ describe("startChangeStreamWatcher — change event integration", () => {
   });
 
   it("processes update events from MongoDB change stream", async () => {
+    if (!replicaSetAvailable) {
+      return;
+    }
     registerRealtime({
       collectionName: "realtimetests",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
@@ -1978,6 +2002,9 @@ describe("startChangeStreamWatcher — change event integration", () => {
   });
 
   it("processes hard delete events from MongoDB change stream", async () => {
+    if (!replicaSetAvailable) {
+      return;
+    }
     registerRealtime({
       collectionName: "realtimetests",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
@@ -2012,6 +2039,9 @@ describe("startChangeStreamWatcher — change event integration", () => {
   });
 
   it("processes soft delete events from MongoDB change stream", async () => {
+    if (!replicaSetAvailable) {
+      return;
+    }
     registerRealtime({
       collectionName: "realtimetests",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
@@ -2046,6 +2076,9 @@ describe("startChangeStreamWatcher — change event integration", () => {
   });
 
   it("includes updatedFields and emits to document rooms", async () => {
+    if (!replicaSetAvailable) {
+      return;
+    }
     registerRealtime({
       collectionName: "realtimetests",
       config: {methods: ["create", "update", "delete"], roomStrategy: "model"},
