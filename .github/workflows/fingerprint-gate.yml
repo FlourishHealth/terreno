@@ -1,0 +1,131 @@
+name: Fingerprint Gate
+
+# Compares the PR's Expo fingerprint against master's. If the PR would change
+# the native fingerprint of example-frontend, this job FAILS until a reviewer
+# adds the `fingerprint-acknowledged` label, signalling they understand and
+# accept the cost (a fresh EAS dev build + reinstall for every developer).
+#
+# This is intentionally loud and intentionally rare. Most PRs only touch JS,
+# which leaves the fingerprint untouched and the job passes silently.
+#
+# Acknowledgement is per-fingerprint: if the PR is pushed to and the
+# fingerprint changes again, the label is auto-removed and re-acknowledgement
+# is required. The acknowledged hash pair is recorded in a hidden HTML marker
+# inside the sticky PR comment.
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+    paths:
+      - example-frontend/**
+      - ui/**
+      - rtk/**
+      - package.json
+      - bun.lock
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: fingerprint-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Fingerprint gate / example-frontend
+    # Skip label events for unrelated labels — only ACK_LABEL changes matter.
+    if: |
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
+      github.event.label.name == 'fingerprint-acknowledged'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ACK_LABEL: fingerprint-acknowledged
+      COMMENT_MARKER: "<!-- fingerprint-gate:example-frontend -->"
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          path: pr
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing required secret EXPO_TOKEN"
+            exit 1
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Cache bun install cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: bun-fp-${{ runner.os }}-${{ hashFiles('pr/bun.lock') }}
+          restore-keys: |
+            bun-fp-${{ runner.os }}-
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install + compile (PR)
+        working-directory: pr
+        run: |
+          bun install --frozen-lockfile
+          bun run compile
+
+      - name: Compute PR fingerprint
+        id: pr_fp
+        working-directory: pr/example-frontend
+        run: |
+          set -euo pipefail
+          ios=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
+          android=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
+          echo "iOS PR fingerprint:     $ios"
+          echo "Android PR fingerprint: $android"
+          echo "ios=$ios" >> "$GITHUB_OUTPUT"
+          echo "android=$android" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout master
+        uses: actions/checkout@v6
+        with:
+          ref: master
+          path: master
+
+      - name: Install + compile (master)
+        working-directory: master
+        run: |
+          bun install --frozen-lockfile
+          bun run compile
+
+      - name: Compute master fingerprint
+        id: master_fp
+        working-directory: master/example-frontend
+        run: |
+          set -euo pipefail
+          ios=$(eas fingerprint:generate --platform ios --non-interactive --json | jq -r '.hash')
+          android=$(eas fingerprint:generate --platform android --non-interactive --json | jq -r '.hash')
+          echo "iOS master fingerprint:     $ios"
+          echo "Android master fingerprint: $android"
+          echo "ios=$ios" >> "$GITHUB_OUTPUT"
+          echo "android=$android" >> "$GITHUB_OUTPUT"
+
+      - name: Evaluate gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_IOS: ${{ steps.pr_fp.outputs.ios }}
+          PR_ANDROID: ${{ steps.pr_fp.outputs.android }}
+          MASTER_IOS: ${{ steps.master_fp.outputs.ios }}
+          MASTER_ANDROID: ${{ steps.master_fp.outputs.android }}
+        run: pr/.github/workflows/scripts/fingerprint-gate.sh
