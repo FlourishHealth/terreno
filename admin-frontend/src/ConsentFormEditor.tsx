@@ -164,6 +164,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     [api, consentApiPath]
   );
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();

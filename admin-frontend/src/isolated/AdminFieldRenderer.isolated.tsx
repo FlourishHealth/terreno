@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use type-erased UI component stubs and field config literals
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
@@ -21,8 +22,9 @@ mock.module("../LocaleContentEditor", () => ({
 }));
 
 import {AdminFieldRenderer} from "../AdminFieldRenderer";
+import type {AdminApi, AdminFieldConfig} from "../types";
 
-const api = {} as any;
+const api = {} as unknown as AdminApi;
 const base = {api, baseUrl: "/admin", onChange: () => {}};
 
 describe("AdminFieldRenderer", () => {
@@ -78,7 +80,7 @@ describe("AdminFieldRenderer", () => {
     const {toJSON} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
-        fieldConfig={fieldConfig as any}
+        fieldConfig={fieldConfig as unknown as AdminFieldConfig}
         fieldKey={fieldKey}
         value={value}
       />
