@@ -2,6 +2,7 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act} from "@testing-library/react-native";
 
+import type {DataTableCustomComponentMap, DataTableProps} from "./Common";
 import {DataTable} from "./DataTable";
 import {Text} from "./Text";
 import {renderWithTheme} from "./test-utils";
@@ -115,7 +116,7 @@ describe("DataTable", () => {
       <DataTable
         columns={sampleColumns}
         data={sampleData}
-        moreContentComponent={MoreContent as any}
+        moreContentComponent={MoreContent as unknown as DataTableProps["moreContentComponent"]}
       />
     );
     expect(toJSON()).toMatchSnapshot();
@@ -361,7 +362,7 @@ describe("DataTable", () => {
     const {getByText} = renderWithTheme(
       <DataTable
         columns={customColumns}
-        customColumnComponentMap={{custom: CustomCell as any}}
+        customColumnComponentMap={{custom: CustomCell} as DataTableCustomComponentMap}
         data={customData}
       />
     );
@@ -488,7 +489,7 @@ describe("DataTable", () => {
       <DataTable
         columns={sampleColumns}
         data={sampleData}
-        moreContentComponent={MoreContent as any}
+        moreContentComponent={MoreContent as unknown as DataTableProps["moreContentComponent"]}
       />
     );
 
