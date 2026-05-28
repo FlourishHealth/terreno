@@ -317,7 +317,7 @@ export class Configuration {
    * Refresh a single secret by configuration key
    */
   static async refreshSecret(key: string): Promise<void> {
-    const config = await ConfigurationDB.findOne({key, type: "secret"});
+    const config = await ConfigurationDB.findOneOrNone({key, type: "secret"});
     if (!config) {
       logger.warn(`No secret-type configuration found for key: ${key}`);
       return;
@@ -618,7 +618,7 @@ ConfigurationDB.getByKey = async function (key: string): Promise<ConfigurationDo
   key: string,
   value: ConfigValueType
 ): Promise<ConfigurationDocument> {
-  const existing = await this.findOne({key});
+  const existing = await this.findOneOrNone({key});
 
   if (existing) {
     existing.value = value;
