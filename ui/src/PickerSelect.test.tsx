@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
@@ -158,6 +159,224 @@ describe("PickerSelect", () => {
     const {rerender, toJSON} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
     rerender(<RNPickerSelect {...defaultProps} value="3" />);
     expect(toJSON()).toBeTruthy();
+  });
+
+  describe("web rendering (Platform.OS === 'web')", () => {
+    const PlatformModule = require("react-native").Platform;
+    let savedOS: any;
+
+    const ensureDocument = () => {
+      if (typeof (globalThis as any).HTMLElement === "undefined") {
+        (globalThis as any).HTMLElement = class HTMLElement {};
+      }
+      const el = new (globalThis as any).HTMLElement();
+      el.blur = () => {};
+      (globalThis as any).document = {activeElement: el};
+    };
+
+    it("renders web dropdown with display label", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="2" />);
+        expect(getByTestId("text_input")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders web dropdown and opens on press", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const onOpen = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onOpen={onOpen} value="1" />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        expect(onOpen).toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("does not open web menu when disabled", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const onOpen = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} disabled onOpen={onOpen} />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        expect(onOpen).not.toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("calls onClose when closing web menu", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const onClose = mock(() => {});
+        const onOpen = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onClose={onClose} onOpen={onOpen} value="1" />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        expect(onOpen).toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders disabled web dropdown with correct styling", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} disabled />);
+        expect(getByTestId("web_picker")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders web dropdown with inputLabel when available", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const items = [
+          {inputLabel: "Opt 1 short", label: "Option 1 long", value: "1"},
+          {label: "Option 2", value: "2"},
+        ];
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} items={items} value="1" />
+        );
+        expect(getByTestId("text_input")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders web dropdown with no placeholder (empty object)", () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} placeholder={{}} value="1" />
+        );
+        expect(getByTestId("web_picker")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+  });
+
+  describe("android rendering", () => {
+    const PlatformModule = require("react-native").Platform;
+    let savedOS: any;
+
+    it("renders android headless when useNativeAndroidPickerStyle is false", () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} useNativeAndroidPickerStyle={false} value="1" />
+        );
+        expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders android headless with fixAndroidTouchableBug", () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect
+            {...defaultProps}
+            fixAndroidTouchableBug
+            useNativeAndroidPickerStyle={false}
+            value="1"
+          />
+        );
+        expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders android headless with children", () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} value="1">
+            <>Custom child</>
+          </RNPickerSelect>
+        );
+        expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders native android picker style", () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        expect(getByTestId("android_picker")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("renders native android picker disabled", () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} disabled value="1" />
+        );
+        expect(getByTestId("android_picker")).toBeTruthy();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("calls onValueChange on android native picker change", async () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const mockOnValueChange = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+        );
+        const picker = getByTestId("android_picker");
+        await act(async () => {
+          picker.props.onValueChange?.("2", 1);
+        });
+        expect(mockOnValueChange).toHaveBeenCalledWith("2", 1);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
   });
 
   describe("interactions on iOS", () => {

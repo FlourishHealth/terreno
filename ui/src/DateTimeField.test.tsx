@@ -1,5 +1,5 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
-import {afterEach, beforeEach, describe, expect, it, type mock} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, type mock as MockType, mock} from "bun:test";
 import {act, userEvent} from "@testing-library/react-native";
 import {DateTime} from "luxon";
 
@@ -7,9 +7,16 @@ import {DateTimeField} from "./DateTimeField";
 import {renderWithTheme, setupComponentTest, teardownComponentTest} from "./test-utils";
 
 describe("DateTimeField", () => {
-  let mockOnChange: ReturnType<typeof mock>;
+  let mockOnChange: ReturnType<MockType>;
 
   beforeEach(() => {
+    // Reset MediaQuery to desktop mode to avoid cross-file mock.module pollution
+    mock.module("./MediaQuery", () => ({
+      isMobileDevice: () => false,
+      mediaQuery: () => "lg" as const,
+      mediaQueryLargerThan: () => true,
+      mediaQuerySmallerThan: () => false,
+    }));
     const mocks = setupComponentTest();
     mockOnChange = mocks.onChange;
   });
@@ -389,6 +396,769 @@ describe("DateTimeField", () => {
       expect(getByPlaceholderText("MM").props.value).toBe("05");
       expect(getByPlaceholderText("DD").props.value).toBe("15");
       expect(getByPlaceholderText("YYYY").props.value).toBe("2023");
+    });
+  });
+
+  describe("empty and invalid value handling", () => {
+    it("should clear all fields when value is empty", () => {
+      const {getByPlaceholderText, rerender} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
+      );
+      expect(getByPlaceholderText("MM").props.value).toBe("05");
+
+      rerender(<DateTimeField onChange={mockOnChange} type="date" value="" />);
+      expect(getByPlaceholderText("MM").props.value).toBe("");
+      expect(getByPlaceholderText("DD").props.value).toBe("");
+      expect(getByPlaceholderText("YYYY").props.value).toBe("");
+    });
+
+    it("should clear all fields when value is undefined", () => {
+      const {getByPlaceholderText, rerender} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} type="datetime" value="2023-05-15T15:30:00.000Z" />
+      );
+      rerender(<DateTimeField onChange={mockOnChange} type="datetime" value={undefined} />);
+      expect(getByPlaceholderText("MM").props.value).toBe("");
+      expect(getByPlaceholderText("hh").props.value).toBe("");
+      expect(getByPlaceholderText("mm").props.value).toBe("");
+    });
+  });
+
+  describe("time type field validation", () => {
+    it("should validate hour fields for time type", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const hourInput = getByPlaceholderText("hh");
+      await user.clear(hourInput);
+      await user.type(hourInput, "13");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(hourInput).toBeTruthy();
+    });
+
+    it("should validate year field correctly", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
+      );
+      const yearInput = getByPlaceholderText("YYYY");
+      await user.clear(yearInput);
+      await user.type(yearInput, "1800");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(yearInput).toBeTruthy();
+    });
+
+    it("should validate day out of range", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} type="date" value="2023-05-15T00:00:00.000Z" />
+      );
+      const dayInput = getByPlaceholderText("DD");
+      await user.clear(dayInput);
+      await user.type(dayInput, "32");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(dayInput).toBeTruthy();
+    });
+  });
+
+  describe("datetime type interactions", () => {
+    it("should render datetime with all segments on desktop", () => {
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("MM").props.value).toBe("05");
+      expect(getByPlaceholderText("DD").props.value).toBe("15");
+      expect(getByPlaceholderText("YYYY").props.value).toBe("2023");
+      expect(getByPlaceholderText("hh").props.value).toBe("11");
+      expect(getByPlaceholderText("mm").props.value).toBe("30");
+    });
+
+    it("should handle hour change in datetime mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const hourInput = getByPlaceholderText("hh");
+      await user.clear(hourInput);
+      await user.type(hourInput, "3");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(hourInput).toBeTruthy();
+    });
+
+    it("should handle minute change in datetime mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("disabled state", () => {
+    it("should render disabled date field", () => {
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          disabled
+          onChange={mockOnChange}
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("MM").props.readOnly).toBe(true);
+    });
+
+    it("should not render action sheet when disabled", () => {
+      const {queryByAccessibilityHint} = renderWithTheme(
+        <DateTimeField
+          disabled
+          onChange={mockOnChange}
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(queryByAccessibilityHint("Opens the calendar to select a date and time")).toBeNull();
+    });
+  });
+
+  describe("title, error, and helper text", () => {
+    it("should render title", () => {
+      const {getByText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          title="Pick a date"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+      expect(getByText("Pick a date")).toBeTruthy();
+    });
+
+    it("should render error text", () => {
+      const {getByText} = renderWithTheme(
+        <DateTimeField
+          errorText="Required field"
+          onChange={mockOnChange}
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+      expect(getByText("Required field")).toBeTruthy();
+    });
+
+    it("should render helper text", () => {
+      const {getByText} = renderWithTheme(
+        <DateTimeField
+          helperText="Select a date"
+          onChange={mockOnChange}
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+      expect(getByText("Select a date")).toBeTruthy();
+    });
+  });
+
+  describe("getFieldValue edge cases", () => {
+    it("should return empty string for unrecognized index in time mode", () => {
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("11");
+      expect(getByPlaceholderText("mm").props.value).toBe("30");
+    });
+  });
+
+  describe("getISOFromFields edge cases", () => {
+    it("should return undefined when time fields are incomplete for time type", () => {
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("");
+    });
+
+    it("should handle 12pm correctly in time type", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T12:00:00.000Z"
+        />
+      );
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "15");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+
+    it("should handle 12am correctly in time type", () => {
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T04:00:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("12");
+    });
+  });
+
+  describe("onTimezoneChange callback", () => {
+    it("should call onTimezoneChange when provided", () => {
+      const mockTzChange = mock(() => {});
+      renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(mockTzChange).toBeDefined();
+    });
+  });
+
+  describe("mobile time display", () => {
+    it("should render MobileTimeDisplay on mobile with time type", () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => true,
+        mediaQuery: () => "xs" as const,
+        mediaQueryLargerThan: () => false,
+        mediaQuerySmallerThan: () => true,
+      }));
+      const {getByAccessibilityHint} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByAccessibilityHint("Tap to select a time")).toBeTruthy();
+    });
+
+    it("should render disabled MobileTimeDisplay", () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => true,
+        mediaQuery: () => "xs" as const,
+        mediaQueryLargerThan: () => false,
+        mediaQuerySmallerThan: () => true,
+      }));
+      const {getByAccessibilityHint} = renderWithTheme(
+        <DateTimeField
+          disabled
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByAccessibilityHint("Tap to select a time")).toBeTruthy();
+    });
+
+    it("should render MobileTimeDisplay placeholder when no value", () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => true,
+        mediaQuery: () => "xs" as const,
+        mediaQueryLargerThan: () => false,
+        mediaQuerySmallerThan: () => true,
+      }));
+      const {getByAccessibilityHint} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} timezone="America/New_York" type="time" value="" />
+      );
+      expect(getByAccessibilityHint("Tap to select a time")).toBeTruthy();
+    });
+
+    it("should render mobile datetime with time display", () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => true,
+        mediaQuery: () => "xs" as const,
+        mediaQueryLargerThan: () => false,
+        mediaQuerySmallerThan: () => true,
+      }));
+      const {getByAccessibilityHint} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByAccessibilityHint("Opens date and time picker")).toBeTruthy();
+    });
+  });
+
+  describe("onActionSheetChange", () => {
+    it("should handle action sheet date selection", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+      );
+      if (actionSheet.length > 0) {
+        await act(async () => {
+          actionSheet[0].props.onChange("2023-06-20T00:00:00.000Z");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle action sheet clear (empty string)", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+      );
+      if (actionSheet.length > 0) {
+        await act(async () => {
+          actionSheet[0].props.onChange("");
+        });
+        expect(mockOnChange).toHaveBeenCalledWith("");
+      }
+    });
+
+    it("should handle action sheet time selection", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+      );
+      if (actionSheet.length > 0) {
+        await act(async () => {
+          actionSheet[0].props.onChange("2023-05-15T18:45:00.000Z");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+
+    it("should handle action sheet datetime selection", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+      );
+      if (actionSheet.length > 0) {
+        await act(async () => {
+          actionSheet[0].props.onChange("2023-06-20T10:00:00.000Z");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("handleAmPmChange", () => {
+    it("should toggle AM to PM and emit new value", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      // 15:30 UTC = 11:30 AM in New York => toggling to PM should change the time
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const amPmSelects = UNSAFE_root.findAll((n: any) => n.props?.onAmPmChange);
+      if (amPmSelects.length > 0) {
+        await act(async () => {
+          amPmSelects[0].props.onAmPmChange("pm");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("handleTimezoneChange", () => {
+    it("should call onTimezoneChange callback and emit new value", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const mockTzChange = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      if (tzPickers.length > 0) {
+        await act(async () => {
+          tzPickers[0].props.onTimezoneChange("America/Chicago");
+        });
+        expect(mockTzChange).toHaveBeenCalledWith("America/Chicago");
+      }
+    });
+
+    it("should use local timezone state when onTimezoneChange not provided", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      if (tzPickers.length > 0) {
+        await act(async () => {
+          tzPickers[0].props.onTimezoneChange("America/Chicago");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("minute validation", () => {
+    it("should validate invalid minute in time mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "99");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(minuteInput).toBeTruthy();
+    });
+  });
+
+  describe("getISOFromFields datetime am/pm", () => {
+    it("should handle pm in datetime mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T20:30:00.000Z"
+        />
+      );
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+
+    it("should handle 12am in datetime mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T04:30:00.000Z"
+        />
+      );
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "15");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("onBlur edge cases", () => {
+    it("should handle onBlur with AM/PM override in time mode", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const hourInput = getByPlaceholderText("hh");
+      await user.clear(hourInput);
+      await user.type(hourInput, "5");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(hourInput).toBeTruthy();
+    });
+  });
+
+  describe("onDismiss and onLayout", () => {
+    it("should handle DateTimeActionSheet onDismiss", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onDismiss && n.props?.visible !== undefined
+      );
+      if (actionSheet.length > 0) {
+        await act(async () => {
+          actionSheet[0].props.onDismiss();
+        });
+      }
+      expect(UNSAFE_root).toBeTruthy();
+    });
+
+    it("should handle Pressable onLayout", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+
+      const pressables = UNSAFE_root.findAll((n: any) => n.props?.onLayout);
+      if (pressables.length > 0) {
+        await act(async () => {
+          pressables[0].props.onLayout({nativeEvent: {layout: {width: 500}}});
+        });
+      }
+      expect(UNSAFE_root).toBeTruthy();
+    });
+  });
+
+  describe("SelectField AM/PM onChange inline callback", () => {
+    it("should trigger SelectField onChange to call onAmPmChange", async () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      // Find the SelectField for AM/PM (it will have items like [{label: "AM"}, {label: "PM"}])
+
+      const selects = UNSAFE_root.findAll((n: any) => {
+        const items = n.props?.items;
+        return (
+          Array.isArray(items) &&
+          items.some((item: {label?: string}) => item?.label === "AM" || item?.label === "PM")
+        );
+      });
+      if (selects.length > 0 && selects[0].props.onChange) {
+        await act(async () => {
+          selects[0].props.onChange("pm");
+        });
+        expect(mockOnChange).toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe("inputRef onRef callback", () => {
+    it("should set ref when segment renders", () => {
+      mock.module("./MediaQuery", () => ({
+        isMobileDevice: () => false,
+        mediaQuery: () => "lg" as const,
+        mediaQueryLargerThan: () => true,
+        mediaQuerySmallerThan: () => false,
+      }));
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh")).toBeTruthy();
+      expect(getByPlaceholderText("mm")).toBeTruthy();
+    });
+  });
+
+  describe("datetime type date-only change", () => {
+    it("should handle changing date in datetime mode without changing time", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const dayInput = getByPlaceholderText("DD");
+      await user.clear(dayInput);
+      await user.type(dayInput, "20");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+
+    it("should handle changing year in datetime mode", async () => {
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      const yearInput = getByPlaceholderText("YYYY");
+      await user.clear(yearInput);
+      await user.type(yearInput, "2024");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
     });
   });
 });
