@@ -96,6 +96,7 @@ describe("TableRow", () => {
     expect(queryByText("Always visible")).toBeTruthy();
   });
 
+
   it("renders a placeholder cell when sibling row has drawer contents", () => {
     const {toJSON} = renderWithTheme(
       <Table columns={[100]}>

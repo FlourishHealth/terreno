@@ -11,6 +11,7 @@
 
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import express from "express";
+import mongoose from "mongoose";
 
 import {
   emitToAuthorizedRoom,
@@ -1727,6 +1728,709 @@ describe("emitToDocumentAndQueryRooms", () => {
     );
 
     expect(emissions).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// redactCredentials — Redis URL logging
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// startChangeStreamWatcher / stopChangeStreamWatcher — MongoDB change stream
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("startChangeStreamWatcher", () => {
+  let originalDb: typeof mongoose.connection.db;
+
+  beforeEach(() => {
+    originalDb = mongoose.connection.db;
+    clearRealtimeRegistry();
+  });
+
+  afterEach(async () => {
+    (mongoose.connection as any).db = originalDb;
+    clearRealtimeRegistry();
+    // Ensure the watcher is stopped between tests
+    const {stopChangeStreamWatcher: stop} = await import("./changeStreamWatcher");
+    await stop();
+  });
+
+  const createMockChangeStream = () => {
+    const listeners = new Map<string, (...args: any[]) => void>();
+    return {
+      close: mock(async () => {}),
+      listeners,
+      on(event: string, handler: (...args: any[]) => void) {
+        listeners.set(event, handler);
+        return this;
+      },
+      trigger(event: string, ...args: any[]) {
+        const handler = listeners.get(event);
+        if (handler) {
+          handler(...args);
+        }
+      },
+    };
+  };
+
+  const createMockIo = () => {
+    const rooms = new Map<string, Set<string>>();
+    const sockets = new Map<string, any>();
+    return {
+      sockets: {
+        adapter: {rooms},
+        sockets,
+      },
+      to: (_room: string) => ({
+        emit: (_event: string, _data: any) => {},
+      }),
+    } as unknown as import("socket.io").Server;
+  };
+
+  it("initializes and registers change/error/close/end listeners", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    expect(mockDb.watch).toHaveBeenCalled();
+    expect(mockStream.listeners.has("change")).toBe(true);
+    expect(mockStream.listeners.has("error")).toBe(true);
+    expect(mockStream.listeners.has("close")).toBe(true);
+    expect(mockStream.listeners.has("end")).toBe(true);
+  });
+
+  it("throws when mongoose connection db is unavailable", async () => {
+    (mongoose.connection as any).db = undefined;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    expect(() => startChangeStreamWatcher(io)).toThrow(
+      "MongoDB connection not available for change stream"
+    );
+  });
+
+  it("throws when watch returns null", async () => {
+    const mockDb = {
+      watch: mock(() => null),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    expect(() => startChangeStreamWatcher(io)).toThrow("Failed to create change stream watcher");
+  });
+
+  it("handles change events for registered models", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    // Trigger an insert change event
+    const changeHandler = mockStream.listeners.get("change");
+    expect(changeHandler).toBeDefined();
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1", name: "Test Todo"},
+      ns: {coll: "todos"},
+      operationType: "insert",
+    });
+  });
+
+  it("skips events for unregistered collections", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Trigger for an unregistered collection — should not throw
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1"},
+      ns: {coll: "unknown_collection"},
+      operationType: "insert",
+    });
+  });
+
+  it("skips events when method is not enabled for the model", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create"], // only create enabled
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [],
+          list: [() => true],
+          read: [() => true],
+          update: [],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Update event should be skipped because "update" not in methods
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1", name: "Updated"},
+      ns: {coll: "todos"},
+      operationType: "update",
+      updateDescription: {updatedFields: {name: "Updated"}},
+    });
+  });
+
+  it("handles delete events for owner-strategy models", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "owner",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Hard delete (no fullDocument)
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      ns: {coll: "todos"},
+      operationType: "delete",
+    });
+  });
+
+  it("handles delete events for broadcast-strategy models", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "broadcasts",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "broadcast",
+      },
+      modelName: "Broadcast",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/broadcasts",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Hard delete for broadcast strategy
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      ns: {coll: "broadcasts"},
+      operationType: "delete",
+    });
+  });
+
+  it("includes updatedFields in event for update operations", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1", name: "Updated", status: "done"},
+      ns: {coll: "todos"},
+      operationType: "update",
+      updateDescription: {updatedFields: {name: "Updated", status: "done"}},
+    });
+  });
+
+  it("respects ignoredCollections config", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {ignoredCollections: ["audit_logs"]}, true);
+
+    // Verify the pipeline passed to watch includes the ignored collections
+    const pipeline = mockDb.watch.mock.calls[0][0];
+    const matchStage = pipeline[0].$match;
+    expect(matchStage["ns.coll"].$nin).toContain("audit_logs");
+    expect(matchStage["ns.coll"].$nin).toContain("socketio");
+    expect(matchStage["ns.coll"].$nin).toContain("sessions");
+  });
+
+  it("respects ignoredOperations config", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [() => true],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {ignoredOperations: ["insert"]}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // This insert should be skipped because "insert" is ignored
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1"},
+      ns: {coll: "todos"},
+      operationType: "insert",
+    });
+  });
+
+  it("skips events with no collectionName or docId", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Missing ns.coll
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      ns: {},
+      operationType: "insert",
+    });
+    // Missing documentKey
+    await changeHandler!({
+      documentKey: {},
+      ns: {coll: "todos"},
+      operationType: "insert",
+    });
+  });
+
+  it("skips non-CRUD operation types", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // "drop" is not in our pipeline filter, should be skipped
+    await changeHandler!({
+      operationType: "drop",
+    });
+  });
+
+  it("handles error/close/end events gracefully", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {}, true);
+
+    // Trigger error, close, end — should not throw
+    mockStream.trigger("error", new Error("test error"));
+    mockStream.trigger("close");
+    mockStream.trigger("end");
+  });
+
+  it("uses custom batchSize and fullDocument config", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+    const io = createMockIo();
+
+    startChangeStreamWatcher(io, {batchSize: 100, fullDocument: "whenAvailable"}, true);
+
+    const options = mockDb.watch.mock.calls[0][1];
+    expect(options.batchSize).toBe(100);
+    expect(options.fullDocument).toBe("whenAvailable");
+  });
+
+  it("catches errors thrown in the change handler", async () => {
+    const mockStream = createMockChangeStream();
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    (mongoose.connection as any).db = mockDb;
+
+    // Register with a model that will throw during permission check
+    registerRealtime({
+      collectionName: "todos",
+      config: {
+        methods: ["create", "update", "delete"],
+        roomStrategy: "model",
+      },
+      modelName: "Todo",
+      options: {
+        permissions: {
+          create: [() => true],
+          delete: [() => true],
+          list: [() => true],
+          read: [
+            () => {
+              throw new Error("permission check error");
+            },
+          ],
+          update: [() => true],
+        },
+      },
+      routePath: "/todos",
+    });
+
+    const {startChangeStreamWatcher} = await import("./changeStreamWatcher");
+
+    // Create an IO with a socket in the target room
+    const emissions: any[] = [];
+    const mockSocket = {
+      decodedToken: {id: "user-1"},
+      emit: (_event: string, _data: any) => {
+        emissions.push({_data, _event});
+      },
+      id: "sock-1",
+    };
+    const rooms = new Map<string, Set<string>>();
+    rooms.set("model:todos", new Set(["sock-1"]));
+    const sockets = new Map<string, any>();
+    sockets.set("sock-1", mockSocket);
+    const io = {
+      sockets: {
+        adapter: {rooms},
+        sockets,
+      },
+      to: () => ({emit: () => {}}),
+    } as unknown as import("socket.io").Server;
+
+    startChangeStreamWatcher(io, {}, true);
+
+    const changeHandler = mockStream.listeners.get("change");
+    // Should not throw even though permission check throws
+    await changeHandler!({
+      documentKey: {_id: "doc-1"},
+      fullDocument: {_id: "doc-1", name: "Test"},
+      ns: {coll: "todos"},
+      operationType: "insert",
+    });
+  });
+});
+
+describe("stopChangeStreamWatcher", () => {
+  it("closes and nullifies the active watcher", async () => {
+    const mockStream = {
+      close: mock(async () => {}),
+      on: () => {},
+    };
+    const mockDb = {
+      watch: mock(() => mockStream),
+    };
+    const originalDb = mongoose.connection.db;
+    (mongoose.connection as any).db = mockDb;
+
+    const {startChangeStreamWatcher, stopChangeStreamWatcher} = await import(
+      "./changeStreamWatcher"
+    );
+    const io = {
+      sockets: {
+        adapter: {rooms: new Map()},
+        sockets: new Map(),
+      },
+      to: () => ({emit: () => {}}),
+    } as unknown as import("socket.io").Server;
+
+    startChangeStreamWatcher(io);
+    await stopChangeStreamWatcher();
+    expect(mockStream.close).toHaveBeenCalled();
+
+    // Calling again should be a no-op
+    await stopChangeStreamWatcher();
+
+    (mongoose.connection as any).db = originalDb;
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RealtimeApp.onServerCreated / setupAdapter
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("RealtimeApp.onServerCreated", () => {
+  const servers: import("http").Server[] = [];
+
+  afterEach(async () => {
+    for (const s of servers) {
+      s.close();
+    }
+    servers.length = 0;
+  });
+
+  const makeServer = (): import("http").Server => {
+    const http = require("http");
+    const server = http.createServer();
+    servers.push(server);
+    return server;
+  };
+
+  it("throws when TOKEN_SECRET is missing", () => {
+    const originalSecret = process.env.TOKEN_SECRET;
+    process.env.TOKEN_SECRET = "";
+
+    const app = new RealtimeApp({tokenSecret: undefined});
+    const server = makeServer();
+
+    expect(() => app.onServerCreated(server)).toThrow("TOKEN_SECRET is required");
+
+    process.env.TOKEN_SECRET = originalSecret;
+  });
+
+  it("sets up Socket.io with valid config", async () => {
+    const app = new RealtimeApp({
+      adapter: "none",
+      tokenSecret: "test-secret",
+    });
+    const server = makeServer();
+
+    // Mock mongoose.connection.db for changeStreamWatcher
+    const originalDb = mongoose.connection.db;
+    const mockStream = {close: async () => {}, on: () => mockStream};
+    (mongoose.connection as any).db = {watch: () => mockStream};
+
+    app.onServerCreated(server);
+    expect(app.getIo()).toBeDefined();
+
+    await app.close();
+    (mongoose.connection as any).db = originalDb;
+  });
+});
+
+describe("RealtimeApp.setupAdapter (private, via onServerCreated config)", () => {
+  const servers: import("http").Server[] = [];
+
+  afterEach(async () => {
+    for (const s of servers) {
+      s.close();
+    }
+    servers.length = 0;
+  });
+
+  const makeServer = (): import("http").Server => {
+    const http = require("http");
+    const server = http.createServer();
+    servers.push(server);
+    return server;
+  };
+
+  it("logs warning when redis adapter requested but no URL found", async () => {
+    const originalValkey = process.env.VALKEY_URL;
+    const originalRedis = process.env.REDIS_URL;
+    const originalDb = mongoose.connection.db;
+    process.env.VALKEY_URL = "";
+    process.env.REDIS_URL = "";
+
+    const mockStream = {close: async () => {}, on: () => mockStream};
+    (mongoose.connection as any).db = {watch: () => mockStream};
+
+    const app = new RealtimeApp({
+      adapter: "redis",
+      tokenSecret: "test-secret",
+    });
+    const server = makeServer();
+
+    app.onServerCreated(server);
+    await app.close();
+
+    process.env.VALKEY_URL = originalValkey;
+    process.env.REDIS_URL = originalRedis;
+    (mongoose.connection as any).db = originalDb;
+  });
+
+  it("logs info when redis adapter has a URL", async () => {
+    const originalValkey = process.env.VALKEY_URL;
+    const originalDb = mongoose.connection.db;
+    process.env.VALKEY_URL = "redis://user:pass@localhost:6379/0";
+
+    const mockStream = {close: async () => {}, on: () => mockStream};
+    (mongoose.connection as any).db = {watch: () => mockStream};
+
+    const app = new RealtimeApp({
+      adapter: "redis",
+      debug: true,
+      tokenSecret: "test-secret",
+    });
+    const server = makeServer();
+
+    app.onServerCreated(server);
+    await app.close();
+
+    process.env.VALKEY_URL = originalValkey;
+    (mongoose.connection as any).db = originalDb;
+  });
+
+  it("no-op adapter mode 'none'", async () => {
+    const originalDb = mongoose.connection.db;
+    const mockStream = {close: async () => {}, on: () => mockStream};
+    (mongoose.connection as any).db = {watch: () => mockStream};
+
+    const app = new RealtimeApp({
+      adapter: "none",
+      tokenSecret: "test-secret",
+    });
+    const server = makeServer();
+
+    app.onServerCreated(server);
+    expect(app.getIo()).toBeDefined();
+
+    await app.close();
+    (mongoose.connection as any).db = originalDb;
   });
 });
 

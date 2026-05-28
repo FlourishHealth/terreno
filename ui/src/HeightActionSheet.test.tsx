@@ -1,6 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, render} from "@testing-library/react-native";
-import {createRef} from "react";
+import React, {createRef} from "react";
 
 import type {ActionSheet} from "./ActionSheet";
 import {HeightActionSheet} from "./HeightActionSheet";
@@ -85,5 +85,24 @@ describe("HeightActionSheet", () => {
       }
     });
     expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("renders the Done button", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const {root} = render(
+      <ThemeProvider>
+        <HeightActionSheet
+          actionSheetRef={actionSheetRef}
+          onChange={() => {}}
+          title="Select Height"
+          value="70"
+        />
+      </ThemeProvider>
+    );
+    // Verify the Done button exists in the tree
+    const doneButtons = root.findAll(
+      (n) => n.props.text === "Done" && typeof n.props.onClick === "function"
+    );
+    expect(doneButtons.length).toBeGreaterThan(0);
   });
 });

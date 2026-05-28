@@ -207,6 +207,66 @@ describe("HeightField", () => {
   });
 });
 
+describe("HeightField - Web platform (HeightSegment path)", () => {
+  const {Platform} = require("react-native") as {Platform: {OS: string}};
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = "web";
+  });
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it("renders HeightSegment inputs on web", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField onChange={onChange} title="Height" value="70" />
+    );
+    expect(getByLabelText("ft input")).toBeTruthy();
+    expect(getByLabelText("in input")).toBeTruthy();
+  });
+
+  it("handles feet input change on web", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField onChange={onChange} value="70" />
+    );
+    fireEvent.changeText(getByLabelText("ft input"), "6");
+    expect(onChange).toHaveBeenCalledWith("82");
+  });
+
+  it("handles inches input change on web", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField onChange={onChange} value="70" />
+    );
+    fireEvent.changeText(getByLabelText("in input"), "3");
+    expect(onChange).toHaveBeenCalledWith("63");
+  });
+
+  it("clears value when both feet and inches are empty", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField onChange={onChange} value="" />
+    );
+    // With value="" both feet and inches start empty
+    fireEvent.changeText(getByLabelText("ft input"), "3");
+    expect(onChange).toHaveBeenCalledWith("36");
+  });
+
+  it("strips non-numeric characters in HeightSegment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField onChange={onChange} value="" />
+    );
+    fireEvent.changeText(getByLabelText("ft input"), "abc");
+    // "abc" stripped to "" -> handleFeetChange("") -> onChange("")
+    expect(onChange).toHaveBeenCalledWith("");
+  });
+});
+
 describe("HeightField - Android platform", () => {
   // Toggle Platform.OS to "android" to exercise the Android rendering branch
   // that uses SelectField pickers instead of the Pressable+ActionSheet path.

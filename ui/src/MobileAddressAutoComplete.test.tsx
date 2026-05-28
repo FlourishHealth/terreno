@@ -160,7 +160,7 @@ describe("MobileAddressAutocomplete", () => {
 
   it("falls back to the TextField and propagates its onChange without an API key", () => {
     const handleAddressChange = mock(() => {});
-    const {UNSAFE_root} = renderWithTheme(
+    const {root} = renderWithTheme(
       <MobileAddressAutocomplete
         handleAddressChange={handleAddressChange}
         handleAutoCompleteChange={() => {}}
@@ -168,7 +168,11 @@ describe("MobileAddressAutocomplete", () => {
         testID="mobile-fallback"
       />
     );
-    expect(UNSAFE_root).toBeTruthy();
+    // Find the TextField component with nativeID="address1" and trigger its onChange callback
+    const textFields = root.findAll((n) => n.props.nativeID === "address1" && n.props.onChangeText);
+    expect(textFields.length).toBeGreaterThan(0);
+    textFields[0].props.onChangeText("123 Main St");
+    expect(handleAddressChange).toHaveBeenCalledWith("123 Main St");
   });
 
   it("wrapping TouchableOpacity clears focus when pressed", () => {

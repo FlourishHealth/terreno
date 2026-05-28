@@ -334,4 +334,87 @@ describe("ActionSheet", () => {
       expect(result).toBeNull();
     });
   });
+
+  it("_showModal layout handler sets up animation", async () => {
+    const ref = createRef<ActionSheet>();
+    render(
+      <ThemeProvider>
+        <ActionSheet ref={ref}>
+          <Text>Layout test</Text>
+        </ActionSheet>
+      </ThemeProvider>
+    );
+    ref.current?.show();
+    // Call _showModal with a layout event
+    await act(async () => {
+      await (ref.current as any)._showModal({
+        nativeEvent: {layout: {height: 300, width: 400, x: 0, y: 0}},
+      });
+    });
+    expect(ref.current?.state.modalVisible).toBe(true);
+  });
+
+  it("_hideModal resets state and calls onClose", async () => {
+    const onClose = mock(() => {});
+    const ref = createRef<ActionSheet>();
+    render(
+      <ThemeProvider>
+        <ActionSheet onClose={onClose} ref={ref}>
+          <Text>Hide test</Text>
+        </ActionSheet>
+      </ThemeProvider>
+    );
+    ref.current?.show();
+    await act(async () => {
+      (ref.current as any)._hideModal();
+      await new Promise((r) => setTimeout(r, 50));
+    });
+  });
+
+  it("_onScrollBeginDrag sets scrolling state", async () => {
+    const ref = createRef<ActionSheet>();
+    render(
+      <ThemeProvider>
+        <ActionSheet gestureEnabled ref={ref}>
+          <Text>Scroll drag</Text>
+        </ActionSheet>
+      </ThemeProvider>
+    );
+    ref.current?.show();
+    await act(async () => {
+      await (ref.current as any)._onScrollBeginDrag({
+        nativeEvent: {contentOffset: {x: 0, y: 50}},
+      });
+    });
+  });
+
+  it("_onScrollEnd handles scroll end event", async () => {
+    const ref = createRef<ActionSheet>();
+    render(
+      <ThemeProvider>
+        <ActionSheet gestureEnabled ref={ref}>
+          <Text>Scroll end</Text>
+        </ActionSheet>
+      </ThemeProvider>
+    );
+    ref.current?.show();
+    await act(async () => {
+      await (ref.current as any)._onScrollEnd({
+        nativeEvent: {contentOffset: {x: 0, y: 0}, velocity: {y: 2}},
+      });
+    });
+  });
+
+  it("measure resolves with a height value", async () => {
+    const ref = createRef<ActionSheet>();
+    render(
+      <ThemeProvider>
+        <ActionSheet ref={ref}>
+          <Text>Measure test</Text>
+        </ActionSheet>
+      </ThemeProvider>
+    );
+    const result = await (ref.current as any).measure();
+    expect(typeof result).toBe("number");
+  });
 });

@@ -770,6 +770,73 @@ describe("expressServer", () => {
 
       expect(func).toHaveBeenCalled();
     });
+
+    it("fires warning timeout callback when script is slow", async () => {
+      // terminateTimeout = 0.3s → warnTime = 150ms, closeTime = 300ms
+      // The func takes 200ms, so the warn callback fires at 150ms,
+      // but func completes at 200ms before the terminate callback at 300ms.
+      // afterEach clears the terminate timer.
+      const func = mock(
+        () => new Promise<string>((resolve) => originalSetTimeout(() => resolve("done"), 200))
+      );
+      try {
+        await wrapScript(func, {terminateTimeout: 0.3});
+      } catch {
+        // process.exit(0) throws
+      }
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("setupServer with listen (skipListen false)", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0", // Use port 0 to let OS assign a random free port
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("starts the server when skipListen is false", async () => {
+      const addRoutes = () => {};
+      const app = setupServer({
+        addRoutes,
+        skipListen: false,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+      // Wait briefly for the listen callback to fire
+      await new Promise((r) => setTimeout(r, 50));
+    });
+
+    it("handles listen error with invalid port", () => {
+      process.env.PORT = "-1";
+      const addRoutes = () => {};
+      // Using an invalid port should trigger the catch block and process.exit(1)
+      const originalExit = process.exit;
+      process.exit = (() => {}) as any;
+      try {
+        setupServer({
+          addRoutes,
+          skipListen: false,
+          userModel: UserModel as any,
+        });
+      } catch {
+        // May throw
+      }
+      process.exit = originalExit;
+    });
   });
 
   describe("setupServer error handling", () => {

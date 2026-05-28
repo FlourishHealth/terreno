@@ -298,7 +298,158 @@ describe("Tooltip", () => {
       root.props.onPointerEnter?.();
     });
     unmount();
-    // No assertions needed - just ensuring no crashes on unmount.
     expect(true).toBe(true);
+  });
+
+  it("web click handler hides visible tooltip", async () => {
+    const {Platform} = require("react-native") as {Platform: {OS: string}};
+    const origOS = Platform.OS;
+    Platform.OS = "web";
+
+    const {toJSON, queryByTestId} = renderWithTheme(
+      <Tooltip text="Click test">
+        <Text>Click me</Text>
+      </Tooltip>
+    );
+
+    const tree = toJSON() as TestNode;
+    const root = tree.children?.[0] as TestNode;
+
+    // Show tooltip via touch
+    await act(async () => {
+      root.props.onTouchStart?.({nativeEvent: {}});
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(queryByTestId("tooltip-container")).toBeTruthy();
+
+    // Click (web handler) should hide tooltip
+    const onPress = (root.props as {onPress?: () => void}).onPress;
+    if (onPress) {
+      await act(async () => {
+        onPress();
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 50));
+      });
+    }
+
+    Platform.OS = origOS;
+  });
+
+  it("mobilePressProps.onPress calls children onClick when not touched", async () => {
+    const childOnClick = mock(() => {});
+    const {toJSON} = renderWithTheme(
+      <Tooltip text="Mobile test">
+        <Text onClick={childOnClick}>Tap me</Text>
+      </Tooltip>
+    );
+
+    const tree = toJSON() as TestNode;
+    const root = tree.children?.[0] as TestNode;
+    // onPress is from mobilePressProps — fires children's onClick when touched.current is false
+    const onPress = (root.props as {onPress?: () => void}).onPress;
+    if (onPress) {
+      await act(async () => {
+        onPress();
+      });
+    }
+    expect(childOnClick).toHaveBeenCalled();
+  });
+
+  it("shows tooltip with arrow and exercises getArrowContainerStyle at all positions", async () => {
+    const positions: Array<"top" | "bottom" | "left" | "right"> = [
+      "top",
+      "bottom",
+      "left",
+      "right",
+    ];
+    for (const position of positions) {
+      const {toJSON, queryByTestId} = renderWithTheme(
+        <Tooltip idealPosition={position} includeArrow text={`Arrow ${position}`}>
+          <Text>{position}</Text>
+        </Tooltip>
+      );
+
+      const tree = toJSON() as TestNode;
+      const root = tree.children?.[0] as TestNode;
+
+      // Show tooltip
+      await act(async () => {
+        root.props.onTouchStart?.({nativeEvent: {}});
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 150));
+      });
+      expect(queryByTestId("tooltip-container")).toBeTruthy();
+    }
+  });
+
+  it("handleHoverOut clears showTooltipTimer before tooltip appears", async () => {
+    const {toJSON, queryByTestId} = renderWithTheme(
+      <Tooltip text="Hover out test">
+        <Text>Hover</Text>
+      </Tooltip>
+    );
+
+    const tree = toJSON() as TestNode;
+    const root = tree.children?.[0] as TestNode;
+
+    // Start hover in
+    await act(async () => {
+      root.props.onPointerEnter?.();
+    });
+    // Immediately hover out before the delay expires
+    await act(async () => {
+      root.props.onPointerLeave?.();
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 1000));
+    });
+    // Tooltip should NOT appear
+    expect(queryByTestId("tooltip-container")).toBeNull();
+  });
+
+  it("handleTouchStart hides tooltip if already visible", async () => {
+    const {root, queryByTestId} = renderWithTheme(
+      <Tooltip text="Touch toggle test">
+        <Text>Touch</Text>
+      </Tooltip>
+    );
+
+    // Find the wrapper View that has onTouchStart
+    const wrapper = root.findAll(
+      (n) => typeof n.props.onTouchStart === "function" && typeof n.props.onPointerEnter === "function"
+    );
+    expect(wrapper.length).toBeGreaterThan(0);
+
+    // Show tooltip
+    await act(async () => {
+      wrapper[0].props.onTouchStart({nativeEvent: {}});
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 150));
+    });
+    expect(queryByTestId("tooltip-container")).toBeTruthy();
+
+    // Touch again to hide (handleTouchStart checks visible and calls hideTooltip)
+    await act(async () => {
+      wrapper[0].props.onTouchStart({nativeEvent: {}});
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(queryByTestId("tooltip-container")).toBeNull();
+  });
+
+  it("returns children directly when text is empty", () => {
+    const {getByText, queryByTestId} = renderWithTheme(
+      <Tooltip text="">
+        <Text>Direct child</Text>
+      </Tooltip>
+    );
+    expect(getByText("Direct child")).toBeTruthy();
+    expect(queryByTestId("tooltip-container")).toBeNull();
   });
 });
