@@ -122,7 +122,12 @@ label_present=false
 has_ack_label && label_present=true
 
 # === Case 2: acknowledged for the current fingerprint state ===
-if $label_present && [ "$existing_ack" = "$current_ack" ]; then
+# Empty existing_ack also counts as "acknowledged at current fingerprint":
+# the reviewer added the label before any bot comment existed (e.g. they
+# labeled while the initial run was canceled by cancel-in-progress, or
+# someone manually deleted the bot's comment). Treat label-add as a
+# definitive ack at the current state and let Case 3 catch later drift.
+if $label_present && { [ -z "$existing_ack" ] || [ "$existing_ack" = "$current_ack" ]; }; then
   body=$(cat <<EOF
 $COMMENT_MARKER
 <!-- $current_ack -->
