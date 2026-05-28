@@ -331,6 +331,19 @@ describe("formatAddress", () => {
     expect(result).toContain("Dallas County");
     expect(result).toContain("(113)");
   });
+
+  it("handles address with county name but no county code", () => {
+    const address = {
+      address1: "100 County Rd",
+      city: "Rural Town",
+      countyName: "Dallas County",
+      state: "TX",
+      zipcode: "75001",
+    };
+    const result = formatAddress(address);
+    expect(result).toContain("Dallas County");
+    expect(result).not.toContain("(");
+  });
 });
 
 describe("TapToEdit - additional function coverage", () => {
