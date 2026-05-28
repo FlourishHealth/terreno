@@ -1,5 +1,6 @@
-import {describe, expect, it, mock} from "bun:test";
+import {afterEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import {Platform} from "react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
 import {renderWithTheme} from "./test-utils";
@@ -333,5 +334,49 @@ describe("ConsentFormScreen", () => {
       fireEvent.press(getByTestId("consent-form-checkbox-0"));
     });
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+  });
+
+  // The iOS signature scroll-lock fixes a race where the ScrollView claims the
+  // touch gesture before the WebView-backed signature pad sees it. The wrapper
+  // View's onTouchStart/onTouchEnd toggle scrollEnabled synchronously, beating
+  // the async postMessage round-trip from react-native-signature-canvas.
+  describe("iOS signature scroll-lock", () => {
+    const originalPlatform = Platform.OS;
+    afterEach(() => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: originalPlatform});
+    });
+
+    it("toggles ScrollView scrollEnabled on touch start/end on iOS", () => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: "ios"});
+      const form = {...baseForm, captureSignature: true};
+      const {getByTestId} = renderWithTheme(
+        <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+      );
+      const scroll = getByTestId("consent-form-scroll-view");
+      const signatureWrapper = getByTestId("consent-form-signature");
+
+      expect(scroll.props.scrollEnabled).toBe(true);
+
+      act(() => {
+        fireEvent(signatureWrapper, "touchStart");
+      });
+      expect(scroll.props.scrollEnabled).toBe(false);
+
+      act(() => {
+        fireEvent(signatureWrapper, "touchEnd");
+      });
+      expect(scroll.props.scrollEnabled).toBe(true);
+    });
+
+    it("does not wire touch handlers on Android", () => {
+      Object.defineProperty(Platform, "OS", {configurable: true, value: "android"});
+      const form = {...baseForm, captureSignature: true};
+      const {getByTestId} = renderWithTheme(
+        <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+      );
+      const signatureWrapper = getByTestId("consent-form-signature");
+      expect(signatureWrapper.props.onTouchStart).toBeUndefined();
+      expect(signatureWrapper.props.onTouchEnd).toBeUndefined();
+    });
   });
 });
