@@ -3,6 +3,7 @@ import {act, render} from "@testing-library/react-native";
 import {createRef} from "react";
 
 import type {ActionSheet} from "./ActionSheet";
+import {Button} from "./Button";
 import {HeightActionSheet} from "./HeightActionSheet";
 import {ThemeProvider} from "./Theme";
 
@@ -85,5 +86,20 @@ describe("HeightActionSheet", () => {
       }
     });
     expect(handleChange).toHaveBeenCalled();
+  });
+
+  it("calls the Done button onClick handler directly", () => {
+    const actionSheetRef = createRef<ActionSheet>();
+    const {UNSAFE_root} = render(
+      <ThemeProvider>
+        <HeightActionSheet actionSheetRef={actionSheetRef} onChange={() => {}} value="60" />
+      </ThemeProvider>
+    );
+    const buttons = UNSAFE_root.findAllByType(Button as never);
+    const doneBtn = buttons.find((b) => b.props.text === "Done");
+    expect(doneBtn).toBeTruthy();
+    act(() => {
+      doneBtn!.props.onClick();
+    });
   });
 });

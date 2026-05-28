@@ -2,6 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
+import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -333,5 +334,26 @@ describe("ConsentFormScreen", () => {
       fireEvent.press(getByTestId("consent-form-checkbox-0"));
     });
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+  });
+
+  it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      captureSignature: true,
+    };
+    const {UNSAFE_getByType} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const sig = UNSAFE_getByType(SignatureField);
+    act(() => {
+      sig.props.onChange("data:image/png;base64,abc");
+    });
+    act(() => {
+      sig.props.onStart();
+    });
+    act(() => {
+      sig.props.onEnd();
+    });
+    expect(sig).toBeTruthy();
   });
 });

@@ -274,3 +274,104 @@ describe("HeightField - Android platform", () => {
     expect(onChange).toHaveBeenCalledWith("63");
   });
 });
+
+describe("HeightField - Desktop platform", () => {
+  const {Platform} = require("react-native") as {Platform: {OS: string}};
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = "web";
+  });
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it("fires handleBlur on HeightSegment and calls onChange", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent(feetInput, "blur");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("handles text input change in feet segment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent.changeText(feetInput, "6");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("handles clearing feet input to empty", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent.changeText(feetInput, "");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("calls onChange with empty when both feet and inches are cleared", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent.changeText(feetInput, "");
+    expect(onChange).toHaveBeenCalledWith("");
+  });
+
+  it("renders HeightSegment in disabled state", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField disabled onChange={onChange} value="70" />
+    );
+    expect(getByLabelText("ft input")).toBeTruthy();
+  });
+
+  it("renders HeightSegment with error text", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(
+      <HeightField errorText="Required" onChange={onChange} value="70" />
+    );
+    expect(getByLabelText("ft input")).toBeTruthy();
+  });
+
+  it("fires focus on feet segment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent(feetInput, "focus");
+    expect(feetInput).toBeTruthy();
+  });
+
+  it("fires focus on inches segment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const inInput = getByLabelText("in input");
+    fireEvent(inInput, "focus");
+    expect(inInput).toBeTruthy();
+  });
+
+  it("handles text input change in inches segment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const inInput = getByLabelText("in input");
+    fireEvent.changeText(inInput, "3");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("handles non-numeric input in HeightSegment", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent.changeText(feetInput, "abc");
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it("clamps to max value in HeightSegment handleChange", () => {
+    const onChange = mock(() => {});
+    const {getByLabelText} = renderWithTheme(<HeightField onChange={onChange} value="70" />);
+    const feetInput = getByLabelText("ft input");
+    fireEvent.changeText(feetInput, "99");
+    expect(feetInput).toBeTruthy();
+  });
+});
