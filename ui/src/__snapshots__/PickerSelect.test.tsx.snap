@@ -546,6 +546,7 @@ exports[`PickerSelect renders disabled state 1`] = `
               "props": {
                 "style": {
                   "color": "#686868",
+                  "flex": 1,
                 },
                 "testID": "text_input",
               },

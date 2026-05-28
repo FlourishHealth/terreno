@@ -389,6 +389,7 @@ export function RNPickerSelect({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
+    const textProps = textInputProps as Partial<TextProps> | undefined;
     return (
       <View
         style={{
@@ -400,11 +401,11 @@ export function RNPickerSelect({
       >
         {disabled ? (
           <Text
-            {...(textInputProps as Partial<TextProps>)}
+            {...textProps}
             style={
-              (textInputProps as Partial<TextProps>)?.style
-                ? [{color: theme.text.secondaryLight}, (textInputProps as Partial<TextProps>).style]
-                : {color: theme.text.secondaryLight}
+              textProps?.style
+                ? [{color: theme.text.secondaryLight, flex: 1}, textProps.style]
+                : {color: theme.text.secondaryLight, flex: 1}
             }
             testID={textInputProps?.testID ?? "text_input"}
           >
