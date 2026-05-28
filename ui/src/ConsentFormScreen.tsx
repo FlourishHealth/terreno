@@ -3,8 +3,10 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
+  View,
 } from "react-native";
 
 import {Box} from "./Box";
@@ -212,7 +214,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
           )}
 
           {Boolean(form.captureSignature) && (
-            <Box direction="column" gap={2} testID="consent-form-signature">
+            <View
+              onTouchEnd={Platform.OS === "ios" ? () => setScrollEnabled(true) : undefined}
+              onTouchStart={Platform.OS === "ios" ? () => setScrollEnabled(false) : undefined}
+              testID="consent-form-signature"
+            >
               <SignatureField
                 onChange={(value) => setSignatureValue(value)}
                 onEnd={() => setScrollEnabled(true)}
@@ -220,7 +226,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
                 title="Signature"
                 value={signatureValue}
               />
-            </Box>
+            </View>
           )}
 
           {Boolean(form.requireScrollToBottom && !hasScrolledToBottom) && (
