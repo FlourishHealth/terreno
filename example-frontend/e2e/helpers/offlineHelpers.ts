@@ -1,7 +1,29 @@
 import {type Page, request} from "@playwright/test";
+import type {ConsoleGuard} from "../fixtures/test";
 import {TEST_USER} from "../fixtures/testUsers";
 
 const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
+
+/**
+ * Patterns emitted as console.warn/error while the app is offline. The browser
+ * logs net::ERR_CONNECTION_REFUSED for every blocked API request, and consent
+ * fetching paths log a warning when those requests fail.
+ */
+export const allowOfflineNoise = (consoleGuard: ConsoleGuard): void => {
+  consoleGuard.allow("Failed to load resource: net::ERR_CONNECTION_REFUSED");
+  consoleGuard.allow("Failed to load resource: net::ERR_INTERNET_DISCONNECTED");
+  consoleGuard.allow("[useConsentForms] Failed to fetch pending consent forms");
+  consoleGuard.allow("[ConsentNavigator] Error fetching pending consents");
+  // RTK mutation rejections while offline are logged by store/errors.ts.
+  consoleGuard.allow("rejected mutation: Network unavailable");
+  consoleGuard.allow("Sentry not initialized, captured exception Error:");
+  // Conflict-detection tests deliberately trigger 409s from the backend.
+  consoleGuard.allow("Failed to load resource: the server responded with a status of 409");
+  // Replay attempts may surface non-Network failures (e.g. tombstoned docs).
+  consoleGuard.allow(/^\[offline\] Replay failed for /);
+  // Sentry's getOpenApi fetch can fail while routes are intercepted offline.
+  consoleGuard.allow("Error fetching OpenAPI spec");
+};
 
 /**
  * Simulate going offline by blocking API requests and dispatching offline event.

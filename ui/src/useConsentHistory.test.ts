@@ -25,17 +25,22 @@ describe("useConsentHistory", () => {
       refetch,
     }));
     const api = {
-      injectEndpoints: mock((opts: MockInjectOpts) => {
-        const build = {
-          query: mock((def: MockQueryDef) => {
-            // Exercise the URL builder so the closure captures `base`
-            const url = def.query();
-            expect(url).toContain("/consents/my");
-            return "my-consents-query";
+      enhanceEndpoints: mock((opts: {addTagTypes: string[]}) => {
+        expect(opts.addTagTypes).toContain("MyConsents");
+        return {
+          injectEndpoints: mock((injectOpts: MockInjectOpts) => {
+            const build = {
+              query: mock((def: MockQueryDef) => {
+                // Exercise the URL builder so the closure captures `base`
+                const url = def.query();
+                expect(url).toContain("/consents/my");
+                return "my-consents-query";
+              }),
+            };
+            injectOpts.endpoints(build);
+            return {useGetMyConsentsQuery};
           }),
         };
-        opts.endpoints(build);
-        return {useGetMyConsentsQuery};
       }),
     };
     return {api, refetch};
@@ -84,10 +89,12 @@ describe("useConsentHistory", () => {
       refetch,
     }));
     const api = {
-      injectEndpoints: () => {
-        injectCallCount += 1;
-        return {useGetMyConsentsQuery};
-      },
+      enhanceEndpoints: () => ({
+        injectEndpoints: () => {
+          injectCallCount += 1;
+          return {useGetMyConsentsQuery};
+        },
+      }),
     };
     const {rerender} = renderHook(() => useConsentHistory(api as unknown as ConsentHistoryApi));
     rerender(undefined);
