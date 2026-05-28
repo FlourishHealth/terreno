@@ -14,7 +14,7 @@ const memorySchema = new mongoose.Schema(
     },
     text: {description: "The memory content", required: true, type: String},
   },
-  {timestamps: {createdAt: "created", updatedAt: false}}
+  {strict: "throw", timestamps: {createdAt: "created", updatedAt: false}}
 );
 
 const projectSchema = new mongoose.Schema<ProjectDocument, ProjectModel>(

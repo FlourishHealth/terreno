@@ -72,6 +72,7 @@ export const useConfigurationApi = ({
     });
   }, [api, basePath]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   return {

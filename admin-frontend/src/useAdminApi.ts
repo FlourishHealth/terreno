@@ -116,8 +116,7 @@ export const useAdminApi = (api: AdminApi, routePath: string, modelName: string)
   const updateKey = `adminUpdate_${modelName}`;
   const deleteKey = `adminDelete_${modelName}`;
 
-  // RTK Query generates these hook names dynamically from the endpoint keys; the resulting
-  // shape is not statically expressible through @reduxjs/toolkit's public types.
+  // noExplicitAny: RTK Query generates hook names dynamically from endpoint keys; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   return {

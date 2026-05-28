@@ -121,11 +121,9 @@ export const buildOptimisticCreateItem = (
   };
 };
 
+/** Derives the collection tag from an endpoint name (e.g. "patchTodosById" → "todos"). */
 const inferTagType = (endpointName: string): string => {
-  // Infer tag type from endpoint name for cache invalidation.
-  // Convention: patchTodosById -> "todos", postTodos -> "todos", deleteTodosById -> "todos"
   let name = endpointName.replace(/^(post|patch|delete)/, "").replace(/ById$/, "");
-  // Convert first char to lowercase
   name = name.charAt(0).toLowerCase() + name.slice(1);
   return name;
 };

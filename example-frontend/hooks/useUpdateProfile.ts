@@ -12,7 +12,7 @@ export interface UpdateProfileResult {
   error: unknown;
 }
 
-export function useUpdateProfile(): UpdateProfileResult {
+export const useUpdateProfile = (): UpdateProfileResult => {
   const [patchMe, {isLoading, error}] = usePatchMeMutation();
 
   const updateProfile = async (updates: UpdateProfileArgs): Promise<void> => {
@@ -24,4 +24,4 @@ export function useUpdateProfile(): UpdateProfileResult {
     isLoading,
     updateProfile,
   };
-}
+};
