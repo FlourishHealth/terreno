@@ -1,6 +1,6 @@
-import {SidebarNavigation, type SidebarNavigationItem, Text} from "@terreno/ui";
+import {SidebarNavigation, type SidebarNavigationItem} from "@terreno/ui";
 import {router} from "expo-router";
-import {Pressable, StyleSheet} from "react-native";
+import {Pressable, StyleSheet, Text} from "react-native";
 
 const topItems: SidebarNavigationItem[] = [
   {iconName: "house", label: "Home", route: "index"},
@@ -17,7 +17,7 @@ const bottomItems: SidebarNavigationItem[] = [
 
 const headerRight = () => (
   <Pressable onPress={() => router.navigate("/dev")} style={styles.headerButton}>
-    <Text bold>Dev Mode</Text>
+    <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
   </Pressable>
 );
 

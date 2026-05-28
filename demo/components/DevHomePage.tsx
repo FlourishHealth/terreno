@@ -32,7 +32,7 @@ export const DevHomePage = ({demoConfig, onPress}: DevHomePageProps): React.Reac
         {demoConfig.map((config) => (
           <React.Fragment key={config.name}>
             <Box marginBottom={3}>
-              <Heading size="sm">{config.name}</Heading>
+              <Heading size="md">{config.name}</Heading>
             </Box>
             {Object.keys(config.stories).map((title) => (
               <Pressable
