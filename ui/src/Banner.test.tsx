@@ -168,4 +168,75 @@ describe("Banner", () => {
       expect(setItemMock).not.toHaveBeenCalled();
     });
   });
+
+  it("hides banner when storage already has the dismissed flag", async () => {
+    const getItemMock = Unifier.storage.getItem as ReturnType<typeof mock>;
+    getItemMock.mockReturnValueOnce(Promise.resolve("true"));
+
+    const {queryByText} = renderWithTheme(
+      <Banner dismissible id="stored-banner" text="Previously dismissed" />
+    );
+
+    await waitFor(() => {
+      expect(queryByText("Previously dismissed")).toBeNull();
+    });
+  });
+
+  it("exercises the async .then path in useEffect", async () => {
+    const getItemMock = Unifier.storage.getItem as ReturnType<typeof mock>;
+    getItemMock.mockReturnValueOnce(Promise.resolve(null));
+
+    const {queryByText} = renderWithTheme(
+      <Banner dismissible id="flush-banner" text="Flush banner" />
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(queryByText("Flush banner")).toBeTruthy();
+  });
+
+  it("renders button without icon name (text-only button path)", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(
+      <Banner
+        buttonOnClick={handleClick}
+        buttonText="TextOnly"
+        id="textonly-banner"
+        text="Banner"
+      />
+    );
+    expect(getByText("TextOnly")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByText("TextOnly"));
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    await waitFor(() => {
+      expect(handleClick).toHaveBeenCalled();
+    });
+  });
+
+  it("covers catch block when buttonOnClick rejects", async () => {
+    const handleClick = mock(() => Promise.reject(new Error("boom")));
+    const {UNSAFE_root} = renderWithTheme(
+      <Banner buttonOnClick={handleClick} buttonText="Fail" id="catch-banner" text="Banner" />
+    );
+
+    const pressable = UNSAFE_root.findAll(
+      (node) => node.props?.["aria-label"] === "Fail" && typeof node.props?.onPress === "function"
+    )[0];
+
+    try {
+      await act(async () => {
+        await pressable.props.onPress();
+      });
+    } catch (_e) {
+      // Expected: catch block in BannerButton re-throws
+    }
+
+    expect(handleClick).toHaveBeenCalled();
+  });
 });
