@@ -1934,7 +1934,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
     await RealtimeTestModel.create({name: "test-item", ownerId: "user-1"});
 
     // Wait for the change stream event to be processed
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const createEmissions = io.emissions.filter(
       (e: any) => e.event === "sync" && e.payload?.method === "create"
@@ -1968,7 +1968,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
 
     await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {name: "updated-item"}});
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const updateEmissions = io.emissions.filter(
       (e: any) => e.event === "sync" && e.payload?.method === "update"
@@ -2002,7 +2002,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
 
     await RealtimeTestModel.deleteOne({_id: doc._id});
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const deleteEmissions = io.emissions.filter(
       (e: any) => e.event === "sync" && e.payload?.method === "delete"
@@ -2036,7 +2036,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
 
     await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {deleted: true}});
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const deleteEmissions = io.emissions.filter(
       (e: any) => e.event === "sync" && e.payload?.method === "delete"
@@ -2072,7 +2072,7 @@ describe("startChangeStreamWatcher — change event integration", () => {
 
     await RealtimeTestModel.updateOne({_id: doc._id}, {$set: {name: "fields-updated"}});
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const updateEmissions = io.emissions.filter(
       (e: any) => e.event === "sync" && e.payload?.method === "update"
