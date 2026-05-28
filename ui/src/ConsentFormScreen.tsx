@@ -168,7 +168,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
   );
 
   return (
-    <Page color="base" footer={footer} maxWidth="100%" scroll={false} title={form.title}>
+    <Page color="base" footer={footer} maxWidth="100%" safeArea scroll={false} title={form.title}>
       <ScrollView
         onContentSizeChange={handleContentSizeChange}
         onLayout={handleLayout}
