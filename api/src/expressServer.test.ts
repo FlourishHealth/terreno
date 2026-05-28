@@ -776,6 +776,7 @@ describe("expressServer", () => {
     const originalEnv = process.env;
     const http = require("node:http");
     let activeServer: any = null;
+    let originalListen: any = null;
 
     beforeEach(() => {
       process.env = {
@@ -788,7 +789,7 @@ describe("expressServer", () => {
         TOKEN_SECRET: "test-secret",
       };
 
-      const originalListen = http.Server.prototype.listen;
+      originalListen = http.Server.prototype.listen;
       http.Server.prototype.listen = function (...args: any[]) {
         activeServer = this;
         return originalListen.apply(this, args);
@@ -797,6 +798,7 @@ describe("expressServer", () => {
 
     afterEach(async () => {
       process.env = originalEnv;
+      http.Server.prototype.listen = originalListen;
       if (activeServer) {
         await new Promise<void>((resolve) => activeServer.close(() => resolve()));
         activeServer = null;
@@ -820,6 +822,7 @@ describe("expressServer", () => {
   describe("wrapScript timeout callbacks", () => {
     const originalExit = process.exit;
     const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
     const timerCallbacks: Array<{callback: () => void; delay: number}> = [];
 
     beforeEach(() => {
@@ -836,13 +839,19 @@ describe("expressServer", () => {
       }) as unknown as typeof process.exit;
 
       timerCallbacks.length = 0;
+      timerIds.length = 0;
       globalThis.setTimeout = ((cb: () => void, delay: number) => {
         timerCallbacks.push({callback: cb, delay});
-        return originalSetTimeout(cb, delay);
+        const id = originalSetTimeout(cb, delay);
+        timerIds.push(id);
+        return id;
       }) as typeof setTimeout;
     });
 
     afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
       globalThis.setTimeout = originalSetTimeout;
       process.exit = originalExit;
     });
