@@ -159,29 +159,7 @@ jobs:
             echo "::error::Could not locate built iOS simulator app"
             exit 1
           fi
-          # Prefer iOS 18.x simulators — appium-xcuitest-driver/WDA is unreliable on iOS 26 beta runtimes.
-          IOS_PLATFORM_VERSION="$(xcrun simctl list runtimes available | grep -E 'iOS 18\.' | sed -E 's/.*iOS ([0-9.]+).*/\1/' | sort -V | tail -1)"
-          if [ -z "$IOS_PLATFORM_VERSION" ]; then
-            IOS_PLATFORM_VERSION="$(xcrun simctl list runtimes available | grep -E 'iOS [0-9]+\.' | grep -Ev 'iOS 26\.' | sed -E 's/.*iOS ([0-9.]+).*/\1/' | sort -V | tail -1)"
-          fi
-          if [ -z "$IOS_PLATFORM_VERSION" ]; then
-            echo "::error::Could not determine a stable iOS platform version"
-            exit 1
-          fi
-          IOS_DEVICE_LINE="$(xcrun simctl list devices available | awk -v ver="$IOS_PLATFORM_VERSION" '
-            $0 ~ "-- iOS " ver " --" { in_section=1; next }
-            in_section && /^-- / { in_section=0 }
-            in_section && /iPhone 16 \(/ { print; exit }
-            in_section && /iPhone 15 \(/ { print; exit }
-            in_section && /iPhone/ && !device { device=$0 }
-            END { if (device) print device }
-          ')"
-          if [ -z "$IOS_DEVICE_LINE" ]; then
-            echo "::error::Could not find an available iPhone simulator for iOS $IOS_PLATFORM_VERSION"
-            exit 1
-          fi
-          IOS_DEVICE_NAME="$(echo "$IOS_DEVICE_LINE" | sed -E 's/^[[:space:]]*([^(]+).*/\1/' | xargs)"
-          IOS_DEVICE_UDID="$(echo "$IOS_DEVICE_LINE" | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')"
+          eval "$(bun demo/appium/selectIosSimulator.ts)"
           echo "Using simulator: $IOS_DEVICE_NAME ($IOS_DEVICE_UDID) on iOS $IOS_PLATFORM_VERSION"
           echo "Using app bundle: $IOS_APP_PATH"
           xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
