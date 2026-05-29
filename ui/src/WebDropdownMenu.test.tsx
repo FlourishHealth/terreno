@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, renderHook} from "@testing-library/react-native";
+import {Dimensions} from "react-native";
 
 import {renderWithTheme} from "./test-utils";
 import {useWebDropdownAnchor, WebDropdownMenu} from "./WebDropdownMenu";
@@ -195,13 +196,11 @@ describe("WebDropdownMenu positioning", () => {
     expect(style.top).toBeUndefined();
   });
 
-  it("clamps maxHeight to available space when opening below", () => {
-    // Place the trigger so there's some space below but less than 300px.
-    // windowHeight=812, anchor y=600 + height=40 + gap=4 => spaceBelow = 168
-    const midAnchor = {height: 40, width: 200, x: 16, y: 600};
+  it("positions the menu below the trigger when there is room below", () => {
+    const topAnchor = {height: 40, width: 200, x: 16, y: 32};
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
-        anchor={midAnchor}
+        anchor={topAnchor}
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
@@ -213,9 +212,38 @@ describe("WebDropdownMenu positioning", () => {
     const style = Array.isArray(menu.props.style)
       ? Object.assign({}, ...menu.props.style)
       : menu.props.style;
-    // spaceBelow = 812 - 644 = 168. Since 168 < 300 but anchor.y (600) > 168,
-    // it opens above. maxHeight clamped to space above: min(300, 600 - 4) = 300.
-    expect(style.maxHeight).toBeLessThanOrEqual(300);
+    expect(style.top).toBe(topAnchor.y + topAnchor.height + 4);
+    expect(style.bottom).toBeUndefined();
+    expect(style.maxHeight).toBe(300);
+  });
+
+  it("clamps maxHeight to available space when opening above", () => {
+    const originalGet = Dimensions.get;
+    Dimensions.get = () => ({fontScale: 1, height: 400, scale: 1, width: 375});
+    try {
+      // windowHeight=400, anchor y=200 + height=40 + gap=4 => spaceBelow=156.
+      // Opens above because 156 < 300 and 200 > 156.
+      const midAnchor = {height: 40, width: 200, x: 16, y: 200};
+      const {getByTestId} = renderWithTheme(
+        <WebDropdownMenu
+          anchor={midAnchor}
+          onClose={() => {}}
+          onSelect={() => {}}
+          options={options}
+          searchable={false}
+          visible
+        />
+      );
+      const menu = getByTestId("web_dropdown_menu");
+      const style = Array.isArray(menu.props.style)
+        ? Object.assign({}, ...menu.props.style)
+        : menu.props.style;
+      expect(style.bottom).toBe(400 - midAnchor.y + 4);
+      expect(style.top).toBeUndefined();
+      expect(style.maxHeight).toBe(midAnchor.y - 4);
+    } finally {
+      Dimensions.get = originalGet;
+    }
   });
 });
 
