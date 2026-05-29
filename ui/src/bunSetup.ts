@@ -1189,10 +1189,6 @@ mock.module("react-native/Libraries/vendor/core/ErrorUtils", () => ({
   },
 }));
 
-mock.module("react-native/Libraries/Core/ReactNativeVersion", () => ({
-  version: {major: 0, minor: 81, patch: 5},
-}));
-
 mock.module("react-native/Libraries/Core/NativeExceptionsManager", () => ({
   default: null,
 }));

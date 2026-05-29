@@ -20,6 +20,7 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
+    "react-native-gesture-handler": "catalog:",
     "react-native-reanimated": "catalog:",
     "react-native-web": "catalog:",
     "react-native-webview": "catalog:",

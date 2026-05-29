@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import assert from "node:assert";
 
 import {MarkdownView} from "./MarkdownView";
 import {renderWithTheme} from "./test-utils";
@@ -36,6 +37,33 @@ describe("MarkdownView", () => {
       <MarkdownView>{"1. First\n2. Second\n3. Third"}</MarkdownView>
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("keeps long consent ordered list markers on one line", () => {
+    const longConsentList = Array.from({length: 17}, (_, index) => {
+      return `${index + 1}. This consent item has enough text to wrap on narrow mobile screens.`;
+    }).join("\n");
+    const {toJSON} = renderWithTheme(<MarkdownView>{longConsentList}</MarkdownView>);
+    const serialized = JSON.stringify(toJSON());
+
+    assert.ok(serialized.includes('"minWidth":32'));
+    assert.ok(serialized.includes('"flexShrink":0'));
+    assert.ok(serialized.includes('"textAlign":"right"'));
+    assert.ok(serialized.includes("17"));
+  });
+
+  it("uses explicit markdown paragraph line height for wrapped mobile text", () => {
+    const {toJSON} = renderWithTheme(
+      <MarkdownView>
+        {
+          "This consent paragraph is intentionally long so it wraps across multiple lines on Android and keeps its measured height."
+        }
+      </MarkdownView>
+    );
+    const serialized = JSON.stringify(toJSON());
+
+    assert.ok(serialized.includes('"fontSize":14'));
+    assert.ok(serialized.includes('"lineHeight":20'));
   });
 
   it("renders code blocks", () => {

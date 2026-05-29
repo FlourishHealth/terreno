@@ -126,8 +126,9 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     }
   }
 
-  // Exclude @sentry/react-native from web builds (it uses import.meta which isn't supported)
-  if (platform === "web" && (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/"))) {
+  // @sentry/react-native uses TurboModuleRegistry.getEnforcing which hangs in Expo Go
+  // without a custom dev build. Exclude it so only @sentry/react (browser-only) is used.
+  if (moduleName === "@sentry/react-native" || moduleName.startsWith("@sentry/react-native/")) {
     return {
       type: "empty",
     };
