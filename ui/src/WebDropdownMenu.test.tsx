@@ -190,8 +190,9 @@ describe("WebDropdownMenu positioning", () => {
     const style = Array.isArray(menu.props.style)
       ? Object.assign({}, ...menu.props.style)
       : menu.props.style;
-    // Menu should open above: top should be less than the trigger's y position.
-    expect(style.top).toBeLessThan(bottomAnchor.y);
+    // Menu should open above: bottom-anchored so it sits flush above the trigger.
+    expect(style.bottom).toBe(812 - bottomAnchor.y + 4);
+    expect(style.top).toBeUndefined();
   });
 
   it("clamps maxHeight to available space when opening below", () => {
@@ -241,13 +242,27 @@ describe("WebDropdownMenu searchable", () => {
     expect(queryByTestId("web_dropdown_search")).toBeNull();
   });
 
-  it("renders a search input by default (searchable defaults to true)", () => {
+  it("does not render a search input by default (searchable defaults to false)", () => {
+    const {queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        visible
+      />
+    );
+    expect(queryByTestId("web_dropdown_search")).toBeNull();
+  });
+
+  it("renders a search input when searchable is true", () => {
     const {getByTestId} = renderWithTheme(
       <WebDropdownMenu
         anchor={anchor}
         onClose={() => {}}
         onSelect={() => {}}
         options={options}
+        searchable
         visible
       />
     );

@@ -60,7 +60,7 @@ export interface WebDropdownMenuProps {
    * When true, renders a search input at the top of the dropdown that
    * filters options by label as the user types. The filter resets each
    * time the menu opens.
-   * @default true
+   * @default false
    */
   searchable?: boolean;
 }
@@ -93,7 +93,7 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
-  searchable = true,
+  searchable = false,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,9 +124,8 @@ export const WebDropdownMenu = ({
   const spaceBelow = windowHeight - (anchor.y + anchor.height + gap);
   // If not enough room below the trigger, open the menu above it instead.
   const isOpenAbove = spaceBelow < menuMaxHeight && anchor.y > spaceBelow;
-  const menuTop = isOpenAbove ? anchor.y - menuMaxHeight - gap : anchor.y + anchor.height + gap;
-  // When opening above, clamp so the menu doesn't go above the viewport.
-  const clampedTop = Math.max(0, menuTop);
+  const menuTop = anchor.y + anchor.height + gap;
+  const menuBottom = windowHeight - anchor.y + gap;
   const clampedMaxHeight = isOpenAbove
     ? Math.min(menuMaxHeight, anchor.y - gap)
     : Math.min(menuMaxHeight, spaceBelow);
@@ -160,7 +159,7 @@ export const WebDropdownMenu = ({
           shadowOffset: {height: 2, width: 0},
           shadowOpacity: 0.15,
           shadowRadius: 8,
-          top: clampedTop,
+          ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
           width: width ?? anchor.width,
         }}
         testID={`${testIDPrefix}_menu`}
