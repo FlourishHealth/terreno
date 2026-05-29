@@ -1,4 +1,6 @@
-import {Box, type FieldOption, Heading, SelectField} from "@terreno/ui";
+import {BooleanField, Box, type FieldOption, Heading, SelectField, Text} from "@terreno/ui";
+import {type ReactElement, useState} from "react";
+import {Platform} from "react-native";
 
 const options: FieldOption[] = [
   {label: "First", value: "first"},
@@ -6,27 +8,94 @@ const options: FieldOption[] = [
   {label: "Third, A Really Long Option", value: "third"},
 ];
 
+const searchableOptions: FieldOption[] = [
+  {label: "Apple", value: "apple"},
+  {label: "Apricot", value: "apricot"},
+  {label: "Avocado", value: "avocado"},
+  {label: "Banana", value: "banana"},
+  {label: "Blackberry", value: "blackberry"},
+  {label: "Blueberry", value: "blueberry"},
+  {label: "Cherry", value: "cherry"},
+  {label: "Coconut", value: "coconut"},
+  {label: "Grape", value: "grape"},
+  {label: "Grapefruit", value: "grapefruit"},
+  {label: "Kiwi", value: "kiwi"},
+  {label: "Lemon", value: "lemon"},
+  {label: "Lime", value: "lime"},
+  {label: "Mango", value: "mango"},
+  {label: "Orange", value: "orange"},
+  {label: "Peach", value: "peach"},
+  {label: "Pear", value: "pear"},
+  {label: "Pineapple", value: "pineapple"},
+  {label: "Plum", value: "plum"},
+  {label: "Raspberry", value: "raspberry"},
+  {label: "Strawberry", value: "strawberry"},
+  {label: "Watermelon", value: "watermelon"},
+];
+
 export const SelectFieldDemo = (props: {
   withErrorText: boolean;
   withHelperText: boolean;
   withTitle: boolean;
   disabled: boolean;
-}) => {
+  searchable: boolean;
+}): ReactElement => {
+  const {withErrorText, withHelperText, withTitle, disabled, searchable} = props;
+  const [value, setValue] = useState("");
+
   return (
-    <SelectField
-      // disabled={props.disabled}
-      errorText={props.withErrorText ? "This is an error" : undefined}
-      helperText={props.withHelperText ? "This is some helper text" : undefined}
-      onChange={() => {}}
-      options={options}
-      title={props.withTitle ? "Select field" : undefined}
-      value=""
-      {...props}
-    />
+    <Box gap={2} width="100%">
+      {Platform.OS === "web" && (
+        <Text color="secondaryLight" size="sm">
+          Open the dropdown to use the search filter when searchable is enabled.
+        </Text>
+      )}
+      <SelectField
+        disabled={disabled}
+        errorText={withErrorText ? "This is an error" : undefined}
+        helperText={withHelperText ? "This is some helper text" : undefined}
+        key={searchable ? "searchable" : "plain"}
+        onChange={setValue}
+        options={searchableOptions}
+        searchable={searchable}
+        title={withTitle ? "Select field" : undefined}
+        value={value}
+      />
+    </Box>
   );
 };
 
-export const SelectFieldExamples = () => {
+export const SelectFieldSearchableDemo = (): ReactElement => {
+  const [value, setValue] = useState("");
+  const [searchable, setSearchable] = useState(true);
+
+  return (
+    <Box gap={4} width="100%">
+      {Platform.OS !== "web" && (
+        <Text color="secondaryLight">
+          Searchable filtering only applies on web. Run the demo with `bun run web` to try it.
+        </Text>
+      )}
+      <BooleanField
+        onChange={setSearchable}
+        title="Searchable"
+        value={searchable}
+        variant="title"
+      />
+      <SelectField
+        helperText="Type in the search box after opening the menu to filter options by label."
+        key={searchable ? "searchable" : "plain"}
+        onChange={setValue}
+        options={searchableOptions}
+        searchable={searchable}
+        title="Pick a fruit"
+        value={value}
+      />
+    </Box>
+  );
+};
+
+export const SelectFieldExamples = (): ReactElement => {
   return (
     <Box>
       <Box marginBottom={2} padding={4}>
@@ -77,6 +146,12 @@ export const SelectFieldExamples = () => {
           title="Select field"
           value="third"
         />
+      </Box>
+      <Box marginBottom={2} padding={4}>
+        <Box marginBottom={1}>
+          <Heading size="md">Searchable (web)</Heading>
+        </Box>
+        <SelectFieldSearchableDemo />
       </Box>
     </Box>
   );

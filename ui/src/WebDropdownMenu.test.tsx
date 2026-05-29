@@ -256,6 +256,19 @@ describe("WebDropdownMenu searchable", () => {
     {label: "Avocado", value: "avocado"},
   ];
 
+  it("renders a search input by default (searchable defaults to true)", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        visible
+      />
+    );
+    expect(getByTestId("web_dropdown_search")).toBeTruthy();
+  });
+
   it("does not render a search input when searchable is false", () => {
     const {queryByTestId} = renderWithTheme(
       <WebDropdownMenu
@@ -268,33 +281,6 @@ describe("WebDropdownMenu searchable", () => {
       />
     );
     expect(queryByTestId("web_dropdown_search")).toBeNull();
-  });
-
-  it("does not render a search input by default (searchable defaults to false)", () => {
-    const {queryByTestId} = renderWithTheme(
-      <WebDropdownMenu
-        anchor={anchor}
-        onClose={() => {}}
-        onSelect={() => {}}
-        options={options}
-        visible
-      />
-    );
-    expect(queryByTestId("web_dropdown_search")).toBeNull();
-  });
-
-  it("renders a search input when searchable is true", () => {
-    const {getByTestId} = renderWithTheme(
-      <WebDropdownMenu
-        anchor={anchor}
-        onClose={() => {}}
-        onSelect={() => {}}
-        options={options}
-        searchable
-        visible
-      />
-    );
-    expect(getByTestId("web_dropdown_search")).toBeTruthy();
   });
 
   it("filters options by label when the user types in the search input", () => {

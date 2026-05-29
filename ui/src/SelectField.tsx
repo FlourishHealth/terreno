@@ -12,7 +12,7 @@ export const SelectField: FC<SelectFieldProps> = ({
   options,
   requireValue = false,
   placeholder = "Please select an option.",
-  searchable = false,
+  searchable = true,
   title,
   value,
   onChange,

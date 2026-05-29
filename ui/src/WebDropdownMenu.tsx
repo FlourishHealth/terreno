@@ -60,7 +60,7 @@ export interface WebDropdownMenuProps {
    * When true, renders a search input at the top of the dropdown that
    * filters options by label as the user types. The filter resets each
    * time the menu opens.
-   * @default false
+   * @default true
    */
   searchable?: boolean;
 }
@@ -93,7 +93,7 @@ export const WebDropdownMenu = ({
   minWidth,
   optionTextStyle,
   testIDPrefix = "web_dropdown",
-  searchable = false,
+  searchable = true,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
