@@ -38,6 +38,7 @@ import {
   Text,
   TextInput,
   type TextInputProps,
+  type TextProps,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -388,6 +389,7 @@ export const RNPickerSelect = ({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
+    const textProps = textInputProps as Partial<TextProps> | undefined;
     return (
       <View
         style={{
@@ -397,13 +399,27 @@ export const RNPickerSelect = ({
           width: "100%",
         }}
       >
-        <TextInput
-          readOnly
-          style={{color: disabled ? theme.text.secondaryLight : theme.text.primary}}
-          testID="text_input"
-          value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-          {...textInputProps}
-        />
+        {disabled ? (
+          <Text
+            {...textProps}
+            style={
+              textProps?.style
+                ? [{color: theme.text.secondaryLight, flex: 1}, textProps.style]
+                : {color: theme.text.secondaryLight, flex: 1}
+            }
+            testID={textInputProps?.testID ?? "text_input"}
+          >
+            {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+          </Text>
+        ) : (
+          <TextInput
+            readOnly
+            style={{color: theme.text.primary}}
+            testID="text_input"
+            value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+            {...textInputProps}
+          />
+        )}
         {renderIcon()}
       </View>
     );
@@ -629,7 +645,7 @@ export const RNPickerSelect = ({
           {...touchableWrapperProps}
         >
           <Text
-            numberOfLines={1}
+            numberOfLines={disabled ? undefined : 1}
             style={{
               color: disabled ? theme.text.secondaryLight : theme.text.primary,
               flex: 1,
