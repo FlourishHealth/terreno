@@ -106,5 +106,5 @@
     "updateSnapshot": "bun test --update-snapshots"
   },
   "types": "dist/index.d.ts",
-  "version": "0.14.1"
+  "version": "0.14.2"
 }
