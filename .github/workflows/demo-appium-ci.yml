@@ -157,7 +157,7 @@ jobs:
       - name: Run Appium iOS tests
         run: |
           set -euo pipefail
-          IOS_APP_PATH="$(find demo/ios/build -type d -name '*.app' -path '*Debug-iphonesimulator*' | head -1)"
+          IOS_APP_PATH="$(find "$GITHUB_WORKSPACE/demo/ios/build" -type d -name 'TerrenoDemo.app' -path '*Debug-iphonesimulator*' | head -1)"
           if [ -z "$IOS_APP_PATH" ]; then
             echo "::error::Could not locate built iOS simulator app"
             exit 1
@@ -168,6 +168,7 @@ jobs:
             exit 1
           fi
           echo "Using simulator: $IOS_DEVICE_NAME"
+          echo "Using app bundle: $IOS_APP_PATH"
           xcrun simctl boot "$IOS_DEVICE_NAME" 2>/dev/null || true
           cd demo
           CI=true IOS_APP_PATH="$IOS_APP_PATH" IOS_DEVICE_NAME="$IOS_DEVICE_NAME" bun run appium:test:ci:ios
