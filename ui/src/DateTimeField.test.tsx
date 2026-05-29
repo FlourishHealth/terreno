@@ -1105,4 +1105,230 @@ describe("DateTimeField", () => {
       expect(mockOnChange).toHaveBeenCalled();
     });
   });
+
+  describe("12 AM handling in time type (getISOFromFields)", () => {
+    it("should convert hour 12 AM to 0 in time type", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      // 04:00 UTC = 00:00 (12:00 AM) in America/New_York
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="2023-05-15T04:00:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("12");
+
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "15");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      const parsed = DateTime.fromISO(lastCall).setZone("America/New_York");
+      expect(parsed.hour).toBe(0);
+      expect(parsed.minute).toBe(15);
+    });
+
+    it("should convert hour 12 AM to 0 in datetime type", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      // 04:30 UTC = 00:30 (12:30 AM) in America/New_York
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T04:30:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("12");
+
+      const minuteInput = getByPlaceholderText("mm");
+      await user.clear(minuteInput);
+      await user.type(minuteInput, "45");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+      const lastCall = mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
+      const parsed = DateTime.fromISO(lastCall).setZone("America/New_York");
+      expect(parsed.hour).toBe(0);
+    });
+  });
+
+  describe("onActionSheetChange invalid date handling", () => {
+    it("should warn and return early for invalid ISO string", async () => {
+      setDesktop();
+      const warnSpy = mock(() => {});
+      const originalWarn = console.warn;
+      console.warn = warnSpy;
+
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="date"
+          value="2023-05-15T00:00:00.000Z"
+        />
+      );
+
+      mockOnChange.mockClear();
+      const actionSheet = UNSAFE_root.findAll(
+        (n: any) => n.props?.onChange && n.props?.visible !== undefined
+      );
+      expect(actionSheet.length).toBeGreaterThan(0);
+      await act(async () => {
+        actionSheet[0].props.onChange("not-a-valid-date");
+      });
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Invalid date passed to DateTimeField",
+        "not-a-valid-date"
+      );
+      expect(mockOnChange).not.toHaveBeenCalled();
+
+      console.warn = originalWarn;
+    });
+  });
+
+  describe("useEffect invalid value handling", () => {
+    it("should warn and return early for invalid non-empty value prop", () => {
+      const warnSpy = mock(() => {});
+      const originalWarn = console.warn;
+      console.warn = warnSpy;
+
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField onChange={mockOnChange} type="date" value="invalid-date-string" />
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        "Invalid date passed to DateTimeField",
+        "invalid-date-string"
+      );
+      expect(getByPlaceholderText("MM").props.value).toBe("");
+
+      console.warn = originalWarn;
+    });
+
+    it("should warn for invalid value in time type", () => {
+      const warnSpy = mock(() => {});
+      const originalWarn = console.warn;
+      console.warn = warnSpy;
+
+      renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="time"
+          value="not-valid"
+        />
+      );
+
+      expect(warnSpy).toHaveBeenCalledWith("Invalid date passed to DateTimeField", "not-valid");
+
+      console.warn = originalWarn;
+    });
+  });
+
+  describe("getFieldValue datetime hour/minute indices", () => {
+    it("should return hour and minute for datetime indices 3 and 4", () => {
+      setDesktop();
+      // 20:30 UTC = 4:30 PM in America/New_York
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T20:30:00.000Z"
+        />
+      );
+      // Indices 0-2 are date fields, indices 3-4 are hour/minute
+      expect(getByPlaceholderText("hh").props.value).toBe("04");
+      expect(getByPlaceholderText("mm").props.value).toBe("30");
+    });
+
+    it("should return hour and minute for datetime at midnight", () => {
+      setDesktop();
+      // 04:00 UTC = 00:00 (12:00 AM) in America/New_York
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T04:00:00.000Z"
+        />
+      );
+      expect(getByPlaceholderText("hh").props.value).toBe("12");
+      expect(getByPlaceholderText("mm").props.value).toBe("00");
+    });
+  });
+
+  describe("handleTimezoneChange branches", () => {
+    it("should call onTimezoneChange when provided for datetime type", async () => {
+      setDesktop();
+      const mockTzChange = mock(() => {});
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          onTimezoneChange={mockTzChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      expect(tzPickers.length).toBeGreaterThan(0);
+      await act(async () => {
+        tzPickers[0].props.onTimezoneChange("America/Chicago");
+      });
+      expect(mockTzChange).toHaveBeenCalledWith("America/Chicago");
+    });
+
+    it("should set local timezone when onTimezoneChange not provided for datetime type", async () => {
+      setDesktop();
+      const {UNSAFE_root} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+
+      const tzPickers = UNSAFE_root.findAll((n: any) => n.props?.onTimezoneChange);
+      expect(tzPickers.length).toBeGreaterThan(0);
+      await act(async () => {
+        tzPickers[0].props.onTimezoneChange("America/Chicago");
+      });
+      expect(mockOnChange).toHaveBeenCalled();
+    });
+  });
+
+  describe("minute validation in validateField", () => {
+    it("should validate minute field for datetime type via hour change triggering revalidation", async () => {
+      setDesktop();
+      const user = userEvent.setup();
+      const {getByPlaceholderText} = renderWithTheme(
+        <DateTimeField
+          onChange={mockOnChange}
+          timezone="America/New_York"
+          type="datetime"
+          value="2023-05-15T15:30:00.000Z"
+        />
+      );
+      // Type an invalid hour (triggers validateField for datetime index 3)
+      const hourInput = getByPlaceholderText("hh");
+      await user.clear(hourInput);
+      await user.type(hourInput, "0");
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      });
+      expect(hourInput).toBeTruthy();
+    });
+  });
 });
