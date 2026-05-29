@@ -131,6 +131,18 @@ describe("LoginScreen", () => {
     expect(queryByTestId("login-screen-signup-link")).toBeNull();
   });
 
+  it("calls onSubmit when submit button is pressed and fields filled", async () => {
+    const onSubmit = mock(() => Promise.resolve());
+    const {getByTestId} = renderWithTheme(
+      <LoginScreen fields={defaultFields} onSubmit={onSubmit} />
+    );
+    fireEvent.changeText(getByTestId("login-screen-email-input"), "user@test.com");
+    fireEvent.changeText(getByTestId("login-screen-password-input"), "secret123");
+    fireEvent.press(getByTestId("login-screen-submit-button"));
+    await new Promise((r) => setTimeout(r, 600));
+    expect(onSubmit).toHaveBeenCalled();
+  });
+
   it("renders correctly with all props", () => {
     const {toJSON} = renderWithTheme(
       <LoginScreen

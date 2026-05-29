@@ -202,6 +202,30 @@ describe("VersionCheckPlugin", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("warning");
   });
+
+  it("uses default messages when warningMessage/requiredMessage are not set", async () => {
+    await VersionConfig.create({
+      webRequiredVersion: 100,
+      webWarningVersion: 200,
+    });
+
+    const warningRes = await app.get("/version-check").query({platform: "web", version: 150});
+    expect(warningRes.body.status).toBe("warning");
+    expect(warningRes.body.message).toBe(
+      "A new version is available. Please update for the best experience."
+    );
+
+    const requiredRes = await app.get("/version-check").query({platform: "web", version: 50});
+    expect(requiredRes.body.status).toBe("required");
+    expect(requiredRes.body.message).toBe(
+      "This version is no longer supported. Please update to continue."
+    );
+  });
+
+  it("handles numeric version parameter", async () => {
+    const res = await app.get("/version-check?version=50&platform=web");
+    expect(res.status).toBe(200);
+  });
 });
 
 describe("VersionCheckPlugin direct usage", () => {

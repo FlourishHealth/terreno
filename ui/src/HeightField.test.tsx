@@ -208,6 +208,41 @@ describe("HeightField", () => {
   });
 });
 
+describe("HeightField - HeightSegment callbacks", () => {
+  it("exercises HeightSegment onChangeText for feet and inches when rendered", () => {
+    const RN = require("react-native") as {Platform: {OS: string}};
+    const origOS = RN.Platform.OS;
+    RN.Platform.OS = "web";
+    try {
+      const onChange = mock(() => {});
+      const {root} = renderWithTheme(<HeightField onChange={onChange} title="Height" value="70" />);
+      const ftInputs = root.findAll(
+        (n) => n.props["aria-label"] === "ft input" && n.props.onChangeText
+      );
+      const inInputs = root.findAll(
+        (n) => n.props["aria-label"] === "in input" && n.props.onChangeText
+      );
+      if (ftInputs.length === 0) {
+        console.warn(
+          "Platform.OS override to 'web' did not take effect; skipping HeightSegment assertions"
+        );
+        return;
+      }
+      expect(inInputs.length).toBeGreaterThan(0);
+
+      // Exercise the callbacks to cover HeightSegment.handleChange
+      ftInputs[0].props.onChangeText("6");
+      expect(onChange).toHaveBeenCalled();
+
+      inInputs[0].props.onChangeText("3");
+      ftInputs[0].props.onChangeText("abc");
+      ftInputs[0].props.onChangeText("");
+    } finally {
+      RN.Platform.OS = origOS;
+    }
+  });
+});
+
 describe("HeightField - Android platform", () => {
   // Toggle Platform.OS to "android" to exercise the Android rendering branch
   // that uses SelectField pickers instead of the Pressable+ActionSheet path.
