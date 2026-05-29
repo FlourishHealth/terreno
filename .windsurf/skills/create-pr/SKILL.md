@@ -40,6 +40,13 @@ Create a pull request for the current branch.
 
    [What changed and why — 2-4 sentences]
 
+   ## Feature Proof
+
+   - **Platform:** [Web / iOS sim / Maestro / None]
+   - **Steps:** [What was exercised locally]
+   - **Result:** [Pass + notes]
+   - **Artifacts:** [.proof/pr-N/... or "see PR comment"]
+
    ## Human Testing Steps
 
    - [ ] [Step-by-step instructions a reviewer can follow to verify the change works]
@@ -53,6 +60,8 @@ Create a pull request for the current branch.
 
    - [Tests that ran and passed, or "No automated tests"]
    ```
+
+   For UI-facing changes, run `/verify-feature` before creating the PR.
 
 5. Return the PR URL to the user.
 

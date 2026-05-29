@@ -19,6 +19,17 @@ git status && git diff --stat
 gh pr view --json number -q .number 2>/dev/null || echo "no-pr"
 ```
 
+## Step 1.25: Feature Proof (UI-facing changes)
+
+If the diff touches user-visible surfaces (`ui/`, `example-frontend/`, `demo/`, `admin-frontend/`, or backend routes used by those apps), invoke `/verify-feature` **before committing**:
+
+1. Run `bun run stack:dev` (or confirm stack is up)
+2. Capture proof: `bun run proof:web [flow]` (preferred), `bun run proof:native [flow]`, or `bun run proof:sim` on macOS
+3. Show key screenshots/video in the agent session
+4. After push (Step 3), run `bun run proof:attach --summary "..."`
+
+Skip this step for docs-only, pure refactors, or backend-only changes with no UI impact.
+
 ## Step 1.5: Pre-Commit Checks
 
 Delegate lint, type check, and related tests to the `pre-commit` subagent before committing.
@@ -46,7 +57,15 @@ Stage and commit:
 git push origin HEAD
 ```
 
+If Step 1.25 ran, attach proof to the PR now:
+
+```bash
+bun run proof:attach --summary "<what was verified>"
+```
+
 ## Step 4: Create or Update PR
+
+New PRs start as **draft**. `/check-watcher` marks them ready for review once CI is green and bot reviews (Bugbot, Copilot) are fixed or acknowledged.
 
 ### If no PR exists
 
@@ -54,6 +73,12 @@ git push origin HEAD
 gh pr create --title "<title>" --body "$(cat <<'EOF'
 ## Summary
 [What changed and why — 2-4 sentences]
+
+## Feature Proof
+- **Platform:** [Web / iOS sim / Maestro / None]
+- **Steps:** [What you exercised locally]
+- **Result:** [Pass + notes]
+- **Artifacts:** [.proof/pr-N/... or "see PR comment"]
 
 ## Human Testing Steps
 - [ ] [Step-by-step verification instructions]
@@ -72,13 +97,14 @@ EOF
 Read the current title and body, then compare against the full set of commits on the branch:
 
 ```bash
-gh pr view --json title,body,baseRefName
+gh pr view --json title,body,baseRefName,isDraft
 git log $(gh pr view --json baseRefName -q .baseRefName)..HEAD --oneline
 git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
 ```
 
 Decide whether the description still reflects what's on the branch — pay attention to commits added since the PR was opened:
 - **Summary** still matches the actual goal of the changes
+- **Feature Proof** documents local verification (platform, steps, artifacts)
 - **Changes** list covers the new commits, not just the original ones
 - **Human Testing Steps** still cover what reviewers need to verify
 - **Automated Tests** section reflects current test state
@@ -97,7 +123,7 @@ If the description is already accurate, skip the edit and note that it's up to d
 ## Step 5: Print PR Link
 
 ```bash
-gh pr view --json title,url -q '"**\(.title)** — \(.url)"'
+gh pr view --json title,url,isDraft -q '"**\(.title)**\(if .isDraft then " (draft)" else "" end) — \(.url)"'
 ```
 
 ## Step 6: Launch Check Watcher Sub-Agent
@@ -107,7 +133,7 @@ Spawn `/check-watcher` as a **background sub-agent** so CI monitoring runs auton
 - `subagent_type`: `general-purpose`
 - `description`: `Watch CI for current PR`
 - `run_in_background`: `true`
-- `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, and report back when checks are green or max attempts are hit. Include the PR number/URL from Step 5 so the sub-agent has context.
+- `prompt`: instruct the sub-agent to invoke the `/check-watcher` skill for the current PR, fix any failures, address or acknowledge Bugbot and Copilot review comments, mark the PR ready for review when all gates pass, and report back. Include the PR number/URL from Step 5 so the sub-agent has context.
 
 Do **not** wait on the sub-agent — return control immediately after spawning. The user will be notified when it completes.
 

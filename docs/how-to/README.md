@@ -9,6 +9,7 @@ Problem-oriented, practical steps. Use these when you know what you want to do.
 - [Configure Better Auth](configure-better-auth.md) — Set up Better Auth with social OAuth (Google, GitHub, Apple)
 - [Add WebSocket integration](websocket-integration.md) — Set up real-time Socket.io connections
 - [Deploy to Google Cloud Platform](deploy-to-gcp.md) — Deploy demo and example apps to GCS with CDN
+- [Verify features locally](verify-features-locally.md) — Capture screenshots and video proof before PRs
 
 ## Coming Soon
 

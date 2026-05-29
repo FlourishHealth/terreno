@@ -232,6 +232,7 @@ Workflow definitions live in `.github/workflows/*.md` files. These are compiled 
 
 ### For Contributors
 - **Run CI before pushing** — `bun run lint && bun run test`
+- **Prove UI changes locally** — `bun run stack:dev && bun run proof:web` (see [Verify features locally](../how-to/verify-features-locally.md))
 - **Update rules if needed** — `bun run rules` after changing `.rulesync/rules/`
 - **Check workflow status** — Ensure your PR doesn't break workflows
 
