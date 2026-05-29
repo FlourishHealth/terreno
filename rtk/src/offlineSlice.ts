@@ -1,4 +1,4 @@
-import {createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import {createSelector, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import {REHYDRATE} from "redux-persist";
 
 import {IsWeb} from "./platform";
@@ -124,7 +124,9 @@ export const selectQueueLength = (state: {offline: OfflineState}): number =>
 export const selectConflicts = (state: {offline: OfflineState}): ConflictRecord[] =>
   state.offline.conflicts;
 
-export const selectUndismissedConflicts = (state: {offline: OfflineState}): ConflictRecord[] =>
-  state.offline.conflicts.filter((c) => !c.dismissed);
+export const selectUndismissedConflicts = createSelector(
+  selectConflicts,
+  (conflicts): ConflictRecord[] => conflicts.filter((c) => !c.dismissed)
+);
 
 export const selectIsSyncing = (state: {offline: OfflineState}): boolean => state.offline.isSyncing;

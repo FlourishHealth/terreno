@@ -1,14 +1,16 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
 mock.module("expo-router", () => ({
   router: {push: routerPush},
 }));
 
-const mockConfigState: {data: any; error: unknown; isLoading: boolean} = {
+const mockConfigState: {data: AdminConfigResponse | null; error: unknown; isLoading: boolean} = {
   data: null,
   error: null,
   isLoading: false,
@@ -51,13 +53,17 @@ describe("AdminModelList", () => {
 
   it("renders a spinner while loading", () => {
     mockConfigState.isLoading = true;
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
+    const {toJSON} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
     expect(toJSON()).toBeDefined();
   });
 
   it("renders an error message when loading fails", () => {
     mockConfigState.error = new Error("boom");
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
+    const {toJSON} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
     expect(toJSON()).toBeDefined();
   });
 
@@ -65,7 +71,7 @@ describe("AdminModelList", () => {
     mockConfigState.data = baseConfig;
     const {toJSON} = renderWithTheme(
       <AdminModelList
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         configurationPath="/admin/configuration"
         customScreens={[{displayName: "Local", name: "local-screen"}]}
@@ -76,7 +82,9 @@ describe("AdminModelList", () => {
 
   it("renders the model grid when config has no scripts/custom screens", () => {
     mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
+    const {toJSON} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
     expect(toJSON()).toBeDefined();
   });
 });

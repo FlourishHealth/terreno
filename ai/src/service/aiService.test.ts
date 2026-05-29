@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 import type {LanguageModel} from "ai";
 import mongoose from "mongoose";
@@ -149,7 +148,7 @@ describe("AIService", () => {
 
     it("should translate text with explicit sourceLanguage", async () => {
       const model = createMockModel("Bonjour le monde");
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       const result = await service.translateText({
         sourceLanguage: "English",
@@ -163,7 +162,7 @@ describe("AIService", () => {
   describe("modelId getter", () => {
     it("should return the model id from the underlying model", () => {
       const model = createMockModel();
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       expect(service.modelId).toBe("mock-model");
     });
@@ -180,7 +179,7 @@ describe("AIService", () => {
         specificationVersion: "v2" as const,
         supportedUrls: {},
       };
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       expect(service.modelId).toBe("unknown");
     });
@@ -192,7 +191,7 @@ describe("AIService", () => {
       model.doStream = mock(async () => {
         throw new Error("Stream API error");
       });
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       const run = async () => {
         const chunks: string[] = [];
@@ -212,7 +211,7 @@ describe("AIService", () => {
   describe("buildMessages file content", () => {
     it("should convert multi-modal user prompts with file content", () => {
       const model = createMockModel();
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       const messages = service.buildMessages([
         {
@@ -231,7 +230,9 @@ describe("AIService", () => {
       ]);
 
       expect(messages.length).toBe(1);
-      const content = (messages[0] as any).content;
+      const content = (
+        messages[0] as {content: Array<{type: string; filename?: string; mediaType?: string}>}
+      ).content;
       expect(content.length).toBe(2);
       expect(content[1].type).toBe("file");
       expect(content[1].filename).toBe("report.pdf");
@@ -242,7 +243,7 @@ describe("AIService", () => {
   describe("generateChatStream", () => {
     it("should stream chat responses and log the request", async () => {
       const model = createMockModel();
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
       const userId = new mongoose.Types.ObjectId();
 
       const chunks: string[] = [];
@@ -267,7 +268,7 @@ describe("AIService", () => {
       model.doStream = mock(async () => {
         throw new Error("Chat stream failed");
       });
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       const run = async () => {
         const chunks: string[] = [];
@@ -287,7 +288,7 @@ describe("AIService", () => {
 
     it("should accept systemPrompt override", async () => {
       const model = createMockModel();
-      const service = new AIService({model: model as any});
+      const service = new AIService({model: model as unknown as LanguageModel});
 
       const chunks: string[] = [];
       for await (const chunk of service.generateChatStream({

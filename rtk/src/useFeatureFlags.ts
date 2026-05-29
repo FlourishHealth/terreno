@@ -1,7 +1,9 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {useCallback, useEffect, useRef} from "react";
 
-type FlagValues = Record<string, boolean | string | null>;
+interface FlagValues {
+  [key: string]: boolean | string | null;
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
 type FlagsApi = Api<any, any, any, any>;

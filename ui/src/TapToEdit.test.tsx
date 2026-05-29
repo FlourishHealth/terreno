@@ -331,4 +331,48 @@ describe("formatAddress", () => {
     expect(result).toContain("Dallas County");
     expect(result).toContain("(113)");
   });
+
+  it("handles address with county name but no county code", () => {
+    const address = {
+      address1: "100 County Rd",
+      city: "Rural Town",
+      countyName: "Dallas County",
+      state: "TX",
+      zipcode: "75001",
+    };
+    const result = formatAddress(address);
+    expect(result).toContain("Dallas County");
+    expect(result).not.toContain("(");
+  });
+});
+
+describe("TapToEdit - additional function coverage", () => {
+  it("shows Clear button for date type and invokes setValue and onSave", async () => {
+    const setValue = mock(() => {});
+    const onSave = mock(() => Promise.resolve());
+    const {getByLabelText, getByText} = renderWithTheme(
+      <TapToEdit onSave={onSave} setValue={setValue} title="Date" type="date" value="2024-01-01" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(getByText("Clear")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByText("Clear"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    expect(setValue).toHaveBeenCalledWith("");
+    expect(onSave).toHaveBeenCalledWith("");
+  });
+
+  it("assigns inputRef for text type in editing mode", async () => {
+    const setValue = mock(() => {});
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Name" type="text" value="Alice" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(queryByText("Save")).toBeTruthy();
+  });
 });
