@@ -6,17 +6,6 @@ const proofOutputDir = process.env.PROOF_OUTPUT_DIR ?? ".proof/playwright";
 export default defineConfig({
   ...baseConfig,
   outputDir: `${proofOutputDir}/test-results`,
-  reporter: [
-    ["list"],
-    ["html", {open: "never", outputFolder: `${proofOutputDir}/report`}],
-  ],
-  retries: 0,
-  use: {
-    ...baseConfig.use,
-    screenshot: "on",
-    trace: "on",
-    video: "on",
-  },
   projects: [
     {
       name: "setup",
@@ -28,4 +17,12 @@ export default defineConfig({
       use: {...devices["Desktop Chrome"]},
     },
   ],
+  reporter: [["list"], ["html", {open: "never", outputFolder: `${proofOutputDir}/report`}]],
+  retries: 0,
+  use: {
+    ...baseConfig.use,
+    screenshot: "on",
+    trace: "on",
+    video: "on",
+  },
 });
