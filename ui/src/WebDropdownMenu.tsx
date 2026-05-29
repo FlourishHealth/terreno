@@ -14,6 +14,14 @@ import {
 
 import {useTheme} from "./Theme";
 
+const scheduleAfterPaint = (callback: () => void): void => {
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(callback);
+  } else {
+    setTimeout(callback, 0);
+  }
+};
+
 export interface WebDropdownMenuOption {
   key?: string | number;
   label: string;
@@ -105,7 +113,7 @@ export const WebDropdownMenu = ({
     if (visible) {
       setSearchQuery("");
       if (searchable && Platform.OS === "web") {
-        requestAnimationFrame(() => {
+        scheduleAfterPaint(() => {
           searchInputRef.current?.focus();
         });
       }
