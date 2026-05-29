@@ -125,4 +125,27 @@ describe("Field", () => {
     );
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("renders customSelect field", () => {
+    const {toJSON} = renderWithTheme(
+      <Field
+        label="Custom"
+        onChange={() => {}}
+        options={[
+          {label: "Option A", value: "a"},
+          {label: "Option B", value: "b"},
+        ]}
+        type="customSelect"
+        value="a"
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders signature field", () => {
+    const {toJSON} = renderWithTheme(
+      <Field label="Sign here" onChange={() => {}} type="signature" value="" />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
 });
