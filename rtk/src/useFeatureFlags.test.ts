@@ -188,6 +188,31 @@ describe("useFeatureFlags hook", () => {
     expect(completed).toBeDefined();
   });
 
+  it("injects the evaluate endpoint only once per (api, basePath)", () => {
+    let injectCallCount = 0;
+    const refetch = mock(() => {});
+    const useEvaluateFeatureFlagsQuery = mock(() => ({
+      data: {},
+      error: undefined,
+      isLoading: false,
+      refetch,
+    }));
+    const api = {
+      injectEndpoints: () => {
+        injectCallCount += 1;
+        return {useEvaluateFeatureFlagsQuery};
+      },
+    };
+    const {rerender} = renderHook(() =>
+      useFeatureFlags(api as unknown as Parameters<typeof useFeatureFlags>[0])
+    );
+    rerender(undefined);
+    rerender(undefined);
+    // The hook reuses the cached enhanced api after the first render so the
+    // dev-mode RTK warning about re-injecting endpoints never fires.
+    expect(injectCallCount).toBe(1);
+  });
+
   it("logs evaluate request failed when error is returned after loading", () => {
     const api = buildApi({isLoading: true});
     const {rerender} = renderHook(

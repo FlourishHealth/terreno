@@ -39,12 +39,15 @@ interface ConsentHistoryEnhancedApi {
   useGetMyConsentsQuery: () => ConsentHistoryHookState;
 }
 
-interface ConsentHistoryApi {
-  enhanceEndpoints: (options: {addTagTypes: string[]}) => ConsentHistoryApi;
+interface ConsentHistoryApiWithTags {
   injectEndpoints: (options: {
     endpoints: (build: ConsentHistoryQueryBuilder) => {getMyConsents: unknown};
     overrideExisting: boolean;
   }) => ConsentHistoryEnhancedApi;
+}
+
+interface ConsentHistoryApi {
+  enhanceEndpoints: (options: {addTagTypes: string[]}) => ConsentHistoryApiWithTags;
 }
 
 /**
@@ -66,7 +69,8 @@ const getEnhancedApi = (api: ConsentHistoryApi, base: string): ConsentHistoryEnh
   if (cached) {
     return cached;
   }
-  const enhanced = api.enhanceEndpoints({addTagTypes: ["MyConsents"]}).injectEndpoints({
+  const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["MyConsents"]});
+  const enhanced = apiWithConsentTags.injectEndpoints({
     endpoints: (build) => ({
       getMyConsents: build.query({
         providesTags: ["MyConsents"],

@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {loginAs} from "./helpers/login";
 import {mockGptStream, unmockGptStream} from "./helpers/mockGpt";
 
@@ -66,7 +66,11 @@ test.describe("AI Chat", () => {
     await expect(page.getByText(chatTitle)).toBeVisible();
   });
 
-  test("can rate a message", async ({page}) => {
+  test("can rate a message", async ({page, consoleGuard}) => {
+    // mockGptStream synthesizes a fake history id; the rating PATCH will 400 because
+    // no such history exists on the backend. The test only verifies UI feedback.
+    consoleGuard.allow("/gpt/histories/mock-history-");
+    consoleGuard.allow("Failed to load resource: the server responded with a status of 400");
     await mockGptStream(page, "Rate this message please.");
 
     await page.getByTestId("gpt-input").fill("Give me something to rate");

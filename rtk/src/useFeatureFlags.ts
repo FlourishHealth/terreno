@@ -1,9 +1,49 @@
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {useCallback, useEffect, useMemo, useRef} from "react";
+import {useCallback, useEffect, useRef} from "react";
 
 interface FlagValues {
   [key: string]: boolean | string | null;
 }
+
+// biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
+type FlagsApi = Api<any, any, any, any>;
+
+// biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
+type EnhancedFlagsApi = FlagsApi & {useEvaluateFeatureFlagsQuery: any};
+
+/**
+ * Cache the enhanced api per (api, basePath). `injectEndpoints` logs a console
+ * error in development whenever an endpoint with the same name is re-injected
+ * with `overrideExisting: false`, so calling it on every render of every
+ * consumer would flood the console. WeakMap-by-api lets the GC reclaim entries
+ * when the api object is unreachable.
+ */
+const enhancedApiCache = new WeakMap<FlagsApi, Map<string, EnhancedFlagsApi>>();
+
+const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedFlagsApi => {
+  let byBase = enhancedApiCache.get(api);
+  if (!byBase) {
+    byBase = new Map();
+    enhancedApiCache.set(api, byBase);
+  }
+  const cached = byBase.get(basePath);
+  if (cached) {
+    return cached;
+  }
+  const enhanced = api.injectEndpoints({
+    endpoints: (builder) => ({
+      evaluateFeatureFlags: builder.query<FlagValues, void>({
+        query: () => ({
+          method: "GET",
+          url: `${basePath}/evaluate`,
+        }),
+      }),
+    }),
+    overrideExisting: false,
+  }) as EnhancedFlagsApi;
+  byBase.set(basePath, enhanced);
+  return enhanced;
+};
 
 interface UseFeatureFlagsResult {
   flags: FlagValues;
@@ -64,31 +104,16 @@ export const resolveFeatureFlagsOptions = (
   return {basePath, skip};
 };
 
-export const useFeatureFlags = (
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query API generic typing is intentionally flexible here.
-  api: Api<any, any, any, any>,
+// Overloaded signature preserves backwards compatibility with callers that
+// pass a string basePath as the second argument.
+export function useFeatureFlags(
+  api: FlagsApi,
   basePathOrOptions?: string | UseFeatureFlagsOptions
-): UseFeatureFlagsResult => {
+): UseFeatureFlagsResult {
   const {basePath, skip} = resolveFeatureFlagsOptions(basePathOrOptions);
 
-  const enhancedApi = useMemo(
-    () =>
-      api.injectEndpoints({
-        endpoints: (builder) => ({
-          evaluateFeatureFlags: builder.query<FlagValues, void>({
-            query: () => ({
-              method: "GET",
-              url: `${basePath}/evaluate`,
-            }),
-          }),
-        }),
-        overrideExisting: false,
-      }),
-    [api, basePath]
-  );
-
-  // biome-ignore lint/suspicious/noExplicitAny: Endpoint hook is injected dynamically by RTK Query.
-  const useEvaluateQuery = (enhancedApi as any).useEvaluateFeatureFlagsQuery;
+  const enhancedApi = getEnhancedApi(api, basePath);
+  const useEvaluateQuery = enhancedApi.useEvaluateFeatureFlagsQuery;
   const {data, isLoading, error, refetch} = useEvaluateQuery(undefined, {skip});
   const evaluateStartedAtRef = useRef<number | null>(null);
 
@@ -157,4 +182,4 @@ export const useFeatureFlags = (
   );
 
   return {error, flags, getFlag, getVariant, isLoading, refetch};
-};
+}

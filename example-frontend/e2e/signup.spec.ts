@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {TEST_USER} from "./fixtures/testUsers";
 
 test.describe("Signup", () => {
@@ -26,7 +26,12 @@ test.describe("Signup", () => {
     await page.getByTestId("login-screen").waitFor({state: "visible"});
   });
 
-  test("shows error for duplicate email", async ({page}) => {
+  test("shows error for duplicate email", async ({page, consoleGuard}) => {
+    // The signup fetch is expected to return 500 (duplicate user), which the
+    // browser logs and store/errors.ts forwards to Sentry.
+    consoleGuard.allow("Failed to load resource: the server responded with a status of 500");
+    consoleGuard.allow("A user with the given username is already registered");
+    consoleGuard.allow(/^Object$/);
     await page.getByTestId("signup-screen-name-input").fill("Duplicate User");
     await page.getByTestId("signup-screen-email-input").fill(TEST_USER.email);
     await page.getByTestId("signup-screen-password-input").fill("TestPassword123!");
