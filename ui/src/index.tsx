@@ -8,7 +8,7 @@ export * from "./AiSuggestionBox";
 export * from "./AttachmentPreview";
 export * from "./Avatar";
 export * from "./Badge";
-export * from "./Banner";
+export {Banner, hideBanner} from "./Banner";
 export * from "./Body";
 export * from "./BooleanField";
 export * from "./Box";
