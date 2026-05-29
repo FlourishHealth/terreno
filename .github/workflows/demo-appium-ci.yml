@@ -156,22 +156,35 @@ jobs:
 
       - name: Run Appium iOS tests
         run: |
-          set -euo pipefail
+          set -eu
           IOS_APP_PATH="$(find "$GITHUB_WORKSPACE/demo/ios/build" -type d -name 'TerrenoDemo.app' -path '*Debug-iphonesimulator*' | head -1)"
           if [ -z "$IOS_APP_PATH" ]; then
             echo "::error::Could not locate built iOS simulator app"
             exit 1
           fi
-          IOS_DEVICE_NAME="$(xcrun simctl list devices available | grep -m1 'iPhone' | sed -E 's/^[[:space:]]*([^(]+).*/\1/' | xargs)"
-          if [ -z "$IOS_DEVICE_NAME" ]; then
+          IOS_DEVICE_LINE="$(xcrun simctl list devices available | grep -m1 'iPhone')"
+          if [ -z "$IOS_DEVICE_LINE" ]; then
             echo "::error::Could not find an available iPhone simulator"
             exit 1
           fi
-          echo "Using simulator: $IOS_DEVICE_NAME"
+          IOS_DEVICE_NAME="$(echo "$IOS_DEVICE_LINE" | sed -E 's/^[[:space:]]*([^(]+).*/\1/' | xargs)"
+          IOS_DEVICE_UDID="$(echo "$IOS_DEVICE_LINE" | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')"
+          IOS_PLATFORM_VERSION="$(xcrun simctl list runtimes | grep -i 'iOS' | grep -v unavailable | tail -1 | sed -E 's/.*iOS ([0-9.]+).*/\1/')"
+          if [ -z "$IOS_PLATFORM_VERSION" ]; then
+            echo "::error::Could not determine iOS platform version"
+            exit 1
+          fi
+          echo "Using simulator: $IOS_DEVICE_NAME ($IOS_DEVICE_UDID) on iOS $IOS_PLATFORM_VERSION"
           echo "Using app bundle: $IOS_APP_PATH"
-          xcrun simctl boot "$IOS_DEVICE_NAME" 2>/dev/null || true
+          xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
           cd demo
-          CI=true IOS_APP_PATH="$IOS_APP_PATH" IOS_DEVICE_NAME="$IOS_DEVICE_NAME" bun run appium:test:ci:ios
+          CI=true \
+            IOS_APP_PATH="$IOS_APP_PATH" \
+            IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
+            IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
+            IOS_PLATFORM_VERSION="$IOS_PLATFORM_VERSION" \
+            bun run appium:test:ci:ios
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
