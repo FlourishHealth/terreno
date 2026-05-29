@@ -1,15 +1,14 @@
 import {$} from "@wdio/globals";
 
+import {openDemoComponent} from "../helpers/navigation";
+
 describe("TextField demo", () => {
   it("renders the demo text field and accepts input", async () => {
-    await browser.url("/demo/Text%20field");
+    await openDemoComponent("Text field");
 
-    const heading = await $("h1*=Text field");
-    await expect(heading).toBeDisplayed();
-
-    const field = await $('[data-testid="demo-text-field"]');
+    const field = await $("~demo-text-field");
     await expect(field).toBeDisplayed();
     await field.setValue("hello appium");
-    await expect(field).toHaveValue("hello appium");
+    await expect(field).toHaveText("hello appium");
   });
 });
