@@ -67,7 +67,8 @@ Configuration.register("TASKS_URL", {
 
 Configuration.register("WEBSOCKETS_DEBUG", {
   defaultValue: false,
-  description: "Enable websockets debug logging",
+  description:
+    "Enable websockets debug logging (overrides admin configuration when true; also configurable via admin debug.websocketsDebug)",
   envVar: "WEBSOCKETS_DEBUG",
   type: "boolean",
 });

@@ -1,17 +1,20 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
-const setOptions = mock((_: any) => {});
+const setOptions = mock((_: unknown) => {});
 mock.module("expo-router", () => ({
   router: {push: routerPush},
   useNavigation: () => ({setOptions}),
 }));
 
-const configState: {config: any; isLoading: boolean} = {
+const configState: {config: AdminConfigResponse | null; isLoading: boolean} = {
   config: null,
   isLoading: false,
 };
@@ -23,7 +26,7 @@ mock.module("./useAdminConfig", () => ({
   }),
 }));
 
-const listState: {data: any; isLoading: boolean} = {
+const listState: {data: unknown; isLoading: boolean} = {
   data: {data: [], total: 0},
   isLoading: false,
 };
@@ -80,7 +83,7 @@ describe("AdminModelTable", () => {
   it("renders loading page while config is loading", () => {
     configState.isLoading = true;
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -88,7 +91,7 @@ describe("AdminModelTable", () => {
   it("renders loading page when model config is missing", () => {
     configState.config = {customScreens: [], models: [], scripts: []};
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -96,7 +99,7 @@ describe("AdminModelTable", () => {
   it("renders empty state when no data present", () => {
     configState.config = fullConfig;
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(toJSON()).toBeDefined();
     expect(setOptions).toHaveBeenCalled();
@@ -106,7 +109,7 @@ describe("AdminModelTable", () => {
     configState.config = fullConfig;
     listState.isLoading = true;
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -135,7 +138,7 @@ describe("AdminModelTable", () => {
       total: 2,
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -147,7 +150,12 @@ describe("AdminModelTable", () => {
       total: 1,
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" columns={["email"]} modelName="User" />
+      <AdminModelTable
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        columns={["email"]}
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -188,7 +196,7 @@ describe("AdminModelTable", () => {
       total: 1,
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="Plain" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="Plain" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -196,12 +204,14 @@ describe("AdminModelTable", () => {
   it("renders the headerRight create button and pushes to the create route on click", async () => {
     configState.config = fullConfig;
     let headerRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         headerRight = opts.headerRight();
       }
     });
-    renderWithTheme(<AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />);
+    renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
     expect(headerRight).not.toBeNull();
     const header = renderWithTheme(headerRight as unknown as React.ReactElement);
     await act(async () => {
@@ -224,16 +234,16 @@ describe("AdminModelTable", () => {
       },
     }));
     const {UNSAFE_root} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
     // Find the actions cellData.onDelete handler and invoke it directly.
-    const nodes = UNSAFE_root.findAll((n: any) => {
+    const nodes = UNSAFE_root.findAll((n: ReactTestInstance) => {
       const v = n.props?.cellData?.value;
       return v && typeof v.onDelete === "function" && v.id === "u1";
     });
     expect(nodes.length).toBeGreaterThan(0);
     await act(async () => {
-      (nodes[0] as any).props.cellData.value.onDelete("u1");
+      (nodes[0] as ReactTestInstance).props.cellData.value.onDelete("u1");
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(deleteFn).toHaveBeenCalled();
@@ -244,16 +254,19 @@ describe("AdminModelTable", () => {
     listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
     const {UNSAFE_root} = renderWithTheme(
       <AdminModelTable
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         columnWidths={{email: 999}}
         modelName="User"
       />
     );
-    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
     expect(tables.length).toBeGreaterThan(0);
-    const cols = (tables[0] as any).props.columns;
-    const emailCol = cols.find((c: any) => c.title === "Email");
+    const cols = (tables[0] as ReactTestInstance).props.columns as {
+      title: string;
+      width?: number;
+    }[];
+    const emailCol = cols.find((c) => c.title === "Email");
     expect(emailCol?.width).toBe(999);
   });
 
@@ -270,11 +283,14 @@ describe("AdminModelTable", () => {
     };
     listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
     const {UNSAFE_root} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" modelName="User" />
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
     );
-    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
-    const cols = (tables[0] as any).props.columns;
-    const emailCol = cols.find((c: any) => c.title === "Email");
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
+    const cols = (tables[0] as ReactTestInstance).props.columns as {
+      title: string;
+      width?: number;
+    }[];
+    const emailCol = cols.find((c) => c.title === "Email");
     expect(emailCol?.width).toBe(555);
   });
 
@@ -292,15 +308,18 @@ describe("AdminModelTable", () => {
     listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
     const {UNSAFE_root} = renderWithTheme(
       <AdminModelTable
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         columnWidths={{email: 200}}
         modelName="User"
       />
     );
-    const tables = UNSAFE_root.findAll((n: any) => Array.isArray(n.props?.columns));
-    const cols = (tables[0] as any).props.columns;
-    const emailCol = cols.find((c: any) => c.title === "Email");
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.columns));
+    const cols = (tables[0] as ReactTestInstance).props.columns as {
+      title: string;
+      width?: number;
+    }[];
+    const emailCol = cols.find((c) => c.title === "Email");
     expect(emailCol?.width).toBe(200);
   });
 
@@ -314,18 +333,25 @@ describe("AdminModelTable", () => {
       total: 1,
     };
     const {UNSAFE_root, toJSON} = renderWithTheme(
-      <AdminModelTable api={{} as any} baseUrl="/admin" columns={["email"]} modelName="User" />
+      <AdminModelTable
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        columns={["email"]}
+        modelName="User"
+      />
     );
     // Grab setSortColumn from the rendered DataTable and apply a sort with
     // direction "desc" on column 0 (valid) and then column 5 (out of range).
-    const table = UNSAFE_root.findAll((n: any) => typeof n.props?.setSortColumn === "function");
+    const table = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => typeof n.props?.setSortColumn === "function"
+    );
     expect(table.length).toBeGreaterThan(0);
     await act(async () => {
-      (table[0] as any).props.setSortColumn({column: 0, direction: "desc"});
+      (table[0] as ReactTestInstance).props.setSortColumn({column: 0, direction: "desc"});
       await new Promise((r) => setTimeout(r, 10));
     });
     await act(async () => {
-      (table[0] as any).props.setSortColumn({column: 99, direction: "asc"});
+      (table[0] as ReactTestInstance).props.setSortColumn({column: 99, direction: "asc"});
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(toJSON()).toBeDefined();

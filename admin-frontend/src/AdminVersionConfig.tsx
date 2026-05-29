@@ -6,6 +6,8 @@ import type {AdminApi, EndpointBuilder} from "./types";
 interface VersionConfigData {
   mobileRequiredVersion?: number;
   mobileWarningVersion?: number;
+  /** How often clients poll for version updates, in minutes. */
+  pollingIntervalMinutes?: number;
   requiredMessage?: string;
   updateUrl?: string | null;
   webRequiredVersion?: number;
@@ -46,6 +48,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
     });
   }, [api, baseUrl]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
@@ -61,6 +64,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
     const defaults = {
       mobileRequiredVersion: 0,
       mobileWarningVersion: 0,
+      pollingIntervalMinutes: 1440,
       requiredMessage: "This version is no longer supported. Please update to continue.",
       updateUrl: "",
       warningMessage: "A new version is available. Please update for the best experience.",
@@ -71,6 +75,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
       setFormState({
         mobileRequiredVersion: data.mobileRequiredVersion ?? 0,
         mobileWarningVersion: data.mobileWarningVersion ?? 0,
+        pollingIntervalMinutes: data.pollingIntervalMinutes ?? defaults.pollingIntervalMinutes,
         requiredMessage: data.requiredMessage ?? defaults.requiredMessage,
         updateUrl: data.updateUrl ?? "",
         warningMessage: data.warningMessage ?? defaults.warningMessage,
@@ -96,6 +101,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
       await updateConfig({
         mobileRequiredVersion: Number(formState.mobileRequiredVersion) || 0,
         mobileWarningVersion: Number(formState.mobileWarningVersion) || 0,
+        pollingIntervalMinutes: Math.max(1, Number(formState.pollingIntervalMinutes) || 1440),
         requiredMessage: formState.requiredMessage ?? "",
         updateUrl: trimmedUpdateUrl || null,
         warningMessage: formState.warningMessage ?? "",
@@ -202,6 +208,22 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
             title="Update URL (optional, for mobile app store link)"
             value={formState.updateUrl ?? ""}
           />
+        </Box>
+
+        <Box gap={2}>
+          <Text bold size="md">
+            Polling
+          </Text>
+          <NumberField
+            onChange={(v) => handleFieldChange("pollingIntervalMinutes", parseInt(v, 10) || 1440)}
+            title="Update check interval (minutes)"
+            type="number"
+            value={String(formState.pollingIntervalMinutes ?? 1440)}
+          />
+          <Text color="secondaryDark" size="sm">
+            How often clients check for updates in the background. Default: 1440 (24 hours).
+            Minimum: 1.
+          </Text>
         </Box>
 
         <Box direction="row" gap={2}>

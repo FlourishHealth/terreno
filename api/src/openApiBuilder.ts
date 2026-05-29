@@ -112,7 +112,7 @@ export interface OpenApiSchemaProperty {
  * };
  * ```
  */
-export type OpenApiSchema = {
+export interface OpenApiSchema {
   /** The JSON Schema type (typically "object" or "array") */
   type: string;
   /** Property definitions for object types */
@@ -123,7 +123,8 @@ export type OpenApiSchema = {
   items?: OpenApiSchemaProperty;
   /** Schema for additional properties or boolean to allow/disallow them */
   additionalProperties?: OpenApiSchemaProperty | boolean;
-};
+  [key: string]: unknown;
+}
 
 /**
  * Defines a parameter in an OpenAPI operation.

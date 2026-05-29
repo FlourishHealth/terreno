@@ -521,10 +521,24 @@ const generalSchema = new Schema(
   {_id: false}
 );
 
+const debugSchema = new Schema(
+  {
+    websocketsDebug: {
+      default: false,
+      description: "Enable verbose WebSocket and realtime sync debug logging",
+      type: Boolean,
+    },
+  },
+  {_id: false}
+);
+
 export interface AppConfigDocument {
   general: {
     appName: string;
     maintenanceMode: boolean;
+  };
+  debug: {
+    websocketsDebug: boolean;
   };
 }
 
@@ -533,6 +547,10 @@ const appConfigSchema = new Schema<AppConfigDocument>(
     general: {
       description: "General application settings",
       type: generalSchema,
+    },
+    debug: {
+      description: "Debug and diagnostic settings",
+      type: debugSchema,
     },
   },
   {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}

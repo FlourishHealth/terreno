@@ -9498,3 +9498,369 @@ exports[`DataTable renders empty data 1`] = `
   "type": "View",
 }
 `;
+
+exports[`DataTable renders with custom column component map 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Custom",
+                      ],
+                      "props": {
+                        "aria-label": "Table title: Custom",
+                        "aria-role": "header",
+                        "ellipsizeMode": "tail",
+                        "numberOfLines": 3,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flexWrap": "wrap",
+                          "fontFamily": "text",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "lineHeight": 16,
+                          "overflow": "hidden",
+                          "textAlign": "left",
+                          "textTransform": "uppercase",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottomColor": "#CDCDCD",
+                      "borderBottomWidth": 1,
+                      "flexDirection": "row",
+                      "height": 54,
+                      "justifyContent": "space-between",
+                      "padding": 16,
+                      "width": 100,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Name",
+                      ],
+                      "props": {
+                        "aria-label": "Table title: Name",
+                        "aria-role": "header",
+                        "ellipsizeMode": "tail",
+                        "numberOfLines": 3,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flexWrap": "wrap",
+                          "fontFamily": "text",
+                          "fontSize": 10,
+                          "fontWeight": "700",
+                          "lineHeight": 16,
+                          "overflow": "hidden",
+                          "textAlign": "left",
+                          "textTransform": "uppercase",
+                        },
+                      },
+                      "type": "Text",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#FFFFFF",
+                      "borderBottomColor": "#CDCDCD",
+                      "borderBottomWidth": 1,
+                      "flexDirection": "row",
+                      "height": 54,
+                      "justifyContent": "space-between",
+                      "padding": 16,
+                      "width": 100,
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "horizontal": true,
+                "onScroll": [Function],
+                "ref": {
+                  "current": null,
+                },
+                "scrollEventThrottle": 16,
+                "showsHorizontalScrollIndicator": false,
+                "style": {
+                  "marginLeft": 0,
+                },
+              },
+              "type": "ScrollView",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+              "position": "relative",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            "Custom",
+                                          ],
+                                          "props": {
+                                            "numberOfLines": 0,
+                                            "selectable": undefined,
+                                            "style": {
+                                              "color": "#1C1C1C",
+                                              "fontFamily": "text-regular",
+                                              "fontSize": 14,
+                                              "textAlign": "left",
+                                            },
+                                            "testID": undefined,
+                                          },
+                                          "type": "Text",
+                                        },
+                                      ],
+                                      "props": {},
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "backgroundColor": "#FFFFFF",
+                                      "borderBottomColor": "#CDCDCD",
+                                      "borderBottomWidth": 1,
+                                      "height": 54,
+                                      "justifyContent": "center",
+                                      "overflow": "hidden",
+                                      "padding": 16,
+                                      "position": "relative",
+                                      "width": 100,
+                                      "zIndex": 1,
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        {
+                                          "$$typeof": Symbol(react.test.json),
+                                          "children": [
+                                            {
+                                              "$$typeof": Symbol(react.test.json),
+                                              "children": [
+                                                "Alice",
+                                              ],
+                                              "props": {
+                                                "numberOfLines": 0,
+                                                "selectable": undefined,
+                                                "style": {
+                                                  "color": "#1C1C1C",
+                                                  "fontFamily": "text-regular",
+                                                  "fontSize": 14,
+                                                  "textAlign": "left",
+                                                },
+                                                "testID": undefined,
+                                              },
+                                              "type": "Text",
+                                            },
+                                          ],
+                                          "props": {},
+                                          "type": "View",
+                                        },
+                                      ],
+                                      "props": {
+                                        "onPointerEnter": [Function: AsyncFunction],
+                                        "onPointerLeave": [Function: AsyncFunction],
+                                        "style": {
+                                          "display": "flex",
+                                          "flexGrow": 1,
+                                          "flexShrink": 1,
+                                          "justifyContent": "center",
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "View",
+                                    },
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "backgroundColor": "#FFFFFF",
+                                      "borderBottomColor": "#CDCDCD",
+                                      "borderBottomWidth": 1,
+                                      "height": 54,
+                                      "justifyContent": "center",
+                                      "overflow": "hidden",
+                                      "padding": 16,
+                                      "position": "relative",
+                                      "width": 100,
+                                      "zIndex": 1,
+                                    },
+                                    "testID": undefined,
+                                  },
+                                  "type": "View",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "borderBottomColor": "#CDCDCD",
+                                  "borderBottomWidth": 1,
+                                  "flexDirection": "row",
+                                  "height": 54,
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "horizontal": true,
+                        "onScroll": [Function],
+                        "ref": {
+                          "current": null,
+                        },
+                        "scrollEventThrottle": 16,
+                        "showsHorizontalScrollIndicator": true,
+                        "style": {
+                          "flex": 1,
+                          "marginLeft": 0,
+                        },
+                      },
+                      "type": "ScrollView",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "flexDirection": "row",
+                      "position": "relative",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                },
+              },
+              "type": "ScrollView",
+            },
+          ],
+          "props": {
+            "style": {
+              "flex": 1,
+              "minHeight": 0,
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "borderColor": "#CDCDCD",
+          "borderWidth": 1,
+          "flex": 1,
+          "height": "100%",
+          "minHeight": 0,
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "style": {
+      "display": "flex",
+      "flexDirection": "column",
+      "height": "100%",
+    },
+    "testID": undefined,
+  },
+  "type": "View",
+}
+`;

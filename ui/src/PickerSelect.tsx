@@ -121,7 +121,7 @@ export interface RNPickerSelectProps {
   searchable?: boolean;
 }
 
-export function RNPickerSelect({
+export const RNPickerSelect = ({
   onValueChange,
   value,
   items,
@@ -144,7 +144,7 @@ export function RNPickerSelect({
 
   InputAccessoryView,
   searchable = true,
-}: RNPickerSelectProps) {
+}: RNPickerSelectProps) => {
   const [showPicker, setShowPicker] = useState<boolean>(false);
   const [animationType, setAnimationType] = useState<ModalProps["animationType"]>(undefined);
   const [orientation, setOrientation] = useState<"portrait" | "landscape">("portrait");
@@ -692,4 +692,4 @@ export function RNPickerSelect({
   };
 
   return render();
-}
+};

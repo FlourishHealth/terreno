@@ -1,7 +1,7 @@
 // https://jsonapi.org/format/#errors
 import * as Sentry from "@sentry/bun";
 import type {NextFunction, Request, Response} from "express";
-import {Schema} from "mongoose";
+import mongoose, {Schema} from "mongoose";
 
 import {logger} from "./logger";
 
@@ -136,26 +136,32 @@ export class APIError extends Error {
 // Create an errors field for storing error information in a JSONAPI compatible form directly on a
 // model.
 export const errorsPlugin = (schema: Schema): void => {
-  const errorSchema = new Schema({
-    code: {description: "Application-specific error code", type: String},
-    detail: {description: "Human-readable explanation of the error", type: String},
-    id: {description: "Unique identifier for this error occurrence", type: String},
-    links: {
-      about: {description: "Link to documentation about this error", type: String},
-      type: {description: "Link describing the error type", type: String},
-    },
-    meta: {description: "Non-standard meta information about the error", type: Schema.Types.Mixed},
-    source: {
-      header: {description: "HTTP header that caused the error", type: String},
-      parameter: {description: "Query parameter that caused the error", type: String},
-      pointer: {
-        description: "JSON pointer to the request field that caused the error",
-        type: String,
+  const errorSchema = new Schema(
+    {
+      code: {description: "Application-specific error code", type: String},
+      detail: {description: "Human-readable explanation of the error", type: String},
+      id: {description: "Unique identifier for this error occurrence", type: String},
+      links: {
+        about: {description: "Link to documentation about this error", type: String},
+        type: {description: "Link describing the error type", type: String},
       },
+      meta: {
+        description: "Non-standard meta information about the error",
+        type: Schema.Types.Mixed,
+      },
+      source: {
+        header: {description: "HTTP header that caused the error", type: String},
+        parameter: {description: "Query parameter that caused the error", type: String},
+        pointer: {
+          description: "JSON pointer to the request field that caused the error",
+          type: String,
+        },
+      },
+      status: {description: "HTTP status code for this error", type: Number},
+      title: {description: "Short summary of the error", required: true, type: String},
     },
-    status: {description: "HTTP status code for this error", type: Number},
-    title: {description: "Short summary of the error", required: true, type: String},
-  });
+    {_id: false, strict: "throw"}
+  );
 
   schema.add({apiErrors: errorSchema});
 };
@@ -234,6 +240,40 @@ export const apiUnauthorizedMiddleware = (
   }
 };
 
+/**
+ * Converts Mongoose validation/cast errors into client-friendly APIErrors.
+ */
+export const mongooseErrorToAPIError = (err: Error): APIError | null => {
+  if (err instanceof mongoose.Error.ValidationError) {
+    const fields: {[id: string]: string} = {};
+    for (const [path, subErr] of Object.entries(err.errors)) {
+      fields[path] = subErr.message;
+    }
+    return new APIError({
+      detail: err.message,
+      disableExternalErrorTracking: true,
+      fields,
+      status: 400,
+      title: "Validation failed",
+    });
+  }
+
+  if (err instanceof mongoose.Error.CastError) {
+    const path = err.path ?? "field";
+    return new APIError({
+      detail: `Invalid value for ${path}`,
+      disableExternalErrorTracking: true,
+      fields: {
+        [path]: `Expected ${err.kind ?? "a valid value"}, got ${JSON.stringify(err.value)}`,
+      },
+      status: 400,
+      title: "Validation failed",
+    });
+  }
+
+  return null;
+};
+
 export const apiErrorMiddleware = (
   err: Error,
   _req: Request,
@@ -245,7 +285,32 @@ export const apiErrorMiddleware = (
       Sentry.captureException(err);
     }
     res.status(err.status).json(getAPIErrorBody(err)).send();
-  } else {
-    next(err);
+    return;
   }
+
+  const mongooseError = mongooseErrorToAPIError(err);
+  if (mongooseError) {
+    res.status(mongooseError.status).json(getAPIErrorBody(mongooseError)).send();
+    return;
+  }
+
+  next(err);
+};
+
+/**
+ * Final Express error handler for unexpected errors. Always returns JSON so
+ * clients (e.g. RTK Query) can parse the response.
+ */
+export const apiFallthroughErrorMiddleware = (
+  err: Error,
+  _req: Request,
+  res: Response,
+  _next: NextFunction
+): void => {
+  logger.error(`Fallthrough error: ${err}${err.stack ? `\n${err.stack}` : ""}`);
+  Sentry.captureException(err);
+  if (res.headersSent) {
+    return;
+  }
+  res.status(500).json({status: 500, title: "Internal server error"}).send();
 };

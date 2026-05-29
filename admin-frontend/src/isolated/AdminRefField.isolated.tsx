@@ -1,3 +1,4 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
@@ -9,12 +10,13 @@ mock.module("../AdminObjectPicker", () => ({
 }));
 
 import {AdminRefField} from "../AdminRefField";
+import type {AdminApi} from "../types";
 
 describe("AdminRefField", () => {
   it("renders an AdminObjectPicker passing through key props", () => {
     const {getByTestId} = renderWithTheme(
       <AdminRefField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         errorText="e"
         helperText="h"

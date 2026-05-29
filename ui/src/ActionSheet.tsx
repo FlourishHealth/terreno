@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   },
 });
 
-export function getDeviceHeight(statusBarTranslucent: boolean | undefined): number {
+export const getDeviceHeight = (statusBarTranslucent: boolean | undefined): number => {
   const height = Dimensions.get("window").height;
 
   if (Platform.OS === "android" && !statusBarTranslucent) {
@@ -64,7 +64,7 @@ export function getDeviceHeight(statusBarTranslucent: boolean | undefined): numb
   }
 
   return height;
-}
+};
 
 export const getElevation = (elevation?: number) => {
   if (!elevation) {
@@ -580,48 +580,35 @@ export class ActionSheet extends Component<Props, State, unknown> {
     this.setState({
       keyboard: true,
     });
-    const ReactNativeVersion = require("react-native/Libraries/Core/ReactNativeVersion");
 
-    let v = ReactNativeVersion.version.major + ReactNativeVersion.version.minor;
-    v = parseInt(v, 10);
+    const keyboardHeight = event.endCoordinates.height;
+    const {height: windowHeight} = Dimensions.get("window");
 
-    if (v >= 63 || Platform.OS === "ios") {
-      const keyboardHeight = event.endCoordinates.height;
-      const {height: windowHeight} = Dimensions.get("window");
+    const currentlyFocusedField = TextInput.State.currentlyFocusedField
+      ? findNodeHandle(TextInput.State.currentlyFocusedField())
+      : TextInput.State.currentlyFocusedField();
 
-      const currentlyFocusedField = TextInput.State.currentlyFocusedField
-        ? findNodeHandle(TextInput.State.currentlyFocusedField())
-        : TextInput.State.currentlyFocusedField();
-
-      if (!currentlyFocusedField) {
-        return;
-      }
-
-      UIManager.measure(
-        currentlyFocusedField,
-        (_originX, _originY, _width, height, _pageX, pageY) => {
-          const fieldHeight = height;
-          const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
-          if (gap >= 0) {
-            return;
-          }
-          const toValue =
-            this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
-
-          Animated.timing(this.transformValue, {
-            duration: 250,
-            toValue,
-            useNativeDriver: true,
-          }).start();
-        }
-      );
-    } else {
-      Animated.timing(this.transformValue, {
-        duration: 250,
-        toValue: -10,
-        useNativeDriver: true,
-      }).start();
+    if (!currentlyFocusedField) {
+      return;
     }
+
+    UIManager.measure(
+      currentlyFocusedField,
+      (_originX, _originY, _width, height, _pageX, pageY) => {
+        const fieldHeight = height;
+        const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
+        if (gap >= 0) {
+          return;
+        }
+        const toValue = this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
+
+        Animated.timing(this.transformValue, {
+          duration: 250,
+          toValue,
+          useNativeDriver: true,
+        }).start();
+      }
+    );
   };
 
   /**

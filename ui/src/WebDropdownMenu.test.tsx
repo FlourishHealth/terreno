@@ -141,6 +141,29 @@ describe("WebDropdownMenu", () => {
     expect(getByText("Placeholder").props.style.fontWeight).toBe("400");
     expect(getByText("Real").props.style.fontWeight).toBe("400");
   });
+
+  it("applies dynamic background via the Pressable style callback", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        selectedValue="b"
+        visible
+      />
+    );
+    const optionPressable = getByTestId("web_dropdown_option_a");
+    const styleFn = optionPressable.props.style;
+    expect(typeof styleFn).toBe("function");
+    const defaultStyle = styleFn({hovered: false, pressed: false});
+    const hoveredStyle = styleFn({hovered: true, pressed: false});
+    const pressedStyle = styleFn({hovered: false, pressed: true});
+    expect(defaultStyle.paddingHorizontal).toBe(12);
+    expect(defaultStyle.paddingVertical).toBe(10);
+    expect(hoveredStyle.backgroundColor).toBeDefined();
+    expect(pressedStyle.backgroundColor).toBeDefined();
+  });
 });
 
 describe("WebDropdownMenu positioning", () => {
@@ -343,8 +366,6 @@ describe("useWebDropdownAnchor", () => {
 
   it("measures the trigger and updates anchor state when the ref has measureInWindow", () => {
     const {result} = renderHook(() => useWebDropdownAnchor());
-    // Simulate a mounted native View by assigning a measureInWindow shim to the
-    // ref. The hook does not care whether the node is a real View instance.
     const measureInWindow = mock((cb: (x: number, y: number, w: number, h: number) => void) => {
       cb(10, 20, 100, 40);
     });
@@ -357,5 +378,33 @@ describe("useWebDropdownAnchor", () => {
     expect(onMeasured).toHaveBeenCalledTimes(1);
     expect(onMeasured.mock.calls[0][0]).toEqual({height: 40, width: 100, x: 10, y: 20});
     expect(result.current.anchor).toEqual({height: 40, width: 100, x: 10, y: 20});
+  });
+
+  it("exercises the Pressable style callback for hover/pressed states", () => {
+    const {root} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={{height: 40, width: 100, x: 0, y: 50}}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={[
+          {label: "A", value: "a"},
+          {label: "B", value: "b"},
+        ]}
+        visible
+      />
+    );
+    // Find a Pressable with the style callback
+    const pressables = root.findAll(
+      (n) => typeof n.props.style === "function" && n.props["aria-role"] === "button"
+    );
+    expect(pressables.length).toBeGreaterThan(0);
+    // Call the style function with different states to exercise all branches
+    const styleFn = pressables[0].props.style;
+    const normalStyle = styleFn({hovered: false, pressed: false});
+    expect(normalStyle).toHaveProperty("paddingHorizontal");
+    const hoveredStyle = styleFn({hovered: true, pressed: false});
+    expect(hoveredStyle).toHaveProperty("paddingHorizontal");
+    const pressedStyle = styleFn({hovered: false, pressed: true});
+    expect(pressedStyle).toHaveProperty("paddingHorizontal");
   });
 });

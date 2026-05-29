@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
 
@@ -61,9 +61,13 @@ test.describe("Admin Panel", () => {
     await page.getByTestId("admin-model-card-Todo").click();
     await page.waitForLoadState("networkidle");
 
-    // Verify the todo appears in the table
-    await page.getByText(todoTitle).first().waitFor({state: "visible"});
-    await expect(page.getByText(todoTitle).first()).toBeVisible();
+    // Verify the todo appears in the admin table. Other screens (e.g. the
+    // consumer todos tab) may still be mounted in the background and receive
+    // the same todo via realtime sync — scope the locator to a visible element
+    // so we don't match a hidden duplicate.
+    await expect(page.getByText(todoTitle).locator("visible=true").first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test("admin panel shows configuration card", async ({page}) => {

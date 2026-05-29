@@ -1,11 +1,14 @@
+// noExplicitAny: test mocks use type-erased UI component stubs and mock field renderers
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi, AdminFieldConfig} from "../types";
 
 mock.module("../AdminFieldRenderer", () => ({
-  AdminFieldRenderer: ({fieldKey, onChange}: {fieldKey: string; onChange: (v: any) => void}) =>
+  AdminFieldRenderer: ({fieldKey, onChange}: {fieldKey: string; onChange: (v: unknown) => void}) =>
     React.createElement("AdminFieldRenderer", {
       fieldKey,
       onChange,
@@ -34,17 +37,21 @@ mock.module("@terreno/ui", () => {
       }),
     ]);
   };
-  const Box = ({children, ...rest}: any) => ReactMod.createElement(RN.View, rest, children);
-  const Button = ({text, onClick, iconName}: any) =>
+  const Box = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.View, rest, children);
+  const Button = ({text, onClick, iconName}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
       {onPress: onClick, testID: `btn-${iconName ?? text}`},
       ReactMod.createElement(RN.Text, {}, text)
     );
-  const Card = ({children}: any) => ReactMod.createElement(RN.View, {testID: "card"}, children);
-  const Heading = ({children}: any) => ReactMod.createElement(RN.Text, {}, children);
-  const Text = ({children, ...rest}: any) => ReactMod.createElement(RN.Text, rest, children);
-  const IconButton = ({onClick, accessibilityLabel}: any) =>
+  const Card = ({children}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.View, {testID: "card"}, children);
+  const Heading = ({children}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, children);
+  const Text = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, rest, children);
+  const IconButton = ({onClick, accessibilityLabel}: Record<string, unknown>) =>
     ReactMod.createElement(RN.Pressable, {
       onPress: onClick,
       testID: `icon-${accessibilityLabel}`,
@@ -65,10 +72,10 @@ describe("AdminNestedArrayField", () => {
   it("renders empty state when no items", () => {
     const {toJSON, getByText} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         helperText="help"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={() => {}}
         title="Items"
         value={[]}
@@ -81,10 +88,10 @@ describe("AdminNestedArrayField", () => {
   it("renders items with error text", () => {
     const {toJSON} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         errorText="oops"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={() => {}}
         title="Items"
         value={[
@@ -99,12 +106,12 @@ describe("AdminNestedArrayField", () => {
   it("handles non-array incoming value gracefully", () => {
     const {toJSON} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={() => {}}
         title="Items"
-        value={null as any}
+        value={null as unknown as Record<string, unknown>[]}
       />
     );
     expect(toJSON()).toBeDefined();
@@ -114,9 +121,9 @@ describe("AdminNestedArrayField", () => {
     const onChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[]}
@@ -136,9 +143,14 @@ describe("AdminNestedArrayField", () => {
     const onChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={{description: {required: false, type: "string"}} as any}
+        items={
+          {description: {required: false, type: "string"}} as unknown as Record<
+            string,
+            AdminFieldConfig
+          >
+        }
         onChange={onChange}
         title="Items"
         value={[]}
@@ -157,9 +169,9 @@ describe("AdminNestedArrayField", () => {
     };
     const {getByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={items as any}
+        items={items as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[]}
@@ -177,9 +189,9 @@ describe("AdminNestedArrayField", () => {
     const onChange = mock(() => {});
     const {getAllByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[
@@ -200,9 +212,9 @@ describe("AdminNestedArrayField", () => {
     const onChange = mock(() => {});
     const {getAllByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[
@@ -212,7 +224,7 @@ describe("AdminNestedArrayField", () => {
       />
     );
     const nameFields = getAllByTestId("admin-field-renderer-name");
-    (nameFields[1] as any).props.onChange("new name");
+    (nameFields[1] as ReactTestInstance).props.onChange("new name");
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0][0];
     expect(next[1].name).toBe("new name");
@@ -223,9 +235,9 @@ describe("AdminNestedArrayField", () => {
     const onChange = mock(() => {});
     const {getByTestId} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[
@@ -238,16 +250,16 @@ describe("AdminNestedArrayField", () => {
     fireEvent.press(getByTestId("mock-reorder"));
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0][0];
-    expect(next.map((i: any) => i.name)).toEqual(["c", "b", "a"]);
+    expect(next.map((i: Record<string, unknown>) => i.name)).toEqual(["c", "b", "a"]);
   });
 
   it("supports re-render with longer value array (grows itemIds)", () => {
     const onChange = mock(() => {});
     const {rerender, toJSON} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[{active: true, count: 1, name: "a", tags: []}]}
@@ -255,9 +267,9 @@ describe("AdminNestedArrayField", () => {
     );
     rerender(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={onChange}
         title="Items"
         value={[
@@ -272,9 +284,9 @@ describe("AdminNestedArrayField", () => {
   it("supports re-render with shorter value array (shrinks itemIds)", () => {
     const {rerender, toJSON} = renderWithTheme(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={() => {}}
         title="Items"
         value={[
@@ -285,9 +297,9 @@ describe("AdminNestedArrayField", () => {
     );
     rerender(
       <AdminNestedArrayField
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
-        items={baseItems as any}
+        items={baseItems as unknown as Record<string, AdminFieldConfig>}
         onChange={() => {}}
         title="Items"
         value={[{active: true, count: 1, name: "a", tags: []}]}

@@ -1,4 +1,3 @@
-// Defaults closed
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {NextFunction} from "express";
@@ -27,7 +26,6 @@ export const OwnerQueryFilter = (user?: User) => {
   if (user) {
     return {ownerId: user?.id};
   }
-  // Return a null, so we know to return no results.
   return null;
 };
 
@@ -83,30 +81,29 @@ export const Permissions = {
   },
 };
 
-export async function checkPermissions<T>(
+export const checkPermissions = async <T>(
   method: RESTMethod,
   permissions: PermissionMethod<T>[],
   user?: User,
   obj?: T
-): Promise<boolean> {
+): Promise<boolean> => {
   let anyTrue = false;
   for (const perm of permissions) {
-    // May or may not be a promise.
     if (!(await perm(method, user, obj))) {
       return false;
     }
     anyTrue = true;
   }
   return anyTrue;
-}
+};
 
 // Check the permissions for a given model and method. If the method is a read, update, or delete,
 // finds the relevant object, checks the permissions, and attaches the object to the request as
 // req.obj.
-export function permissionMiddleware<T>(
+export const permissionMiddleware = <T>(
   model: Model<T>,
   options: Pick<ModelRouterOptions<T>, "permissions" | "populatePaths">
-) {
+) => {
   return async (req: express.Request, _res: express.Response, next: NextFunction) => {
     if (req.method === "OPTIONS") {
       return next();
@@ -181,13 +178,14 @@ export function permissionMiddleware<T>(
         }
 
         // Document exists but is hidden
-        const reason: {[key: string]: string} | null = hiddenDoc.deleted
-          ? {deleted: "true"}
-          : hiddenDoc.disabled
-            ? {disabled: "true"}
-            : hiddenDoc.archived
-              ? {archived: "true"}
-              : null;
+        let reason: {[key: string]: string} | null = null;
+        if (hiddenDoc.deleted) {
+          reason = {deleted: "true"};
+        } else if (hiddenDoc.disabled) {
+          reason = {disabled: "true"};
+        } else if (hiddenDoc.archived) {
+          reason = {archived: "true"};
+        }
 
         // If no reason found, treat as not found
         if (!reason) {
@@ -222,4 +220,4 @@ export function permissionMiddleware<T>(
       return next(error);
     }
   };
-}
+};

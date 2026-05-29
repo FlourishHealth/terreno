@@ -56,6 +56,28 @@ describe("Button", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("defaults to scale press animation", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} text="Default animation" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableScale");
+  });
+
+  it("renders opacity press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="opacity" text="Opacity" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableOpacity");
+  });
+
+  it("renders no press animation", () => {
+    const tree = renderWithTheme(
+      <Button onClick={() => {}} pressAnimation="none" text="No animation" />
+    ).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("PressableWithoutFeedback");
+  });
+
   // Disabled state
   it("renders disabled state", () => {
     const {toJSON} = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />);
@@ -109,6 +131,19 @@ describe("Button", () => {
     await waitFor(() => {
       expect(handleClick).toHaveBeenCalled();
     });
+  });
+
+  it("does not call onClick again on the trailing debounce edge after rapid presses", async () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Click" />);
+
+    await act(async () => {
+      fireEvent.press(getByText("Click"));
+      fireEvent.press(getByText("Click"));
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   // Confirmation modal tests

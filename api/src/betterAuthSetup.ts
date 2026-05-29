@@ -12,8 +12,10 @@ import type {Application, NextFunction, Request, Response} from "express";
 import mongoose from "mongoose";
 import type {UserModel} from "./auth";
 import type {BetterAuthConfig, BetterAuthSessionData, BetterAuthUser} from "./betterAuth";
+import {APIError} from "./errors";
 import {logger} from "./logger";
 import {findOneOrNoneFor} from "./plugins";
+import {updateRequestContextFromRequest} from "./requestContext";
 
 /**
  * The Better Auth instance type.
@@ -43,12 +45,18 @@ export const createBetterAuth = (options: CreateBetterAuthOptions): BetterAuthIn
 
   const secret = config.secret || process.env.BETTER_AUTH_SECRET;
   if (!secret) {
-    throw new Error("BETTER_AUTH_SECRET must be set in env or config.secret must be provided.");
+    throw new APIError({
+      status: 500,
+      title: "BETTER_AUTH_SECRET must be set in env or config.secret must be provided.",
+    });
   }
 
   const baseURL = config.baseURL || process.env.BETTER_AUTH_URL;
   if (!baseURL) {
-    throw new Error("BETTER_AUTH_URL must be set in env or config.baseURL must be provided.");
+    throw new APIError({
+      status: 500,
+      title: "BETTER_AUTH_URL must be set in env or config.baseURL must be provided.",
+    });
   }
 
   const basePath = config.basePath ?? "/api/auth";
@@ -126,11 +134,13 @@ export const createBetterAuthSessionMiddleware = (
           if (appUser) {
             reqWithSession.user = appUser as unknown as Request["user"];
             reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+            updateRequestContextFromRequest(req);
           } else {
             // User exists in Better Auth but not synced yet - create them
             const newUser = await syncBetterAuthUser(userModel, betterAuthUser);
             reqWithSession.user = newUser as unknown as Request["user"];
             reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+            updateRequestContextFromRequest(req);
           }
         } else {
           // No user model - just attach the Better Auth user directly
@@ -143,6 +153,7 @@ export const createBetterAuthSessionMiddleware = (
             name: betterAuthUser.name,
           } as unknown as Request["user"];
           reqWithSession.betterAuthSession = session as unknown as BetterAuthSessionData;
+          updateRequestContextFromRequest(req);
         }
       }
 
@@ -249,7 +260,10 @@ export const getMongoClientFromMongoose = (): MongoClientLike => {
   const connection = mongoose.connection;
   const client = (connection as unknown as {client?: MongoClientLike}).client;
   if (!client) {
-    throw new Error("Mongoose is not connected. Ensure MongoDB connection is established first.");
+    throw new APIError({
+      status: 500,
+      title: "Mongoose is not connected. Ensure MongoDB connection is established first.",
+    });
   }
   return client;
 };

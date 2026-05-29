@@ -1,4 +1,5 @@
 import {LangfuseClient} from "@langfuse/client";
+import {APIError} from "@terreno/api";
 
 import type {LangfuseAppOptions} from "./langfuseTypes";
 
@@ -15,7 +16,10 @@ export const initLangfuseClient = (options: LangfuseAppOptions): LangfuseClient 
 
 export const getLangfuseClient = (): LangfuseClient => {
   if (!langfuseInstance) {
-    throw new Error("Langfuse client not initialized. Call initLangfuseClient first.");
+    throw new APIError({
+      status: 500,
+      title: "Langfuse client not initialized. Call initLangfuseClient first.",
+    });
   }
   return langfuseInstance;
 };

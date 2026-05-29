@@ -8,6 +8,7 @@ let mockBuildNumber: number | undefined = 42;
 // Trigger + unwrap mocks for useLazyGetVersionCheckQuery.
 interface MockVersionCheckResponse {
   message?: string;
+  pollingIntervalMs?: number;
   status: "ok" | "warning" | "required";
   updateUrl?: string;
 }
@@ -317,9 +318,43 @@ describe("useUpgradeCheck", () => {
       expect(capturedIntervalMs).toBe(60_000);
     });
 
-    it("does not set up interval when pollingIntervalMs is omitted", () => {
+    it("does not set up interval when pollingIntervalMs is omitted and server returns none", () => {
       renderHook(() => useUpgradeCheck());
       expect(mockSetInterval).not.toHaveBeenCalled();
+    });
+
+    it("adopts server-returned pollingIntervalMs after first response", async () => {
+      mockUnwrap.mockImplementation(() =>
+        Promise.resolve({pollingIntervalMs: 3_600_000, status: "ok" as const})
+      );
+      renderHook(() => useUpgradeCheck());
+
+      await act(async () => {
+        await flushPromises();
+      });
+      // Flush the secondary render triggered by setActivePollingIntervalMs
+      await act(async () => {});
+
+      expect(mockSetInterval).toHaveBeenCalledWith(expect.any(Function), 3_600_000);
+    });
+
+    it("server pollingIntervalMs overrides the local fallback prop", async () => {
+      mockUnwrap.mockImplementation(() =>
+        Promise.resolve({pollingIntervalMs: 1_800_000, status: "ok" as const})
+      );
+      renderHook(() => useUpgradeCheck({pollingIntervalMs: 60_000}));
+
+      // Initial interval from prop
+      expect(mockSetInterval).toHaveBeenCalledWith(expect.any(Function), 60_000);
+
+      await act(async () => {
+        await flushPromises();
+      });
+      // Flush the secondary render triggered by setActivePollingIntervalMs
+      await act(async () => {});
+
+      // Interval restarts with the server-configured value
+      expect(mockSetInterval).toHaveBeenCalledWith(expect.any(Function), 1_800_000);
     });
 
     it("cleans up interval on unmount", () => {

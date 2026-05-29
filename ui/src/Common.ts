@@ -395,12 +395,12 @@ export const SPACING_MAP = {
   12: 80,
 };
 
-export function getSpacing(spacing: SignedUpTo12) {
+export const getSpacing = (spacing: SignedUpTo12) => {
   if (spacing < 0) {
     return SPACING_MAP[Math.abs(spacing) as UnsignedUpTo12] * -1;
   }
   return SPACING_MAP[spacing as UnsignedUpTo12];
-}
+};
 
 export type TextFieldType =
   | "date"
@@ -753,9 +753,9 @@ const ROUNDING_MAP = {
   xl: 32,
 };
 
-export function getRounding(rounding: Rounding) {
+export const getRounding = (rounding: Rounding) => {
   return ROUNDING_MAP[rounding];
-}
+};
 
 export interface HeadingProps {
   align?: "left" | "right" | "center" | "justify"; // default "left"
@@ -1501,6 +1501,8 @@ export interface BodyProps {
   children?: ReactNode;
 }
 
+export type ButtonPressAnimation = "scale" | "opacity" | "none";
+
 export interface ButtonProps {
   /**
    * The text content of the confirmation modal.
@@ -1539,6 +1541,11 @@ export interface ButtonProps {
    * The subtitle of the confirmation modal.
    */
   modalSubTitle?: string;
+  /**
+   * The press animation to use when the button is touched.
+   * @default "scale"
+   */
+  pressAnimation?: ButtonPressAnimation;
   /**
    * The test ID for the button, used for testing purposes.
    */
@@ -1958,6 +1965,12 @@ export interface PageProps {
   rightButtonOnClick?: () => void;
   children?: ReactChildren;
   onError?: (error: Error, stack: string) => void;
+  /**
+   * When true, wraps content in SafeAreaView so it respects top/bottom device
+   * insets (camera notches, home indicator, status bar). Opt-in to avoid
+   * regressing existing screens that handle insets at the navigation level.
+   */
+  safeArea?: boolean;
 }
 
 export interface ProgressBarProps {

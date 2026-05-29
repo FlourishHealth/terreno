@@ -916,6 +916,54 @@ describe("AI Routes", () => {
       await Project.deleteMany({});
     });
 
+    it("streams text-delta events through the SSE path with a minimal mock model", async () => {
+      // Covers the text-delta SSE branch by using a model that emits only
+      // text-delta + finish (no step-start/step-end events).
+      const noStepModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "ok", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 1, outputTokens: 1},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({delta: "buffered tail", id: "t1", type: "text-delta" as const});
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 1, outputTokens: 1},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "no-step-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const customApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: noStepModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(customApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Hi"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      expect(body).toContain("buffered tail");
+    });
+
     it("uses per-request tools via createRequestTools", async () => {
       const createRequestTools = mock(() => ({
         localLookup: {description: "Per-request tool"} as unknown as Tool,
@@ -939,6 +987,61 @@ describe("AI Routes", () => {
         .parse(sseCollect);
       expect(res.status).toBe(200);
       expect(createRequestTools).toHaveBeenCalled();
+    });
+
+    it("streams with a model that emits a non-image file part (exercises file type guard)", async () => {
+      const nonImageFileModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "done", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 2, outputTokens: 2},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({delta: "here is a file", id: "t1", type: "text-delta" as const});
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.enqueue({
+                data: "UERGLWNvbnRlbnQ=",
+                mediaType: "application/pdf",
+                type: "file" as const,
+              });
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 2, outputTokens: 2},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "file-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const fileApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: nonImageFileModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(fileApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Give me a PDF"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      // Non-image files should not produce an image SSE event
+      expect(body).not.toContain('"image"');
+      expect(body).toContain("done");
     });
   });
 
@@ -1414,6 +1517,77 @@ describe("AI Routes", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.total).toBe(1);
+    });
+
+    it("returns 400 for invalid startDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?startDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid startDate");
+    });
+
+    it("returns 400 for invalid endDate format", async () => {
+      const agent = await authAsUser(app, "admin");
+      const res = await agent.get("/aiRequestsExplorer?endDate=not-a-date");
+
+      expect(res.status).toBe(400);
+      expect(res.body.title).toContain("Invalid endDate");
+    });
+
+    it("streams with a model that emits a non-image file part (exercises file type guard)", async () => {
+      const nonImageFileModel = {
+        doGenerate: mock(async () => ({
+          content: [{text: "done", type: "text" as const}],
+          finishReason: "stop" as const,
+          usage: {inputTokens: 2, outputTokens: 2},
+        })),
+        doStream: mock(async () => ({
+          stream: new ReadableStream({
+            start(controller) {
+              controller.enqueue({id: "t1", type: "text-start" as const});
+              controller.enqueue({delta: "here is a file", id: "t1", type: "text-delta" as const});
+              controller.enqueue({id: "t1", type: "text-end" as const});
+              controller.enqueue({
+                data: "UERGLWNvbnRlbnQ=",
+                mediaType: "application/pdf",
+                type: "file" as const,
+              });
+              controller.enqueue({
+                finishReason: "stop" as const,
+                type: "finish" as const,
+                usage: {inputTokens: 2, outputTokens: 2},
+              });
+              controller.close();
+            },
+          }),
+        })),
+        modelId: "file-model",
+        provider: "mock-provider",
+        specificationVersion: "v2" as const,
+        supportedUrls: {},
+      };
+      const fileApp = setupServer({
+        addRoutes: (router, options) => {
+          addGptRoutes(router, {
+            aiService: new AIService({model: nonImageFileModel as unknown as LanguageModel}),
+            openApiOptions: options,
+          });
+        },
+        skipListen: true,
+        userModel: UserModel,
+      });
+      const agent = await authAsUser(fileApp, "notAdmin");
+      const res = await agent
+        .post("/gpt/prompt")
+        .send({prompt: "Give me a PDF"})
+        .buffer(true)
+        .parse(sseCollect);
+      expect(res.status).toBe(200);
+      const body = (res as SseResponse).body;
+      // Non-image files should not produce an image SSE event
+      expect(body).not.toContain('"image"');
+      expect(body).toContain("done");
     });
 
     it("filters by startDate and endDate range", async () => {
