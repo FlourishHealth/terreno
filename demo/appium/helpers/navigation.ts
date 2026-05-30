@@ -26,6 +26,15 @@ const waitForAppForeground = async (): Promise<void> => {
   );
 };
 
+const waitForDemoHomeReady = async (): Promise<void> => {
+  const homeScreen = await $("~demo-home-screen");
+  await homeScreen.waitForDisplayed({
+    interval: 1000,
+    timeout: 120000,
+    timeoutMsg: "Demo home screen did not render",
+  });
+};
+
 const openDemoDeepLink = async (componentName: string): Promise<void> => {
   const url = toDemoDeepLink(componentName);
   console.info(`Opening demo deep link: ${url}`);
@@ -92,6 +101,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   }
 
   await waitForAppForeground();
+  await waitForDemoHomeReady();
 
   const target = await $(`~${testId}`);
 

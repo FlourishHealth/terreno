@@ -56,14 +56,6 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
-      - name: Embed JavaScript bundle (Android)
-        run: bunx expo export:embed --eager --platform android --dev false
-        working-directory: demo
-        env:
-          APPIUM_CI: "true"
-          NODE_ENV: production
-          NODE_OPTIONS: --openssl-legacy-provider
-
       - name: Build Android debug APK
         run: ./gradlew assembleDebug --no-daemon
         working-directory: demo/android
@@ -144,14 +136,6 @@ jobs:
         env:
           NODE_ENV: production
 
-      - name: Embed JavaScript bundle (iOS)
-        run: bunx expo export:embed --eager --platform ios --dev false
-        working-directory: demo
-        env:
-          APPIUM_CI: "true"
-          NODE_ENV: production
-          NODE_OPTIONS: --openssl-legacy-provider
-
       - name: Build iOS simulator app
         run: |
           set -euo pipefail
@@ -165,7 +149,7 @@ jobs:
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
-            -configuration Debug \
+            -configuration Release \
             -sdk iphonesimulator \
             -derivedDataPath ios/build \
             CODE_SIGNING_ALLOWED=NO
@@ -177,7 +161,7 @@ jobs:
       - name: Run Appium iOS tests
         run: |
           set -eu
-          IOS_APP_PATH="$(find "$GITHUB_WORKSPACE/demo/ios/build" -type d -name 'TerrenoDemo.app' -path '*Debug-iphonesimulator*' | head -1)"
+          IOS_APP_PATH="$(find "$GITHUB_WORKSPACE/demo/ios/build" -type d -name 'TerrenoDemo.app' -path '*Release-iphonesimulator*' | head -1)"
           if [ -z "$IOS_APP_PATH" ]; then
             echo "::error::Could not locate built iOS simulator app"
             exit 1
