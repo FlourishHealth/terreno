@@ -28,11 +28,23 @@ const waitForAppForeground = async (): Promise<void> => {
 
 const waitForDemoHomeReady = async (): Promise<void> => {
   const homeScreen = await $("~demo-home-screen");
-  await homeScreen.waitForDisplayed({
-    interval: 1000,
-    timeout: 120000,
-    timeoutMsg: "Demo home screen did not render",
-  });
+
+  try {
+    await homeScreen.waitForExist({
+      interval: 1000,
+      timeout: 120000,
+      timeoutMsg: "Demo home screen did not render",
+    });
+    return;
+  } catch {
+    // ScrollView testIDs are unreliable on Android; fall back to a home list item.
+    const homeItem = await $("~demo-home-button");
+    await homeItem.waitForDisplayed({
+      interval: 1000,
+      timeout: 30000,
+      timeoutMsg: "Demo home screen did not render",
+    });
+  }
 };
 
 const openDemoDeepLink = async (componentName: string): Promise<void> => {
@@ -101,17 +113,18 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   }
 
   await waitForAppForeground();
-  await waitForDemoHomeReady();
-
   const target = await $(`~${testId}`);
 
+  // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
     await openDemoDeepLink(componentName);
     await target.waitForDisplayed({timeout: 60000});
     return;
   } catch (error) {
     console.warn(`Deep link navigation failed for ${componentName}; falling back to demo home`, error);
-    await tapComponentOnDemoHome(componentName);
-    await target.waitForDisplayed({timeout: 60000});
   }
+
+  await waitForDemoHomeReady();
+  await tapComponentOnDemoHome(componentName);
+  await target.waitForDisplayed({timeout: 60000});
 };

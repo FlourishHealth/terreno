@@ -22,7 +22,6 @@ export const DemoHomePage: FC<{
         width: "100%",
       }}
       style={{padding: 20, width: "100%"}}
-      testID="demo-home-screen"
     >
       {DemoConfig.map((c) => {
         if (!c.name || !c.demo) {
