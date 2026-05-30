@@ -27,12 +27,15 @@ export const DemoHomePage: FC<{
         if (!c.name || !c.demo) {
           return null;
         }
+        const homeTestId = `demo-home-${c.name.toLowerCase().replace(/\s+/g, "-")}`;
+
         return (
           <Pressable
             accessibilityLabel={c.name}
             accessibilityRole="button"
             key={c.name}
             onPress={() => onPress(c.name)}
+            testID={homeTestId}
           >
             <View
               style={{

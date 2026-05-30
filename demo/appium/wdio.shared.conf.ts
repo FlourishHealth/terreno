@@ -9,6 +9,7 @@ export const sharedConfig: Options.Testrunner = {
   runner: "local",
   specs: [join(configDir, "specs/**/*.spec.ts")],
   maxInstances: 1,
+  specFileRetries: isCi ? 1 : 0,
   logLevel: "warn",
   bail: 0,
   waitforTimeout: 15000,
