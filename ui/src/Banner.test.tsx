@@ -1,8 +1,9 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 import React from "react";
 
-import {Banner, hideBanner} from "./Banner";
+import {Banner, BannerButton, hideBanner} from "./Banner";
+import {ThemeContext} from "./Theme";
 import {renderWithTheme} from "./test-utils";
 import {Unifier} from "./Unifier";
 
@@ -277,5 +278,20 @@ describe("Banner", () => {
     await waitFor(() => {
       expect(queryByText("Non persistent")).toBeNull();
     });
+  });
+
+  it("BannerButton returns null when theme is not available", () => {
+    const nullThemeContext = {
+      resetTheme: () => {},
+      setPrimitives: () => {},
+      setTheme: () => {},
+      theme: null,
+    };
+    const {toJSON} = render(
+      <ThemeContext.Provider value={nullThemeContext as never}>
+        <BannerButton buttonOnClick={() => {}} buttonText="Test" />
+      </ThemeContext.Provider>
+    );
+    expect(toJSON()).toBeNull();
   });
 });
