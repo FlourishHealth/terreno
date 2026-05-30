@@ -1,4 +1,4 @@
-import {describe, expect, it, mock} from "bun:test";
+import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import React from "react";
 
@@ -7,6 +7,10 @@ import {renderWithTheme} from "./test-utils";
 import {Unifier} from "./Unifier";
 
 describe("Banner", () => {
+  beforeEach(() => {
+    Unifier.storage.getItem = mock(() => Promise.resolve(null));
+    Unifier.storage.setItem = mock(() => Promise.resolve());
+  });
   it("renders correctly with default props", () => {
     const {toJSON} = renderWithTheme(<Banner id="test-banner" text="Test message" />);
     expect(toJSON()).toMatchSnapshot();

@@ -540,16 +540,17 @@ exports[`PickerSelect renders disabled state 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
+              "children": [
+                "Select an option",
+              ],
               "props": {
-                "readOnly": true,
                 "style": {
                   "color": "#686868",
+                  "flex": 1,
                 },
                 "testID": "text_input",
-                "value": "Select an option",
               },
-              "type": "TextInput",
+              "type": "Text",
             },
             {
               "$$typeof": Symbol(react.test.json),
