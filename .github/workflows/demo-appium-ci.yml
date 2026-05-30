@@ -69,12 +69,6 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Install Appium drivers
-        run: |
-          cd demo
-          bunx appium driver install --source=npm appium-xcuitest-driver
-          bunx appium driver install --source=npm appium-uiautomator2-driver
-
       - name: Run Appium Android tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -163,12 +157,6 @@ jobs:
         env:
           NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
-
-      - name: Install Appium drivers
-        run: |
-          cd demo
-          bunx appium driver install --source=npm appium-xcuitest-driver
-          bunx appium driver install --source=npm appium-uiautomator2-driver
 
       - name: Run Appium iOS tests
         run: |
