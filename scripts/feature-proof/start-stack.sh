@@ -47,11 +47,29 @@ for arg in "$@"; do
   esac
 done
 
-: > "$PID_FILE"
+append_pid_if_missing() {
+  local pid="$1"
+  local name="$2"
+  if [ -f "$PID_FILE" ] && grep -q "^${pid} ${name}$" "$PID_FILE" 2>/dev/null; then
+    return 0
+  fi
+  echo "$pid $name" >> "$PID_FILE"
+}
+
+record_running_pid() {
+  local port="$1"
+  local name="$2"
+  local pid
+  pid=$(lsof -ti ":${port}" 2>/dev/null | head -1 || true)
+  if [ -n "$pid" ]; then
+    append_pid_if_missing "$pid" "$name"
+  fi
+}
 
 if [ "$START_BACKEND" = true ]; then
   if is_backend_running; then
     echo "Backend already running on :4000"
+    record_running_pid 4000 backend
   else
     echo "Starting example-backend on :4000"
     (
@@ -59,7 +77,7 @@ if [ "$START_BACKEND" = true ]; then
       export $(backend_env | xargs)
       bun run dev
     ) &
-    echo "$! backend" >> "$PID_FILE"
+    append_pid_if_missing "$!" backend
     wait_for_url "http://localhost:4000/health" "backend"
   fi
 
@@ -76,6 +94,7 @@ fi
 if [ "$START_FRONTEND" = true ]; then
   if is_frontend_running; then
     echo "Frontend already running on :8082"
+    record_running_pid 8082 frontend
   else
     echo "Starting example-frontend web on :8082"
     (
@@ -83,7 +102,7 @@ if [ "$START_FRONTEND" = true ]; then
       export EXPO_PUBLIC_API_URL=http://localhost:4000
       bun run web
     ) &
-    echo "$! frontend" >> "$PID_FILE"
+    append_pid_if_missing "$!" frontend
     wait_for_url "http://localhost:8082" "frontend"
   fi
 fi

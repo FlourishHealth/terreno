@@ -17,7 +17,7 @@ source "${SCRIPT_DIR}/common.sh"
 
 TARGET="${1:-}"
 PR_NUMBER="$(current_pr_number)"
-PROOF_DIR="$(proof_dir_for_pr "$PR_NUMBER")/web-$(date +%Y%m%d-%H%M%S)"
+PROOF_DIR="$(ensure_proof_dir "$PR_NUMBER")/web-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$PROOF_DIR"
 
 "${SCRIPT_DIR}/start-stack.sh" --seed

@@ -16,7 +16,7 @@ source "${SCRIPT_DIR}/common.sh"
 
 FLOW="${1:-login}"
 PR_NUMBER="$(current_pr_number)"
-PROOF_DIR="$(proof_dir_for_pr "$PR_NUMBER")/native-$(date +%Y%m%d-%H%M%S)"
+PROOF_DIR="$(ensure_proof_dir "$PR_NUMBER")/native-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$PROOF_DIR"
 
 if ! command -v maestro >/dev/null 2>&1; then

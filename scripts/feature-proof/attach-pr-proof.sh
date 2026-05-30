@@ -42,7 +42,7 @@ if [ -z "$PROOF_DIR" ]; then
   elif [ -f "${ROOT_DIR}/.proof/latest-native.txt" ]; then
     PROOF_DIR="$(cat "${ROOT_DIR}/.proof/latest-native.txt")"
   else
-    PROOF_DIR="$(proof_dir_for_pr "$PR_NUMBER")"
+    PROOF_DIR="$(ensure_proof_dir "$PR_NUMBER")"
   fi
 fi
 
@@ -59,7 +59,7 @@ artifact_list=""
 if [ -n "$screenshots" ]; then
   while IFS= read -r file; do
     [ -z "$file" ] && continue
-    artifact_list="${artifact_list}\n- \`${file}\`"
+    artifact_list="${artifact_list}"$'\n'"- \`${file}\`"
   done <<< "$screenshots"
 fi
 

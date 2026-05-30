@@ -42,10 +42,10 @@ unresolved_bot_threads() {
     -F owner="$(gh repo view --json owner -q .owner.login)" \
     -F repo="$(gh repo view --json name -q .name)" \
     -F pr="$PR_NUMBER" \
-    --jq '.data.repository.pullRequest.reviewThreads.nodes
+    --jq --argjson bots "$bot_logins" '.data.repository.pullRequest.reviewThreads.nodes
       | map(select(.isResolved == false))
       | map(.comments.nodes[0].author.login)
-      | map(select(test("cursor|copilot|bugbot"; "i")))
+      | map(select(. as $login | $bots | index($login)))
       | length' 2>/dev/null || echo "0"
 }
 

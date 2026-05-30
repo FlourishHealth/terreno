@@ -18,8 +18,9 @@ current_pr_number() {
 }
 
 ensure_proof_dir() {
+  local pr_number="${1:-$(current_pr_number)}"
   local dir
-  dir="$(proof_dir_for_pr "$(current_pr_number)")"
+  dir="$(proof_dir_for_pr "$pr_number")"
   mkdir -p "$dir"
   echo "$dir"
 }
