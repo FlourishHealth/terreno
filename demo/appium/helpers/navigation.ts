@@ -12,8 +12,19 @@ const tapComponentOnDemoHome = async (componentName: string): Promise<void> => {
     return;
   }
 
-  const item = await $(`-ios predicate string:label == "${componentName}"`);
-  await item.waitForDisplayed({timeout: 30000});
+  const predicate = `-ios predicate string:label == "${componentName}"`;
+  const item = await $(predicate);
+
+  try {
+    await item.waitForDisplayed({timeout: 5000});
+  } catch {
+    await driver.execute("mobile: scroll", {
+      direction: "down",
+      predicateString: `label == "${componentName}"`,
+    });
+    await item.waitForDisplayed({timeout: 30000});
+  }
+
   await item.click();
 };
 

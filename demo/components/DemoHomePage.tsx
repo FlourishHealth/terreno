@@ -28,7 +28,12 @@ export const DemoHomePage: FC<{
           return null;
         }
         return (
-          <Pressable key={c.name} onPress={() => onPress(c.name)}>
+          <Pressable
+            accessibilityLabel={c.name}
+            accessibilityRole="button"
+            key={c.name}
+            onPress={() => onPress(c.name)}
+          >
             <View
               style={{
                 borderColor: "#ccc",

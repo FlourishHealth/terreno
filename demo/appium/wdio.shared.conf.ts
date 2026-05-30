@@ -21,13 +21,7 @@ export const sharedConfig: Options.Testrunner = {
         args: {
           relaxedSecurity: true,
         },
-        ...(isCi
-          ? {
-              appium: {
-                startupTimeout: 180000,
-              },
-            }
-          : {}),
+        ...(isCi ? {startupTimeout: 180000} : {}),
       },
     ],
   ],
