@@ -12,7 +12,7 @@ export const sharedConfig: Options.Testrunner = {
   logLevel: "warn",
   bail: 0,
   waitforTimeout: 15000,
-  connectionRetryTimeout: 180000,
+  connectionRetryTimeout: 300000,
   connectionRetryCount: 3,
   services: [
     [

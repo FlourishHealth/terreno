@@ -7,7 +7,8 @@ const DEMO_COMPONENT_TEST_IDS: Record<string, string> = {
 
 export const openDemoComponent = async (componentName: string): Promise<void> => {
   const encodedName = encodeURIComponent(componentName);
-  const url = `${DEMO_DEEP_LINK_SCHEME}://demo/${encodedName}`;
+  // Expo Router expects the path in the URI path, not the host (terreno:///demo/...).
+  const url = `${DEMO_DEEP_LINK_SCHEME}:///demo/${encodedName}`;
   const testId = DEMO_COMPONENT_TEST_IDS[componentName];
 
   if (driver.isAndroid) {
