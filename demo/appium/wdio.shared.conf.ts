@@ -13,8 +13,8 @@ export const sharedConfig: Options.Testrunner = {
   logLevel: "warn",
   bail: 0,
   waitforTimeout: 15000,
-  connectionRetryTimeout: 300000,
-  connectionRetryCount: 3,
+  connectionRetryTimeout: isCi ? 600000 : 300000,
+  connectionRetryCount: isCi ? 2 : 3,
   services: [
     [
       "appium",

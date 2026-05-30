@@ -171,6 +171,8 @@ jobs:
           echo "Using app bundle: $IOS_APP_PATH"
           xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
           xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
+          echo "Prebuilding WebDriverAgent for $IOS_DEVICE_UDID"
+          bunx appium driver run xcuitest build-wda --udid "$IOS_DEVICE_UDID"
           cd demo
           CI=true \
             APPIUM_CI=true \
