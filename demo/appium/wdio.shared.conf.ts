@@ -30,6 +30,6 @@ export const sharedConfig: Options.Testrunner = {
   reporters: ["spec"],
   mochaOpts: {
     ui: "bdd",
-    timeout: 120000,
+    timeout: isCi ? 300000 : 120000,
   },
 };
