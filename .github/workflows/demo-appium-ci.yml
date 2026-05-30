@@ -50,21 +50,25 @@ jobs:
           java-version: 17
 
       - name: Prebuild Android project
-        run: CI=1 bunx expo prebuild --platform android
+        run: CI=1 APPIUM_CI=true bunx expo prebuild --platform android --clean
         working-directory: demo
         env:
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Embed JavaScript bundle (Android)
         run: bunx expo export:embed --eager --platform android --dev false
         working-directory: demo
         env:
+          APPIUM_CI: "true"
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Build Android debug APK
         run: ./gradlew assembleDebug --no-daemon
         working-directory: demo/android
         env:
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Enable KVM
@@ -86,8 +90,10 @@ jobs:
           disable-spellchecker: true
           force-avd-creation: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: cd demo && export ANDROID_APP_PATH="$GITHUB_WORKSPACE/demo/android/app/build/outputs/apk/debug/app-debug.apk" && CI=true bun run appium:test:ci:android
+          script: cd demo && export ANDROID_APP_PATH="$GITHUB_WORKSPACE/demo/android/app/build/outputs/apk/debug/app-debug.apk" && CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android
         env:
+          APPIUM_CI: "true"
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Upload Appium logs
@@ -133,13 +139,17 @@ jobs:
         working-directory: ui
 
       - name: Prebuild iOS project
-        run: CI=1 bunx expo prebuild --platform ios
+        run: CI=1 APPIUM_CI=true bunx expo prebuild --platform ios --clean
         working-directory: demo
+        env:
+          NODE_ENV: production
 
       - name: Embed JavaScript bundle (iOS)
         run: bunx expo export:embed --eager --platform ios --dev false
         working-directory: demo
         env:
+          APPIUM_CI: "true"
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Build iOS simulator app
@@ -161,6 +171,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
         working-directory: demo
         env:
+          NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Run Appium iOS tests
@@ -178,6 +189,8 @@ jobs:
           xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
           cd demo
           CI=true \
+            APPIUM_CI=true \
+            NODE_ENV=production \
             IOS_APP_PATH="$IOS_APP_PATH" \
             IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
             IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
