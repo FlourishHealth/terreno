@@ -30,7 +30,6 @@ export const config: Options.Testrunner = {
       ...(isCi
         ? {
             "appium:showXcodeLog": true,
-            "appium:usePrebuiltWDA": true,
             "appium:appLaunchTimeout": 180000,
             "appium:wdaLaunchTimeout": 360000,
             "appium:wdaConnectionTimeout": 360000,
