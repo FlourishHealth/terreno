@@ -25,6 +25,7 @@ export const config: Options.Testrunner = {
       ...(iosDeviceUdid ? {"appium:udid": iosDeviceUdid} : {}),
       "appium:app": iosAppPath,
       "appium:autoAcceptAlerts": true,
+      "appium:appWaitDuration": 60000,
       "appium:newCommandTimeout": 240,
       ...(isCi
         ? {

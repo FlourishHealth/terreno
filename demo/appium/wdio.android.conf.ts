@@ -28,6 +28,7 @@ export const config: Options.Testrunner = {
       "appium:appPackage": DEMO_APP_PACKAGE,
       "appium:appActivity": ".MainActivity",
       "appium:autoGrantPermissions": true,
+      "appium:appWaitDuration": 60000,
       "appium:newCommandTimeout": 240,
       "appium:adbExecTimeout": 120000,
       ...(isCi
