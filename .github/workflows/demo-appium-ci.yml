@@ -55,6 +55,12 @@ jobs:
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
+      - name: Embed JavaScript bundle (Android)
+        run: bunx expo export:embed --eager --platform android --dev false
+        working-directory: demo
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
+
       - name: Build Android debug APK
         run: ./gradlew assembleDebug --no-daemon
         working-directory: demo/android
@@ -129,6 +135,12 @@ jobs:
       - name: Prebuild iOS project
         run: CI=1 bunx expo prebuild --platform ios
         working-directory: demo
+
+      - name: Embed JavaScript bundle (iOS)
+        run: bunx expo export:embed --eager --platform ios --dev false
+        working-directory: demo
+        env:
+          NODE_OPTIONS: --openssl-legacy-provider
 
       - name: Build iOS simulator app
         run: |
