@@ -64,7 +64,7 @@ On timeout, report PR link, last known CI/review state, and what was left incomp
    - Compare failed files/tests against `gh pr diff` — is the failure in code you changed?
    - Check for flaky signals: timeouts, race conditions, ECONNRESET, intermittent assertions
    - If flaky (not in your code + flaky signals), rerun once: `gh run rerun <run-id> --failed`
-   - Run `gh pr checks --watch --fail-fast` again. If still failing, file an issue and move on:
+   - Run `timeout "${remaining}s" gh pr checks --watch --fail-fast` again. If still failing, file an issue and move on:
      ```bash
      gh issue create --title "Flaky test: <test name>" --body "<error details and job link>"
      ```
