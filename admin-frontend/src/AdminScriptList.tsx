@@ -1,18 +1,34 @@
 import {Box, Button, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import React, {useCallback, useState} from "react";
 import {AdminScriptRunModal} from "./AdminScriptRunModal";
-import type {AdminApi, AdminScriptConfig} from "./types";
+import {type AdminApi, type AdminScriptConfig, resolveAdminBases} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminScriptListProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   /** When false, the Run button is disabled. Defaults to true. */
   isAdmin?: boolean;
 }
 
-export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api, isAdmin = true}) => {
-  const {config, isLoading, error} = useAdminConfig(api, baseUrl);
+export const AdminScriptList: React.FC<AdminScriptListProps> = ({
+  baseUrl,
+  apiBase,
+  routeBase,
+  api,
+  isAdmin = true,
+}) => {
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -85,8 +101,9 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({baseUrl, api, i
 
       <AdminScriptRunModal
         api={api}
-        baseUrl={baseUrl}
+        apiBase={resolvedApiBase}
         onDismiss={handleDismiss}
+        routeBase={resolvedRouteBase}
         scriptDescription={selectedScript?.description}
         scriptName={selectedScript?.name ?? null}
         visible={modalVisible}
