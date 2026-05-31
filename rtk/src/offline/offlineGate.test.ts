@@ -1,7 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
 
-import {shouldBlockOfflineMutationAuthFailure} from "./emptyApi";
+import {shouldBlockOfflineMutationAuthFailure} from "../emptyApi";
 import {configureOfflineMutationEndpoints, shouldDeferOfflineMutation} from "./offlineGate";
 import {offlineReducer, setConnectionQuality, setOnlineStatus} from "./offlineSlice";
 

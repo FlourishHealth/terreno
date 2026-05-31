@@ -10,7 +10,7 @@ import type {
   QueuedMutation,
   QueuedMutationStatus,
 } from "./offlineTypes";
-import {IsWeb} from "./platform";
+import {IsWeb} from "../platform";
 
 export const OFFLINE_QUEUE_VERSION = 2;
 
