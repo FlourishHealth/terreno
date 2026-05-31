@@ -166,7 +166,7 @@ jobs:
           echo "::notice::Fingerprint matches existing dev build — update-only flow complete"
 
       - name: Slow path — dispatch EAS workflow async
-        if: steps.decide.outputs.needs_build == 'true'
+        if: always() && steps.decide.outputs.needs_build == 'true'
         working-directory: example-frontend
         run: |
           echo "::notice::Fingerprint changed — dispatching dev build-only workflow to EAS (will not wait)"
@@ -296,7 +296,7 @@ jobs:
           echo "::notice::Fingerprint matches existing dev build — update-only flow complete"
 
       - name: Slow path — dispatch EAS workflow async
-        if: steps.decide.outputs.needs_build == 'true'
+        if: always() && steps.decide.outputs.needs_build == 'true'
         working-directory: demo
         run: |
           echo "::notice::Fingerprint changed — dispatching dev build-only workflow to EAS (will not wait)"

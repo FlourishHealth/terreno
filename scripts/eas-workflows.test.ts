@@ -23,6 +23,7 @@ describe("EAS PR workflows", () => {
     assert.match(easPr, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*example-frontend-build\.yml/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*demo-build\.yml/);
+    assert.match(easPr, /if: always\(\) && steps\.decide\.outputs\.needs_build == 'true'/);
     assert.doesNotMatch(easPr, /-F "pr_number=/);
     assert.doesNotMatch(easPr, /-F "pr_title=/);
   });
