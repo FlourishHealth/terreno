@@ -28,13 +28,13 @@ const offlineConfig = createOfflineMiddleware({
     enabled: true,
     models: [
       {
-        modelName: "Todo",
-        tagType: "todos",
         endpoints: {
           create: {endpointName: "postTodos"},
           delete: {endpointName: "deleteTodosById"},
           update: {endpointName: "patchTodosById"},
         },
+        modelName: "Todo",
+        tagType: "todos",
       },
     ],
   },

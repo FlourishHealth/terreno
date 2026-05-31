@@ -2073,10 +2073,7 @@ describe("@terreno/api", () => {
 
     it("rejects duplicate client-provided _id values", async () => {
       const clientId = "507f1f77bcf86cd799439012";
-      await agent
-        .post("/food")
-        .send({_id: clientId, calories: 12, name: "First"})
-        .expect(201);
+      await agent.post("/food").send({_id: clientId, calories: 12, name: "First"}).expect(201);
 
       const res = await agent
         .post("/food")
