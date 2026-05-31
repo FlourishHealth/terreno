@@ -16,12 +16,14 @@ This directory contains detailed technical plans for major features **before imp
 ## Current Plans
 
 - **[Modular API (TerrenoApp)](ModularAPI.md)** — New fluent builder API to replace `setupServer` in `@terreno/api`
+- **[Offline Mode](offline-mode.md)** — Placeholder plan for offline queueing, replay, conflict handling, and UI surfaces
 
 ## Status Tracking
 
 | Plan | Status | Target Version | Discussion |
 |------|--------|----------------|------------|
 | Modular API | 📝 Planning | 2.0.0 | [#149](https://github.com/FlourishHealth/terreno/pull/149) |
+| Offline Mode | Placeholder | TBD | TBD |
 
 ## Process
 
