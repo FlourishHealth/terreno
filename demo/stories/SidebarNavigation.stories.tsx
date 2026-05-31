@@ -9,11 +9,11 @@ export const SidebarNavigationDemo: FC<{
   itemBackgroundColor?: string;
   badgeStatus?: SidebarBadgeStatus;
 }> = ({preview, panelBackgroundColor, itemBackgroundColor, badgeStatus}) => {
+  const [activeRoute, setActiveRoute] = useState("index");
+
   if (preview) {
     return <Box />;
   }
-
-  const [activeRoute, setActiveRoute] = useState("index");
 
   const panelStyle = panelBackgroundColor ? {backgroundColor: panelBackgroundColor} : undefined;
   const itemStyle = itemBackgroundColor ? {backgroundColor: itemBackgroundColor} : undefined;
