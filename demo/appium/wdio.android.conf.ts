@@ -1,6 +1,5 @@
 import {existsSync} from "node:fs";
 import {join} from "node:path";
-import type {Options} from "@wdio/types";
 
 import {DEMO_APP_PACKAGE} from "./constants";
 import {configDir, isCi, sharedConfig} from "./wdio.shared.conf";
@@ -17,7 +16,7 @@ if (!existsSync(androidAppPath)) {
   );
 }
 
-export const config: Options.Testrunner = {
+export const config: WebdriverIO.Config = {
   ...sharedConfig,
   capabilities: [
     {

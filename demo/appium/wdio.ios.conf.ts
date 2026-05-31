@@ -1,5 +1,4 @@
 import {existsSync} from "node:fs";
-import type {Options} from "@wdio/types";
 
 import {isCi, sharedConfig} from "./wdio.shared.conf";
 
@@ -14,7 +13,7 @@ if (!iosAppPath || !existsSync(iosAppPath)) {
 const iosPlatformVersion = process.env.IOS_PLATFORM_VERSION;
 const iosDeviceUdid = process.env.IOS_DEVICE_UDID;
 
-export const config: Options.Testrunner = {
+export const config: WebdriverIO.Config = {
   ...sharedConfig,
   capabilities: [
     {
