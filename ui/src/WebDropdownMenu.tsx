@@ -11,6 +11,7 @@ import {
   TextInput,
   type TextStyle,
   View,
+  type ViewStyle,
 } from "react-native";
 
 import {useTheme} from "./Theme";
@@ -153,7 +154,7 @@ export const WebDropdownMenu = ({
     ? Math.min(menuMaxHeight, anchor.y - gap)
     : Math.min(menuMaxHeight, spaceBelow);
 
-  const menuPositionStyle = {
+  const menuLayoutStyle = {
     backgroundColor: theme.surface.base,
     borderColor: theme.border.dark,
     borderRadius: 4,
@@ -162,7 +163,6 @@ export const WebDropdownMenu = ({
     maxHeight: clampedMaxHeight,
     minWidth,
     overflow: "hidden" as const,
-    position: "fixed" as const,
     shadowColor: "#000",
     shadowOffset: {height: 2, width: 0},
     shadowOpacity: 0.15,
@@ -276,15 +276,32 @@ export const WebDropdownMenu = ({
       return <View testID={`${testIDPrefix}_modal`} />;
     }
 
+    const webFixedOverlayStyle = {
+      inset: 0,
+      position: "fixed",
+      zIndex: 9999,
+    } as unknown as ViewStyle;
+
+    const webFixedBackdropStyle = {
+      inset: 0,
+      position: "fixed",
+      zIndex: 1,
+    } as unknown as ViewStyle;
+
+    const webFixedMenuStyle = {
+      ...menuLayoutStyle,
+      position: "fixed",
+    } as unknown as ViewStyle;
+
     const overlay = (
-      <View pointerEvents="box-none" style={{inset: 0, position: "fixed", zIndex: 9999}}>
+      <View pointerEvents="box-none" style={webFixedOverlayStyle}>
         <Pressable
           aria-role="button"
           onPress={onClose}
-          style={{inset: 0, position: "fixed", zIndex: 1}}
+          style={webFixedBackdropStyle}
           testID={`${testIDPrefix}_backdrop`}
         />
-        <View style={menuPositionStyle} testID={`${testIDPrefix}_menu`}>
+        <View style={webFixedMenuStyle} testID={`${testIDPrefix}_menu`}>
           {menuContent}
         </View>
       </View>
@@ -318,7 +335,7 @@ export const WebDropdownMenu = ({
       />
       <View
         style={{
-          ...menuPositionStyle,
+          ...menuLayoutStyle,
           position: "absolute",
           zIndex: 1,
         }}
