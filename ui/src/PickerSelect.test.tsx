@@ -176,7 +176,15 @@ describe("PickerSelect", () => {
       }
       const el = new (globalThis as any).HTMLElement();
       el.blur = () => {};
-      (globalThis as any).document = {activeElement: el};
+      (globalThis as any).document = {
+        activeElement: el,
+        addEventListener: () => {},
+        body: {
+          appendChild: () => {},
+          removeChild: () => {},
+        },
+        removeEventListener: () => {},
+      };
     };
 
     const restoreDocument = () => {
@@ -292,12 +300,61 @@ describe("PickerSelect", () => {
           <RNPickerSelect {...defaultProps} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
+        const input = getByTestId("text_input");
         await act(async () => {
-          fireEvent.changeText(getByTestId("text_input"), "3");
+          fireEvent.changeText(input, "3");
         });
+        expect(input.props.value).toBe("3");
         expect(getByTestId("web_dropdown_option_3")).toBeTruthy();
         expect(queryByTestId("web_dropdown_option_1")).toBeNull();
         expect(queryByTestId("web_dropdown_option_2")).toBeNull();
+        expect(queryByTestId("web_dropdown_search")).toBeNull();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("updates the trigger input value while typing character by character", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        await openSearchableWebPicker(getByTestId);
+        const input = getByTestId("text_input");
+        await act(async () => {
+          fireEvent.changeText(input, "O");
+        });
+        expect(input.props.value).toBe("O");
+        await act(async () => {
+          fireEvent.changeText(input, "Op");
+        });
+        expect(input.props.value).toBe("Op");
+        await act(async () => {
+          fireEvent.changeText(input, "Opt");
+        });
+        expect(input.props.value).toBe("Opt");
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("opens the menu and accepts typed input without requiring a separate menu search field", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId, queryByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} value="1" />
+        );
+        const input = getByTestId("text_input");
+        await act(async () => {
+          fireEvent.changeText(input, "Option 3");
+        });
+        expect(input.props.value).toBe("Option 3");
+        expect(getByTestId("web_dropdown_option_3")).toBeTruthy();
         expect(queryByTestId("web_dropdown_search")).toBeNull();
       } finally {
         PlatformModule.OS = savedOS;
@@ -375,7 +432,7 @@ describe("PickerSelect", () => {
       try {
         PlatformModule.OS = "web";
         const mockOnValueChange = mock(() => {});
-        const {getByTestId} = renderWithTheme(
+        const {getByTestId, queryByTestId, rerender} = renderWithTheme(
           <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
         );
         await openSearchableWebPicker(getByTestId);
@@ -383,6 +440,32 @@ describe("PickerSelect", () => {
           fireEvent.press(getByTestId("web_dropdown_option_2"));
         });
         expect(mockOnValueChange).toHaveBeenCalledWith("2", 2);
+        expect(queryByTestId("web_dropdown_backdrop")).toBeNull();
+        rerender(<RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="2" />);
+        expect(getByTestId("text_input").props.value).toBe("Option 2");
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("selects a filtered option and reports the original option index", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const mockOnValueChange = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+        );
+        await openSearchableWebPicker(getByTestId);
+        await act(async () => {
+          fireEvent.changeText(getByTestId("text_input"), "Option 3");
+        });
+        await act(async () => {
+          fireEvent.press(getByTestId("web_dropdown_option_3"));
+        });
+        expect(mockOnValueChange).toHaveBeenCalledWith("3", 3);
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();

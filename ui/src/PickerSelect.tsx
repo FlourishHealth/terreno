@@ -178,7 +178,6 @@ export const RNPickerSelect = ({
 
   // On web, blur the active element before the picker modal opens to prevent
   // "aria-hidden on a focused element" warnings from React Native Web.
-  // Skip when searchable — the trigger TextInput must stay focused for typing.
   useEffect(() => {
     if (showPicker && Platform.OS === "web" && !searchable) {
       const active = document.activeElement;
@@ -187,6 +186,15 @@ export const RNPickerSelect = ({
       }
     }
   }, [showPicker, searchable]);
+
+  // Keep the trigger input focused after the menu opens so typing works on web.
+  useEffect(() => {
+    if (showPicker && searchable && Platform.OS === "web") {
+      scheduleAfterPaint(() => {
+        webSearchInputRef.current?.focus();
+      });
+    }
+  }, [searchable, showPicker]);
 
   const options = useMemo(() => {
     if (isEqual(placeholder, {})) {
@@ -725,6 +733,7 @@ export const RNPickerSelect = ({
             testID="web_picker"
           >
             <TextInput
+              {...textInputProps}
               editable={!disabled}
               onChangeText={handleWebSearchChange}
               onFocus={handleWebSearchFocus}
@@ -734,7 +743,6 @@ export const RNPickerSelect = ({
               style={triggerTextStyle}
               testID="text_input"
               value={showPicker ? webSearchQuery : displayLabel}
-              {...textInputProps}
             />
             <Pressable
               aria-role="button"
@@ -785,6 +793,7 @@ export const RNPickerSelect = ({
         )}
         <WebDropdownMenu
           anchor={webAnchor}
+          keepTriggerFocus={searchable}
           onClose={closeWebMenu}
           onSelect={(_val, idx) => {
             const originalIndex = filteredWebMenuOptionIndexes[idx] ?? idx;

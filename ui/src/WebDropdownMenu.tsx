@@ -1,4 +1,5 @@
 import {type ReactElement, useEffect, useRef, useState} from "react";
+import {createPortal} from "react-dom";
 import {
   Dimensions,
   type DimensionValue,
@@ -76,6 +77,12 @@ export interface WebDropdownMenuProps {
    * Used when the parent filters options externally (e.g. search in the trigger).
    */
   showEmptyStateWhenNoOptions?: boolean;
+  /**
+   * When true, renders the menu in a lightweight portal overlay instead of
+   * React Native's Modal so focus can remain on an external trigger input.
+   * Web only.
+   */
+  keepTriggerFocus?: boolean;
 }
 
 interface PressableWebState {
@@ -109,6 +116,7 @@ export const WebDropdownMenu = ({
   testIDPrefix = "web_dropdown",
   searchable = true,
   showEmptyStateWhenNoOptions = false,
+  keepTriggerFocus = false,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,6 +153,155 @@ export const WebDropdownMenu = ({
     ? Math.min(menuMaxHeight, anchor.y - gap)
     : Math.min(menuMaxHeight, spaceBelow);
 
+  const menuPositionStyle = {
+    backgroundColor: theme.surface.base,
+    borderColor: theme.border.dark,
+    borderRadius: 4,
+    borderWidth: 1,
+    left: anchor.x,
+    maxHeight: clampedMaxHeight,
+    minWidth,
+    overflow: "hidden" as const,
+    position: "fixed" as const,
+    shadowColor: "#000",
+    shadowOffset: {height: 2, width: 0},
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
+    width: width ?? anchor.width,
+    zIndex: 2,
+  };
+
+  const menuContent = (
+    <>
+      {searchable && (
+        <View
+          style={{
+            borderBottomColor: theme.border.default,
+            borderBottomWidth: 1,
+            paddingHorizontal: 8,
+            paddingVertical: 6,
+          }}
+        >
+          <TextInput
+            autoFocus
+            onChangeText={setSearchQuery}
+            placeholder="Search..."
+            placeholderTextColor={theme.text.secondaryLight}
+            ref={searchInputRef}
+            style={{
+              borderColor: theme.border.dark,
+              borderRadius: 4,
+              borderWidth: 1,
+              color: theme.text.primary,
+              fontSize: 14,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
+              ...(Platform.OS === "web" ? {outline: "none"} : {}),
+            }}
+            testID={`${testIDPrefix}_search`}
+            value={searchQuery}
+          />
+        </View>
+      )}
+      <ScrollView keyboardShouldPersistTaps="handled">
+        {filteredOptions.map((item) => {
+          const originalIdx = options.indexOf(item);
+          const isSelected =
+            selectedIndex !== undefined
+              ? originalIdx === selectedIndex
+              : item.value === selectedValue;
+          return (
+            <Pressable
+              aria-role="button"
+              key={item.key ?? originalIdx}
+              onPress={() => onSelect(item.value, originalIdx)}
+              style={(state: PressableWebState) => ({
+                backgroundColor:
+                  isSelected || state.hovered || state.pressed
+                    ? theme.surface.neutralLight
+                    : theme.surface.base,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+              })}
+              testID={`${testIDPrefix}_option_${item.value}`}
+            >
+              <Text
+                style={{
+                  color: item.color ?? theme.text.primary,
+                  fontWeight: isSelected ? "600" : "400",
+                  ...optionTextStyle,
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+        {(searchable || showEmptyStateWhenNoOptions) && filteredOptions.length === 0 && (
+          <View style={{paddingHorizontal: 12, paddingVertical: 10}}>
+            <Text
+              style={{color: theme.text.secondaryLight, fontStyle: "italic"}}
+              testID={`${testIDPrefix}_no_results`}
+            >
+              No matching options
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </>
+  );
+
+  // Close on Escape when using the portal overlay (Modal handles this itself).
+  useEffect(() => {
+    if (!visible || !keepTriggerFocus || Platform.OS !== "web" || typeof document === "undefined") {
+      return;
+    }
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("keyup", closeOnEscape, false);
+    return () => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("keyup", closeOnEscape, false);
+      }
+    };
+  }, [keepTriggerFocus, onClose, visible]);
+
+  if (Platform.OS === "web" && keepTriggerFocus) {
+    if (!visible) {
+      return <View testID={`${testIDPrefix}_modal`} />;
+    }
+
+    const overlay = (
+      <View pointerEvents="box-none" style={{inset: 0, position: "fixed", zIndex: 9999}}>
+        <Pressable
+          aria-role="button"
+          onPress={onClose}
+          style={{inset: 0, position: "fixed", zIndex: 1}}
+          testID={`${testIDPrefix}_backdrop`}
+        />
+        <View style={menuPositionStyle} testID={`${testIDPrefix}_menu`}>
+          {menuContent}
+        </View>
+      </View>
+    );
+
+    const portalTarget =
+      typeof document !== "undefined" && document.body instanceof HTMLElement
+        ? document.body
+        : null;
+
+    if (portalTarget) {
+      return createPortal(overlay, portalTarget);
+    }
+
+    return overlay;
+  }
+
   return (
     <Modal
       animationType="none"
@@ -156,104 +313,18 @@ export const WebDropdownMenu = ({
       <Pressable
         aria-role="button"
         onPress={onClose}
-        style={{flex: 1}}
+        style={{flex: 1, zIndex: 0}}
         testID={`${testIDPrefix}_backdrop`}
       />
       <View
         style={{
-          backgroundColor: theme.surface.base,
-          borderColor: theme.border.dark,
-          borderRadius: 4,
-          borderWidth: 1,
-          left: anchor.x,
-          maxHeight: clampedMaxHeight,
-          minWidth,
-          overflow: "hidden",
+          ...menuPositionStyle,
           position: "absolute",
-          shadowColor: "#000",
-          shadowOffset: {height: 2, width: 0},
-          shadowOpacity: 0.15,
-          shadowRadius: 8,
-          ...(isOpenAbove ? {bottom: menuBottom} : {top: menuTop}),
-          width: width ?? anchor.width,
+          zIndex: 1,
         }}
         testID={`${testIDPrefix}_menu`}
       >
-        {searchable && (
-          <View
-            style={{
-              borderBottomColor: theme.border.default,
-              borderBottomWidth: 1,
-              paddingHorizontal: 8,
-              paddingVertical: 6,
-            }}
-          >
-            <TextInput
-              autoFocus
-              onChangeText={setSearchQuery}
-              placeholder="Search..."
-              placeholderTextColor={theme.text.secondaryLight}
-              ref={searchInputRef}
-              style={{
-                borderColor: theme.border.dark,
-                borderRadius: 4,
-                borderWidth: 1,
-                color: theme.text.primary,
-                fontSize: 14,
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                ...(Platform.OS === "web" ? {outline: "none"} : {}),
-              }}
-              testID={`${testIDPrefix}_search`}
-              value={searchQuery}
-            />
-          </View>
-        )}
-        <ScrollView>
-          {filteredOptions.map((item) => {
-            const originalIdx = options.indexOf(item);
-            const isSelected =
-              selectedIndex !== undefined
-                ? originalIdx === selectedIndex
-                : item.value === selectedValue;
-            return (
-              <Pressable
-                aria-role="button"
-                key={item.key ?? originalIdx}
-                onPress={() => onSelect(item.value, originalIdx)}
-                style={(state: PressableWebState) => ({
-                  backgroundColor:
-                    isSelected || state.hovered || state.pressed
-                      ? theme.surface.neutralLight
-                      : theme.surface.base,
-                  paddingHorizontal: 12,
-                  paddingVertical: 10,
-                })}
-                testID={`${testIDPrefix}_option_${item.value}`}
-              >
-                <Text
-                  style={{
-                    color: item.color ?? theme.text.primary,
-                    fontWeight: isSelected ? "600" : "400",
-                    ...optionTextStyle,
-                  }}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-          {(searchable || showEmptyStateWhenNoOptions) && filteredOptions.length === 0 && (
-            <View style={{paddingHorizontal: 12, paddingVertical: 10}}>
-              <Text
-                style={{color: theme.text.secondaryLight, fontStyle: "italic"}}
-                testID={`${testIDPrefix}_no_results`}
-              >
-                No matching options
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+        {menuContent}
       </View>
     </Modal>
   );
