@@ -739,7 +739,7 @@ export const RNPickerSelect = ({
             <Pressable
               aria-role="button"
               disabled={disabled}
-              onPress={showPicker ? closeWebMenu : openWebMenu}
+              onPress={showPicker ? closeWebMenu : () => openWebMenu()}
               {...touchableWrapperProps}
             >
               <Icon
@@ -753,7 +753,7 @@ export const RNPickerSelect = ({
           <Pressable
             aria-role="button"
             disabled={disabled}
-            onPress={openWebMenu}
+            onPress={() => openWebMenu()}
             style={{
               alignItems: "center",
               flexDirection: "row",
