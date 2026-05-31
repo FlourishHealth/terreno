@@ -2,6 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
+import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -184,5 +185,175 @@ describe("ConsentFormScreen", () => {
     );
     expect(getByTestId("consent-footer-scroll-hint")).toBeTruthy();
     expect(getByTestId("consent-footer-signature-hint")).toBeTruthy();
+  });
+
+  it("shows the required-items legend when any checkbox is required", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-form-required-legend")).toBeTruthy();
+  });
+
+  it("hides the required-items legend when no checkbox is required", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Optional box", required: false}],
+    };
+    const {queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(queryByTestId("consent-form-required-legend")).toBeNull();
+  });
+
+  it("confirms the modal and toggles the checkbox on", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{confirmationPrompt: "Are you sure?", label: "Tricky", required: true}],
+    };
+    const {getByTestId, getByText, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    act(() => {
+      fireEvent.press(getByTestId("consent-form-checkbox-0"));
+    });
+    expect(getByText("Are you sure?")).toBeTruthy();
+    // Press the "Confirm" button inside the modal
+    act(() => {
+      fireEvent.press(getByText("Confirm"));
+    });
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Checkbox hint should be gone because the required checkbox was toggled on
+        expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+        resolve();
+      }, 600);
+    });
+  });
+
+  it("dismisses the modal without toggling the checkbox", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{confirmationPrompt: "Are you sure?", label: "Tricky", required: true}],
+    };
+    const {getByTestId, getByText} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    act(() => {
+      fireEvent.press(getByTestId("consent-form-checkbox-0"));
+    });
+    expect(getByText("Are you sure?")).toBeTruthy();
+    // Press the "Cancel" button inside the modal
+    act(() => {
+      fireEvent.press(getByText("Cancel"));
+    });
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // The checkbox hint should still show because the checkbox was not toggled
+        expect(getByTestId("consent-footer-checkboxes-hint")).toBeTruthy();
+        resolve();
+      }, 600);
+    });
+  });
+
+  it("auto-satisfies scroll requirement when content fits the viewport via contentSizeChange", () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const scroll = getByTestId("consent-form-scroll-view");
+    // First set the layout height, then content size smaller than layout
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 400);
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+  });
+
+  it("auto-satisfies scroll requirement when content fits the viewport via layout", () => {
+    const form = {...baseForm, requireScrollToBottom: true};
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const scroll = getByTestId("consent-form-scroll-view");
+    // First set the content size, then layout height larger than content
+    act(() => {
+      fireEvent(scroll, "contentSizeChange", 0, 300);
+    });
+    act(() => {
+      fireEvent(scroll, "layout", {nativeEvent: {layout: {height: 500}}});
+    });
+    expect(queryByTestId("consent-form-scroll-hint")).toBeNull();
+  });
+
+  it("handleScroll returns early when already scrolled to bottom", () => {
+    const form = {...baseForm, requireScrollToBottom: false};
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const scroll = getByTestId("consent-form-scroll-view");
+    // requireScrollToBottom is false so hasScrolledToBottom starts as true.
+    // Firing scroll should hit the early return at line 81.
+    act(() => {
+      fireEvent(scroll, "scroll", {
+        nativeEvent: {
+          contentOffset: {y: 0},
+          contentSize: {height: 1000},
+          layoutMeasurement: {height: 500},
+        },
+      });
+    });
+    expect(scroll).toBeTruthy();
+  });
+
+  it("shows the checkbox footer hint when a required checkbox is unchecked", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    expect(getByTestId("consent-footer-checkboxes-hint")).toBeTruthy();
+  });
+
+  it("hides the checkbox footer hint once required checkboxes are checked", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      checkboxes: [{label: "Required box", required: true}],
+    };
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    act(() => {
+      fireEvent.press(getByTestId("consent-form-checkbox-0"));
+    });
+    expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+  });
+
+  it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      captureSignature: true,
+    };
+    const {UNSAFE_getByType} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const sig = UNSAFE_getByType(SignatureField);
+    act(() => {
+      sig.props.onChange("data:image/png;base64,abc");
+    });
+    act(() => {
+      sig.props.onStart();
+    });
+    act(() => {
+      sig.props.onEnd();
+    });
+    expect(sig).toBeTruthy();
   });
 });

@@ -1,15 +1,18 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and dynamic mock returns
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import * as terrenoUi from "@terreno/ui";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
 import {AdminScriptRunModal} from "./AdminScriptRunModal";
+import type {AdminApi} from "./types";
 
 // Render Modal children inline so we can interact with them in tests
 mock.module("@terreno/ui", () => ({
   ...terrenoUi,
   Modal: ({children, visible}: {children?: React.ReactNode; visible?: boolean}) =>
-    visible ? <>{children}</> : null,
+    visible ? children : null,
 }));
 
 const mockRunScript = mock((_args: {name: string; wetRun: boolean}) => ({
@@ -21,15 +24,15 @@ const mockCancelTask = mock((_taskId: string) => ({
 
 const mockUseAdminScripts = mock(() => ({
   useCancelScriptTaskMutation: () => [mockCancelTask, {isLoading: false}],
-  useGetScriptTaskQuery: () => ({data: undefined, isLoading: false, error: null}),
+  useGetScriptTaskQuery: () => ({data: undefined, error: null, isLoading: false}),
   useRunScriptMutation: () => [mockRunScript, {isLoading: false}],
 }));
 
 mock.module("./useAdminScripts", () => ({
-  useAdminScripts: (...args: any[]) => mockUseAdminScripts(...args),
+  useAdminScripts: (...args: unknown[]) => mockUseAdminScripts(...args),
 }));
 
-const mockApi = {} as any;
+const mockApi = {} as unknown as AdminApi;
 
 describe("AdminScriptRunModal", () => {
   beforeEach(() => {

@@ -1,32 +1,41 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "./types";
 
 interface State {
-  formData: any;
+  formData: Record<string, unknown> | null;
   isFormLoading: boolean;
 }
 const state: State = {formData: null, isFormLoading: false};
-const createCalls: any[] = [];
-const updateCalls: any[] = [];
+const createCalls: unknown[] = [];
+const updateCalls: unknown[] = [];
 const publishCalls: string[] = [];
-const generateCalls: any[] = [];
-const translateCalls: any[] = [];
-let createImpl: (body: any) => Promise<any> = async (b) => ({_id: "new-id", ...b});
-let updateImpl: (args: any) => Promise<any> = async (a) => ({_id: a.id});
-let publishImpl: (id: string) => Promise<any> = async () => ({});
-let generateImpl: (body: any) => Promise<any> = async () => ({
+const generateCalls: unknown[] = [];
+const translateCalls: unknown[] = [];
+let createImpl: (body: unknown) => Promise<unknown> = async (b) => ({
+  _id: "new-id",
+  ...(b as Record<string, unknown>),
+});
+let updateImpl: (args: unknown) => Promise<unknown> = async (a) => ({
+  _id: (a as Record<string, unknown>).id,
+});
+let publishImpl: (id: string) => Promise<unknown> = async () => ({});
+let generateImpl: (body: unknown) => Promise<unknown> = async () => ({
   data: {content: "generated"},
 });
-let translateImpl: (body: any) => Promise<any> = async () => ({
+let translateImpl: (body: unknown) => Promise<unknown> = async () => ({
   data: {content: "translated"},
 });
 
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
     useCreateMutation: () => [
-      (body: any) => ({
+      (body: unknown) => ({
         unwrap: async () => {
           createCalls.push(body);
           return createImpl(body);
@@ -41,7 +50,7 @@ mock.module("./useAdminApi", () => ({
       return {data: state.formData, isLoading: state.isFormLoading};
     },
     useUpdateMutation: () => [
-      (args: any) => ({
+      (args: unknown) => ({
         unwrap: async () => {
           updateCalls.push(args);
           return updateImpl(args);
@@ -52,11 +61,11 @@ mock.module("./useAdminApi", () => ({
   }),
 }));
 
-const mutationSpecs: any[] = [];
+const mutationSpecs: unknown[] = [];
 const makeApi = () => ({
-  injectEndpoints: ({endpoints}: {endpoints: (b: any) => Record<string, any>}) => {
+  injectEndpoints: ({endpoints}: {endpoints: (b: unknown) => Record<string, unknown>}) => {
     endpoints({
-      mutation: (spec: any) => {
+      mutation: (spec: Record<string, unknown>) => {
         // Invoke the mutation query lambda with both an object body and a string
         // id so we exercise the URL + body builders for every mutation shape
         // (generate/translate take a body object, publish takes an id string).
@@ -75,11 +84,11 @@ const makeApi = () => ({
         }
         return spec;
       },
-      query: (spec: any) => spec,
+      query: (spec: unknown) => spec,
     });
     return {
       useGenerateConsentContentMutation: () => [
-        (body: any) => ({
+        (body: unknown) => ({
           unwrap: async () => {
             generateCalls.push(body);
             return generateImpl(body);
@@ -97,7 +106,7 @@ const makeApi = () => ({
         {isLoading: false},
       ],
       useTranslateConsentContentMutation: () => [
-        (body: any) => ({
+        (body: unknown) => ({
           unwrap: async () => {
             translateCalls.push(body);
             return translateImpl(body);
@@ -111,7 +120,7 @@ const makeApi = () => ({
 
 import {ConsentFormEditor} from "./ConsentFormEditor";
 
-const press = async (el: any): Promise<void> => {
+const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
     fireEvent.press(el);
     await new Promise((r) => setTimeout(r, 150));
@@ -128,8 +137,8 @@ describe("ConsentFormEditor", () => {
     generateCalls.length = 0;
     translateCalls.length = 0;
     mutationSpecs.length = 0;
-    createImpl = async (b) => ({_id: "new-id", ...b});
-    updateImpl = async (a) => ({_id: a.id});
+    createImpl = async (b) => ({_id: "new-id", ...(b as Record<string, unknown>)});
+    updateImpl = async (a) => ({_id: (a as Record<string, unknown>).id});
     publishImpl = async () => ({});
     generateImpl = async () => ({data: {content: "generated"}});
     translateImpl = async () => ({data: {content: "translated"}});
@@ -138,7 +147,7 @@ describe("ConsentFormEditor", () => {
   it("renders loading state in edit mode", () => {
     state.isFormLoading = true;
     const {toJSON} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" id="f1" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="f1" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -153,7 +162,7 @@ describe("ConsentFormEditor", () => {
     state.isFormLoading = true;
     const {rerender, getByTestId} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         id="f1"
         supportedLocales={supportedLocales}
@@ -179,7 +188,7 @@ describe("ConsentFormEditor", () => {
       };
       rerender(
         <ConsentFormEditor
-          api={makeApi() as any}
+          api={makeApi() as unknown as AdminApi}
           baseUrl="/admin"
           id="f1"
           supportedLocales={supportedLocales}
@@ -191,23 +200,23 @@ describe("ConsentFormEditor", () => {
 
   it("renders create mode with default values", () => {
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
     expect(getByTestId("consent-form-title-input")).toBeDefined();
   });
 
   it("fails validation without title or slug", async () => {
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
     await press(getByTestId("consent-form-save-button"));
     expect(createCalls.length).toBe(0);
   });
 
   it("auto-slugs titles and creates a form on save", async () => {
-    const onSave = mock((_: any) => undefined);
+    const onSave = mock((_: unknown) => undefined);
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" onSave={onSave} />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" onSave={onSave} />
     );
     await act(async () => {
       fireEvent.changeText(getByTestId("consent-form-title-input"), "Hello World");
@@ -215,7 +224,7 @@ describe("ConsentFormEditor", () => {
     });
     await press(getByTestId("consent-form-save-button"));
     expect(createCalls.length).toBe(1);
-    expect(createCalls[0].slug).toBe("hello-world");
+    expect((createCalls[0] as Record<string, unknown>).slug).toBe("hello-world");
     expect(onSave).toHaveBeenCalled();
   });
 
@@ -224,7 +233,7 @@ describe("ConsentFormEditor", () => {
       throw new Error("conflict");
     };
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
     await act(async () => {
       fireEvent.changeText(getByTestId("consent-form-title-input"), "Title");
@@ -236,7 +245,7 @@ describe("ConsentFormEditor", () => {
     });
     await press(getByTestId("consent-form-save-button"));
     expect(createCalls.length).toBe(1);
-    expect(createCalls[0].slug).toBe("custom-slug");
+    expect((createCalls[0] as Record<string, unknown>).slug).toBe("custom-slug");
   });
 
   it("loads form data in edit mode and saves an update", async () => {
@@ -258,7 +267,7 @@ describe("ConsentFormEditor", () => {
     };
     const {getByTestId} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         hasAiSupport
         id="f1"
@@ -267,14 +276,16 @@ describe("ConsentFormEditor", () => {
     );
     await press(getByTestId("consent-form-save-button"));
     expect(updateCalls.length).toBe(1);
-    expect(updateCalls[0].id).toBe("f1");
-    expect(updateCalls[0].body.title).toBe("Privacy");
+    expect((updateCalls[0] as Record<string, unknown>).id).toBe("f1");
+    expect(
+      ((updateCalls[0] as Record<string, unknown>).body as Record<string, unknown>).title
+    ).toBe("Privacy");
   });
 
   it("publishes a form on publish press", async () => {
     state.formData = {slug: "s", title: "T"};
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" id="f1" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="f1" />
     );
     await press(getByTestId("consent-form-publish-button"));
     expect(publishCalls).toEqual(["f1"]);
@@ -286,7 +297,7 @@ describe("ConsentFormEditor", () => {
       throw new Error("fail");
     };
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" id="f1" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="f1" />
     );
     await press(getByTestId("consent-form-publish-button"));
     expect(publishCalls.length).toBe(1);
@@ -294,7 +305,7 @@ describe("ConsentFormEditor", () => {
 
   it("opens the AI generate modal in create mode", async () => {
     const {getByTestId, toJSON} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
     );
     await press(getByTestId("consent-form-generate-button"));
     expect(toJSON()).toBeDefined();
@@ -302,7 +313,7 @@ describe("ConsentFormEditor", () => {
 
   it("adds, edits, and removes checkboxes", async () => {
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
     await press(getByTestId("consent-form-add-checkbox-button"));
     expect(getByTestId("consent-form-checkbox-0")).toBeDefined();
@@ -326,7 +337,7 @@ describe("ConsentFormEditor", () => {
       title: "T",
     };
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" id="f1" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" id="f1" />
     );
     expect(getByTestId("consent-form-decline-button-text-input")).toBeDefined();
   });
@@ -334,7 +345,7 @@ describe("ConsentFormEditor", () => {
   it("renders and switches segmented control in multi-locale mode", async () => {
     const {toJSON} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         hasAiSupport
         supportedLocales={["en", "es"]}
@@ -346,7 +357,11 @@ describe("ConsentFormEditor", () => {
   it("calls onCancel when cancel is pressed", async () => {
     const onCancel = mock(() => undefined);
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" onCancel={onCancel} />
+      <ConsentFormEditor
+        api={makeApi() as unknown as AdminApi}
+        baseUrl="/admin"
+        onCancel={onCancel}
+      />
     );
     await press(getByTestId("consent-form-cancel-button"));
     expect(onCancel).toHaveBeenCalled();
@@ -356,16 +371,18 @@ describe("ConsentFormEditor", () => {
     // Create mode has no id → publish button shouldn't exist, but exercising
     // the handler via the save flow at least touches the non-id path.
     const {queryByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
     );
     expect(queryByTestId("consent-form-publish-button")).toBeNull();
   });
 
   it("wires all three mutations (generate/publish/translate) to the right URLs", () => {
-    renderWithTheme(<ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />);
+    renderWithTheme(
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
+    );
     // The mock invokes each mutation's query lambda, so mutationSpecs contains
     // the resolved request descriptors for generate, publish, and translate.
-    const urls = mutationSpecs.map((s: any) => s.url).sort();
+    const urls = mutationSpecs.map((s: unknown) => (s as Record<string, unknown>).url).sort();
     expect(urls).toContain("/consent-forms/generate");
     expect(urls).toContain("/consent-forms/form-id/publish");
     expect(urls).toContain("/consent-forms/translate");
@@ -373,7 +390,7 @@ describe("ConsentFormEditor", () => {
 
   it("refuses to save without a slug even when title is present", async () => {
     const {getByTestId} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" />
     );
     // Set a title so slug would auto-generate.
     await act(async () => {
@@ -391,23 +408,23 @@ describe("ConsentFormEditor", () => {
 
   it("generates AI content into the active locale and closes the modal", async () => {
     const {getByTestId, UNSAFE_root} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
     );
     await press(getByTestId("consent-form-generate-button"));
     // Find the Modal's primary "Generate" button and invoke it directly. The
     // description input lives inside the Modal's portal and may not be
     // mounted; invoking primaryButtonOnClick still exercises handleGenerate.
     const modals = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.primaryButtonOnClick === "function"
+      (n: ReactTestInstance) => typeof n.props?.primaryButtonOnClick === "function"
     );
     expect(modals.length).toBeGreaterThan(0);
     await act(async () => {
-      (modals[0] as any).props.primaryButtonOnClick();
+      (modals[0] as ReactTestInstance).props.primaryButtonOnClick();
       await new Promise((r) => setTimeout(r, 150));
     });
     expect(generateCalls.length).toBe(1);
-    expect(generateCalls[0].locale).toBe("en");
-    expect(generateCalls[0].type).toBe("agreement");
+    expect((generateCalls[0] as Record<string, unknown>).locale).toBe("en");
+    expect((generateCalls[0] as Record<string, unknown>).type).toBe("agreement");
   });
 
   it("surfaces generation errors via toast.catch", async () => {
@@ -415,14 +432,14 @@ describe("ConsentFormEditor", () => {
       throw new Error("boom");
     };
     const {getByTestId, UNSAFE_root} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
     );
     await press(getByTestId("consent-form-generate-button"));
     const modals = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.primaryButtonOnClick === "function"
+      (n: ReactTestInstance) => typeof n.props?.primaryButtonOnClick === "function"
     );
     await act(async () => {
-      (modals[0] as any).props.primaryButtonOnClick();
+      (modals[0] as ReactTestInstance).props.primaryButtonOnClick();
       await new Promise((r) => setTimeout(r, 150));
     });
     expect(generateCalls.length).toBe(1);
@@ -437,7 +454,7 @@ describe("ConsentFormEditor", () => {
     };
     const {UNSAFE_root} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         hasAiSupport
         id="f1"
@@ -446,25 +463,26 @@ describe("ConsentFormEditor", () => {
     );
     // Switch to non-default locale (es) so the Translate button appears.
     const segmented = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+      (n: ReactTestInstance) =>
+        typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
     );
     expect(segmented.length).toBeGreaterThan(0);
     await act(async () => {
-      (segmented[0] as any).props.onChange(1);
+      (segmented[0] as ReactTestInstance).props.onChange(1);
       await new Promise((r) => setTimeout(r, 50));
     });
-    // Now find the translate button and press it.
+    // Find the translate button and press it
     const translateButton = UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+      (n: ReactTestInstance) => n.props?.testID === "consent-form-translate-es-button"
     );
     expect(translateButton.length).toBeGreaterThan(0);
     await act(async () => {
-      (translateButton[0] as any).props.onClick();
+      (translateButton[0] as ReactTestInstance).props.onClick();
       await new Promise((r) => setTimeout(r, 150));
     });
     expect(translateCalls.length).toBe(1);
-    expect(translateCalls[0].toLocale).toBe("es");
-    expect(translateCalls[0].content).toBe("Hello world");
+    expect((translateCalls[0] as Record<string, unknown>).toLocale).toBe("es");
+    expect((translateCalls[0] as Record<string, unknown>).content).toBe("Hello world");
   });
 
   it("short-circuits translation when source locale has empty content", async () => {
@@ -476,7 +494,7 @@ describe("ConsentFormEditor", () => {
     };
     const {UNSAFE_root} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         hasAiSupport
         id="f1"
@@ -484,17 +502,18 @@ describe("ConsentFormEditor", () => {
       />
     );
     const segmented = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+      (n: ReactTestInstance) =>
+        typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
     );
     await act(async () => {
-      (segmented[0] as any).props.onChange(1);
+      (segmented[0] as ReactTestInstance).props.onChange(1);
       await new Promise((r) => setTimeout(r, 50));
     });
     const translateButton = UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+      (n: ReactTestInstance) => n.props?.testID === "consent-form-translate-es-button"
     );
     await act(async () => {
-      (translateButton[0] as any).props.onClick();
+      (translateButton[0] as ReactTestInstance).props.onClick();
       await new Promise((r) => setTimeout(r, 150));
     });
     expect(translateCalls.length).toBe(0);
@@ -512,7 +531,7 @@ describe("ConsentFormEditor", () => {
     };
     const {UNSAFE_root} = renderWithTheme(
       <ConsentFormEditor
-        api={makeApi() as any}
+        api={makeApi() as unknown as AdminApi}
         baseUrl="/admin"
         hasAiSupport
         id="f1"
@@ -520,17 +539,18 @@ describe("ConsentFormEditor", () => {
       />
     );
     const segmented = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
+      (n: ReactTestInstance) =>
+        typeof n.props?.onChange === "function" && Array.isArray(n.props?.items)
     );
     await act(async () => {
-      (segmented[0] as any).props.onChange(1);
+      (segmented[0] as ReactTestInstance).props.onChange(1);
       await new Promise((r) => setTimeout(r, 50));
     });
     const translateButton = UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "consent-form-translate-es-button"
+      (n: ReactTestInstance) => n.props?.testID === "consent-form-translate-es-button"
     );
     await act(async () => {
-      (translateButton[0] as any).props.onClick();
+      (translateButton[0] as ReactTestInstance).props.onClick();
       await new Promise((r) => setTimeout(r, 150));
     });
     expect(translateCalls.length).toBe(1);
@@ -538,19 +558,19 @@ describe("ConsentFormEditor", () => {
 
   it("dismisses the generate modal via secondary action", async () => {
     const {getByTestId, UNSAFE_root} = renderWithTheme(
-      <ConsentFormEditor api={makeApi() as any} baseUrl="/admin" hasAiSupport />
+      <ConsentFormEditor api={makeApi() as unknown as AdminApi} baseUrl="/admin" hasAiSupport />
     );
     await press(getByTestId("consent-form-generate-button"));
     const modals = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.secondaryButtonOnClick === "function"
+      (n: ReactTestInstance) => typeof n.props?.secondaryButtonOnClick === "function"
     );
     expect(modals.length).toBeGreaterThan(0);
     await act(async () => {
-      (modals[0] as any).props.secondaryButtonOnClick();
+      (modals[0] as ReactTestInstance).props.secondaryButtonOnClick();
       await new Promise((r) => setTimeout(r, 50));
     });
     await act(async () => {
-      (modals[0] as any).props.onDismiss?.();
+      (modals[0] as ReactTestInstance).props.onDismiss?.();
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(generateCalls.length).toBe(0);

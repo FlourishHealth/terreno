@@ -1,11 +1,15 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerBack = mock(() => {});
 const routerPush = mock(() => {});
-const setOptions = mock((opts: any) => {
+const setOptions = mock((opts: Record<string, unknown>) => {
   // Invoke the headerRight render function so its children execute and we
   // exercise the save/delete button useCallbacks when fired elsewhere.
   if (opts?.headerRight) {
@@ -17,7 +21,7 @@ mock.module("expo-router", () => ({
   useNavigation: () => ({setOptions}),
 }));
 
-const configState: {config: any; isLoading: boolean} = {
+const configState: {config: AdminConfigResponse | null; isLoading: boolean} = {
   config: null,
   isLoading: false,
 };
@@ -29,7 +33,10 @@ mock.module("./useAdminConfig", () => ({
   }),
 }));
 
-const readState: {data: any; isLoading: boolean} = {data: null, isLoading: false};
+const readState: {data: Record<string, unknown> | null; isLoading: boolean} = {
+  data: null,
+  isLoading: false,
+};
 const createFn = mock((_: unknown) => ({unwrap: async () => ({_id: "new"})}));
 const updateFn = mock((_: unknown) => ({unwrap: async () => ({_id: "u"})}));
 const deleteFn = mock((_: unknown) => ({unwrap: async () => ({})}));
@@ -82,7 +89,12 @@ describe("AdminModelForm", () => {
   it("renders loading state while config loads", () => {
     configState.isLoading = true;
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -90,7 +102,12 @@ describe("AdminModelForm", () => {
   it("renders loading state when the model config is missing", () => {
     configState.config = {customScreens: [], models: [], scripts: []};
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -99,7 +116,7 @@ describe("AdminModelForm", () => {
     configState.config = config;
     const {toJSON} = renderWithTheme(
       <AdminModelForm
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         footerContent={React.createElement("FooterMarker")}
         mode="create"
@@ -114,7 +131,13 @@ describe("AdminModelForm", () => {
     configState.config = config;
     readState.isLoading = true;
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -128,7 +151,13 @@ describe("AdminModelForm", () => {
       name: "Existing",
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -146,7 +175,12 @@ describe("AdminModelForm", () => {
       scripts: [],
     };
     const {toJSON, getByText} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
     expect(getByText("No editable fields.")).toBeDefined();
@@ -159,7 +193,12 @@ describe("AdminModelForm", () => {
       scripts: [],
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -180,14 +219,19 @@ describe("AdminModelForm", () => {
       ],
     };
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
 
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
@@ -212,13 +256,18 @@ describe("AdminModelForm", () => {
       ],
     };
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
@@ -239,20 +288,20 @@ describe("AdminModelForm", () => {
         },
       ],
     };
-    const transformPayload = mock(async ({payload}: {payload: any}) => ({
+    const transformPayload = mock(async ({payload}: {payload: Record<string, unknown>}) => ({
       ...payload,
       transformed: true,
     }));
     const onSaveSuccess = mock(async () => undefined);
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
       <AdminModelForm
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         mode="create"
         modelName="User"
@@ -277,13 +326,18 @@ describe("AdminModelForm", () => {
       },
     }));
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
@@ -298,13 +352,19 @@ describe("AdminModelForm", () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     // Open confirmation modal.
@@ -332,13 +392,19 @@ describe("AdminModelForm", () => {
       },
     }));
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     // The header render should still succeed in an error-flagged scenario.
     expect(savedHeaderRight).toBeDefined();
@@ -353,13 +419,19 @@ describe("AdminModelForm", () => {
       },
     }));
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
@@ -393,13 +465,19 @@ describe("AdminModelForm", () => {
       tags: ["a", null, "b"],
     };
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {
@@ -407,7 +485,7 @@ describe("AdminModelForm", () => {
       await new Promise((r) => setTimeout(r, 600));
     });
     expect(updateFn).toHaveBeenCalled();
-    const body = updateFn.mock.calls[0][0] as {body: any; id: string};
+    const body = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
     // Array was stripped of null entries.
     expect(body.body.tags).toEqual(["a", "b"]);
   });
@@ -424,7 +502,12 @@ describe("AdminModelForm", () => {
       ],
     };
     const {getByTestId} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     const nameField = getByTestId("admin-field-name");
     await act(async () => {
@@ -451,7 +534,12 @@ describe("AdminModelForm", () => {
       ],
     };
     const {toJSON} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" mode="create" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        mode="create"
+        modelName="User"
+      />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -463,23 +551,29 @@ describe("AdminModelForm", () => {
     deleteFn.mockReset();
     deleteFn.mockImplementation(() => ({unwrap: async () => ({})}));
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     const {UNSAFE_root} = renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     // Invoke the delete Button's onClick callback directly so we exercise
     // handleDelete's success branch (calls deleteItem + router.back).
     const deleteBtns = header.UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "admin-delete-button"
+      (n: ReactTestInstance) => n.props?.testID === "admin-delete-button"
     );
     expect(deleteBtns.length).toBeGreaterThan(0);
     await act(async () => {
-      (deleteBtns[0] as any).props.onClick();
+      (deleteBtns[0] as ReactTestInstance).props.onClick();
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(deleteFn).toHaveBeenCalledWith("u1");
@@ -497,20 +591,26 @@ describe("AdminModelForm", () => {
       },
     }));
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     const deleteBtns = header.UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "admin-delete-button"
+      (n: ReactTestInstance) => n.props?.testID === "admin-delete-button"
     );
     await act(async () => {
-      (deleteBtns[0] as any).props.onClick();
+      (deleteBtns[0] as ReactTestInstance).props.onClick();
       await new Promise((r) => setTimeout(r, 50));
     });
     expect(deleteFn).toHaveBeenCalled();
@@ -522,13 +622,19 @@ describe("AdminModelForm", () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};
     let savedHeaderRight: React.ReactElement | null = null;
-    setOptions.mockImplementation((opts: any) => {
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
       if (opts?.headerRight) {
         savedHeaderRight = opts.headerRight();
       }
     });
     renderWithTheme(
-      <AdminModelForm api={{} as any} baseUrl="/admin" itemId="u1" mode="edit" modelName="User" />
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
     );
     const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
     await act(async () => {

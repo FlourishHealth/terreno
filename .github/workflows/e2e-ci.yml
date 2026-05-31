@@ -39,6 +39,7 @@ jobs:
           - admin
           - consents
           - ai-chat
+          - realtime
     steps:
       - uses: actions/checkout@v6
 
@@ -61,6 +62,9 @@ jobs:
         with:
           mongodb-version: "6.0"
           mongodb-image: mirror.gcr.io/library/mongo
+          # Replica set is required for MongoDB change streams,
+          # which power the RealtimeApp WebSocket sync.
+          mongodb-replica-set: rs0
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -105,7 +109,7 @@ jobs:
         working-directory: example-backend
         env:
           PORT: "4000"
-          MONGO_URI: mongodb://127.0.0.1/terreno-e2e
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0
           TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
           TOKEN_ISSUER: terreno-e2e
           REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
@@ -120,14 +124,14 @@ jobs:
         working-directory: example-frontend
         env:
           CI: true
-          MONGO_URI: mongodb://127.0.0.1/terreno-e2e
+          MONGO_URI: mongodb://127.0.0.1/terreno-e2e?replicaSet=rs0
           TOKEN_SECRET: ${{ secrets.E2E_TOKEN_SECRET }}
           TOKEN_ISSUER: terreno-e2e
           REFRESH_TOKEN_SECRET: ${{ secrets.E2E_REFRESH_TOKEN_SECRET }}
           SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET }}
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ matrix.spec }}
@@ -136,7 +140,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Playwright test results
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         if: ${{ !cancelled() }}
         with:
           name: playwright-test-results-${{ matrix.spec }}

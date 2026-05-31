@@ -1,9 +1,13 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
+import type {AdminApi, AdminFieldConfig, RefFieldRendererProps} from "./types";
 
-const api = {} as any;
+const api = {} as unknown as AdminApi;
 const base = {api, baseUrl: "/admin", onChange: () => {}};
 
 describe("AdminFieldRenderer (main)", () => {
@@ -32,7 +36,7 @@ describe("AdminFieldRenderer (main)", () => {
   });
 
   it("renders number and converts string via onChange to number", () => {
-    const onChange = mock((_: any) => {});
+    const onChange = mock((_: unknown) => {});
     renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -247,7 +251,7 @@ describe("AdminFieldRenderer (main)", () => {
             required: false,
             type: "array",
             widget: "checkbox-list",
-          } as any
+          } as unknown as AdminFieldConfig
         }
         fieldKey="tags"
         value={[]}
@@ -263,7 +267,9 @@ describe("AdminFieldRenderer (main)", () => {
       <AdminFieldRenderer
         {...base}
         errorText="oops"
-        fieldConfig={{required: false, type: "string", widget: "checkbox-list"} as any}
+        fieldConfig={
+          {required: false, type: "string", widget: "checkbox-list"} as unknown as AdminFieldConfig
+        }
         fieldKey="tags"
         value={["a"]}
       />
@@ -275,7 +281,9 @@ describe("AdminFieldRenderer (main)", () => {
     const {toJSON} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
-        fieldConfig={{required: false, type: "string", widget: "checkbox-list"} as any}
+        fieldConfig={
+          {required: false, type: "string", widget: "checkbox-list"} as unknown as AdminFieldConfig
+        }
         fieldKey="tags"
         value={null}
       />
@@ -373,7 +381,9 @@ describe("AdminFieldRenderer (main)", () => {
   });
 
   it("uses custom refRenderer for single ref fields when matching ref model name", () => {
-    const CustomRenderer = mock((_props: any) => <></>) as any;
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
     renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -385,14 +395,17 @@ describe("AdminFieldRenderer (main)", () => {
       />
     );
     expect(CustomRenderer).toHaveBeenCalled();
-    const props = (CustomRenderer as any).mock.calls[0][0];
+    const props = (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+      .calls[0][0] as RefFieldRendererProps;
     expect(props.refModelName).toBe("User");
     expect(props.routePath).toBe("/admin/users");
     expect(props.value).toBe("abc123");
   });
 
   it("does not invoke a refRenderer whose key does not match the field's ref model", () => {
-    const CustomRenderer = mock((_props: any) => <></>) as any;
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
     // No modelConfigs entry for "Post" so AdminRefField path is also bypassed; this
     // verifies the dispatch logic only fires the renderer when the key matches.
     renderWithTheme(
@@ -408,7 +421,9 @@ describe("AdminFieldRenderer (main)", () => {
   });
 
   it("uses custom refRenderer when modelConfigs is missing (empty routePath)", () => {
-    const CustomRenderer = mock((_props: any) => <></>) as any;
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
     renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -419,11 +434,14 @@ describe("AdminFieldRenderer (main)", () => {
       />
     );
     expect(CustomRenderer).toHaveBeenCalled();
-    expect((CustomRenderer as any).mock.calls[0][0].routePath).toBe("");
+    expect(
+      (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+        .calls[0][0] as RefFieldRendererProps
+    ).toHaveProperty("routePath", "");
   });
 
   it("triggers onChange handlers for number, enum, array, object", () => {
-    const numberChange = mock((_: any) => {});
+    const numberChange = mock((_: unknown) => {});
     const {UNSAFE_root: numberRoot} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -433,14 +451,16 @@ describe("AdminFieldRenderer (main)", () => {
         value={0}
       />
     );
-    const numberFields = numberRoot.findAll((n: any) => typeof n.props?.onChange === "function");
-    numberFields.forEach((n: any) => {
+    const numberFields = numberRoot.findAll(
+      (n: ReactTestInstance) => typeof n.props?.onChange === "function"
+    );
+    numberFields.forEach((n: ReactTestInstance) => {
       n.props.onChange("42");
       n.props.onChange("not-a-number");
     });
     expect(numberChange).toHaveBeenCalled();
 
-    const enumChange = mock((_: any) => {});
+    const enumChange = mock((_: unknown) => {});
     const {UNSAFE_root: enumRoot} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -450,14 +470,16 @@ describe("AdminFieldRenderer (main)", () => {
         value="a"
       />
     );
-    const enumFields = enumRoot.findAll((n: any) => typeof n.props?.onChange === "function");
-    enumFields.forEach((n: any) => {
+    const enumFields = enumRoot.findAll(
+      (n: ReactTestInstance) => typeof n.props?.onChange === "function"
+    );
+    enumFields.forEach((n: ReactTestInstance) => {
       n.props.onChange("");
       n.props.onChange("b");
     });
     expect(enumChange).toHaveBeenCalled();
 
-    const arrayChange = mock((_: any) => {});
+    const arrayChange = mock((_: unknown) => {});
     const {UNSAFE_root: arrayRoot} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -467,14 +489,16 @@ describe("AdminFieldRenderer (main)", () => {
         value={[]}
       />
     );
-    const arrayFields = arrayRoot.findAll((n: any) => typeof n.props?.onChange === "function");
-    arrayFields.forEach((n: any) => {
+    const arrayFields = arrayRoot.findAll(
+      (n: ReactTestInstance) => typeof n.props?.onChange === "function"
+    );
+    arrayFields.forEach((n: ReactTestInstance) => {
       n.props.onChange("[1,2,3]");
       n.props.onChange("not-json");
     });
     expect(arrayChange).toHaveBeenCalled();
 
-    const objectChange = mock((_: any) => {});
+    const objectChange = mock((_: unknown) => {});
     const {UNSAFE_root: objectRoot} = renderWithTheme(
       <AdminFieldRenderer
         {...base}
@@ -484,8 +508,10 @@ describe("AdminFieldRenderer (main)", () => {
         value={{}}
       />
     );
-    const objFields = objectRoot.findAll((n: any) => typeof n.props?.onChange === "function");
-    objFields.forEach((n: any) => {
+    const objFields = objectRoot.findAll(
+      (n: ReactTestInstance) => typeof n.props?.onChange === "function"
+    );
+    objFields.forEach((n: ReactTestInstance) => {
       n.props.onChange('{"foo":1}');
       n.props.onChange("not-json");
       n.props.onChange("");

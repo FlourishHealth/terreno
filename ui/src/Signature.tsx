@@ -17,6 +17,10 @@ export const Signature = ({onChange}: SignatureProps): ReactElement | null => {
 
   const onClear = () => {
     ref.current?.clear();
+    // `clear()` on the underlying canvas does not fire `onEnd`, so the parent
+    // never learns the signature is gone. Push an empty value so any
+    // "signature required" gating reflects the cleared state immediately.
+    onChange("");
   };
 
   const onUpdatedSignature = () => {

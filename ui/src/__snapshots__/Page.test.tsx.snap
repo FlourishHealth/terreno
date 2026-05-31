@@ -812,9 +812,12 @@ exports[`Page renders with right button 1`] = `
                           ],
                           "props": {
                             "accessibilityHint": "Press to perform action",
-                            "aria-label": "Save",
-                            "aria-role": "button",
-                            "disabled": undefined,
+                            "accessibilityLabel": "Save",
+                            "accessibilityRole": "button",
+                            "accessibilityState": {
+                              "disabled": false,
+                            },
+                            "disabled": false,
                             "onPress": [Function: debounced],
                             "style": {
                               "alignItems": "center",
@@ -831,7 +834,7 @@ exports[`Page renders with right button 1`] = `
                             },
                             "testID": undefined,
                           },
-                          "type": "Pressable",
+                          "type": "PressableScale",
                         },
                       ],
                       "props": {

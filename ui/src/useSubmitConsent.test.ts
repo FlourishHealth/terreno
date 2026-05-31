@@ -72,4 +72,28 @@ describe("useSubmitConsent", () => {
     const {result} = renderHook(() => useSubmitConsent(api as unknown as SubmitConsentApi));
     expect(result.current.submit).toBeDefined();
   });
+
+  it("injects the submit endpoint only once per (api, baseUrl)", () => {
+    let injectCallCount = 0;
+    const unwrap = mock(async () => ({}));
+    const submitMutation = mock(() => ({unwrap}));
+    const useSubmitConsentResponseMutation = mock(() => [
+      submitMutation,
+      {error: undefined, isLoading: false},
+    ]);
+    const api = {
+      enhanceEndpoints: () => ({
+        injectEndpoints: () => {
+          injectCallCount += 1;
+          return {useSubmitConsentResponseMutation};
+        },
+      }),
+    };
+    const {rerender} = renderHook(() => useSubmitConsent(api as unknown as SubmitConsentApi));
+    rerender(undefined);
+    rerender(undefined);
+    // The hook reuses the cached enhanced api after the first render so the
+    // dev-mode RTK warning about re-injecting endpoints never fires.
+    expect(injectCallCount).toBe(1);
+  });
 });

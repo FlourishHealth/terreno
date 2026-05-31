@@ -1,40 +1,47 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act} from "../../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "../types";
 
 // Mock @terreno/ui so the Modal renders its children inline. The real Modal
 // portal isn't mounted by the test renderer, which hides the cancel button.
 mock.module("@terreno/ui", () => {
   const RN = require("react-native");
   const ReactMod = require("react");
-  const Box = ({children, ...rest}: any) => ReactMod.createElement(RN.View, rest, children);
-  const Button = ({text, onClick, testID}: any) =>
+  const Box = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.View, rest, children);
+  const Button = ({text, onClick, testID}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
       {onPress: onClick, testID},
       ReactMod.createElement(RN.Text, {}, text)
     );
-  const Heading = ({children}: any) => ReactMod.createElement(RN.Text, {}, children);
+  const Heading = ({children}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, children);
   const Icon = () => ReactMod.createElement(RN.View, {});
-  const Modal = ({children, visible}: any) => {
+  const Modal = ({children, visible}: Record<string, unknown>) => {
     if (!visible) return null;
     return ReactMod.createElement(RN.View, {testID: "mock-modal"}, children);
   };
   const Spinner = () => ReactMod.createElement(RN.View, {testID: "spinner"});
-  const Text = ({children, ...rest}: any) => ReactMod.createElement(RN.Text, rest, children);
+  const Text = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, rest, children);
   return {Box, Button, Heading, Icon, Modal, Spinner, Text};
 });
 
 interface TaskState {
-  data: {task: any} | undefined;
-  error: any;
+  data: {task: Record<string, unknown>} | undefined;
+  error: unknown;
   isLoading: boolean;
 }
 interface MockState {
   task: TaskState;
-  runImpl: (arg: any) => {unwrap: () => Promise<any>};
-  cancelImpl: (arg: any) => {unwrap: () => Promise<any>};
+  runImpl: (arg: unknown) => {unwrap: () => Promise<unknown>};
+  cancelImpl: (arg: unknown) => {unwrap: () => Promise<unknown>};
 }
 
 const state: MockState = {
@@ -43,16 +50,16 @@ const state: MockState = {
   task: {data: undefined, error: null, isLoading: false},
 };
 
-const runCalls: any[] = [];
-const cancelCalls: any[] = [];
+const runCalls: unknown[] = [];
+const cancelCalls: unknown[] = [];
 
 // Stable function references so useEffect deps are reference-equal across
 // renders (avoids re-firing the auto-start effect on every setState).
-const stableRunScript = (arg: any): {unwrap: () => Promise<any>} => {
+const stableRunScript = (arg: unknown): {unwrap: () => Promise<unknown>} => {
   runCalls.push(arg);
   return state.runImpl(arg);
 };
-const stableCancelTask = (arg: any): {unwrap: () => Promise<any>} => {
+const stableCancelTask = (arg: unknown): {unwrap: () => Promise<unknown>} => {
   cancelCalls.push(arg);
   return state.cancelImpl(arg);
 };
@@ -69,7 +76,7 @@ mock.module("../useAdminScripts", () => ({
 
 import {AdminScriptRunModal} from "../AdminScriptRunModal";
 
-const mockApi = {} as any;
+const mockApi = {} as unknown as AdminApi;
 
 const waitTicks = async (ms = 40): Promise<void> => {
   await act(async () => {
@@ -254,7 +261,7 @@ describe("AdminScriptRunModal", () => {
     await act(async () => {
       try {
         const btn = getByTestId("admin-script-cancel-button");
-        (btn as any).props.onClick?.();
+        (btn as ReactTestInstance).props.onClick?.();
       } catch {
         /* accept missing testID */
       }
@@ -280,11 +287,11 @@ describe("AdminScriptRunModal", () => {
     );
     await waitTicks();
     const cancelBtns = UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "admin-script-cancel-button"
+      (n: ReactTestInstance) => n.props?.testID === "admin-script-cancel-button"
     );
     if (cancelBtns.length > 0) {
       await act(async () => {
-        (cancelBtns[0] as any).props.onClick?.();
+        (cancelBtns[0] as ReactTestInstance).props.onClick?.();
         await new Promise((r) => setTimeout(r, 20));
       });
     }

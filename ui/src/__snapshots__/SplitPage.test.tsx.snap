@@ -77,7 +77,6 @@ exports[`SplitPage renders correctly with renderContent 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -88,9 +87,34 @@ exports[`SplitPage renders correctly with renderContent 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -214,7 +238,6 @@ exports[`SplitPage renders correctly with children 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -225,9 +248,79 @@ exports[`SplitPage renders correctly with children 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": undefined,
+                        "testID": "child-1",
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "contentContainerStyle": {
+                      "flex": 1,
+                    },
+                    "style": {
+                      "flex": 1,
+                      "height": "100%",
+                      "width": "60%",
+                    },
+                  },
+                  "type": "ScrollView",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": undefined,
+                        "testID": "child-2",
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "contentContainerStyle": {
+                      "flex": 1,
+                    },
+                    "style": {
+                      "flex": 1,
+                      "height": "100%",
+                      "width": "60%",
+                    },
+                  },
+                  "type": "ScrollView",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignItems": "center",
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "justifyContent": "center",
+                  "paddingLeft": 8,
+                  "paddingRight": 8,
                 },
                 "testID": undefined,
               },
@@ -351,7 +444,6 @@ exports[`SplitPage renders with loading state 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -362,9 +454,34 @@ exports[`SplitPage renders with loading state 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -488,7 +605,6 @@ exports[`SplitPage renders with custom color 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -499,9 +615,34 @@ exports[`SplitPage renders with custom color 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -625,7 +766,6 @@ exports[`SplitPage renders with tabs when more than 2 children 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -636,8 +776,287 @@ exports[`SplitPage renders with tabs when more than 2 children 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Tab 1",
+                                      ],
+                                      "props": {
+                                        "numberOfLines": 0,
+                                        "style": {
+                                          "color": "#1C1C1C",
+                                          "fontFamily": "heading-semibold",
+                                          "fontSize": 14,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "aria-role": "button",
+                                    "onPress": [Function],
+                                    "style": {
+                                      "alignItems": "center",
+                                      "backgroundColor": "#FFFFFF",
+                                      "borderRadius": 360,
+                                      "display": "flex",
+                                      "flexBasis": 0,
+                                      "flexDirection": "row",
+                                      "flexGrow": 1,
+                                      "gap": 8,
+                                      "height": "100%",
+                                      "justifyContent": "center",
+                                      "overflow": "hidden",
+                                      "paddingHorizontal": 2,
+                                    },
+                                  },
+                                  "type": "Pressable",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Tab 2",
+                                      ],
+                                      "props": {
+                                        "numberOfLines": 0,
+                                        "style": {
+                                          "color": "#1C1C1C",
+                                          "fontFamily": "heading-semibold",
+                                          "fontSize": 14,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "aria-role": "button",
+                                    "onPress": [Function],
+                                    "style": {
+                                      "alignItems": "center",
+                                      "backgroundColor": undefined,
+                                      "borderRadius": 360,
+                                      "display": "flex",
+                                      "flexBasis": 0,
+                                      "flexDirection": "row",
+                                      "flexGrow": 1,
+                                      "gap": 8,
+                                      "height": "100%",
+                                      "justifyContent": "center",
+                                      "overflow": "hidden",
+                                      "paddingHorizontal": 2,
+                                    },
+                                  },
+                                  "type": "Pressable",
+                                },
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    {
+                                      "$$typeof": Symbol(react.test.json),
+                                      "children": [
+                                        "Tab 3",
+                                      ],
+                                      "props": {
+                                        "numberOfLines": 0,
+                                        "style": {
+                                          "color": "#1C1C1C",
+                                          "fontFamily": "heading-semibold",
+                                          "fontSize": 14,
+                                        },
+                                        "testID": undefined,
+                                      },
+                                      "type": "Text",
+                                    },
+                                  ],
+                                  "props": {
+                                    "aria-role": "button",
+                                    "onPress": [Function],
+                                    "style": {
+                                      "alignItems": "center",
+                                      "backgroundColor": undefined,
+                                      "borderRadius": 360,
+                                      "display": "flex",
+                                      "flexBasis": 0,
+                                      "flexDirection": "row",
+                                      "flexGrow": 1,
+                                      "gap": 8,
+                                      "height": "100%",
+                                      "justifyContent": "center",
+                                      "overflow": "hidden",
+                                      "paddingHorizontal": 2,
+                                    },
+                                  },
+                                  "type": "Pressable",
+                                },
+                              ],
+                              "props": {
+                                "style": {
+                                  "display": "flex",
+                                  "flexDirection": "row",
+                                  "flexGrow": 1,
+                                  "gap": 4,
+                                  "height": 32,
+                                  "paddingHorizontal": 4,
+                                },
+                                "testID": undefined,
+                              },
+                              "type": "View",
+                            },
+                          ],
+                          "props": {
+                            "style": {
+                              "alignItems": "center",
+                              "backgroundColor": "#CDCDCD",
+                              "borderRadius": 360,
+                              "display": "flex",
+                              "flexDirection": "row",
+                              "flexGrow": 1,
+                              "flexShrink": 1,
+                              "height": 36,
+                              "maxHeight": 36,
+                              "overflow": "hidden",
+                            },
+                            "testID": undefined,
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "style": {
+                          "alignItems": "center",
+                          "display": "flex",
+                          "flexDirection": "row",
+                          "gap": 8,
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "marginBottom": 16,
+                      "paddingLeft": 16,
+                      "paddingRight": 16,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "child-1",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "contentContainerStyle": {
+                          "flex": 1,
+                        },
+                        "style": {
+                          "flex": 1,
+                          "height": "100%",
+                          "paddingLeft": 0,
+                          "paddingRight": 16,
+                          "width": "60%",
+                        },
+                      },
+                      "type": "ScrollView",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "style": undefined,
+                            "testID": "child-2",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "contentContainerStyle": {
+                          "flex": 1,
+                        },
+                        "style": {
+                          "flex": 1,
+                          "height": "100%",
+                          "paddingLeft": 16,
+                          "paddingRight": 0,
+                          "width": "60%",
+                        },
+                      },
+                      "type": "ScrollView",
+                    },
+                  ],
+                  "props": {
+                    "onPointerEnter": [Function: AsyncFunction],
+                    "onPointerLeave": [Function: AsyncFunction],
+                    "style": {
+                      "display": "flex",
+                      "flexDirection": "row",
+                      "flexGrow": 1,
+                      "flexShrink": 1,
+                      "height": "100%",
+                      "paddingLeft": 16,
+                      "paddingRight": 16,
+                      "width": "100%",
+                    },
+                    "testID": undefined,
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "style": {
+                  "alignItems": "center",
+                  "flex": 1,
                   "height": "100%",
-                  "maxWidth": "100%",
                   "width": "100%",
                 },
                 "testID": undefined,
@@ -771,7 +1190,6 @@ exports[`SplitPage renders with list view header 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -782,9 +1200,34 @@ exports[`SplitPage renders with list view header 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -908,7 +1351,6 @@ exports[`SplitPage renders with custom list view width and max width 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -919,9 +1361,34 @@ exports[`SplitPage renders with custom list view width and max width 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 500,
+                  "width": 400,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -1047,7 +1514,6 @@ exports[`SplitPage renders with listViewExtraData 1`] = `
                     "extraData": {
                       "counter": 1,
                     },
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -1058,9 +1524,34 @@ exports[`SplitPage renders with listViewExtraData 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -1184,7 +1675,6 @@ exports[`SplitPage renders with keyboard offset 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -1195,9 +1685,34 @@ exports[`SplitPage renders with keyboard offset 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -1321,7 +1836,6 @@ exports[`SplitPage filters out null children 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -1332,9 +1846,79 @@ exports[`SplitPage filters out null children 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": undefined,
+                        "testID": "child-1",
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "contentContainerStyle": {
+                      "flex": 1,
+                    },
+                    "style": {
+                      "flex": 1,
+                      "height": "100%",
+                      "width": "60%",
+                    },
+                  },
+                  "type": "ScrollView",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": undefined,
+                        "testID": "child-2",
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "contentContainerStyle": {
+                      "flex": 1,
+                    },
+                    "style": {
+                      "flex": 1,
+                      "height": "100%",
+                      "width": "60%",
+                    },
+                  },
+                  "type": "ScrollView",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignItems": "center",
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "justifyContent": "center",
+                  "paddingLeft": 8,
+                  "paddingRight": 8,
                 },
                 "testID": undefined,
               },
@@ -1458,7 +2042,6 @@ exports[`SplitPage renders with showItemList true to reset selection 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -1469,9 +2052,34 @@ exports[`SplitPage renders with showItemList true to reset selection 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": null,
+                  "props": {
+                    "style": undefined,
+                    "testID": "content-undefined",
+                  },
+                  "type": "View",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "display": "flex",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "padding": 8,
                 },
                 "testID": undefined,
               },
@@ -1595,7 +2203,6 @@ exports[`SplitPage renders with bottomNavBarHeight 1`] = `
                   ],
                   "props": {
                     "extraData": undefined,
-                    "nestedScrollEnabled": true,
                   },
                   "type": "FlatList",
                 },
@@ -1606,9 +2213,54 @@ exports[`SplitPage renders with bottomNavBarHeight 1`] = `
                   "flexDirection": "column",
                   "flexGrow": 1,
                   "flexShrink": 0,
-                  "height": "100%",
-                  "maxWidth": "100%",
-                  "width": "100%",
+                  "maxWidth": 300,
+                  "width": 300,
+                },
+                "testID": undefined,
+              },
+              "type": "View",
+            },
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": undefined,
+                        "testID": "child-1",
+                      },
+                      "type": "View",
+                    },
+                  ],
+                  "props": {
+                    "contentContainerStyle": {
+                      "flex": 1,
+                    },
+                    "style": {
+                      "flex": 1,
+                      "height": "100%",
+                      "width": "60%",
+                    },
+                  },
+                  "type": "ScrollView",
+                },
+              ],
+              "props": {
+                "onPointerEnter": [Function: AsyncFunction],
+                "onPointerLeave": [Function: AsyncFunction],
+                "style": {
+                  "alignItems": "center",
+                  "display": "flex",
+                  "flexDirection": "row",
+                  "flexGrow": 1,
+                  "flexShrink": 1,
+                  "justifyContent": "center",
+                  "paddingLeft": 8,
+                  "paddingRight": 8,
                 },
                 "testID": undefined,
               },

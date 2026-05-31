@@ -1,11 +1,16 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import {Platform} from "react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "../types";
 
 mock.module("react-native-webview", () => ({
-  WebView: (props: any) => React.createElement("WebView", {...props, testID: "mock-webview"}),
+  WebView: (props: Record<string, unknown>) =>
+    React.createElement("WebView", {...props, testID: "mock-webview"}),
 }));
 
 // Mock @terreno/ui to render Modal children inline so we can interact with
@@ -13,16 +18,17 @@ mock.module("react-native-webview", () => ({
 mock.module("@terreno/ui", () => {
   const RN = require("react-native");
   const ReactMod = require("react");
-  const Box = ({children, ...rest}: any) => ReactMod.createElement(RN.View, rest, children);
-  const Button = ({text, onClick, iconName, testID}: any) =>
+  const Box = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.View, rest, children);
+  const Button = ({text, onClick, iconName, testID}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
       {onPress: onClick, testID: testID ?? `btn-${iconName ?? text}`},
       ReactMod.createElement(RN.Text, {}, text)
     );
-  const DataTable = ({data, customColumnComponentMap, columns}: any) => {
-    const rows = (data ?? []).map((row: any[], rowIdx: number) => {
-      const cells = row.map((cell: any, cellIdx: number) => {
+  const DataTable = ({data, customColumnComponentMap, columns}: Record<string, unknown>) => {
+    const rows = ((data as unknown[]) ?? []).map((row: unknown[], rowIdx: number) => {
+      const cells = row.map((cell: unknown, cellIdx: number) => {
         const col = columns[cellIdx];
         const CustomComp = customColumnComponentMap?.[col.columnType];
         if (CustomComp) {
@@ -42,12 +48,12 @@ mock.module("@terreno/ui", () => {
     });
     return ReactMod.createElement(RN.View, {testID: "mock-data-table"}, rows);
   };
-  const IconButton = ({onClick, accessibilityLabel, testID}: any) =>
+  const IconButton = ({onClick, accessibilityLabel, testID}: Record<string, unknown>) =>
     ReactMod.createElement(RN.Pressable, {
       onPress: onClick,
       testID: testID ?? `icon-${accessibilityLabel}`,
     });
-  const Link = ({onClick, text, testID}: any) =>
+  const Link = ({onClick, text, testID}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
       {onPress: onClick, testID: testID ?? `link-${text}`},
@@ -62,7 +68,7 @@ mock.module("@terreno/ui", () => {
     secondaryButtonOnClick,
     onDismiss,
     title,
-  }: any) => {
+  }: Record<string, unknown>) => {
     if (!visible) return null;
     return ReactMod.createElement(RN.View, {testID: `modal-${title}`}, [
       ReactMod.createElement(RN.Text, {key: "title"}, title),
@@ -100,14 +106,15 @@ mock.module("@terreno/ui", () => {
       ),
     ]);
   };
-  const Page = ({children, title}: any) =>
+  const Page = ({children, title}: Record<string, unknown>) =>
     ReactMod.createElement(RN.View, {testID: "mock-page"}, [
       ReactMod.createElement(RN.Text, {key: "t"}, title),
       ...(Array.isArray(children) ? children : [children]),
     ]);
   const Spinner = () => ReactMod.createElement(RN.View, {testID: "spinner"});
-  const Text = ({children, ...rest}: any) => ReactMod.createElement(RN.Text, rest, children);
-  const TextField = ({value, onChange, testID, placeholder, title}: any) =>
+  const Text = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, rest, children);
+  const TextField = ({value, onChange, testID, placeholder, title}: Record<string, unknown>) =>
     ReactMod.createElement(RN.TextInput, {
       onChangeText: onChange,
       placeholder,
@@ -129,10 +136,10 @@ mock.module("@terreno/ui", () => {
 });
 
 interface ListState {
-  data: any;
+  data: unknown;
   isLoading: boolean;
   isError: boolean;
-  error: any;
+  error: unknown;
 }
 const listState: ListState = {
   data: undefined,
@@ -141,21 +148,21 @@ const listState: ListState = {
   isLoading: false,
 };
 const refetchMock = mock(() => {});
-const uploadCalls: any[] = [];
+const uploadCalls: unknown[] = [];
 const deleteCalls: string[] = [];
 const deleteFolderCalls: string[] = [];
-const createFolderCalls: any[] = [];
+const createFolderCalls: unknown[] = [];
 const downloadCalls: string[] = [];
-let uploadImpl: (body: any) => Promise<any> = async () => ({});
-let deleteImpl: (p: string) => Promise<any> = async () => ({});
-let deleteFolderImpl: (p: string) => Promise<any> = async () => ({});
-let createFolderImpl: (body: any) => Promise<any> = async () => ({});
-let downloadImpl: (p: string) => Promise<any> = async () => new Blob(["hi"]);
+let uploadImpl: (body: unknown) => Promise<unknown> = async () => ({});
+let deleteImpl: (p: string) => Promise<unknown> = async () => ({});
+let deleteFolderImpl: (p: string) => Promise<unknown> = async () => ({});
+let createFolderImpl: (body: unknown) => Promise<unknown> = async () => ({});
+let downloadImpl: (p: string) => Promise<unknown> = async () => new Blob(["hi"]);
 
 mock.module("../useDocumentStorageApi", () => ({
   useDocumentStorageApi: () => ({
     useCreateFolderMutation: () => [
-      (body: any) => ({
+      (body: unknown) => ({
         unwrap: async () => {
           createFolderCalls.push(body);
           return createFolderImpl(body);
@@ -199,7 +206,7 @@ mock.module("../useDocumentStorageApi", () => ({
       return {...listState, refetch: refetchMock};
     },
     useUploadMutation: () => [
-      (body: any) => ({
+      (body: unknown) => ({
         unwrap: async () => {
           uploadCalls.push(body);
           return uploadImpl(body);
@@ -212,7 +219,7 @@ mock.module("../useDocumentStorageApi", () => ({
 
 import {DocumentStorageBrowser} from "../DocumentStorageBrowser";
 
-const press = async (el: any): Promise<void> => {
+const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
     fireEvent.press(el);
     await new Promise((r) => setTimeout(r, 150));
@@ -242,7 +249,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("creates a folder via primary button", async () => {
     listState.data = {files: [], folders: []};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("document-new-folder-button"));
     const input = getByTestId("new-folder-name-input");
@@ -260,7 +267,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("skips create on whitespace-only folder name", async () => {
     listState.data = {files: [], folders: []};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("document-new-folder-button"));
     const input = getByTestId("new-folder-name-input");
@@ -274,7 +281,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("dismisses new folder modal via secondary button", async () => {
     listState.data = {files: [], folders: []};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("document-new-folder-button"));
     await press(getByTestId("modal-secondary-New Folder"));
@@ -287,7 +294,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
       throw new Error("boom");
     };
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("document-new-folder-button"));
     const input = getByTestId("new-folder-name-input");
@@ -301,7 +308,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("navigates into a folder via DocumentNameCell Link", async () => {
     listState.data = {files: [], folders: ["sub/"]};
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     const folderLink = getByTestId("link-sub/");
     await press(folderLink);
@@ -324,7 +331,11 @@ describe("DocumentStorageBrowser (isolated)", () => {
     };
     const onFileSelect = mock(() => undefined);
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" onFileSelect={onFileSelect} />
+      <DocumentStorageBrowser
+        api={{} as unknown as AdminApi}
+        basePath="/documents"
+        onFileSelect={onFileSelect}
+      />
     );
     await press(getByTestId("link-a.txt"));
     expect(onFileSelect).toHaveBeenCalled();
@@ -347,16 +358,16 @@ describe("DocumentStorageBrowser (isolated)", () => {
     };
     const createObjectURL = mock(() => "blob:123");
     const revokeObjectURL = mock(() => undefined);
-    (globalThis as any).URL.createObjectURL = createObjectURL;
-    (globalThis as any).URL.revokeObjectURL = revokeObjectURL;
+    (globalThis as Record<string, unknown>).URL.createObjectURL = createObjectURL;
+    (globalThis as Record<string, unknown>).URL.revokeObjectURL = revokeObjectURL;
     const appendChild = mock(() => undefined);
     const removeChild = mock(() => undefined);
-    (globalThis as any).document = {
+    (globalThis as Record<string, unknown>).document = {
       body: {appendChild, removeChild},
       createElement: () => ({click: () => {}, download: "", href: ""}),
     };
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Download"));
     expect(downloadCalls.length).toBe(1);
@@ -380,7 +391,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
       folders: [],
     };
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Download"));
     expect(downloadCalls.length).toBe(1);
@@ -400,7 +411,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
       folders: [],
     };
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Delete"));
     expect(deleteCalls.length).toBe(1);
@@ -424,7 +435,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
       folders: [],
     };
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Delete"));
     expect(deleteCalls.length).toBe(1);
@@ -433,7 +444,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("deletes a folder via folder-level IconButton", async () => {
     listState.data = {files: [], folders: ["folder1/"]};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Delete folder"));
     expect(deleteFolderCalls.length).toBe(1);
@@ -446,7 +457,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
     };
     listState.data = {files: [], folders: ["folder1/"]};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("icon-Delete folder"));
     expect(deleteFolderCalls.length).toBe(1);
@@ -466,7 +477,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
       folders: [],
     };
     const {toJSON} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -486,7 +497,11 @@ describe("DocumentStorageBrowser (isolated)", () => {
       folders: ["f/"],
     };
     const {queryByTestId, toJSON} = renderWithTheme(
-      <DocumentStorageBrowser allowDelete={false} api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser
+        allowDelete={false}
+        api={{} as unknown as AdminApi}
+        basePath="/documents"
+      />
     );
     expect(queryByTestId("icon-Delete")).toBeNull();
     expect(queryByTestId("icon-Delete folder")).toBeNull();
@@ -496,15 +511,15 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("uploads file via hidden input onChange", async () => {
     listState.data = {files: [], folders: []};
     const {UNSAFE_root} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     const fileInputs = UNSAFE_root.findAll(
-      (node: any) => node.type === "input" && node.props?.type === "file"
+      (node: ReactTestInstance) => node.type === "input" && node.props?.type === "file"
     );
     expect(fileInputs.length).toBe(1);
     const fakeFile = new File(["x"], "x.txt", {type: "text/plain"});
     await act(async () => {
-      (fileInputs[0] as any).props.onChange({
+      (fileInputs[0] as ReactTestInstance).props.onChange({
         target: {files: [fakeFile], value: ""},
       });
       await new Promise((r) => setTimeout(r, 30));
@@ -518,14 +533,14 @@ describe("DocumentStorageBrowser (isolated)", () => {
     };
     listState.data = {files: [], folders: []};
     const {UNSAFE_root} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     const fileInputs = UNSAFE_root.findAll(
-      (node: any) => node.type === "input" && node.props?.type === "file"
+      (node: ReactTestInstance) => node.type === "input" && node.props?.type === "file"
     );
     const fakeFile = new File(["x"], "x.txt", {type: "text/plain"});
     await act(async () => {
-      (fileInputs[0] as any).props.onChange({
+      (fileInputs[0] as ReactTestInstance).props.onChange({
         target: {files: [fakeFile], value: ""},
       });
       await new Promise((r) => setTimeout(r, 30));
@@ -536,13 +551,13 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("ignores upload when no file selected", async () => {
     listState.data = {files: [], folders: []};
     const {UNSAFE_root} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     const fileInputs = UNSAFE_root.findAll(
-      (node: any) => node.type === "input" && node.props?.type === "file"
+      (node: ReactTestInstance) => node.type === "input" && node.props?.type === "file"
     );
     await act(async () => {
-      (fileInputs[0] as any).props.onChange({target: {files: []}});
+      (fileInputs[0] as ReactTestInstance).props.onChange({target: {files: []}});
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(uploadCalls.length).toBe(0);
@@ -551,7 +566,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("renders breadcrumb links after navigating into a folder", async () => {
     listState.data = {files: [], folders: ["dir-a/"]};
     const {getByTestId, queryByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("link-dir-a/"));
     // Back to Root: breadcrumb should include Root link
@@ -568,7 +583,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
     const onSettingsPress = mock(() => undefined);
     const {getByText} = renderWithTheme(
       <DocumentStorageBrowser
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         basePath="/documents"
         onSettingsPress={onSettingsPress}
       />
@@ -580,7 +595,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
   it("refetches via refresh button when data is loaded", async () => {
     listState.data = {files: [], folders: []};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await press(getByTestId("document-refresh-button"));
     expect(refetchMock).toHaveBeenCalled();
@@ -590,7 +605,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
     listState.isError = true;
     listState.error = {status: 503};
     const {getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     await act(async () => {
       await new Promise((r) => setTimeout(r, 30));
@@ -605,7 +620,7 @@ describe("DocumentStorageBrowser (isolated)", () => {
     const onSettingsPress = mock(() => undefined);
     const {getByText} = renderWithTheme(
       <DocumentStorageBrowser
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         basePath="/documents"
         onSettingsPress={onSettingsPress}
       />
@@ -618,16 +633,16 @@ describe("DocumentStorageBrowser (isolated)", () => {
     listState.data = {files: [], folders: []};
     const clickMock = mock(() => undefined);
     const {UNSAFE_root, getByTestId} = renderWithTheme(
-      <DocumentStorageBrowser api={{} as any} basePath="/documents" />
+      <DocumentStorageBrowser api={{} as unknown as AdminApi} basePath="/documents" />
     );
     // Locate the hidden file input and inject a click spy to verify the
     // button's handler reaches the underlying DOM ref.
     const fileInputs = UNSAFE_root.findAll(
-      (node: any) => node.type === "input" && node.props?.type === "file"
+      (node: ReactTestInstance) => node.type === "input" && node.props?.type === "file"
     );
     expect(fileInputs.length).toBe(1);
     // Manually override instance.click since the test renderer doesn't execute DOM methods.
-    const instance = fileInputs[0] as any;
+    const instance = fileInputs[0] as ReactTestInstance & {instance?: {click: () => void}};
     if (instance.instance) {
       instance.instance.click = clickMock;
     }
@@ -641,8 +656,8 @@ describe("DocumentStorageBrowser (isolated)", () => {
     downloadImpl = async () => blob;
     const createObjectURL = mock(() => "blob:img-123");
     const revokeObjectURL = mock(() => undefined);
-    (globalThis as any).URL.createObjectURL = createObjectURL;
-    (globalThis as any).URL.revokeObjectURL = revokeObjectURL;
+    (globalThis as Record<string, unknown>).URL.createObjectURL = createObjectURL;
+    (globalThis as Record<string, unknown>).URL.revokeObjectURL = revokeObjectURL;
     listState.data = {
       files: [
         {
@@ -660,10 +675,10 @@ describe("DocumentStorageBrowser (isolated)", () => {
     // commented out), so we reach through the ActionsCell to find a node
     // whose onClick navigates to handleViewFile. If not found, invoke
     // handleViewFile by seeking props that match the pattern.
-    const captured: any[] = [];
+    const captured: unknown[] = [];
     const {UNSAFE_root, unmount} = renderWithTheme(
       <DocumentStorageBrowser
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         basePath="/documents"
         onFileSelect={(file) => {
           captured.push(file);
@@ -671,7 +686,9 @@ describe("DocumentStorageBrowser (isolated)", () => {
       />
     );
     // Use the fact that onFileSelect is provided → Link wrapper exists.
-    const fileLink = UNSAFE_root.findAll((n: any) => n.props?.testID === "link-img.png");
+    const fileLink = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "link-img.png"
+    );
     expect(fileLink.length).toBeGreaterThan(0);
     await press(fileLink[0]);
     expect(captured.length).toBe(1);

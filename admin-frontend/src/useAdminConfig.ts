@@ -1,6 +1,5 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
-import type {AdminConfigResponse} from "./types";
+import type {AdminApi, AdminConfigResponse, EndpointBuilder} from "./types";
 
 const ENDPOINT_NAME = "adminConfig";
 
@@ -33,10 +32,10 @@ const ENDPOINT_NAME = "adminConfig";
  * @see AdminConfigResponse for the returned configuration structure
  * @see AdminModelList for usage in the model list screen
  */
-export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) => {
+export const useAdminConfig = (api: AdminApi, baseUrl: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [ENDPOINT_NAME]: build.query({
           query: () => ({
             method: "GET",
@@ -48,6 +47,8 @@ export const useAdminConfig = (api: Api<any, any, any, any>, baseUrl: string) =>
     });
   }, [api, baseUrl]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
 
   const {data, isLoading, error} = useConfigQuery();

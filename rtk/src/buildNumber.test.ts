@@ -1,4 +1,7 @@
 import {afterAll, beforeEach, describe, expect, it} from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 
 import {coerceBuildNumber, resolveBuildNumber} from "./buildNumber";
 
@@ -116,5 +119,21 @@ describe("resolveBuildNumber", () => {
   it("prefers override over env var", () => {
     process.env.EXPO_PUBLIC_BUILD_NUMBER = "999";
     expect(resolveBuildNumber({override: 1})).toBe(1);
+  });
+
+  it("returns undefined when git rev-list fails (no git, detached HEAD, etc.)", () => {
+    // Use a freshly-created mkdtemp directory that we know is not inside any git
+    // worktree (parents won't be a repo because we create it under the OS temp dir
+    // and no parent has a `.git` folder). This makes `git rev-list --count HEAD`
+    // exit non-zero so execSync throws, exercising the catch branch.
+    const originalCwd = process.cwd();
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "rtk-buildnumber-no-git-"));
+    process.chdir(tmpDir);
+    try {
+      expect(resolveBuildNumber()).toBeUndefined();
+    } finally {
+      process.chdir(originalCwd);
+      fs.rmSync(tmpDir, {force: true, recursive: true});
+    }
   });
 });

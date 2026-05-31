@@ -1,5 +1,9 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
+// biome-ignore-all lint/suspicious/noImplicitAnyLet: test mock typing
 import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
+import {DateTime} from "luxon";
+import type mongoose from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
@@ -14,6 +18,7 @@ import {
   getBaseServer,
   RequiredModel,
   setupDb,
+  type User,
   UserModel,
 } from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
@@ -576,7 +581,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1324,7 +1329,7 @@ describe("@terreno/api", () => {
       );
       server = supertest(app);
 
-      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(400);
+      const res = await server.post("/food").send({calories: 15, name: "Broccoli"}).expect(403);
       expect(res.body.title).toContain("cannot write fields");
     });
 
@@ -1899,6 +1904,133 @@ describe("@terreno/api", () => {
 
       const res = await agent.delete(`/food/${apple._id}/tags/healthy`).expect(400);
       expect(res.body.title).toContain("preUpdate hook error");
+    });
+  });
+
+  describe("conflict detection (If-Unmodified-Since)", () => {
+    let admin: mongoose.HydratedDocument<User>;
+    let _notAdmin: mongoose.HydratedDocument<User>;
+    let agent: TestAgent;
+    let spinach: Food;
+
+    beforeEach(async () => {
+      [admin, _notAdmin] = await setupDb();
+
+      spinach = await FoodModel.create({
+        calories: 10,
+        created: DateTime.fromISO("2025-06-15T12:00:00.000Z").toJSDate(),
+        hidden: false,
+        name: "Spinach",
+        ownerId: admin._id,
+      });
+      await FoodModel.collection.updateOne(
+        {_id: spinach._id as unknown as mongoose.Types.ObjectId},
+        {$set: {updated: DateTime.fromISO("2025-06-15T12:00:00.000Z").toJSDate()}}
+      );
+
+      app = getBaseServer();
+      setupAuth(app, UserModel as unknown as Parameters<typeof setupAuth>[1]);
+      addAuthRoutes(app, UserModel as unknown as Parameters<typeof addAuthRoutes>[1]);
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+    });
+
+    it("returns 409 when If-Unmodified-Since is older than doc.updated", async () => {
+      const staleTimestamp = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", staleTimestamp)
+        .send({name: "Should Fail"})
+        .expect(409);
+
+      expect(res.body.error).toBe("Conflict");
+      expect(res.body.message).toBe("Document was modified since your last read");
+      expect(res.body.data).toBeDefined();
+      // The response should contain the current server version
+      expect(res.body.data.name).toBe("Spinach");
+    });
+
+    it("succeeds when If-Unmodified-Since matches or is newer than doc.updated", async () => {
+      const freshTimestamp = DateTime.fromISO("2025-06-15T13:00:00.000Z").toHTTP();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", freshTimestamp)
+        .send({name: "Updated Spinach"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Updated Spinach");
+    });
+
+    it("succeeds normally when If-Unmodified-Since header is not present", async () => {
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .send({name: "No Header Update"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("No Header Update");
+    });
+
+    it("succeeds when If-Unmodified-Since exactly matches doc.updated", async () => {
+      const exactTimestamp = DateTime.fromISO("2025-06-15T12:00:00.000Z").toHTTP();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", exactTimestamp)
+        .send({name: "Exact Match"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Exact Match");
+    });
+
+    it("prefers precise conflict timestamp header when present", async () => {
+      const roundedStaleTimestamp = DateTime.fromISO("2025-06-15T11:59:59.000Z").toHTTP();
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", roundedStaleTimestamp)
+        .set("X-Unmodified-Since-ISO", "2025-06-15T12:00:00.750Z")
+        .send({name: "Precise Match"})
+        .expect(200);
+
+      expect(res.body.data.name).toBe("Precise Match");
+    });
+
+    it("returns 409 when precise conflict timestamp is older than doc.updated", async () => {
+      await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T12:00:01.000Z").toHTTP()!)
+        .set("X-Unmodified-Since-ISO", "2025-06-15T11:59:59.500Z")
+        .send({name: "Precise Stale"})
+        .expect(409);
+    });
+
+    it("falls back to doc.created when doc.updated is unavailable", async () => {
+      await FoodModel.collection.updateOne(
+        {_id: spinach._id as unknown as mongoose.Types.ObjectId},
+        {$unset: {updated: ""}}
+      );
+
+      const res = await agent
+        .patch(`/food/${spinach._id}`)
+        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T11:59:59.999Z").toHTTP()!)
+        .send({name: "Created Fallback"})
+        .expect(409);
+
+      expect(res.body.data.name).toBe("Spinach");
     });
   });
 });

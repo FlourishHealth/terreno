@@ -33,9 +33,8 @@ export interface AdminFieldOverride {
 }
 
 export interface AdminModelConfig {
-  // noExplicitAny: Model must accept any document type for the generic admin panel;
-  // Model<unknown> breaks callers since Model<T> is invariant in T.
   /** The Mongoose model to expose in the admin panel */
+  // biome-ignore lint/suspicious/noExplicitAny: Model<T> is invariant; the admin panel must accept any document shape.
   model: Model<any>;
   /** Route path for this model's endpoints, relative to basePath (e.g., "/users") */
   routePath: string;
@@ -484,7 +483,8 @@ export class AdminApp {
         `${basePath}${config.routePath}/search`,
         authenticateMiddleware(),
         asyncHandler(async (req, res) => {
-          if (!(req as any).user?.admin) {
+          const user = req.user as {_id: unknown; admin?: boolean} | undefined;
+          if (!user?.admin) {
             throw new APIError({
               disableExternalErrorTracking: true,
               status: 403,
@@ -543,7 +543,7 @@ export class AdminApp {
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
-      // noExplicitAny: ModelRouterOptions<any> matches the Model<any> from AdminModelConfig.
+      // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
         permissions: {
@@ -690,7 +690,7 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Only admins can view tasks"});
         }
 
-        let task;
+        let task: BackgroundTaskDocument | null;
         try {
           task = await BackgroundTask.findById(req.params.id);
         } catch (err: unknown) {
@@ -714,7 +714,7 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Only admins can cancel tasks"});
         }
 
-        let task;
+        let task: BackgroundTaskDocument | null;
         try {
           task = await BackgroundTask.findById(req.params.id);
         } catch (err: unknown) {

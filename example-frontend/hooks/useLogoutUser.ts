@@ -3,7 +3,7 @@ import {logout, terrenoApi, useAppDispatch} from "@/store";
 
 type LogoutUser = () => void;
 
-export function useLogoutUser(): LogoutUser {
+export const useLogoutUser = (): LogoutUser => {
   const dispatch = useAppDispatch();
 
   const handleLogout = useCallback((): void => {
@@ -12,4 +12,4 @@ export function useLogoutUser(): LogoutUser {
   }, [dispatch]);
 
   return handleLogout;
-}
+};

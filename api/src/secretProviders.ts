@@ -86,9 +86,10 @@ export class GcpSecretProvider implements SecretProvider {
       const SecretManagerServiceClient =
         mod.SecretManagerServiceClient ?? mod.default?.SecretManagerServiceClient;
       if (!SecretManagerServiceClient) {
-        throw new Error(
-          "SecretManagerServiceClient not found in @google-cloud/secret-manager module"
-        );
+        throw new APIError({
+          status: 500,
+          title: "SecretManagerServiceClient not found in @google-cloud/secret-manager module",
+        });
       }
       this.client = new SecretManagerServiceClient();
     }

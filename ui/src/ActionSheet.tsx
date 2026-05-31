@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
   },
 });
 
-export function getDeviceHeight(statusBarTranslucent: boolean | undefined): number {
+export const getDeviceHeight = (statusBarTranslucent: boolean | undefined): number => {
   const height = Dimensions.get("window").height;
 
   if (Platform.OS === "android" && !statusBarTranslucent) {
@@ -64,7 +64,7 @@ export function getDeviceHeight(statusBarTranslucent: boolean | undefined): numb
   }
 
   return height;
-}
+};
 
 export const getElevation = (elevation?: number) => {
   if (!elevation) {
@@ -133,7 +133,7 @@ const defaultProps = {
 
 type Props = Partial<typeof defaultProps> & ActionSheetProps;
 
-export class ActionSheet extends Component<Props, State, any> {
+export class ActionSheet extends Component<Props, State, unknown> {
   static defaultProps = defaultProps;
 
   actionSheetHeight = 0;
@@ -144,7 +144,7 @@ export class ActionSheet extends Component<Props, State, any> {
 
   prevScroll = 0;
 
-  timeout: any | null = null;
+  timeout: ReturnType<typeof setTimeout> | null = null;
 
   offsetY = 0;
 
@@ -164,8 +164,10 @@ export class ActionSheet extends Component<Props, State, any> {
 
   deviceLayoutCalled = false;
 
+  // biome-ignore lint/suspicious/noExplicitAny: FlatList ref is accessed via internal _listRef._scrollRef which is not part of the public type
   scrollViewRef: React.RefObject<any>;
 
+  // biome-ignore lint/suspicious/noExplicitAny: SafeAreaView ref is passed to findNodeHandle and accessed via untyped React Native internals
   safeAreaViewRef: React.RefObject<any>;
 
   transformValue: Animated.Value;
@@ -578,48 +580,35 @@ export class ActionSheet extends Component<Props, State, any> {
     this.setState({
       keyboard: true,
     });
-    const ReactNativeVersion = require("react-native/Libraries/Core/ReactNativeVersion");
 
-    let v = ReactNativeVersion.version.major + ReactNativeVersion.version.minor;
-    v = parseInt(v, 10);
+    const keyboardHeight = event.endCoordinates.height;
+    const {height: windowHeight} = Dimensions.get("window");
 
-    if (v >= 63 || Platform.OS === "ios") {
-      const keyboardHeight = event.endCoordinates.height;
-      const {height: windowHeight} = Dimensions.get("window");
+    const currentlyFocusedField = TextInput.State.currentlyFocusedField
+      ? findNodeHandle(TextInput.State.currentlyFocusedField())
+      : TextInput.State.currentlyFocusedField();
 
-      const currentlyFocusedField = TextInput.State.currentlyFocusedField
-        ? findNodeHandle(TextInput.State.currentlyFocusedField())
-        : TextInput.State.currentlyFocusedField();
-
-      if (!currentlyFocusedField) {
-        return;
-      }
-
-      UIManager.measure(
-        currentlyFocusedField,
-        (_originX, _originY, _width, height, _pageX, pageY) => {
-          const fieldHeight = height;
-          const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
-          if (gap >= 0) {
-            return;
-          }
-          const toValue =
-            this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
-
-          Animated.timing(this.transformValue, {
-            duration: 250,
-            toValue,
-            useNativeDriver: true,
-          }).start();
-        }
-      );
-    } else {
-      Animated.timing(this.transformValue, {
-        duration: 250,
-        toValue: -10,
-        useNativeDriver: true,
-      }).start();
+    if (!currentlyFocusedField) {
+      return;
     }
+
+    UIManager.measure(
+      currentlyFocusedField,
+      (_originX, _originY, _width, height, _pageX, pageY) => {
+        const fieldHeight = height;
+        const gap = windowHeight - keyboardHeight - (pageY + fieldHeight);
+        if (gap >= 0) {
+          return;
+        }
+        const toValue = this.props.keyboardMode === "position" ? -(keyboardHeight + 15) : gap - 10;
+
+        Animated.timing(this.transformValue, {
+          duration: 250,
+          toValue,
+          useNativeDriver: true,
+        }).start();
+      }
+    );
   };
 
   /**
@@ -669,7 +658,7 @@ export class ActionSheet extends Component<Props, State, any> {
     this.keyboardDidHideListener?.remove();
   }
 
-  _onDeviceLayout = async (_event: any) => {
+  _onDeviceLayout = async (_event: LayoutChangeEvent) => {
     const event = {..._event};
 
     if (this.timeout) {
@@ -721,7 +710,7 @@ export class ActionSheet extends Component<Props, State, any> {
     return scrollPosition;
   }
 
-  _keyExtractor = (item: any) => item;
+  _keyExtractor = (item: string) => item;
 
   render() {
     const {scrollable, modalVisible, keyboard} = this.state;

@@ -1,10 +1,13 @@
+// noExplicitAny: test mocks use UNSAFE_root traversal and mock.calls access for assertions
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../ui/node_modules/@testing-library/react-native";
 import {LocaleContentEditor} from "./LocaleContentEditor";
 
-const press = async (el: any): Promise<void> => {
+const press = async (el: ReactTestInstance): Promise<void> => {
   await act(async () => {
     fireEvent.press(el);
     await new Promise((r) => setTimeout(r, 150));
@@ -50,12 +53,14 @@ describe("LocaleContentEditor", () => {
 
     await press(getByText(/Remove /));
     expect(onChange).toHaveBeenCalled();
-    expect(Object.keys((onChange.mock.calls[0] as any)[0])).toEqual(["es"]);
+    expect(
+      Object.keys((onChange.mock.calls[0] as unknown[])[0] as Record<string, unknown>)
+    ).toEqual(["es"]);
   });
 
   it("falls back to empty object when value is not an object", () => {
     const {toJSON} = renderWithTheme(
-      <LocaleContentEditor onChange={() => {}} value={null as any} />
+      <LocaleContentEditor onChange={() => {}} value={null as unknown as Record<string, string>} />
     );
     expect(toJSON()).toBeDefined();
   });
@@ -67,20 +72,23 @@ describe("LocaleContentEditor", () => {
     );
     // Find the SelectField and invoke its onChange prop directly.
     const selects = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.options)
+      (n: ReactTestInstance) =>
+        typeof n.props?.onChange === "function" && Array.isArray(n.props?.options)
     );
     expect(selects.length).toBeGreaterThan(0);
     await act(async () => {
-      (selects[0] as any).props.onChange("en");
+      (selects[0] as ReactTestInstance).props.onChange("en");
     });
     // Find the Add Locale button (may be nested)
-    const addBtns = UNSAFE_root.findAll((n: any) => n.props?.text === "Add Locale");
+    const addBtns = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.text === "Add Locale");
     expect(addBtns.length).toBeGreaterThan(0);
     await act(async () => {
-      (addBtns[0] as any).props.onClick?.();
+      (addBtns[0] as ReactTestInstance).props.onClick?.();
     });
     expect(onChange).toHaveBeenCalled();
-    expect(Object.keys((onChange.mock.calls[0] as any)[0])).toContain("en");
+    expect(
+      Object.keys((onChange.mock.calls[0] as unknown[])[0] as Record<string, unknown>)
+    ).toContain("en");
     expect(toJSON()).toBeDefined();
   });
 
@@ -90,14 +98,15 @@ describe("LocaleContentEditor", () => {
       <LocaleContentEditor onChange={onChange} value={{en: "Hi"}} />
     );
     const selects = UNSAFE_root.findAll(
-      (n: any) => typeof n.props?.onChange === "function" && Array.isArray(n.props?.options)
+      (n: ReactTestInstance) =>
+        typeof n.props?.onChange === "function" && Array.isArray(n.props?.options)
     );
     await act(async () => {
-      (selects[0] as any).props.onChange("en");
+      (selects[0] as ReactTestInstance).props.onChange("en");
     });
-    const addBtns = UNSAFE_root.findAll((n: any) => n.props?.text === "Add Locale");
+    const addBtns = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.text === "Add Locale");
     await act(async () => {
-      (addBtns[0] as any).props.onClick?.();
+      (addBtns[0] as ReactTestInstance).props.onClick?.();
     });
     // Should NOT have called onChange with an add because "en" already exists.
     expect(onChange).not.toHaveBeenCalled();
@@ -106,9 +115,9 @@ describe("LocaleContentEditor", () => {
   it("does not add when no new locale selected", async () => {
     const onChange = mock((_: Record<string, string>) => undefined);
     const {UNSAFE_root} = renderWithTheme(<LocaleContentEditor onChange={onChange} value={{}} />);
-    const addBtns = UNSAFE_root.findAll((n: any) => n.props?.text === "Add Locale");
+    const addBtns = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.text === "Add Locale");
     await act(async () => {
-      (addBtns[0] as any).props.onClick?.();
+      (addBtns[0] as ReactTestInstance).props.onClick?.();
     });
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -119,15 +128,16 @@ describe("LocaleContentEditor", () => {
       <LocaleContentEditor onChange={onChange} value={{en: "Hi", es: "Hola"}} />
     );
     const editors = UNSAFE_root.findAll(
-      (n: any) =>
-        typeof n.props?.testID === "string" && n.props.testID.startsWith("locale-content-")
+      (n: ReactTestInstance) =>
+        typeof n.props?.testID === "string" &&
+        (n.props.testID as string).startsWith("locale-content-")
     );
     expect(editors.length).toBeGreaterThan(0);
     await act(async () => {
-      (editors[0] as any).props.onChange("new content");
+      (editors[0] as ReactTestInstance).props.onChange("new content");
     });
     expect(onChange).toHaveBeenCalled();
-    const arg = (onChange.mock.calls[0] as any)[0];
+    const arg = (onChange.mock.calls[0] as unknown[])[0] as Record<string, string>;
     expect(arg.en).toBe("new content");
     expect(arg.es).toBe("Hola");
   });

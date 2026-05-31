@@ -18,6 +18,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       type: Boolean,
     },
     betterAuthId: {
+      description: "Identifier linking to the Better Auth session provider",
       index: true,
       sparse: true,
       type: String,
@@ -37,6 +38,7 @@ const userSchema = new mongoose.Schema<UserDocument, UserModel>(
       type: String,
     },
     oauthProvider: {
+      description: "OAuth provider used for authentication",
       enum: ["google", "github", "apple", null],
       type: String,
     },

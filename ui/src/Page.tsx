@@ -1,5 +1,6 @@
 import {router} from "expo-router";
 import React from "react";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 import {Box} from "./Box";
 import {Button} from "./Button";
@@ -11,6 +12,7 @@ import {Spinner} from "./Spinner";
 import {Text} from "./Text";
 
 export class Page extends React.Component<PageProps, {}> {
+  // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   actionSheetRef: React.RefObject<any> = React.createRef();
 
   renderHeader() {
@@ -57,9 +59,9 @@ export class Page extends React.Component<PageProps, {}> {
     );
   }
 
-  render() {
+  renderBody() {
     return (
-      <ErrorBoundary onError={this.props.onError}>
+      <>
         <Box
           alignSelf="center"
           avoidKeyboard
@@ -110,6 +112,20 @@ export class Page extends React.Component<PageProps, {}> {
           >
             {this.props.footer}
           </Box>
+        )}
+      </>
+    );
+  }
+
+  render() {
+    return (
+      <ErrorBoundary onError={this.props.onError}>
+        {this.props.safeArea ? (
+          <SafeAreaView edges={["top", "bottom"]} style={{flex: 1}}>
+            {this.renderBody()}
+          </SafeAreaView>
+        ) : (
+          this.renderBody()
         )}
       </ErrorBoundary>
     );
