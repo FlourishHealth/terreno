@@ -2704,8 +2704,8 @@ export interface SelectFieldPropsBase {
   placeholder?: string;
 
   /**
-   * When true, the web dropdown renders a search input that lets the user
-   * type to filter options by label. Only affects the web platform.
+   * When true, the web select field becomes a searchable input that filters
+   * options by label as the user types in the field itself. Only affects web.
    * @default true
    */
   searchable?: boolean;

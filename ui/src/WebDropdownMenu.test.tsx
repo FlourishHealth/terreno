@@ -374,6 +374,22 @@ describe("WebDropdownMenu searchable", () => {
     expect(getByTestId("web_dropdown_option_cherry")).toBeTruthy();
     expect(getByTestId("web_dropdown_option_avocado")).toBeTruthy();
   });
+
+  it("shows empty state when options are empty and showEmptyStateWhenNoOptions is true", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={[]}
+        searchable={false}
+        showEmptyStateWhenNoOptions
+        visible
+      />
+    );
+    expect(getByTestId("web_dropdown_no_results")).toBeTruthy();
+    expect(queryByTestId("web_dropdown_search")).toBeNull();
+  });
 });
 
 describe("useWebDropdownAnchor", () => {

@@ -14,7 +14,7 @@ import {
 
 import {useTheme} from "./Theme";
 
-const scheduleAfterPaint = (callback: () => void): void => {
+export const scheduleAfterPaint = (callback: () => void): void => {
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(callback);
   } else {
@@ -71,6 +71,11 @@ export interface WebDropdownMenuProps {
    * @default true
    */
   searchable?: boolean;
+  /**
+   * When true and `options` is empty, shows a "No matching options" message.
+   * Used when the parent filters options externally (e.g. search in the trigger).
+   */
+  showEmptyStateWhenNoOptions?: boolean;
 }
 
 interface PressableWebState {
@@ -86,8 +91,9 @@ interface PressableWebState {
  * `useWebDropdownAnchor` (or an equivalent measurement).
  *
  * When `searchable` is true a text input appears at the top of the menu so
- * the user can type to filter options by label — restoring the type-to-select
- * behaviour that native `<select>` elements provide by default.
+ * the user can type to filter options by label. `RNPickerSelect` handles
+ * search in the trigger field instead and passes pre-filtered options with
+ * `searchable={false}`.
  */
 export const WebDropdownMenu = ({
   visible,
@@ -102,6 +108,7 @@ export const WebDropdownMenu = ({
   optionTextStyle,
   testIDPrefix = "web_dropdown",
   searchable = true,
+  showEmptyStateWhenNoOptions = false,
 }: WebDropdownMenuProps): ReactElement => {
   const {theme} = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,7 +243,7 @@ export const WebDropdownMenu = ({
               </Pressable>
             );
           })}
-          {searchable && filteredOptions.length === 0 && (
+          {(searchable || showEmptyStateWhenNoOptions) && filteredOptions.length === 0 && (
             <View style={{paddingHorizontal: 12, paddingVertical: 10}}>
               <Text
                 style={{color: theme.text.secondaryLight, fontStyle: "italic"}}

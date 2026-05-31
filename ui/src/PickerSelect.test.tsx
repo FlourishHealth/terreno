@@ -187,6 +187,12 @@ describe("PickerSelect", () => {
       }
     };
 
+    const openSearchableWebPicker = async (getByTestId: (id: string) => any): Promise<void> => {
+      await act(async () => {
+        fireEvent(getByTestId("text_input"), "focus");
+      });
+    };
+
     it("renders web dropdown with display label", () => {
       ensureDocument();
       savedOS = PlatformModule.OS;
@@ -200,7 +206,7 @@ describe("PickerSelect", () => {
       }
     });
 
-    it("renders web dropdown and opens on press", async () => {
+    it("renders web dropdown and opens on focus", async () => {
       ensureDocument();
       savedOS = PlatformModule.OS;
       try {
@@ -208,6 +214,23 @@ describe("PickerSelect", () => {
         const onOpen = mock(() => {});
         const {getByTestId} = renderWithTheme(
           <RNPickerSelect {...defaultProps} onOpen={onOpen} value="1" />
+        );
+        await openSearchableWebPicker(getByTestId);
+        expect(onOpen).toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("opens web menu on press when searchable is false", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const onOpen = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onOpen={onOpen} searchable={false} value="1" />
         );
         await act(async () => {
           fireEvent.press(getByTestId("web_picker"));
@@ -229,7 +252,7 @@ describe("PickerSelect", () => {
           <RNPickerSelect {...defaultProps} disabled onOpen={onOpen} />
         );
         await act(async () => {
-          fireEvent.press(getByTestId("web_picker"));
+          fireEvent(getByTestId("text_input"), "focus");
         });
         expect(onOpen).not.toHaveBeenCalled();
       } finally {
@@ -248,14 +271,51 @@ describe("PickerSelect", () => {
         const {getByTestId} = renderWithTheme(
           <RNPickerSelect {...defaultProps} onClose={onClose} onOpen={onOpen} value="1" />
         );
-        await act(async () => {
-          fireEvent.press(getByTestId("web_picker"));
-        });
+        await openSearchableWebPicker(getByTestId);
         expect(onOpen).toHaveBeenCalled();
         await act(async () => {
           fireEvent.press(getByTestId("web_dropdown_backdrop"));
         });
         expect(onClose).toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("filters dropdown options when typing in the trigger search input", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId, queryByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} value="1" />
+        );
+        await openSearchableWebPicker(getByTestId);
+        await act(async () => {
+          fireEvent.changeText(getByTestId("text_input"), "3");
+        });
+        expect(getByTestId("web_dropdown_option_3")).toBeTruthy();
+        expect(queryByTestId("web_dropdown_option_1")).toBeNull();
+        expect(queryByTestId("web_dropdown_option_2")).toBeNull();
+        expect(queryByTestId("web_dropdown_search")).toBeNull();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
+    it("shows no matching options when trigger search matches nothing", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        await openSearchableWebPicker(getByTestId);
+        await act(async () => {
+          fireEvent.changeText(getByTestId("text_input"), "zzz");
+        });
+        expect(getByTestId("web_dropdown_no_results")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
         restoreDocument();
@@ -318,9 +378,7 @@ describe("PickerSelect", () => {
         const {getByTestId} = renderWithTheme(
           <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
         );
-        await act(async () => {
-          fireEvent.press(getByTestId("web_picker"));
-        });
+        await openSearchableWebPicker(getByTestId);
         await act(async () => {
           fireEvent.press(getByTestId("web_dropdown_option_2"));
         });
