@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {renderText, TextLinks, Texts, Truncate} from "@stories";
+import {renderText, TextLinks, TextPreview, Texts, Truncate} from "@stories";
 import {Text, TextProps} from "@terreno/ui";
 
 export const TextConfiguration: DemoConfiguration = {
@@ -24,9 +24,12 @@ export const TextConfiguration: DemoConfiguration = {
     doNot: [],
   },
   props: {},
-  demo: (props: TextProps & {text: string}) => {
-    const {text, ...rest} = props;
-    return renderText(text, rest);
+  demo: (props: TextProps & {text?: string; preview?: boolean}) => {
+    if (props.preview) {
+      return <TextPreview />;
+    }
+    const {text, preview: _preview, ...rest} = props;
+    return renderText(text ?? "default", rest);
   },
   demoOptions: {},
   stories: {
