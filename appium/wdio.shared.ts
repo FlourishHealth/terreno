@@ -1,5 +1,9 @@
 import type {Options} from "@wdio/types";
 
+if (!process.env.APPIUM_HOME) {
+  process.env.APPIUM_HOME = `${process.env.HOME}/.appium-terreno`;
+}
+
 const isCI = Boolean(process.env.CI);
 const platform = process.env.APPIUM_PLATFORM ?? "web";
 
@@ -27,16 +31,7 @@ export const sharedConfig: Options.Testrunner = {
   specs: ["./specs/**/*.spec.ts"],
   maxInstances: 1,
   capabilities: [platform === "ios" ? iosCapabilities : webCapabilities],
-  services: [
-    [
-      "appium",
-      {
-        env: {
-          APPIUM_HOME: process.env.APPIUM_HOME ?? `${process.env.HOME}/.appium-terreno`,
-        },
-      },
-    ],
-  ],
+  services: [["appium", {}]],
   port: 4723,
   logLevel: "warn",
   framework: "mocha",
