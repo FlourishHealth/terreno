@@ -2,7 +2,7 @@
 name: check-watcher
 description: Monitor GitHub Actions checks and automatically fix failures
 disable-model-invocation: true
-model: sonnet
+model: haiku
 ---
 
 # Check Watcher

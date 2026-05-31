@@ -1,7 +1,7 @@
 ---
 name: verify-ui-changes
 description: Use automatically when making, reviewing, or validating UI changes in React, React Native, Expo, CSS, HTML, or component/story files.
-model: sonnet
+model: haiku
 ---
 
 # Verify UI Changes

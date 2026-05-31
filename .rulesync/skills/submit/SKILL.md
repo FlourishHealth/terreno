@@ -1,7 +1,7 @@
 ---
 name: submit
 description: Lightweight pre-commit + commit + push + create/update PR, then spawn check-watcher in the background. Use /fullsend for the full pipeline with code review.
-model: sonnet
+model: haiku
 ---
 
 # Submit: Quick Commit & PR
