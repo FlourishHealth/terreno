@@ -1,5 +1,4 @@
 import {type ReactElement, useEffect, useRef, useState} from "react";
-import {createPortal} from "react-dom";
 import {
   Dimensions,
   type DimensionValue,
@@ -14,6 +13,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
+import {createWebPortal} from "./createWebPortal";
 import {useTheme} from "./Theme";
 
 export const scheduleAfterPaint = (callback: () => void): void => {
@@ -313,7 +313,7 @@ export const WebDropdownMenu = ({
         : null;
 
     if (portalTarget) {
-      return createPortal(overlay, portalTarget);
+      return createWebPortal({children: overlay, container: portalTarget});
     }
 
     return overlay;

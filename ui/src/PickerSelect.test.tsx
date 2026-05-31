@@ -1,6 +1,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
+import type {ReactTestInstance} from "react-test-renderer";
 
 import {RNPickerSelect} from "./PickerSelect";
 import {renderWithTheme} from "./test-utils";
@@ -195,7 +196,9 @@ describe("PickerSelect", () => {
       }
     };
 
-    const openSearchableWebPicker = async (getByTestId: (id: string) => any): Promise<void> => {
+    const openSearchableWebPicker = async (
+      getByTestId: (id: string) => ReactTestInstance
+    ): Promise<void> => {
       await act(async () => {
         fireEvent(getByTestId("text_input"), "focus");
       });
