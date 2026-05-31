@@ -73,5 +73,5 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   sleep "$INTERVAL_SEC"
 done
 
-echo "::warning::Timed out waiting for bot/copilot review checks after ${MAX_WAIT_MINUTES}m"
-exit 0
+echo "::error::Timed out waiting for bot/copilot review checks after ${MAX_WAIT_MINUTES}m" >&2
+exit 1

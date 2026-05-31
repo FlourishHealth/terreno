@@ -1,4 +1,4 @@
-import {byTestId, TEST_USER} from "../support/constants";
+import {byTestId, byText, TEST_USER} from "../support/constants";
 
 const loginAsTestUser = async (): Promise<void> => {
   await browser.url("/login");
@@ -17,7 +17,7 @@ describe("Create todo", () => {
     await $(byTestId("todos-new-title-input")).setValue(todoTitle);
     await $(byTestId("todos-add-button")).click();
 
-    await $(`=${todoTitle}`).waitForDisplayed({timeout: 5000});
-    await expect($(`=${todoTitle}`)).toBeDisplayed();
+    await $(byText(todoTitle)).waitForDisplayed({timeout: 5000});
+    await expect($(byText(todoTitle))).toBeDisplayed();
   });
 });
