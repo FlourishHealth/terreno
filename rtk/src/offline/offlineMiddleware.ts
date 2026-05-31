@@ -2,8 +2,8 @@ import {createListenerMiddleware, type Middleware} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
 import {DateTime} from "luxon";
 
-import {getAuthToken, selectCurrentUserId} from "./authSlice";
-import {baseUrl, LOGOUT_ACTION_TYPE, type RootState, TOKEN_REFRESHED_SUCCESS} from "./constants";
+import {getAuthToken, selectCurrentUserId} from "../authSlice";
+import {baseUrl, LOGOUT_ACTION_TYPE, type RootState, TOKEN_REFRESHED_SUCCESS} from "../constants";
 import {isModelRouterOfflineConfig} from "./offlineConfig";
 import {configureOfflineMiddleware, getConfiguredOfflineEndpoint} from "./offlineGate";
 import {resolveOfflineIdStrategy} from "./offlineIds";
@@ -45,7 +45,7 @@ import type {
   OfflineModelRouterConfig,
   ResolvedOfflineEndpoint,
 } from "./offlineTypes";
-import {IsWeb} from "./platform";
+import {IsWeb} from "../platform";
 
 export interface OfflineMiddlewareConfig {
   /** RTK Query API instance */

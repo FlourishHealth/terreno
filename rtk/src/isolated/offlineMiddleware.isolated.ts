@@ -20,9 +20,9 @@ mock.module("../constants", () => ({
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
-const {createOfflineMiddleware} = await import("../offlineMiddleware");
+const {createOfflineMiddleware} = await import("../offline/offlineMiddleware");
 const {selectConflicts, selectIsOnline, selectIsSyncing, selectOfflineQueue, setOnlineStatus} =
-  await import("../offlineSlice");
+  await import("../offline/offlineSlice");
 
 interface TodoRecord {
   _id?: string;

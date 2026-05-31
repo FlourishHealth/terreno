@@ -22,8 +22,8 @@ import {
   getConfiguredOfflineEndpoint,
   isOfflineMiddlewareEnabled,
   shouldDeferOfflineMutation,
-} from "./offlineGate";
-import {markMutationAuthBlocked} from "./offlineSlice";
+} from "./offline/offlineGate";
+import {markMutationAuthBlocked} from "./offline/offlineSlice";
 import {IsWeb} from "./platform";
 
 const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : (): void => {};

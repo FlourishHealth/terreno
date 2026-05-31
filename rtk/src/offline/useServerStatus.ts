@@ -2,7 +2,7 @@ import {DateTime} from "luxon";
 import {useCallback, useEffect, useRef} from "react";
 import {useDispatch} from "react-redux";
 
-import {baseUrl} from "./constants";
+import {baseUrl} from "../constants";
 import {setConnectionQuality, setHealthCheckSnapshot} from "./offlineSlice";
 import type {ConnectionQuality, ConnectionQualityConfig} from "./offlineTypes";
 import {

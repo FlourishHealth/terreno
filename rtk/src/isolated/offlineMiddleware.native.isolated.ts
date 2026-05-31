@@ -26,8 +26,8 @@ mock.module("expo-network", () => ({
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
-const {createOfflineMiddleware} = await import("../offlineMiddleware");
-const {selectIsOnline} = await import("../offlineSlice");
+const {createOfflineMiddleware} = await import("../offline/offlineMiddleware");
+const {selectIsOnline} = await import("../offline/offlineSlice");
 
 const api = createApi({
   baseQuery: fetchBaseQuery({baseUrl: "http://localhost:4000"}),

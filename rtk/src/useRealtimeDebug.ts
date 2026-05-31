@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import {useSelector} from "react-redux";
 
 import {isWebsocketsDebugEnabled, setRealtimeDebug} from "./constants";
-import {selectIsOnlineSafe} from "./offlineSlice";
+import {selectIsOnlineSafe} from "./offline/offlineSlice";
 
 interface RealtimeHealthResponse {
   debug?: boolean;
