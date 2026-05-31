@@ -8,48 +8,43 @@ const repoRoot = join(import.meta.dir, "..");
 const readRepoFile = (path: string): string =>
   readFileSync(join(repoRoot, path), "utf8");
 
-const updateWorkflowPaths = [
-  "example-frontend/.eas/workflows/example-frontend-update.yml",
-  "demo/.eas/workflows/demo-update.yml",
-];
-
 const buildWorkflowPaths = [
   "example-frontend/.eas/workflows/example-frontend-build.yml",
   "demo/.eas/workflows/demo-build.yml",
 ];
 
 describe("EAS PR workflows", () => {
-  it("uses update-only workflows for fast-path PR updates", () => {
+  it("publishes PR updates directly from GitHub Actions", () => {
     const easPr = readRepoFile(".github/workflows/eas-pr.yml");
 
-    assert.match(easPr, /eas workflow:run \.eas\/workflows\/example-frontend-update\.yml/);
-    assert.match(easPr, /eas workflow:run \.eas\/workflows\/demo-update\.yml/);
+    assert.doesNotMatch(easPr, /example-frontend-update\.yml/);
+    assert.doesNotMatch(easPr, /demo-update\.yml/);
+    assert.match(easPr, /eas update\s+\\\n\s+--branch "pr-\$\{PR_NUMBER\}"/);
+    assert.match(easPr, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*example-frontend-build\.yml/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*demo-build\.yml/);
+    assert.doesNotMatch(easPr, /-F "pr_number=/);
+    assert.doesNotMatch(easPr, /-F "pr_title=/);
   });
 
-  it("keeps update-only workflows from starting native build jobs", () => {
-    for (const workflowPath of updateWorkflowPaths) {
-      const workflow = readRepoFile(workflowPath);
-
-      assert.doesNotMatch(workflow, /type:\s*build/);
-      assert.doesNotMatch(workflow, /type:\s*get-build/);
-      assert.doesNotMatch(workflow, /fingerprint_hash/);
-      assert.match(workflow, /--branch "pr-\$\{PR_NUMBER\}"/);
-      assert.match(workflow, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
-      assert.match(workflow, /EAS workflow inputs were not resolved/);
-    }
-  });
-
-  it("keeps build-capable workflows guarded against unresolved PR templates", () => {
+  it("keeps EAS Cloud workflows build-only", () => {
     for (const workflowPath of buildWorkflowPaths) {
       const workflow = readRepoFile(workflowPath);
 
       assert.match(workflow, /type:\s*build/);
       assert.match(workflow, /type:\s*get-build/);
-      assert.match(workflow, /--branch "pr-\$\{PR_NUMBER\}"/);
-      assert.match(workflow, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
-      assert.match(workflow, /EAS workflow inputs were not resolved/);
+      assert.doesNotMatch(workflow, /eas-cli@latest update/);
+      assert.doesNotMatch(workflow, /--branch "pr-/);
+      assert.doesNotMatch(workflow, /inputs\.pr_number/);
+      assert.doesNotMatch(workflow, /inputs\.pr_title/);
     }
+  });
+
+  it("keeps manual build dispatch from passing PR update inputs", () => {
+    const manualDispatch = readRepoFile(".github/workflows/eas-dev-build.yml");
+
+    assert.match(manualDispatch, /eas workflow:run "\.eas\/workflows\/\$file"/);
+    assert.doesNotMatch(manualDispatch, /pr_number/);
+    assert.doesNotMatch(manualDispatch, /pr_title/);
   });
 });

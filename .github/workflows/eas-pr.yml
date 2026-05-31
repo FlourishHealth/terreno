@@ -4,13 +4,12 @@ name: EAS PR
 # locally and check whether a matching finished dev build already exists.
 #
 # - Fingerprint matches existing dev build  →  fast path: publish the
-#   EAS Update via an update-only EAS workflow + post the PR comment,
-#   and **wait** for the EAS workflow so the GitHub status reflects
-#   real pass/fail.
+#   EAS Update directly from GitHub Actions + post the PR comment.
 #
-# - Fingerprint changed  →  slow path: dispatch the EAS workflow async
-#   and exit. A full dev build can take 15+ minutes; the EAS GitHub App
-#   posts per-job status checks for that run when it eventually finishes.
+# - Fingerprint changed  →  publish the EAS Update directly, then dispatch
+#   the build-only EAS workflow async and exit. A full dev build can take
+#   15+ minutes; the EAS GitHub App posts per-job status checks for that
+#   run when it eventually finishes.
 #
 # A new dev build is only ever produced when the fingerprint has changed.
 # There is no manual force-build hatch from this workflow — push a change
@@ -146,32 +145,33 @@ jobs:
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fast path — publish update and wait
-        if: steps.decide.outputs.needs_build == 'false'
+      - name: Publish EAS Update for PR
         working-directory: example-frontend
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "::notice::Fingerprint matches existing dev build — running update-only flow with --wait"
-          eas workflow:run .eas/workflows/example-frontend-update.yml \
-            --wait \
+          set -euo pipefail
+          update_json=$(eas update \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
             --non-interactive \
-            -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}"
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
+
+      - name: Fast path — update-only complete
+        if: steps.decide.outputs.needs_build == 'false'
+        run: |
+          echo "::notice::Fingerprint matches existing dev build — update-only flow complete"
 
       - name: Slow path — dispatch EAS workflow async
         if: steps.decide.outputs.needs_build == 'true'
         working-directory: example-frontend
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "::notice::Fingerprint changed — dispatching dev build to EAS (will not wait)"
+          echo "::notice::Fingerprint changed — dispatching dev build-only workflow to EAS (will not wait)"
           eas workflow:run .eas/workflows/example-frontend-build.yml \
-            --non-interactive \
-            -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}"
+            --non-interactive
           echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
 
       - name: Post PR comment
@@ -275,32 +275,33 @@ jobs:
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fast path — publish update and wait
-        if: steps.decide.outputs.needs_build == 'false'
+      - name: Publish EAS Update for PR
         working-directory: demo
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "::notice::Fingerprint matches existing dev build — running update-only flow with --wait"
-          eas workflow:run .eas/workflows/demo-update.yml \
-            --wait \
+          set -euo pipefail
+          update_json=$(eas update \
+            --branch "pr-${PR_NUMBER}" \
+            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
             --non-interactive \
-            -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}"
+            --json)
+          first_id=$(echo "$update_json" | jq -r '.[0].group')
+          echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
+
+      - name: Fast path — update-only complete
+        if: steps.decide.outputs.needs_build == 'false'
+        run: |
+          echo "::notice::Fingerprint matches existing dev build — update-only flow complete"
 
       - name: Slow path — dispatch EAS workflow async
         if: steps.decide.outputs.needs_build == 'true'
         working-directory: demo
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          echo "::notice::Fingerprint changed — dispatching dev build to EAS (will not wait)"
+          echo "::notice::Fingerprint changed — dispatching dev build-only workflow to EAS (will not wait)"
           eas workflow:run .eas/workflows/demo-build.yml \
-            --non-interactive \
-            -F "pr_number=${PR_NUMBER}" \
-            -F "pr_title=${PR_TITLE}"
+            --non-interactive
           echo "Build runs on EAS Cloud. Per-job status checks will appear on the PR when it finishes."
 
       - name: Post PR comment
