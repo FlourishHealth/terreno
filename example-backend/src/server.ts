@@ -1,6 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
   type AuthProvider,
@@ -341,6 +342,22 @@ export async function start(skipListen = false): Promise<express.Application> {
           supportedLocales: ["en", "es"],
         })
       );
+
+    // Register the standalone admin SPA serve plugin when opted in. Gated on an env
+    // flag so it stays off in tests and for backend-only consumers.
+    if (process.env.ADMIN_SPA_ENABLED === "true") {
+      terraApp.register(
+        new AdminSpaServeApp({
+          appConfig: {
+            brandName: "Terreno Example",
+            primaryColor: "#7C3AED",
+            providers: ["email", "google"],
+          },
+          basePath: "/console",
+          devProxyTarget: process.env.ADMIN_SPA_DEV_PROXY,
+        })
+      );
+    }
 
     // Register Better Auth plugin if configured
     if (betterAuthConfig) {
