@@ -4,24 +4,27 @@ import {REHYDRATE} from "redux-persist";
 
 import {
   addConflict,
-  type ConflictRecord,
   clearConflicts,
   clearQueue,
   dequeue,
   dismissConflict,
   enqueue,
+  markMutationAuthBlocked,
   offlineReducer,
-  type QueuedMutation,
   selectConflicts,
+  selectConnectionQuality,
   selectIsOnline,
   selectIsOnlineSafe,
+  selectIsReplayPausedForAuth,
   selectIsSyncing,
   selectOfflineQueue,
   selectQueueLength,
   selectUndismissedConflicts,
+  setConnectionQuality,
   setOnlineStatus,
   setSyncing,
 } from "./offlineSlice";
+import {createTestConflictRecord, createTestQueuedMutation} from "./offlineTestUtils";
 
 const createTestStore = () =>
   configureStore({
@@ -39,12 +42,14 @@ describe("offlineSlice", () => {
     it("sets online status to false", () => {
       store.dispatch(setOnlineStatus(false));
       expect(selectIsOnline(store.getState())).toBe(false);
+      expect(selectConnectionQuality(store.getState())).toBe("offline");
     });
 
     it("sets online status to true", () => {
       store.dispatch(setOnlineStatus(false));
       store.dispatch(setOnlineStatus(true));
       expect(selectIsOnline(store.getState())).toBe(true);
+      expect(selectConnectionQuality(store.getState())).toBe("online");
     });
 
     it("defaults to online", () => {
@@ -53,21 +58,21 @@ describe("offlineSlice", () => {
   });
 
   describe("mutation queue", () => {
-    const mutation1: QueuedMutation = {
+    const mutation1 = createTestQueuedMutation({
       args: {body: {title: "Updated"}, id: "123"},
       endpointName: "patchTodosById",
       id: "m1",
-      timestamp: "2026-04-15T10:00:00.000Z",
+      operation: "update",
       type: "update",
-    };
+    });
 
-    const mutation2: QueuedMutation = {
+    const mutation2 = createTestQueuedMutation({
       args: {body: {title: "New Todo"}},
       endpointName: "postTodos",
       id: "m2",
-      timestamp: "2026-04-15T10:01:00.000Z",
+      operation: "create",
       type: "create",
-    };
+    });
 
     it("enqueues mutations in FIFO order", () => {
       store.dispatch(enqueue(mutation1));
@@ -115,23 +120,21 @@ describe("offlineSlice", () => {
   });
 
   describe("conflicts", () => {
-    const conflict1: ConflictRecord = {
+    const conflict1 = createTestConflictRecord({
       args: {body: {title: "Offline"}, id: "123"},
-      dismissed: false,
-      endpointName: "patchTodosById",
       id: "c1",
+      localArgs: {body: {title: "Offline"}, id: "123"},
       serverDocument: {_id: "123", title: "Server Version", updated: "2026-04-15T11:00:00.000Z"},
-      timestamp: "2026-04-15T10:30:00.000Z",
-    };
+      serverValue: {_id: "123", title: "Server Version", updated: "2026-04-15T11:00:00.000Z"},
+    });
 
-    const conflict2: ConflictRecord = {
+    const conflict2 = createTestConflictRecord({
       args: {body: {completed: true}, id: "456"},
-      dismissed: false,
-      endpointName: "patchTodosById",
       id: "c2",
+      localArgs: {body: {completed: true}, id: "456"},
       serverDocument: {_id: "456", completed: false, title: "Other"},
-      timestamp: "2026-04-15T10:31:00.000Z",
-    };
+      serverValue: {_id: "456", completed: false, title: "Other"},
+    });
 
     it("adds conflict records", () => {
       store.dispatch(addConflict(conflict1));
@@ -176,6 +179,22 @@ describe("offlineSlice", () => {
     it("reflects offline state when reducer is mounted", () => {
       store.dispatch(setOnlineStatus(false));
       expect(selectIsOnlineSafe(store.getState())).toBe(false);
+    });
+  });
+
+  describe("auth blocked replay", () => {
+    it("marks queued mutations auth blocked", () => {
+      store.dispatch(
+        enqueue(
+          createTestQueuedMutation({
+            endpointName: "postTodos",
+            id: "auth-1",
+          })
+        )
+      );
+      store.dispatch(markMutationAuthBlocked());
+      expect(selectIsReplayPausedForAuth(store.getState())).toBe(true);
+      expect(selectOfflineQueue(store.getState())[0].status).toBe("authBlocked");
     });
   });
 

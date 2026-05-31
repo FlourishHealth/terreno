@@ -51,7 +51,31 @@ describe("OfflineBanner", () => {
       <OfflineBanner isOnline={false} isSyncing={true} queueLength={2} />
     );
     expect(getByTestId("offline-banner")).toBeTruthy();
+    expect(getByTestId("syncing-banner")).toBeTruthy();
     expect(getByText("Syncing offline changes...")).toBeTruthy();
+  });
+
+  it("shows spotty connection banner", () => {
+    const {getByText} = renderWithTheme(
+      <OfflineBanner connectionQuality="spotty" isOnline={true} isSyncing={false} queueLength={1} />
+    );
+    expect(
+      getByText("Connection is unstable. 1 pending change will sync when you reconnect.")
+    ).toBeTruthy();
+  });
+
+  it("shows auth-blocked banner", () => {
+    const {getByText} = renderWithTheme(
+      <OfflineBanner
+        isOnline={true}
+        isReplayPausedForAuth={true}
+        isSyncing={false}
+        queueLength={2}
+      />
+    );
+    expect(
+      getByText("Sync paused until you reconnect. 2 pending changes will sync when you reconnect.")
+    ).toBeTruthy();
   });
 
   it("uses custom testID prop", () => {

@@ -2033,4 +2033,66 @@ describe("@terreno/api", () => {
       expect(res.body.data.name).toBe("Spinach");
     });
   });
+
+  describe("client-provided create ids", () => {
+    let agent: TestAgent;
+
+    beforeEach(async () => {
+      await setupDb();
+      app = getBaseServer();
+      setupAuth(app, UserModel as unknown as Parameters<typeof setupAuth>[1]);
+      addAuthRoutes(app, UserModel as unknown as Parameters<typeof addAuthRoutes>[1]);
+      app.use(
+        "/food",
+        modelRouter(FoodModel, {
+          permissions: {
+            create: [Permissions.IsAny],
+            delete: [Permissions.IsAny],
+            list: [Permissions.IsAny],
+            read: [Permissions.IsAny],
+            update: [Permissions.IsAny],
+          },
+        })
+      );
+      server = supertest(app);
+      agent = await authAsUser(app, "admin");
+    });
+
+    it("accepts a client-provided ObjectId-compatible _id on create", async () => {
+      const clientId = "507f1f77bcf86cd799439011";
+
+      const res = await agent
+        .post("/food")
+        .send({_id: clientId, calories: 12, name: "Client Id Food"})
+        .expect(201);
+
+      expect(String(res.body.data._id)).toBe(clientId);
+      const stored = await FoodModel.findById(clientId);
+      expect(stored?.name).toBe("Client Id Food");
+    });
+
+    it("rejects duplicate client-provided _id values", async () => {
+      const clientId = "507f1f77bcf86cd799439012";
+      await agent
+        .post("/food")
+        .send({_id: clientId, calories: 12, name: "First"})
+        .expect(201);
+
+      const res = await agent
+        .post("/food")
+        .send({_id: clientId, calories: 20, name: "Duplicate"})
+        .expect(400);
+
+      expect(res.body.title).toBeTruthy();
+    });
+
+    it("rejects invalid client-provided _id values", async () => {
+      const res = await agent
+        .post("/food")
+        .send({_id: "not-an-object-id", calories: 12, name: "Invalid"})
+        .expect(400);
+
+      expect(res.body.title).toBeTruthy();
+    });
+  });
 });

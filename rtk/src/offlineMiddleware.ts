@@ -3,8 +3,18 @@ import type {Api} from "@reduxjs/toolkit/query/react";
 import {DateTime} from "luxon";
 
 import {getAuthToken, selectCurrentUserId} from "./authSlice";
-import {baseUrl, LOGOUT_ACTION_TYPE, type RootState} from "./constants";
-import {configureOfflineMutationEndpoints} from "./offlineGate";
+import {baseUrl, LOGOUT_ACTION_TYPE, type RootState, TOKEN_REFRESHED_SUCCESS} from "./constants";
+import {isModelRouterOfflineConfig} from "./offlineConfig";
+import {configureOfflineMiddleware, getConfiguredOfflineEndpoint} from "./offlineGate";
+import {resolveOfflineIdStrategy} from "./offlineIds";
+import {
+  applyOptimisticUpdate,
+  getCachedQueryArgs,
+  inferGetByIdEndpointName,
+  inferListEndpointName,
+  patchCacheWithServerDocument,
+  removeOptimisticTempItems,
+} from "./offlineOptimistic";
 import {
   addConflict,
   type ConflictRecord,
@@ -12,42 +22,40 @@ import {
   clearQueue,
   dequeue,
   enqueue,
+  markMutationAuthBlocked,
+  markMutationStatus,
   type OfflineState,
   offlineReducer,
   offlineSlice,
   type QueuedMutation,
-  selectIsOnline,
+  resolveConflictKeepMine,
+  resolveConflictUseServer,
+  resumeReplayAfterAuth,
+  selectConnectionQuality,
+  selectIsReplayPausedForAuth,
   selectIsSyncing,
   selectOfflineQueue,
+  setConnectionQuality,
   setOnlineStatus,
   setSyncing,
 } from "./offlineSlice";
+import type {
+  ConflictResolution,
+  OfflineMiddlewareOfflineConfig,
+  OfflineModelRouterConfig,
+  ResolvedOfflineEndpoint,
+} from "./offlineTypes";
 import {IsWeb} from "./platform";
 
 export interface OfflineMiddlewareConfig {
-  /** RTK Query mutation endpoint names to queue when offline */
-  endpoints: string[];
-  /** The RTK Query API instance */
+  /** RTK Query API instance */
   // biome-ignore lint/suspicious/noExplicitAny: Generic API type
   api: Api<any, any, any, any>;
+  /** ModelRouter offline config (preferred) */
+  offline?: OfflineMiddlewareOfflineConfig;
+  /** @deprecated Use offline.models or offline.endpoints */
+  endpoints?: string[];
 }
-
-/**
- * Infer the CRUD operation type from an RTK Query endpoint name.
- * Convention: postX = create, patchX = update, deleteX = delete.
- */
-const inferMutationType = (endpointName: string): "create" | "update" | "delete" => {
-  if (endpointName.startsWith("post")) {
-    return "create";
-  }
-  if (endpointName.startsWith("patch")) {
-    return "update";
-  }
-  if (endpointName.startsWith("delete")) {
-    return "delete";
-  }
-  return "update";
-};
 
 /**
  * True when a rejected RTK Query action failed due to a network/transport error,
@@ -89,10 +97,6 @@ export const isNetworkFetchError = (
   return NETWORK_PATTERNS.some((p) => combined.includes(p));
 };
 
-/**
- * Whether a queued mutation may be replayed for the currently signed-in user.
- * Legacy entries without userId are discarded to avoid cross-account replay after account switch.
- */
 export const shouldReplayQueuedMutation = (
   mutation: QueuedMutation,
   currentUserId: string | undefined
@@ -106,47 +110,27 @@ export const shouldReplayQueuedMutation = (
   return mutation.userId === currentUserId;
 };
 
-/** Optimistic list item for a queued create; temp IDs are applied after body spread. */
-export const buildOptimisticCreateItem = (
-  mutation: QueuedMutation,
-  body?: Record<string, unknown>
-): Record<string, unknown> => {
-  const tempId = `temp-${mutation.id}`;
-  return {
-    ...(body ?? {}),
-    _id: tempId,
-    created: mutation.timestamp,
-    id: tempId,
-    updated: mutation.timestamp,
-  };
+export {buildOptimisticCreateItem} from "./offlineOptimistic";
+
+const resolveOfflineConfig = (config: OfflineMiddlewareConfig): OfflineMiddlewareOfflineConfig => {
+  if (config.offline) {
+    return config.offline;
+  }
+  if (config.endpoints) {
+    return {endpoints: config.endpoints};
+  }
+  return {enabled: false, models: []};
 };
 
-/** Derives the collection tag from an endpoint name (e.g. "patchTodosById" → "todos"). */
-const inferTagType = (endpointName: string): string => {
-  let name = endpointName.replace(/^(post|patch|delete)/, "").replace(/ById$/, "");
-  name = name.charAt(0).toLowerCase() + name.slice(1);
-  return name;
-};
-
-const inferGetByIdEndpointName = (endpointName: string): string => {
-  const tagType = inferTagType(endpointName);
-  const capitalized = tagType.charAt(0).toUpperCase() + tagType.slice(1);
-  return `get${capitalized}ById`;
-};
-
-/**
- * Last-seen document `updated` timestamp for conflict headers on replay.
- * Prefer the patch body's `_updatedAt`, then a cached get-by-id entry.
- */
 const extractBaseUpdatedAt = (
-  endpointName: string,
+  endpoint: ResolvedOfflineEndpoint,
   originalArgs: unknown,
   // biome-ignore lint/suspicious/noExplicitAny: Generic getState
   getState: () => any,
   // biome-ignore lint/suspicious/noExplicitAny: Generic API type
   api: Api<any, any, any, any>
 ): string | undefined => {
-  if (inferMutationType(endpointName) !== "update") {
+  if (endpoint.operation !== "update" && endpoint.operation !== "arrayUpdate") {
     return undefined;
   }
 
@@ -160,7 +144,7 @@ const extractBaseUpdatedAt = (
     return undefined;
   }
 
-  const getByIdEndpoint = inferGetByIdEndpointName(endpointName);
+  const getByIdEndpoint = inferGetByIdEndpointName(endpoint.tagType);
   const state = getState();
   // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
   const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
@@ -172,8 +156,8 @@ const extractBaseUpdatedAt = (
     if (queryEntry?.originalArgs?.id !== args.id) {
       continue;
     }
-    const data = queryEntry?.data as {data?: {updated?: string}} | undefined;
-    const updated = data?.data?.updated;
+    const data = queryEntry?.data as {data?: {updated?: string}; updated?: string} | undefined;
+    const updated = data?.data?.updated ?? data?.updated;
     if (typeof updated === "string") {
       return updated;
     }
@@ -182,140 +166,97 @@ const extractBaseUpdatedAt = (
   return undefined;
 };
 
-/**
- * Collect all cached query args for a given list endpoint so optimistic
- * updates are applied to every active cache entry (regardless of the
- * args the consumer passed to the query hook, e.g. `{}` vs `undefined`).
- */
-const getCachedQueryArgs = (
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API state shape
-  getState: () => any,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  listEndpointName: string
-): unknown[] => {
-  const state = getState();
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal state shape
-  const queries: Record<string, any> = state[api.reducerPath]?.queries ?? {};
-  const cachedArgs: unknown[] = [];
-  for (const key of Object.keys(queries)) {
-    if (key.startsWith(`${listEndpointName}(`)) {
-      cachedArgs.push(queries[key]?.originalArgs);
-    }
-  }
-  if (cachedArgs.length === 0) {
-    cachedArgs.push(undefined);
-  }
-  return cachedArgs;
-};
-
-/**
- * Apply an optimistic update to the RTK Query cache for a queued mutation.
- */
-const applyOptimisticUpdate = (
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
+const extractListCacheUpdatedAt = (
+  endpoint: ResolvedOfflineEndpoint,
+  originalArgs: unknown,
   // biome-ignore lint/suspicious/noExplicitAny: Generic getState
   getState: () => any,
-  mutation: QueuedMutation
-): void => {
-  const tagType = inferTagType(mutation.endpointName);
-  const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
+  api: Api<any, any, any, any>
+): string | undefined => {
+  const args = originalArgs as {id?: string};
+  if (!args?.id) {
+    return undefined;
+  }
+
+  const listEndpointName = inferListEndpointName(endpoint.tagType);
   const cachedArgs = getCachedQueryArgs(getState, api, listEndpointName);
-
-  // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-  const updateAllCacheEntries = (updater: (draft: any) => void): void => {
-    for (const queryArg of cachedArgs) {
-      dispatch(
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, updater)
-      );
+  for (const queryArg of cachedArgs) {
+    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
+    const listEndpoint = (api.endpoints as any)[listEndpointName];
+    if (!listEndpoint?.select) {
+      continue;
     }
-  };
-
-  if (mutation.type === "create") {
-    const args = mutation.args as {body?: Record<string, unknown>};
-    const tempItem = buildOptimisticCreateItem(mutation, args?.body);
-    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-    updateAllCacheEntries((draft: any) => {
-      if (draft?.data && Array.isArray(draft.data)) {
-        draft.data.unshift(tempItem);
+    // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
+    const cacheEntry = listEndpoint.select(queryArg)(getState() as any) as any;
+    const items = cacheEntry?.data?.data;
+    if (Array.isArray(items)) {
+      const doc = items.find((d: Record<string, unknown>) => d._id === args.id || d.id === args.id);
+      if (doc?.updated) {
+        return typeof doc.updated === "string"
+          ? doc.updated
+          : (DateTime.fromJSDate(doc.updated as Date).toISO() ?? undefined);
       }
-    });
-  } else if (mutation.type === "update") {
-    const args = mutation.args as {id?: string; body?: Record<string, unknown>};
-    if (args?.id && args?.body) {
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
-        if (draft?.data && Array.isArray(draft.data)) {
-          const item = draft.data.find(
-            (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
-          );
-          if (item) {
-            Object.assign(item, args.body);
-          }
-        }
-      });
-    }
-  } else if (mutation.type === "delete") {
-    const args = mutation.args as {id?: string};
-    if (args?.id) {
-      // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-      updateAllCacheEntries((draft: any) => {
-        if (draft?.data && Array.isArray(draft.data)) {
-          draft.data = draft.data.filter(
-            (d: Record<string, unknown>) => d._id !== args.id && d.id !== args.id
-          );
-        }
-      });
     }
   }
+
+  return undefined;
 };
 
-/**
- * Remove optimistic temp items from the cache after they've been replayed.
- */
-const removeTempItems = (
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
-  api: Api<any, any, any, any>,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
-  dispatch: any,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
-  getState: () => any,
-  mutations: QueuedMutation[]
-): void => {
-  const tempIds = new Set(mutations.map((m) => `temp-${m.id}`));
-  const tagTypes = [...new Set(mutations.map((m) => inferTagType(m.endpointName)))];
+const buildQueuedMutation = ({
+  endpoint,
+  originalArgs,
+  baseUpdatedAt,
+  createdAt,
+  currentUserId,
+}: {
+  endpoint: ResolvedOfflineEndpoint;
+  originalArgs: unknown;
+  baseUpdatedAt?: string;
+  createdAt: string;
+  currentUserId?: string;
+}): QueuedMutation => {
+  const args = originalArgs as {body?: Record<string, unknown>};
+  const mutationId = `${endpoint.endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`;
+  const idStrategy = resolveOfflineIdStrategy(endpoint.idStrategy);
 
-  for (const tagType of tagTypes) {
-    const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
-    const cachedArgs = getCachedQueryArgs(getState, api, listEndpointName);
+  let optimisticId: string | undefined;
+  let body = args?.body;
 
-    for (const queryArg of cachedArgs) {
-      dispatch(
-        // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies by endpoint
-        api.util.updateQueryData(listEndpointName as any, queryArg, (draft: any) => {
-          if (draft?.data && Array.isArray(draft.data)) {
-            draft.data = draft.data.filter(
-              (d: Record<string, unknown>) =>
-                !tempIds.has(d._id as string) && !tempIds.has(d.id as string)
-            );
-          }
-        })
-      );
-    }
+  if (endpoint.operation === "create") {
+    optimisticId = idStrategy.generateId();
+    body = {
+      ...(body ?? {}),
+      [idStrategy.requestField]: optimisticId,
+    };
   }
+
+  return {
+    args: endpoint.operation === "create" ? {...args, body} : originalArgs,
+    attemptCount: 0,
+    baseUpdatedAt,
+    body,
+    createdAt,
+    endpointName: endpoint.endpointName,
+    id: mutationId,
+    idempotencyKey: mutationId,
+    modelName: endpoint.modelName,
+    operation: endpoint.operation,
+    optimisticId,
+    status: "queued",
+    timestamp: createdAt,
+    type: endpoint.operation,
+    userId: currentUserId,
+  };
 };
 
-/**
- * Replay a single queued mutation by making a direct API call.
- * Returns the response status and data for conflict handling.
- */
 const replayMutation = async (
-  mutation: QueuedMutation
-): Promise<{status: number; data?: unknown}> => {
+  mutation: QueuedMutation,
+  tagType: string
+): Promise<{
+  status: number;
+  data?: unknown;
+}> => {
   const token = await getAuthToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -324,33 +265,45 @@ const replayMutation = async (
     headers.authorization = `Bearer ${token}`;
   }
 
-  // For update operations, include If-Unmodified-Since from the document version at queue time
-  if (mutation.type === "update" && mutation.baseUpdatedAt) {
+  if (
+    (mutation.operation === "update" || mutation.operation === "arrayUpdate") &&
+    mutation.baseUpdatedAt
+  ) {
     const timestamp = DateTime.fromISO(mutation.baseUpdatedAt);
     if (timestamp.isValid) {
-      headers["If-Unmodified-Since"] = timestamp.toHTTP();
+      headers["If-Unmodified-Since"] = timestamp.toHTTP() ?? timestamp.toISO();
       headers["X-Unmodified-Since-ISO"] = mutation.baseUpdatedAt;
     }
   }
 
-  const args = mutation.args as {id?: string; body?: unknown};
-  const tagType = inferTagType(mutation.endpointName);
+  const args = mutation.args as {id?: string; body?: unknown; field?: string; itemId?: string};
   const basePath = `/${tagType}`;
 
   let url: string;
   let method: string;
   let body: string | undefined;
 
-  if (mutation.type === "create") {
+  if (mutation.operation === "create") {
     url = `${baseUrl}${basePath}`;
     method = "POST";
-    body = JSON.stringify(args?.body);
-  } else if (mutation.type === "update") {
+    body = JSON.stringify(args?.body ?? mutation.body);
+  } else if (mutation.operation === "update") {
     url = `${baseUrl}${basePath}/${args?.id}`;
     method = "PATCH";
-    body = JSON.stringify(args?.body);
-  } else {
+    body = JSON.stringify(args?.body ?? mutation.body);
+  } else if (mutation.operation === "delete") {
     url = `${baseUrl}${basePath}/${args?.id}`;
+    method = "DELETE";
+  } else if (mutation.operation === "arrayPush") {
+    url = `${baseUrl}${basePath}/${args?.id}/${args?.field}`;
+    method = "POST";
+    body = JSON.stringify(args?.body ?? mutation.body);
+  } else if (mutation.operation === "arrayUpdate") {
+    url = `${baseUrl}${basePath}/${args?.id}/${args?.field}/${args?.itemId}`;
+    method = "PATCH";
+    body = JSON.stringify(args?.body ?? mutation.body);
+  } else {
+    url = `${baseUrl}${basePath}/${args?.id}/${args?.field}/${args?.itemId}`;
     method = "DELETE";
   }
 
@@ -364,10 +317,6 @@ const replayMutation = async (
   return {data, status: response.status};
 };
 
-/**
- * Set up native-only network monitoring (expo-network).
- * Web apps should use `useServerStatus` for server-level health checking.
- */
 const setupNativeNetworkMonitoring = (
   // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
   dispatch: any
@@ -379,10 +328,10 @@ const setupNativeNetworkMonitoring = (
   let cleanup = (): void => {};
   void import("expo-network").then((Network) => {
     Network.getNetworkStateAsync().then((state) => {
-      dispatch(setOnlineStatus(state.isConnected ?? true));
+      dispatch(setConnectionQuality(state.isConnected ? "online" : "offline"));
     });
     const subscription = Network.addNetworkStateListener((state) => {
-      dispatch(setOnlineStatus(state.isConnected ?? true));
+      dispatch(setConnectionQuality(state.isConnected ? "online" : "offline"));
     });
     cleanup = () => subscription.remove();
   });
@@ -390,41 +339,95 @@ const setupNativeNetworkMonitoring = (
   return () => cleanup();
 };
 
-/**
- * Creates an offline middleware system for RTK Query mutations.
- *
- * When the device is offline, configured mutation endpoints are queued instead of
- * failing. When connectivity returns, queued mutations are replayed in order with
- * LWW (Last-Writer-Wins) conflict detection via If-Unmodified-Since headers.
- *
- * Usage:
- * ```typescript
- * const offline = createOfflineMiddleware({
- *   endpoints: ["postTodos", "patchTodosById", "deleteTodosById"],
- *   api: terrenoApi,
- * });
- *
- * // Add to store:
- * // reducer: { offline: offline.offlineReducer }
- * // middleware: [..., offline.middleware]
- * ```
- */
+export interface ResolveConflictParams {
+  conflictId: string;
+  resolution: ConflictResolution;
+}
+
+export const resolveConflict = ({
+  conflictId,
+  resolution,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
+  api,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
+  dispatch,
+  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
+  getState,
+  conflicts,
+}: ResolveConflictParams & {
+  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
+  api: Api<any, any, any, any>;
+  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
+  dispatch: (action: unknown) => void;
+  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
+  getState: () => any;
+  conflicts: ConflictRecord[];
+}): void => {
+  const conflict = conflicts.find((c) => c.id === conflictId);
+  if (!conflict) {
+    return;
+  }
+
+  const endpoint = getConfiguredOfflineEndpoint(conflict.endpointName);
+  const tagType = endpoint?.tagType ?? conflict.modelName.toLowerCase();
+
+  if (resolution === "useServer") {
+    const serverDoc = conflict.serverValue as Record<string, unknown>;
+    patchCacheWithServerDocument(api, dispatch, getState, tagType, serverDoc);
+    dispatch(resolveConflictUseServer(conflictId));
+    dispatch(api.util.invalidateTags([tagType]));
+    return;
+  }
+
+  dispatch(
+    resolveConflictKeepMine({
+      conflictId,
+      serverUpdatedAt: conflict.serverUpdatedAt,
+    })
+  );
+
+  const mutation = selectOfflineQueue(getState()).find((m) => m.id === conflict.queueId);
+  if (mutation) {
+    applyOptimisticUpdate(api, dispatch, getState, mutation, tagType, endpoint?.optimisticUpdate);
+  }
+
+  dispatch(setOnlineStatus(true));
+};
+
 export const createOfflineMiddleware = (
   config: OfflineMiddlewareConfig
 ): {
   middleware: Middleware;
   offlineReducer: typeof offlineReducer;
   offlineSlice: typeof offlineSlice;
+  resolveConflict: (params: ResolveConflictParams) => void;
 } => {
-  const {endpoints, api} = config;
-  const endpointSet = new Set(endpoints);
-  configureOfflineMutationEndpoints(endpoints);
+  const {api} = config;
+  const offlineConfig = resolveOfflineConfig(config);
+  configureOfflineMiddleware(offlineConfig);
 
   const listenerMiddleware = createListenerMiddleware();
   let _networkCleanup: (() => void) | undefined;
   let isReplayInProgress = false;
 
-  // Listener 1: Set up native network monitoring on first action (lazy init)
+  const modelRouterAuthConfig: OfflineModelRouterConfig["auth"] | undefined =
+    isModelRouterOfflineConfig(offlineConfig) ? offlineConfig.auth : undefined;
+
+  const triggerReplayIfNeeded = (
+    // biome-ignore lint/suspicious/noExplicitAny: Generic listener API
+    listenerApi: any
+  ): void => {
+    const state = listenerApi.getState() as {offline: OfflineState};
+    const quality = selectConnectionQuality(state);
+    if (quality === "offline") {
+      return;
+    }
+    if (selectIsReplayPausedForAuth(state)) {
+      return;
+    }
+    listenerApi.dispatch(setOnlineStatus(true));
+  };
+
   let networkInitialized = false;
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
@@ -434,83 +437,53 @@ export const createOfflineMiddleware = (
     predicate: () => !networkInitialized,
   });
 
-  // Listener 2: Intercept failed mutations on network errors (offline or server unreachable)
-  // RTK Query dispatches actions with type "terreno-rtk/executeMutation/rejected"
-  // when a mutation fails. Queue the mutation and apply an optimistic cache update.
   listenerMiddleware.startListening({
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query action types are complex
     effect: async (action: any, listenerApi) => {
-      const state = listenerApi.getState() as {offline: OfflineState};
-      const isOnline = selectIsOnline(state);
-
       if (!isNetworkFetchError(action)) {
         return;
       }
 
       const endpointName = action.meta.arg.endpointName as string;
-      const originalArgs = action.meta.arg.originalArgs;
-
-      const mutationType = inferMutationType(endpointName);
-
-      // For updates, use the document's last-known `updated` timestamp from cache
-      // rather than the current time. This ensures conflict detection compares against
-      // when the document was last fetched, not when the mutation was queued.
-      let timestamp = DateTime.now().toISO();
-      let listCacheBaseUpdatedAt: string | undefined;
-      if (mutationType === "update") {
-        const args = originalArgs as {id?: string};
-        if (args?.id) {
-          const tagType = inferTagType(endpointName);
-          const listEndpointName = `get${tagType.charAt(0).toUpperCase() + tagType.slice(1)}`;
-          const cachedArgs = getCachedQueryArgs(listenerApi.getState, api, listEndpointName);
-          for (const queryArg of cachedArgs) {
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape and endpoint types vary
-            const endpoint = (api.endpoints as any)[listEndpointName];
-            if (!endpoint?.select) {
-              continue;
-            }
-            // biome-ignore lint/suspicious/noExplicitAny: RTK Query cache shape varies
-            const cacheEntry = endpoint.select(queryArg)(listenerApi.getState() as any) as any;
-            const items = cacheEntry?.data?.data;
-            if (Array.isArray(items)) {
-              const doc = items.find(
-                (d: Record<string, unknown>) => d._id === args.id || d.id === args.id
-              );
-              if (doc?.updated) {
-                timestamp =
-                  typeof doc.updated === "string"
-                    ? doc.updated
-                    : DateTime.fromJSDate(doc.updated).toISO();
-                listCacheBaseUpdatedAt = timestamp ?? undefined;
-                break;
-              }
-            }
-          }
-        }
+      const endpoint = getConfiguredOfflineEndpoint(endpointName);
+      if (!endpoint) {
+        return;
       }
 
+      const originalArgs = action.meta.arg.originalArgs;
+      const listCacheUpdatedAt = extractListCacheUpdatedAt(
+        endpoint,
+        originalArgs,
+        listenerApi.getState,
+        api
+      );
       const baseUpdatedAt =
-        extractBaseUpdatedAt(endpointName, originalArgs, listenerApi.getState, api) ??
-        listCacheBaseUpdatedAt;
+        extractBaseUpdatedAt(endpoint, originalArgs, listenerApi.getState, api) ??
+        listCacheUpdatedAt;
+      const createdAt = listCacheUpdatedAt ?? DateTime.now().toISO();
 
       const currentUserId = selectCurrentUserId(listenerApi.getState() as RootState);
-
-      const mutation: QueuedMutation = {
-        args: originalArgs,
+      const mutation = buildQueuedMutation({
         baseUpdatedAt,
-        endpointName,
-        id: `${endpointName}-${DateTime.now().toMillis()}-${Math.random().toString(36).slice(2, 8)}`,
-        timestamp,
-        type: mutationType,
-        userId: currentUserId,
-      };
+        createdAt,
+        currentUserId,
+        endpoint,
+        originalArgs,
+      });
 
       listenerApi.dispatch(enqueue(mutation));
-      applyOptimisticUpdate(api, listenerApi.dispatch, listenerApi.getState, mutation);
+      applyOptimisticUpdate(
+        api,
+        listenerApi.dispatch,
+        listenerApi.getState,
+        mutation,
+        endpoint.tagType,
+        endpoint.optimisticUpdate
+      );
 
-      // Browser may still report online when the API server is unreachable
-      if (isOnline) {
-        listenerApi.dispatch(setOnlineStatus(false));
+      const quality = selectConnectionQuality(listenerApi.getState() as {offline: OfflineState});
+      if (quality === "online") {
+        listenerApi.dispatch(setConnectionQuality("offline"));
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
@@ -518,21 +491,19 @@ export const createOfflineMiddleware = (
       if (typeof action?.type !== "string") {
         return false;
       }
-      // Match RTK Query mutation rejected actions
       return (
         action.type.includes("/executeMutation/rejected") &&
         action?.meta?.arg?.endpointName &&
-        endpointSet.has(action.meta.arg.endpointName)
+        getConfiguredOfflineEndpoint(action.meta.arg.endpointName) !== undefined
       );
     },
   });
 
-  // Listener 3: Mark offline when any API request fails with a network error
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
       const state = listenerApi.getState() as {offline: OfflineState};
-      if (selectIsOnline(state)) {
-        listenerApi.dispatch(setOnlineStatus(false));
+      if (selectConnectionQuality(state) === "online") {
+        listenerApi.dispatch(setConnectionQuality("offline"));
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
@@ -549,12 +520,11 @@ export const createOfflineMiddleware = (
     },
   });
 
-  // Listener 4: Mark online when any API request succeeds (server reachable again)
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
       const state = listenerApi.getState() as {offline: OfflineState};
-      if (!selectIsOnline(state)) {
-        listenerApi.dispatch(setOnlineStatus(true));
+      if (selectConnectionQuality(state) !== "online") {
+        listenerApi.dispatch(setConnectionQuality("online"));
       }
     },
     // biome-ignore lint/suspicious/noExplicitAny: RTK Query internal action shape
@@ -570,12 +540,39 @@ export const createOfflineMiddleware = (
     },
   });
 
-  // Listener 5: Sync queue when coming back online
+  listenerMiddleware.startListening({
+    actionCreator: markMutationAuthBlocked,
+    effect: (_action, listenerApi) => {
+      listenerApi.dispatch(setSyncing(false));
+    },
+  });
+
+  listenerMiddleware.startListening({
+    actionCreator: resumeReplayAfterAuth,
+    effect: (_action, listenerApi) => {
+      triggerReplayIfNeeded(listenerApi);
+    },
+  });
+
+  listenerMiddleware.startListening({
+    effect: (_action, listenerApi) => {
+      const state = listenerApi.getState() as {offline: OfflineState};
+      if (selectIsReplayPausedForAuth(state)) {
+        listenerApi.dispatch(resumeReplayAfterAuth());
+      }
+    },
+    type: TOKEN_REFRESHED_SUCCESS,
+  });
+
   listenerMiddleware.startListening({
     actionCreator: setOnlineStatus,
     effect: async (action, listenerApi) => {
       if (!action.payload) {
-        // Going offline, nothing to do
+        return;
+      }
+
+      const state = listenerApi.getState() as {offline: OfflineState};
+      if (selectIsReplayPausedForAuth(state)) {
         return;
       }
 
@@ -584,12 +581,10 @@ export const createOfflineMiddleware = (
       }
       listenerApi.cancelActiveListeners();
 
-      const state = listenerApi.getState() as {offline: OfflineState};
       const queue = selectOfflineQueue(state);
       const currentUserId = selectCurrentUserId(listenerApi.getState() as RootState);
 
       if (queue.length === 0) {
-        // Reset isSyncing if it was stuck from a crash/reload during sync
         if (selectIsSyncing(state)) {
           listenerApi.dispatch(setSyncing(false));
         }
@@ -600,10 +595,14 @@ export const createOfflineMiddleware = (
       listenerApi.dispatch(setSyncing(true));
 
       const replayedCreates: QueuedMutation[] = [];
+      const tagTypes = new Set<string>();
 
       try {
-        // Replay mutations in FIFO order
         for (const mutation of queue) {
+          if (mutation.status === "authBlocked" || mutation.status === "conflicted") {
+            continue;
+          }
+
           if (!shouldReplayQueuedMutation(mutation, currentUserId)) {
             console.warn(
               `[offline] Dropping queued mutation ${mutation.endpointName} — not owned by current user`
@@ -612,26 +611,85 @@ export const createOfflineMiddleware = (
             continue;
           }
 
+          const endpoint =
+            getConfiguredOfflineEndpoint(mutation.endpointName) ??
+            ({
+              endpointName: mutation.endpointName,
+              modelName: mutation.modelName,
+              operation: mutation.operation,
+              tagType: mutation.modelName.toLowerCase(),
+            } as ResolvedOfflineEndpoint);
+
+          tagTypes.add(endpoint.tagType);
+          listenerApi.dispatch(markMutationStatus({id: mutation.id, status: "replaying"}));
+
           try {
-            const result = await replayMutation(mutation);
+            const result = await replayMutation(mutation, endpoint.tagType);
+
+            if (result.status === 401 || result.status === 403) {
+              if (modelRouterAuthConfig?.pauseReplayOnRefreshFailure !== false) {
+                listenerApi.dispatch(markMutationAuthBlocked());
+                break;
+              }
+            }
 
             if (result.status === 409) {
+              const serverDoc = (result.data as {data?: unknown})?.data ?? result.data;
+              const serverUpdatedAt =
+                typeof serverDoc === "object" && serverDoc !== null
+                  ? ((serverDoc as Record<string, unknown>).updated as string | undefined)
+                  : undefined;
+
+              const conflictOperation =
+                mutation.operation === "create" || mutation.operation === "arrayPush"
+                  ? "update"
+                  : mutation.operation;
+
               const conflict: ConflictRecord = {
-                args: mutation.args,
+                baseUpdatedAt: mutation.baseUpdatedAt,
+                createdAt: DateTime.now().toISO(),
                 dismissed: false,
                 endpointName: mutation.endpointName,
-                id: mutation.id,
-                serverDocument: (result.data as {data?: unknown})?.data ?? result.data,
-                timestamp: DateTime.now().toISO(),
+                id: `conflict-${mutation.id}`,
+                localArgs: mutation.args,
+                localBody: mutation.body,
+                modelName: mutation.modelName,
+                operation: conflictOperation as ConflictRecord["operation"],
+                queueId: mutation.id,
+                serverUpdatedAt,
+                serverValue: serverDoc,
               };
+
               listenerApi.dispatch(addConflict(conflict));
+              listenerApi.dispatch(markMutationStatus({id: mutation.id, status: "conflicted"}));
               listenerApi.dispatch(dequeue(mutation.id));
-              if (mutation.type === "create") {
+
+              if (endpoint.conflictStrategy === "useServer") {
+                resolveConflict({
+                  api,
+                  conflictId: conflict.id,
+                  conflicts: [conflict],
+                  dispatch: listenerApi.dispatch,
+                  getState: listenerApi.getState,
+                  resolution: "useServer",
+                });
+              } else if (endpoint.conflictStrategy === "keepMine") {
+                resolveConflict({
+                  api,
+                  conflictId: conflict.id,
+                  conflicts: [conflict],
+                  dispatch: listenerApi.dispatch,
+                  getState: listenerApi.getState,
+                  resolution: "keepMine",
+                });
+              }
+
+              if (mutation.operation === "create") {
                 replayedCreates.push(mutation);
               }
             } else if (result.status >= 200 && result.status < 300) {
               listenerApi.dispatch(dequeue(mutation.id));
-              if (mutation.type === "create") {
+              if (mutation.operation === "create") {
                 replayedCreates.push(mutation);
               }
             } else {
@@ -639,25 +697,42 @@ export const createOfflineMiddleware = (
                 `[offline] Replay failed for ${mutation.endpointName}: status ${result.status}`
               );
               if (result.status >= 400 && result.status < 500 && result.status !== 409) {
+                listenerApi.dispatch(
+                  markMutationStatus({
+                    error: `HTTP ${result.status}`,
+                    id: mutation.id,
+                    status: "failed",
+                  })
+                );
                 listenerApi.dispatch(dequeue(mutation.id));
-                if (mutation.type === "create") {
+                if (mutation.operation === "create") {
                   replayedCreates.push(mutation);
                 }
+              } else {
+                listenerApi.dispatch(markMutationStatus({id: mutation.id, status: "queued"}));
+                break;
               }
             }
           } catch (_error) {
             console.warn(`[offline] Replay network error for ${mutation.endpointName}`);
+            listenerApi.dispatch(markMutationStatus({id: mutation.id, status: "queued"}));
+            if (modelRouterAuthConfig?.pauseReplayOnRefreshFailure !== false) {
+              listenerApi.dispatch(markMutationAuthBlocked());
+            }
             break;
           }
         }
 
-        // Remove optimistic temp items for creates that were replayed
         if (replayedCreates.length > 0) {
-          removeTempItems(api, listenerApi.dispatch, listenerApi.getState, replayedCreates);
+          removeOptimisticTempItems(
+            api,
+            listenerApi.dispatch,
+            listenerApi.getState,
+            replayedCreates,
+            [...tagTypes]
+          );
         }
 
-        // Invalidate tags to refresh cache with server state
-        const tagTypes = [...new Set(queue.map((m) => inferTagType(m.endpointName)))];
         for (const tagType of tagTypes) {
           listenerApi.dispatch(api.util.invalidateTags([tagType]));
         }
@@ -668,7 +743,6 @@ export const createOfflineMiddleware = (
     },
   });
 
-  // Listener 6: Clear persisted queue on logout so mutations are not replayed for the next user
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
       listenerApi.dispatch(clearQueue());
@@ -677,40 +751,40 @@ export const createOfflineMiddleware = (
     type: LOGOUT_ACTION_TYPE,
   });
 
-  // Listener 7: On startup, if the persisted queue has items and we're online,
-  // trigger a replay. This handles the case where the app reloads while online
-  // with a non-empty queue (rehydrated state already has isOnline: true, so no
-  // offline→online transition would otherwise occur).
   let startupReplayTriggered = false;
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
       startupReplayTriggered = true;
       const state = listenerApi.getState() as {offline: OfflineState};
       const queue = selectOfflineQueue(state);
-      const isOnline = selectIsOnline(state);
 
-      // Reset stuck isSyncing from a crash during prior sync
       if (selectIsSyncing(state) && !isReplayInProgress) {
         listenerApi.dispatch(setSyncing(false));
       }
 
-      if (queue.length > 0 && isOnline && !isReplayInProgress) {
-        // Re-dispatch setOnlineStatus(true) to trigger the sync listener
-        listenerApi.dispatch(setOnlineStatus(true));
+      if (queue.length > 0 && !isReplayInProgress) {
+        triggerReplayIfNeeded(listenerApi);
       }
     },
     predicate: (action) => {
       if (startupReplayTriggered) {
         return false;
       }
-      // redux-persist dispatches "persist/REHYDRATE" after loading stored state
       return typeof action?.type === "string" && action.type === "persist/REHYDRATE";
     },
   });
+
+  const boundResolveConflict = (params: ResolveConflictParams): void => {
+    // Bound at call time via store — apps should use useOfflineStatus.resolveConflict instead
+    console.warn(
+      "[offline] resolveConflict from middleware return value requires store context; use useOfflineStatus().resolveConflict"
+    );
+  };
 
   return {
     middleware: listenerMiddleware.middleware,
     offlineReducer,
     offlineSlice,
+    resolveConflict: boundResolveConflict,
   };
 };

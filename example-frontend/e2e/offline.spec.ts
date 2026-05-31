@@ -142,8 +142,8 @@ test.describe("Offline Sync", () => {
     await page.getByTestId("conflict-notification").waitFor({state: "visible", timeout: 10000});
     await expect(page.getByTestId("conflict-notification")).toBeVisible();
 
-    const dismissBtn = page.locator('[data-testid^="conflict-dismiss-"]').first();
-    await dismissBtn.click();
+    const useServerBtn = page.locator('[data-testid^="conflict-use-server-"]').first();
+    await useServerBtn.click();
 
     await page.getByTestId("conflict-notification").waitFor({state: "hidden"});
   });
@@ -574,9 +574,9 @@ test.describe("Offline Sync — Multiple Conflicts", () => {
     await conflicts.first().waitFor({state: "visible", timeout: 10000});
     expect(await conflicts.count()).toBe(2);
 
-    // Dismiss only the first conflict
-    const firstDismiss = page.locator('[data-testid^="conflict-dismiss-"]').first();
-    await firstDismiss.click();
+    // Dismiss only the first conflict by accepting the server version
+    const firstUseServer = page.locator('[data-testid^="conflict-use-server-"]').first();
+    await firstUseServer.click();
     await page.waitForTimeout(500);
 
     // One conflict should remain

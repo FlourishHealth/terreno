@@ -1,10 +1,37 @@
-import {type OfflineState, selectIsOnline} from "./offlineSlice";
+import {resolveOfflineEndpoints} from "./offlineConfig";
+import {
+  type OfflineState,
+  selectConnectionQuality,
+  shouldDeferOfflineMutationForQuality,
+} from "./offlineSlice";
+import type {OfflineMiddlewareOfflineConfig, ResolvedOfflineEndpoint} from "./offlineTypes";
 
-let offlineMutationEndpoints = new Set<string>();
+let offlineEndpointMap = new Map<string, ResolvedOfflineEndpoint>();
+let offlineEnabled = false;
 
-/** Register mutation endpoints that should be queued instead of sent while offline. */
+export const configureOfflineMiddleware = (config: OfflineMiddlewareOfflineConfig): void => {
+  const resolved = resolveOfflineEndpoints(config);
+  offlineEndpointMap = new Map(resolved.map((entry) => [entry.endpointName, entry]));
+  offlineEnabled = "enabled" in config ? config.enabled : resolved.length > 0;
+};
+
+/** @deprecated Use configureOfflineMiddleware */
 export const configureOfflineMutationEndpoints = (endpoints: string[]): void => {
-  offlineMutationEndpoints = new Set(endpoints);
+  configureOfflineMiddleware({endpoints});
+};
+
+export const getConfiguredOfflineEndpoint = (
+  endpointName: string
+): ResolvedOfflineEndpoint | undefined => {
+  return offlineEndpointMap.get(endpointName);
+};
+
+export const getConfiguredOfflineEndpoints = (): ResolvedOfflineEndpoint[] => {
+  return [...offlineEndpointMap.values()];
+};
+
+export const isOfflineMiddlewareEnabled = (): boolean => {
+  return offlineEnabled && offlineEndpointMap.size > 0;
 };
 
 /**
@@ -16,10 +43,11 @@ export const shouldDeferOfflineMutation = (
   // biome-ignore lint/suspicious/noExplicitAny: Redux getState is app-specific
   getState: () => any
 ): boolean => {
-  if (!offlineMutationEndpoints.has(endpointName)) {
+  if (!offlineEnabled || !offlineEndpointMap.has(endpointName)) {
     return false;
   }
 
   const state = getState() as {offline: OfflineState};
-  return !selectIsOnline(state);
+  const quality = selectConnectionQuality(state);
+  return shouldDeferOfflineMutationForQuality(quality);
 };

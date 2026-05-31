@@ -83,11 +83,78 @@ const {socket, isSocketConnected} = useSocketConnection({
 });
 ```
 
+### Offline mode (opt-in)
+
+Offline mode queues configured modelRouter mutations while the connection is offline or spotty, applies optimistic RTK Query cache updates, and replays when connectivity and auth recover.
+
+```typescript
+import {createOfflineMiddleware, useServerStatus} from "@terreno/rtk";
+import {OfflineBanner, OfflineConflictList} from "@terreno/ui";
+
+const offline = createOfflineMiddleware({
+  api: terrenoApi,
+  offline: {
+    enabled: true,
+    models: [
+      {
+        modelName: "Todo",
+        tagType: "todos",
+        endpoints: {
+          create: {endpointName: "postTodos"},
+          update: {endpointName: "patchTodosById"},
+          delete: {endpointName: "deleteTodosById"},
+        },
+      },
+    ],
+    connectionQuality: {
+      healthUrl: `${baseUrl}/health`,
+      spottyLatencyMs: 1500,
+    },
+  },
+});
+
+// Store setup
+// reducer: { offline: offline.offlineReducer }
+// middleware: [..., offline.middleware]
+// Persist the offline slice for queue survival across reloads.
+
+const {
+  connectionQuality,
+  isOnline,
+  queueLength,
+  isSyncing,
+  isReplayPausedForAuth,
+  undismissedConflicts,
+  resolveConflict,
+} = useServerStatus({api: terrenoApi, skip: !userId});
+
+<OfflineBanner
+  connectionQuality={connectionQuality}
+  isOnline={isOnline}
+  isReplayPausedForAuth={isReplayPausedForAuth}
+  isSyncing={isSyncing}
+  queueLength={queueLength}
+/>
+
+<OfflineConflictList conflicts={undismissedConflicts} onResolve={resolveConflict} />
+```
+
+Key exports:
+
+- `createOfflineMiddleware` — listener middleware + offline reducer
+- `useServerStatus` / `useOfflineStatus` — connection quality, queue, auth-blocked, conflicts
+- `resolveConflict` — `{conflictId, resolution: "keepMine" | "useServer"}`
+- `selectConnectionQuality`, `selectQueuedMutations`, `selectConflicts`
+
+See `docs/offline-mode-verification.md` for manual verification steps.
+
 ## Exports
 
 - `generateAuthSlice` - Creates auth slice with login/logout/token management
 - `generateProfileEndpoints` - RTK Query endpoints for auth operations
 - `emptySplitApi` - Base RTK Query API with auth
+- `createOfflineMiddleware` - Opt-in offline queue/replay middleware
+- `useOfflineStatus`, `useServerStatus` - Offline/sync status hooks
 - `useSocketConnection` - Socket.io connection hook
 - `getAuthToken` - Get current auth token
 - `baseUrl`, `baseWebsocketsUrl`, `baseTasksUrl` - URL constants from Expo config

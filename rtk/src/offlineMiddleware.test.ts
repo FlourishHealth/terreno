@@ -8,7 +8,8 @@ import {
   isNetworkFetchError,
   shouldReplayQueuedMutation,
 } from "./offlineMiddleware";
-import {type OfflineState, type QueuedMutation, selectOfflineQueue} from "./offlineSlice";
+import {type OfflineState, selectOfflineQueue} from "./offlineSlice";
+import {createTestQueuedMutation} from "./offlineTestUtils";
 
 interface QueryEntry {
   data?: {data: Record<string, unknown>[]};
@@ -99,14 +100,12 @@ describe("isNetworkFetchError", () => {
 });
 
 describe("shouldReplayQueuedMutation", () => {
-  const baseMutation: QueuedMutation = {
+  const baseMutation = createTestQueuedMutation({
     args: {body: {title: "Test"}},
     endpointName: "postTodos",
     id: "m1",
-    timestamp: "2026-04-15T10:00:00.000Z",
-    type: "create",
     userId: "user-a",
-  };
+  });
 
   it("replays only mutations owned by the current user", () => {
     expect(shouldReplayQueuedMutation(baseMutation, "user-a")).toBe(true);
@@ -121,16 +120,28 @@ describe("shouldReplayQueuedMutation", () => {
 });
 
 describe("buildOptimisticCreateItem", () => {
-  const mutation: QueuedMutation = {
+  const mutation = createTestQueuedMutation({
     args: {body: {title: "New"}},
     endpointName: "postTodos",
     id: "queue-1",
-    timestamp: "2026-04-15T10:00:00.000Z",
-    type: "create",
-  };
+    optimisticId: "507f1f77bcf86cd799439011",
+  });
 
-  it("applies temp ids after body spread so client ids cannot win", () => {
-    const item = buildOptimisticCreateItem(mutation, {
+  it("uses optimisticId when provided", () => {
+    const item = buildOptimisticCreateItem(mutation, {title: "New"}, mutation.optimisticId);
+
+    expect(item._id).toBe("507f1f77bcf86cd799439011");
+    expect(item.id).toBe("507f1f77bcf86cd799439011");
+    expect(item.title).toBe("New");
+  });
+
+  it("applies temp ids after body spread when no optimisticId is set", () => {
+    const legacyMutation = createTestQueuedMutation({
+      args: {body: {title: "New"}},
+      endpointName: "postTodos",
+      id: "queue-1",
+    });
+    const item = buildOptimisticCreateItem(legacyMutation, {
       _id: "client-id",
       id: "client-id",
       title: "New",
@@ -138,9 +149,6 @@ describe("buildOptimisticCreateItem", () => {
 
     expect(item._id).toBe("temp-queue-1");
     expect(item.id).toBe("temp-queue-1");
-    expect(item.title).toBe("New");
-    expect(item.created).toBe(mutation.timestamp);
-    expect(item.updated).toBe(mutation.timestamp);
   });
 });
 

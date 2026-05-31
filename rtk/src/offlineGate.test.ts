@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, it} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
 
 import {configureOfflineMutationEndpoints, shouldDeferOfflineMutation} from "./offlineGate";
-import {offlineReducer, setOnlineStatus} from "./offlineSlice";
+import {offlineReducer, setConnectionQuality, setOnlineStatus} from "./offlineSlice";
 
 const createTestStore = () =>
   configureStore({
@@ -49,6 +49,12 @@ describe("offlineGate", () => {
     it("returns true when offline for registered endpoints", () => {
       configureOfflineMutationEndpoints(["postTodos"]);
       store.dispatch(setOnlineStatus(false));
+      expect(shouldDeferOfflineMutation("postTodos", store.getState)).toBe(true);
+    });
+
+    it("returns true when connection is spotty for registered endpoints", () => {
+      configureOfflineMutationEndpoints(["postTodos"]);
+      store.dispatch(setConnectionQuality("spotty"));
       expect(shouldDeferOfflineMutation("postTodos", store.getState)).toBe(true);
     });
   });

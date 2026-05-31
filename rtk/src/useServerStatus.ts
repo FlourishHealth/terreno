@@ -1,60 +1,133 @@
+import {DateTime} from "luxon";
 import {useCallback, useEffect, useRef} from "react";
 import {useDispatch} from "react-redux";
 
 import {baseUrl} from "./constants";
-import {setOnlineStatus} from "./offlineSlice";
-import {type OfflineStatus, useOfflineStatus} from "./useOfflineStatus";
+import {setConnectionQuality, setHealthCheckSnapshot} from "./offlineSlice";
+import type {ConnectionQuality, ConnectionQualityConfig} from "./offlineTypes";
+import {
+  type OfflineStatus,
+  type UseOfflineStatusOptions,
+  useOfflineStatus,
+} from "./useOfflineStatus";
 
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
 const OFFLINE_POLL_INTERVAL_MS = 3_000;
+const DEFAULT_TIMEOUT_MS = 4_000;
+const DEFAULT_SPOTTY_LATENCY_MS = 1_500;
+const DEFAULT_OFFLINE_FAILURE_COUNT = 3;
+const DEFAULT_SPOTTY_FAILURE_RATE = 0.4;
+const HEALTH_HISTORY_SIZE = 10;
 
-export interface ServerStatusOptions {
-  /** URL to poll for server health. Defaults to `${baseUrl}/health`. */
+export interface ServerStatusOptions extends UseOfflineStatusOptions {
   healthUrl?: string;
-  /** Polling interval in ms while online. Default 5000. */
   pollIntervalMs?: number;
-  /** Polling interval in ms while offline. Default 3000. */
   offlinePollIntervalMs?: number;
-  /** Skip polling entirely (e.g. when not authenticated). */
+  timeoutMs?: number;
+  spottyLatencyMs?: number;
+  offlineFailureCount?: number;
+  spottyFailureRate?: number;
   skip?: boolean;
 }
 
 export type ServerStatus = OfflineStatus;
 
-/**
- * Polls the API server health endpoint to determine actual server reachability.
- * Dispatches setOnlineStatus(true/false) into the offline slice so the rest
- * of the offline middleware (queue, optimistic updates, replay) reacts.
- *
- * Use this instead of useOfflineStatus when you want real server-connectivity
- * detection rather than just browser navigator.onLine.
- *
- * @example
- * ```typescript
- * const {isOnline, queueLength, isSyncing, isLocalOnly} = useServerStatus({
- *   skip: !userId,
- * });
- * ```
- */
+const computeConnectionQuality = ({
+  consecutiveFailures,
+  recentFailureRate,
+  latencyMs,
+  spottyLatencyMs,
+  offlineFailureCount,
+  spottyFailureRate,
+}: {
+  consecutiveFailures: number;
+  recentFailureRate: number;
+  latencyMs?: number;
+  spottyLatencyMs: number;
+  offlineFailureCount: number;
+  spottyFailureRate: number;
+}): ConnectionQuality => {
+  if (consecutiveFailures >= offlineFailureCount) {
+    return "offline";
+  }
+  if (recentFailureRate >= spottyFailureRate) {
+    return "spotty";
+  }
+  if (latencyMs !== undefined && latencyMs >= spottyLatencyMs) {
+    return "spotty";
+  }
+  return "online";
+};
+
 export const useServerStatus = (options: ServerStatusOptions = {}): ServerStatus => {
   const {
     healthUrl = `${baseUrl}/health`,
     pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
     offlinePollIntervalMs = OFFLINE_POLL_INTERVAL_MS,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    spottyLatencyMs = DEFAULT_SPOTTY_LATENCY_MS,
+    offlineFailureCount = DEFAULT_OFFLINE_FAILURE_COUNT,
+    spottyFailureRate = DEFAULT_SPOTTY_FAILURE_RATE,
     skip = false,
+    api,
   } = options;
 
-  const offlineStatus = useOfflineStatus();
+  const offlineStatus = useOfflineStatus({api});
   const dispatch = useDispatch();
 
-  const isOnlineRef = useRef(offlineStatus.isOnline);
-  isOnlineRef.current = offlineStatus.isOnline;
+  const qualityRef = useRef(offlineStatus.connectionQuality);
+  qualityRef.current = offlineStatus.connectionQuality;
 
-  // Ping the server health endpoint; dispatch status changes
+  const healthHistoryRef = useRef<boolean[]>([]);
+  const consecutiveFailuresRef = useRef(0);
+
+  const recordHealthResult = useCallback(
+    (success: boolean, latencyMs?: number): void => {
+      const history = healthHistoryRef.current;
+      history.push(success);
+      if (history.length > HEALTH_HISTORY_SIZE) {
+        history.shift();
+      }
+
+      if (success) {
+        consecutiveFailuresRef.current = 0;
+      } else {
+        consecutiveFailuresRef.current += 1;
+      }
+
+      const recentFailureRate =
+        history.length === 0 ? 0 : history.filter((entry) => !entry).length / history.length;
+
+      const quality = computeConnectionQuality({
+        consecutiveFailures: consecutiveFailuresRef.current,
+        latencyMs,
+        offlineFailureCount,
+        recentFailureRate,
+        spottyFailureRate,
+        spottyLatencyMs,
+      });
+
+      dispatch(
+        setHealthCheckSnapshot({
+          checkedAt: DateTime.now().toISO(),
+          consecutiveFailures: consecutiveFailuresRef.current,
+          latencyMs,
+          recentFailureRate,
+        })
+      );
+
+      if (quality !== qualityRef.current) {
+        dispatch(setConnectionQuality(quality));
+      }
+    },
+    [dispatch, offlineFailureCount, spottyFailureRate, spottyLatencyMs]
+  );
+
   const checkHealth = useCallback(async (): Promise<void> => {
+    const startedAt = DateTime.now();
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 4_000);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       const response = await fetch(healthUrl, {
         cache: "no-store",
@@ -63,28 +136,22 @@ export const useServerStatus = (options: ServerStatusOptions = {}): ServerStatus
       });
       clearTimeout(timeout);
 
-      if (response.ok && !isOnlineRef.current) {
-        dispatch(setOnlineStatus(true));
-      } else if (!response.ok && isOnlineRef.current) {
-        dispatch(setOnlineStatus(false));
-      }
+      const latencyMs = DateTime.now().diff(startedAt).milliseconds;
+      recordHealthResult(response.ok, latencyMs);
     } catch {
-      if (isOnlineRef.current) {
-        dispatch(setOnlineStatus(false));
-      }
+      recordHealthResult(false);
     }
-  }, [healthUrl, dispatch]);
+  }, [healthUrl, timeoutMs, recordHealthResult]);
 
-  // Poll at different intervals depending on online/offline state
   useEffect(() => {
     if (skip || typeof window === "undefined") {
       return;
     }
 
-    // Check immediately on mount
     void checkHealth();
 
-    const interval = offlineStatus.isOnline ? pollIntervalMs : offlinePollIntervalMs;
+    const interval =
+      offlineStatus.connectionQuality === "offline" ? offlinePollIntervalMs : pollIntervalMs;
     const id = setInterval(() => {
       void checkHealth();
     }, interval);
@@ -92,20 +159,18 @@ export const useServerStatus = (options: ServerStatusOptions = {}): ServerStatus
     return (): void => {
       clearInterval(id);
     };
-  }, [skip, checkHealth, offlineStatus.isOnline, pollIntervalMs, offlinePollIntervalMs]);
+  }, [skip, checkHealth, offlineStatus.connectionQuality, pollIntervalMs, offlinePollIntervalMs]);
 
-  // Also respond to browser online/offline events for instant detection
   useEffect(() => {
     if (skip || typeof window === "undefined" || typeof window.addEventListener !== "function") {
       return;
     }
 
     const handleOffline = (): void => {
-      dispatch(setOnlineStatus(false));
+      dispatch(setConnectionQuality("offline"));
     };
 
     const handleOnline = (): void => {
-      // Don't trust the browser event alone — verify with health check
       void checkHealth();
     };
 
@@ -119,4 +184,18 @@ export const useServerStatus = (options: ServerStatusOptions = {}): ServerStatus
   }, [skip, dispatch, checkHealth]);
 
   return offlineStatus;
+};
+
+export const connectionQualityFromConfig = (
+  config?: ConnectionQualityConfig
+): ConnectionQualityConfig => {
+  return {
+    healthUrl: config?.healthUrl,
+    offlineFailureCount: config?.offlineFailureCount ?? DEFAULT_OFFLINE_FAILURE_COUNT,
+    offlinePollIntervalMs: config?.offlinePollIntervalMs ?? OFFLINE_POLL_INTERVAL_MS,
+    pollIntervalMs: config?.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
+    spottyFailureRate: config?.spottyFailureRate ?? DEFAULT_SPOTTY_FAILURE_RATE,
+    spottyLatencyMs: config?.spottyLatencyMs ?? DEFAULT_SPOTTY_LATENCY_MS,
+    timeoutMs: config?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+  };
 };

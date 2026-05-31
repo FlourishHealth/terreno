@@ -59,6 +59,8 @@ export * from "./MultiselectField";
 export * from "./NumberField";
 export * from "./NumberPickerActionSheet";
 export * from "./OfflineBanner";
+export * from "./OfflineConflictCard";
+export * from "./OfflineConflictList";
 export * from "./OpenAPIContext";
 export * from "./Page";
 export * from "./Pagination";

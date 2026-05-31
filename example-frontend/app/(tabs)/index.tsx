@@ -13,6 +13,7 @@ import {
   Heading,
   IconButton,
   OfflineBanner,
+  OfflineConflictList,
   Page,
   Spinner,
   Text,
@@ -105,8 +106,16 @@ const TodosScreen: React.FC = () => {
   const {getFlag} = useFeatureFlags(terrenoApi, {skip: !userId});
   const showSummaryCard = getFlag("todo-summary-card");
 
-  const {isOnline, queueLength, isSyncing, undismissedConflicts, dismissConflict, isLocalOnly} =
-    useServerStatus({skip: !userId});
+  const {
+    isOnline,
+    connectionQuality,
+    queueLength,
+    isSyncing,
+    isReplayPausedForAuth,
+    undismissedConflicts,
+    resolveConflict,
+    isLocalOnly,
+  } = useServerStatus({api: terrenoApi, skip: !userId});
 
   const todos = todosData?.data ?? [];
   const incompleteTodos = todos.filter((todo) => !todo.completed);
@@ -184,30 +193,28 @@ const TodosScreen: React.FC = () => {
     >
       <Page navigation={undefined} scroll={false}>
         <Box padding={4}>
-          <OfflineBanner isOnline={isOnline} isSyncing={isSyncing} queueLength={queueLength} />
+          <OfflineBanner
+            connectionQuality={connectionQuality}
+            isOnline={isOnline}
+            isReplayPausedForAuth={isReplayPausedForAuth}
+            isSyncing={isSyncing}
+            queueLength={queueLength}
+          />
 
-          {/* Conflict notifications */}
-          {undismissedConflicts.map((conflict) => (
-            <Box key={conflict.id} marginBottom={4} testID="conflict-notification">
-              <Card color="error">
-                <Box gap={2}>
-                  <Text bold color="error">
-                    Conflict detected
-                  </Text>
-                  <Text color="secondaryDark" size="sm">
-                    Your offline change to this item was overwritten by a newer version on the
-                    server.
-                  </Text>
-                  <Button
-                    onClick={() => dismissConflict(conflict.id)}
-                    testID={`conflict-dismiss-${conflict.id}`}
-                    text="Dismiss"
-                    variant="muted"
-                  />
-                </Box>
-              </Card>
-            </Box>
-          ))}
+          <OfflineConflictList
+            conflicts={undismissedConflicts}
+            onResolve={resolveConflict}
+            renderLocalValue={(conflict) => (
+              <Text color="secondaryDark" size="sm">
+                {JSON.stringify(conflict.localBody ?? conflict.localArgs, null, 2)}
+              </Text>
+            )}
+            renderServerValue={(conflict) => (
+              <Text color="secondaryDark" size="sm">
+                {JSON.stringify(conflict.serverValue, null, 2)}
+              </Text>
+            )}
+          />
 
           <Box marginBottom={6}>
             <Heading size="xl">My Todos</Heading>

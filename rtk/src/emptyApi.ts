@@ -19,6 +19,7 @@ import qs from "qs";
 import {generateProfileEndpoints, getAuthToken} from "./authSlice";
 import {AUTH_DEBUG, baseUrl, LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} from "./constants";
 import {shouldDeferOfflineMutation} from "./offlineGate";
+import {markMutationAuthBlocked} from "./offlineSlice";
 import {IsWeb} from "./platform";
 
 const log = AUTH_DEBUG ? (s: string): void => console.debug(`[auth] ${s}`) : (): void => {};
@@ -265,12 +266,17 @@ export const staggeredBaseQuery = retry(
           api.dispatch({type: TOKEN_REFRESHED_SUCCESS});
         } catch (error: unknown) {
           if (axios.isAxiosError(error)) {
-            // if it is a Network Error, don't auto log out and just let the next request go
-            // through
             console.warn(`[auth] Network error refreshing token: ${error.code} ${error.message}`);
-            if (error.code === "ERR_NETWORK") {
-              return getBaseQuery(args, api, extraOptions, token);
-            } else if (error.status === 401) {
+            if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
+              api.dispatch(markMutationAuthBlocked());
+              return {
+                error: {
+                  error: "Token refresh failed due to network error",
+                  status: "FETCH_ERROR",
+                },
+              };
+            }
+            if (error.status === 401) {
               api.dispatch({type: LOGOUT_ACTION_TYPE});
               return {error: {error: "Token refresh failed with 401", status: "FETCH_ERROR"}};
             }
@@ -278,7 +284,7 @@ export const staggeredBaseQuery = retry(
           console.warn(
             `[auth] Error refreshing token: ${error instanceof Error ? error.message : String(error)}`
           );
-          api.dispatch({type: LOGOUT_ACTION_TYPE});
+          api.dispatch(markMutationAuthBlocked());
           return {
             error: {
               error: `Failed to refresh token: ${error instanceof Error ? error.message : String(error)}`,
