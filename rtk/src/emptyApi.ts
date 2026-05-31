@@ -284,7 +284,7 @@ export const staggeredBaseQuery = retry(
           console.warn(
             `[auth] Error refreshing token: ${error instanceof Error ? error.message : String(error)}`
           );
-          api.dispatch(markMutationAuthBlocked());
+          api.dispatch({type: LOGOUT_ACTION_TYPE});
           return {
             error: {
               error: `Failed to refresh token: ${error instanceof Error ? error.message : String(error)}`,

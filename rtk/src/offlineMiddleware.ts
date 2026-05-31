@@ -400,7 +400,6 @@ export const createOfflineMiddleware = (
   middleware: Middleware;
   offlineReducer: typeof offlineReducer;
   offlineSlice: typeof offlineSlice;
-  resolveConflict: (params: ResolveConflictParams) => void;
 } => {
   const {api} = config;
   const offlineConfig = resolveOfflineConfig(config);
@@ -662,7 +661,6 @@ export const createOfflineMiddleware = (
 
               listenerApi.dispatch(addConflict(conflict));
               listenerApi.dispatch(markMutationStatus({id: mutation.id, status: "conflicted"}));
-              listenerApi.dispatch(dequeue(mutation.id));
 
               if (endpoint.conflictStrategy === "useServer") {
                 resolveConflict({
@@ -774,17 +772,9 @@ export const createOfflineMiddleware = (
     },
   });
 
-  const boundResolveConflict = (params: ResolveConflictParams): void => {
-    // Bound at call time via store — apps should use useOfflineStatus.resolveConflict instead
-    console.warn(
-      "[offline] resolveConflict from middleware return value requires store context; use useOfflineStatus().resolveConflict"
-    );
-  };
-
   return {
     middleware: listenerMiddleware.middleware,
     offlineReducer,
     offlineSlice,
-    resolveConflict: boundResolveConflict,
   };
 };
