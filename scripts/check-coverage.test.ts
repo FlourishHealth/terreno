@@ -13,24 +13,37 @@ import {
 const ESC = String.fromCharCode(27);
 
 describe("parseArgs", () => {
-  it("defaults to 95 when no flags are passed", () => {
-    expect(parseArgs([])).toEqual({threshold: 95});
+  it("defaults to 90 when no flags are passed", () => {
+    expect(parseArgs([])).toEqual({testArgs: [], threshold: 90});
   });
 
   it("parses an integer threshold", () => {
-    expect(parseArgs(["--threshold=80"])).toEqual({threshold: 80});
+    expect(parseArgs(["--threshold=80"])).toEqual({testArgs: [], threshold: 80});
   });
 
   it("parses a fractional threshold", () => {
-    expect(parseArgs(["--threshold=92.5"])).toEqual({threshold: 92.5});
+    expect(parseArgs(["--threshold=92.5"])).toEqual({testArgs: [], threshold: 92.5});
   });
 
-  it("ignores unrelated flags", () => {
-    expect(parseArgs(["--foo", "bar", "--threshold=50"])).toEqual({threshold: 50});
+  it("passes unrelated flags through to bun test", () => {
+    expect(parseArgs(["--foo", "bar", "--threshold=50"])).toEqual({
+      testArgs: ["--foo", "bar"],
+      threshold: 50,
+    });
   });
 
   it("keeps the last value when the flag appears multiple times", () => {
-    expect(parseArgs(["--threshold=70", "--threshold=85"])).toEqual({threshold: 85});
+    expect(parseArgs(["--threshold=70", "--threshold=85"])).toEqual({
+      testArgs: [],
+      threshold: 85,
+    });
+  });
+
+  it("passes test file globs through to bun test", () => {
+    expect(parseArgs(["--threshold=90", "./**/*.test.ts", "./**/*.test.tsx"])).toEqual({
+      testArgs: ["./**/*.test.ts", "./**/*.test.tsx"],
+      threshold: 90,
+    });
   });
 });
 

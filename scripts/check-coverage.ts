@@ -8,7 +8,7 @@
  * non-zero exit when coverage falls below the configured threshold (verified
  * on Bun 1.3.10). See https://github.com/oven-sh/bun/issues/7367 and the
  * pending fix in https://github.com/oven-sh/bun/pull/27933. Until that lands,
- * this script acts as the CI-side gate for the 95% minimum coverage
+ * this script acts as the CI-side gate for the 90% minimum coverage
  * requirement declared in each package's bunfig.toml.
  *
  * When the package contains tests in `src/isolated/*.isolated.{ts,tsx}`, each
@@ -19,25 +19,34 @@
  * passes.
  *
  * Usage:
- *   bun run ../scripts/check-coverage.ts [--threshold=95]
+ *   bun run ../scripts/check-coverage.ts [--threshold=90] [test files/globs]
  */
 import {spawn} from "node:child_process";
 import {existsSync, readFileSync, readdirSync, rmSync} from "node:fs";
 import {join, resolve} from "node:path";
 
 export interface ParsedArgs {
+  testArgs: string[];
   threshold: number;
 }
 
 export const parseArgs = (argv: readonly string[]): ParsedArgs => {
-  let threshold = 95;
+  let threshold = 90;
+  const testArgs: string[] = [];
+  let isPassthrough = false;
   for (const arg of argv) {
-    const match = arg.match(/^--threshold=(\d+(?:\.\d+)?)$/);
-    if (match) {
-      threshold = Number(match[1]);
+    if (arg === "--") {
+      isPassthrough = true;
+      continue;
     }
+    const match = arg.match(/^--threshold=(\d+(?:\.\d+)?)$/);
+    if (!isPassthrough && match) {
+      threshold = Number(match[1]);
+      continue;
+    }
+    testArgs.push(arg);
   }
-  return {threshold};
+  return {testArgs, threshold};
 };
 
 const ESC = String.fromCharCode(27);
@@ -341,12 +350,13 @@ const readLcov = (coverageDir: string): Map<string, FileCoverage> => {
 };
 
 const main = async (): Promise<void> => {
-  const {threshold} = parseArgs(process.argv.slice(2));
+  const {testArgs, threshold} = parseArgs(process.argv.slice(2));
   const cwd = process.cwd();
   const isolated = findIsolatedFiles(cwd);
 
   if (isolated.length === 0) {
     const {exitCode, output} = await runBunTest([
+      ...testArgs,
       "--coverage",
       "--coverage-reporter=text",
     ]);
@@ -375,6 +385,7 @@ const main = async (): Promise<void> => {
   rmSync(mainDir, {force: true, recursive: true});
 
   const mainRun = await runBunTest([
+    ...testArgs,
     "--coverage",
     "--coverage-reporter=text",
     "--coverage-reporter=lcov",

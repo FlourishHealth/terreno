@@ -8,6 +8,7 @@ on:
       - "example-backend/**"
       - "api-health/**"
       - "feature-flags/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:
@@ -70,6 +71,30 @@ jobs:
         run: bun run compile
         working-directory: ui
 
+      - name: Test AI with coverage threshold
+        run: bun run test:coverage
+        working-directory: ai
+        env:
+          CI: true
+
+      - name: Test API Health with coverage threshold
+        run: bun run test:coverage
+        working-directory: api-health
+        env:
+          CI: true
+
+      - name: Test Admin Backend with coverage threshold
+        run: bun run test:coverage
+        working-directory: admin-backend
+        env:
+          CI: true
+
+      - name: Test Feature Flags with coverage threshold
+        run: bun run test:coverage
+        working-directory: feature-flags
+        env:
+          CI: true
+
       - name: Lint
         run: bun run lint
         working-directory: example-backend
@@ -78,8 +103,8 @@ jobs:
         run: bun run compile
         working-directory: example-backend
 
-      - name: Test
-        run: bun run test
+      - name: Test with coverage threshold
+        run: bun run test:coverage
         working-directory: example-backend
         env:
           CI: true

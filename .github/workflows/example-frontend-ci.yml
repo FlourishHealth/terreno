@@ -5,6 +5,7 @@ on:
     paths:
       - "example-frontend/**"
       - "admin-frontend/**"
+      - "scripts/check-coverage.ts"
       - ".github/workflows/example-frontend-ci.yml"
 
 jobs:
@@ -45,6 +46,12 @@ jobs:
       - name: Build Admin Frontend dependency
         run: bun run compile
         working-directory: admin-frontend
+
+      - name: Test Admin Frontend with coverage threshold
+        run: bun run test:coverage
+        working-directory: admin-frontend
+        env:
+          CI: true
 
       - name: Lint
         run: bun run lint

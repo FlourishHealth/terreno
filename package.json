@@ -131,6 +131,7 @@
     "rules": "bunx rulesync generate",
     "rules:check": "bunx rulesync generate && git diff --exit-code",
     "test": "bun run --filter '*' test:ci",
+    "test:coverage": "bun run --filter '*' --if-present test:coverage",
     "ui:compile": "bun run --filter '@terreno/ui' compile",
     "ui:dev": "bun run --filter '@terreno/ui' dev",
     "ui:lint": "bun run --filter '@terreno/ui' lint",

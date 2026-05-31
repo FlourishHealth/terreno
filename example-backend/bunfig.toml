@@ -16,6 +16,10 @@ coverageExclude = [
   "../*/dist/**",
   "node_modules/**"
 ]
+# Enforced by scripts/check-coverage.ts; Bun parses this key but does not
+# fail the run when coverage is below threshold. See
+# https://github.com/oven-sh/bun/issues/7367 and https://github.com/oven-sh/bun/pull/27933.
+coverageThreshold = { line = 90, function = 90 }
 
 # Test file patterns
 testNamePattern = ".*\\.test\\.ts$"
