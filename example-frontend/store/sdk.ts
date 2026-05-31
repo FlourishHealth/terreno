@@ -6,26 +6,27 @@ import startCase from "lodash/startCase";
 
 import {addTagTypes, openapi} from "./openApiSdk";
 
-/** Tag types used by generateTags — todos are excluded; their cache is websocket-only. */
-const CACHE_TAG_TYPES = addTagTypes.filter((tag) => tag !== "todos");
+/** Tag types used by generateTags for cache invalidation and offline replay refetches. */
+const CACHE_TAG_TYPES = addTagTypes;
+const TODO_TAG_ENDPOINTS = generateTags(openapi, ["todos"]);
 
 const TODO_REALTIME_ENDPOINTS = {
   deleteTodosById: {
-    invalidatesTags: [] as const,
+    ...TODO_TAG_ENDPOINTS.deleteTodosById,
   },
   getTodos: {
+    ...TODO_TAG_ENDPOINTS.getTodos,
     onCacheEntryAdded: realtimeList("todos"),
-    providesTags: () => [] as const,
   },
   getTodosById: {
+    ...TODO_TAG_ENDPOINTS.getTodosById,
     onCacheEntryAdded: realtimeDocument("todos"),
-    providesTags: () => [] as const,
   },
   patchTodosById: {
-    invalidatesTags: [] as const,
+    ...TODO_TAG_ENDPOINTS.patchTodosById,
   },
   postTodos: {
-    invalidatesTags: [] as const,
+    invalidatesTags: ["todos"] as const,
   },
 };
 
