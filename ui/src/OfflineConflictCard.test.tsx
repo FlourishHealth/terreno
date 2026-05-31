@@ -24,6 +24,6 @@ describe("OfflineConflictCard", () => {
     expect(getByText("Keep mine")).toBeTruthy();
     expect(getByText("Use server")).toBeTruthy();
     expect(getByText(/Local/)).toBeTruthy();
-    expect(getByText(/Server/)).toBeTruthy();
+    expect(getByText("Server version")).toBeTruthy();
   });
 });
