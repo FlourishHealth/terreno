@@ -11,6 +11,6 @@
     },
     "jsx": "react-jsx"
   },
-  "exclude": ["**/*.test.ts", "**/*.test.tsx"]
+  "exclude": ["**/*.test.ts", "**/*.test.tsx", "appium/**"]
 }
 
