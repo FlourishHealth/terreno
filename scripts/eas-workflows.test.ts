@@ -21,6 +21,7 @@ describe("EAS PR workflows", () => {
     assert.doesNotMatch(easPr, /demo-update\.yml/);
     assert.match(easPr, /eas update\s+\\\n\s+--branch "pr-\$\{PR_NUMBER\}"/);
     assert.match(easPr, /--message "PR #\$\{PR_NUMBER\}: \$\{PR_TITLE\}"/);
+    assert.match(easPr, /EAS_UPDATE_GROUP_ID=\$\{first_id\}/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*example-frontend-build\.yml/);
     assert.match(easPr, /Slow path — dispatch EAS workflow async[\s\S]*demo-build\.yml/);
     assert.match(
@@ -50,5 +51,12 @@ describe("EAS PR workflows", () => {
     assert.match(manualDispatch, /eas workflow:run "\.eas\/workflows\/\$file"/);
     assert.doesNotMatch(manualDispatch, /pr_number/);
     assert.doesNotMatch(manualDispatch, /pr_title/);
+  });
+
+  it("uses EAS Update group URLs in PR launch links", () => {
+    const commentScript = readRepoFile(".github/workflows/scripts/post-eas-pr-comment.sh");
+
+    assert.match(commentScript, /\/group\/\$EAS_UPDATE_GROUP_ID/);
+    assert.doesNotMatch(commentScript, /channel-name=\$branch/);
   });
 });

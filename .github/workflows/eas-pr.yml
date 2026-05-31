@@ -158,6 +158,11 @@ jobs:
             --non-interactive \
             --json)
           first_id=$(echo "$update_json" | jq -r '.[0].group')
+          if [ -z "$first_id" ] || [ "$first_id" = "null" ]; then
+            echo "::error::EAS update did not return a group id"
+            exit 1
+          fi
+          echo "EAS_UPDATE_GROUP_ID=${first_id}" >> "$GITHUB_ENV"
           echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
 
       - name: Fast path — update-only complete
@@ -288,6 +293,11 @@ jobs:
             --non-interactive \
             --json)
           first_id=$(echo "$update_json" | jq -r '.[0].group')
+          if [ -z "$first_id" ] || [ "$first_id" = "null" ]; then
+            echo "::error::EAS update did not return a group id"
+            exit 1
+          fi
+          echo "EAS_UPDATE_GROUP_ID=${first_id}" >> "$GITHUB_ENV"
           echo "EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"
 
       - name: Fast path — update-only complete
