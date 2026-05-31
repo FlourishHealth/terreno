@@ -14,6 +14,7 @@ interface CacheEntry {
 }
 
 interface CacheHarness {
+  // biome-ignore lint/suspicious/noExplicitAny: Test double covers only RTK Query util methods used here.
   api: Api<any, any, any, any>;
   dispatch: (action: unknown) => void;
   entries: CacheEntry[];
@@ -38,7 +39,11 @@ const createCacheHarness = (): CacheHarness => {
     reducerPath: "testApi",
     util: {
       invalidateTags: () => ({type: "testApi/invalidateTags"}),
-      updateQueryData: (_endpointName: string, queryArg: unknown, updater: (draft: unknown) => void) => {
+      updateQueryData: (
+        _endpointName: string,
+        queryArg: unknown,
+        updater: (draft: unknown) => void
+      ) => {
         const entry = entries.find((item) => item.queryArg === queryArg);
         if (entry) {
           updater(entry.draft);
@@ -46,6 +51,7 @@ const createCacheHarness = (): CacheHarness => {
         return {type: "testApi/updateQueryData"};
       },
     },
+    // biome-ignore lint/suspicious/noExplicitAny: Test double covers only RTK Query util methods used here.
   } as unknown as Api<any, any, any, any>;
 
   return {
@@ -57,8 +63,8 @@ const createCacheHarness = (): CacheHarness => {
     getState: (): unknown => ({
       testApi: {
         queries: {
-          "getTodos(undefined)": {originalArgs: undefined},
           "getTodos({completed:false})": {originalArgs: filteredQueryArg},
+          "getTodos(undefined)": {originalArgs: undefined},
         },
       },
     }),
@@ -102,7 +108,13 @@ describe("offlineOptimistic", () => {
       optimisticId: "client-id",
     });
 
-    removeOptimisticTempItems(harness.api, harness.dispatch, harness.getState, [mutation], ["todos"]);
+    removeOptimisticTempItems(
+      harness.api,
+      harness.dispatch,
+      harness.getState,
+      [mutation],
+      ["todos"]
+    );
 
     for (const entry of harness.entries) {
       expect(entry.draft.data).toEqual([{_id: "todo-1", title: "Keep"}]);

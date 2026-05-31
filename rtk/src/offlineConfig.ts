@@ -1,5 +1,4 @@
 import type {
-  OfflineLegacyEndpointConfig,
   OfflineMiddlewareOfflineConfig,
   OfflineModelRouterConfig,
   OfflineOperation,

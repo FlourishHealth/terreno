@@ -20,7 +20,6 @@ import {
   selectOfflineQueue,
   selectQueueLength,
   selectUndismissedConflicts,
-  setConnectionQuality,
   setOnlineStatus,
   setSyncing,
 } from "./offlineSlice";

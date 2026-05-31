@@ -302,7 +302,9 @@ export const staggeredBaseQuery = retry(
             }
           }
           if (shouldContinueWithExistingToken) {
-            console.warn("[auth] Continuing request with existing token after refresh network error");
+            console.warn(
+              "[auth] Continuing request with existing token after refresh network error"
+            );
           } else {
             console.warn(
               `[auth] Error refreshing token: ${error instanceof Error ? error.message : String(error)}`
