@@ -2,12 +2,13 @@ import {DemoConfig, type DemoConfiguration} from "@config";
 import {Box, Heading, Text} from "@terreno/ui";
 import {useNavigation} from "expo-router";
 import React, {useCallback, useEffect} from "react";
-import {ScrollView} from "react-native";
+import {Pressable, ScrollView, View} from "react-native";
 
 const CARD_WIDTH = 300;
 const CARD_HEIGHT = 280;
 const CARD_PREVIEW_HEIGHT = 176;
-const CARD_TEXT_HEIGHT = 104;
+const CARD_DIVIDER_HEIGHT = 4;
+const CARD_TEXT_HEIGHT = 100;
 const CARD_DESCRIPTION_LINES = 2;
 
 interface DemoCardProps {
@@ -25,49 +26,48 @@ const DemoCard: React.FC<DemoCardProps> = ({config, onPress}) => {
   }
 
   return (
-    <Box
+    <Pressable
       accessibilityHint={`Open the ${config.name} component demo.`}
       accessibilityLabel={`${config.name} demo card`}
-      color="base"
-      dangerouslySetInlineStyle={{
-        __style: {
-          borderColor: "#ccc",
-          borderWidth: 1,
-        },
-      }}
-      direction="column"
-      display="flex"
-      height={CARD_HEIGHT}
-      margin={2}
-      maxHeight={CARD_HEIGHT}
-      maxWidth={CARD_WIDTH}
-      minHeight={CARD_HEIGHT}
-      onClick={handlePress}
-      overflow="hidden"
-      rounding="md"
-      width={CARD_WIDTH}
+      onPress={handlePress}
     >
-      <Box
-        alignItems="center"
-        color="neutralLight"
-        display="flex"
-        height={CARD_PREVIEW_HEIGHT}
-        justifyContent="center"
-        overflow="hidden"
-        padding={4}
-        width="100%"
+      <View
+        style={{
+          borderColor: "#ccc",
+          borderRadius: 4,
+          borderWidth: 1,
+          height: CARD_HEIGHT,
+          margin: 8,
+          maxHeight: CARD_HEIGHT,
+          maxWidth: CARD_WIDTH,
+          minHeight: CARD_HEIGHT,
+          overflow: "hidden",
+          width: CARD_WIDTH,
+        }}
       >
-        {config.demo({preview: true})}
-      </Box>
-      <Box borderTop="default" height={CARD_TEXT_HEIGHT} padding={4} width="100%">
-        <Box marginBottom={1}>
-          <Heading size="sm">{config.name}</Heading>
+        <Box
+          alignItems="center"
+          color="neutralLight"
+          display="flex"
+          height={CARD_PREVIEW_HEIGHT}
+          justifyContent="center"
+          overflow="hidden"
+          padding={4}
+          width="100%"
+        >
+          {config.demo({preview: true})}
         </Box>
-        <Text numberOfLines={CARD_DESCRIPTION_LINES} size="sm">
-          {config.shortDescription ?? config.description}
-        </Text>
-      </Box>
-    </Box>
+        <Box color="neutral" height={CARD_DIVIDER_HEIGHT} width="100%" />
+        <Box color="base" height={CARD_TEXT_HEIGHT} padding={4} width="100%">
+          <Box marginBottom={1}>
+            <Heading size="sm">{config.name}</Heading>
+          </Box>
+          <Text numberOfLines={CARD_DESCRIPTION_LINES} size="sm">
+            {config.shortDescription ?? config.description}
+          </Text>
+        </Box>
+      </View>
+    </Pressable>
   );
 };
 
