@@ -39,6 +39,8 @@ fi
 if [ -z "$PROOF_DIR" ]; then
   if [ -f "${ROOT_DIR}/.proof/latest-web.txt" ]; then
     PROOF_DIR="$(cat "${ROOT_DIR}/.proof/latest-web.txt")"
+  elif [ -f "${ROOT_DIR}/.proof/latest-appium.txt" ]; then
+    PROOF_DIR="$(cat "${ROOT_DIR}/.proof/latest-appium.txt")"
   elif [ -f "${ROOT_DIR}/.proof/latest-native.txt" ]; then
     PROOF_DIR="$(cat "${ROOT_DIR}/.proof/latest-native.txt")"
   else
@@ -70,7 +72,7 @@ ${MARKER}
 ${SUMMARY:-"Verified locally with captured screenshots/video."}
 
 **Artifacts**
-${artifact_list:-"(no screenshots/video found — re-run \`bun run proof:web\` or \`bun run proof:native\`)"}
+${artifact_list:-"(no screenshots/video found — re-run \`bun run proof:web\` or \`bun run proof:appium\`)"}
 $([ -n "$report_file" ] && echo "- Playwright HTML report: \`${report_file}\`")
 
 _Agent: attach key screenshots to this thread for reviewers. Paths above are on the dev machine._

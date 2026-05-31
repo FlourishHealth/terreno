@@ -50,7 +50,7 @@ Thumbs.db
 # Bun
 *.bunlockb
 
-# Local feature proof captures (screenshots, video, maestro debug)
+# Local feature proof captures (screenshots, video, Appium debug)
 .proof/
 
 # Temporary files

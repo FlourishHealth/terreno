@@ -2,7 +2,7 @@
 name: verify-feature
 description: >-
   Prove a feature works locally with screenshots and video — web (Chrome/Playwright),
-  native (Maestro), or iOS simulator (EAS dev client). Attach evidence to the PR.
+  Appium (Chrome web or iOS simulator), or EAS dev client. Attach evidence to the PR.
 model: sonnet
 ---
 
@@ -25,11 +25,14 @@ Skip for pure refactors, docs-only, or backend-only changes with no UI surface.
 |---------|------|---------|
 | Web (fastest) | Playwright + Chrome | `bun run proof:web [flow]` |
 | Web (interactive) | browser-harness | Connect to Chrome at `http://localhost:8082` |
-| Native (Maestro) | Maestro on web export | `bun run proof:native [flow]` |
-| iOS simulator | EAS dev client + PR channel | `bun run proof:sim [app] [pr#]` |
+| Appium (web) | Appium + Chrome via WebdriverIO | `bun run proof:appium [flow]` |
+| iOS simulator | Appium + EAS dev client | `APPIUM_PLATFORM=ios bun run proof:appium [flow]` |
+| iOS simulator (manual) | EAS dev client + PR channel | `bun run proof:sim [app] [pr#]` |
 | Full stack | Backend + frontend | `bun run stack:dev` |
 
-**Prefer web first** — it starts in seconds. Use the iOS simulator path when the change is native-only or you need to validate the EAS dev-client + update channel flow.
+**Prefer web first** — Playwright or Appium-on-Chrome start in seconds. Use the iOS simulator path when the change is native-only or you need to validate the EAS dev-client + update channel flow.
+
+First-time setup: `bun run appium:setup` (installs Chromium + XCUITest drivers to `~/.appium-terreno`).
 
 ## Step 1: Start the stack
 
@@ -48,26 +51,31 @@ Stop when done: `bun run stack:stop`
 ### Web — Playwright (screenshots + video + HTML report)
 
 ```bash
-# Single flow
 bun run proof:web login
-bun run proof:web todos
-
-# Custom spec
-bun run proof:web e2e/consents.spec.ts
-
-# Full suite
+bun run proof:web e2e/todos.spec.ts
 bun run proof:web
 ```
 
-Output lands in `.proof/pr-<number>/web-<timestamp>/` with:
-- `report/index.html` — interactive report with embedded video
-- `test-results/` — per-test screenshots and `.webm` video
+Output lands in `.proof/pr-<number>/web-<timestamp>/`.
 
-Open the report locally and **show key screenshots in the agent session** (Devin-style).
+### Appium + WebdriverIO (screenshots per step)
+
+```bash
+bun run proof:appium login
+bun run proof:appium create-todo
+bun run appium:test
+```
+
+Specs live in `appium/specs/`. Proof output: `.proof/pr-<number>/appium-<timestamp>/`
+
+For iOS simulator with dev client installed:
+
+```bash
+bun run proof:sim example-frontend
+APPIUM_PLATFORM=ios bun run proof:appium login
+```
 
 ### Web — browser-harness (manual exploration)
-
-When Playwright doesn't cover the flow yet:
 
 ```bash
 browser-harness <<'PY'
@@ -77,60 +85,20 @@ capture_screenshot()
 PY
 ```
 
-Use `capture_screenshot()` after each meaningful action. Read the image files back into the conversation for the user.
-
-### Native — Maestro
-
-```bash
-bun run proof:native login
-bun run proof:native create-todo
-```
-
-Debug output (screenshots, logs): `.proof/pr-<number>/native-<timestamp>/`
-
-### iOS simulator — latest EAS dev build (macOS only)
-
-PRs get EAS Update branches (`pr-<number>`) and install links via the EAS PR comment. Locally:
-
-```bash
-# Uses latest finished development:simulator build + PR update channel
-bun run proof:sim example-frontend
-```
-
-Record the simulator with QuickTime / `xcrun simctl io booted recordVideo proof.mp4` while exercising the feature.
-
-On PRs, prefer the **existing dev build** from the EAS PR comment (fast path) instead of rebuilding — only fingerprint changes trigger new native builds.
-
 ## Step 3: Attach to PR
-
-After capture, post a proof summary comment:
 
 ```bash
 bun run proof:attach --summary "Logged in, created todo, verified realtime sync"
 ```
 
-Optionally pass a specific directory:
-
-```bash
-bun run proof:attach --dir .proof/pr-42/web-20260529-120000 --summary "..."
-```
-
-Also update the PR body's **Feature Proof** section (see `/submit` template) with:
-- Platform used (web / iOS sim / Android)
-- Steps exercised
-- Link or path to HTML report
-- Embedded screenshots in the PR comment thread when possible
-
 ## Step 4: Update PR template sections
-
-Ensure the PR includes:
 
 ```markdown
 ## Feature Proof
-- **Platform:** Web (Chrome via Playwright)
+- **Platform:** Web (Chrome via Playwright / Appium)
 - **Steps:** [what you did]
 - **Result:** [pass/fail + notes]
-- **Artifacts:** `.proof/pr-N/...` (report + video)
+- **Artifacts:** `.proof/pr-N/...`
 
 ## Human Testing Steps
 - [ ] ...
@@ -138,24 +106,19 @@ Ensure the PR includes:
 
 ## Writing new proof flows
 
-When no existing Playwright spec covers the feature:
-
-1. Add or extend a spec in `example-frontend/e2e/`
-2. Use `testID` props on new UI elements
-3. Run `bun run proof:web <spec>` to capture video
-4. For Maestro, add `.maestro/flows/<name>.yaml`
+1. Add Playwright specs in `example-frontend/e2e/` for CI parity
+2. Add matching Appium specs in `appium/specs/` using `data-testid` selectors
+3. Use `testID` props on new UI elements
 
 ## CI parity
 
 | Local | CI |
 |-------|-----|
-| `bun run proof:web` | `.github/workflows/e2e-ci.yml` (Playwright matrix) |
-| `bun run maestro:test` | `.github/workflows/maestro-e2e.yml` |
+| `bun run proof:web` | `.github/workflows/e2e-ci.yml` (Playwright) |
+| `bun run appium:test` | `.github/workflows/appium-e2e.yml` |
 | EAS dev build + update | `.github/workflows/eas-pr.yml` |
-
-Local proof should exercise the same happy path CI covers, plus any new behavior not yet in e2e specs.
 
 ## Arguments
 
-$FLOW: Optional flow/spec name for `proof:web` or `proof:native`
+$FLOW: Optional flow name for `proof:web` or `proof:appium` (login, signup, create-todo)
 $SUMMARY: One-line description for `proof:attach`

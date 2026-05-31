@@ -23,7 +23,7 @@ gh pr view --json number -q .number 2>/dev/null || echo "no-pr"
 If the diff touches user-visible surfaces (`ui/`, `example-frontend/`, `demo/`, `admin-frontend/`, or backend routes used by those apps), invoke `/verify-feature` **before committing**:
 
 1. Run `bun run stack:dev` (or confirm stack is up)
-2. Capture proof: `bun run proof:web [flow]` (preferred), `bun run proof:native [flow]`, or `bun run proof:sim` on macOS
+2. Capture proof: `bun run proof:web [flow]` (preferred), `bun run proof:appium [flow]`, or `bun run proof:sim` on macOS
 3. Show key screenshots/video in the agent session
 4. After push (Step 3), run `bun run proof:attach --summary "..."`
 
@@ -74,7 +74,7 @@ gh pr create --title "<title>" --body "$(cat <<'EOF'
 [What changed and why — 2-4 sentences]
 
 ## Feature Proof
-- **Platform:** [Web / iOS sim / Maestro / None]
+- **Platform:** [Web / iOS sim / Appium / None]
 - **Steps:** [What you exercised locally]
 - **Result:** [Pass + notes]
 - **Artifacts:** [.proof/pr-N/... or "see PR comment"]

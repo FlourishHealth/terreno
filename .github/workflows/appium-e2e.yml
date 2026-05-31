@@ -1,11 +1,11 @@
-name: Maestro E2E Tests
+name: Appium E2E Tests
 
 on:
   workflow_dispatch:
 
 jobs:
   e2e:
-    name: Maestro E2E Tests
+    name: Appium E2E Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -22,13 +22,12 @@ jobs:
           java-version: 17
 
       - name: Cache Bun dependencies
-        id: cache
         uses: actions/cache@v5
         with:
           path: |
             ~/.bun/install/cache
             node_modules
-          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
@@ -41,17 +40,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build API dependency
+      - name: Compile workspace packages
         run: bun run compile
-        working-directory: api
 
-      - name: Build UI dependency
-        run: bun run compile
-        working-directory: ui
-
-      - name: Build RTK dependency
-        run: bun run compile
-        working-directory: rtk
+      - name: Setup Appium drivers
+        run: bash scripts/feature-proof/setup-appium.sh
+        env:
+          APPIUM_HOME: ${{ runner.temp }}/appium-home
 
       - name: Export frontend for web
         run: bun run export
@@ -99,12 +94,6 @@ jobs:
           done
           echo "Frontend failed to start" && exit 1
 
-      - name: Install Maestro
-        run: curl -fsSL "https://get.maestro.mobile.dev" | bash
-
-      - name: Add Maestro to PATH
-        run: echo "$HOME/.maestro/bin" >> $GITHUB_PATH
-
       - name: Setup Chrome for CI
         run: |
           CHROME_BIN=$(which google-chrome || which google-chrome-stable || echo "/usr/bin/google-chrome")
@@ -119,19 +108,20 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"email":"test@example.com","password":"testpassword123"}')
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-          echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
           if [ "$HTTP_CODE" != "200" ]; then
             echo "Login API failed!" && exit 1
           fi
 
-      - name: Run Maestro E2E tests
-        run: xvfb-run maestro test .maestro/flows/
+      - name: Run Appium E2E tests
+        run: xvfb-run bunx wdio run appium/wdio.conf.ts
+        env:
+          APPIUM_HOME: ${{ runner.temp }}/appium-home
+          CI: true
 
-      - name: Upload Maestro artifacts
+      - name: Upload Appium screenshots
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: maestro-screenshots
-          path: ~/.maestro/tests/
+          name: appium-screenshots
+          path: .proof/
+          if-no-files-found: ignore

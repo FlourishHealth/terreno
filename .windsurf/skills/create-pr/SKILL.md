@@ -42,7 +42,7 @@ Create a pull request for the current branch.
 
    ## Feature Proof
 
-   - **Platform:** [Web / iOS sim / Maestro / None]
+   - **Platform:** [Web / iOS sim / Appium / None]
    - **Steps:** [What was exercised locally]
    - **Result:** [Pass + notes]
    - **Artifacts:** [.proof/pr-N/... or "see PR comment"]
