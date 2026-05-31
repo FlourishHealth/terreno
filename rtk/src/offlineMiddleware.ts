@@ -427,6 +427,16 @@ export const createOfflineMiddleware = (
     listenerApi.dispatch(setOnlineStatus(true));
   };
 
+  const isReplayConnectivityRestoredAction = (action: unknown): boolean => {
+    if (setOnlineStatus.match(action)) {
+      return action.payload;
+    }
+    if (setConnectionQuality.match(action)) {
+      return action.payload === "online";
+    }
+    return false;
+  };
+
   let networkInitialized = false;
   listenerMiddleware.startListening({
     effect: (_action, listenerApi) => {
@@ -564,12 +574,7 @@ export const createOfflineMiddleware = (
   });
 
   listenerMiddleware.startListening({
-    actionCreator: setOnlineStatus,
-    effect: async (action, listenerApi) => {
-      if (!action.payload) {
-        return;
-      }
-
+    effect: async (_action, listenerApi) => {
       const state = listenerApi.getState() as {offline: OfflineState};
       if (selectIsReplayPausedForAuth(state)) {
         return;
@@ -739,6 +744,7 @@ export const createOfflineMiddleware = (
         listenerApi.dispatch(setSyncing(false));
       }
     },
+    predicate: isReplayConnectivityRestoredAction,
   });
 
   listenerMiddleware.startListening({

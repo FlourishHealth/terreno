@@ -18,7 +18,11 @@ import {DateTime} from "luxon";
 import qs from "qs";
 import {generateProfileEndpoints, getAuthToken} from "./authSlice";
 import {AUTH_DEBUG, baseUrl, LOGOUT_ACTION_TYPE, TOKEN_REFRESHED_SUCCESS} from "./constants";
-import {shouldDeferOfflineMutation} from "./offlineGate";
+import {
+  getConfiguredOfflineEndpoint,
+  isOfflineMiddlewareEnabled,
+  shouldDeferOfflineMutation,
+} from "./offlineGate";
 import {markMutationAuthBlocked} from "./offlineSlice";
 import {IsWeb} from "./platform";
 
@@ -212,6 +216,18 @@ export const getBaseQuery = (
   })(args, api, extraOptions as any);
 };
 
+export const shouldBlockOfflineMutationAuthFailure = (
+  api: Pick<BaseQueryApi, "endpoint" | "type">
+): boolean => {
+  if (api.type !== "mutation") {
+    return false;
+  }
+  if (!isOfflineMiddlewareEnabled()) {
+    return false;
+  }
+  return getConfiguredOfflineEndpoint(api.endpoint) !== undefined;
+};
+
 export const staggeredBaseQuery = retry(
   async (args: string | FetchArgs, api, extraOptions) => {
     // Short-circuit immediately when offline for configured mutation endpoints
@@ -265,32 +281,40 @@ export const staggeredBaseQuery = retry(
           log(`Token refreshed: ${token}`);
           api.dispatch({type: TOKEN_REFRESHED_SUCCESS});
         } catch (error: unknown) {
+          let shouldContinueWithExistingToken = false;
           if (axios.isAxiosError(error)) {
-            console.warn(`[auth] Network error refreshing token: ${error.code} ${error.message}`);
             if (error.code === "ERR_NETWORK" || error.code === "ECONNABORTED") {
-              api.dispatch(markMutationAuthBlocked());
-              return {
-                error: {
-                  error: "Token refresh failed due to network error",
-                  status: "FETCH_ERROR",
-                },
-              };
+              console.warn(`[auth] Network error refreshing token: ${error.code} ${error.message}`);
+              if (shouldBlockOfflineMutationAuthFailure(api)) {
+                api.dispatch(markMutationAuthBlocked());
+                return {
+                  error: {
+                    error: "Token refresh failed due to network error",
+                    status: "FETCH_ERROR",
+                  },
+                };
+              }
+              shouldContinueWithExistingToken = true;
             }
             if (error.status === 401) {
               api.dispatch({type: LOGOUT_ACTION_TYPE});
               return {error: {error: "Token refresh failed with 401", status: "FETCH_ERROR"}};
             }
           }
-          console.warn(
-            `[auth] Error refreshing token: ${error instanceof Error ? error.message : String(error)}`
-          );
-          api.dispatch({type: LOGOUT_ACTION_TYPE});
-          return {
-            error: {
-              error: `Failed to refresh token: ${error instanceof Error ? error.message : String(error)}`,
-              status: "FETCH_ERROR",
-            },
-          };
+          if (shouldContinueWithExistingToken) {
+            console.warn("[auth] Continuing request with existing token after refresh network error");
+          } else {
+            console.warn(
+              `[auth] Error refreshing token: ${error instanceof Error ? error.message : String(error)}`
+            );
+            api.dispatch({type: LOGOUT_ACTION_TYPE});
+            return {
+              error: {
+                error: `Failed to refresh token: ${error instanceof Error ? error.message : String(error)}`,
+                status: "FETCH_ERROR",
+              },
+            };
+          }
         } finally {
           release();
         }

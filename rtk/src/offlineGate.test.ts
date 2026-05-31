@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it} from "bun:test";
 import {configureStore} from "@reduxjs/toolkit";
 
+import {shouldBlockOfflineMutationAuthFailure} from "./emptyApi";
 import {configureOfflineMutationEndpoints, shouldDeferOfflineMutation} from "./offlineGate";
 import {offlineReducer, setConnectionQuality, setOnlineStatus} from "./offlineSlice";
 
@@ -56,6 +57,36 @@ describe("offlineGate", () => {
       configureOfflineMutationEndpoints(["postTodos"]);
       store.dispatch(setConnectionQuality("spotty"));
       expect(shouldDeferOfflineMutation("postTodos", store.getState)).toBe(true);
+    });
+  });
+
+  describe("shouldBlockOfflineMutationAuthFailure", () => {
+    it("returns true for configured offline mutations regardless of connection quality", () => {
+      configureOfflineMutationEndpoints(["postTodos"]);
+
+      expect(
+        shouldBlockOfflineMutationAuthFailure({
+          endpoint: "postTodos",
+          type: "mutation",
+        } as Parameters<typeof shouldBlockOfflineMutationAuthFailure>[0])
+      ).toBe(true);
+    });
+
+    it("returns false for queries and unconfigured mutations", () => {
+      configureOfflineMutationEndpoints(["postTodos"]);
+
+      expect(
+        shouldBlockOfflineMutationAuthFailure({
+          endpoint: "postTodos",
+          type: "query",
+        } as Parameters<typeof shouldBlockOfflineMutationAuthFailure>[0])
+      ).toBe(false);
+      expect(
+        shouldBlockOfflineMutationAuthFailure({
+          endpoint: "postUsers",
+          type: "mutation",
+        } as Parameters<typeof shouldBlockOfflineMutationAuthFailure>[0])
+      ).toBe(false);
     });
   });
 });

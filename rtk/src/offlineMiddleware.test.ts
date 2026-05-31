@@ -1,4 +1,4 @@
-import {describe, expect, it} from "bun:test";
+import {afterEach, describe, expect, it} from "bun:test";
 import {configureStore, type UnknownAction} from "@reduxjs/toolkit";
 import type {Api} from "@reduxjs/toolkit/query/react";
 
@@ -8,7 +8,7 @@ import {
   isNetworkFetchError,
   shouldReplayQueuedMutation,
 } from "./offlineMiddleware";
-import {type OfflineState, selectOfflineQueue} from "./offlineSlice";
+import {enqueue, type OfflineState, selectOfflineQueue, setConnectionQuality} from "./offlineSlice";
 import {createTestQueuedMutation} from "./offlineTestUtils";
 
 interface QueryEntry {
@@ -47,6 +47,11 @@ const initialTestApiState: TestApiState = {
 };
 
 const testApiReducer = (state: TestApiState = initialTestApiState): TestApiState => state;
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
 
 // biome-ignore lint/suspicious/noExplicitAny: Test double covers only fields used by offline middleware.
 const createTestApi = (): Api<any, any, any, any> => {
@@ -191,5 +196,50 @@ describe("offlineMiddleware", () => {
     expect(queue[0].baseUpdatedAt).toBe(LIST_UPDATED_AT);
     expect(queue[0].timestamp).toBe(LIST_UPDATED_AT);
     expect(queue[0].userId).toBe("user-a");
+  });
+
+  it("replays queued mutations when connection quality returns online", async () => {
+    const api = createTestApi();
+    const replayRequests: Array<{url: string; init?: RequestInit}> = [];
+    globalThis.fetch = (async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      replayRequests.push({init, url: String(url)});
+      return new Response(null, {status: 204});
+    }) as typeof fetch;
+
+    const offline = createOfflineMiddleware({
+      api,
+      endpoints: ["patchTodosById"],
+    });
+    const store = configureStore({
+      middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({serializableCheck: false}).concat(offline.middleware),
+      reducer: {
+        auth: (state = {userId: "user-a"}) => state,
+        offline: offline.offlineReducer,
+        testApi: testApiReducer,
+      },
+    });
+
+    store.dispatch(setConnectionQuality("offline"));
+    store.dispatch(
+      enqueue(
+        createTestQueuedMutation({
+          args: {body: {title: "Queued title"}, id: "todo-1"},
+          endpointName: "patchTodosById",
+          id: "queued-1",
+          operation: "update",
+          type: "update",
+          userId: "user-a",
+        })
+      )
+    );
+
+    store.dispatch(setConnectionQuality("online"));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    expect(replayRequests).toHaveLength(1);
+    expect(replayRequests[0].url).toContain("/todos/todo-1");
+    expect(replayRequests[0].init?.method).toBe("PATCH");
+    expect(selectOfflineQueue(store.getState())).toHaveLength(0);
   });
 });
