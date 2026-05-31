@@ -22,16 +22,6 @@ on:
         description: Git ref to build (branch, tag, or commit). Defaults to the workflow ref.
         required: false
         type: string
-      pr_number:
-        description: PR number to associate with the EAS Update branch (defaults to 0 for non-PR runs)
-        required: false
-        type: string
-        default: "0"
-      pr_title:
-        description: Message to attach to the EAS Update
-        required: false
-        type: string
-        default: Manual dispatch
 
 jobs:
   dispatch:
@@ -65,8 +55,6 @@ jobs:
       - name: Dispatch to EAS Cloud
         env:
           TARGET: ${{ inputs.target }}
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_TITLE: ${{ inputs.pr_title }}
         run: |
           set -euo pipefail
 
@@ -84,9 +72,7 @@ jobs:
             esac
             echo "::group::Dispatching $app"
             (cd "$app" && eas workflow:run ".eas/workflows/$file" \
-              --non-interactive \
-              -F "pr_number=${PR_NUMBER}" \
-              -F "pr_title=${PR_TITLE}")
+              --non-interactive)
             echo "::endgroup::"
           done
           echo "✅ Dispatched ${targets}. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"
