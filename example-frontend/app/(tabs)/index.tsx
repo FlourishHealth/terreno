@@ -211,6 +211,9 @@ const TodosScreen: React.FC = () => {
 
           <Box marginBottom={6}>
             <Heading size="xl">My Todos</Heading>
+            <Text color="secondaryDark" testID="todos-screen-tagline">
+              Track tasks and stay organized
+            </Text>
           </Box>
 
           {/* Summary card — gated by "todo-summary-card" feature flag */}

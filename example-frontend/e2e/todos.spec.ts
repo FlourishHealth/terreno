@@ -14,6 +14,10 @@ test.describe("Todos", () => {
   });
 
   test("todos screen renders correctly", async ({page}) => {
+    await expect(page.getByTestId("todos-screen-tagline").first()).toBeVisible();
+    await expect(page.getByTestId("todos-screen-tagline").first()).toHaveText(
+      "Track tasks and stay organized"
+    );
     await expect(page.getByTestId("todos-new-title-input").first()).toBeVisible();
     await expect(page.getByTestId("todos-add-button").first()).toBeVisible();
     await expect(page.getByTestId("todos-empty-text").first()).toBeVisible();

@@ -13,6 +13,10 @@ describe("Create todo", () => {
   it("logs in and creates a todo", async () => {
     await loginAsTestUser();
 
+    await expect($(byTestId("todos-screen-tagline"))).toHaveText(
+      "Track tasks and stay organized"
+    );
+
     const todoTitle = "Buy groceries";
     await $(byTestId("todos-new-title-input")).setValue(todoTitle);
     await $(byTestId("todos-add-button")).click();
