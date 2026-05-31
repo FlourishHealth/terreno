@@ -73,10 +73,10 @@ Pull latest from master, resolve merge conflicts, validate with lint/compile che
    git push origin HEAD
    ```
 
-8. Run check-watcher by invoking `/check-watcher`:
-   - This monitors GitHub Actions checks
-   - If checks fail, it will automatically read failures, fix them, and push again
-   - Continue until all checks pass
+8. Run `/autobot`:
+   - Watches GitHub Actions checks
+   - If checks fail, reads failures, fixes them, and pushes again
+   - Triages Bugbot/Copilot reviews and marks the PR ready when all gates pass
 
 ## Arguments
 

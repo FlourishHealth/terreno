@@ -1,25 +1,30 @@
 ---
-name: check-watcher
-description: Monitor GitHub Actions checks and automatically fix failures
+name: autobot
+description: Full PR gatekeeper — CI, fix failures, triage Bugbot/Copilot reviews, mark ready. Use when bot reviews matter; /submit handles CI-only.
+disable-model-invocation: true
+model: sonnet
 ---
-# Check Watcher
 
-Monitor GitHub Actions checks, auto-fix failures, triage bot reviews, and mark the PR ready for review when all gates pass. Designed to be called standalone or from `/submit`.
+# Autobot
+
+Full automated PR gatekeeper: monitors GitHub Actions, auto-fixes failures, **waits for and triages bot reviews** (Bugbot, Copilot), and marks draft PRs ready only when CI is green **and** actionable bot threads are cleared.
+
+`/submit` already watches CI and marks ready on green checks without touching bot comments. Use `/autobot` when you need the complete gate — e.g. after `/submit` if bot reviews arrived, or standalone on a PR that needs bot triage before marking ready.
 
 ## Time limit
 
 **Hard wall-clock limit: 15 minutes** from the moment you start. Record the start time immediately:
 
 ```bash
-CHECK_WATCHER_START=$(date +%s)
-CHECK_WATCHER_TIMEOUT_SEC=900
+AUTOBOT_START=$(date +%s)
+AUTOBOT_TIMEOUT_SEC=900
 ```
 
 Before each step (and before any long-running command), check remaining time:
 
 ```bash
-elapsed=$(( $(date +%s) - CHECK_WATCHER_START ))
-remaining=$(( CHECK_WATCHER_TIMEOUT_SEC - elapsed ))
+elapsed=$(( $(date +%s) - AUTOBOT_START ))
+remaining=$(( AUTOBOT_TIMEOUT_SEC - elapsed ))
 if [ "$remaining" -le 0 ]; then
   gh pr view --json title,url,isDraft -q '"Timed out after 15m — **\(.title)**\(if .isDraft then " (still draft)" else " (ready)" end) — \(.url). Last known check state above."'
   exit 0
@@ -150,6 +155,19 @@ On timeout, report PR link, last known CI/review state, and what was left incomp
    ```
 
 Cap fix attempts at $MAX_ATTEMPTS (default: 5). Stop immediately when the 15-minute wall-clock limit is reached, even if attempts remain.
+
+## Background mode
+
+When another skill (or the user) wants non-blocking automation, spawn `/autobot` as a **background sub-agent** via the `Agent` tool:
+
+- `subagent_type`: `general-purpose`
+- `description`: `Run autobot for current PR`
+- `run_in_background`: `true`
+- `prompt`: invoke the `/autobot` skill for the current PR. Include PR number/URL. It has a **15-minute wall-clock budget** — on timeout report status and stop.
+
+Do **not** wait on the sub-agent — return control immediately after spawning.
+
+When the user invokes `/autobot` directly, run the instructions above in the **foreground** (do not spawn a sub-agent).
 
 ## Arguments
 

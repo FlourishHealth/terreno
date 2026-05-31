@@ -162,7 +162,11 @@ Do **not** commit here. `/submit` (next step) handles pre-commit checks, staging
 
 ## Step 7: Run /submit
 
-Invoke the `/submit` skill to handle pre-commit checks, commit, push, and PR updates. This will also launch the CI check-watcher in the background. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
+Invoke the `/submit` skill to handle pre-commit checks, commit, push, and PR updates. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
+
+## Step 7.5: Run /autobot (optional)
+
+If Bugbot/Copilot threads need triage before the PR should be marked ready, invoke `/autobot`. `/submit` already watches CI and marks ready on green checks without handling bot comments.
 
 ## Step 8: Resolve Addressed Threads
 
