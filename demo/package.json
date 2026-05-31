@@ -103,8 +103,9 @@
   },
   "scripts": {
     "android": "NODE_OPTIONS=--openssl-legacy-provider expo start --android --port 8085",
-    "appium:build:android": "CI=1 expo prebuild --platform android && cd android && ./gradlew assembleDebug --no-daemon",
     "appium:compile": "tsc --noEmit -p appium/tsconfig.json",
+    "appium:download:android": "bun appium/downloadLatestEasBuild.ts --platform android",
+    "appium:download:ios": "bun appium/downloadLatestEasBuild.ts --platform ios",
     "appium:test": "wdio run appium/wdio.android.conf.ts",
     "appium:test:android": "wdio run appium/wdio.android.conf.ts",
     "appium:test:ci:android": "wdio run appium/wdio.android.conf.ts",
