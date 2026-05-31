@@ -22,6 +22,8 @@ mkdir -p "$PROOF_DIR"
 
 "${SCRIPT_DIR}/start-stack.sh" --seed
 
+export MONGO_URI="$(cat "$(memory_mongo_uri_file)")"
+
 cd "${ROOT_DIR}/example-frontend"
 
 export PROOF_OUTPUT_DIR="$PROOF_DIR"

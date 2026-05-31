@@ -37,10 +37,9 @@ If the change is purely backend-internal (logging, refactor that doesn't alter r
 ## Prerequisites
 
 - Bun is on PATH (run `bun` directly; do not modify PATH)
-- MongoDB reachable at `mongodb://localhost:27017` (the example backend connects on boot)
-- Ports 4000 (backend) must be free
+- Port 4000 (backend) must be free
 
-If MongoDB is not running, tell the user and stop — do not try to install or start it automatically.
+**No local MongoDB install required.** SDK generation always starts an in-memory MongoDB via `mongodb-memory-server` (same as feature proof / `stack:dev`).
 
 ## Procedure
 
@@ -70,47 +69,27 @@ The backend reads `example-backend/.env`. If that file is missing, copy the exam
 test -f example-backend/.env || cp example-backend/.env.example example-backend/.env
 ```
 
-The default `.env.example` values are fine for local SDK generation. Do not invent secrets or overwrite an existing `.env`.
+The default `.env.example` values are fine for local SDK generation. Do not invent secrets or overwrite an existing `.env`. **`MONGO_URI` in `.env` is ignored** — the stack script always uses in-memory MongoDB.
 
-### 3. Start the example backend on port 4000
+### 3. Generate the SDK (memory Mongo + backend + codegen)
 
-The dev script watches files, which is fine for a one-shot codegen run. Start it in the background from the repo root:
+From the repo root, run the all-in-one script. It starts in-memory MongoDB and the example backend, waits for `/openapi.json`, runs codegen, then stops the stack:
 
 ```bash
-bun run backend:dev
+bun run sdk:generate
 ```
 
-Use the Bash tool's `run_in_background: true` so the process keeps running while you continue.
+Do **not** use `bun run backend:dev` directly — that does not start memory MongoDB.
 
-### 4. Wait for the OpenAPI spec to be served
-
-Poll `http://localhost:4000/openapi.json` until it returns HTTP 200. The backend has to connect to MongoDB and register all routes before the spec is available, which can take 5–20 seconds on a cold start. Do not skip this wait — running `bun run sdk` before the spec is ready produces an empty/broken `openApiSdk.ts`.
+If port 4000 is in use, stop any stale stack first:
 
 ```bash
-until curl -sf -o /dev/null -w "%{http_code}" http://localhost:4000/openapi.json | grep -q 200; do sleep 2; done
-```
-
-If the backend logs an error (Mongo connection refused, port already in use, compile error), stop and surface the error to the user. Do not retry blindly.
-
-### 5. Generate the SDK
-
-Run the codegen from `example-frontend`. The script also runs Biome formatting on the output and strips an empty re-export line, so no follow-up formatting is needed.
-
-```bash
-cd example-frontend && bun run sdk
+bun run stack:stop
 ```
 
 If the script fails with a missing module error (e.g. `@rtk-query/codegen-openapi`), dependencies are stale — re-run `bun run bootstrap` from the repo root and try again.
 
-### 6. Stop the backend
-
-Kill the background backend process you started in step 3. Use the PID from the background shell, or:
-
-```bash
-pkill -f "example-backend.*src/index.ts" || true
-```
-
-### 7. Verify and report
+### 4. Verify and report
 
 Confirm `example-frontend/store/openApiSdk.ts` exists and was modified. Show the user a short summary:
 
@@ -124,10 +103,10 @@ Do **not** commit `openApiSdk.ts` automatically — leave that to the user's nor
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `ECONNREFUSED 127.0.0.1:27017` | MongoDB not running | Ask the user to start Mongo; do not auto-start |
-| `EADDRINUSE :::4000` | Stale backend process | `pkill -f "example-backend.*src/index.ts"` then retry |
+| `EADDRINUSE :::4000` | Stale backend process | `bun run stack:stop` then retry |
+| Memory Mongo timeout | First run downloading Mongo binary | Wait and retry; check network |
 | `Cannot find module '@rtk-query/codegen-openapi'` | Missing/stale deps | Re-run `bun run bootstrap` |
-| `openApiSdk.ts` has no endpoints | Backend wasn't ready when codegen ran | Step 4 wait was skipped — start over with a proper poll |
+| `openApiSdk.ts` has no endpoints | Backend wasn't ready when codegen ran | Re-run `bun run sdk:generate` |
 | Codegen errors on `$ref` | Backend OpenAPI spec is malformed | Inspect `/openapi.json` manually; check recent changes to `openApi.ts` or model schemas |
 
 ## Notes
@@ -135,3 +114,4 @@ Do **not** commit `openApiSdk.ts` automatically — leave that to the user's nor
 - The codegen config lives at `example-frontend/openapi-config.ts`. The schema URL respects `OPENAPI_URL` if set, otherwise defaults to `http://localhost:4000/openapi.json`.
 - The script entry point is `example-frontend/scripts/generate-sdk.ts` — it shells out to the `@rtk-query/codegen-openapi` CLI, then post-processes the output with Biome.
 - Custom endpoints and cache tag types are layered on top in `example-frontend/store/sdk.ts` via `injectEndpoints`/`enhanceEndpoints`; that file is hand-maintained and is **not** overwritten by codegen.
+- Manual alternative: `bun run stack:backend` → wait for openapi.json → `cd example-frontend && bun run sdk` → `bun run stack:stop`.

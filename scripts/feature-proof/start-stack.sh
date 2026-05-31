@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Start example-backend + example-frontend (web) for local feature verification.
+# Always uses in-memory MongoDB (mongodb-memory-server) — no local Mongo install.
 #
 # Usage:
 #   ./scripts/feature-proof/start-stack.sh [--seed] [--no-frontend] [--no-backend]
@@ -24,6 +25,7 @@ stop_stack() {
     done < "$PID_FILE"
     rm -f "$PID_FILE"
   fi
+  rm -f "$(memory_mongo_uri_file)" "$(memory_mongo_pid_file)" 2>/dev/null || true
 }
 
 if [ "${STOP_STACK:-}" = "1" ]; then
@@ -67,6 +69,8 @@ record_running_pid() {
 }
 
 if [ "$START_BACKEND" = true ]; then
+  ensure_mongo_for_stack
+
   if is_backend_running; then
     echo "Backend already running on :4000"
     record_running_pid 4000 backend
@@ -75,6 +79,7 @@ if [ "$START_BACKEND" = true ]; then
     (
       cd "${ROOT_DIR}/example-backend"
       export $(backend_env | xargs)
+      export MONGO_URI
       bun run dev
     ) &
     append_pid_if_missing "$!" backend
@@ -86,6 +91,7 @@ if [ "$START_BACKEND" = true ]; then
     (
       cd "${ROOT_DIR}/example-backend"
       export $(backend_env | xargs)
+      export MONGO_URI
       bun run seed
     )
   fi

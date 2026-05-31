@@ -4,11 +4,19 @@ Prove user-visible changes work before opening or updating a PR. This mirrors De
 
 ## Quick start
 
+No local MongoDB install required — `stack:dev`, `proof:web`, and `sdk:generate` always start **in-memory MongoDB** (`mongodb-memory-server`).
+
 ```bash
 bun run appium:setup          # once — install Appium drivers
-bun run stack:dev             # backend :4000 + frontend :8082 (seeded)
+bun run stack:dev             # memory Mongo + backend :4000 + frontend :8082 (seeded)
 bun run proof:appium login    # Appium capture → .proof/pr-N/
 bun run proof:attach --summary "Login flow verified"
+```
+
+SDK regeneration uses the same memory Mongo stack:
+
+```bash
+bun run sdk:generate          # memory Mongo + backend + codegen + cleanup
 ```
 
 Or use Playwright for HTML reports with embedded video:

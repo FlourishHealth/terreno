@@ -30,13 +30,15 @@ Skip for pure refactors, docs-only, or backend-only changes with no UI surface.
 
 First-time setup: `bun run appium:setup` (installs Chromium + XCUITest drivers to `~/.appium-terreno`).
 
+**MongoDB:** All proof and stack commands always use **in-memory MongoDB** (`mongodb-memory-server`). No local Mongo install or `MONGO_URI` override — even if set in the shell or `example-backend/.env`.
+
 ## Step 1: Start the stack
 
 ```bash
 bun run stack:dev
 ```
 
-This starts example-backend (`:4000`) and example-frontend web (`:8082`) with seeded test users.
+This starts in-memory MongoDB, example-backend (`:4000`), and example-frontend web (`:8082`) with seeded test users.
 
 Test credentials: `test@example.com` / `testpassword123`
 

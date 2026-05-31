@@ -35,6 +35,7 @@ fi
 
 if [ "$PLATFORM" = "web" ]; then
   "${SCRIPT_DIR}/start-stack.sh" --seed
+  export MONGO_URI="$(cat "$(memory_mongo_uri_file)")"
 else
   echo "APPIUM_PLATFORM=ios — ensure dev client is running (bun run proof:sim)"
 fi
