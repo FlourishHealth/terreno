@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["es2022", "dom"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": false,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "outDir": "./src/dist",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022"
+  },
+  "exclude": ["node_modules", "src/dist", "src/**/*.test.ts"],
+  "include": ["src/index.ts", "src/serve.ts", "src/appConfig.ts"]
+}

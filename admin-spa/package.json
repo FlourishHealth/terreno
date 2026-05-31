@@ -1,0 +1,57 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^3.0.3"
+  },
+  "description": "Opt-in Express plugin that serves a pre-built admin SPA from a Terreno backend",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@terreno/api": "workspace:*",
+    "@types/bun": "^1.2.4",
+    "@types/express": "^5.0.6",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "typescript": "catalog:"
+  },
+  "files": [
+    "src/dist/**",
+    "dist/**"
+  ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "admin",
+    "api",
+    "express",
+    "spa",
+    "terreno"
+  ],
+  "license": "Apache-2.0",
+  "main": "./src/dist/index.js",
+  "name": "@terreno/admin-spa",
+  "peerDependencies": {
+    "@terreno/api": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "compile": "tsc -p tsconfig.server.json",
+    "compile:watch": "tsc -p tsconfig.server.json -w",
+    "dev": "tsc -p tsconfig.server.json -w",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --write ./src",
+    "test": "bun test ./src",
+    "test:ci": "bun test ./src"
+  },
+  "type": "module",
+  "types": "./src/dist/index.d.ts",
+  "version": "0.1.0"
+}
