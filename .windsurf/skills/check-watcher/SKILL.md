@@ -30,19 +30,19 @@ Keep this skill scoped to CI only:
 
 3. Get failure details:
    ```bash
-   gh pr checks --json name,state,conclusion,detailsUrl,link,workflow,bucket
+   gh pr checks --json name,state,bucket,workflow,link
    ```
    - Identify failed checks from the JSON output.
-   - For GitHub Actions checks, extract the run ID from the `detailsUrl` or `link` containing `/actions/runs/<run-id>`, then run:
+   - For GitHub Actions checks, extract the run ID from the `link` containing `/actions/runs/<run-id>`, then run:
      ```bash
      gh run view <run-id> --log-failed
      ```
-   - If a failed check is from an external provider without readable logs, use the check name and details URL as the evidence.
+   - If a failed check is from an external provider without readable logs, use the check name and link as the evidence.
 
 4. Determine if flaky or real:
    - Compare failed files/tests against `gh pr diff` — is the failure in code you changed?
    - Check for flaky signals: timeouts, race conditions, ECONNRESET, intermittent assertions
-   - If flaky and unrelated to branch changes, report the flaky check, evidence, and details URL as a blocker. Do not create issues, rerun checks, or modify GitHub state.
+   - If flaky and unrelated to branch changes, report the flaky check, evidence, and link as a blocker. Do not create issues, rerun checks, or modify GitHub state.
 
 5. If failure IS related to PR changes:
    - Fix the code
