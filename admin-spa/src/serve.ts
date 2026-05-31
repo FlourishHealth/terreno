@@ -1,13 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
-import {fileURLToPath} from "node:url";
 import type {TerrenoPlugin} from "@terreno/api";
 import {logger} from "@terreno/api";
 import express from "express";
 import {type AdminSpaAppConfig, resolveAppConfig} from "./appConfig";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Compiled file lives at src/dist/serve.js; the pre-built bundle lives at admin-spa/dist.
+// Compiled (CommonJS) file lives at src/dist/serve.js; the pre-built bundle lives at
+// admin-spa/dist. `__dirname` is the CommonJS module-directory global.
 const DIST_DIR = path.resolve(__dirname, "../../dist");
 
 const NO_STORE = "no-store";

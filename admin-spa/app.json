@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Terreno Admin",
+    "slug": "terreno-admin",
+    "version": "1.0.0",
+    "orientation": "default",
+    "scheme": "terreno-admin",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "extra": {
+      "router": {},
+      "BASE_URL": "__SAME_ORIGIN__"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

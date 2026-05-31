@@ -10,3 +10,4 @@ store/openApiSdk.ts
 # Expo / Metro
 .expo/
 web-build/
+expo-env.d.ts
