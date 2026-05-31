@@ -12,7 +12,7 @@ if [ -z "$PR_NUMBER" ]; then
   exit 1
 fi
 
-MAX_WAIT_MINUTES="${MAX_WAIT_MINUTES:-45}"
+MAX_WAIT_MINUTES="${MAX_WAIT_MINUTES:-10}"
 INTERVAL_SEC="${INTERVAL_SEC:-30}"
 deadline=$(( $(date +%s) + MAX_WAIT_MINUTES * 60 ))
 

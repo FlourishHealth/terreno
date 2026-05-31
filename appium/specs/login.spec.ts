@@ -4,6 +4,9 @@ describe("Login", () => {
   it("logs in with seeded test user", async () => {
     await browser.url("/login");
     await $(byTestId("login-screen")).waitForDisplayed({timeout: 30000});
+    await expect($(byTestId("login-screen-subtitle"))).toHaveText(
+      "Sign in to manage your todos"
+    );
 
     await $(byTestId("login-screen-email-input")).setValue(TEST_USER.email);
     await $(byTestId("login-screen-password-input")).setValue(TEST_USER.password);

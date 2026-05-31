@@ -1,5 +1,5 @@
 import type {LoginScreenProps} from "@terreno/ui";
-import {LoginScreen} from "@terreno/ui";
+import {Box, LoginScreen, Text} from "@terreno/ui";
 import {useRouter} from "expo-router";
 import type React from "react";
 import {useCallback, useMemo, useState} from "react";
@@ -63,6 +63,13 @@ const Login: React.FC = () => {
         {label: "Password", name: "password", required: true, type: "password"},
       ]}
       loading={isLoading}
+      logo={
+        <Box alignItems="center">
+          <Text color="secondaryDark" testID="login-screen-subtitle">
+            Sign in to manage your todos
+          </Text>
+        </Box>
+      }
       oauthProviders={oauthProviders}
       onSignUpPress={() => router.push("/signup")}
       onSubmit={handleSubmit}

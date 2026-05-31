@@ -8,6 +8,10 @@ test.describe("Login", () => {
   });
 
   test("login screen renders correctly", async ({page}) => {
+    await expect(page.getByTestId("login-screen-subtitle")).toBeVisible();
+    await expect(page.getByTestId("login-screen-subtitle")).toHaveText(
+      "Sign in to manage your todos"
+    );
     await expect(page.getByTestId("login-screen-email-input")).toBeVisible();
     await expect(page.getByTestId("login-screen-password-input")).toBeVisible();
     await expect(page.getByTestId("login-screen-submit-button")).toBeVisible();
