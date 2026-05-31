@@ -27,7 +27,7 @@ export const EmailFieldConfiguration: DemoConfiguration = {
   demoOptions: {},
   stories: {
     "Email Field": {
-      render: EmailFieldDemo,
+      render: () => <EmailFieldDemo />,
     },
   },
 };
