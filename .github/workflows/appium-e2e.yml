@@ -113,10 +113,11 @@ jobs:
           fi
 
       - name: Run Appium E2E tests
-        run: xvfb-run bunx wdio run appium/wdio.conf.ts
+        run: xvfb-run bunx wdio run appium/wdio.proof.conf.ts
         env:
           APPIUM_HOME: ${{ runner.temp }}/appium-home
           CI: true
+          PROOF_OUTPUT_DIR: .proof/ci-appium
 
       - name: Upload Appium screenshots
         if: always()
