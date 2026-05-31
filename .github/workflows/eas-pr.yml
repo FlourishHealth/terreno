@@ -4,8 +4,9 @@ name: EAS PR
 # locally and check whether a matching finished dev build already exists.
 #
 # - Fingerprint matches existing dev build  →  fast path: publish the
-#   EAS Update + post the PR comment, and **wait** for the EAS workflow
-#   so the GitHub status reflects real pass/fail.
+#   EAS Update via an update-only EAS workflow + post the PR comment,
+#   and **wait** for the EAS workflow so the GitHub status reflects
+#   real pass/fail.
 #
 # - Fingerprint changed  →  slow path: dispatch the EAS workflow async
 #   and exit. A full dev build can take 15+ minutes; the EAS GitHub App
@@ -145,7 +146,7 @@ jobs:
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fast path — run EAS workflow and wait
+      - name: Fast path — publish update and wait
         if: steps.decide.outputs.needs_build == 'false'
         working-directory: example-frontend
         env:
@@ -153,7 +154,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           echo "::notice::Fingerprint matches existing dev build — running update-only flow with --wait"
-          eas workflow:run .eas/workflows/example-frontend-build.yml \
+          eas workflow:run .eas/workflows/example-frontend-update.yml \
             --wait \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
@@ -274,7 +275,7 @@ jobs:
             echo "needs_build=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fast path — run EAS workflow and wait
+      - name: Fast path — publish update and wait
         if: steps.decide.outputs.needs_build == 'false'
         working-directory: demo
         env:
@@ -282,7 +283,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           echo "::notice::Fingerprint matches existing dev build — running update-only flow with --wait"
-          eas workflow:run .eas/workflows/demo-build.yml \
+          eas workflow:run .eas/workflows/demo-update.yml \
             --wait \
             --non-interactive \
             -F "pr_number=${PR_NUMBER}" \
