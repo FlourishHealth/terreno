@@ -1,6 +1,7 @@
 import {createSelector, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import {DateTime} from "luxon";
 import {REHYDRATE} from "redux-persist";
+import {IsWeb} from "../platform";
 import type {
   ConflictRecord,
   ConflictResolution,
@@ -10,7 +11,6 @@ import type {
   QueuedMutation,
   QueuedMutationStatus,
 } from "./offlineTypes";
-import {IsWeb} from "../platform";
 
 export const OFFLINE_QUEUE_VERSION = 2;
 

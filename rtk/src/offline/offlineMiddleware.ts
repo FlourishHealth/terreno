@@ -4,6 +4,7 @@ import {DateTime} from "luxon";
 
 import {getAuthToken, selectCurrentUserId} from "../authSlice";
 import {baseUrl, LOGOUT_ACTION_TYPE, type RootState, TOKEN_REFRESHED_SUCCESS} from "../constants";
+import {IsWeb} from "../platform";
 import {isModelRouterOfflineConfig} from "./offlineConfig";
 import {configureOfflineMiddleware, getConfiguredOfflineEndpoint} from "./offlineGate";
 import {resolveOfflineIdStrategy} from "./offlineIds";
@@ -45,7 +46,6 @@ import type {
   OfflineModelRouterConfig,
   ResolvedOfflineEndpoint,
 } from "./offlineTypes";
-import {IsWeb} from "../platform";
 
 export interface OfflineMiddlewareConfig {
   /** RTK Query API instance */
@@ -347,17 +347,13 @@ export interface ResolveConflictParams {
 export const resolveConflict = ({
   conflictId,
   resolution,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic API type
   api,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
   dispatch,
-  // biome-ignore lint/suspicious/noExplicitAny: Generic getState
   getState,
   conflicts,
 }: ResolveConflictParams & {
   // biome-ignore lint/suspicious/noExplicitAny: Generic API type
   api: Api<any, any, any, any>;
-  // biome-ignore lint/suspicious/noExplicitAny: Generic dispatch
   dispatch: (action: unknown) => void;
   // biome-ignore lint/suspicious/noExplicitAny: Generic getState
   getState: () => any;
