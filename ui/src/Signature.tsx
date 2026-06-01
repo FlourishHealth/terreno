@@ -1,6 +1,5 @@
 import {
   type ReactElement,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -27,7 +26,7 @@ interface CanvasPoint {
   y: number;
 }
 
-type DrawingEvent = ReactMouseEvent<HTMLCanvasElement> | ReactPointerEvent<HTMLCanvasElement>;
+type DrawingEvent = ReactPointerEvent<HTMLCanvasElement>;
 
 /**
  * Web signature pad backed by a raw HTML5 <canvas> — no third-party library.
@@ -107,9 +106,7 @@ export const Signature = ({
       if (!ctx || !point) {
         return;
       }
-      if ("pointerId" in event) {
-        canvasRef.current?.setPointerCapture?.(event.pointerId);
-      }
+      canvasRef.current?.setPointerCapture?.(event.pointerId);
       isDrawingRef.current = true;
       ctx.beginPath();
       ctx.moveTo(point.x, point.y);
@@ -141,9 +138,7 @@ export const Signature = ({
         return;
       }
       isDrawingRef.current = false;
-      if ("pointerId" in event) {
-        canvasRef.current?.releasePointerCapture?.(event.pointerId);
-      }
+      canvasRef.current?.releasePointerCapture?.(event.pointerId);
       const canvas = canvasRef.current;
       if (hasDrawnRef.current && canvas) {
         onChange(canvas.toDataURL("image/png"));
@@ -174,10 +169,6 @@ export const Signature = ({
       >
         <canvas
           height={SIGNATURE_HEIGHT_PX}
-          onMouseDown={handlePointerDown}
-          onMouseLeave={handlePointerUp}
-          onMouseMove={handlePointerMove}
-          onMouseUp={handlePointerUp}
           onPointerDown={handlePointerDown}
           onPointerLeave={handlePointerUp}
           onPointerMove={handlePointerMove}

@@ -4983,10 +4983,6 @@ exports[`Field renders signature field 1`] = `
           "children": null,
           "props": {
             "height": 180,
-            "onMouseDown": [Function],
-            "onMouseLeave": [Function],
-            "onMouseMove": [Function],
-            "onMouseUp": [Function],
             "onPointerDown": [Function],
             "onPointerLeave": [Function],
             "onPointerMove": [Function],
