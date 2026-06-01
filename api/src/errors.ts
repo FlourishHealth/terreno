@@ -136,26 +136,32 @@ export class APIError extends Error {
 // Create an errors field for storing error information in a JSONAPI compatible form directly on a
 // model.
 export const errorsPlugin = (schema: Schema): void => {
-  const errorSchema = new Schema({
-    code: {description: "Application-specific error code", type: String},
-    detail: {description: "Human-readable explanation of the error", type: String},
-    id: {description: "Unique identifier for this error occurrence", type: String},
-    links: {
-      about: {description: "Link to documentation about this error", type: String},
-      type: {description: "Link describing the error type", type: String},
-    },
-    meta: {description: "Non-standard meta information about the error", type: Schema.Types.Mixed},
-    source: {
-      header: {description: "HTTP header that caused the error", type: String},
-      parameter: {description: "Query parameter that caused the error", type: String},
-      pointer: {
-        description: "JSON pointer to the request field that caused the error",
-        type: String,
+  const errorSchema = new Schema(
+    {
+      code: {description: "Application-specific error code", type: String},
+      detail: {description: "Human-readable explanation of the error", type: String},
+      id: {description: "Unique identifier for this error occurrence", type: String},
+      links: {
+        about: {description: "Link to documentation about this error", type: String},
+        type: {description: "Link describing the error type", type: String},
       },
+      meta: {
+        description: "Non-standard meta information about the error",
+        type: Schema.Types.Mixed,
+      },
+      source: {
+        header: {description: "HTTP header that caused the error", type: String},
+        parameter: {description: "Query parameter that caused the error", type: String},
+        pointer: {
+          description: "JSON pointer to the request field that caused the error",
+          type: String,
+        },
+      },
+      status: {description: "HTTP status code for this error", type: Number},
+      title: {description: "Short summary of the error", required: true, type: String},
     },
-    status: {description: "HTTP status code for this error", type: Number},
-    title: {description: "Short summary of the error", required: true, type: String},
-  });
+    {_id: false, strict: "throw"}
+  );
 
   schema.add({apiErrors: errorSchema});
 };

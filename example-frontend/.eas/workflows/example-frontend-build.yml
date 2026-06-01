@@ -1,20 +1,11 @@
-name: Example Frontend PR
+name: Example Frontend PR Build
 
-# Invoked exclusively by .github/workflows/eas-pr.yml via `eas workflow:run`.
-# The GH Action decides fast path (no build needed, --wait) vs slow path
-# (new dev build needed, async), so we can reflect real status in GitHub.
+# Invoked by .github/workflows/eas-pr.yml slow path and manual seed builds.
+# GitHub Actions publishes PR EAS Updates directly; this workflow only creates
+# missing native dev builds.
 
 on:
-  workflow_dispatch:
-    inputs:
-      pr_number:
-        description: PR number for branch/comment context
-        type: string
-        required: true
-      pr_title:
-        description: PR title for the update message
-        type: string
-        required: true
+  workflow_dispatch: {}
 
 defaults:
   tools:
@@ -62,29 +53,3 @@ jobs:
       platform: android
       profile: development
 
-  publish_update:
-    name: Publish EAS Update for PR
-    needs: [fingerprint]
-    outputs:
-      first_update_group_id: ${{ steps.publish.outputs.first_update_group_id }}
-    steps:
-      - uses: eas/checkout
-      - uses: eas/use_npm_token
-      - uses: eas/install_node_modules
-      - name: Compile workspace packages
-        working_directory: ../
-        run: bun run compile
-      - name: Publish EAS Update
-        id: publish
-        env:
-          PR_NUMBER: ${{ inputs.pr_number }}
-          PR_TITLE: ${{ inputs.pr_title }}
-        run: |
-          update_json=$(bunx eas-cli@latest update \
-            --branch "pr-${PR_NUMBER}" \
-            --message "PR #${PR_NUMBER}: ${PR_TITLE}" \
-            --non-interactive \
-            --json)
-          first_id=$(echo "$update_json" | jq -r '.[0].group')
-          set-output first_update_group_id "$first_id"
-          echo "✓ EAS Update published to branch pr-${PR_NUMBER} (group ${first_id})"

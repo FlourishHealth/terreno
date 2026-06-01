@@ -17,7 +17,7 @@ type BannerButtonProps = {
   loading?: boolean;
 };
 
-const BannerButton = ({
+export const BannerButton = ({
   loading: propsLoading,
   buttonText,
   buttonIconName,
@@ -178,14 +178,14 @@ export const Banner = (props: BannerProps): React.ReactElement | null => {
           <View style={{paddingLeft: 16, paddingRight: 10}}>
             <BannerButton
               buttonIconName={buttonIconName}
-              buttonOnClick={buttonOnClick ?? (() => {})}
+              buttonOnClick={buttonOnClick!}
               buttonText={buttonText}
             />
           </View>
         )}
         {Boolean(buttonText && !buttonIconName && buttonOnClick) && (
           <View style={{paddingLeft: 16, paddingRight: 10}}>
-            <BannerButton buttonOnClick={buttonOnClick ?? (() => {})} buttonText={buttonText} />
+            <BannerButton buttonOnClick={buttonOnClick!} buttonText={buttonText} />
           </View>
         )}
       </View>

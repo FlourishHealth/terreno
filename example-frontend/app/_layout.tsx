@@ -3,6 +3,7 @@ import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {useEffect} from "react";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
 import {
   baseUrl,
@@ -32,7 +33,7 @@ export const unstable_settings = {
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout(): React.ReactElement | null {
+const RootLayout = (): React.ReactElement | null => {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
     ...FontAwesome.font,
@@ -67,17 +68,19 @@ export default function RootLayout(): React.ReactElement | null {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
-          <RootLayoutNav />
-        </TerrenoProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
+            <RootLayoutNav />
+          </TerrenoProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
-}
+};
 
-function RootLayoutNav(): React.ReactElement {
+const RootLayoutNav = (): React.ReactElement => {
   const userId = useSelectCurrentUserId();
   const {isOnline} = useServerStatus({skip: !userId});
   const profile = useReadProfile();
@@ -191,4 +194,6 @@ function RootLayoutNav(): React.ReactElement {
     userId: userId ?? "none",
   });
   return content;
-}
+};
+
+export default RootLayout;

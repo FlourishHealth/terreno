@@ -10,7 +10,7 @@ import {
   preparePromptForAI,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
@@ -133,7 +133,7 @@ const createServerModel = (modelId?: string) => {
 const createModelFromKey = (apiKey: string, modelId?: string) => {
   const google = getGoogleModule();
   if (!google) {
-    throw new Error("Missing @ai-sdk/google dependency.");
+    throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
   return provider(modelId ?? DEFAULT_MODEL);
@@ -357,11 +357,11 @@ const createImageModel = (apiKey?: string) => {
   // Fall back to Gemini API with the provided key
   const google = getGoogleModule();
   if (!google) {
-    throw new Error("Missing @ai-sdk/google dependency.");
+    throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
   const effectiveKey = apiKey ?? process.env.GEMINI_API_KEY;
   if (!effectiveKey) {
-    throw new Error("No API key available for image generation.");
+    throw new APIError({status: 500, title: "No API key available for image generation."});
   }
   const provider = google.createGoogleGenerativeAI({apiKey: effectiveKey});
   return provider.image("imagen-4.0-fast-generate-001");

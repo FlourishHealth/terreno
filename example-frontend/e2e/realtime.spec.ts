@@ -1,4 +1,5 @@
-import {type APIRequestContext, expect, request, test} from "@playwright/test";
+import {type APIRequestContext, request} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {SECOND_USER, TEST_USER} from "./fixtures/testUsers";
 import {clearTodos} from "./helpers/clearTodos";
 import {loginAs} from "./helpers/login";

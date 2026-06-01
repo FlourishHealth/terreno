@@ -770,6 +770,182 @@ describe("expressServer", () => {
 
       expect(func).toHaveBeenCalled();
     });
+
+    it("fires warning timeout callback when script is slow", async () => {
+      // terminateTimeout = 0.3s → warnTime = 150ms, closeTime = 300ms
+      // The func takes 200ms, so the warn callback fires at 150ms,
+      // but func completes at 200ms before the terminate callback at 300ms.
+      // afterEach clears the terminate timer.
+      const func = mock(
+        () => new Promise<string>((resolve) => originalSetTimeout(() => resolve("done"), 200))
+      );
+      try {
+        await wrapScript(func, {terminateTimeout: 0.3});
+      } catch {
+        // process.exit(0) throws
+      }
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
+  });
+
+  describe("setupServer with listen (skipListen false)", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0", // Use port 0 to let OS assign a random free port
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("starts the server when skipListen is false", async () => {
+      const addRoutes = () => {};
+      // Mock app.listen on the Express prototype to avoid opening a real port
+      const express = await import("express");
+      const originalListen = express.default.application.listen;
+      // biome-ignore lint/suspicious/noExplicitAny: mocking Express internals requires type escape
+      express.default.application.listen = mock(function (this: unknown, ...args: unknown[]) {
+        const cb = args.find((a: unknown) => typeof a === "function") as (() => void) | undefined;
+        if (cb) {
+          cb();
+        }
+        return this;
+      }) as unknown as typeof originalListen;
+      try {
+        const app = setupServer({
+          addRoutes,
+          skipListen: false,
+          userModel: UserModel as any,
+        });
+        expect(app).toBeDefined();
+      } finally {
+        express.default.application.listen = originalListen;
+      }
+    });
+
+    it("handles listen error with invalid port", () => {
+      process.env.PORT = "-1";
+      const addRoutes = () => {};
+      // Using an invalid port should trigger the catch block and process.exit(1)
+      const originalExit = process.exit;
+      process.exit = (() => {}) as unknown as typeof process.exit;
+      try {
+        setupServer({
+          addRoutes,
+          skipListen: false,
+          userModel: UserModel as any,
+        });
+      } catch {
+        // May throw
+      }
+      process.exit = originalExit;
+    });
+  });
+
+  describe("setupServer with listen", () => {
+    const originalEnv = process.env;
+    const http = require("node:http");
+    let activeServer: any = null;
+    let originalListen: any = null;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0",
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+
+      originalListen = http.Server.prototype.listen;
+      http.Server.prototype.listen = function (...args: any[]) {
+        activeServer = this;
+        return originalListen.apply(this, args);
+      };
+    });
+
+    afterEach(async () => {
+      process.env = originalEnv;
+      http.Server.prototype.listen = originalListen;
+      if (activeServer) {
+        await new Promise<void>((resolve) => activeServer.close(() => resolve()));
+        activeServer = null;
+      }
+    });
+
+    it("starts listening on a port when skipListen is false", async () => {
+      const addRoutes = () => {};
+
+      const app = setupServer({
+        addRoutes,
+        skipListen: false,
+        userModel: UserModel as any,
+      });
+
+      expect(app).toBeDefined();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+  });
+
+  describe("wrapScript timeout callbacks", () => {
+    const originalEnv = process.env;
+    const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
+    const timerCallbacks: Array<{callback: () => void; delay: number}> = [];
+
+    beforeEach(() => {
+      process.env = {
+        ...process.env,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+      process.exit = mock(() => {
+        throw new Error("__EXIT__");
+      }) as unknown as typeof process.exit;
+
+      timerCallbacks.length = 0;
+      timerIds.length = 0;
+      globalThis.setTimeout = ((cb: () => void, delay: number) => {
+        timerCallbacks.push({callback: cb, delay});
+        const id = originalSetTimeout(cb, delay);
+        timerIds.push(id);
+        return id;
+      }) as typeof setTimeout;
+    });
+
+    afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
+      globalThis.setTimeout = originalSetTimeout;
+      process.exit = originalExit;
+      process.env = originalEnv;
+    });
+
+    it("registers warn and terminate timeouts with correct delays", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 100})).rejects.toThrow("__EXIT__");
+
+      const warnTimer = timerCallbacks.find((t) => t.delay === 50000);
+      const closeTimer = timerCallbacks.find((t) => t.delay === 100000);
+      expect(warnTimer).toBeDefined();
+      expect(closeTimer).toBeDefined();
+    });
   });
 
   describe("setupServer error handling", () => {

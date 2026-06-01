@@ -7,6 +7,8 @@ import {
   APIError,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
+  errorMessage,
+  errorStack,
   errorsPlugin,
   getAPIErrorBody,
   getDisableExternalErrorTracking,
@@ -151,6 +153,36 @@ describe("getDisableExternalErrorTracking", () => {
 
   it("returns undefined for an object missing the property", () => {
     expect(getDisableExternalErrorTracking({foo: "bar"})).toBeUndefined();
+  });
+});
+
+describe("errorMessage", () => {
+  it("returns the message from an Error instance", () => {
+    expect(errorMessage(new Error("boom"))).toBe("boom");
+  });
+
+  it("returns the string representation of a non-Error value", () => {
+    expect(errorMessage("raw string")).toBe("raw string");
+    expect(errorMessage(42)).toBe("42");
+    expect(errorMessage(null)).toBe("null");
+  });
+});
+
+describe("errorStack", () => {
+  it("returns the stack trace from an Error with a stack", () => {
+    const err = new Error("fail");
+    expect(errorStack(err)).toBe(err.stack as string);
+  });
+
+  it("returns the string representation when error has no stack", () => {
+    const err = new Error("no-stack");
+    Object.defineProperty(err, "stack", {value: undefined});
+    expect(errorStack(err)).toBe("Error: no-stack");
+  });
+
+  it("returns the string representation of a non-Error value", () => {
+    expect(errorStack("plain")).toBe("plain");
+    expect(errorStack(123)).toBe("123");
   });
 });
 

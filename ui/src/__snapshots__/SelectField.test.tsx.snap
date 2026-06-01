@@ -1134,16 +1134,17 @@ exports[`SelectField renders disabled state 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                  "children": [
+                    "Please select an option.",
+                  ],
                   "props": {
-                    "readOnly": true,
                     "style": {
                       "color": "#686868",
+                      "flex": 1,
                     },
                     "testID": "text_input",
-                    "value": "Please select an option.",
                   },
-                  "type": "TextInput",
+                  "type": "Text",
                 },
                 {
                   "$$typeof": Symbol(react.test.json),

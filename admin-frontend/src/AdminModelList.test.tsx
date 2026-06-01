@@ -1,14 +1,16 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {AdminApi, AdminConfigResponse} from "./types";
 
 const routerPush = mock(() => {});
 mock.module("expo-router", () => ({
   router: {push: routerPush},
 }));
 
-const mockConfigState: {data: any; error: unknown; isLoading: boolean} = {
+const mockConfigState: {data: AdminConfigResponse | null; error: unknown; isLoading: boolean} = {
   data: null,
   error: null,
   isLoading: false,
@@ -51,32 +53,46 @@ describe("AdminModelList", () => {
 
   it("renders a spinner while loading", () => {
     mockConfigState.isLoading = true;
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
+    const {toJSON} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
     expect(toJSON()).toBeDefined();
   });
 
   it("renders an error message when loading fails", () => {
     mockConfigState.error = new Error("boom");
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
+    const {toJSON} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders cards for models, custom screens, scripts, and configuration", () => {
+  it("groups tools before models when tool cards are configured", () => {
     mockConfigState.data = baseConfig;
-    const {toJSON} = renderWithTheme(
+    const {getByTestId, getByText} = renderWithTheme(
       <AdminModelList
-        api={{} as any}
+        api={{} as unknown as AdminApi}
         baseUrl="/admin"
         configurationPath="/admin/configuration"
         customScreens={[{displayName: "Local", name: "local-screen"}]}
       />
     );
-    expect(toJSON()).toBeDefined();
+    expect(getByText("Tools")).toBeDefined();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-dashboard")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-local-screen")).toBeDefined();
+    expect(getByTestId("admin-scripts-card")).toBeDefined();
+    expect(getByTestId("admin-configuration-card")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
   });
 
-  it("renders the model grid when config has no scripts/custom screens", () => {
+  it("renders only the model section when config has no tool cards", () => {
     mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
-    const {toJSON} = renderWithTheme(<AdminModelList api={{} as any} baseUrl="/admin" />);
-    expect(toJSON()).toBeDefined();
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    expect(queryByText("Tools")).toBeNull();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
   });
 });

@@ -768,6 +768,9 @@ exports[`SegmentedControl renders with badges 1`] = `
                             "paddingVertical": 4,
                             "width": "auto",
                           },
+                          {
+                            "minWidth": 20,
+                          },
                           false,
                           false,
                         ],
@@ -859,6 +862,9 @@ exports[`SegmentedControl renders with badges 1`] = `
                             "paddingVertical": 4,
                             "width": "auto",
                           },
+                          {
+                            "minWidth": 20,
+                          },
                           false,
                           false,
                         ],
@@ -949,6 +955,9 @@ exports[`SegmentedControl renders with badges 1`] = `
                             "paddingHorizontal": 8,
                             "paddingVertical": 4,
                             "width": "auto",
+                          },
+                          {
+                            "minWidth": 20,
                           },
                           false,
                           false,

@@ -142,6 +142,51 @@ describe("resolveBaseUrls", () => {
     });
     expect(urls.baseUrl).toBe("http://localhost:4000");
   });
+
+  it("ignores BASE_URL from extra in dev mode and uses hostUri instead", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        expoConfig: {extra: {BASE_URL: "https://api.prod.com"}, hostUri: "192.168.0.10:8081"},
+      },
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://192.168.0.10:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://192.168.0.10:4000/");
+    expect(urls.baseTasksUrl).toBe("http://192.168.0.10:4000/tasks");
+  });
+
+  it("falls back to experienceUrl when hostUri is empty string", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        experienceUrl: "exp://10.0.0.5:19000",
+        expoConfig: {extra: {}, hostUri: ""},
+      },
+      isDev: true,
+    });
+    expect(urls.baseUrl).toBe("http://10.0.0.5:4000");
+  });
+
+  it("replaces 'api.' subdomain with 'tasks.' and 'ws.' for envApiUrl", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://api.staging.example.io",
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("https://api.staging.example.io");
+    expect(urls.baseWebsocketsUrl).toBe("https://ws.staging.example.io/");
+    expect(urls.baseTasksUrl).toBe("https://tasks.staging.example.io/tasks");
+  });
+
+  it("handles envApiUrl without 'api.' subdomain gracefully", () => {
+    const urls = resolveBaseUrls({
+      envApiUrl: "https://backend.example.com",
+      expoConstants: {expoConfig: {extra: {}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("https://backend.example.com");
+    expect(urls.baseWebsocketsUrl).toBe("https://backend.example.com/");
+    expect(urls.baseTasksUrl).toBe("https://backend.example.com/tasks");
+  });
 });
 
 describe("module-level exports", () => {
