@@ -65,9 +65,20 @@ const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<
 };
 
 const AVAILABLE_MODELS = [
+  {label: "Gemini 3.5 Flash", value: "gemini-3.5-flash"},
   {label: "Gemini 3.1 Flash Lite", value: "gemini-3.1-flash-lite"},
+  {label: "Gemini 3.1 Pro Preview", value: "gemini-3.1-pro-preview"},
   {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash"},
   {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro"},
+  ...(process.env.EXPO_PUBLIC_VERTEX_ANTHROPIC_MODELS === "true"
+    ? [
+        {label: "Claude Sonnet 4.6 (Vertex)", value: "claude-sonnet-4-6"},
+        {label: "Claude Opus 4.6 (Vertex)", value: "claude-opus-4-6"},
+      ]
+    : []),
+  ...(process.env.EXPO_PUBLIC_VERTEX_MAAS_MODELS === "true"
+    ? [{label: "GPT-OSS 20B (Vertex MaaS)", value: "openai/gpt-oss-20b-maas"}]
+    : []),
 ];
 
 const AiScreen: React.FC = () => {

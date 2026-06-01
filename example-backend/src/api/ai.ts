@@ -16,6 +16,12 @@ import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+import {
+  DEFAULT_VERTEX_MODEL_ID,
+  getVertexGeminiProvider,
+  resolveVertexLanguageModel,
+  TITLE_VERTEX_MODEL_ID,
+} from "./vertexModels";
 
 /** A provider that creates language models and image models from model IDs. */
 interface AIProvider {
@@ -27,11 +33,6 @@ interface AIProvider {
 interface GoogleModule {
   createGoogleGenerativeAI: (opts: {apiKey: string}) => AIProvider;
   google: AIProvider;
-}
-
-/** The subset of @ai-sdk/google-vertex we use (loaded dynamically). */
-interface VertexModule {
-  createVertex: (opts: {location: string; project: string}) => AIProvider;
 }
 
 let aiServiceInstance: AIService | undefined;
@@ -53,45 +54,25 @@ const getGoogleModule = (): GoogleModule | undefined => {
   }
 };
 
-const getVertexModule = (): VertexModule | undefined => {
-  try {
-    return require("@ai-sdk/google-vertex") as VertexModule;
-  } catch {
-    return undefined;
-  }
-};
+const DEFAULT_MODEL = DEFAULT_VERTEX_MODEL_ID;
+const TITLE_MODEL_ID = TITLE_VERTEX_MODEL_ID;
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
-
-let vertexProviderInstance: AIProvider | undefined;
-
-const getVertexProvider = (): AIProvider | undefined => {
-  if (vertexProviderInstance) {
-    return vertexProviderInstance;
-  }
-  const vertexModule = getVertexModule();
-  if (!vertexModule || !process.env.GOOGLE_VERTEX_PROJECT) {
-    return undefined;
-  }
-  vertexProviderInstance = vertexModule.createVertex({
-    location: process.env.GOOGLE_VERTEX_LOCATION ?? "us-central1",
-    project: process.env.GOOGLE_VERTEX_PROJECT,
-  });
-  return vertexProviderInstance;
-};
+const isVertexConfigured = (): boolean => Boolean(process.env.GOOGLE_VERTEX_PROJECT);
 
 const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
     return aiServiceInstance;
   }
 
-  // Prefer Vertex AI (uses Application Default Credentials)
-  const vertexProvider = getVertexProvider();
-  if (vertexProvider) {
-    aiServiceInstance = new AIService({
-      model: vertexProvider(DEFAULT_MODEL),
-    });
-    return aiServiceInstance;
+  // Prefer Vertex AI / Gemini Enterprise (Application Default Credentials)
+  if (isVertexConfigured()) {
+    const defaultModel = resolveVertexLanguageModel(DEFAULT_MODEL);
+    if (defaultModel) {
+      aiServiceInstance = new AIService({
+        model: defaultModel,
+      });
+      return aiServiceInstance;
+    }
   }
 
   // Fall back to Gemini API key
@@ -112,11 +93,13 @@ const getAiService = (): AIService | undefined => {
   return aiServiceInstance;
 };
 
-/** Create a LanguageModel on the server side (Vertex AI or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). */
-const createServerModel = (modelId?: string) => {
-  const vertexProvider = getVertexProvider();
-  if (vertexProvider) {
-    return vertexProvider(modelId ?? DEFAULT_MODEL);
+/** Create a LanguageModel on the server side (Vertex / Gemini Enterprise or Gemini API key). */
+const createServerModel = (modelId?: string): LanguageModel | undefined => {
+  if (isVertexConfigured()) {
+    const resolved = resolveVertexLanguageModel(modelId ?? DEFAULT_MODEL);
+    if (resolved) {
+      return resolved;
+    }
   }
 
   const google = getGoogleModule();
@@ -347,11 +330,11 @@ const generatePdfBytes = async ({
   return pdfDoc.save();
 };
 
-const createImageModel = (apiKey?: string) => {
-  // Prefer Vertex AI for image generation
-  const vertexProvider = getVertexProvider();
-  if (vertexProvider && !apiKey) {
-    return vertexProvider.image("imagen-4.0-fast-generate-001");
+const createImageModel = (apiKey?: string): ImageModel => {
+  // Prefer Vertex AI for image generation (Gemini provider only)
+  const vertexGemini = getVertexGeminiProvider();
+  if (vertexGemini && !apiKey) {
+    return vertexGemini.image("imagen-4.0-fast-generate-001");
   }
 
   // Fall back to Gemini API with the provided key
@@ -520,7 +503,7 @@ const getDemoTools = (): Record<string, Tool> => {
   };
 
   // Add server-side image generation when Vertex AI or a server API key is available
-  if (getVertexProvider() || process.env.GEMINI_API_KEY) {
+  if (isVertexConfigured() || process.env.GEMINI_API_KEY) {
     tools.generate_image = createImageTool();
   }
 
@@ -548,6 +531,7 @@ export const addAiRoutes = (
     maxSteps: 5,
     mcpService,
     openApiOptions: options,
+    titleModelId: TITLE_MODEL_ID,
     toolChoice: "auto",
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,
