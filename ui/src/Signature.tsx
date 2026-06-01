@@ -1,5 +1,6 @@
 import {
   type ReactElement,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
@@ -20,6 +21,13 @@ export interface SignatureProps {
 const SIGNATURE_WIDTH_PX = 300;
 const SIGNATURE_HEIGHT_PX = 180;
 const STROKE_WIDTH_PX = 2.5;
+
+interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+type DrawingEvent = ReactMouseEvent<HTMLCanvasElement> | ReactPointerEvent<HTMLCanvasElement>;
 
 /**
  * Web signature pad backed by a raw HTML5 <canvas> — no third-party library.
@@ -47,6 +55,28 @@ export const Signature = ({
     return canvas.getContext("2d");
   }, []);
 
+  const getCanvasPoint = useCallback((event: DrawingEvent): CanvasPoint | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return null;
+    }
+
+    const rect = canvas.getBoundingClientRect?.();
+    const displayWidth = rect?.width ?? canvas.clientWidth ?? canvas.width;
+    const displayHeight = rect?.height ?? canvas.clientHeight ?? canvas.height;
+    if (displayWidth <= 0 || displayHeight <= 0) {
+      return {
+        x: event.nativeEvent.offsetX,
+        y: event.nativeEvent.offsetY,
+      };
+    }
+
+    return {
+      x: (event.nativeEvent.offsetX / displayWidth) * canvas.width,
+      y: (event.nativeEvent.offsetY / displayHeight) * canvas.height,
+    };
+  }, []);
+
   /**
    * Paints the opaque background and configures stroke styling. Re-runs when
    * the theme changes so the pad matches the active light/dark colors.
@@ -71,43 +101,49 @@ export const Signature = ({
   }, [resetCanvas]);
 
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       const ctx = getContext();
-      if (!ctx) {
+      const point = getCanvasPoint(event);
+      if (!ctx || !point) {
         return;
       }
-      canvasRef.current?.setPointerCapture?.(event.pointerId);
+      if ("pointerId" in event) {
+        canvasRef.current?.setPointerCapture?.(event.pointerId);
+      }
       isDrawingRef.current = true;
       ctx.beginPath();
-      ctx.moveTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+      ctx.moveTo(point.x, point.y);
       onStart?.();
     },
-    [getContext, onStart]
+    [getCanvasPoint, getContext, onStart]
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       if (!isDrawingRef.current) {
         return;
       }
       const ctx = getContext();
-      if (!ctx) {
+      const point = getCanvasPoint(event);
+      if (!ctx || !point) {
         return;
       }
-      ctx.lineTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+      ctx.lineTo(point.x, point.y);
       ctx.stroke();
       hasDrawnRef.current = true;
     },
-    [getContext]
+    [getCanvasPoint, getContext]
   );
 
   const handlePointerUp = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       if (!isDrawingRef.current) {
         return;
       }
       isDrawingRef.current = false;
-      canvasRef.current?.releasePointerCapture?.(event.pointerId);
+      if ("pointerId" in event) {
+        canvasRef.current?.releasePointerCapture?.(event.pointerId);
+      }
       const canvas = canvasRef.current;
       if (hasDrawnRef.current && canvas) {
         onChange(canvas.toDataURL("image/png"));
@@ -138,6 +174,10 @@ export const Signature = ({
       >
         <canvas
           height={SIGNATURE_HEIGHT_PX}
+          onMouseDown={handlePointerDown}
+          onMouseLeave={handlePointerUp}
+          onMouseMove={handlePointerMove}
+          onMouseUp={handlePointerUp}
           onPointerDown={handlePointerDown}
           onPointerLeave={handlePointerUp}
           onPointerMove={handlePointerMove}

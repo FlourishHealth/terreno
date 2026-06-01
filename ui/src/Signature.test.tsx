@@ -37,6 +37,43 @@ describe("Signature", () => {
     expect(wrapper.props.style).toMatchObject({maxWidth: undefined, width: "100%"});
   });
 
+  it("maps scaled canvas pointer coordinates to the canvas buffer", () => {
+    const mockOnChange = mock(() => {});
+    const moveTo = mock(() => {});
+    const lineTo = mock(() => {});
+    const {UNSAFE_getByType} = renderWithTheme(<Signature onChange={mockOnChange} />);
+    const canvas = UNSAFE_getByType("canvas");
+    canvas.props.ref.current = {
+      clientHeight: 180,
+      clientWidth: 150,
+      getBoundingClientRect: () => ({height: 180, width: 150}),
+      getContext: () => ({
+        beginPath: mock(() => {}),
+        fillRect: mock(() => {}),
+        lineCap: "round",
+        lineJoin: "round",
+        lineTo,
+        moveTo,
+        stroke: mock(() => {}),
+      }),
+      height: 180,
+      setPointerCapture: mock(() => {}),
+      width: 300,
+    } as unknown as HTMLCanvasElement;
+
+    canvas.props.onPointerDown({
+      nativeEvent: {offsetX: 75, offsetY: 90},
+      pointerId: 1,
+    });
+    canvas.props.onPointerMove({
+      nativeEvent: {offsetX: 90, offsetY: 120},
+      pointerId: 1,
+    });
+
+    expect(moveTo).toHaveBeenCalledWith(150, 90);
+    expect(lineTo).toHaveBeenCalledWith(180, 120);
+  });
+
   it("notifies the parent with an empty value when Clear is pressed", () => {
     const mockOnChange = mock(() => {});
     const {getByText} = renderWithTheme(<Signature onChange={mockOnChange} />);

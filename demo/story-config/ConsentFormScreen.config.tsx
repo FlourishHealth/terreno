@@ -7,7 +7,7 @@ import {ConsentFormScreenDemo} from "../stories/ConsentFormScreen.stories";
 const renderConsentFormScreenDemo = (): ReactElement => <ConsentFormScreenDemo />;
 
 export const ConsentFormScreenConfiguration: DemoConfiguration = {
-  name: "Consent form screen",
+  name: "ConsentFormScreen",
   component: ConsentFormScreen,
   related: ["Button", "Signature field"],
   description: "The consent form screen renders consent content, required acknowledgements, signatures, and actions.",
