@@ -13,12 +13,20 @@ export interface SignatureProps {
   onChange: (signature: string) => void;
   onStart?: () => void;
   onEnd?: () => void;
+  fullWidth?: boolean;
   value?: string; // note this
 }
 
 const SIGNATURE_WIDTH_PX = 300;
 const SIGNATURE_HEIGHT_PX = 180;
 const STROKE_WIDTH_PX = 2.5;
+
+interface CanvasPoint {
+  x: number;
+  y: number;
+}
+
+type DrawingEvent = ReactPointerEvent<HTMLCanvasElement>;
 
 /**
  * Web signature pad backed by a raw HTML5 <canvas> — no third-party library.
@@ -27,7 +35,12 @@ const STROKE_WIDTH_PX = 2.5;
  * data URL via onChange. Clearing pushes "" so "signature required" gating in
  * parents resets immediately, since clearing the canvas emits no draw event.
  */
-export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElement => {
+export const Signature = ({
+  fullWidth = false,
+  onChange,
+  onStart,
+  onEnd,
+}: SignatureProps): ReactElement => {
   const {theme} = useTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -39,6 +52,28 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
       return null;
     }
     return canvas.getContext("2d");
+  }, []);
+
+  const getCanvasPoint = useCallback((event: DrawingEvent): CanvasPoint | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return null;
+    }
+
+    const rect = canvas.getBoundingClientRect?.();
+    const displayWidth = rect?.width ?? canvas.clientWidth ?? canvas.width;
+    const displayHeight = rect?.height ?? canvas.clientHeight ?? canvas.height;
+    if (displayWidth <= 0 || displayHeight <= 0) {
+      return {
+        x: event.nativeEvent.offsetX,
+        y: event.nativeEvent.offsetY,
+      };
+    }
+
+    return {
+      x: (event.nativeEvent.offsetX / displayWidth) * canvas.width,
+      y: (event.nativeEvent.offsetY / displayHeight) * canvas.height,
+    };
   }, []);
 
   /**
@@ -65,38 +100,40 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
   }, [resetCanvas]);
 
   const handlePointerDown = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       const ctx = getContext();
-      if (!ctx) {
+      const point = getCanvasPoint(event);
+      if (!ctx || !point) {
         return;
       }
       canvasRef.current?.setPointerCapture?.(event.pointerId);
       isDrawingRef.current = true;
       ctx.beginPath();
-      ctx.moveTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+      ctx.moveTo(point.x, point.y);
       onStart?.();
     },
-    [getContext, onStart]
+    [getCanvasPoint, getContext, onStart]
   );
 
   const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       if (!isDrawingRef.current) {
         return;
       }
       const ctx = getContext();
-      if (!ctx) {
+      const point = getCanvasPoint(event);
+      if (!ctx || !point) {
         return;
       }
-      ctx.lineTo(event.nativeEvent.offsetX, event.nativeEvent.offsetY);
+      ctx.lineTo(point.x, point.y);
       ctx.stroke();
       hasDrawnRef.current = true;
     },
-    [getContext]
+    [getCanvasPoint, getContext]
   );
 
   const handlePointerUp = useCallback(
-    (event: ReactPointerEvent<HTMLCanvasElement>): void => {
+    (event: DrawingEvent): void => {
       if (!isDrawingRef.current) {
         return;
       }
@@ -126,7 +163,7 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
         style={{
           borderColor: theme.border.dark,
           borderWidth: 1,
-          maxWidth: SIGNATURE_WIDTH_PX,
+          maxWidth: fullWidth ? undefined : SIGNATURE_WIDTH_PX,
           width: "100%",
         }}
       >
@@ -137,7 +174,13 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           ref={canvasRef}
-          style={{height: SIGNATURE_HEIGHT_PX, touchAction: "none", width: SIGNATURE_WIDTH_PX}}
+          style={{
+            display: "block",
+            height: SIGNATURE_HEIGHT_PX,
+            maxWidth: "100%",
+            touchAction: "none",
+            width: "100%",
+          }}
           width={SIGNATURE_WIDTH_PX}
         />
       </View>

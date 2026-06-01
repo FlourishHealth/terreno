@@ -4991,9 +4991,11 @@ exports[`Field renders signature field 1`] = `
               "current": null,
             },
             "style": {
+              "display": "block",
               "height": 180,
+              "maxWidth": "100%",
               "touchAction": "none",
-              "width": 300,
+              "width": "100%",
             },
             "width": 300,
           },
