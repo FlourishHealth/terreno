@@ -22,6 +22,13 @@ describe("Signature", () => {
     expect(getByText("Clear")).toBeTruthy();
   });
 
+  it("scales the web canvas to the available container width", () => {
+    const mockOnChange = mock(() => {});
+    const {UNSAFE_getByType} = renderWithTheme(<Signature onChange={mockOnChange} />);
+    const canvas = UNSAFE_getByType("canvas");
+    expect(canvas.props.style).toMatchObject({maxWidth: "100%", width: "100%"});
+  });
+
   it("notifies the parent with an empty value when Clear is pressed", () => {
     const mockOnChange = mock(() => {});
     const {getByText} = renderWithTheme(<Signature onChange={mockOnChange} />);

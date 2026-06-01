@@ -137,7 +137,13 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           ref={canvasRef}
-          style={{height: SIGNATURE_HEIGHT_PX, touchAction: "none", width: SIGNATURE_WIDTH_PX}}
+          style={{
+            display: "block",
+            height: SIGNATURE_HEIGHT_PX,
+            maxWidth: "100%",
+            touchAction: "none",
+            width: "100%",
+          }}
           width={SIGNATURE_WIDTH_PX}
         />
       </View>

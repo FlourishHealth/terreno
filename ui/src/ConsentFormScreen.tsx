@@ -59,8 +59,10 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
   const signatureProvided = !form.captureSignature || Boolean(signatureValue);
   const hasRequiredCheckboxes = form.checkboxes.some((checkbox) => checkbox.required);
+  const hasDeclineButton = Boolean(form.allowDecline && onDecline);
 
   const canAgree = hasScrolledToBottom && allRequiredCheckboxesChecked && signatureProvided;
+  const actionColumnStyle = {flexBasis: 0, minWidth: 0};
 
   // Auto-satisfy scroll requirement when content fits within the viewport
   const handleContentSizeChange = (_w: number, h: number) => {
@@ -126,9 +128,19 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
 
   const footer = (
     <Box alignSelf="center" maxWidth={800} testID="consent-form-footer" width="100%">
-      <Box direction="row" gap={4} paddingY={2} width="100%">
-        {Boolean(form.allowDecline && onDecline) && (
-          <Box flex="grow">
+      <Box
+        direction={hasDeclineButton ? "row" : "column"}
+        gap={4}
+        paddingY={2}
+        testID="consent-form-action-row"
+        width="100%"
+      >
+        {hasDeclineButton && (
+          <Box
+            dangerouslySetInlineStyle={{__style: actionColumnStyle}}
+            flex="grow"
+            testID="consent-form-action-column"
+          >
             <Button
               fullWidth
               onClick={onDecline!}
@@ -138,7 +150,11 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
             />
           </Box>
         )}
-        <Box flex="grow">
+        <Box
+          dangerouslySetInlineStyle={{__style: hasDeclineButton ? actionColumnStyle : {}}}
+          flex="grow"
+          testID={hasDeclineButton ? "consent-form-action-column" : undefined}
+        >
           <Button
             disabled={!canAgree}
             fullWidth
