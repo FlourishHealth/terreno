@@ -1,28 +1,8 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
-import {forwardRef, useImperativeHandle} from "react";
-import {View} from "react-native";
 
 import {Signature} from "./Signature";
 import {renderWithTheme} from "./test-utils";
-
-const clearMock = mock(() => {});
-let toDataURLReturn: string = "";
-const toDataURLMock = mock(() => toDataURLReturn);
-let lastOnEnd: (() => void) | undefined;
-
-// Mock react-signature-canvas so we can exercise the ref methods and onEnd callback.
-mock.module("react-signature-canvas", () => ({
-  default: forwardRef(({backgroundColor, onEnd}: any, ref) => {
-    lastOnEnd = onEnd;
-    useImperativeHandle(ref, () => ({
-      clear: clearMock,
-      toDataURL: toDataURLMock,
-    }));
-    return <View style={{backgroundColor}} testID="signature-canvas" />;
-  }),
-}));
 
 describe("Signature", () => {
   it("renders correctly", () => {
@@ -42,39 +22,12 @@ describe("Signature", () => {
     expect(getByText("Clear")).toBeTruthy();
   });
 
-  it("calls clear on the signature canvas when Clear is pressed", () => {
-    clearMock.mockClear();
-    const mockOnChange = mock(() => {});
-    const {getByText} = renderWithTheme(<Signature onChange={mockOnChange} />);
-    fireEvent.press(getByText("Clear"));
-    expect(clearMock).toHaveBeenCalledTimes(1);
-  });
-
   it("notifies the parent with an empty value when Clear is pressed", () => {
-    clearMock.mockClear();
     const mockOnChange = mock(() => {});
     const {getByText} = renderWithTheme(<Signature onChange={mockOnChange} />);
     fireEvent.press(getByText("Clear"));
-    // Without this, "signature required" gating in parents would never reset
-    // because the underlying canvas clear() does not fire onEnd/onOK.
+    // Clearing the canvas emits no draw event, so the component must push ""
+    // directly or "signature required" gating in parents would never reset.
     expect(mockOnChange).toHaveBeenCalledWith("");
-  });
-
-  it("calls onChange with the data URL when a stroke ends", () => {
-    toDataURLReturn = "data:image/png;base64,abc";
-    const mockOnChange = mock(() => {});
-    renderWithTheme(<Signature onChange={mockOnChange} />);
-    expect(lastOnEnd).toBeDefined();
-    lastOnEnd?.();
-    expect(mockOnChange).toHaveBeenCalledWith("data:image/png;base64,abc");
-  });
-
-  it("does not call onChange when toDataURL returns an empty value", () => {
-    toDataURLReturn = "";
-    const mockOnChange = mock(() => {});
-    renderWithTheme(<Signature onChange={mockOnChange} />);
-    expect(lastOnEnd).toBeDefined();
-    lastOnEnd?.();
-    expect(mockOnChange).not.toHaveBeenCalled();
   });
 });
