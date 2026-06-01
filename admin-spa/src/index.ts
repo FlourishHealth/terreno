@@ -6,5 +6,6 @@ export {
 export {
   AdminSpaServeApp,
   type AdminSpaServeOptions,
+  injectBaseGlobal,
   rewriteIndexHtml,
 } from "./serve";

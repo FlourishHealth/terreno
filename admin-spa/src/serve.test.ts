@@ -5,7 +5,7 @@ import path from "node:path";
 import express from "express";
 import request from "supertest";
 import {DEFAULT_APP_CONFIG} from "./appConfig";
-import {AdminSpaServeApp, rewriteIndexHtml} from "./serve";
+import {AdminSpaServeApp, injectBaseGlobal, rewriteIndexHtml} from "./serve";
 
 const STUB_INDEX =
   '<html><head><link href="/_expo/static/css/app.css"><script src="/_expo/static/js/web/entry.js"></script></head><body>STUB-SPA</body></html>';
@@ -54,6 +54,21 @@ describe("rewriteIndexHtml", () => {
   it("rewrites assets references too", () => {
     const out = rewriteIndexHtml('<img src="/assets/logo.png">', "/admin-ui");
     expect(out).toContain('src="/admin-ui/assets/logo.png"');
+  });
+});
+
+describe("injectBaseGlobal", () => {
+  it("injects window.__ADMIN_SPA_BASE__ before </head>", () => {
+    const out = injectBaseGlobal(
+      "<html><head><title>x</title></head><body></body></html>",
+      "/console"
+    );
+    expect(out).toContain('<script>window.__ADMIN_SPA_BASE__="/console";</script></head>');
+  });
+
+  it("falls back to prepending when there is no </head>", () => {
+    const out = injectBaseGlobal("<body>x</body>", "/admin-ui");
+    expect(out.startsWith('<script>window.__ADMIN_SPA_BASE__="/admin-ui";</script>')).toBe(true);
   });
 });
 
@@ -118,6 +133,11 @@ describe("AdminSpaServeApp", () => {
     const config = await request(app).get("/admin-ui/app-config.json");
     expect(config.status).toBe(200);
     expect(config.body.brandName).toBe(DEFAULT_APP_CONFIG.brandName);
+  });
+
+  it("injects the SPA base global into the served HTML", async () => {
+    const res = await request(makeApp()).get("/console/");
+    expect(res.text).toContain('window.__ADMIN_SPA_BASE__="/console"');
   });
 
   it("does not handle requests outside the base path", async () => {

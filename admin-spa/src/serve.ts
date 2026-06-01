@@ -38,6 +38,19 @@ export const rewriteIndexHtml = (rawIndex: string, basePath: string): string => 
 };
 
 /**
+ * Inject `window.__ADMIN_SPA_BASE__` so the SPA can build absolute URLs (e.g.
+ * `${base}/app-config.json`) regardless of the current deep route. Inserted before
+ * `</head>` so it runs before the bundle.
+ */
+export const injectBaseGlobal = (html: string, basePath: string): string => {
+  const script = `<script>window.__ADMIN_SPA_BASE__=${JSON.stringify(basePath)};</script>`;
+  if (html.includes("</head>")) {
+    return html.replace("</head>", `${script}</head>`);
+  }
+  return script + html;
+};
+
+/**
  * Opt-in Express plugin that serves a pre-built admin SPA (Expo Router static export)
  * from the same Node process as a Terreno backend. Mounts at `/console` by default.
  *
@@ -84,7 +97,10 @@ export class AdminSpaServeApp implements TerrenoPlugin {
     const indexHtmlPath = path.join(distDir, "index.html");
     let indexHtml = "";
     try {
-      indexHtml = rewriteIndexHtml(fs.readFileSync(indexHtmlPath, "utf-8"), basePath);
+      indexHtml = injectBaseGlobal(
+        rewriteIndexHtml(fs.readFileSync(indexHtmlPath, "utf-8"), basePath),
+        basePath
+      );
     } catch {
       logger.warn(
         `Admin SPA: no pre-built bundle found at ${indexHtmlPath}. ` +
