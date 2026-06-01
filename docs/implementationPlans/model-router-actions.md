@@ -10,7 +10,7 @@ Today, callers like `consentApp.ts` hand-roll actions inside the existing `endpo
 
 | Topic | Decision |
 |---|---|
-| Methods | `GET` and `POST` |
+| Methods | `GET` and `POST` only. `PUT`, `PATCH`, and `DELETE` actions are intentionally unsupported in v1 to avoid confusion with CRUD and array-field update/delete routes |
 | Schemas | Zod (input + output), used for both runtime validation and OpenAPI |
 | Doc loading | Auto-load on instance actions; 404 if missing; pass via `ctx.doc` |
 | Permissions | Same `PermissionMethod<T>[]` shape as CRUD; **required**; empty array `[]` means "disabled" (returns 405, matching CRUD semantics at `permissions.ts:90–95`); missing field throws at register time |
@@ -124,6 +124,16 @@ export const scheduleRouter = modelRouter('/schedules', Schedule, {
   permissions: { /* CRUD perms */ },
 
   instanceActions: {
+    status: {
+      method: 'GET',
+      permissions: [Permissions.IsOwner],
+      response: z.object({state: z.enum(['draft', 'published'])}),
+      summary: 'Get schedule status',
+      handler: async ({doc}) => {
+        return {state: doc.publishedAt ? 'published' : 'draft'};
+      },
+    },
+
     publish: {
       method: 'POST',
       permissions: [Permissions.IsOwner],
@@ -160,6 +170,10 @@ export const scheduleRouter = modelRouter('/schedules', Schedule, {
 ### Wire response
 
 ```
+GET /schedules/507f.../status
+→ 200 OK
+{"data": {"state": "published"}}
+
 POST /schedules/507f.../publish
 → 200 OK
 {"data": {"publishedAt": "2026-05-15T18:32:11.000Z"}}
