@@ -24,7 +24,20 @@ jobs:
     params:
       platform: ios
       profile: development
+      simulator: false
       fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
+
+  get_ios_sim_build:
+    name: Check for matching iOS simulator dev build
+    type: get-build
+    needs: [fingerprint]
+    params:
+      platform: ios
+      profile: development:simulator
+      simulator: true
+      fingerprint_hash: ${{ needs.fingerprint.outputs.ios_fingerprint_hash }}
+      wait_for_in_progress: true
 
   get_android_build:
     name: Check for matching Android dev build
@@ -34,6 +47,7 @@ jobs:
       platform: android
       profile: development
       fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      wait_for_in_progress: true
 
   build_ios:
     name: Build iOS dev client
@@ -43,6 +57,15 @@ jobs:
     params:
       platform: ios
       profile: development
+
+  build_ios_sim:
+    name: Build iOS simulator dev client
+    type: build
+    needs: [get_ios_sim_build]
+    if: ${{ needs.get_ios_sim_build.outputs.build_id == '' }}
+    params:
+      platform: ios
+      profile: development:simulator
 
   build_android:
     name: Build Android dev client
