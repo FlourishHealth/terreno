@@ -79,6 +79,17 @@ describe("vertexModelConfig", () => {
     expect(buildExampleVertexModelRegistryOptions().additionalCatalog).toBeUndefined();
   });
 
+  it("filters malformed entries from VERTEX_EXTRA_MODEL_CATALOG_JSON", () => {
+    process.env.VERTEX_EXTRA_MODEL_CATALOG_JSON = JSON.stringify([
+      {id: "partner-v1", label: "Partner", provider: "gemini"},
+      {id: "bad", label: "Bad", provider: "unknown"},
+      {label: "Missing id", provider: "gemini"},
+    ]);
+    expect(buildExampleVertexModelRegistryOptions().additionalCatalog).toEqual([
+      {id: "partner-v1", label: "Partner", provider: "gemini"},
+    ]);
+  });
+
   it("passes through default and title model env vars", () => {
     process.env.GOOGLE_VERTEX_DEFAULT_MODEL = "gemini-2.5-flash";
     process.env.GOOGLE_VERTEX_TITLE_MODEL = "gemini-2.5-flash";

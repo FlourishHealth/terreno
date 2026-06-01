@@ -1,6 +1,34 @@
 import {resetAiServiceCache} from "./api/ai";
-import type {VertexModelEntry, VertexModelRegistryOptions} from "./api/vertexModels";
+import type {
+  VertexModelEntry,
+  VertexModelProviderKind,
+  VertexModelRegistryOptions,
+} from "./api/vertexModels";
 import {configureVertexModels} from "./api/vertexModels";
+
+const isVertexProviderKind = (value: unknown): value is VertexModelProviderKind =>
+  value === "gemini" || value === "anthropic" || value === "maas";
+
+const isVertexModelEntry = (value: unknown): value is VertexModelEntry => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const entry = value as Record<string, unknown>;
+  if (typeof entry.id !== "string" || typeof entry.label !== "string") {
+    return false;
+  }
+  if (!isVertexProviderKind(entry.provider)) {
+    return false;
+  }
+  if (
+    entry.requiresFeatureFlag !== undefined &&
+    entry.requiresFeatureFlag !== "anthropic" &&
+    entry.requiresFeatureFlag !== "maas"
+  ) {
+    return false;
+  }
+  return true;
+};
 
 const parseBooleanEnv = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value === undefined) {
@@ -20,7 +48,11 @@ const parseExtraCatalogFromEnv = (): VertexModelEntry[] | undefined => {
     if (!Array.isArray(parsed)) {
       return undefined;
     }
-    return parsed as VertexModelEntry[];
+    const entries = parsed.filter(isVertexModelEntry);
+    if (entries.length === 0) {
+      return undefined;
+    }
+    return entries;
   } catch {
     return undefined;
   }

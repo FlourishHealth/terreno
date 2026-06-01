@@ -566,11 +566,20 @@ export const addAiRoutes = (
     ],
     asyncHandler(async (_req: express.Request, res: express.Response) => {
       const registry = getVertexModelRegistry();
+      const models = getVertexModelPickerOptions();
+      const configuredDefault = registry.getDefaultModelId();
+      const configuredTitle = registry.getTitleModelId();
+      const modelIds = new Set(models.map((model) => model.value));
+      const defaultModelId = modelIds.has(configuredDefault)
+        ? configuredDefault
+        : (models[0]?.value ?? configuredDefault);
+      const titleModelId = modelIds.has(configuredTitle) ? configuredTitle : defaultModelId;
+
       return res.json({
         data: {
-          defaultModelId: registry.getDefaultModelId(),
-          models: getVertexModelPickerOptions(),
-          titleModelId: registry.getTitleModelId(),
+          defaultModelId,
+          models,
+          titleModelId,
         },
       });
     })
