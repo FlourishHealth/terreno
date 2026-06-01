@@ -200,11 +200,7 @@ export class VertexModelRegistry {
     });
 
   getPickerOptions = (): VertexModelPickerOption[] =>
-    vertexCatalogToPickerOptions(
-      this.getEnabledCatalog(),
-      this.isAnthropicEnabled,
-      this.isMaasEnabled
-    );
+    vertexCatalogToPickerOptions(this.catalog, this.isAnthropicEnabled, this.isMaasEnabled);
 
   /** Whether the Anthropic Vertex SDK should be initialized for the active catalog/allowlist. */
   needsAnthropicProvider = (): boolean => {
@@ -288,12 +284,6 @@ export const getVertexModelPickerOptions = (): VertexModelPickerOption[] =>
 
 export const isVertexModelAllowed = (modelId: string): boolean =>
   getVertexModelRegistry().isModelAllowed(modelId);
-
-export const inferVertexModelProviderFromRegistry = (modelId: string): VertexModelProviderKind =>
-  getVertexModelRegistry().inferProvider(modelId);
-
-// Re-export with legacy name used by tests
-export {inferVertexModelProviderFromRegistry as inferVertexModelProviderForActiveRegistry};
 
 type LanguageModelFactory = (modelId: string) => LanguageModel;
 
