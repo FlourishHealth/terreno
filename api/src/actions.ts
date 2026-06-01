@@ -3,13 +3,13 @@ import type express from "express";
 import type {NextFunction, Request, Response} from "express";
 import type {Model} from "mongoose";
 import type {ZodSchema, ZodType} from "zod";
-
 import {asyncHandler, type ModelRouterOptions, type RESTMethod} from "./api";
 import {authenticateMiddleware, type User} from "./auth";
 import {loadDocOr404} from "./docLoader";
 import {APIError} from "./errors";
 import {defaultOpenApiErrorResponses} from "./openApi";
 import {checkPermissions, type PermissionMethod} from "./permissions";
+import {z} from "./zodOpenApi";
 
 // At least two characters: leading letter plus one or more alphanumeric/_/- chars.
 export const ACTION_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9_-]+$/;
@@ -131,6 +131,8 @@ export const validateActionRequest = <TBody, TQuery>({
       });
     }
     body = parsedBody.data;
+  } else {
+    body = req.body as TBody;
   }
 
   let query: TQuery | undefined;
@@ -144,6 +146,8 @@ export const validateActionRequest = <TBody, TQuery>({
       });
     }
     query = parsedQuery.data;
+  } else {
+    query = req.query as TQuery;
   }
 
   return {body, query};
@@ -207,74 +211,66 @@ export const createActionOpenApiMiddleware = <T>({
     return (_req, _res, next) => next();
   }
 
-  let registered = false;
   const tag = action.tag ?? model.collection.collectionName;
   const statusCode = String(action.status ?? 200);
-  const httpMethod = action.method.toLowerCase();
 
-  return (_req, _res, next) => {
-    if (!registered) {
-      registered = true;
-      const parameters: Record<string, unknown>[] = [];
-      if (scope === "instance") {
-        parameters.push({
-          in: "path",
-          name: "id",
-          required: true,
-          schema: {type: "string"},
-        });
-      }
-      if (action.query) {
-        parameters.push(...queryParametersFromSchema(action.query));
-      }
+  const parameters: Record<string, unknown>[] = [];
+  if (scope === "instance") {
+    parameters.push({
+      in: "path",
+      name: "id",
+      required: true,
+      schema: {type: "string"},
+    });
+  }
+  if (action.query) {
+    parameters.push(...queryParametersFromSchema(action.query));
+  }
 
-      const operation: Record<string, unknown> = {
-        description: action.description,
-        operationId: `${tag}_${actionName}`,
-        parameters,
-        responses: {
-          [statusCode]: {
-            content: action.response
+  const operation: Record<string, unknown> = {
+    description: action.description,
+    operationId: `${tag}_${actionName}`,
+    parameters,
+    responses: {
+      [statusCode]: {
+        content: {
+          "application/json": {
+            schema: action.response
               ? {
-                  "application/json": {
-                    schema: zodToJsonSchema(action.response),
+                  properties: {
+                    data: zodToJsonSchema(action.response),
                   },
+                  required: ["data"],
+                  type: "object",
                 }
               : {
-                  "application/json": {
-                    schema: {
-                      properties: {
-                        data: {type: "object"},
-                      },
-                      type: "object",
-                    },
+                  properties: {
+                    data: {type: "object"},
                   },
+                  type: "object",
                 },
-            description: "Successful response",
           },
-          ...defaultOpenApiErrorResponses,
         },
-        summary: action.summary ?? `${actionName} ${scope} action`,
-        tags: [tag],
-      };
-
-      if (action.body) {
-        operation.requestBody = {
-          content: {
-            "application/json": {
-              schema: zodToJsonSchema(action.body),
-            },
-          },
-          required: true,
-        };
-      }
-
-      options.openApi?.path({
-        [httpMethod]: operation,
-      });
-    }
-    return next();
+        description: "Successful response",
+      },
+      ...defaultOpenApiErrorResponses,
+    },
+    summary: action.summary ?? `${actionName} ${scope} action`,
+    tags: [tag],
   };
+
+  if (action.body) {
+    operation.requestBody = {
+      content: {
+        "application/json": {
+          schema: zodToJsonSchema(action.body),
+        },
+      },
+      required: true,
+    };
+  }
+
+  return options.openApi.path(operation);
 };
 
 const getArrayFieldNames = <T>(model: Model<T>): string[] => {

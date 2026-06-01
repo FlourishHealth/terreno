@@ -37,3 +37,4 @@ export * from "./types/consentForm";
 export * from "./types/consentResponse";
 export * from "./utils";
 export * from "./versionCheckPlugin";
+export {z} from "./zodOpenApi";

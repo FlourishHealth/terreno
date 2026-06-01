@@ -31,11 +31,14 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@playwright/test": "^1.58.2",
+    "@rtk-query/codegen-openapi": "catalog:",
     "@types/lodash": "catalog:",
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "babel-preset-expo": "~54.0.10",
     "mongodb": "^6.20.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.4",
     "typescript": "catalog:"
   },
   "main": "index.js",
