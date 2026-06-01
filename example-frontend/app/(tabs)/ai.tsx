@@ -88,7 +88,7 @@ const AiScreen: React.FC = () => {
   const {data: modelsData} = useGetGptModelsQuery(undefined, {skip: !userId});
 
   const availableModels = useMemo(() => {
-    const fromApi = modelsData?.data?.models;
+    const fromApi = modelsData?.models;
     if (fromApi && fromApi.length > 0) {
       return fromApi;
     }
@@ -97,7 +97,7 @@ const AiScreen: React.FC = () => {
 
   // Keep selected model valid when the server registry changes
   useEffect(() => {
-    const defaultId = modelsData?.data?.defaultModelId;
+    const defaultId = modelsData?.defaultModelId;
     if (!defaultId) {
       return;
     }

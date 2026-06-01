@@ -91,12 +91,11 @@ export interface GptModelOption {
   value: string;
 }
 
+/** emptyApi's base query already unwraps the `data` envelope from the API. */
 export interface GptModelsResponse {
-  data: {
-    defaultModelId: string;
-    models: GptModelOption[];
-    titleModelId: string;
-  };
+  defaultModelId: string;
+  models: GptModelOption[];
+  titleModelId: string;
 }
 
 export const terrenoApi = openapi
