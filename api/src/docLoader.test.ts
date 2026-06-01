@@ -1,8 +1,7 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
-
-import {APIError} from "./errors";
 import {loadDocOr404} from "./docLoader";
+import {APIError} from "./errors";
 
 describe("loadDocOr404", () => {
   it("returns hidden reason metadata when document is deleted", async () => {
