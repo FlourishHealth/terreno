@@ -109,13 +109,8 @@ const getAiService = (): AIService | undefined => {
 /** Create a LanguageModel on the server side (Vertex / Gemini Enterprise or Gemini API key). */
 const createServerModel = (modelId?: string): LanguageModel | undefined => {
   const resolvedId = modelId ?? getDefaultModelId();
-  const vertexBundle = getVertexProviderBundle();
 
-  if (vertexBundle) {
-    const registry = getVertexModelRegistry();
-    if (!registry.isModelAllowed(resolvedId)) {
-      return undefined;
-    }
+  if (getVertexProviderBundle()) {
     return resolveVertexLanguageModel(resolvedId);
   }
 
