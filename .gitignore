@@ -55,6 +55,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+research.md
 
 .claude/settings.local.json
 
