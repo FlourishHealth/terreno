@@ -112,18 +112,18 @@ export const terrenoApi = openapi
           url: "/aiRequestsExplorer",
         }),
       }),
+      getGptModels: builder.query<GptModelsResponse, void>({
+        query: () => ({
+          method: "GET",
+          url: "/gpt/models",
+        }),
+      }),
       // Get current user profile
       getMe: builder.query<ProfileResponse, void>({
         providesTags: ["profile"],
         query: () => ({
           method: "GET",
           url: "/auth/me",
-        }),
-      }),
-      getGptModels: builder.query<GptModelsResponse, void>({
-        query: () => ({
-          method: "GET",
-          url: "/gpt/models",
         }),
       }),
       // Update current user profile
