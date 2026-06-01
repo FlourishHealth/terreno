@@ -1,5 +1,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {fireEvent} from "@testing-library/react-native";
+import {View} from "react-native";
 
 import {Signature} from "./Signature";
 import {renderWithTheme} from "./test-utils";
@@ -27,6 +28,13 @@ describe("Signature", () => {
     const {UNSAFE_getByType} = renderWithTheme(<Signature onChange={mockOnChange} />);
     const canvas = UNSAFE_getByType("canvas");
     expect(canvas.props.style).toMatchObject({maxWidth: "100%", width: "100%"});
+  });
+
+  it("allows the signature box to fill its parent", () => {
+    const mockOnChange = mock(() => {});
+    const {UNSAFE_getAllByType} = renderWithTheme(<Signature fullWidth onChange={mockOnChange} />);
+    const wrapper = UNSAFE_getAllByType(View)[1];
+    expect(wrapper.props.style).toMatchObject({maxWidth: undefined, width: "100%"});
   });
 
   it("notifies the parent with an empty value when Clear is pressed", () => {

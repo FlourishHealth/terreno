@@ -236,6 +236,7 @@ export const ConsentFormScreen: React.FC<ConsentFormScreenProps> = ({
               testID="consent-form-signature"
             >
               <SignatureField
+                fullWidth
                 onChange={(value) => setSignatureValue(value)}
                 onEnd={() => setScrollEnabled(true)}
                 onStart={() => setScrollEnabled(false)}

@@ -13,6 +13,7 @@ export interface SignatureProps {
   onChange: (signature: string) => void;
   onStart?: () => void;
   onEnd?: () => void;
+  fullWidth?: boolean;
   value?: string; // note this
 }
 
@@ -27,7 +28,12 @@ const STROKE_WIDTH_PX = 2.5;
  * data URL via onChange. Clearing pushes "" so "signature required" gating in
  * parents resets immediately, since clearing the canvas emits no draw event.
  */
-export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElement => {
+export const Signature = ({
+  fullWidth = false,
+  onChange,
+  onStart,
+  onEnd,
+}: SignatureProps): ReactElement => {
   const {theme} = useTheme();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -126,7 +132,7 @@ export const Signature = ({onChange, onStart, onEnd}: SignatureProps): ReactElem
         style={{
           borderColor: theme.border.dark,
           borderWidth: 1,
-          maxWidth: SIGNATURE_WIDTH_PX,
+          maxWidth: fullWidth ? undefined : SIGNATURE_WIDTH_PX,
           width: "100%",
         }}
       >
