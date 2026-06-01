@@ -1,18 +1,16 @@
 import type React from "react";
-import {View} from "react-native";
+
+import {Box} from "./Box";
 import {useTheme} from "./Theme";
 
 export const SectionDivider: React.FC<{}> = () => {
   const {theme} = useTheme();
   return (
-    <View
-      accessibilityRole="none"
+    <Box
       aria-hidden={true}
-      style={{
-        backgroundColor: theme.primitives.neutral500,
-        height: 1,
-        width: "100%",
-      }}
+      height={1}
+      style={{backgroundColor: theme.primitives.neutral500}}
+      width="100%"
     />
   );
 };
