@@ -1,6 +1,6 @@
+import {resetAiServiceCache} from "./api/ai";
 import type {VertexModelEntry, VertexModelRegistryOptions} from "./api/vertexModels";
 import {configureVertexModels} from "./api/vertexModels";
-import {resetAiServiceCache} from "./api/ai";
 
 const parseBooleanEnv = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value === undefined) {
@@ -43,7 +43,10 @@ export const buildExampleVertexModelRegistryOptions = (): VertexModelRegistryOpt
       process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_GEMINI_MODELS,
       true
     ),
-    allowUnknownMaasModels: parseBooleanEnv(process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_MAAS_MODELS, false),
+    allowUnknownMaasModels: parseBooleanEnv(
+      process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_MAAS_MODELS,
+      false
+    ),
     catalogMode: process.env.VERTEX_MODEL_CATALOG_MODE === "replace" ? "replace" : "extend",
     defaultModelId: process.env.GOOGLE_VERTEX_DEFAULT_MODEL,
     includeDefaultCatalog: process.env.VERTEX_INCLUDE_DEFAULT_CATALOG !== "false",

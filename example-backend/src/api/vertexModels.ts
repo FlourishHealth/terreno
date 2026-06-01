@@ -200,7 +200,33 @@ export class VertexModelRegistry {
     });
 
   getPickerOptions = (): VertexModelPickerOption[] =>
-    vertexCatalogToPickerOptions(this.getEnabledCatalog(), this.isAnthropicEnabled, this.isMaasEnabled);
+    vertexCatalogToPickerOptions(
+      this.getEnabledCatalog(),
+      this.isAnthropicEnabled,
+      this.isMaasEnabled
+    );
+
+  /** Whether the Anthropic Vertex SDK should be initialized for the active catalog/allowlist. */
+  needsAnthropicProvider = (): boolean => {
+    if (!this.isAnthropicEnabled()) {
+      return false;
+    }
+    if (this.getEnabledCatalog().some((entry) => entry.provider === "anthropic")) {
+      return true;
+    }
+    return this.allowUnknownAnthropicModels;
+  };
+
+  /** Whether the MaaS Vertex SDK should be initialized for the active catalog/allowlist. */
+  needsMaasProvider = (): boolean => {
+    if (!this.isMaasEnabled()) {
+      return false;
+    }
+    if (this.getEnabledCatalog().some((entry) => entry.provider === "maas")) {
+      return true;
+    }
+    return this.allowUnknownMaasModels;
+  };
 
   inferProvider = (modelId: string): VertexModelProviderKind =>
     inferVertexModelProvider(modelId, this.catalogById);
@@ -230,8 +256,9 @@ export class VertexModelRegistry {
 }
 
 /** Create an isolated registry (does not affect the process-wide default). */
-export const createVertexModelRegistry = (options?: VertexModelRegistryOptions): VertexModelRegistry =>
-  new VertexModelRegistry(options);
+export const createVertexModelRegistry = (
+  options?: VertexModelRegistryOptions
+): VertexModelRegistry => new VertexModelRegistry(options);
 
 let activeRegistry: VertexModelRegistry = createVertexModelRegistry();
 
@@ -352,7 +379,7 @@ export const getVertexProviderBundle = (): VertexProviderBundle | undefined => {
   };
 
   const anthropicModule = getVertexAnthropicModule();
-  if (anthropicModule && registry.isModelAllowed("claude-sonnet-4-6")) {
+  if (anthropicModule && registry.needsAnthropicProvider()) {
     bundle.anthropic = anthropicModule.createVertexAnthropic({
       location: getAnthropicLocation(),
       project,
@@ -360,7 +387,7 @@ export const getVertexProviderBundle = (): VertexProviderBundle | undefined => {
   }
 
   const maasModule = getVertexMaasModule();
-  if (maasModule && registry.isModelAllowed("openai/gpt-oss-20b-maas")) {
+  if (maasModule && registry.needsMaasProvider()) {
     bundle.maas = maasModule.createVertexMaas({
       location: getGeminiLocation(),
       project,

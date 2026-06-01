@@ -83,22 +83,46 @@ describe("vertexModels", () => {
     const registry = getVertexModelRegistry();
     expect(registry.getDefaultModelId()).toBe("custom-gemini");
     expect(registry.getTitleModelId()).toBe("custom-gemini");
-    expect(getVertexModelPickerOptions()).toEqual([{label: "Custom Gemini", value: "custom-gemini"}]);
+    expect(getVertexModelPickerOptions()).toEqual([
+      {label: "Custom Gemini", value: "custom-gemini"},
+    ]);
     expect(isVertexModelAllowed("gemini-3.5-flash")).toBe(false);
     expect(isVertexModelAllowed("custom-gemini")).toBe(true);
   });
 
   it("configureVertexModels merges additional catalog entries in extend mode", () => {
     configureVertexModels({
-      additionalCatalog: [
-        {id: "partner-model-v1", label: "Partner Model", provider: "gemini"},
-      ],
+      additionalCatalog: [{id: "partner-model-v1", label: "Partner Model", provider: "gemini"}],
       catalogMode: "extend",
     });
 
     const ids = getEnabledVertexModelCatalog().map((entry) => entry.id);
     expect(ids).toContain("gemini-3.5-flash");
     expect(ids).toContain("partner-model-v1");
+  });
+
+  it("needsAnthropicProvider when replace catalog has only custom anthropic models", () => {
+    process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS = "true";
+
+    configureVertexModels({
+      allowUnknownAnthropicModels: false,
+      allowUnknownGeminiModels: false,
+      catalog: [
+        {
+          id: "claude-opus-4-6",
+          label: "Claude Opus 4.6 (Vertex)",
+          provider: "anthropic",
+          requiresFeatureFlag: "anthropic",
+        },
+      ],
+      catalogMode: "replace",
+    });
+
+    const registry = getVertexModelRegistry();
+    expect(registry.needsAnthropicProvider()).toBe(true);
+    expect(registry.needsMaasProvider()).toBe(false);
+    expect(isVertexModelAllowed("claude-opus-4-6")).toBe(true);
+    expect(isVertexModelAllowed("claude-sonnet-4-6")).toBe(false);
   });
 
   it("honors strict allowlist flags from configureVertexModels", () => {
