@@ -86,6 +86,19 @@ export interface SetAdminUserPasswordRequest {
   password: string;
 }
 
+export interface GptModelOption {
+  label: string;
+  value: string;
+}
+
+export interface GptModelsResponse {
+  data: {
+    defaultModelId: string;
+    models: GptModelOption[];
+    titleModelId: string;
+  };
+}
+
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
@@ -106,6 +119,12 @@ export const terrenoApi = openapi
         query: () => ({
           method: "GET",
           url: "/auth/me",
+        }),
+      }),
+      getGptModels: builder.query<GptModelsResponse, void>({
+        query: () => ({
+          method: "GET",
+          url: "/gpt/models",
         }),
       }),
       // Update current user profile
@@ -147,6 +166,7 @@ export const {
   useEmailSignUpMutation,
   useResetPasswordMutation,
   useGetMeQuery,
+  useGetGptModelsQuery,
   usePatchMeMutation,
   useGetAiRequestsExplorerQuery,
   useSetAdminUserPasswordMutation,

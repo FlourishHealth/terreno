@@ -36,6 +36,7 @@ import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
+import {configureExampleVertexModels} from "./vertexModelConfig";
 
 const BOOT_START_TIME = process.hrtime();
 
@@ -115,6 +116,8 @@ export async function start(skipListen = false): Promise<express.Application> {
   await syncConsents(consentDefinitions).catch((err: unknown) => {
     logger.warn(`Failed to sync consent forms on startup: ${err}`);
   });
+
+  configureExampleVertexModels();
 
   // Enable OpenAPI request validation. Strips unknown properties and logs them.
   configureOpenApiValidator({

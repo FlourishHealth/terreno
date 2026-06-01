@@ -10,13 +10,14 @@ import {
   useStoredState,
 } from "@terreno/ui";
 import type React from "react";
-import {useCallback, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import {useDispatch} from "react-redux";
 import {
   type GptHistory,
   terrenoApi,
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
+  useGetGptModelsQuery,
   usePatchGptHistoriesByIdMutation,
 } from "@/store";
 
@@ -64,21 +65,13 @@ const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<
   });
 };
 
-const AVAILABLE_MODELS = [
+/** Used when the backend model list is unavailable (offline / demo). */
+const FALLBACK_VERTEX_MODELS = [
   {label: "Gemini 3.5 Flash", value: "gemini-3.5-flash"},
   {label: "Gemini 3.1 Flash Lite", value: "gemini-3.1-flash-lite"},
   {label: "Gemini 3.1 Pro Preview", value: "gemini-3.1-pro-preview"},
   {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash"},
   {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro"},
-  ...(process.env.EXPO_PUBLIC_VERTEX_ANTHROPIC_MODELS === "true"
-    ? [
-        {label: "Claude Sonnet 4.6 (Vertex)", value: "claude-sonnet-4-6"},
-        {label: "Claude Opus 4.6 (Vertex)", value: "claude-opus-4-6"},
-      ]
-    : []),
-  ...(process.env.EXPO_PUBLIC_VERTEX_MAAS_MODELS === "true"
-    ? [{label: "GPT-OSS 20B (Vertex MaaS)", value: "openai/gpt-oss-20b-maas"}]
-    : []),
 ];
 
 const AiScreen: React.FC = () => {
@@ -87,11 +80,32 @@ const AiScreen: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [geminiApiKey, setGeminiApiKey] = useStoredState<string>("geminiApiKey", "");
   const [attachments, setAttachments] = useState<SelectedFile[]>([]);
-  const [selectedModel, setSelectedModel] = useState<string>(AVAILABLE_MODELS[0].value);
+  const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_VERTEX_MODELS[0].value);
 
   const dispatch = useDispatch();
   const userId = useSelectCurrentUserId();
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery(undefined, {skip: !userId});
+  const {data: modelsData} = useGetGptModelsQuery(undefined, {skip: !userId});
+
+  const availableModels = useMemo(() => {
+    const fromApi = modelsData?.data?.models;
+    if (fromApi && fromApi.length > 0) {
+      return fromApi;
+    }
+    return FALLBACK_VERTEX_MODELS;
+  }, [modelsData]);
+
+  // Keep selected model valid when the server registry changes
+  useEffect(() => {
+    const defaultId = modelsData?.data?.defaultModelId;
+    if (!defaultId) {
+      return;
+    }
+    const allowed = new Set(availableModels.map((model) => model.value));
+    if (!allowed.has(selectedModel)) {
+      setSelectedModel(defaultId);
+    }
+  }, [modelsData, availableModels, selectedModel]);
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 
@@ -414,7 +428,7 @@ const AiScreen: React.FC = () => {
   return (
     <GPTChat
       attachments={attachments}
-      availableModels={AVAILABLE_MODELS}
+      availableModels={availableModels}
       currentHistoryId={currentHistoryId}
       currentMessages={currentMessages}
       geminiApiKey={geminiApiKey}

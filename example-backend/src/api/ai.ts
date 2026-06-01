@@ -10,17 +10,17 @@ import {
   preparePromptForAI,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import {APIError, logger} from "@terreno/api";
+import {APIError, asyncHandler, authenticateMiddleware, createOpenApiBuilder, logger} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 import {
-  DEFAULT_VERTEX_MODEL_ID,
   getVertexGeminiProvider,
+  getVertexModelPickerOptions,
+  getVertexModelRegistry,
   resolveVertexLanguageModel,
-  TITLE_VERTEX_MODEL_ID,
 } from "./vertexModels";
 
 /** A provider that creates language models and image models from model IDs. */
@@ -39,6 +39,15 @@ let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
 
+/** Clears cached AIService so the next request picks up registry changes. */
+export const resetAiServiceCache = (): void => {
+  aiServiceInstance = undefined;
+};
+
+const getDefaultModelId = (): string => getVertexModelRegistry().getDefaultModelId();
+
+const getTitleModelId = (): string => getVertexModelRegistry().getTitleModelId();
+
 export const getFileStorageService = (): FileStorageService | undefined =>
   fileStorageServiceInstance;
 
@@ -54,9 +63,6 @@ const getGoogleModule = (): GoogleModule | undefined => {
   }
 };
 
-const DEFAULT_MODEL = DEFAULT_VERTEX_MODEL_ID;
-const TITLE_MODEL_ID = TITLE_VERTEX_MODEL_ID;
-
 const isVertexConfigured = (): boolean => Boolean(process.env.GOOGLE_VERTEX_PROJECT);
 
 const getAiService = (): AIService | undefined => {
@@ -66,7 +72,7 @@ const getAiService = (): AIService | undefined => {
 
   // Prefer Vertex AI / Gemini Enterprise (Application Default Credentials)
   if (isVertexConfigured()) {
-    const defaultModel = resolveVertexLanguageModel(DEFAULT_MODEL);
+    const defaultModel = resolveVertexLanguageModel(getDefaultModelId());
     if (defaultModel) {
       aiServiceInstance = new AIService({
         model: defaultModel,
@@ -88,7 +94,7 @@ const getAiService = (): AIService | undefined => {
 
   const provider = google.createGoogleGenerativeAI({apiKey});
   aiServiceInstance = new AIService({
-    model: provider(DEFAULT_MODEL),
+    model: provider(getDefaultModelId()),
   });
   return aiServiceInstance;
 };
@@ -96,7 +102,7 @@ const getAiService = (): AIService | undefined => {
 /** Create a LanguageModel on the server side (Vertex / Gemini Enterprise or Gemini API key). */
 const createServerModel = (modelId?: string): LanguageModel | undefined => {
   if (isVertexConfigured()) {
-    const resolved = resolveVertexLanguageModel(modelId ?? DEFAULT_MODEL);
+    const resolved = resolveVertexLanguageModel(modelId ?? getDefaultModelId());
     if (resolved) {
       return resolved;
     }
@@ -106,7 +112,7 @@ const createServerModel = (modelId?: string): LanguageModel | undefined => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (google && apiKey) {
     const provider = google.createGoogleGenerativeAI({apiKey});
-    return provider(modelId ?? DEFAULT_MODEL);
+    return provider(modelId ?? getDefaultModelId());
   }
 
   return undefined;
@@ -119,7 +125,7 @@ const createModelFromKey = (apiKey: string, modelId?: string) => {
     throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
   const provider = google.createGoogleGenerativeAI({apiKey});
-  return provider(modelId ?? DEFAULT_MODEL);
+  return provider(modelId ?? getDefaultModelId());
 };
 
 const getMcpService = (): MCPService | undefined => {
@@ -519,6 +525,46 @@ export const addAiRoutes = (
   const mcpService = getMcpService();
   const fileStorageService = initFileStorageService();
 
+  router.get(
+    "/gpt/models",
+    [
+      authenticateMiddleware(),
+      createOpenApiBuilder(options ?? {})
+        .withTags(["gpt"])
+        .withSummary("List available AI models for chat")
+        .withResponse(200, {
+          data: {
+            properties: {
+              defaultModelId: {type: "string"},
+              models: {
+                items: {
+                  properties: {
+                    label: {type: "string"},
+                    value: {type: "string"},
+                  },
+                  type: "object",
+                },
+                type: "array",
+              },
+              titleModelId: {type: "string"},
+            },
+            type: "object",
+          },
+        })
+        .build(),
+    ],
+    asyncHandler(async (_req: express.Request, res: express.Response) => {
+      const registry = getVertexModelRegistry();
+      return res.json({
+        data: {
+          defaultModelId: registry.getDefaultModelId(),
+          models: getVertexModelPickerOptions(),
+          titleModelId: registry.getTitleModelId(),
+        },
+      });
+    })
+  );
+
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
     aiService,
@@ -531,7 +577,7 @@ export const addAiRoutes = (
     maxSteps: 5,
     mcpService,
     openApiOptions: options,
-    titleModelId: TITLE_MODEL_ID,
+    titleModelId: getTitleModelId(),
     toolChoice: "auto",
     // biome-ignore lint/suspicious/noExplicitAny: Dual ai SDK resolution causes Tool type mismatch
     tools: getDemoTools() as any,

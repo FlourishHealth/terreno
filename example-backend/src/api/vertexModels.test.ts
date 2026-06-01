@@ -1,9 +1,13 @@
 import {afterEach, describe, expect, it} from "bun:test";
 import {
+  configureVertexModels,
   DEFAULT_VERTEX_MODEL_ID,
   getEnabledVertexModelCatalog,
+  getVertexModelPickerOptions,
+  getVertexModelRegistry,
   inferVertexModelProvider,
   isVertexModelAllowed,
+  resetVertexModels,
   TITLE_VERTEX_MODEL_ID,
 } from "./vertexModels";
 
@@ -22,6 +26,7 @@ describe("vertexModels", () => {
   afterEach(() => {
     restoreEnvVar("GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS", originalAnthropicFlag);
     restoreEnvVar("GOOGLE_VERTEX_ENABLE_MAAS_MODELS", originalMaasFlag);
+    resetVertexModels();
   });
 
   it("uses expected default and title model ids", () => {
@@ -64,5 +69,46 @@ describe("vertexModels", () => {
   it("allows unknown gemini-shaped ids for forward compatibility", () => {
     expect(isVertexModelAllowed("gemini-9-experimental")).toBe(true);
     expect(isVertexModelAllowed("claude-custom@20260101")).toBe(false);
+  });
+
+  it("configureVertexModels replaces defaults and catalog in replace mode", () => {
+    configureVertexModels({
+      allowUnknownGeminiModels: false,
+      catalog: [{id: "custom-gemini", label: "Custom Gemini", provider: "gemini"}],
+      catalogMode: "replace",
+      defaultModelId: "custom-gemini",
+      titleModelId: "custom-gemini",
+    });
+
+    const registry = getVertexModelRegistry();
+    expect(registry.getDefaultModelId()).toBe("custom-gemini");
+    expect(registry.getTitleModelId()).toBe("custom-gemini");
+    expect(getVertexModelPickerOptions()).toEqual([{label: "Custom Gemini", value: "custom-gemini"}]);
+    expect(isVertexModelAllowed("gemini-3.5-flash")).toBe(false);
+    expect(isVertexModelAllowed("custom-gemini")).toBe(true);
+  });
+
+  it("configureVertexModels merges additional catalog entries in extend mode", () => {
+    configureVertexModels({
+      additionalCatalog: [
+        {id: "partner-model-v1", label: "Partner Model", provider: "gemini"},
+      ],
+      catalogMode: "extend",
+    });
+
+    const ids = getEnabledVertexModelCatalog().map((entry) => entry.id);
+    expect(ids).toContain("gemini-3.5-flash");
+    expect(ids).toContain("partner-model-v1");
+  });
+
+  it("honors strict allowlist flags from configureVertexModels", () => {
+    configureVertexModels({
+      allowUnknownAnthropicModels: true,
+      allowUnknownGeminiModels: false,
+      isAnthropicEnabled: () => true,
+    });
+
+    expect(isVertexModelAllowed("gemini-9-experimental")).toBe(false);
+    expect(isVertexModelAllowed("claude-custom-2026")).toBe(true);
   });
 });
