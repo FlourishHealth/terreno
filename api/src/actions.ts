@@ -1,4 +1,4 @@
-import {OpenApiGeneratorV3} from "@asteasolutions/zod-to-openapi";
+import {OpenAPIRegistry, OpenApiGeneratorV3} from "@asteasolutions/zod-to-openapi";
 import type express from "express";
 import type {NextFunction, Request, Response} from "express";
 import type {Model} from "mongoose";
@@ -159,18 +159,19 @@ export const wrapActionResponse = (
   res.status(action.status ?? 200).json({data: handlerResult ?? null});
 };
 
+let inlineOpenApiSchemaCounter = 0;
+
 const zodToJsonSchema = (zodSchema: ZodType): Record<string, unknown> => {
-  const generator = new OpenApiGeneratorV3([zodSchema]);
+  const registry = new OpenAPIRegistry();
+  const refId = `ActionInlineSchema${inlineOpenApiSchemaCounter++}`;
+  registry.register(refId, zodSchema);
+  const generator = new OpenApiGeneratorV3(registry.definitions);
   const {components} = generator.generateComponents();
-  const schemas = components?.schemas;
-  if (!schemas) {
-    return {type: "object"};
+  const schema = components?.schemas?.[refId];
+  if (schema && typeof schema === "object") {
+    return schema as Record<string, unknown>;
   }
-  const schemaValues = Object.values(schemas);
-  if (schemaValues.length === 0) {
-    return {type: "object"};
-  }
-  return schemaValues[0] as Record<string, unknown>;
+  return {type: "object"};
 };
 
 const queryParametersFromSchema = (querySchema: ZodType): Record<string, unknown>[] => {
@@ -281,6 +282,7 @@ const getArrayFieldNames = <T>(model: Model<T>): string[] => {
     .map((config) => config.path);
 };
 
+// Registration-time validation throws plain Error so misconfiguration fails at app boot.
 const validateActionConfig = (
   scope: ActionScope,
   name: string,
