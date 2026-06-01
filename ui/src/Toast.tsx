@@ -11,15 +11,17 @@ import {isAPIError, printAPIError} from "./Utilities";
 
 const TOAST_DURATION_MS = 3 * 1000;
 
-type UseToastVariantOptions = {
+interface UseToastVariantOptions {
   persistent?: ToastProps["persistent"];
   secondary?: ToastProps["secondary"];
   size?: ToastProps["size"];
   onDismiss?: ToastProps["onDismiss"];
   subtitle?: ToastProps["subtitle"];
-};
+}
 
-type UseToastOptions = {variant?: ToastProps["variant"]} & UseToastVariantOptions;
+interface UseToastOptions extends UseToastVariantOptions {
+  variant?: ToastProps["variant"];
+}
 
 export const useToast = (): {
   hide: (id: string) => void;

@@ -1,9 +1,8 @@
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import debounce from "lodash/debounce";
 import {type FC, useState} from "react";
-import {ActivityIndicator, Text as NativeText, Pressable} from "react-native";
+import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
-import {Box} from "./Box";
 import type {IconButtonProps} from "./Common";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
@@ -151,7 +150,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
         />
       )}
       {Boolean(indicator) && (
-        <Box
+        <View
           style={{
             alignItems: "center",
             backgroundColor: indicatorColor,
@@ -179,7 +178,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
               {indicatorText}
             </NativeText>
           )}
-        </Box>
+        </View>
       )}
       {withConfirmation && (
         <ConfirmationModal

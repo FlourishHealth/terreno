@@ -5,14 +5,11 @@ exports[`SectionDivider renders correctly 1`] = `
   "$$typeof": Symbol(react.test.json),
   "children": null,
   "props": {
-    "onPointerEnter": [Function: AsyncFunction],
-    "onPointerLeave": [Function: AsyncFunction],
+    "accessibilityRole": "none",
+    "aria-hidden": true,
     "style": {
-      "aria-hidden": true,
+      "backgroundColor": "#9A9A9A",
       "height": 1,
-      "style": {
-        "backgroundColor": "#9A9A9A",
-      },
       "width": "100%",
     },
     "testID": undefined,
@@ -26,14 +23,11 @@ exports[`SectionDivider is hidden from accessibility 1`] = `
   "$$typeof": Symbol(react.test.json),
   "children": null,
   "props": {
-    "onPointerEnter": [Function: AsyncFunction],
-    "onPointerLeave": [Function: AsyncFunction],
+    "accessibilityRole": "none",
+    "aria-hidden": true,
     "style": {
-      "aria-hidden": true,
+      "backgroundColor": "#9A9A9A",
       "height": 1,
-      "style": {
-        "backgroundColor": "#9A9A9A",
-      },
       "width": "100%",
     },
     "testID": undefined,
