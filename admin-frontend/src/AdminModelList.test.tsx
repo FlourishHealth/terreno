@@ -67,9 +67,9 @@ describe("AdminModelList", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders cards for models, custom screens, scripts, and configuration", () => {
+  it("groups tools before models when tool cards are configured", () => {
     mockConfigState.data = baseConfig;
-    const {toJSON} = renderWithTheme(
+    const {getByTestId, getByText} = renderWithTheme(
       <AdminModelList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -77,14 +77,22 @@ describe("AdminModelList", () => {
         customScreens={[{displayName: "Local", name: "local-screen"}]}
       />
     );
-    expect(toJSON()).toBeDefined();
+    expect(getByText("Tools")).toBeDefined();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-dashboard")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-local-screen")).toBeDefined();
+    expect(getByTestId("admin-scripts-card")).toBeDefined();
+    expect(getByTestId("admin-configuration-card")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
   });
 
-  it("renders the model grid when config has no scripts/custom screens", () => {
+  it("renders only the model section when config has no tool cards", () => {
     mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
-    const {toJSON} = renderWithTheme(
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
       <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
     );
-    expect(toJSON()).toBeDefined();
+    expect(queryByText("Tools")).toBeNull();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
   });
 });
