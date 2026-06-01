@@ -51,6 +51,22 @@ describe("TerrenoApp", () => {
 
       expect(app).toBeDefined();
     });
+
+    it("allows flourish-lb Netlify preflight requests by default", async () => {
+      const origin = "https://flourish-lb.netlify.app";
+      const app = new TerrenoApp({
+        skipListen: true,
+        userModel: typedUserModel,
+      }).build();
+
+      const res = await supertest(app)
+        .options("/version-check?platform=web&version=3497")
+        .set("Access-Control-Request-Method", "GET")
+        .set("Origin", origin);
+
+      expect(res.status).toBe(204);
+      expect(res.headers["access-control-allow-origin"]).toBe(origin);
+    });
   });
 
   describe("start", () => {

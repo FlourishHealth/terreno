@@ -39,6 +39,10 @@ type CorsOrigin =
       ) => void
     ) => void);
 
+const reflectRequestOrigin: CorsOrigin = (requestOrigin, callback) => {
+  callback(null, requestOrigin ?? true);
+};
+
 /**
  * Configuration options for TerrenoApp.
  */
@@ -261,7 +265,7 @@ export class TerrenoApp {
 
     app.use(requestContextMiddleware);
 
-    app.use(cors({credentials: true, origin: options.corsOrigin ?? "*"}));
+    app.use(cors({credentials: true, origin: options.corsOrigin ?? reflectRequestOrigin}));
 
     // Apply custom middleware before JSON parsing
     for (const fn of this.middlewareFns) {
