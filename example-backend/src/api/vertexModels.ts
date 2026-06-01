@@ -1,4 +1,5 @@
 import type {ImageModel, LanguageModel} from "ai";
+import {getVertexAdminSettings, isVertexAiEnabled} from "../vertexAdminSettings";
 
 /** Vertex / Gemini Enterprise Agent Platform model provider kind. */
 export type VertexModelProviderKind = "gemini" | "anthropic" | "maas";
@@ -7,7 +8,7 @@ export interface VertexModelEntry {
   id: string;
   label: string;
   provider: VertexModelProviderKind;
-  /** When true, only listed when the matching GOOGLE_VERTEX_ENABLE_* env is set. */
+  /** When set, entry is gated by the matching admin provider toggle. */
   requiresFeatureFlag?: "anthropic" | "maas";
 }
 
@@ -79,11 +80,19 @@ export const DEFAULT_VERTEX_MODEL_ID = "gemini-3.5-flash";
 /** Lightweight model for auto-generated conversation titles. */
 export const TITLE_VERTEX_MODEL_ID = "gemini-3.1-flash-lite";
 
-const defaultIsAnthropicFeatureEnabled = (): boolean =>
-  process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS === "true";
-
-const defaultIsMaasFeatureEnabled = (): boolean =>
-  process.env.GOOGLE_VERTEX_ENABLE_MAAS_MODELS === "true";
+const isEntryEnabledForProviderToggles = (
+  entry: VertexModelEntry,
+  isAnthropicEnabled: () => boolean,
+  isMaasEnabled: () => boolean
+): boolean => {
+  if (entry.provider === "anthropic" || entry.requiresFeatureFlag === "anthropic") {
+    return isAnthropicEnabled();
+  }
+  if (entry.provider === "maas" || entry.requiresFeatureFlag === "maas") {
+    return isMaasEnabled();
+  }
+  return true;
+};
 
 const mergeCatalogEntries = (...groups: VertexModelEntry[][]): VertexModelEntry[] => {
   const byId = new Map<string, VertexModelEntry>();
@@ -111,19 +120,11 @@ const resolveCatalog = (options: VertexModelRegistryOptions): VertexModelEntry[]
 /** Map catalog entries to UI picker options (enabled entries only). */
 const vertexCatalogToPickerOptions = (
   entries: VertexModelEntry[],
-  isAnthropicEnabled: () => boolean = defaultIsAnthropicFeatureEnabled,
-  isMaasEnabled: () => boolean = defaultIsMaasFeatureEnabled
+  isAnthropicEnabled: () => boolean,
+  isMaasEnabled: () => boolean
 ): VertexModelPickerOption[] =>
   entries
-    .filter((entry) => {
-      if (entry.requiresFeatureFlag === "anthropic") {
-        return isAnthropicEnabled();
-      }
-      if (entry.requiresFeatureFlag === "maas") {
-        return isMaasEnabled();
-      }
-      return true;
-    })
+    .filter((entry) => isEntryEnabledForProviderToggles(entry, isAnthropicEnabled, isMaasEnabled))
     .map((entry) => ({label: entry.label, value: entry.id}));
 
 /**
@@ -174,8 +175,8 @@ export class VertexModelRegistry {
     this.allowUnknownGeminiModels = options.allowUnknownGeminiModels ?? true;
     this.allowUnknownAnthropicModels = options.allowUnknownAnthropicModels ?? false;
     this.allowUnknownMaasModels = options.allowUnknownMaasModels ?? false;
-    this.isAnthropicEnabled = options.isAnthropicEnabled ?? defaultIsAnthropicFeatureEnabled;
-    this.isMaasEnabled = options.isMaasEnabled ?? defaultIsMaasFeatureEnabled;
+    this.isAnthropicEnabled = options.isAnthropicEnabled ?? (() => false);
+    this.isMaasEnabled = options.isMaasEnabled ?? (() => false);
   }
 
   getDefaultModelId = (): string => this.defaultModelId;
@@ -186,15 +187,9 @@ export class VertexModelRegistry {
 
   /** Models exposed in API/UI given current env flags. */
   getEnabledCatalog = (): VertexModelEntry[] =>
-    this.catalog.filter((entry) => {
-      if (entry.requiresFeatureFlag === "anthropic") {
-        return this.isAnthropicEnabled();
-      }
-      if (entry.requiresFeatureFlag === "maas") {
-        return this.isMaasEnabled();
-      }
-      return true;
-    });
+    this.catalog.filter((entry) =>
+      isEntryEnabledForProviderToggles(entry, this.isAnthropicEnabled, this.isMaasEnabled)
+    );
 
   getPickerOptions = (): VertexModelPickerOption[] =>
     vertexCatalogToPickerOptions(this.catalog, this.isAnthropicEnabled, this.isMaasEnabled);
@@ -228,13 +223,7 @@ export class VertexModelRegistry {
   isModelAllowed = (modelId: string): boolean => {
     const entry = this.catalogById.get(modelId);
     if (entry) {
-      if (entry.requiresFeatureFlag === "anthropic") {
-        return this.isAnthropicEnabled();
-      }
-      if (entry.requiresFeatureFlag === "maas") {
-        return this.isMaasEnabled();
-      }
-      return true;
+      return isEntryEnabledForProviderToggles(entry, this.isAnthropicEnabled, this.isMaasEnabled);
     }
 
     const providerKind = this.inferProvider(modelId);
@@ -355,12 +344,16 @@ interface VertexProviderBundle {
 
 let vertexProviderBundle: VertexProviderBundle | undefined;
 
-const getVertexProject = (): string | undefined => process.env.GOOGLE_VERTEX_PROJECT;
+const getVertexProject = (): string | undefined => {
+  if (!isVertexAiEnabled()) {
+    return undefined;
+  }
+  return getVertexAdminSettings().projectId;
+};
 
-const getGeminiLocation = (): string => process.env.GOOGLE_VERTEX_LOCATION ?? "us-central1";
+const getGeminiLocation = (): string => getVertexAdminSettings().location;
 
-const getAnthropicLocation = (): string =>
-  process.env.GOOGLE_VERTEX_ANTHROPIC_LOCATION ?? "us-east5";
+const getAnthropicLocation = (): string => getVertexAdminSettings().anthropicLocation;
 
 /** Lazy-init Vertex providers (Gemini, Anthropic, MaaS) for Gemini Enterprise. */
 export const getVertexProviderBundle = (): VertexProviderBundle | undefined => {

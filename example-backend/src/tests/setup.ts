@@ -1,6 +1,7 @@
 import {afterAll, afterEach, beforeAll} from "bun:test";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+import {DEFAULT_VERTEX_ADMIN_SETTINGS, setVertexAdminSettings} from "../vertexAdminSettings";
 
 // Test database URI
 const TEST_MONGO_URI =
@@ -21,7 +22,10 @@ beforeAll(async () => {
   process.env.GCP_SERVICE_ACCOUNT_EMAIL = "TESTserviceAccountEmail@terreno-example.test";
   process.env.GCP_TASKS_NOTIFICATIONS_QUEUE = "TESTnotificationsQueue";
   process.env.GCP_TASK_PROCESSOR_QUEUE = "TESTtaskProcessorQueue";
-  process.env.GEMINI_API_KEY = "test-api-key";
+  setVertexAdminSettings({
+    ...DEFAULT_VERTEX_ADMIN_SETTINGS,
+    geminiApiKey: "test-api-key",
+  });
   process.env.SLACK_WEBHOOKS = '{"default": "http://localhost:3000/slack/TEST"}';
   process.env.GOOGLE_CHAT_WEBHOOKS = '{"default": "http://localhost:3000/googleChat/TEST"}';
   process.env.TOKEN_EXPIRES_IN = "1h";

@@ -13,21 +13,8 @@ import {
   TITLE_VERTEX_MODEL_ID,
 } from "./vertexModels";
 
-const restoreEnvVar = (key: string, original: string | undefined): void => {
-  if (original === undefined) {
-    delete process.env[key];
-    return;
-  }
-  process.env[key] = original;
-};
-
 describe("vertexModels", () => {
-  const originalAnthropicFlag = process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS;
-  const originalMaasFlag = process.env.GOOGLE_VERTEX_ENABLE_MAAS_MODELS;
-
   afterEach(() => {
-    restoreEnvVar("GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS", originalAnthropicFlag);
-    restoreEnvVar("GOOGLE_VERTEX_ENABLE_MAAS_MODELS", originalMaasFlag);
     resetVertexModels();
   });
 
@@ -43,9 +30,11 @@ describe("vertexModels", () => {
     expect(inferVertexModelProvider("deepseek-ai/deepseek-v3.2-maas")).toBe("maas");
   });
 
-  it("excludes anthropic and maas catalog entries unless feature flags are set", () => {
-    delete process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS;
-    delete process.env.GOOGLE_VERTEX_ENABLE_MAAS_MODELS;
+  it("excludes anthropic and maas catalog entries unless provider toggles are on", () => {
+    configureVertexModels({
+      isAnthropicEnabled: () => false,
+      isMaasEnabled: () => false,
+    });
 
     const ids = getEnabledVertexModelCatalog().map((entry) => entry.id);
     expect(ids).toContain("gemini-3.5-flash");
@@ -53,22 +42,32 @@ describe("vertexModels", () => {
     expect(ids).not.toContain("openai/gpt-oss-20b-maas");
   });
 
-  it("includes optional models when feature flags are enabled", () => {
-    process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS = "true";
-    process.env.GOOGLE_VERTEX_ENABLE_MAAS_MODELS = "true";
+  it("includes optional models when provider toggles are enabled", () => {
+    configureVertexModels({
+      isAnthropicEnabled: () => true,
+      isMaasEnabled: () => true,
+    });
 
     const ids = getEnabledVertexModelCatalog().map((entry) => entry.id);
     expect(ids).toContain("claude-sonnet-4-6");
     expect(ids).toContain("openai/gpt-oss-20b-maas");
   });
 
-  it("blocks catalog anthropic models when feature flag is off", () => {
-    delete process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS;
+  it("blocks catalog anthropic models when anthropic toggle is off", () => {
+    configureVertexModels({
+      isAnthropicEnabled: () => false,
+      isMaasEnabled: () => false,
+    });
     expect(isVertexModelAllowed("claude-sonnet-4-6")).toBe(false);
     expect(isVertexModelAllowed("gemini-3.1-pro-preview")).toBe(true);
   });
 
   it("allows unknown gemini-shaped ids for forward compatibility", () => {
+    configureVertexModels({
+      allowUnknownGeminiModels: true,
+      isAnthropicEnabled: () => false,
+      isMaasEnabled: () => false,
+    });
     expect(isVertexModelAllowed("gemini-9-experimental")).toBe(true);
     expect(isVertexModelAllowed("claude-custom@20260101")).toBe(false);
   });
@@ -79,6 +78,8 @@ describe("vertexModels", () => {
       catalog: [{id: "custom-gemini", label: "Custom Gemini", provider: "gemini"}],
       catalogMode: "replace",
       defaultModelId: "custom-gemini",
+      isAnthropicEnabled: () => false,
+      isMaasEnabled: () => false,
       titleModelId: "custom-gemini",
     });
 
@@ -96,6 +97,8 @@ describe("vertexModels", () => {
     configureVertexModels({
       additionalCatalog: [{id: "partner-model-v1", label: "Partner Model", provider: "gemini"}],
       catalogMode: "extend",
+      isAnthropicEnabled: () => false,
+      isMaasEnabled: () => false,
     });
 
     const ids = getEnabledVertexModelCatalog().map((entry) => entry.id);
@@ -104,8 +107,6 @@ describe("vertexModels", () => {
   });
 
   it("needsAnthropicProvider when replace catalog has only custom anthropic models", () => {
-    process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS = "true";
-
     configureVertexModels({
       allowUnknownAnthropicModels: false,
       allowUnknownGeminiModels: false,
@@ -118,6 +119,8 @@ describe("vertexModels", () => {
         },
       ],
       catalogMode: "replace",
+      isAnthropicEnabled: () => true,
+      isMaasEnabled: () => false,
     });
 
     const registry = getVertexModelRegistry();
@@ -128,8 +131,6 @@ describe("vertexModels", () => {
   });
 
   it("buildGptModelsResponseData falls back when default is not enabled", () => {
-    process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS = "true";
-
     const registry = createVertexModelRegistry({
       catalog: [
         {
@@ -141,6 +142,8 @@ describe("vertexModels", () => {
       ],
       catalogMode: "replace",
       defaultModelId: "gemini-3.5-flash",
+      isAnthropicEnabled: () => true,
+      isMaasEnabled: () => false,
       titleModelId: "gemini-3.1-flash-lite",
     });
 
@@ -157,6 +160,7 @@ describe("vertexModels", () => {
       allowUnknownAnthropicModels: true,
       allowUnknownGeminiModels: false,
       isAnthropicEnabled: () => true,
+      isMaasEnabled: () => false,
     });
 
     expect(isVertexModelAllowed("gemini-9-experimental")).toBe(false);

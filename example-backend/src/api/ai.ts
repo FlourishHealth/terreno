@@ -22,6 +22,7 @@ import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
+import {getVertexAdminSettings, isVertexAiEnabled} from "../vertexAdminSettings";
 import {
   buildGptModelsResponseData,
   getVertexGeminiProvider,
@@ -70,7 +71,15 @@ const getGoogleModule = (): GoogleModule | undefined => {
   }
 };
 
-const isVertexConfigured = (): boolean => Boolean(process.env.GOOGLE_VERTEX_PROJECT);
+const isVertexConfigured = (): boolean => isVertexAiEnabled();
+
+const getGeminiApiKey = (): string | undefined => {
+  const apiKey = getVertexAdminSettings().geminiApiKey.trim();
+  if (!apiKey) {
+    return undefined;
+  }
+  return apiKey;
+};
 
 const getAiService = (): AIService | undefined => {
   if (aiServiceInstance) {
@@ -94,7 +103,7 @@ const getAiService = (): AIService | undefined => {
     return undefined;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (!apiKey) {
     return undefined;
   }
@@ -115,7 +124,7 @@ const createServerModel = (modelId?: string): LanguageModel | undefined => {
   }
 
   const google = getGoogleModule();
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = getGeminiApiKey();
   if (google && apiKey) {
     const provider = google.createGoogleGenerativeAI({apiKey});
     return provider(resolvedId);
@@ -354,7 +363,7 @@ const createImageModel = (apiKey?: string): ImageModel => {
   if (!google) {
     throw new APIError({status: 500, title: "Missing @ai-sdk/google dependency."});
   }
-  const effectiveKey = apiKey ?? process.env.GEMINI_API_KEY;
+  const effectiveKey = apiKey ?? getGeminiApiKey();
   if (!effectiveKey) {
     throw new APIError({status: 500, title: "No API key available for image generation."});
   }
@@ -515,7 +524,7 @@ const getDemoTools = (): Record<string, Tool> => {
   };
 
   // Add server-side image generation only when a provider is actually available
-  if (getVertexProviderBundle() || process.env.GEMINI_API_KEY) {
+  if (getVertexProviderBundle() || getGeminiApiKey()) {
     tools.generate_image = createImageTool();
   }
 

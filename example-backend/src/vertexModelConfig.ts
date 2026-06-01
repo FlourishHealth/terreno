@@ -1,93 +1,108 @@
 import {resetAiServiceCache} from "./api/ai";
-import type {
-  VertexModelEntry,
-  VertexModelProviderKind,
-  VertexModelRegistryOptions,
-} from "./api/vertexModels";
+import type {VertexModelEntry, VertexModelRegistryOptions} from "./api/vertexModels";
 import {configureVertexModels} from "./api/vertexModels";
+import {AppConfiguration} from "./models/appConfiguration";
+import {
+  resetVertexAdminSettings,
+  setVertexAdminSettings,
+  type VertexAdminSettings,
+} from "./vertexAdminSettings";
 
-const isVertexProviderKind = (value: unknown): value is VertexModelProviderKind =>
+const isVertexProviderKind = (value: unknown): value is VertexModelEntry["provider"] =>
   value === "gemini" || value === "anthropic" || value === "maas";
 
-const isVertexModelEntry = (value: unknown): value is VertexModelEntry => {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const entry = value as Record<string, unknown>;
-  if (typeof entry.id !== "string" || typeof entry.label !== "string") {
-    return false;
-  }
-  if (!isVertexProviderKind(entry.provider)) {
-    return false;
-  }
-  if (
-    entry.requiresFeatureFlag !== undefined &&
-    entry.requiresFeatureFlag !== "anthropic" &&
-    entry.requiresFeatureFlag !== "maas"
-  ) {
-    return false;
-  }
-  return true;
-};
-
-const parseBooleanEnv = (value: string | undefined, defaultValue: boolean): boolean => {
-  if (value === undefined) {
-    return defaultValue;
-  }
-  return value === "true" || value === "1";
-};
-
-const parseExtraCatalogFromEnv = (): VertexModelEntry[] | undefined => {
-  const raw = process.env.VERTEX_EXTRA_MODEL_CATALOG_JSON;
-  if (!raw) {
-    return undefined;
+const normalizeCatalogEntries = (value: unknown): VertexModelEntry[] => {
+  if (!Array.isArray(value)) {
+    return [];
   }
 
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return undefined;
+  const entries: VertexModelEntry[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") {
+      continue;
     }
-    const entries = parsed.filter(isVertexModelEntry);
-    if (entries.length === 0) {
-      return undefined;
+    const record = item as Record<string, unknown>;
+    if (typeof record.id !== "string" || typeof record.label !== "string") {
+      continue;
     }
-    return entries;
-  } catch {
-    return undefined;
+    if (!isVertexProviderKind(record.provider)) {
+      continue;
+    }
+    entries.push({
+      id: record.id,
+      label: record.label,
+      provider: record.provider,
+    });
   }
+  return entries;
 };
 
-/**
- * Example-app Vertex model registry setup.
- * Downstream apps call {@link configureVertexModels} at startup with their own catalog/options.
- */
-export const buildExampleVertexModelRegistryOptions = (): VertexModelRegistryOptions => {
-  const additionalCatalog = parseExtraCatalogFromEnv();
+export const buildVertexAdminSettingsFromAppConfig = (vertexAi: unknown): VertexAdminSettings => {
+  const config = (vertexAi ?? {}) as Record<string, unknown>;
 
   return {
-    additionalCatalog,
-    allowUnknownAnthropicModels: parseBooleanEnv(
-      process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_ANTHROPIC_MODELS,
-      false
-    ),
-    allowUnknownGeminiModels: parseBooleanEnv(
-      process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_GEMINI_MODELS,
-      true
-    ),
-    allowUnknownMaasModels: parseBooleanEnv(
-      process.env.GOOGLE_VERTEX_ALLOW_UNKNOWN_MAAS_MODELS,
-      false
-    ),
-    catalogMode: process.env.VERTEX_MODEL_CATALOG_MODE === "replace" ? "replace" : "extend",
-    defaultModelId: process.env.GOOGLE_VERTEX_DEFAULT_MODEL,
-    includeDefaultCatalog: process.env.VERTEX_INCLUDE_DEFAULT_CATALOG !== "false",
-    titleModelId: process.env.GOOGLE_VERTEX_TITLE_MODEL,
+    additionalCatalog: normalizeCatalogEntries(config.additionalCatalog),
+    allowUnknownAnthropicModels: config.allowUnknownAnthropicModels === true,
+    allowUnknownGeminiModels: config.allowUnknownGeminiModels !== false,
+    allowUnknownMaasModels: config.allowUnknownMaasModels === true,
+    anthropicLocation:
+      typeof config.anthropicLocation === "string" && config.anthropicLocation.length > 0
+        ? config.anthropicLocation
+        : "us-east5",
+    catalogMode: config.catalogMode === "replace" ? "replace" : "extend",
+    defaultModelId:
+      typeof config.defaultModelId === "string" && config.defaultModelId.length > 0
+        ? config.defaultModelId
+        : "gemini-3.5-flash",
+    enableAnthropicModels: config.enableAnthropicModels === true,
+    enabled: config.enabled === true,
+    enableMaasModels: config.enableMaasModels === true,
+    geminiApiKey: typeof config.geminiApiKey === "string" ? config.geminiApiKey : "",
+    includeDefaultCatalog: config.includeDefaultCatalog !== false,
+    location:
+      typeof config.location === "string" && config.location.length > 0
+        ? config.location
+        : "us-central1",
+    projectId: typeof config.projectId === "string" ? config.projectId : "",
+    titleModelId:
+      typeof config.titleModelId === "string" && config.titleModelId.length > 0
+        ? config.titleModelId
+        : "gemini-3.1-flash-lite",
   };
 };
 
-/** Configure process-wide Vertex models for the example backend (call before route registration). */
-export const configureExampleVertexModels = (): void => {
-  configureVertexModels(buildExampleVertexModelRegistryOptions());
+export const buildExampleVertexModelRegistryOptions = (
+  admin: VertexAdminSettings
+): VertexModelRegistryOptions => ({
+  additionalCatalog: admin.additionalCatalog,
+  allowUnknownAnthropicModels: admin.allowUnknownAnthropicModels,
+  allowUnknownGeminiModels: admin.allowUnknownGeminiModels,
+  allowUnknownMaasModels: admin.allowUnknownMaasModels,
+  catalogMode: admin.catalogMode,
+  defaultModelId: admin.defaultModelId,
+  includeDefaultCatalog: admin.includeDefaultCatalog,
+  isAnthropicEnabled: () => admin.enableAnthropicModels,
+  isMaasEnabled: () => admin.enableMaasModels,
+  titleModelId: admin.titleModelId,
+});
+
+export const loadVertexAdminSettingsFromAppConfiguration =
+  async (): Promise<VertexAdminSettings> => {
+    const vertexAi = await AppConfiguration.getConfig("vertexAi");
+    return buildVertexAdminSettingsFromAppConfig(vertexAi);
+  };
+
+/** Configure process-wide Vertex models from admin AppConfiguration (call after MongoDB connect). */
+export const configureExampleVertexModelsFromAdmin = async (): Promise<void> => {
+  const admin = await loadVertexAdminSettingsFromAppConfiguration();
+  setVertexAdminSettings(admin);
+  configureVertexModels(buildExampleVertexModelRegistryOptions(admin));
+  resetAiServiceCache();
+};
+
+/** Reset admin-driven Vertex configuration (mostly for tests). */
+export const resetExampleVertexModelsFromAdmin = (): void => {
+  resetVertexAdminSettings();
+  configureVertexModels({});
   resetAiServiceCache();
 };
