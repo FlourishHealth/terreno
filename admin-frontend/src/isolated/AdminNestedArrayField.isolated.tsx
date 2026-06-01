@@ -3,7 +3,6 @@
 import {describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
-import type {ReactTestInstance} from "react-test-renderer";
 import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import type {AdminApi, AdminFieldConfig} from "../types";
 
@@ -223,8 +222,8 @@ describe("AdminNestedArrayField", () => {
         ]}
       />
     );
-    const nameFields = getAllByTestId("admin-field-renderer-name");
-    (nameFields[1] as ReactTestInstance).props.onChange("new name");
+    const nameFields = getAllByTestId("admin-field-name");
+    fireEvent.changeText(nameFields[1], "new name");
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0][0];
     expect(next[1].name).toBe("new name");

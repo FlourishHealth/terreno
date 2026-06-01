@@ -4,7 +4,7 @@ import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
-import {act} from "../../../ui/node_modules/@testing-library/react-native";
+import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import type {AdminApi} from "../types";
 
 // Mock @terreno/ui so the Modal renders its children inline. The real Modal
@@ -107,8 +107,8 @@ describe("AdminScriptRunModal", () => {
     expect(runCalls.length).toBe(0);
   });
 
-  it("auto-starts script when modal opens", async () => {
-    renderWithTheme(
+  it("starts a dry run when the Dry Run button is pressed", async () => {
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -117,9 +117,10 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
     await waitTicks();
     expect(runCalls.length).toBe(1);
-    expect(runCalls[0]).toEqual({name: "test-script", wetRun: true});
+    expect(runCalls[0]).toEqual({name: "test-script", wetRun: false});
   });
 
   it("renders running phase with progress details", async () => {
@@ -301,7 +302,7 @@ describe("AdminScriptRunModal", () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject({data: {detail: "Detailed failure"}}),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -310,6 +311,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
     await waitTicks(200);
     expect(runCalls.length).toBe(1);
   });
@@ -318,7 +320,7 @@ describe("AdminScriptRunModal", () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject({data: {title: "Title failure"}}),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -327,6 +329,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
     await waitTicks(200);
     expect(runCalls.length).toBe(1);
   });
@@ -335,7 +338,7 @@ describe("AdminScriptRunModal", () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject(new Error("network boom")),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -344,6 +347,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
     await waitTicks(200);
     expect(runCalls.length).toBe(1);
   });
