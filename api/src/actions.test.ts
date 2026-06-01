@@ -50,6 +50,21 @@ describe("modelRouter actions", () => {
       ).toThrow(/missing required "permissions"/);
     });
 
+    it("rejects single-character action names by design", () => {
+      expect(() =>
+        modelRouter(FoodModel, {
+          collectionActions: {
+            a: {
+              handler: async () => ({}),
+              method: "GET",
+              permissions: [Permissions.IsAny],
+            },
+          },
+          permissions: allPermissions,
+        })
+      ).toThrow(ACTION_NAME_PATTERN.toString());
+    });
+
     it("throws on invalid action name", () => {
       expect(() =>
         modelRouter(FoodModel, {
