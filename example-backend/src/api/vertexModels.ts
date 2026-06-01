@@ -109,7 +109,7 @@ const resolveCatalog = (options: VertexModelRegistryOptions): VertexModelEntry[]
 };
 
 /** Map catalog entries to UI picker options (enabled entries only). */
-export const vertexCatalogToPickerOptions = (
+const vertexCatalogToPickerOptions = (
   entries: VertexModelEntry[],
   isAnthropicEnabled: () => boolean = defaultIsAnthropicFeatureEnabled,
   isMaasEnabled: () => boolean = defaultIsMaasFeatureEnabled
