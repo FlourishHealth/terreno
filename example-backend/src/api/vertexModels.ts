@@ -279,6 +279,28 @@ export const getEnabledVertexModelCatalog = (): VertexModelEntry[] =>
 export const getVertexModelPickerOptions = (): VertexModelPickerOption[] =>
   getVertexModelRegistry().getPickerOptions();
 
+export interface GptModelsResponseData {
+  defaultModelId: string;
+  models: VertexModelPickerOption[];
+  titleModelId: string;
+}
+
+/** Build API payload for GET /gpt/models with enabled-model fallbacks. */
+export const buildGptModelsResponseData = (
+  registry: VertexModelRegistry
+): GptModelsResponseData => {
+  const models = registry.getPickerOptions();
+  const configuredDefault = registry.getDefaultModelId();
+  const configuredTitle = registry.getTitleModelId();
+  const modelIds = new Set(models.map((model) => model.value));
+  const defaultModelId = modelIds.has(configuredDefault)
+    ? configuredDefault
+    : (models[0]?.value ?? configuredDefault);
+  const titleModelId = modelIds.has(configuredTitle) ? configuredTitle : defaultModelId;
+
+  return {defaultModelId, models, titleModelId};
+};
+
 export const isVertexModelAllowed = (modelId: string): boolean =>
   getVertexModelRegistry().isModelAllowed(modelId);
 

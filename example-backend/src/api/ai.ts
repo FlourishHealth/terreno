@@ -23,8 +23,8 @@ import type express from "express";
 import {PDFDocument, rgb, StandardFonts} from "pdf-lib";
 import {z} from "zod";
 import {
+  buildGptModelsResponseData,
   getVertexGeminiProvider,
-  getVertexModelPickerOptions,
   getVertexModelRegistry,
   getVertexProviderBundle,
   resolveVertexLanguageModel,
@@ -560,23 +560,7 @@ export const addAiRoutes = (
         .build(),
     ],
     asyncHandler(async (_req: express.Request, res: express.Response) => {
-      const registry = getVertexModelRegistry();
-      const models = getVertexModelPickerOptions();
-      const configuredDefault = registry.getDefaultModelId();
-      const configuredTitle = registry.getTitleModelId();
-      const modelIds = new Set(models.map((model) => model.value));
-      const defaultModelId = modelIds.has(configuredDefault)
-        ? configuredDefault
-        : (models[0]?.value ?? configuredDefault);
-      const titleModelId = modelIds.has(configuredTitle) ? configuredTitle : defaultModelId;
-
-      return res.json({
-        data: {
-          defaultModelId,
-          models,
-          titleModelId,
-        },
-      });
+      return res.json({data: buildGptModelsResponseData(getVertexModelRegistry())});
     })
   );
 

@@ -1,6 +1,8 @@
 import {afterEach, describe, expect, it} from "bun:test";
 import {
+  buildGptModelsResponseData,
   configureVertexModels,
+  createVertexModelRegistry,
   DEFAULT_VERTEX_MODEL_ID,
   getEnabledVertexModelCatalog,
   getVertexModelPickerOptions,
@@ -123,6 +125,31 @@ describe("vertexModels", () => {
     expect(registry.needsMaasProvider()).toBe(false);
     expect(isVertexModelAllowed("claude-opus-4-6")).toBe(true);
     expect(isVertexModelAllowed("claude-sonnet-4-6")).toBe(false);
+  });
+
+  it("buildGptModelsResponseData falls back when default is not enabled", () => {
+    process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS = "true";
+
+    const registry = createVertexModelRegistry({
+      catalog: [
+        {
+          id: "claude-opus-4-6",
+          label: "Claude Opus 4.6 (Vertex)",
+          provider: "anthropic",
+          requiresFeatureFlag: "anthropic",
+        },
+      ],
+      catalogMode: "replace",
+      defaultModelId: "gemini-3.5-flash",
+      titleModelId: "gemini-3.1-flash-lite",
+    });
+
+    const response = buildGptModelsResponseData(registry);
+    expect(response.models).toEqual([
+      {label: "Claude Opus 4.6 (Vertex)", value: "claude-opus-4-6"},
+    ]);
+    expect(response.defaultModelId).toBe("claude-opus-4-6");
+    expect(response.titleModelId).toBe("claude-opus-4-6");
   });
 
   it("honors strict allowlist flags from configureVertexModels", () => {
