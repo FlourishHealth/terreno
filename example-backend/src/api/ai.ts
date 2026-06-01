@@ -515,7 +515,7 @@ const getDemoTools = (): Record<string, Tool> => {
   };
 
   // Add server-side image generation only when a provider is actually available
-  if (getVertexGeminiProvider() || process.env.GEMINI_API_KEY) {
+  if (getVertexProviderBundle() || process.env.GEMINI_API_KEY) {
     tools.generate_image = createImageTool();
   }
 

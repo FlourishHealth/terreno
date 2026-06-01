@@ -79,9 +79,6 @@ export const DEFAULT_VERTEX_MODEL_ID = "gemini-3.5-flash";
 /** Lightweight model for auto-generated conversation titles. */
 export const TITLE_VERTEX_MODEL_ID = "gemini-3.1-flash-lite";
 
-/** @deprecated Use {@link DEFAULT_VERTEX_MODEL_CATALOG}. Kept for backward compatibility. */
-export const VERTEX_MODEL_CATALOG = DEFAULT_VERTEX_MODEL_CATALOG;
-
 const defaultIsAnthropicFeatureEnabled = (): boolean =>
   process.env.GOOGLE_VERTEX_ENABLE_ANTHROPIC_MODELS === "true";
 
