@@ -80,13 +80,13 @@ export const AdminGate: React.FC<{children: React.ReactNode}> = ({children}) => 
     return <LoadingScreen />;
   }
   if (!isAuthenticated || status === 401) {
-    return pathname === "/login" ? <>{children}</> : <LoadingScreen />;
+    return pathname === "/login" ? children : <LoadingScreen />;
   }
   if (isForbidden) {
-    return pathname === "/forbidden" ? <>{children}</> : <LoadingScreen />;
+    return pathname === "/forbidden" ? children : <LoadingScreen />;
   }
   if (isConfigLoading) {
     return <LoadingScreen />;
   }
-  return <>{children}</>;
+  return children;
 };

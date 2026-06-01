@@ -12,6 +12,8 @@
       "store/**/*.tsx",
       "components/**/*.ts",
       "components/**/*.tsx",
+      "e2e/**/*.ts",
+      "playwright.config.ts",
       "!store/openApiSdk.ts",
       "!!**/node_modules",
       "!!node_modules",

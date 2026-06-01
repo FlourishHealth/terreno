@@ -37,6 +37,7 @@
   "description": "Opt-in admin SPA (Expo Router web app) plus an Express plugin that serves it from a Terreno backend",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@playwright/test": "^1.58.2",
     "@terreno/api": "workspace:*",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
@@ -89,11 +90,13 @@
     "compile": "tsc -p tsconfig.server.json",
     "compile:watch": "tsc -p tsconfig.server.json -w",
     "dev": "expo start --web --port 8083",
-    "lint": "biome check ./src ./app ./store ./components",
-    "lint:fix": "biome check --write ./src ./app ./store ./components",
+    "lint": "biome check ./src ./app ./store ./components ./e2e playwright.config.ts",
+    "lint:fix": "biome check --write ./src ./app ./store ./components ./e2e playwright.config.ts",
+    "smoke": "bun e2e/smoke.ts",
     "start": "expo start",
     "test": "bun test ./src",
     "test:ci": "bun test ./src",
+    "test:e2e": "playwright test",
     "web": "expo start --web --port 8083"
   },
   "types": "./src/dist/index.d.ts",
