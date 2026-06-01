@@ -9,7 +9,6 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
-- **admin-spa/** - Opt-in Express plugin to serve a pre-built admin SPA from a Terreno backend (`@terreno/admin-spa`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
 - **example-backend/** - Example Express backend using @terreno/api

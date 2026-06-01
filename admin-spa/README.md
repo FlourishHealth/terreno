@@ -8,17 +8,18 @@ tarball for consumers who actually register the plugin. The embedded admin use c
 (admin screens inside a consumer's main Expo app, as `example-frontend/app/admin/*`
 does) remains supported and unchanged.
 
-## What's here today
+## What's here
 
-This package currently ships the **backend serving plugin** (`AdminSpaServeApp`) and
-its runtime app-config contract. It serves a pre-built Expo Router static export
-(`dist/`) from a Terreno backend.
+- **Backend serving plugin** (`src/`, `AdminSpaServeApp`): serves the pre-built Expo
+  Router static export (`dist/`) and a runtime `app-config.json` from a Terreno backend.
+- **The SPA frontend** (`app/`, `store/`, `components/`): an Expo Router web app that
+  wires `@terreno/admin-frontend`'s screens with a Better-Auth session gate. It uses the
+  `@terreno/admin-frontend` `apiBase`/`routeBase` prop split so API calls go to `/admin`
+  while in-app navigation stays inside the SPA.
 
-> The SPA frontend itself (`app/`, `store/`, `components/`) and the
-> `@terreno/admin-frontend` `apiBase`/`routeBase` prop split it depends on are a
-> follow-up. Until the bundle is built, the plugin serves `app-config.json` and a
-> placeholder `index.html`, or proxies to a running Expo dev server via
-> `devProxyTarget`.
+Boot flow: `AppConfigGate` fetches `app-config.json` → `StoreProvider` builds the
+Better-Auth client + Redux store → `AdminGate` syncs the session and redirects
+anonymous users to `/login` and non-admins (admin API returns 403) to `/forbidden`.
 
 ## Install
 
@@ -86,16 +87,35 @@ auth/admin API paths per consumer without rebuilding. Defaults:
 - `${basePath}/app-config.json` and `index.html` are served with
   `Cache-Control: no-store`.
 - `index.html`'s absolute `/_expo/` and `/assets/` references are rewritten once at
-  boot to `${basePath}/...`, so one pre-built bundle works at any `basePath`.
+  boot to `${basePath}/...` (a no-op when the bundle was already built for that base).
+- The serve plugin injects `window.__ADMIN_SPA_BASE__ = "${basePath}"` into `index.html`
+  so the SPA can resolve `app-config.json` on deep refreshes.
 - SPA fallback: both the bare `${basePath}` and `${basePath}/*splat` return
   `index.html` (Express 5 named-splat convention).
 
-## Build / publish (follow-up)
+### Mount path / `baseUrl`
 
-When the SPA frontend lands, `dist/` is produced by
-`bun expo export --platform web --output-dir dist` (run in `prepublishOnly`) and
-shipped via `files: ["src/dist/**", "dist/**"]`. A CI publish job must run the web
-export before `bun publish` so the tarball's `dist/` is populated.
+Client-side routing under a sub-path requires the bundle to be built with a matching
+router base. `app.json` sets `experiments.baseUrl: "/console"`, so the default build is
+served at `/console` and `basePath` must match. To mount elsewhere, rebuild with the
+matching base (e.g. `EXPO_BASE_URL=/admin-ui bun run build:web`) and set `basePath`
+accordingly. Mounting at the origin root (`basePath: "/"`) needs no base.
+
+## Develop, build, and test
+
+```bash
+bun run compile      # compile the server plugin (src/ -> src/dist, CommonJS)
+bun run build:web    # produce the static export in dist/
+bun run dev          # expo start --web for local SPA development
+bun run test:ci      # serve-plugin unit tests (supertest)
+bun run smoke        # backend-free smoke over the built dist/
+bun run test:e2e     # Playwright e2e (anonymous -> login) over the built dist/
+```
+
+`dist/` is produced by `bun run build:web` and shipped via
+`files: ["src/dist/**", "dist/**"]`. The `publish-on-tag` CI job runs both the server
+compile and the web export before `npm publish`, so the published tarball's `dist/` is
+populated.
 
 ## Comparison with embedded admin-frontend
 
