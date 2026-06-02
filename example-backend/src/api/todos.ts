@@ -19,10 +19,7 @@ export const todoRouter = modelRouter("/todos", Todo, {
         }
 
         const {ids} = body as z.infer<typeof bulkCompleteBodySchema>;
-        const result = await Todo.updateMany(
-          {_id: {$in: ids}, ownerId},
-          {completed: true}
-        );
+        const result = await Todo.updateMany({_id: {$in: ids}, ownerId}, {completed: true});
 
         return {matched: result.matchedCount, modified: result.modifiedCount};
       },
