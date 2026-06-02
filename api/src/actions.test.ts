@@ -4,7 +4,6 @@ import type express from "express";
 import {type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-import {z} from "zod";
 import {
   ACTION_NAME_PATTERN,
   createActionOpenApiMiddleware,
@@ -17,6 +16,7 @@ import {apiUnauthorizedMiddleware} from "./errors";
 import {Permissions} from "./permissions";
 import {type IsDeleted, isDeletedPlugin} from "./plugins";
 import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {z} from "./zodOpenApi";
 
 interface Stuff extends IsDeleted {
   _id: string;
