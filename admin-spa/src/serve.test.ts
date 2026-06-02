@@ -157,7 +157,10 @@ describe("AdminSpaServeApp", () => {
 
     try {
       const res = await request(
-        makeApp({appConfig: {brandName: "Plugin Config"}, devProxyTarget: `http://127.0.0.1:${port}`})
+        makeApp({
+          appConfig: {brandName: "Plugin Config"},
+          devProxyTarget: `http://127.0.0.1:${port}`,
+        })
       ).get("/console/app-config.json");
       expect(res.status).toBe(200);
       expect(res.body.brandName).toBe("Plugin Config");
