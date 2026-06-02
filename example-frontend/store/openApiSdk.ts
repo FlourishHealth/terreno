@@ -192,9 +192,6 @@ const injectedRtkApi = api
         providesTags: (_result, _error, {id}) => [{id, type: "users" as const}],
         query: (queryArg) => ({url: `/users/${queryArg.id}`}),
       }),
-      getVersionCheck: build.query<{data: {updateRequired: boolean}}, void>({
-        query: () => ({url: "/versionCheck"}),
-      }),
       patchGptHistoriesById: build.mutation<
         GptHistoryResponse,
         {id: string; body: UpdateGptHistoryBody}
@@ -269,7 +266,7 @@ const injectedRtkApi = api
         }),
       }),
     }),
-    overrideExisting: false,
+    overrideExisting: true,
   });
 
 export {injectedRtkApi as openapi};
@@ -278,8 +275,6 @@ export const {
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
-  useGetVersionCheckQuery,
-  useLazyGetVersionCheckQuery,
   usePatchGptHistoriesByIdMutation,
   usePostGptHistoriesMutation,
   useGetTodosQuery,

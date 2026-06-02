@@ -88,6 +88,7 @@ export interface SetAdminUserPasswordRequest {
 
 export const terrenoApi = openapi
   .injectEndpoints({
+    overrideExisting: true,
     endpoints: (builder) => ({
       // AI Request Explorer (admin only)
       getAiRequestsExplorer: builder.query<
