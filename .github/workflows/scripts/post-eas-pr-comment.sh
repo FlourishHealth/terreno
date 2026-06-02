@@ -11,7 +11,8 @@
 #   APP_SLUG          EAS project slug (e.g. terreno-example, terreno-demo)
 #   APP_SCHEME        Deep-link URL scheme (from app.json — e.g. frontend, terreno)
 #   PROJECT_ID        EAS project UUID
-#   IOS_MATCH         "true" if a finished iOS dev build matches IOS_HASH
+#   IOS_DEVICE_MATCH  "true" if a finished iOS device dev build matches IOS_HASH
+#   IOS_SIM_MATCH     "true" if a finished iOS simulator dev build matches IOS_HASH
 #   ANDROID_MATCH     "true" if a finished Android dev build matches ANDROID_HASH
 #   PATH_TAKEN        "fast" or "slow"
 #   IOS_DEVICE_BUILD_ID Latest finished iOS device dev build ID (may be empty)
@@ -30,7 +31,8 @@ set -euo pipefail
 : "${APP_SLUG:?missing}"
 : "${APP_SCHEME:?missing}"
 : "${PROJECT_ID:?missing}"
-: "${IOS_MATCH:?missing}"
+: "${IOS_DEVICE_MATCH:?missing}"
+: "${IOS_SIM_MATCH:?missing}"
 : "${ANDROID_MATCH:?missing}"
 : "${PATH_TAKEN:?missing}"
 
@@ -57,8 +59,10 @@ else
   launch_section="EAS Update publish did not complete, so there is no group URL to launch yet."
 fi
 
-ios_status="⚠️ Fingerprint changed — rebuilding"
-[ "$IOS_MATCH" = "true" ] && ios_status="✅ Existing build matches"
+ios_device_status="⚠️ Fingerprint changed — rebuilding"
+[ "$IOS_DEVICE_MATCH" = "true" ] && ios_device_status="✅ Existing build matches"
+ios_sim_status="⚠️ Fingerprint changed — rebuilding"
+[ "$IOS_SIM_MATCH" = "true" ] && ios_sim_status="✅ Existing build matches"
 android_status="⚠️ Fingerprint changed — rebuilding"
 [ "$ANDROID_MATCH" = "true" ] && android_status="✅ Existing build matches"
 
@@ -99,7 +103,8 @@ $install_section
 
 **Status**
 - Path: $path_line
-- iOS dev build matches fingerprint: $ios_status
+- iOS device dev build matches fingerprint: $ios_device_status
+- iOS simulator dev build matches fingerprint: $ios_sim_status
 - Android dev build matches fingerprint: $android_status
 
 **Instructions**

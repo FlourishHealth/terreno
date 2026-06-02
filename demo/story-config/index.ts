@@ -9,6 +9,7 @@ export * from "./Box.config";
 export * from "./Button.config";
 export * from "./Card.config";
 export * from "./CheckBox.config";
+export * from "./ConsentFormScreen.config";
 export * from "./CustomSelectField.config";
 export * from "./DataTable.config";
 export * from "./DateTimeField.config";

@@ -7,9 +7,15 @@ import type {ReactTestInstance} from "react-test-renderer";
 import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import type {AdminApi, AdminFieldConfig} from "../types";
 
-mock.module("../AdminFieldRenderer", () => ({
-  AdminFieldRenderer: ({fieldKey, onChange}: {fieldKey: string; onChange: (v: unknown) => void}) =>
-    React.createElement("AdminFieldRenderer", {
+mock.module("../AdminFieldRendererCore", () => ({
+  AdminFieldRendererCore: ({
+    fieldKey,
+    onChange,
+  }: {
+    fieldKey: string;
+    onChange: (v: unknown) => void;
+  }) =>
+    React.createElement("AdminFieldRendererCore", {
       fieldKey,
       onChange,
       testID: `admin-field-renderer-${fieldKey}`,

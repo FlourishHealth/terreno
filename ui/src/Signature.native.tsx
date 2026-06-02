@@ -1,17 +1,18 @@
 import {Canvas, ImageFormat, Path, Skia, useCanvasRef} from "@shopify/react-native-skia";
 import {type FC, useCallback, useMemo, useRef, useState} from "react";
-import {Text, View} from "react-native";
+import {Platform, Text, View} from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler";
 
+import {getSignaturePadHeight} from "./SignatureSizing";
 import {useTheme} from "./Theme";
 
 interface Props {
   onChange: (signature: string) => void;
   onStart?: () => void;
   onEnd?: () => void;
+  fullWidth?: boolean;
 }
 
-const SIGNATURE_PAD_HEIGHT_PX = 180;
 const STROKE_WIDTH_PX = 2.5;
 // Snapshot after the released stroke has painted to the Skia canvas.
 const SNAPSHOT_DELAY_MS = 60;
@@ -31,9 +32,10 @@ const SNAPSHOT_DELAY_MS = 60;
  * Reports the signature to the parent as a base64 PNG data URL via onChange,
  * and pushes "" on clear so "signature required" gating resets immediately.
  */
-export const Signature: FC<Props> = ({onChange, onStart, onEnd}: Props) => {
+export const Signature: FC<Props> = ({fullWidth = false, onChange, onStart, onEnd}: Props) => {
   const {theme} = useTheme();
   const canvasRef = useCanvasRef();
+  const signaturePadHeight = getSignaturePadHeight(Platform.OS);
   const snapshotTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Completed strokes as SVG path strings; the active stroke is tracked separately.
   const [completedStrokes, setCompletedStrokes] = useState<string[]>([]);
@@ -138,14 +140,14 @@ export const Signature: FC<Props> = ({onChange, onStart, onEnd}: Props) => {
   }, [clearSnapshotTimer, onChange]);
 
   return (
-    <View style={{minWidth: 220}}>
+    <View style={{minWidth: 220, width: fullWidth ? "100%" : undefined}}>
       <GestureDetector gesture={panGesture}>
         <View
           style={{
             backgroundColor: theme.surface.base,
             borderColor: theme.border.dark,
             borderWidth: 1,
-            height: SIGNATURE_PAD_HEIGHT_PX,
+            height: signaturePadHeight,
             overflow: "hidden",
           }}
         >
