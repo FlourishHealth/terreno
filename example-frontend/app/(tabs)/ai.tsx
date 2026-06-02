@@ -80,7 +80,7 @@ const AiScreen: React.FC = () => {
 
   const dispatch = useDispatch();
   const userId = useSelectCurrentUserId();
-  const {data: historiesData, isLoading} = useGetGptHistoriesQuery(undefined, {skip: !userId});
+  const {data: historiesData, isLoading} = useGetGptHistoriesQuery({}, {skip: !userId});
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 
