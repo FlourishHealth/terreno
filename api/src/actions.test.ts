@@ -732,7 +732,10 @@ describe("modelRouter actions", () => {
         string,
         Record<string, Record<string, Record<string, unknown>>>
       >;
-      const schema = ok.content["application/json"].schema as Record<string, Record<string, unknown>>;
+      const schema = ok.content["application/json"].schema as Record<
+        string,
+        Record<string, unknown>
+      >;
       expect(schema.properties.data).toEqual({type: "object"});
     });
 
@@ -754,7 +757,10 @@ describe("modelRouter actions", () => {
         string,
         Record<string, Record<string, Record<string, unknown>>>
       >;
-      const schema = ok.content["application/json"].schema as Record<string, Record<string, unknown>>;
+      const schema = ok.content["application/json"].schema as Record<
+        string,
+        Record<string, unknown>
+      >;
       expect((schema.properties.data as Record<string, unknown>).properties).toBeDefined();
     });
 
