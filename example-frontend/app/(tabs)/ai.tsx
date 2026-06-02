@@ -70,6 +70,9 @@ const AVAILABLE_MODELS = [
   {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro"},
 ];
 
+/** RTK Query cache key for the default gpt histories list (must match useGetGptHistoriesQuery). */
+const gptHistoriesListQueryArgs = {};
+
 const AiScreen: React.FC = () => {
   const [currentHistoryId, setCurrentHistoryId] = useState<string | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<GPTChatMessage[]>([]);
@@ -80,7 +83,9 @@ const AiScreen: React.FC = () => {
 
   const dispatch = useDispatch();
   const userId = useSelectCurrentUserId();
-  const {data: historiesData, isLoading} = useGetGptHistoriesQuery({}, {skip: !userId});
+  const {data: historiesData, isLoading} = useGetGptHistoriesQuery(gptHistoriesListQueryArgs, {
+    skip: !userId,
+  });
   const [deleteHistory] = useDeleteGptHistoriesByIdMutation();
   const [patchHistory] = usePatchGptHistoriesByIdMutation();
 
@@ -344,14 +349,17 @@ const AiScreen: React.FC = () => {
                   dispatch(
                     terrenoApi.util.updateQueryData(
                       "getGptHistories" as never,
-                      undefined as never,
+                      gptHistoriesListQueryArgs as never,
                       (draft: {data?: GptHistory[]}) => {
                         const entry = draft.data?.find((h: GptHistory) => h.id === data.historyId);
                         if (entry) {
                           if (data.title) {
                             entry.title = data.title;
                           }
-                        } else if (draft.data) {
+                        } else {
+                          if (!draft.data) {
+                            draft.data = [];
+                          }
                           // New conversation — add it to the sidebar immediately
                           draft.data.unshift({
                             _id: data.historyId,
