@@ -31,11 +31,13 @@ afterAll(() => {
 const makeApp = (opts?: {
   basePath?: string;
   appConfig?: Record<string, unknown>;
+  devProxyTarget?: string;
 }): express.Application => {
   const app = express();
   new AdminSpaServeApp({
     appConfig: opts?.appConfig,
     basePath: opts?.basePath,
+    devProxyTarget: opts?.devProxyTarget,
     distDir,
   }).register(app);
   // A fallthrough 404 so requests outside basePath resolve.
@@ -143,5 +145,32 @@ describe("AdminSpaServeApp", () => {
   it("does not handle requests outside the base path", async () => {
     const res = await request(makeApp()).get("/unrelated");
     expect(res.status).toBe(404);
+  });
+
+  it("serves app-config from the plugin before the dev proxy", async () => {
+    const proxyTarget = express();
+    proxyTarget.get("/app-config.json", (_req, res) => {
+      res.json({brandName: "Proxied Config"});
+    });
+    const proxyServer = proxyTarget.listen(0);
+    const port = (proxyServer.address() as {port: number}).port;
+
+    try {
+      const res = await request(
+        makeApp({appConfig: {brandName: "Plugin Config"}, devProxyTarget: `http://127.0.0.1:${port}`})
+      ).get("/console/app-config.json");
+      expect(res.status).toBe(200);
+      expect(res.body.brandName).toBe("Plugin Config");
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        proxyServer.close((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+    }
   });
 });
