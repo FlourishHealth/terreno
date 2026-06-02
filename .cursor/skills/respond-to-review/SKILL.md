@@ -1,19 +1,48 @@
 ---
 name: respond-to-review
-description: Review PR comments, plan fixes, and implement — auto-submitting when no clarifications are needed
+description: Review PR comments, infer PR from branch when needed, plan fixes, and implement — auto-submitting when no clarifications are needed
 ---
 # PR Review Response Workflow
 
-Review comments on PR #$ARGUMENTS and plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
+Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
 
 ## Step 0: Validate Input
 
-`$ARGUMENTS` is interpolated into shell and `gh` commands throughout this skill. Before running any command that uses it, confirm it is a positive integer PR number — nothing else is valid here.
+Resolve the PR number once at the start and store it in `PR_NUMBER`. All later shell and `gh` commands must use `PR_NUMBER`, not `$ARGUMENTS` directly.
 
-- If `$ARGUMENTS` is empty: ask the user which PR to review and stop.
-- If `$ARGUMENTS` contains anything other than digits (whitespace, shell metacharacters, quotes, `..`, etc.): refuse to substitute it. Ask the user to re-invoke with a numeric PR number and stop.
+- If `$ARGUMENTS` contains digits only: use it as `PR_NUMBER`.
+  ```bash
+  PR_NUMBER="$ARGUMENTS"
+  ```
+- If `$ARGUMENTS` is empty: try to find the PR for the current branch:
+  ```bash
+  BRANCH_NAME="$(git branch --show-current)"
+  if [ -z "$BRANCH_NAME" ]; then
+    echo "No PR number was provided and the current checkout is detached. Ask the user which PR to review."
+    exit 1
+  fi
 
-Do not attempt to "clean up" or quote a non-numeric value — reject it.
+  if ! PR_NUMBER="$(gh pr view "$BRANCH_NAME" --json number --jq '.number' 2>/dev/null)"; then
+    echo "No PR was found for branch: $BRANCH_NAME"
+    gh pr list --head "$BRANCH_NAME" --json number,title,url
+    echo "Ask the user which PR to review."
+    exit 1
+  fi
+  ```
+- If `$ARGUMENTS` contains anything other than digits (whitespace, shell metacharacters, quotes, `..`, etc.): refuse to substitute it. Ask the user to re-invoke with a numeric PR number or no argument while checked out on the PR branch, then stop.
+
+After resolving `PR_NUMBER`, confirm it is a positive integer before using it:
+
+```bash
+case "$PR_NUMBER" in
+  ""|*[!0-9]*)
+    echo "Resolved PR number is invalid: $PR_NUMBER"
+    exit 1
+    ;;
+esac
+```
+
+Do not attempt to "clean up" or quote a non-numeric PR number — reject it.
 
 ## Step 1: Setup Working Directory
 
@@ -34,22 +63,22 @@ Do not attempt to "clean up" or quote a non-numeric value — reject it.
 
    b. Fetch PR details and branch name:
       ```bash
-      gh pr view $ARGUMENTS --json headRefName,number,title,url,author
+      gh pr view "$PR_NUMBER" --json headRefName,number,title,url,author
       ```
 
    c. Fetch the PR branch:
       ```bash
-      git fetch origin pull/$ARGUMENTS/head
+      git fetch origin pull/$PR_NUMBER/head
       ```
 
-   d. Create worktree at `~/.claude-worktrees/<repo-name>/pr-$ARGUMENTS`:
+   d. Create worktree at `~/.claude-worktrees/<repo-name>/pr-$PR_NUMBER`:
       ```bash
-      git worktree add ~/.claude-worktrees/<repo-name>/pr-$ARGUMENTS FETCH_HEAD
+      git worktree add ~/.claude-worktrees/<repo-name>/pr-$PR_NUMBER FETCH_HEAD
       ```
 
    e. Change to the worktree directory:
       ```bash
-      cd ~/.claude-worktrees/<repo-name>/pr-$ARGUMENTS
+      cd ~/.claude-worktrees/<repo-name>/pr-$PR_NUMBER
       ```
 
    f. Set up tracking for the PR branch:
@@ -92,7 +121,7 @@ Do not attempt to "clean up" or quote a non-numeric value — reject it.
            }
          }
        }
-     }' -F owner=':owner' -F repo=':repo' -F pr=$ARGUMENTS
+     }' -F owner=':owner' -F repo=':repo' -F pr="$PR_NUMBER"
    ```
 
 2. **Ignore resolved threads entirely** — only process threads where `isResolved` is `false`
@@ -108,7 +137,7 @@ Do not attempt to "clean up" or quote a non-numeric value — reject it.
 Decide the right action for each unresolved comment (fix, skip, ask), then present a structured plan organized by priority:
 
 ```
-## PR #$ARGUMENTS Review Comments Plan
+## PR #$PR_NUMBER Review Comments Plan
 
 ### 🔴 Must Fix (Blocking)
 1. [file:line] @reviewer: "comment text"
@@ -197,8 +226,8 @@ Report which threads were resolved and which were left open.
 If a new worktree was created, remind user:
 ```
 To remove this worktree later:
-  git worktree remove ~/.claude-worktrees/<repo>/pr-$ARGUMENTS
+  git worktree remove ~/.claude-worktrees/<repo>/pr-$PR_NUMBER
 
 Or to keep working on it, you can open a new Claude session in:
-  cd ~/.claude-worktrees/<repo>/pr-$ARGUMENTS
+  cd ~/.claude-worktrees/<repo>/pr-$PR_NUMBER
 ```

@@ -1999,6 +1999,7 @@ export interface SignatureFieldProps {
   onEnd?: () => void;
   disabledText?: string;
   errorText?: string;
+  fullWidth?: boolean;
 }
 
 export interface SideDrawerProps {

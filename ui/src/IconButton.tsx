@@ -12,14 +12,14 @@ import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
-type ConfirmationModalProps = {
+interface ConfirmationModalProps {
   visible: boolean;
   title: string;
   subtitle?: string;
   text: string;
   onConfirm: () => void;
   onCancel: () => void;
-};
+}
 
 const ConfirmationModal: FC<ConfirmationModalProps> = ({
   visible,

@@ -177,26 +177,32 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
     <Page maxWidth="100%" scroll title="Admin">
       <Box gap={4} padding={4}>
         {hasToolCards && (
-          <Box direction="row" gap={4} wrap>
-            {allCustomScreens.map((screen) => (
-              <CustomScreenCard
-                key={screen.name}
-                onPress={() => handlePress(screen.name)}
-                screen={screen}
-              />
-            ))}
-            {scripts.length > 0 && (
-              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
-            )}
-            {configurationPath && (
-              <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
-            )}
+          <Box gap={2}>
+            <Heading size="sm">Tools</Heading>
+            <Box direction="row" gap={4} wrap>
+              {allCustomScreens.map((screen) => (
+                <CustomScreenCard
+                  key={screen.name}
+                  onPress={() => handlePress(screen.name)}
+                  screen={screen}
+                />
+              ))}
+              {scripts.length > 0 && (
+                <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+              )}
+              {configurationPath && (
+                <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
+              )}
+            </Box>
           </Box>
         )}
-        <Box direction="row" gap={4} wrap>
-          {config.models.map((model: AdminModelConfig) => (
-            <ModelCard key={model.name} model={model} onPress={handlePress} />
-          ))}
+        <Box gap={2}>
+          <Heading size="sm">Models</Heading>
+          <Box direction="row" gap={4} wrap>
+            {config.models.map((model: AdminModelConfig) => (
+              <ModelCard key={model.name} model={model} onPress={handlePress} />
+            ))}
+          </Box>
         </Box>
       </Box>
     </Page>

@@ -129,6 +129,7 @@ export const terrenoApi = openapi
         }),
       }),
     }),
+    overrideExisting: true,
   })
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
