@@ -88,7 +88,6 @@ export interface SetAdminUserPasswordRequest {
 
 export const terrenoApi = openapi
   .injectEndpoints({
-    overrideExisting: true,
     endpoints: (builder) => ({
       // AI Request Explorer (admin only)
       getAiRequestsExplorer: builder.query<
@@ -130,6 +129,7 @@ export const terrenoApi = openapi
         }),
       }),
     }),
+    overrideExisting: true,
   })
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
