@@ -23,6 +23,21 @@ describe("loadDocOr404", () => {
     }
   });
 
+  it("rethrows APIError from query execution without wrapping", async () => {
+    const original = new APIError({status: 400, title: "validation failed"});
+    const model = {
+      collection: {findOne: mock(async () => null)},
+      findById: mock(() => ({
+        exec: mock(async () => {
+          throw original;
+        }),
+      })),
+      modelName: "MockModel",
+    } as any;
+
+    await expect(loadDocOr404(model, "507f1f77bcf86cd799439011")).rejects.toBe(original);
+  });
+
   it("returns plain not found when document does not exist", async () => {
     const model = {
       collection: {findOne: mock(async () => null)},

@@ -214,12 +214,11 @@ describe("modelRouter actions", () => {
       });
 
       it("runs collection POST action without doc", async () => {
-        let hadDoc = false;
         mountFoodRouter({
           collectionActions: {
             bulk: {
-              handler: async (_ctx) => {
-                hadDoc = false;
+              handler: async (ctx) => {
+                expect((ctx as {doc?: unknown}).doc).toBeUndefined();
                 return {count: 1};
               },
               method: "POST",
@@ -230,7 +229,6 @@ describe("modelRouter actions", () => {
         });
         const res = await server.post("/food/bulk").send({}).expect(200);
         expect(res.body.data).toEqual({count: 1});
-        expect(hadDoc).toBe(false);
       });
 
       it("runs GET instance and collection actions", async () => {

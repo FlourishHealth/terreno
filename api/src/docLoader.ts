@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/bun";
 import mongoose, {type Model} from "mongoose";
 
 import {addPopulateToQuery} from "./api";
-import {APIError} from "./errors";
+import {APIError, isAPIError} from "./errors";
 import type {PopulatePath} from "./populate";
 
 /**
@@ -24,6 +24,9 @@ export const loadDocOr404 = async <T>(
   try {
     data = (await populatedQuery.exec()) as T | null;
   } catch (error: unknown) {
+    if (isAPIError(error)) {
+      throw error;
+    }
     throw new APIError({
       error: error as Error,
       status: 500,
