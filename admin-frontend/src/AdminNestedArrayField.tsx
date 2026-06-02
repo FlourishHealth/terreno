@@ -212,6 +212,10 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       if (!itemData) {
         return <Box />;
       }
+      const subFieldParentFormState = {
+        ...(parentFormState ?? {}),
+        ...itemData,
+      };
 
       return (
         <Card padding={3}>
@@ -238,7 +242,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
                 index,
                 modelConfigs,
                 onSubFieldChange: handleSubFieldChange,
-                parentFormState,
+                parentFormState: subFieldParentFormState,
                 refRenderers,
               })
             )}
