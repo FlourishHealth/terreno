@@ -84,9 +84,7 @@ const waitTicks = async (ms = 40): Promise<void> => {
   });
 };
 
-const pressDryRun = async (
-  getByTestId: (id: string) => ReactTestInstance
-): Promise<void> => {
+const pressDryRun = async (getByTestId: (id: string) => ReactTestInstance): Promise<void> => {
   await act(async () => {
     fireEvent.press(getByTestId("admin-script-dry-run-button"));
   });
