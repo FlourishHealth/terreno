@@ -246,9 +246,11 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
                   paddingY={2}
                   testID={`admin-picker-${refModelName}-result-${item._id}`}
                 >
-                  <Text size="sm">{getDisplayValue(item)}</Text>
+                  <Text size="sm" skipLinking>
+                    {getDisplayValue(item)}
+                  </Text>
                   {secondary && (
-                    <Text color="secondaryDark" size="sm">
+                    <Text color="secondaryDark" size="sm" skipLinking>
                       {secondary}
                     </Text>
                   )}

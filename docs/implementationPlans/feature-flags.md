@@ -242,6 +242,14 @@ None needed.
 
 No new dedicated screens. Feature flags are managed through the existing AdminApp generic form by registering the FeatureFlag model.
 
+For rule targeting values that reference users, the AdminApp form treats `_id`,
+`id`, `userId`, `ownerId`, and related user fields as User refs. Single-user
+operators (`eq`, `neq`, `$eq`, `$ne`) render a User picker, and multi-user
+operators (`in`, `nin`, `$in`, `$nin`) render an array of User pickers.
+Selected users should display through the configured User ref renderer or
+picker label, so admins see user names or emails rather than raw IDs when
+editing rules.
+
 ### Frontend Hook (`@terreno/rtk`)
 
 ```typescript
