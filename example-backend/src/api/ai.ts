@@ -5,9 +5,12 @@ import {
   addGptHistoryRoutes,
   addGptRoutes,
   addMcpRoutes,
+  createVertexProvider,
   FileStorageService,
   MCPService,
   preparePromptForAI,
+  type TerrenoVertexProvider,
+  verifyVertexModelsEnabled,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
 import {APIError, logger} from "@terreno/api";
@@ -29,11 +32,6 @@ interface GoogleModule {
   google: AIProvider;
 }
 
-/** The subset of @ai-sdk/google-vertex we use (loaded dynamically). */
-interface VertexModule {
-  createVertex: (opts: {location: string; project: string}) => AIProvider;
-}
-
 let aiServiceInstance: AIService | undefined;
 let mcpServiceInstance: MCPService | undefined;
 let fileStorageServiceInstance: FileStorageService | undefined;
@@ -53,31 +51,87 @@ const getGoogleModule = (): GoogleModule | undefined => {
   }
 };
 
-const getVertexModule = (): VertexModule | undefined => {
-  try {
-    return require("@ai-sdk/google-vertex") as VertexModule;
-  } catch {
+const DEFAULT_MODEL = "gemini-2.5-flash";
+const VERTEX_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
+
+/**
+ * Parse the optional GOOGLE_VERTEX_ALLOWED_MODELS env var (comma-separated). When unset/empty, all
+ * Vertex models are permitted (the default).
+ */
+const getAllowedVertexModels = (): string[] | undefined => {
+  const raw = process.env.GOOGLE_VERTEX_ALLOWED_MODELS;
+  if (!raw) {
     return undefined;
   }
+  const models = raw
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+  return models.length > 0 ? models : undefined;
 };
 
-const DEFAULT_MODEL = "gemini-2.5-flash";
+let vertexProviderInstance: TerrenoVertexProvider | undefined;
+let vertexProviderResolved = false;
 
-let vertexProviderInstance: AIProvider | undefined;
-
-const getVertexProvider = (): AIProvider | undefined => {
-  if (vertexProviderInstance) {
+/**
+ * Resolve the Vertex AI (Gemini Enterprise Agent Platform, formerly Vertex AI) provider. Uses
+ * Application Default Credentials and honors an optional GOOGLE_VERTEX_ALLOWED_MODELS allow-list.
+ */
+const getVertexProvider = (): TerrenoVertexProvider | undefined => {
+  if (vertexProviderResolved) {
     return vertexProviderInstance;
   }
-  const vertexModule = getVertexModule();
-  if (!vertexModule || !process.env.GOOGLE_VERTEX_PROJECT) {
-    return undefined;
-  }
-  vertexProviderInstance = vertexModule.createVertex({
-    location: process.env.GOOGLE_VERTEX_LOCATION ?? "us-central1",
+  vertexProviderResolved = true;
+  vertexProviderInstance = createVertexProvider({
+    allowedModels: getAllowedVertexModels(),
+    location: process.env.GOOGLE_VERTEX_LOCATION,
     project: process.env.GOOGLE_VERTEX_PROJECT,
   });
   return vertexProviderInstance;
+};
+
+/** Pick a default model that respects the configured allow-list. */
+const resolveDefaultVertexModel = (provider: TerrenoVertexProvider): string => {
+  if (provider.isModelAllowed(DEFAULT_MODEL)) {
+    return DEFAULT_MODEL;
+  }
+  return provider.allowedModels?.[0] ?? DEFAULT_MODEL;
+};
+
+/**
+ * Verify configured allow-listed Vertex models are enabled/available for the project using the
+ * Gemini Enterprise Agent Platform (Vertex AI) APIs. Logs results; never throws so startup is safe.
+ */
+const verifyAllowedVertexModels = async (provider: TerrenoVertexProvider): Promise<void> => {
+  if (!provider.allowedModels || provider.allowedModels.length === 0) {
+    return;
+  }
+  try {
+    const result = await verifyVertexModelsEnabled({
+      location: provider.location,
+      models: provider.allowedModels,
+      project: provider.project,
+    });
+    if (!result.checked) {
+      logger.warn(
+        "Could not verify configured Vertex models against the Gemini Enterprise Agent Platform APIs (missing credentials or network)."
+      );
+      return;
+    }
+    if (result.unavailable.length > 0) {
+      logger.error(
+        `Configured Vertex models are not enabled/available for project ${provider.project}: ${result.unavailable.join(
+          ", "
+        )}`
+      );
+      return;
+    }
+    logger.info(
+      `Verified ${result.available.length} configured Vertex model(s) are enabled for project ${provider.project}.`
+    );
+  } catch (error) {
+    logger.warn(`Vertex model verification skipped: ${(error as Error).message}`);
+  }
 };
 
 const getAiService = (): AIService | undefined => {
@@ -85,11 +139,11 @@ const getAiService = (): AIService | undefined => {
     return aiServiceInstance;
   }
 
-  // Prefer Vertex AI (uses Application Default Credentials)
+  // Prefer Vertex AI / Gemini Enterprise Agent Platform (uses Application Default Credentials)
   const vertexProvider = getVertexProvider();
   if (vertexProvider) {
     aiServiceInstance = new AIService({
-      model: vertexProvider(DEFAULT_MODEL),
+      model: vertexProvider.languageModel(resolveDefaultVertexModel(vertexProvider)),
     });
     return aiServiceInstance;
   }
@@ -112,11 +166,11 @@ const getAiService = (): AIService | undefined => {
   return aiServiceInstance;
 };
 
-/** Create a LanguageModel on the server side (Vertex AI or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). */
+/** Create a LanguageModel on the server side (Vertex AI / Gemini Enterprise Agent Platform or Gemini API key). Returns undefined if no provider is configured (falls through to demo mode). Throws if the requested model is not in the configured allow-list. */
 const createServerModel = (modelId?: string) => {
   const vertexProvider = getVertexProvider();
   if (vertexProvider) {
-    return vertexProvider(modelId ?? DEFAULT_MODEL);
+    return vertexProvider.languageModel(modelId ?? resolveDefaultVertexModel(vertexProvider));
   }
 
   const google = getGoogleModule();
@@ -348,10 +402,10 @@ const generatePdfBytes = async ({
 };
 
 const createImageModel = (apiKey?: string) => {
-  // Prefer Vertex AI for image generation
+  // Prefer Vertex AI / Gemini Enterprise Agent Platform for image generation
   const vertexProvider = getVertexProvider();
   if (vertexProvider && !apiKey) {
-    return vertexProvider.image("imagen-4.0-fast-generate-001");
+    return vertexProvider.imageModel(VERTEX_IMAGE_MODEL);
   }
 
   // Fall back to Gemini API with the provided key
@@ -364,7 +418,7 @@ const createImageModel = (apiKey?: string) => {
     throw new APIError({status: 500, title: "No API key available for image generation."});
   }
   const provider = google.createGoogleGenerativeAI({apiKey: effectiveKey});
-  return provider.image("imagen-4.0-fast-generate-001");
+  return provider.image(VERTEX_IMAGE_MODEL);
 };
 
 const GENERATE_IMAGE_DESCRIPTION =
@@ -519,8 +573,10 @@ const getDemoTools = (): Record<string, Tool> => {
     }),
   };
 
-  // Add server-side image generation when Vertex AI or a server API key is available
-  if (getVertexProvider() || process.env.GEMINI_API_KEY) {
+  // Add server-side image generation when a permitted Vertex image model or a server API key is available
+  const vertexProvider = getVertexProvider();
+  const vertexImageAvailable = Boolean(vertexProvider?.isModelAllowed(VERTEX_IMAGE_MODEL));
+  if (vertexImageAvailable || process.env.GEMINI_API_KEY) {
     tools.generate_image = createImageTool();
   }
 
@@ -535,6 +591,12 @@ export const addAiRoutes = (
   const aiService = getAiService();
   const mcpService = getMcpService();
   const fileStorageService = initFileStorageService();
+
+  // Verify any configured Vertex model allow-list is enabled/available via the Google APIs.
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    void verifyAllowedVertexModels(vertexProvider);
+  }
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
