@@ -102,12 +102,17 @@ export const normalizeVertexModelId = (modelName: string): string => {
   return lastSegment.split("@")[0] ?? lastSegment;
 };
 
-/** Returns true when the model id is permitted. An empty/undefined allow-list permits all models. */
+/**
+ * Returns true when the model id is permitted. An empty/undefined allow-list permits all models.
+ * Both the requested model id and allow-list entries are normalized (publisher paths and `@version`
+ * suffixes stripped) so matching stays consistent with `verifyVertexModelsEnabled`.
+ */
 export const isVertexModelAllowed = (modelId: string, allowedModels?: string[]): boolean => {
   if (!allowedModels || allowedModels.length === 0) {
     return true;
   }
-  return allowedModels.includes(modelId);
+  const normalized = normalizeVertexModelId(modelId);
+  return allowedModels.some((allowed) => normalizeVertexModelId(allowed) === normalized);
 };
 
 const loadVertexModule = (): VertexModule | undefined => {
@@ -266,6 +271,15 @@ export const listEnabledVertexModels = async (
     } while (pageToken && pages < MAX_MODEL_LIST_PAGES);
   } catch (error) {
     logger.warn(`Vertex model listing errored: ${(error as Error).message}`);
+    return undefined;
+  }
+
+  // More pages remained than we were willing to fetch. Returning the partial list would let
+  // verification falsely mark enabled models as unavailable, so treat it as inconclusive instead.
+  if (pageToken) {
+    logger.warn(
+      `Vertex model listing exceeded ${MAX_MODEL_LIST_PAGES} pages; treating verification as inconclusive.`
+    );
     return undefined;
   }
 

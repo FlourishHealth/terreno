@@ -77,6 +77,14 @@ describe("vertex helpers", () => {
       expect(isVertexModelAllowed("gemini-2.5-flash", ["gemini-2.5-flash"])).toBe(true);
       expect(isVertexModelAllowed("gemini-2.5-pro", ["gemini-2.5-flash"])).toBe(false);
     });
+
+    it("normalizes both the model id and allow-list entries before comparing", () => {
+      expect(isVertexModelAllowed("gemini-2.5-flash", ["gemini-2.5-flash@001"])).toBe(true);
+      expect(
+        isVertexModelAllowed("publishers/google/models/gemini-2.5-flash", ["gemini-2.5-flash"])
+      ).toBe(true);
+      expect(isVertexModelAllowed("gemini-2.5-flash@001", ["gemini-2.5-pro"])).toBe(false);
+    });
   });
 
   describe("createVertexProvider", () => {
@@ -122,6 +130,16 @@ describe("vertex helpers", () => {
       expect(provider?.languageModel("gemini-2.5-flash")).toBeDefined();
       expect(() => provider?.languageModel("gemini-2.5-pro")).toThrow();
       expect(() => provider?.imageModel("imagen-4.0-fast-generate-001")).toThrow();
+    });
+
+    it("resolves versioned/path model ids against the allow-list", () => {
+      const provider = createVertexProvider({
+        allowedModels: ["gemini-2.5-flash@001"],
+        project: "demo-project",
+        vertexFactory: makeVertexFactory(),
+      });
+      expect(provider?.isModelAllowed("gemini-2.5-flash")).toBe(true);
+      expect(provider?.languageModel("gemini-2.5-flash")).toBeDefined();
     });
   });
 
@@ -205,6 +223,27 @@ describe("vertex helpers", () => {
         project: "demo-project",
       });
       expect(models).toBeUndefined();
+    });
+
+    it("returns undefined when more pages remain than the max page budget", async () => {
+      const fetchImpl = mock(async () => {
+        return {
+          json: async () => ({
+            nextPageToken: "always-more",
+            publisherModels: [{name: "publishers/google/models/gemini-2.5-flash"}],
+          }),
+          ok: true,
+          status: 200,
+        } as unknown as Response;
+      });
+
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        getAccessToken: async () => "fake-token",
+        project: "demo-project",
+      });
+      expect(models).toBeUndefined();
+      expect(fetchImpl).toHaveBeenCalledTimes(10);
     });
 
     it("returns undefined when the listing request fails", async () => {
