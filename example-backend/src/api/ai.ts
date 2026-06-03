@@ -71,17 +71,17 @@ const getAllowedVertexModels = (): string[] | undefined => {
 };
 
 let vertexProviderInstance: TerrenoVertexProvider | undefined;
-let vertexProviderResolved = false;
 
 /**
  * Resolve the Vertex AI (Gemini Enterprise Agent Platform, formerly Vertex AI) provider. Uses
  * Application Default Credentials and honors an optional GOOGLE_VERTEX_ALLOWED_MODELS allow-list.
+ * Only a successfully created provider is cached, so a later call can retry if config/SDK
+ * become available.
  */
 const getVertexProvider = (): TerrenoVertexProvider | undefined => {
-  if (vertexProviderResolved) {
+  if (vertexProviderInstance) {
     return vertexProviderInstance;
   }
-  vertexProviderResolved = true;
   vertexProviderInstance = createVertexProvider({
     allowedModels: getAllowedVertexModels(),
     location: process.env.GOOGLE_VERTEX_LOCATION,
