@@ -346,3 +346,38 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Cursor Cloud specific instructions
+
+### Bootstrap
+
+From the repo root after clone or when dependencies change:
+
+```bash
+bun bootstrap
+```
+
+Installs workspace dependencies and compiles all packages (`bun install && bun run compile`).
+
+### Cloud VM toolchain
+
+Shared install script (in **flourish** repo): `bash /agent/repos/flourish/scripts/install-cloud-dev-tools.sh` then `source ~/.cloud-dev-tools.env`. Provides **terraform**, **gcloud**, **gh**, **Playwright** (after `bun bootstrap` in packages with `@playwright/test`), **Appium**, and **Android emulator** helpers. Terreno/terraform details: `terraform/README.md`.
+
+### Example full stack
+
+| Service | Port | Start command |
+|---------|------|---------------|
+| example-backend | 4000 | `bun run backend:dev` (from repo root) |
+| example-frontend web | 8082 | `bun run frontend:web` |
+
+`example-frontend` uses in-memory Mongo via `example-backend` — no system MongoDB required for the example apps.
+
+### Tests and lint
+
+- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+- `demo:start` serves the UI component demo on port **8085**.
+
+### Gotchas
+
+- **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
+- Use `$HOME/.bun/bin/bun` if `bun` is not on `PATH` in non-interactive shells (install via https://bun.sh).
