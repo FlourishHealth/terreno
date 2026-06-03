@@ -4,14 +4,19 @@ import type express from "express";
 import {type Model, model, Schema} from "mongoose";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
-import {z} from "zod";
-import {ACTION_NAME_PATTERN, defineCollectionAction, defineInstanceAction} from "./actions";
-import {modelRouter} from "./api";
+import {
+  ACTION_NAME_PATTERN,
+  createActionOpenApiMiddleware,
+  defineCollectionAction,
+  defineInstanceAction,
+} from "./actions";
+import {modelRouter, type OpenApiMiddleware} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {apiUnauthorizedMiddleware} from "./errors";
 import {Permissions} from "./permissions";
 import {type IsDeleted, isDeletedPlugin} from "./plugins";
 import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {z} from "./zodOpenApi";
 
 interface Stuff extends IsDeleted {
   _id: string;
@@ -430,6 +435,23 @@ describe("modelRouter actions", () => {
         expect(originalQ).toBe("5");
       });
 
+      it("returns 400 with meta.fields for invalid query", async () => {
+        mountFoodRouter({
+          collectionActions: {
+            lookup: {
+              handler: async () => ({ok: true}),
+              method: "GET",
+              permissions: [Permissions.IsAny],
+              query: z.object({email: z.string().email()}),
+            },
+          },
+          permissions: allPermissions,
+        });
+        const res = await server.get("/food/lookup?email=bad").expect(400);
+        expect(res.body.title).toBe("Validation failed");
+        expect(res.body.meta.fields.email).toBeDefined();
+      });
+
       it("coerces body values via zod in ctx", async () => {
         let seenCount: number | undefined;
         mountFoodRouter({
@@ -631,6 +653,131 @@ describe("modelRouter actions", () => {
         permissions: [Permissions.IsAny],
       });
       expect(action.method).toBe("POST");
+    });
+  });
+
+  describe("createActionOpenApiMiddleware", () => {
+    const createMockOpenApi = (): {
+      captured: Record<string, unknown> | undefined;
+      middleware: OpenApiMiddleware;
+    } => {
+      let captured: Record<string, unknown> | undefined;
+      const pathFn = (op: Record<string, unknown>): express.RequestHandler => {
+        captured = op;
+        return (_req: express.Request, _res: express.Response, next: express.NextFunction) =>
+          next();
+      };
+      return {
+        get captured() {
+          return captured;
+        },
+        middleware: {path: pathFn} as unknown as OpenApiMiddleware,
+      };
+    };
+
+    it("returns no-op middleware when openApi is not configured", () => {
+      const handler = createActionOpenApiMiddleware({
+        action: {method: "GET", permissions: []},
+        actionName: "test",
+        model: FoodModel as Model<Food>,
+        options: {},
+        scope: "collection",
+      });
+      expect(typeof handler).toBe("function");
+    });
+
+    it("generates query parameters from action.query schema", () => {
+      const mock = createMockOpenApi();
+      createActionOpenApiMiddleware({
+        action: {
+          method: "GET",
+          permissions: [],
+          query: z.object({page: z.coerce.number(), search: z.string()}),
+        },
+        actionName: "search",
+        model: FoodModel as Model<Food>,
+        options: {openApi: mock.middleware},
+        scope: "collection",
+      });
+      const params = mock.captured?.parameters as Record<string, unknown>[];
+      expect(params.length).toBe(2);
+      expect(params.some((p) => p.name === "search")).toBe(true);
+      expect(params.some((p) => p.name === "page")).toBe(true);
+    });
+
+    it("includes id path parameter for instance-scoped actions", () => {
+      const mock = createMockOpenApi();
+      createActionOpenApiMiddleware({
+        action: {method: "GET", permissions: []},
+        actionName: "peek",
+        model: FoodModel as Model<Food>,
+        options: {openApi: mock.middleware},
+        scope: "instance",
+      });
+      const params = mock.captured?.parameters as Record<string, unknown>[];
+      expect(params.some((p) => p.name === "id" && p.in === "path")).toBe(true);
+    });
+
+    it("uses fallback data schema when response is not provided", () => {
+      const mock = createMockOpenApi();
+      createActionOpenApiMiddleware({
+        action: {method: "POST", permissions: []},
+        actionName: "noop",
+        model: FoodModel as Model<Food>,
+        options: {openApi: mock.middleware},
+        scope: "collection",
+      });
+      const responses = mock.captured?.responses as Record<string, Record<string, unknown>>;
+      const ok = responses["200"] as Record<
+        string,
+        Record<string, Record<string, Record<string, unknown>>>
+      >;
+      const schema = ok.content["application/json"].schema as Record<
+        string,
+        Record<string, unknown>
+      >;
+      expect(schema.properties.data).toEqual({type: "object"});
+    });
+
+    it("uses zod response schema when provided", () => {
+      const mock = createMockOpenApi();
+      createActionOpenApiMiddleware({
+        action: {
+          method: "POST",
+          permissions: [],
+          response: z.object({count: z.number()}),
+        },
+        actionName: "tally",
+        model: FoodModel as Model<Food>,
+        options: {openApi: mock.middleware},
+        scope: "collection",
+      });
+      const responses = mock.captured?.responses as Record<string, Record<string, unknown>>;
+      const ok = responses["200"] as Record<
+        string,
+        Record<string, Record<string, Record<string, unknown>>>
+      >;
+      const schema = ok.content["application/json"].schema as Record<
+        string,
+        Record<string, unknown>
+      >;
+      expect((schema.properties.data as Record<string, unknown>).properties).toBeDefined();
+    });
+
+    it("includes requestBody when action.body is defined", () => {
+      const mock = createMockOpenApi();
+      createActionOpenApiMiddleware({
+        action: {
+          body: z.object({name: z.string()}),
+          method: "POST",
+          permissions: [],
+        },
+        actionName: "create",
+        model: FoodModel as Model<Food>,
+        options: {openApi: mock.middleware},
+        scope: "collection",
+      });
+      expect(mock.captured?.requestBody).toBeDefined();
     });
   });
 });
