@@ -358,6 +358,10 @@ bun bootstrap
 
 Installs workspace dependencies and compiles all packages (`bun install && bun run compile`).
 
+### Cloud VM toolchain
+
+Shared install script (in **flourish** repo): `bash /agent/repos/flourish/scripts/install-cloud-dev-tools.sh` then `source ~/.cloud-dev-tools.env`. Provides **terraform**, **gcloud**, **gh**, **Playwright** (after `bun bootstrap` in packages with `@playwright/test`), **Appium**, and **Android emulator** helpers. Terreno/terraform details: `terraform/README.md`.
+
 ### Example full stack
 
 | Service | Port | Start command |
