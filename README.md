@@ -76,6 +76,20 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 
 This project uses [Bun](https://bun.sh/) as the package manager.
 
+### Bootstrap
+
+The fastest way to get a development-ready checkout is the top-level `bootstrap` command. It installs all dependencies and compiles every package so the workspace is ready for development:
+
+```bash
+bun run bootstrap         # Install dependencies + compile all packages
+bun run bootstrap:update  # Re-run after pulling changes or switching branches
+```
+
+- **`bootstrap`** — Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package.
+- **`bootstrap:update`** — Run when resuming work after pulling changes, switching branches, or when dependencies have changed. Reinstalls dependencies and recompiles to pick up any changes.
+
+If you prefer to run the steps individually:
+
 ```bash
 # Install dependencies
 bun install
