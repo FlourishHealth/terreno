@@ -27,12 +27,17 @@ A monorepo containing shared packages for building full-stack applications with 
 Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
+bun run bootstrap        # Install dependencies + compile all packages (dev-ready setup)
+bun run bootstrap:update # Reinstall + recompile after pulling changes or switching branches
 bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
 bun run test             # Run tests in api and ui
 ```
+
+- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
+- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed.
 
 ### Package-specific commands
 
