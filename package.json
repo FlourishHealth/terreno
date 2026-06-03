@@ -81,6 +81,10 @@
     "admin-backend:test": "bun run --filter '@terreno/admin-backend' test",
     "admin-frontend:compile": "bun run --filter '@terreno/admin-frontend' compile",
     "admin-frontend:lint": "bun run --filter '@terreno/admin-frontend' lint",
+    "admin-spa:build": "bun run --filter '@terreno/admin-spa' build:web",
+    "admin-spa:compile": "bun run --filter '@terreno/admin-spa' compile",
+    "admin-spa:lint": "bun run --filter '@terreno/admin-spa' lint",
+    "admin-spa:test": "bun run --filter '@terreno/admin-spa' test:ci",
     "ai:compile": "bun run --filter '@terreno/ai' compile",
     "ai:lint": "bun run --filter '@terreno/ai' lint",
     "ai:test": "bun run --filter '@terreno/ai' test",
@@ -141,6 +145,7 @@
   "workspaces": [
     "admin-backend",
     "admin-frontend",
+    "admin-spa",
     "ai",
     "api",
     "api-health",

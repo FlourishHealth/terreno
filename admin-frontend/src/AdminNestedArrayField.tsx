@@ -17,7 +17,12 @@ interface AdminNestedArrayFieldProps {
   value: Record<string, AdminFieldValue>[];
   onChange: (value: Record<string, AdminFieldValue>[]) => void;
   api: AdminApi;
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
   /** Parent document form state, used to derive dynamic options for sub-fields */
   parentFormState?: Record<string, AdminFieldValue>;
@@ -34,6 +39,8 @@ interface AdminNestedArrayFieldProps {
 const renderNestedSubField = ({
   api,
   baseUrl,
+  apiBase,
+  routeBase,
   fieldKey,
   fieldConfig,
   fieldValue,
@@ -44,7 +51,9 @@ const renderNestedSubField = ({
   refRenderers,
 }: {
   api: AdminApi;
-  baseUrl: string;
+  baseUrl?: string;
+  apiBase?: string;
+  routeBase?: string;
   fieldKey: string;
   fieldConfig: AdminFieldConfig;
   fieldValue: AdminFieldValue;
@@ -58,6 +67,7 @@ const renderNestedSubField = ({
     return (
       <AdminNestedArrayField
         api={api}
+        apiBase={apiBase}
         baseUrl={baseUrl}
         helperText={fieldConfig.description}
         items={fieldConfig.items}
@@ -66,6 +76,7 @@ const renderNestedSubField = ({
         onChange={(val) => onSubFieldChange(index, fieldKey, val)}
         parentFormState={parentFormState}
         refRenderers={refRenderers}
+        routeBase={routeBase}
         title={startCase(fieldKey)}
         value={Array.isArray(fieldValue) ? (fieldValue as Record<string, AdminFieldValue>[]) : []}
       />
@@ -75,6 +86,7 @@ const renderNestedSubField = ({
   return (
     <AdminFieldRendererCore
       api={api}
+      apiBase={apiBase}
       baseUrl={baseUrl}
       fieldConfig={fieldConfig}
       fieldKey={fieldKey}
@@ -83,6 +95,7 @@ const renderNestedSubField = ({
       onChange={(val) => onSubFieldChange(index, fieldKey, val)}
       parentFormState={parentFormState}
       refRenderers={refRenderers}
+      routeBase={routeBase}
       value={fieldValue}
     />
   );
@@ -122,6 +135,8 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
   onChange,
   api,
   baseUrl,
+  apiBase,
+  routeBase,
   modelConfigs,
   parentFormState,
   refRenderers,
@@ -235,6 +250,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
             {subFieldEntries.map(([fieldKey, fieldConfig]) =>
               renderNestedSubField({
                 api,
+                apiBase,
                 baseUrl,
                 fieldConfig,
                 fieldKey,
@@ -244,6 +260,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
                 onSubFieldChange: handleSubFieldChange,
                 parentFormState: subFieldParentFormState,
                 refRenderers,
+                routeBase,
               })
             )}
           </Box>
@@ -255,7 +272,9 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       idToIndexMap,
       subFieldEntries,
       api,
+      apiBase,
       baseUrl,
+      routeBase,
       modelConfigs,
       parentFormState,
       refRenderers,

@@ -18,12 +18,18 @@ const configState: {config: AdminConfigResponse | null; isLoading: boolean} = {
   config: null,
   isLoading: false,
 };
+// Records the apiBase passed to useAdminConfig so tests can assert that data
+// fetching uses the resolved API base (not the route base).
+const configApiBaseCalls: string[] = [];
 mock.module("./useAdminConfig", () => ({
-  useAdminConfig: () => ({
-    config: configState.config,
-    error: null,
-    isLoading: configState.isLoading,
-  }),
+  useAdminConfig: (_api: unknown, apiBase: string) => {
+    configApiBaseCalls.push(apiBase);
+    return {
+      config: configState.config,
+      error: null,
+      isLoading: configState.isLoading,
+    };
+  },
 }));
 
 const listState: {data: unknown; isLoading: boolean} = {
@@ -74,6 +80,7 @@ describe("AdminModelTable", () => {
     routerPush.mockClear();
     setOptions.mockClear();
     deleteFn.mockClear();
+    configApiBaseCalls.length = 0;
     configState.config = null;
     configState.isLoading = false;
     listState.data = {data: [], total: 0};
@@ -355,5 +362,51 @@ describe("AdminModelTable", () => {
       await new Promise((r) => setTimeout(r, 10));
     });
     expect(toJSON()).toBeDefined();
+  });
+
+  it("fetches config from apiBase but builds row href + create nav from routeBase when split", async () => {
+    configState.config = fullConfig;
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
+    let headerRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        headerRight = (opts.headerRight as () => React.ReactElement)();
+      }
+    });
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable
+        api={{} as unknown as AdminApi}
+        apiBase="/admin"
+        modelName="User"
+        routeBase="/console"
+      />
+    );
+    // Data fetching must use the API base.
+    expect(configApiBaseCalls).toContain("/admin");
+    // The first cell's link href must use the route base.
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.data));
+    expect(tables.length).toBeGreaterThan(0);
+    const rows = (tables[0] as ReactTestInstance).props.data as {value: {href?: string}}[][];
+    expect(rows[0][0].value.href).toBe("/console/User/u1");
+    // The create button must navigate using the route base.
+    expect(headerRight).not.toBeNull();
+    const header = renderWithTheme(headerRight as unknown as React.ReactElement);
+    await act(async () => {
+      fireEvent.press(header.getByTestId("admin-create-button"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(routerPush).toHaveBeenCalledWith("/console/User/create");
+  });
+
+  it("uses baseUrl for both fetching and navigation (backward compat)", () => {
+    configState.config = fullConfig;
+    listState.data = {data: [{_id: "u1", email: "a@b.com"}], total: 1};
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminModelTable api={{} as unknown as AdminApi} baseUrl="/admin" modelName="User" />
+    );
+    expect(configApiBaseCalls).toContain("/admin");
+    const tables = UNSAFE_root.findAll((n: ReactTestInstance) => Array.isArray(n.props?.data));
+    const rows = (tables[0] as ReactTestInstance).props.data as {value: {href?: string}}[][];
+    expect(rows[0][0].value.href).toBe("/admin/User/u1");
   });
 });

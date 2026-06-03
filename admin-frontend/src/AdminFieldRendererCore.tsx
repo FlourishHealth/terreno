@@ -98,6 +98,8 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   onChange,
   errorText,
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   modelConfigs,
   parentFormState,
@@ -199,11 +201,13 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       return (
         <CustomRenderer
           api={api}
+          apiBase={apiBase}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText}
           onChange={onChange}
           refModelName={fieldConfig.ref}
+          routeBase={routeBase}
           routePath={refModel?.routePath ?? ""}
           title={label}
           value={typeof value === "string" ? value : ""}
@@ -214,11 +218,13 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
       return (
         <AdminRefField
           api={api}
+          apiBase={apiBase}
           baseUrl={baseUrl}
           errorText={errorText}
           helperText={helperText}
           onChange={onChange}
           refModelName={fieldConfig.ref}
+          routeBase={routeBase}
           routePath={refModel.routePath}
           title={label}
           value={typeof value === "string" ? value : ""}
@@ -352,6 +358,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
     return (
       <AdminPrimitiveArrayField
         api={api}
+        apiBase={apiBase}
         baseUrl={baseUrl}
         errorText={errorText}
         helperText={helperText}
@@ -361,6 +368,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
         modelConfigs={modelConfigs}
         onChange={onChange}
         refRenderers={refRenderers}
+        routeBase={routeBase}
         title={label}
         value={Array.isArray(value) ? value : []}
       />

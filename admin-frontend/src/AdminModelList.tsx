@@ -2,11 +2,21 @@ import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminApi, AdminCustomScreen, AdminModelConfig} from "./types";
+import {
+  type AdminApi,
+  type AdminCustomScreen,
+  type AdminModelConfig,
+  resolveAdminBases,
+} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
@@ -118,17 +128,24 @@ const CustomScreenCard: React.FC<{screen: AdminCustomScreen; onPress: () => void
  */
 export const AdminModelList: React.FC<AdminModelListProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   configurationPath,
   customScreens: propCustomScreens,
 }) => {
-  const {config, isLoading, error} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
 
   const handlePress = useCallback(
     (modelName: string) => {
-      router.push(`${baseUrl}/${modelName}` as Href);
+      router.push(`${resolvedRouteBase}/${modelName}` as Href);
     },
-    [baseUrl]
+    [resolvedRouteBase]
   );
 
   if (isLoading) {

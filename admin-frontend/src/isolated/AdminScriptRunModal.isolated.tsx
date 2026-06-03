@@ -3,6 +3,7 @@
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
+import type {ReactTestInstance} from "react-test-renderer";
 import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import type {AdminApi} from "../types";
 
@@ -83,6 +84,13 @@ const waitTicks = async (ms = 40): Promise<void> => {
   });
 };
 
+const pressDryRun = async (getByTestId: (id: string) => ReactTestInstance): Promise<void> => {
+  await act(async () => {
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
+  });
+  await waitTicks();
+};
+
 describe("AdminScriptRunModal", () => {
   beforeEach(() => {
     runCalls.length = 0;
@@ -106,22 +114,112 @@ describe("AdminScriptRunModal", () => {
     expect(runCalls.length).toBe(0);
   });
 
+  it("shows confirm-phase Dry Run, Run, and Cancel buttons when visible", () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    expect(getByTestId("admin-script-dry-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-wet-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-confirm-cancel-button")).toBeTruthy();
+    expect(runCalls.length).toBe(0);
+  });
+
+  it("calls onDismiss from confirm Cancel without starting a run", async () => {
+    const onDismiss = mock(() => undefined);
+
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={onDismiss}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-confirm-cancel-button"));
+    });
+
+    expect(onDismiss).toHaveBeenCalled();
+    expect(runCalls.length).toBe(0);
+  });
+
+  it("starts a dry run when Dry Run is pressed", async () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    await pressDryRun(getByTestId);
+
+    expect(runCalls.length).toBe(1);
+    expect(runCalls[0]).toEqual({name: "my-script", wetRun: false});
+  });
+
   it("starts a wet run when the Run button is pressed", async () => {
     const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
-        onDismiss={() => {}}
-        scriptName="test-script"
-        visible={true}
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
       />
     );
+
     await act(async () => {
       fireEvent.press(getByTestId("admin-script-wet-run-button"));
     });
     await waitTicks();
+
     expect(runCalls.length).toBe(1);
-    expect(runCalls[0]).toEqual({name: "test-script", wetRun: true});
+    expect(runCalls[0]).toEqual({name: "my-script", wetRun: true});
+  });
+
+  it("hides the wet-run button when dryRunOnly is true", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        dryRunOnly
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    expect(getByTestId("admin-script-dry-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-confirm-cancel-button")).toBeTruthy();
+    expect(queryByTestId("admin-script-wet-run-button")).toBeNull();
+  });
+
+  it("renders the script description in the confirm phase", () => {
+    const {getByText} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptDescription="Migrates legacy records"
+        scriptName="migrate-data"
+        visible
+      />
+    );
+
+    expect(getByText("Migrates legacy records")).toBeTruthy();
+    expect(getByText("migrate-data")).toBeTruthy();
   });
 
   it("renders running phase with progress details", async () => {
@@ -263,10 +361,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks();
+    await pressDryRun(getByTestId);
     await act(async () => {
       fireEvent.press(getByTestId("admin-script-cancel-button"));
       await new Promise((r) => setTimeout(r, 20));
@@ -290,10 +385,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks();
+    await pressDryRun(getByTestId);
     await act(async () => {
       fireEvent.press(getByTestId("admin-script-cancel-button"));
       await new Promise((r) => setTimeout(r, 20));
@@ -314,10 +406,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -334,10 +423,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -354,10 +440,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -403,10 +486,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await act(async () => {
-      fireEvent.press(getByTestId("admin-script-dry-run-button"));
-    });
-    await waitTicks();
+    await pressDryRun(getByTestId);
     await act(async () => {
       fireEvent.press(getByTestId("admin-script-cancel-button"));
     });
