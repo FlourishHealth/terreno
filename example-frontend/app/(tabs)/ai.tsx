@@ -10,12 +10,13 @@ import {
   useStoredState,
 } from "@terreno/ui";
 import type React from "react";
-import {useCallback, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 import {useDispatch} from "react-redux";
 import {
   type GptHistory,
   terrenoApi,
   useDeleteGptHistoriesByIdMutation,
+  useGetAiModelsQuery,
   useGetGptHistoriesQuery,
   usePatchGptHistoriesByIdMutation,
 } from "@/store";
@@ -64,7 +65,11 @@ const readFileAsBase64DataUrl = async (uri: string, _mimeType: string): Promise<
   });
 };
 
-const AVAILABLE_MODELS = [
+/**
+ * Fallback model list used before the backend responds (or if the request fails). The live list is
+ * fetched from GET /ai/models, which reflects the backend's allow-list and Vertex enabled models.
+ */
+const FALLBACK_MODELS = [
   {label: "Gemini 2.5 Pro", value: "gemini-2.5-pro"},
   {label: "Gemini 2.5 Flash", value: "gemini-2.5-flash"},
   {label: "Gemini 2.5 Flash Lite", value: "gemini-2.5-flash-lite"},
@@ -88,6 +93,13 @@ const AiScreen: React.FC = () => {
 
   const dispatch = useDispatch();
   const userId = useSelectCurrentUserId();
+  const {data: modelsData} = useGetAiModelsQuery(undefined, {skip: !userId});
+
+  // Prefer the live model list from the backend; fall back to the static list until it loads.
+  const availableModels = useMemo(
+    () => (modelsData?.models?.length ? modelsData.models : FALLBACK_MODELS),
+    [modelsData]
+  );
   const {data: historiesData, isLoading} = useGetGptHistoriesQuery(gptHistoriesListQueryArgs, {
     skip: !userId,
   });
@@ -416,7 +428,7 @@ const AiScreen: React.FC = () => {
   return (
     <GPTChat
       attachments={attachments}
-      availableModels={AVAILABLE_MODELS}
+      availableModels={availableModels}
       currentHistoryId={currentHistoryId}
       currentMessages={currentMessages}
       geminiApiKey={geminiApiKey}

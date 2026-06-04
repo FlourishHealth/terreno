@@ -7,13 +7,21 @@ import {
   addMcpRoutes,
   createVertexProvider,
   FileStorageService,
+  listEnabledVertexModels,
   MCPService,
+  normalizeVertexModelId,
   preparePromptForAI,
   type TerrenoVertexProvider,
   verifyVertexModelsEnabled,
 } from "@terreno/ai";
 import type {ModelRouterOptions} from "@terreno/api";
-import {APIError, logger} from "@terreno/api";
+import {
+  APIError,
+  asyncHandler,
+  authenticateMiddleware,
+  createOpenApiBuilder,
+  logger,
+} from "@terreno/api";
 import type {ImageModel, LanguageModel, Tool} from "ai";
 import {generateImage, tool, zodSchema} from "ai";
 import type express from "express";
@@ -53,6 +61,34 @@ const getGoogleModule = (): GoogleModule | undefined => {
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const VERTEX_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
+
+/** Friendly labels for known Gemini chat model ids, used to render the model picker. */
+const MODEL_LABELS: Record<string, string> = {
+  "gemini-2.0-flash": "Gemini 2.0 Flash",
+  "gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
+  "gemini-2.5-flash": "Gemini 2.5 Flash",
+  "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
+  "gemini-2.5-pro": "Gemini 2.5 Pro",
+};
+
+/** Curated default chat models offered when no allow-list or live model listing is available. */
+const DEFAULT_CHAT_MODEL_IDS = [
+  "gemini-2.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+];
+
+interface SelectableModel {
+  label: string;
+  value: string;
+}
+
+const toSelectableModel = (id: string): SelectableModel => ({
+  label: MODEL_LABELS[id] ?? id,
+  value: id,
+});
 
 /**
  * Parse the optional GOOGLE_VERTEX_ALLOWED_MODELS env var (comma-separated). When unset/empty, all
@@ -132,6 +168,39 @@ const verifyAllowedVertexModels = async (provider: TerrenoVertexProvider): Promi
   } catch (error) {
     logger.warn(`Vertex model verification skipped: ${(error as Error).message}`);
   }
+};
+
+/**
+ * Resolve the list of chat models to offer in the picker. Starts from the configured allow-list (or
+ * the curated defaults), then — when Vertex is configured — narrows to the models actually enabled
+ * for the project via the Google APIs. Falls back gracefully when the listing is inconclusive.
+ */
+const listAvailableModels = async (): Promise<SelectableModel[]> => {
+  const allowed = getAllowedVertexModels();
+  const candidateIds = allowed && allowed.length > 0 ? allowed : DEFAULT_CHAT_MODEL_IDS;
+
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    try {
+      const enabled = await listEnabledVertexModels({
+        location: vertexProvider.location,
+        project: vertexProvider.project,
+      });
+      if (enabled && enabled.length > 0) {
+        const enabledSet = new Set(enabled.map(normalizeVertexModelId));
+        const filtered = candidateIds.filter((id) => enabledSet.has(normalizeVertexModelId(id)));
+        if (filtered.length > 0) {
+          return filtered.map(toSelectableModel);
+        }
+      }
+    } catch (error) {
+      logger.warn(
+        `Could not list enabled Vertex models for the picker: ${(error as Error).message}`
+      );
+    }
+  }
+
+  return candidateIds.map(toSelectableModel);
 };
 
 const getAiService = (): AIService | undefined => {
@@ -598,6 +667,30 @@ export const addAiRoutes = (
   if (vertexProvider) {
     void verifyAllowedVertexModels(vertexProvider);
   }
+
+  router.get("/ai/models", [
+    authenticateMiddleware(),
+    createOpenApiBuilder(options ?? {})
+      .withTags(["ai"])
+      .withSummary("List selectable AI chat models")
+      .withResponse(200, {
+        models: {
+          items: {
+            properties: {
+              label: {type: "string"},
+              value: {type: "string"},
+            },
+            type: "object",
+          },
+          type: "array",
+        },
+      })
+      .build(),
+    asyncHandler(async (_req, res) => {
+      const models = await listAvailableModels();
+      return res.json({models});
+    }),
+  ]);
 
   addGptHistoryRoutes(router, options);
   addGptRoutes(router, {
