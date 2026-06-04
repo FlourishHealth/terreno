@@ -67,7 +67,7 @@
   },
   "name": "@terreno/root",
   "overrides": {
-    "ajv": "8.18.0",
+    "ajv": "8.20.0",
     "lodash": "^4.17.23",
     "qs": "^6.14.1",
     "router": "^2.2.0",
