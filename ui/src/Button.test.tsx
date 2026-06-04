@@ -1,5 +1,5 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
 import {renderWithTheme} from "./test-utils";
@@ -262,5 +262,11 @@ describe("Button", () => {
       <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders without a ThemeProvider using default context theme", () => {
+    const {toJSON} = render(<Button onClick={() => {}} text="No theme" />);
+    // The ThemeContext provides a default computed theme, so the button renders
+    expect(toJSON()).toBeTruthy();
   });
 });
