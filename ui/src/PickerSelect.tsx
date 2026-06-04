@@ -31,6 +31,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -81,14 +82,15 @@ export interface RNPickerSelectProps {
   /** Enable type-to-filter search in the web dropdown. */
   searchable?: boolean;
 
-  // Custom Modal props (iOS only)
+  // Custom Modal props (iOS and Android)
   doneText?: string;
+  cancelText?: string;
   onDonePress?: () => void;
   onUpArrow?: () => void;
   onDownArrow?: () => void;
   onClose?: () => void;
 
-  // Modal props (iOS only)
+  // Modal props (iOS and Android)
   modalProps?: any;
 
   // TextInput props
@@ -115,6 +117,7 @@ export function RNPickerSelect({
   fixAndroidTouchableBug = false,
   searchable = false,
   doneText = "Done",
+  cancelText = "Cancel",
   onDonePress,
   onUpArrow,
   onDownArrow,
@@ -357,15 +360,237 @@ export function RNPickerSelect({
     );
   };
 
-  const renderIcon = () => {
-    // Icon only needed for iOS, web and android use default icons
-    if (Platform.OS !== "ios") {
+  const renderIcon = (): React.ReactNode => {
+    if (Platform.OS !== "ios" && Platform.OS !== "android") {
       return null;
     }
 
     return (
       <View style={{pointerEvents: "none"}} testID="icon_container">
-        <Icon color={disabled ? "secondaryLight" : "primary"} iconName="angle-down" size="sm" />
+        <Icon
+          color={disabled ? "secondaryLight" : "primary"}
+          iconName={showPicker && Platform.OS === "android" ? "angle-up" : "angle-down"}
+          size="sm"
+        />
+      </View>
+    );
+  };
+
+  const openAndroidPicker = (): void => {
+    if (disabled) {
+      return;
+    }
+
+    Keyboard.dismiss();
+    if (onOpen) {
+      onOpen();
+    }
+    setShowPicker(true);
+  };
+
+  const closeAndroidPicker = (): void => {
+    if (!showPicker) {
+      return;
+    }
+
+    if (onClose) {
+      onClose();
+    }
+    setShowPicker(false);
+  };
+
+  const selectAndroidOption = (val: any, index: number): void => {
+    onValueChangeEvent(val, index);
+    if (onClose) {
+      onClose();
+    }
+    setShowPicker(false);
+  };
+
+  const renderAndroidOptionList = (): React.ReactNode => {
+    const selectedOriginalIdx = getSelectedItem(itemKey, value).idx;
+
+    return (
+      <ScrollView keyboardShouldPersistTaps="handled" testID="android_picker_list">
+        {options.map((item: any, index: number) => {
+          if (!item || typeof item !== "object" || typeof item.label !== "string") {
+            return null;
+          }
+
+          const isSelected = index === selectedOriginalIdx;
+
+          return (
+            <Pressable
+              aria-role="button"
+              key={item.key ?? index}
+              onPress={() => {
+                selectAndroidOption(item.value, index);
+              }}
+              style={{
+                backgroundColor: isSelected ? theme.surface.neutralLight : theme.surface.base,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+              }}
+              testID={`android_picker_option_${index}`}
+            >
+              <Text
+                style={{
+                  color: item.color ?? theme.text.primary,
+                  fontSize: 16,
+                  fontWeight: isSelected ? "600" : "400",
+                }}
+              >
+                {item.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
+  const renderAndroidModal = (): React.ReactNode => {
+    return (
+      <Modal
+        animationType="fade"
+        onRequestClose={closeAndroidPicker}
+        testID="android_modal"
+        transparent
+        visible={showPicker}
+        {...modalProps}
+      >
+        <Pressable
+          aria-role="button"
+          onPress={closeAndroidPicker}
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.45)",
+            flex: 1,
+            justifyContent: "flex-end",
+          }}
+          testID="android_modal_backdrop"
+        >
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation();
+            }}
+            style={{
+              backgroundColor: theme.surface.base,
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              maxHeight: "70%",
+              overflow: "hidden",
+            }}
+            testID="android_modal_sheet"
+          >
+            <View
+              style={{
+                alignItems: "center",
+                borderBottomColor: theme.border.dark,
+                borderBottomWidth: 1,
+                flexDirection: "row",
+                justifyContent: "flex-start",
+                minHeight: 48,
+                paddingHorizontal: 12,
+              }}
+              testID="android_input_accessory_view"
+            >
+              <Pressable
+                hitSlop={{bottom: 8, left: 8, right: 8, top: 8}}
+                onPress={closeAndroidPicker}
+                testID="cancel_button"
+              >
+                <Text
+                  allowFontScaling={false}
+                  style={{
+                    color: "#007aff",
+                    fontSize: 17,
+                    fontWeight: "600",
+                    paddingHorizontal: 4,
+                  }}
+                  testID="cancel_text"
+                >
+                  {cancelText}
+                </Text>
+              </Pressable>
+            </View>
+            {renderAndroidOptionList()}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    );
+  };
+
+  const renderAndroidTrigger = (): React.ReactNode => {
+    if (children) {
+      const Component: any = fixAndroidTouchableBug ? View : Pressable;
+      return (
+        <Component
+          activeOpacity={1}
+          onPress={openAndroidPicker}
+          testID="android_touchable_wrapper"
+          {...touchableWrapperProps}
+        >
+          <View style={{pointerEvents: "box-only"}}>{children}</View>
+        </Component>
+      );
+    }
+
+    return (
+      <Pressable
+        activeOpacity={1}
+        disabled={disabled}
+        onPress={openAndroidPicker}
+        style={{
+          alignItems: "center",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          minHeight: 40,
+          paddingHorizontal: 8,
+          width: "100%",
+        }}
+        testID="android_touchable_wrapper"
+        {...touchableWrapperProps}
+      >
+        <TextInput
+          pointerEvents="none"
+          readOnly
+          style={{
+            color: disabled ? theme.text.secondaryLight : theme.text.primary,
+            flex: 1,
+            paddingRight: 8,
+          }}
+          testID="text_input"
+          value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
+          {...textInputProps}
+        />
+        {renderIcon()}
+      </Pressable>
+    );
+  };
+
+  const renderAndroid = (): React.ReactNode => {
+    const isHeadless = Boolean(children) || !useNativeAndroidPickerStyle;
+
+    return (
+      <View
+        style={
+          isHeadless
+            ? undefined
+            : [
+                defaultStyles.viewContainer,
+                {
+                  backgroundColor: theme.surface.base,
+                  borderColor: theme.border.dark,
+                  height: 40,
+                },
+                disabled && {
+                  backgroundColor: theme.surface.neutralLight,
+                },
+              ]
+        }
+      >
+        {renderAndroidTrigger()}
+        {renderAndroidModal()}
       </View>
     );
   };
@@ -465,70 +690,6 @@ export function RNPickerSelect({
             </Picker>
           </View>
         </Modal>
-      </View>
-    );
-  };
-
-  const renderAndroidHeadless = () => {
-    const Component: any = fixAndroidTouchableBug ? View : Pressable;
-    return (
-      <Component
-        activeOpacity={1}
-        onPress={onOpen}
-        testID="android_touchable_wrapper"
-        {...touchableWrapperProps}
-      >
-        <View>
-          {renderTextInputOrChildren()}
-          <Picker
-            enabled={!disabled}
-            onValueChange={onValueChangeEvent}
-            selectedValue={selectedItem?.value}
-            style={[
-              // to hide native icon
-              Platform.OS !== "web" ? {backgroundColor: "transparent"} : {},
-              {
-                color: "transparent",
-                height: "100%",
-                opacity: 0,
-                position: "absolute",
-                width: "100%",
-              },
-            ]}
-            testID="android_picker_headless"
-          >
-            {renderPickerItems()}
-          </Picker>
-        </View>
-      </Component>
-    );
-  };
-
-  const renderAndroidNativePickerStyle = () => {
-    return (
-      <View
-        style={[
-          defaultStyles.viewContainer,
-          {
-            backgroundColor: theme.surface.base,
-            borderColor: theme.border.dark,
-            height: 40,
-          },
-          disabled && {
-            backgroundColor: theme.surface.neutralLight,
-          },
-        ]}
-      >
-        <Picker
-          dropdownIconColor={theme.text.primary}
-          enabled={!disabled}
-          onValueChange={onValueChangeEvent}
-          selectedValue={selectedItem?.value}
-          style={[{color: theme.text.primary, width: "100%"}]}
-          testID="android_picker"
-        >
-          {renderPickerItems()}
-        </Picker>
       </View>
     );
   };
@@ -662,11 +823,7 @@ export function RNPickerSelect({
       return renderWeb();
     }
 
-    if (children || !useNativeAndroidPickerStyle) {
-      return renderAndroidHeadless();
-    }
-
-    return renderAndroidNativePickerStyle();
+    return renderAndroid();
   };
 
   return render();
