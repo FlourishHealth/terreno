@@ -1,5 +1,7 @@
 export {AIService, TemperaturePresets} from "./aiService";
 export {FileStorageService} from "./fileStorage";
+export type {ListGeminiApiModelsOptions} from "./gemini";
+export {GEMINI_API_BASE_URL, listGeminiApiModels, normalizeGeminiModelId} from "./gemini";
 export {MCPService} from "./mcpService";
 export {
   CONTENT_SUMMARY_PROMPT,

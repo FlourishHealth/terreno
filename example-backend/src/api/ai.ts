@@ -8,6 +8,7 @@ import {
   createVertexProvider,
   FileStorageService,
   listEnabledVertexModels,
+  listGeminiApiModels,
   MCPService,
   normalizeVertexModelId,
   preparePromptForAI,
@@ -62,31 +63,28 @@ const getGoogleModule = (): GoogleModule | undefined => {
 const DEFAULT_MODEL = "gemini-2.5-flash";
 const VERTEX_IMAGE_MODEL = "imagen-4.0-fast-generate-001";
 
-/** Friendly labels for known Gemini chat model ids, used to render the model picker. */
-const MODEL_LABELS: Record<string, string> = {
-  "gemini-2.0-flash": "Gemini 2.0 Flash",
-  "gemini-2.0-flash-lite": "Gemini 2.0 Flash Lite",
-  "gemini-2.5-flash": "Gemini 2.5 Flash",
-  "gemini-2.5-flash-lite": "Gemini 2.5 Flash Lite",
-  "gemini-2.5-pro": "Gemini 2.5 Pro",
-};
-
-/** Curated default chat models offered when no allow-list or live model listing is available. */
-const DEFAULT_CHAT_MODEL_IDS = [
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-];
+/**
+ * Curated fallback chat models, used only when the live Google model listing cannot be retrieved
+ * (no provider/API key configured, or the request failed). Kept to current, generally-available
+ * models so the picker never offers a retired model.
+ */
+const DEFAULT_CHAT_MODEL_IDS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
 interface SelectableModel {
   label: string;
   value: string;
 }
 
+/** Derive a human-friendly label from a model id, e.g. "gemini-2.5-flash" -> "Gemini 2.5 Flash". */
+const prettifyModelId = (id: string): string =>
+  id
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => (/^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)))
+    .join(" ");
+
 const toSelectableModel = (id: string): SelectableModel => ({
-  label: MODEL_LABELS[id] ?? id,
+  label: prettifyModelId(id),
   value: id,
 });
 
@@ -171,36 +169,56 @@ const verifyAllowedVertexModels = async (provider: TerrenoVertexProvider): Promi
 };
 
 /**
- * Resolve the list of chat models to offer in the picker. Starts from the configured allow-list (or
- * the curated defaults), then — when Vertex is configured — narrows to the models actually enabled
- * for the project via the Google APIs. Falls back gracefully when the listing is inconclusive.
+ * List the models actually available from Google for the configured provider: the Vertex / Gemini
+ * Enterprise Agent Platform enabled-models list when Vertex is configured, otherwise the Gemini
+ * Developer API models list for the configured API key. Returns `undefined` when no provider/key is
+ * configured or the listing could not be retrieved.
+ */
+const listGoogleModels = async (): Promise<string[] | undefined> => {
+  const vertexProvider = getVertexProvider();
+  if (vertexProvider) {
+    return listEnabledVertexModels({
+      location: vertexProvider.location,
+      project: vertexProvider.project,
+    });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    return listGeminiApiModels({apiKey});
+  }
+
+  return undefined;
+};
+
+/**
+ * Resolve the chat models to offer in the picker. The source of truth is Google's live model list.
+ * When the backend configures an acceptable allow-list, it is returned (narrowed to the models
+ * Google reports as available, when that list is retrievable). Otherwise the full Google model list
+ * is returned. Falls back to a small curated set only when Google can't be reached.
  */
 const listAvailableModels = async (): Promise<SelectableModel[]> => {
   const allowed = getAllowedVertexModels();
-  const candidateIds = allowed && allowed.length > 0 ? allowed : DEFAULT_CHAT_MODEL_IDS;
+  const available = await listGoogleModels();
 
-  const vertexProvider = getVertexProvider();
-  if (vertexProvider) {
-    try {
-      const enabled = await listEnabledVertexModels({
-        location: vertexProvider.location,
-        project: vertexProvider.project,
-      });
-      if (enabled && enabled.length > 0) {
-        const enabledSet = new Set(enabled.map(normalizeVertexModelId));
-        const filtered = candidateIds.filter((id) => enabledSet.has(normalizeVertexModelId(id)));
-        if (filtered.length > 0) {
-          return filtered.map(toSelectableModel);
-        }
-      }
-    } catch (error) {
-      logger.warn(
-        `Could not list enabled Vertex models for the picker: ${(error as Error).message}`
-      );
+  // Backend specified an acceptable allow-list: return it, narrowed to what Google reports as
+  // available when we could retrieve that list.
+  if (allowed && allowed.length > 0) {
+    if (available && available.length > 0) {
+      const availableSet = new Set(available.map(normalizeVertexModelId));
+      const filtered = allowed.filter((id) => availableSet.has(normalizeVertexModelId(id)));
+      return (filtered.length > 0 ? filtered : allowed).map(toSelectableModel);
     }
+    return allowed.map(toSelectableModel);
   }
 
-  return candidateIds.map(toSelectableModel);
+  // No allow-list: expose the full list of models from Google.
+  if (available && available.length > 0) {
+    return available.map(toSelectableModel);
+  }
+
+  // Google listing unavailable (no provider/key, or request failed): use the curated fallback.
+  return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
 
 const getAiService = (): AIService | undefined => {
