@@ -402,9 +402,10 @@ const generatePdfBytes = async ({
 };
 
 const createImageModel = (apiKey?: string) => {
-  // Prefer Vertex AI / Gemini Enterprise Agent Platform for image generation
+  // Prefer Vertex AI / Gemini Enterprise Agent Platform for image generation, but only when the
+  // Imagen model is permitted by the allow-list. Otherwise fall back to the Gemini API key.
   const vertexProvider = getVertexProvider();
-  if (vertexProvider && !apiKey) {
+  if (vertexProvider && !apiKey && vertexProvider.isModelAllowed(VERTEX_IMAGE_MODEL)) {
     return vertexProvider.imageModel(VERTEX_IMAGE_MODEL);
   }
 
