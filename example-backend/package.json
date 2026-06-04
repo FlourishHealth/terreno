@@ -17,6 +17,7 @@
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@terreno/admin-backend": "workspace:*",
+    "@terreno/admin-spa": "workspace:*",
     "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",

@@ -12,13 +12,30 @@ import {
   Text,
 } from "@terreno/ui";
 import React, {useCallback, useMemo, useState} from "react";
+import {type AdminApi, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentFormListProps {
-  baseUrl: string;
-  api: any;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
+  api: AdminApi;
   onCreateNew?: () => void;
   onRowClick?: (id: string) => void;
+}
+
+/** Row shape returned by the consent forms list endpoint. */
+interface ConsentFormListItem {
+  _id: string;
+  title?: string;
+  type?: string;
+  version?: number;
+  active?: boolean;
+  order?: number;
+  [key: string]: unknown;
 }
 
 const DEFAULT_LIMIT = 20;
@@ -48,14 +65,17 @@ const buildSortString = (sort: ColumnSortInterface | undefined): string | undefi
 
 export const ConsentFormList: React.FC<ConsentFormListProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   onCreateNew,
   onRowClick,
 }) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<ColumnSortInterface | undefined>();
 
-  const routePath = `${baseUrl}/consent-forms`;
+  const routePath = `${resolvedApiBase}/consent-forms`;
   const {useListQuery} = useAdminApi(api, routePath, "ConsentForm");
 
   const sortString = buildSortString(sortColumn) ?? "-created";
@@ -103,7 +123,7 @@ export const ConsentFormList: React.FC<ConsentFormListProps> = ({
       : []),
   ];
 
-  const rows = (listData?.data ?? []).map((item: any) => {
+  const rows = ((listData?.data ?? []) as ConsentFormListItem[]).map((item) => {
     const dataCells = DATA_COLUMN_KEYS.map((key) => {
       const value = item[key];
       if (key === "active") {

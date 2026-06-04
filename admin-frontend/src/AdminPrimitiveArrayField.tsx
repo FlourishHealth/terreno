@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   BooleanField,
   Box,
@@ -12,7 +11,7 @@ import {
 import startCase from "lodash/startCase";
 import React, {useCallback} from "react";
 import {AdminRefField} from "./AdminRefField";
-import type {RefRendererMap} from "./types";
+import type {AdminApi, RefRendererMap} from "./types";
 
 interface AdminPrimitiveArrayFieldProps {
   title: string;
@@ -23,8 +22,13 @@ interface AdminPrimitiveArrayFieldProps {
   itemRef?: string;
   value: PrimitiveItem[];
   onChange: (value: PrimitiveItem[]) => void;
-  api: Api<any, any, any, any>;
-  baseUrl: string;
+  api: AdminApi;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   modelConfigs?: Array<{name: string; routePath: string}>;
   /**
    * Optional map of custom ref-field renderers keyed by referenced model name. When
@@ -62,6 +66,8 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
   onChange,
   api,
   baseUrl,
+  apiBase,
+  routeBase,
   modelConfigs,
   refRenderers,
 }) => {
@@ -116,9 +122,11 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         return (
           <CustomRenderer
             api={api}
+            apiBase={apiBase}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
             refModelName={itemRef}
+            routeBase={routeBase}
             routePath={refModel?.routePath ?? ""}
             title=""
             value={item != null ? String(item) : ""}
@@ -129,9 +137,11 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
         return (
           <AdminRefField
             api={api}
+            apiBase={apiBase}
             baseUrl={baseUrl}
             onChange={(val: string) => handleUpdate(index, val)}
             refModelName={refModel.name}
+            routeBase={routeBase}
             routePath={refModel.routePath}
             title=""
             value={item != null ? String(item) : ""}

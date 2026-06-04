@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   Box,
   Button,
@@ -14,16 +13,28 @@ import {
   Spinner,
   Text,
 } from "@terreno/ui";
+import type {Href} from "expo-router";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminFieldConfig, AdminModelConfig} from "./types";
+import {
+  type AdminApi,
+  type AdminFieldConfig,
+  type AdminFieldValue,
+  type AdminModelConfig,
+  resolveAdminBases,
+} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelTableProps {
-  baseUrl: string;
-  api: Api<any, any, any, any>;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
+  api: AdminApi;
   modelName: string;
   columns?: string[];
   /**
@@ -74,7 +85,7 @@ const getColumnWidth = (fieldKey: string, columnType: string): number => {
   return 200;
 };
 
-const formatCellValue = (value: any, columnType: string): string => {
+const formatCellValue = (value: AdminFieldValue, columnType: string): string => {
   if (value == null) {
     return "";
   }
@@ -88,7 +99,7 @@ const formatCellValue = (value: any, columnType: string): string => {
     return `${value.length} item${value.length === 1 ? "" : "s"}`;
   }
   if (typeof value === "object") {
-    return value._id ?? JSON.stringify(value);
+    return (value as {_id?: string})._id ?? JSON.stringify(value);
   }
   return String(value);
 };
@@ -111,7 +122,7 @@ const AdminLinkCell: React.FC<{column: DataTableColumn; cellData: DataTableCellD
   cellData,
 }) => {
   const {text, href} = cellData.value as {text: string; href: string};
-  return <Link onClick={() => router.push(href as any)} text={text} />;
+  return <Link onClick={() => router.push(href as Href)} text={text} />;
 };
 
 const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCellData}> = ({
@@ -129,14 +140,14 @@ const AdminActionsCell: React.FC<{column: DataTableColumn; cellData: DataTableCe
       <IconButton
         accessibilityLabel="View"
         iconName="eye"
-        onClick={() => router.push(href as any)}
+        onClick={() => router.push(href as Href)}
         tooltipText="View"
         variant="muted"
       />
       <IconButton
         accessibilityLabel="Edit"
         iconName="pen-to-square"
-        onClick={() => router.push(href as any)}
+        onClick={() => router.push(href as Href)}
         tooltipText="Edit"
         variant="muted"
       />
@@ -196,12 +207,19 @@ const EmptyContent: React.FC = () => (
  */
 export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   modelName,
   columns: columnsProp,
   columnWidths,
 }) => {
-  const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<ColumnSortInterface | undefined>();
   const navigation = useNavigation();
@@ -219,7 +237,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       headerRight: () => (
         <Box alignItems="center" justifyContent="center" marginRight={3}>
           <Button
-            onClick={() => router.push(`${baseUrl}/${modelName}/create` as any)}
+            onClick={() => router.push(`${resolvedRouteBase}/${modelName}/create` as Href)}
             testID="admin-create-button"
             text="Create"
             variant="primary"
@@ -228,7 +246,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       ),
       title: modelConfig.displayName,
     });
-  }, [navigation, modelConfig, baseUrl, modelName]);
+  }, [navigation, modelConfig, resolvedRouteBase, modelName]);
 
   const displayFields = useMemo(
     () => columnsProp ?? modelConfig?.listFields ?? [],
@@ -301,7 +319,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     },
   ];
 
-  const data = (listData?.data ?? []).map((item: any) => {
+  const listItems = (listData?.data ?? []) as Array<Record<string, AdminFieldValue>>;
+  const data = listItems.map((item) => {
     const fieldCells = displayFields.map((fieldKey, index) => {
       const fieldConfig = modelConfig.fields[fieldKey];
       const isFirst = index === 0;
@@ -311,7 +330,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       if (isFirst) {
         return {
           value: {
-            href: `${baseUrl}/${modelName}/${item._id}`,
+            href: `${resolvedRouteBase}/${modelName}/${item._id}`,
             text: formatted,
           },
         };
@@ -322,7 +341,9 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       };
     });
 
-    const actionsCell = {value: {baseUrl, id: item._id, modelName, onDelete: handleDelete}};
+    const actionsCell = {
+      value: {baseUrl: resolvedRouteBase, id: item._id, modelName, onDelete: handleDelete},
+    };
     return [...fieldCells, actionsCell];
   });
 

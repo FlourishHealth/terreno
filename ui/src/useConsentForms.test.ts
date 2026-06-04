@@ -149,4 +149,29 @@ describe("useConsentForms", () => {
     const {result} = renderHook(() => useConsentForms(api as unknown as ConsentFormsApi));
     expect(result.current.error).toBe("error");
   });
+
+  it("injects the pending-consents endpoint only once per (api, baseUrl)", () => {
+    let injectCallCount = 0;
+    const refetch = mock(() => {});
+    const useGetPendingConsentsQuery = mock(() => ({
+      data: undefined,
+      error: undefined,
+      isLoading: false,
+      refetch,
+    }));
+    const api = {
+      enhanceEndpoints: () => ({
+        injectEndpoints: () => {
+          injectCallCount += 1;
+          return {useGetPendingConsentsQuery};
+        },
+      }),
+    };
+    const {rerender} = renderHook(() => useConsentForms(api as unknown as ConsentFormsApi));
+    rerender(undefined);
+    rerender(undefined);
+    // The hook reuses the cached enhanced api after the first render so the
+    // dev-mode RTK warning about re-injecting endpoints never fires.
+    expect(injectCallCount).toBe(1);
+  });
 });

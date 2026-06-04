@@ -79,7 +79,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
     data: DocumentListResponse | undefined;
     isLoading: boolean;
     isError: boolean;
-    error: any;
+    error: {status?: number; originalStatus?: number} | undefined;
     refetch: () => void;
   };
   const [uploadFile, {isLoading: isUploading}] = useUploadMutation();
@@ -391,7 +391,7 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
   );
 
   const tableData = useMemo(() => {
-    const rows: any[][] = [];
+    const rows: DataTableCellData[][] = [];
 
     for (const folder of listData?.folders ?? []) {
       const folderName = folder.split("/").filter(Boolean).pop() ?? folder;
@@ -507,8 +507,8 @@ export const DocumentStorageBrowser: React.FC<DocumentStorageBrowserProps> = ({
           <>
             <input
               accept="*/*"
-              onChange={handleFileChange as any}
-              ref={fileInputRef as any}
+              onChange={handleFileChange}
+              ref={fileInputRef}
               style={{display: "none"}}
               type="file"
             />

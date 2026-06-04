@@ -1,13 +1,23 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Card, Heading, Page, Spinner, Text} from "@terreno/ui";
+import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback} from "react";
-import type {AdminCustomScreen, AdminModelConfig} from "./types";
+import {
+  type AdminApi,
+  type AdminCustomScreen,
+  type AdminModelConfig,
+  resolveAdminBases,
+} from "./types";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelListProps {
-  baseUrl: string;
-  api: Api<any, any, any, any>;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
+  api: AdminApi;
   /** Path to navigate to for the configuration screen. When provided, a Configuration card is shown. */
   configurationPath?: string;
   /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
@@ -118,17 +128,24 @@ const CustomScreenCard: React.FC<{screen: AdminCustomScreen; onPress: () => void
  */
 export const AdminModelList: React.FC<AdminModelListProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   configurationPath,
   customScreens: propCustomScreens,
 }) => {
-  const {config, isLoading, error} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading, error} = useAdminConfig(api, resolvedApiBase);
 
   const handlePress = useCallback(
     (modelName: string) => {
-      router.push(`${baseUrl}/${modelName}` as any);
+      router.push(`${resolvedRouteBase}/${modelName}` as Href);
     },
-    [baseUrl]
+    [resolvedRouteBase]
   );
 
   if (isLoading) {
@@ -160,26 +177,32 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
     <Page maxWidth="100%" scroll title="Admin">
       <Box gap={4} padding={4}>
         {hasToolCards && (
-          <Box direction="row" gap={4} wrap>
-            {allCustomScreens.map((screen) => (
-              <CustomScreenCard
-                key={screen.name}
-                onPress={() => handlePress(screen.name)}
-                screen={screen}
-              />
-            ))}
-            {scripts.length > 0 && (
-              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
-            )}
-            {configurationPath && (
-              <ConfigurationCard onPress={() => router.push(configurationPath as any)} />
-            )}
+          <Box gap={2}>
+            <Heading size="sm">Tools</Heading>
+            <Box direction="row" gap={4} wrap>
+              {allCustomScreens.map((screen) => (
+                <CustomScreenCard
+                  key={screen.name}
+                  onPress={() => handlePress(screen.name)}
+                  screen={screen}
+                />
+              ))}
+              {scripts.length > 0 && (
+                <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+              )}
+              {configurationPath && (
+                <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
+              )}
+            </Box>
           </Box>
         )}
-        <Box direction="row" gap={4} wrap>
-          {config.models.map((model: AdminModelConfig) => (
-            <ModelCard key={model.name} model={model} onPress={handlePress} />
-          ))}
+        <Box gap={2}>
+          <Heading size="sm">Models</Heading>
+          <Box direction="row" gap={4} wrap>
+            {config.models.map((model: AdminModelConfig) => (
+              <ModelCard key={model.name} model={model} onPress={handlePress} />
+            ))}
+          </Box>
         </Box>
       </Box>
     </Page>

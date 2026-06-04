@@ -1,13 +1,13 @@
 import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
-import {APIError} from "../errors";
+import {APIError, errorMessage} from "../errors";
 import {logger} from "../logger";
 // Convenience method to send data to a Slack webhook.
 // If `url` is provided, it will be used directly instead of looking up from environment.
 // DEPRECATED: Looking up webhook URLs from the SLACK_WEBHOOKS environment variable by channel name
 // is deprecated and will be removed in a future version. Please pass the `url` parameter directly.
-export async function sendToSlack(
+export const sendToSlack = async (
   text: string,
   {
     slackChannel,
@@ -15,7 +15,7 @@ export async function sendToSlack(
     env,
     url,
   }: {slackChannel?: string; shouldThrow?: boolean; env?: string; url?: string} = {}
-) {
+): Promise<void> => {
   let slackWebhookUrl = url;
 
   if (!slackWebhookUrl) {
@@ -37,9 +37,11 @@ export async function sendToSlack(
 
     if (!slackWebhookUrl) {
       Sentry.captureException(
-        new Error(`No webhook url set in env for ${channel}. Slack message not sent`)
+        new APIError({
+          status: 500,
+          title: `No webhook url set in env for ${channel}. Slack message not sent`,
+        })
       );
-      logger.debug(`No webhook url set in env for ${channel}.`);
       return;
     }
   }
@@ -53,14 +55,15 @@ export async function sendToSlack(
     await axios.post(slackWebhookUrl, {
       text: formattedText,
     });
-  } catch (error: any) {
-    logger.error(`Error posting to slack: ${error.text ?? error.message}`);
+  } catch (error: unknown) {
+    const message = errorMessage(error);
+    logger.error(`Error posting to slack: ${message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to slack: ${error.text ?? error.message}`,
+        title: `Error posting to slack: ${message}`,
       });
     }
   }
-}
+};

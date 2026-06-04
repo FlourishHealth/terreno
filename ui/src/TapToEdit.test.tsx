@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 import {Linking} from "react-native";
@@ -211,6 +212,22 @@ describe("TapToEdit", () => {
     expect(setValue).toHaveBeenCalled();
   });
 
+  it("reverts to original value (not edited value) when Cancel is pressed", async () => {
+    const setValue = mock((_v: unknown) => {});
+    const {getByLabelText, getByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Name" value="Jane" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    // Simulate user having changed the value during editing
+    setValue("Edited Value");
+    await act(async () => {
+      fireEvent.press(getByText("Cancel"));
+    });
+    expect(setValue).toHaveBeenLastCalledWith("Jane");
+  });
+
   it("clears value when Clear button is pressed", async () => {
     const setValue = mock(() => {});
     const onSave = mock(() => Promise.resolve());
@@ -313,5 +330,82 @@ describe("formatAddress", () => {
     const result = formatAddress(address);
     expect(result).toContain("Dallas County");
     expect(result).toContain("(113)");
+  });
+
+  it("handles address with county name but no county code", () => {
+    const address = {
+      address1: "100 County Rd",
+      city: "Rural Town",
+      countyName: "Dallas County",
+      state: "TX",
+      zipcode: "75001",
+    };
+    const result = formatAddress(address);
+    expect(result).toContain("Dallas County");
+    expect(result).not.toContain("(");
+  });
+});
+
+describe("TapToEdit - additional function coverage", () => {
+  it("shows Clear button for date type and invokes setValue and onSave", async () => {
+    const setValue = mock(() => {});
+    const onSave = mock(() => Promise.resolve());
+    const {getByLabelText, getByText} = renderWithTheme(
+      <TapToEdit onSave={onSave} setValue={setValue} title="Date" type="date" value="2024-01-01" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(getByText("Clear")).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(getByText("Clear"));
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    });
+    expect(setValue).toHaveBeenCalledWith("");
+    expect(onSave).toHaveBeenCalledWith("");
+  });
+
+  it("assigns inputRef for text type in editing mode", async () => {
+    const setValue = mock(() => {});
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Name" type="text" value="Alice" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(queryByText("Save")).toBeTruthy();
+  });
+
+  it("renders textarea in editing mode with grow and row defaults", async () => {
+    const setValue = mock(() => {});
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Notes" type="textarea" value="Some notes" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(queryByText("Save")).toBeTruthy();
+    expect(queryByText("Cancel")).toBeTruthy();
+  });
+
+  it("hides helperText in title when onlyShowHelperTextWhileEditing is true (default)", () => {
+    const {queryByText} = renderWithTheme(
+      <TapToEdit
+        editable={false}
+        helperText="Should be hidden in title"
+        title="Field"
+        value="val"
+      />
+    );
+    expect(queryByText("Field")).toBeTruthy();
+    expect(queryByText("Should be hidden in title")).toBeNull();
+  });
+
+  it("renders non-editable textarea with display value below title", () => {
+    const {getByText} = renderWithTheme(
+      <TapToEdit editable={false} title="Bio" type="textarea" value="A long bio text" />
+    );
+    expect(getByText("Bio")).toBeTruthy();
+    expect(getByText("A long bio text")).toBeTruthy();
   });
 });

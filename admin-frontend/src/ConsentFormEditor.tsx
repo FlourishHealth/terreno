@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface CheckboxConfig {
@@ -23,13 +24,38 @@ interface CheckboxConfig {
   confirmationPrompt?: string;
 }
 
+/** Consent form document — shape comes from the consumer's Mongoose model. */
+interface ConsentFormDocument {
+  _id?: string;
+  title?: string;
+  slug?: string;
+  type?: string;
+  order?: number;
+  required?: boolean;
+  active?: boolean;
+  captureSignature?: boolean;
+  requireScrollToBottom?: boolean;
+  defaultLocale?: string;
+  agreeButtonText?: string;
+  allowDecline?: boolean;
+  declineButtonText?: string;
+  content?: Record<string, string>;
+  checkboxes?: CheckboxConfig[];
+  [key: string]: unknown;
+}
+
 interface ConsentFormEditorProps {
-  baseUrl: string;
-  api: any;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
+  api: AdminApi;
   id?: string;
   supportedLocales?: string[];
   hasAiSupport?: boolean;
-  onSave?: (form: any) => void;
+  onSave?: (form: ConsentFormDocument | undefined) => void;
   onCancel?: () => void;
 }
 
@@ -52,8 +78,53 @@ const slugify = (text: string): string => {
     .replace(/^-+|-+$/g, "");
 };
 
+/**
+ * Cache the enhanced api per api object. `injectEndpoints` is a side-effecting
+ * operation against the global RTK Query slice — calling it on every render of
+ * every editor instance is wasteful, and with `overrideExisting: false` would
+ * log a re-injection warning. WeakMap-by-api lets the GC reclaim entries when
+ * the api is unreachable.
+ */
+const enhancedApiCache = new WeakMap<AdminApi, unknown>();
+
+const getEnhancedApi = (api: AdminApi): unknown => {
+  const cached = enhancedApiCache.get(api);
+  if (cached) {
+    return cached;
+  }
+  const enhanced = api.injectEndpoints({
+    endpoints: (build: EndpointBuilder) => ({
+      generateConsentContent: build.mutation({
+        query: (body: {type: string; description: string; locale: string}) => ({
+          body,
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/generate`,
+        }),
+      }),
+      publishConsentForm: build.mutation({
+        query: (formId: string) => ({
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/${formId}/publish`,
+        }),
+      }),
+      translateConsentContent: build.mutation({
+        query: (body: {content: string; fromLocale: string; toLocale: string}) => ({
+          body,
+          method: "POST",
+          url: `${CONSENT_FORM_ROUTE}/translate`,
+        }),
+      }),
+    }),
+    overrideExisting: false,
+  });
+  enhancedApiCache.set(api, enhanced);
+  return enhanced;
+};
+
 export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   id,
   supportedLocales = ["en"],
@@ -61,6 +132,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   onSave,
   onCancel,
 }) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const isEditMode = Boolean(id);
   const toast = useToast();
 
@@ -103,9 +175,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [generateDescription, setGenerateDescription] = useState("");
   const [generateType, setGenerateType] = useState(type);
 
-  const routePath = `${baseUrl}${CONSENT_FORM_ROUTE}`;
-  // publish/generate/translate are registered directly under /consent-forms, not the admin base path
-  const consentApiPath = CONSENT_FORM_ROUTE;
+  const routePath = `${resolvedApiBase}${CONSENT_FORM_ROUTE}`;
 
   const {useReadQuery, useCreateMutation, useUpdateMutation} = useAdminApi(
     api,
@@ -113,47 +183,12 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     "ConsentForm"
   );
 
-  const enhancedApi = useMemo(
-    () =>
-      api.injectEndpoints({
-        endpoints: (build: any) => ({
-          generateConsentContent: build.mutation({
-            query: (body: {type: string; description: string; locale: string}) => ({
-              body,
-              method: "POST",
-              url: `${consentApiPath}/generate`,
-            }),
-          }),
-          publishConsentForm: build.mutation({
-            query: (formId: string) => ({
-              method: "POST",
-              url: `${consentApiPath}/${formId}/publish`,
-            }),
-          }),
-          translateConsentContent: build.mutation({
-            query: (body: {content: string; fromLocale: string; toLocale: string}) => ({
-              body,
-              method: "POST",
-              url: `${consentApiPath}/translate`,
-            }),
-          }),
-        }),
-        overrideExisting: true,
-      }),
-    [api, consentApiPath]
-  );
-
-  const [publishConsentForm, {isLoading: isPublishing}] = (
-    enhancedApi as any
-  ).usePublishConsentFormMutation();
-
-  const [generateContent, {isLoading: isGenerating}] = (
-    enhancedApi as any
-  ).useGenerateConsentContentMutation();
-
-  const [translateContent, {isLoading: isTranslating}] = (
-    enhancedApi as any
-  ).useTranslateConsentContentMutation();
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = getEnhancedApi(api) as any;
+  const [publishConsentForm, {isLoading: isPublishing}] = enhanced.usePublishConsentFormMutation();
+  const [generateContent, {isLoading: isGenerating}] = enhanced.useGenerateConsentContentMutation();
+  const [translateContent, {isLoading: isTranslating}] =
+    enhanced.useTranslateConsentContentMutation();
 
   const {data: formData, isLoading: isFormLoading} = useReadQuery(id ?? "", {
     skip: !isEditMode || !id,
@@ -224,7 +259,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   }, []);
 
   const handleCheckboxChange = useCallback(
-    (index: number, field: keyof CheckboxConfig, value: any) => {
+    (index: number, field: keyof CheckboxConfig, value: string | boolean) => {
       setCheckboxes((prev) => {
         const updated = [...prev];
         updated[index] = {...updated[index], [field]: value};
@@ -285,11 +320,11 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
     const payload = buildPayload();
 
     try {
-      let result: any;
+      let result: ConsentFormDocument | undefined;
       if (isEditMode && id) {
-        result = await updateForm({body: payload, id}).unwrap();
+        result = (await updateForm({body: payload, id}).unwrap()) as ConsentFormDocument;
       } else {
-        result = await createForm(payload).unwrap();
+        result = (await createForm(payload).unwrap()) as ConsentFormDocument;
       }
       console.info("Consent form saved", {id: result?._id ?? id});
       onSave?.(result);

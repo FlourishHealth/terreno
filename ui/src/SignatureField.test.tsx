@@ -1,17 +1,8 @@
 import {describe, expect, it, mock} from "bun:test";
-import {forwardRef} from "react";
-import {View} from "react-native";
 import type {ReactTestInstance} from "react-test-renderer";
 
 import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
-
-// Mock react-signature-canvas (used by Signature component)
-mock.module("react-signature-canvas", () => ({
-  default: forwardRef<View, {backgroundColor?: string}>(({backgroundColor}, ref) => (
-    <View ref={ref} style={{backgroundColor}} testID="signature-canvas" />
-  )),
-}));
 
 describe("SignatureField", () => {
   const defaultProps = {

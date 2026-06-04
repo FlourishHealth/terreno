@@ -41,13 +41,15 @@ interface ConsentFormsHookState {
   refetch: () => void | Promise<void>;
 }
 
+interface ConsentFormsEnhancedApi {
+  useGetPendingConsentsQuery: () => ConsentFormsHookState;
+}
+
 interface ConsentFormsApiWithTags {
   injectEndpoints: (options: {
     endpoints: (build: ConsentFormsQueryBuilder) => {getPendingConsents: unknown};
     overrideExisting: boolean;
-  }) => {
-    useGetPendingConsentsQuery: () => ConsentFormsHookState;
-  };
+  }) => ConsentFormsEnhancedApi;
 }
 
 interface ConsentFormsApi {
@@ -73,11 +75,27 @@ export const detectLocale = (): string => {
   return "en";
 };
 
-export const useConsentForms = (api: ConsentFormsApi, baseUrl?: string) => {
-  const base = baseUrl || "";
-  const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
+/**
+ * Cache the enhanced api per (api, baseUrl). `injectEndpoints` logs a console
+ * error in development whenever an endpoint with the same name is re-injected
+ * (with `overrideExisting: false`), so calling it on every render of every
+ * consumer would flood the console. WeakMap-by-api lets the GC reclaim entries
+ * when the api object is unreachable.
+ */
+const enhancedApiCache = new WeakMap<ConsentFormsApi, Map<string, ConsentFormsEnhancedApi>>();
 
-  const enhancedApi = apiWithConsentTags.injectEndpoints({
+const getEnhancedApi = (api: ConsentFormsApi, base: string): ConsentFormsEnhancedApi => {
+  let byBase = enhancedApiCache.get(api);
+  if (!byBase) {
+    byBase = new Map();
+    enhancedApiCache.set(api, byBase);
+  }
+  const cached = byBase.get(base);
+  if (cached) {
+    return cached;
+  }
+  const apiWithConsentTags = api.enhanceEndpoints({addTagTypes: ["PendingConsents"]});
+  const enhanced = apiWithConsentTags.injectEndpoints({
     endpoints: (build) => ({
       getPendingConsents: build.query({
         async onQueryStarted(_arg: unknown, {queryFulfilled}) {
@@ -97,6 +115,13 @@ export const useConsentForms = (api: ConsentFormsApi, baseUrl?: string) => {
     }),
     overrideExisting: false,
   });
+  byBase.set(base, enhanced);
+  return enhanced;
+};
+
+export const useConsentForms = (api: ConsentFormsApi, baseUrl?: string) => {
+  const base = baseUrl || "";
+  const enhancedApi = getEnhancedApi(api, base);
 
   const {data, isLoading, error, refetch} = enhancedApi.useGetPendingConsentsQuery();
   const forms: ConsentFormPublic[] = Array.isArray(data) ? data : (data?.data ?? []);

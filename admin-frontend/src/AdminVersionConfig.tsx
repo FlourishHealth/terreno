@@ -1,11 +1,13 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
+import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 
 interface VersionConfigData {
   mobileRequiredVersion?: number;
   mobileWarningVersion?: number;
+  /** How often clients poll for version updates, in minutes. */
+  pollingIntervalMinutes?: number;
   requiredMessage?: string;
   updateUrl?: string | null;
   webRequiredVersion?: number;
@@ -14,40 +16,54 @@ interface VersionConfigData {
 }
 
 interface AdminVersionConfigProps {
-  api: Api<any, any, any, any>;
-  baseUrl: string;
+  api: AdminApi;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
 }
 
 const VERSION_CONFIG_ENDPOINT = "adminVersionConfig";
 
-export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, baseUrl}) => {
+export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
+  api,
+  baseUrl,
+  apiBase,
+  routeBase,
+}) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const [formState, setFormState] = useState<VersionConfigData>({});
   const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
 
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         [VERSION_CONFIG_ENDPOINT]: build.query({
           query: () => ({
             method: "GET",
-            url: `${baseUrl}/version-config`,
+            url: `${resolvedApiBase}/version-config`,
           }),
         }),
         updateVersionConfig: build.mutation({
           query: (body: VersionConfigData) => ({
             body,
             method: "PUT",
-            url: `${baseUrl}/version-config`,
+            url: `${resolvedApiBase}/version-config`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, resolvedApiBase]);
 
-  const useVersionConfigQuery = (enhancedApi as any).useAdminVersionConfigQuery;
-  const [updateConfig] = (enhancedApi as any).useUpdateVersionConfigMutation();
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
+  const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;
+  const [updateConfig] = enhanced.useUpdateVersionConfigMutation();
 
   const {data, isLoading: isFetching, error: fetchError} = useVersionConfigQuery();
 
@@ -59,6 +75,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
     const defaults = {
       mobileRequiredVersion: 0,
       mobileWarningVersion: 0,
+      pollingIntervalMinutes: 1440,
       requiredMessage: "This version is no longer supported. Please update to continue.",
       updateUrl: "",
       warningMessage: "A new version is available. Please update for the best experience.",
@@ -69,6 +86,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
       setFormState({
         mobileRequiredVersion: data.mobileRequiredVersion ?? 0,
         mobileWarningVersion: data.mobileWarningVersion ?? 0,
+        pollingIntervalMinutes: data.pollingIntervalMinutes ?? defaults.pollingIntervalMinutes,
         requiredMessage: data.requiredMessage ?? defaults.requiredMessage,
         updateUrl: data.updateUrl ?? "",
         warningMessage: data.warningMessage ?? defaults.warningMessage,
@@ -94,6 +112,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
       await updateConfig({
         mobileRequiredVersion: Number(formState.mobileRequiredVersion) || 0,
         mobileWarningVersion: Number(formState.mobileWarningVersion) || 0,
+        pollingIntervalMinutes: Math.max(1, Number(formState.pollingIntervalMinutes) || 1440),
         requiredMessage: formState.requiredMessage ?? "",
         updateUrl: trimmedUpdateUrl || null,
         warningMessage: formState.warningMessage ?? "",
@@ -200,6 +219,22 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
             title="Update URL (optional, for mobile app store link)"
             value={formState.updateUrl ?? ""}
           />
+        </Box>
+
+        <Box gap={2}>
+          <Text bold size="md">
+            Polling
+          </Text>
+          <NumberField
+            onChange={(v) => handleFieldChange("pollingIntervalMinutes", parseInt(v, 10) || 1440)}
+            title="Update check interval (minutes)"
+            type="number"
+            value={String(formState.pollingIntervalMinutes ?? 1440)}
+          />
+          <Text color="secondaryDark" size="sm">
+            How often clients check for updates in the background. Default: 1440 (24 hours).
+            Minimum: 1.
+          </Text>
         </Box>
 
         <Box direction="row" gap={2}>

@@ -1,64 +1,78 @@
-name: EAS Build
+name: Trigger EAS Workflow
+
+# Manually kicks off an EAS Workflow on EAS Cloud. The actual build/update runs
+# remotely on EAS infrastructure — this job just dispatches and exits, so the
+# GitHub Actions runner is never tied up waiting for builds.
+#
+# PR-driven dispatch is handled by `eas-pr.yml`. Use this only for forcing a
+# build off-PR (e.g., to seed a dev build on master).
 
 on:
   workflow_dispatch:
     inputs:
-      app:
-        description: "Select the app to build"
+      target:
+        description: App to dispatch
         required: true
         type: choice
         options:
-          - demo
           - example-frontend
-      environment:
-        description: "Select the environment"
-        required: true
-        type: choice
-        options:
-          - development
-          - preview
-          - production
-      platform:
-        description: "Select the platform"
-        required: true
-        type: choice
-        options:
-          - iOS
-          - Android
+          - demo
+          - both
+      git_ref:
+        description: Git ref to build (branch, tag, or commit). Defaults to the workflow ref.
+        required: false
+        type: string
 
 jobs:
-  build:
+  dispatch:
+    name: Dispatch EAS workflow
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 5
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.git_ref || github.ref }}
+
+      - name: Validate required secrets
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Missing required secret EXPO_TOKEN"
+            exit 1
+          fi
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
 
-      - name: Setup Expo and EAS
+      - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
-          expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Compile workspace packages
-        run: bun run compile
-
-      - name: Run EAS Build
-        working-directory: ${{ github.event.inputs.app }}
+      - name: Dispatch to EAS Cloud
+        env:
+          TARGET: ${{ inputs.target }}
         run: |
-          PROFILE="${{ github.event.inputs.environment }}"
-          PLATFORM="${{ github.event.inputs.platform }}"
+          set -euo pipefail
 
-          if [ "$PLATFORM" == "iOS" ]; then
-            eas build --profile "$PROFILE" --platform ios --non-interactive
-          elif [ "$PLATFORM" == "Android" ]; then
-            eas build --profile "$PROFILE" --platform android --non-interactive
-          fi
+          case "$TARGET" in
+            example-frontend) targets="example-frontend" ;;
+            demo)             targets="demo" ;;
+            both)             targets="example-frontend demo" ;;
+            *) echo "::error::Unknown target: $TARGET"; exit 1 ;;
+          esac
+
+          for app in $targets; do
+            case "$app" in
+              example-frontend) file=example-frontend-build.yml ;;
+              demo)             file=demo-build.yml ;;
+            esac
+            echo "::group::Dispatching $app"
+            (cd "$app" && eas workflow:run ".eas/workflows/$file" \
+              --non-interactive)
+            echo "::endgroup::"
+          done
+          echo "✅ Dispatched ${targets}. Track on EAS dashboard: https://expo.dev/accounts/flourishhealth/workflows"

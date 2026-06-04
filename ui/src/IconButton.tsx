@@ -12,14 +12,14 @@ import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
-type ConfirmationModalProps = {
+interface ConfirmationModalProps {
   visible: boolean;
   title: string;
   subtitle?: string;
   text: string;
   onConfirm: () => void;
   onCancel: () => void;
-};
+}
 
 const ConfirmationModal: FC<ConfirmationModalProps> = ({
   visible,
@@ -159,7 +159,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
             display: "flex",
             height: 12,
             justifyContent: "center",
-            padding: theme.spacing.xs as any,
+            padding: theme.spacing.xs,
             position: "absolute",
             right: 0,
             width: 12,

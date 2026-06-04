@@ -13,6 +13,7 @@
     "@rtk-query/codegen-openapi": "^2.2.0",
     "@sentry/react": "^10.29.0",
     "@sentry/react-native": "~7.2.0",
+    "@shopify/react-native-skia": "2.2.12",
     "@types/lodash": "^4.17.17",
     "@types/luxon": "^3.7.1",
     "@types/react": "~19.1.10",
@@ -33,6 +34,7 @@
     "lodash": "^4.17.23",
     "luxon": "^3.7.2",
     "mongoose": "8.23.0",
+    "pressto": "^0.6.1",
     "prettier": "^3.3.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -47,7 +49,6 @@
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "react-native-signature-canvas": "^4.7.4",
     "react-native-svg": "15.12.1",
     "react-native-swiper-flatlist": "^3.2.5",
     "react-native-web": "~0.21.0",
@@ -62,7 +63,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
-    "rulesync": "^5.9.0"
+    "rulesync": "^8.18.0"
   },
   "name": "@terreno/root",
   "overrides": {
@@ -75,13 +76,15 @@
   },
   "private": true,
   "scripts": {
-    "bootstrap": "bun install && bun run compile",
-    "bootstrap:update": "bun install && bun run compile",
     "admin-backend:compile": "bun run --filter '@terreno/admin-backend' compile",
     "admin-backend:lint": "bun run --filter '@terreno/admin-backend' lint",
     "admin-backend:test": "bun run --filter '@terreno/admin-backend' test",
     "admin-frontend:compile": "bun run --filter '@terreno/admin-frontend' compile",
     "admin-frontend:lint": "bun run --filter '@terreno/admin-frontend' lint",
+    "admin-spa:build": "bun run --filter '@terreno/admin-spa' build:web",
+    "admin-spa:compile": "bun run --filter '@terreno/admin-spa' compile",
+    "admin-spa:lint": "bun run --filter '@terreno/admin-spa' lint",
+    "admin-spa:test": "bun run --filter '@terreno/admin-spa' test:ci",
     "ai:compile": "bun run --filter '@terreno/ai' compile",
     "ai:lint": "bun run --filter '@terreno/ai' lint",
     "ai:test": "bun run --filter '@terreno/ai' test",
@@ -94,6 +97,8 @@
     "backend:dev": "bun run --filter '@terreno/example-backend' dev",
     "backend:lint": "bun run --filter '@terreno/example-backend' lint",
     "backend:seed": "bun run --filter '@terreno/example-backend' seed",
+    "bootstrap": "bun install && bun run compile",
+    "bootstrap:update": "bun install && bun run compile",
     "compile": "bun run --filter '@terreno/api' compile && bun run --filter '*' compile",
     "compile:watch": "bun run --parallel --filter '*' --if-present compile:watch",
     "demo:android": "bun run --filter 'terreno-demo' android",
@@ -140,6 +145,7 @@
   "workspaces": [
     "admin-backend",
     "admin-frontend",
+    "admin-spa",
     "ai",
     "api",
     "api-health",

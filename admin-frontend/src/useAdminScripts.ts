@@ -1,46 +1,48 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {useMemo} from "react";
-import type {BackgroundTask} from "./types";
+import type {AdminApi, BackgroundTask, EndpointBuilder} from "./types";
 
-export const useAdminScripts = (api: Api<any, any, any, any>, baseUrl: string) => {
+export const useAdminScripts = (api: AdminApi, apiBase: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
-      endpoints: (build: any) => ({
+      endpoints: (build: EndpointBuilder) => ({
         adminCancelScriptTask: build.mutation({
           invalidatesTags: ["admin_scriptTask"],
           query: (taskId: string) => ({
             method: "DELETE",
-            url: `${baseUrl}/scripts/tasks/${taskId}`,
+            url: `${apiBase}/scripts/tasks/${taskId}`,
           }),
         }),
         adminGetScriptTask: build.query({
           providesTags: ["admin_scriptTask"],
           query: (taskId: string) => ({
             method: "GET",
-            url: `${baseUrl}/scripts/tasks/${taskId}`,
+            url: `${apiBase}/scripts/tasks/${taskId}`,
           }),
         }),
         adminRunScript: build.mutation({
           query: ({name, wetRun}: {name: string; wetRun: boolean}) => ({
             method: "POST",
-            url: `${baseUrl}/scripts/${name}/run?wetRun=${wetRun}`,
+            url: `${apiBase}/scripts/${name}/run?wetRun=${wetRun}`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, apiBase]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
+  const enhanced = enhancedApi as any;
   return {
-    useCancelScriptTaskMutation: (enhancedApi as any).useAdminCancelScriptTaskMutation as () => [
+    useCancelScriptTaskMutation: enhanced.useAdminCancelScriptTaskMutation as () => [
       (taskId: string) => {unwrap: () => Promise<{task: BackgroundTask; message: string}>},
       {isLoading: boolean},
     ],
-    useGetScriptTaskQuery: (enhancedApi as any).useAdminGetScriptTaskQuery as (
+    useGetScriptTaskQuery: enhanced.useAdminGetScriptTaskQuery as (
       taskId: string,
       options?: {skip?: boolean; pollingInterval?: number}
     ) => {data: {task: BackgroundTask} | undefined; isLoading: boolean; error: unknown},
-    useRunScriptMutation: (enhancedApi as any).useAdminRunScriptMutation as () => [
+    useRunScriptMutation: enhanced.useAdminRunScriptMutation as () => [
       (args: {name: string; wetRun: boolean}) => {unwrap: () => Promise<{taskId: string}>},
       {isLoading: boolean},
     ],

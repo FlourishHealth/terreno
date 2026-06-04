@@ -1,7 +1,7 @@
 import * as Sentry from "@sentry/bun";
 import axios from "axios";
 
-import {APIError} from "../errors";
+import {APIError, errorMessage} from "../errors";
 import {logger} from "../logger";
 
 /**
@@ -32,12 +32,11 @@ import {logger} from "../logger";
 export const sendToZoom = async (
   {header, body, subheader}: {header: string; body: string; subheader?: string},
   {channel, shouldThrow = false, env}: {channel: string; shouldThrow?: boolean; env?: string}
-) => {
+): Promise<void> => {
   const zoomWebhooksString = process.env.ZOOM_CHAT_WEBHOOKS;
   if (!zoomWebhooksString) {
     const msg = "ZOOM_CHAT_WEBHOOKS not set. Zoom message not sent";
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
   const zoomWebhooks: Record<string, {channel: string; verificationToken: string}> = JSON.parse(
@@ -49,8 +48,7 @@ export const sendToZoom = async (
 
   if (!zoomWebhookUrl) {
     const msg = `No webhook url set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
 
@@ -58,8 +56,7 @@ export const sendToZoom = async (
     zoomWebhooks[zoomChannel]?.verificationToken ?? zoomWebhooks.default?.verificationToken;
   if (!zoomToken) {
     const msg = `No verification token set in env for ${zoomChannel}. Zoom message not sent`;
-    Sentry.captureException(new Error(msg));
-    logger.error(msg);
+    Sentry.captureException(new APIError({status: 500, title: msg}));
     return;
   }
 
@@ -96,13 +93,13 @@ export const sendToZoom = async (
       }
     );
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Error posting to Zoom: ${errorMessage}`);
+    const message = errorMessage(error);
+    logger.error(`Error posting to Zoom: ${message}`);
     Sentry.captureException(error);
     if (shouldThrow) {
       throw new APIError({
         status: 500,
-        title: `Error posting to Zoom: ${errorMessage}`,
+        title: `Error posting to Zoom: ${message}`,
       });
     }
   }

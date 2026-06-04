@@ -39,7 +39,7 @@ Most apps need the same foundational pieces: authentication, user management, CR
 
 ### The best way to build with AI
 
-Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
+Terreno is designed to be the best framework for AI-assisted app development. The [MCP server](#mcp-server) gives AI coding assistants deep knowledge of Terreno's conventions, enabling them to generate models, routes, screens, and full CRUD features that follow the framework's patterns exactly. The `terreno_bootstrap_app` tool can scaffold a complete, launchable app from a description — not a toy demo, but a real app with auth, data models, and screens ready to ship.
 
 ### Philosophy
 
@@ -75,6 +75,20 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 ## Development
 
 This project uses [Bun](https://bun.sh/) as the package manager.
+
+### Bootstrap
+
+The fastest way to get a development-ready checkout is the top-level `bootstrap` command. It installs all dependencies and compiles every package so the workspace is ready for development:
+
+```bash
+bun run bootstrap         # Install dependencies + compile all packages
+bun run bootstrap:update  # Re-run after pulling changes or switching branches
+```
+
+- **`bootstrap`** — Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package.
+- **`bootstrap:update`** — Run when resuming work after pulling changes, switching branches, or when dependencies have changed. Reinstalls dependencies and recompiles to pick up any changes.
+
+If you prefer to run the steps individually:
 
 ```bash
 # Install dependencies

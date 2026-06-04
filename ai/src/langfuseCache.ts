@@ -1,4 +1,6 @@
-import mongoose from "mongoose";
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "@terreno/api";
+import {DateTime} from "luxon";
+import mongoose, {type Document} from "mongoose";
 
 import type {LangfuseCachedPrompt} from "./langfuseTypes";
 
@@ -6,6 +8,10 @@ interface LangfuseCacheDocument extends mongoose.Document {
   key: string;
   value: LangfuseCachedPrompt;
   expiresAt: Date;
+}
+
+interface LangfuseCacheModel extends mongoose.Model<LangfuseCacheDocument> {
+  findOneOrNone(query: Record<string, unknown>): Promise<(Document & LangfuseCacheDocument) | null>;
 }
 
 const langfuseCacheSchema = new mongoose.Schema<LangfuseCacheDocument>(
@@ -32,12 +38,20 @@ const langfuseCacheSchema = new mongoose.Schema<LangfuseCacheDocument>(
 
 langfuseCacheSchema.index({expiresAt: 1}, {expireAfterSeconds: 0});
 
+langfuseCacheSchema.plugin(createdUpdatedPlugin);
+langfuseCacheSchema.plugin(isDeletedPlugin);
+langfuseCacheSchema.plugin(findOneOrNone);
+langfuseCacheSchema.plugin(findExactlyOne);
+
 export const LangfuseCache =
-  (mongoose.models.LangfuseCache as mongoose.Model<LangfuseCacheDocument>) ||
-  mongoose.model<LangfuseCacheDocument>("LangfuseCache", langfuseCacheSchema);
+  (mongoose.models.LangfuseCache as LangfuseCacheModel) ||
+  mongoose.model<LangfuseCacheDocument, LangfuseCacheModel>("LangfuseCache", langfuseCacheSchema);
 
 export const getCached = async (key: string): Promise<LangfuseCachedPrompt | null> => {
-  const entry = await LangfuseCache.findOne({expiresAt: {$gt: new Date()}, key}).lean();
+  const entry = await LangfuseCache.findOneOrNone({
+    expiresAt: {$gt: DateTime.now().toJSDate()},
+    key,
+  });
   if (!entry) {
     return null;
   }
@@ -49,7 +63,7 @@ export const setCached = async (
   value: LangfuseCachedPrompt,
   ttlSeconds: number
 ): Promise<void> => {
-  const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
+  const expiresAt = DateTime.now().plus({seconds: ttlSeconds}).toJSDate();
   await LangfuseCache.findOneAndUpdate({key}, {expiresAt, key, value}, {upsert: true});
 };
 

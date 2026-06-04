@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
@@ -134,6 +135,22 @@ describe("SelectBadge", () => {
       fireEvent.press(getByLabelText("Save selected value"));
     });
     expect(handleChange).toHaveBeenCalledWith("b");
+  });
+
+  it("closes picker without calling onChange when Save is pressed with empty value", () => {
+    const handleChange = mock((_val: string) => {});
+    const {getByLabelText} = renderWithTheme(
+      <SelectBadge onChange={handleChange} options={defaultOptions} value="" />
+    );
+    // Open the iOS picker modal
+    act(() => {
+      fireEvent.press(getByLabelText("Open select badge options"));
+    });
+    // Press Save without changing value (iosDisplayValue is "" which is falsy)
+    act(() => {
+      fireEvent.press(getByLabelText("Save selected value"));
+    });
+    expect(handleChange).not.toHaveBeenCalled();
   });
 
   it("does not call onChange when iOS picker is dismissed", () => {

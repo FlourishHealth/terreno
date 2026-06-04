@@ -77,6 +77,17 @@ const notificationsSchema = new Schema(
   {_id: false}
 );
 
+const debugSchema = new Schema(
+  {
+    websocketsDebug: {
+      default: false,
+      description: "Enable verbose WebSocket and realtime sync debug logging",
+      type: Boolean,
+    },
+  },
+  {_id: false}
+);
+
 export interface AppConfigDocument {
   general: {
     appName: string;
@@ -93,10 +104,17 @@ export interface AppConfigDocument {
     emailNotificationsEnabled: boolean;
     slackWebhookUrl: string;
   };
+  debug: {
+    websocketsDebug: boolean;
+  };
 }
 
 const appConfigSchema = new Schema<AppConfigDocument>(
   {
+    debug: {
+      description: "Debug and diagnostic settings",
+      type: debugSchema,
+    },
     general: {
       description: "General application settings",
       type: generalSchema,

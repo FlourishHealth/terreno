@@ -175,6 +175,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "betterAuthId": {
+                            "description": "Identifier linking to the Better Auth session provider",
                             "type": "string",
                           },
                           "created": {
@@ -198,6 +199,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "oauthProvider": {
+                            "description": "OAuth provider used for authentication",
                             "enum": [
                               "google",
                               "github",
@@ -307,6 +309,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -330,6 +333,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -367,6 +371,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -390,6 +395,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4332,6 +4338,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "boolean",
                           },
                           "betterAuthId": {
+                            "description": "Identifier linking to the Better Auth session provider",
                             "type": "string",
                           },
                           "created": {
@@ -4355,6 +4362,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "type": "string",
                           },
                           "oauthProvider": {
+                            "description": "OAuth provider used for authentication",
                             "enum": [
                               "google",
                               "github",
@@ -4464,6 +4472,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -4487,6 +4496,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -4524,6 +4534,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4547,6 +4558,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4715,6 +4727,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4738,6 +4751,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -4840,6 +4854,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -4863,6 +4878,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -4900,6 +4916,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -4923,6 +4940,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -5102,6 +5120,85 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         "summary": "Set a user's password as an admin",
         "tags": [
           "admin-users",
+        ],
+      },
+    },
+    "/ai/models": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "models": {
+                      "items": {
+                        "properties": {
+                          "label": {
+                            "type": "string",
+                          },
+                          "value": {
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "List selectable AI chat models",
+        "tags": [
+          "ai",
         ],
       },
     },
@@ -6970,6 +7067,956 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/todos/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "completed",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Whether the todo item has been completed",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who owns this todo",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "completed": {
+                            "description": "Whether the todo item has been completed",
+                            "type": "boolean",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "ownerId": {
+                            "description": "The user who owns this todo",
+                            "type": "schemaobjectid",
+                          },
+                          "priority": {
+                            "description": "Priority level of the todo",
+                            "enum": [
+                              "low",
+                              "medium",
+                              "high",
+                            ],
+                            "type": "string",
+                          },
+                          "tags": {
+                            "description": "Free-form tags for categorization",
+                            "items": {
+                              "type": "string",
+                            },
+                            "type": "array",
+                          },
+                          "title": {
+                            "description": "The title of the todo item",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "ownerId",
+                          "title",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todos",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "completed": {
+                    "description": "Whether the todo item has been completed",
+                    "type": "boolean",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user who owns this todo",
+                    "type": "schemaobjectid",
+                  },
+                  "priority": {
+                    "description": "Priority level of the todo",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                    ],
+                    "type": "string",
+                  },
+                  "tags": {
+                    "description": "Free-form tags for categorization",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "title": {
+                    "description": "The title of the todo item",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "completed": {
+                      "description": "Whether the todo item has been completed",
+                      "type": "boolean",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this todo",
+                      "type": "schemaobjectid",
+                    },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "The title of the todo item",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todos",
+        ],
+      },
+    },
+    "/todos/bulkComplete": {
+      "post": {
+        "operationId": "todos_bulkComplete",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "ids": {
+                    "items": {
+                      "type": "string",
+                    },
+                    "minItems": 1,
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "ids",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "matched": {
+                          "type": "number",
+                        },
+                        "modified": {
+                          "type": "number",
+                        },
+                      },
+                      "required": [
+                        "matched",
+                        "modified",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "data",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Mark multiple todos complete for the current user",
+        "tags": [
+          "todos",
+        ],
+      },
+    },
+    "/todos/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todos",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "completed": {
+                      "description": "Whether the todo item has been completed",
+                      "type": "boolean",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this todo",
+                      "type": "schemaobjectid",
+                    },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "The title of the todo item",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todos",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "completed": {
+                    "description": "Whether the todo item has been completed",
+                    "type": "boolean",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "ownerId": {
+                    "description": "The user who owns this todo",
+                    "type": "schemaobjectid",
+                  },
+                  "priority": {
+                    "description": "Priority level of the todo",
+                    "enum": [
+                      "low",
+                      "medium",
+                      "high",
+                    ],
+                    "type": "string",
+                  },
+                  "tags": {
+                    "description": "Free-form tags for categorization",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "title": {
+                    "description": "The title of the todo item",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "completed": {
+                      "description": "Whether the todo item has been completed",
+                      "type": "boolean",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "ownerId": {
+                      "description": "The user who owns this todo",
+                      "type": "schemaobjectid",
+                    },
+                    "priority": {
+                      "description": "Priority level of the todo",
+                      "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                      ],
+                      "type": "string",
+                    },
+                    "tags": {
+                      "description": "Free-form tags for categorization",
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                    "title": {
+                      "description": "The title of the todo item",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "ownerId",
+                    "title",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "todos",
+        ],
+      },
+    },
+    "/todos/{id}/markComplete": {
+      "post": {
+        "operationId": "todos_markComplete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful response",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Mark a single todo as complete",
+        "tags": [
+          "todos",
+        ],
+      },
+    },
     "/{id}": {
       "delete": {
         "parameters": [
@@ -7059,6 +8106,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -7082,6 +8130,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",
@@ -7184,6 +8233,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "boolean",
                   },
                   "betterAuthId": {
+                    "description": "Identifier linking to the Better Auth session provider",
                     "type": "string",
                   },
                   "created": {
@@ -7207,6 +8257,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "type": "string",
                   },
                   "oauthProvider": {
+                    "description": "OAuth provider used for authentication",
                     "enum": [
                       "google",
                       "github",
@@ -7244,6 +8295,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "boolean",
                     },
                     "betterAuthId": {
+                      "description": "Identifier linking to the Better Auth session provider",
                       "type": "string",
                     },
                     "created": {
@@ -7267,6 +8319,7 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "type": "string",
                     },
                     "oauthProvider": {
+                      "description": "OAuth provider used for authentication",
                       "enum": [
                         "google",
                         "github",

@@ -49,10 +49,11 @@ export const tools: Tool[] = [
       required: ["name", "fields"],
       type: "object",
     },
-    name: "generate_model",
+    name: "terreno_generate_model",
   },
   {
-    description: "Generate a modelRouter route configuration for a Mongoose model",
+    description:
+      "Generate a modelRouter route configuration for a Mongoose model. For non-CRUD operations, add instanceActions (/:id/action) or collectionActions (/action) with Zod schemas — see docs/explanation/model-router-actions.md",
     inputSchema: {
       properties: {
         modelName: {
@@ -91,7 +92,7 @@ export const tools: Tool[] = [
       required: ["modelName", "routePath"],
       type: "object",
     },
-    name: "generate_route",
+    name: "terreno_generate_route",
   },
   {
     description: "Generate a React Native screen component using @terreno/ui components",
@@ -119,7 +120,7 @@ export const tools: Tool[] = [
       required: ["name", "type"],
       type: "object",
     },
-    name: "generate_screen",
+    name: "terreno_generate_screen",
   },
   {
     description: "Generate form field components for a data model",
@@ -168,7 +169,7 @@ export const tools: Tool[] = [
       required: ["fields"],
       type: "object",
     },
-    name: "generate_form_fields",
+    name: "terreno_generate_form_fields",
   },
   {
     description: "Validate a Mongoose schema follows Terreno conventions",
@@ -182,7 +183,7 @@ export const tools: Tool[] = [
       required: ["schema"],
       type: "object",
     },
-    name: "validate_model_schema",
+    name: "terreno_validate_model_schema",
   },
   {
     description:
@@ -221,7 +222,7 @@ export const tools: Tool[] = [
       required: ["models"],
       type: "object",
     },
-    name: "install_admin",
+    name: "terreno_install_admin",
   },
 ];
 
@@ -379,6 +380,10 @@ import { ${modelName} } from "../models/${lowerName}";`;
 
   return `import { Router } from "express";
 ${imports}
+
+// Non-CRUD endpoints: use instanceActions (POST/GET /:id/actionName) or
+// collectionActions (POST/GET /actionName) on modelRouter options. See
+// docs/explanation/model-router-actions.md. Requires zod in the backend app.
 
 export const add${modelName}Routes = (router: Router) => {
   router.use(
@@ -1014,14 +1019,14 @@ export const handleToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
   // Handle bootstrap tools
-  if (name === "bootstrap_app" || name === "bootstrap_ai_rules") {
+  if (name === "terreno_bootstrap_app" || name === "terreno_bootstrap_ai_rules") {
     return handleBootstrapToolCall(name, args);
   }
 
   let result: string;
 
   switch (name) {
-    case "generate_model": {
+    case "terreno_generate_model": {
       const modelArgs = args as Parameters<typeof generateModel>[0];
       const code = generateModel(modelArgs);
       const modelName = modelArgs.name.toLowerCase();
@@ -1030,7 +1035,7 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_route": {
+    case "terreno_generate_route": {
       const routeArgs = args as Parameters<typeof generateRoute>[0];
       const code = generateRoute(routeArgs);
       const modelName = routeArgs.modelName.toLowerCase();
@@ -1041,7 +1046,7 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_screen": {
+    case "terreno_generate_screen": {
       const screenArgs = args as Parameters<typeof generateScreen>[0];
       const code = generateScreen(screenArgs);
       result = wrapWithFileInstructions(code, `frontend/src/screens/${screenArgs.name}Screen.tsx`, [
@@ -1049,17 +1054,17 @@ export const handleToolCall = (
       ]);
       break;
     }
-    case "generate_form_fields": {
+    case "terreno_generate_form_fields": {
       const code = generateFormFields(args as Parameters<typeof generateFormFields>[0]);
       result = wrapWithFileInstructions(code, "your form component file", [
         "Integrate this code into your form screen component",
       ]);
       break;
     }
-    case "validate_model_schema":
+    case "terreno_validate_model_schema":
       result = validateModelSchema(args as Parameters<typeof validateModelSchema>[0]);
       break;
-    case "install_admin":
+    case "terreno_install_admin":
       result = generateInstallAdmin(args as Parameters<typeof generateInstallAdmin>[0]);
       break;
     default:

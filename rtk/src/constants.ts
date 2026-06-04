@@ -17,11 +17,22 @@ export const logAuth = (...args: string[]): void => {
 };
 
 // Handy debug logging socket events, but not enabled by default.
-// Can also be enabled by user feature flag.
+// Can also be enabled by user feature flag or runtime via setRealtimeDebug (admin config).
 const WEBSOCKETS_DEBUG = Constants.expoConfig?.extra?.WEBSOCKETS_DEBUG === "true";
 if (WEBSOCKETS_DEBUG) {
   console.debug("WEBSOCKETS_DEBUG is enabled");
 }
+
+let runtimeWebsocketsDebug = false;
+
+/** Enable websocket debug logging at runtime (e.g. from admin debug.websocketsDebug). */
+export const setRealtimeDebug = (enabled: boolean): void => {
+  runtimeWebsocketsDebug = enabled;
+};
+
+export const isWebsocketsDebugEnabled = (): boolean => {
+  return WEBSOCKETS_DEBUG || runtimeWebsocketsDebug;
+};
 
 // Handy debug logging for websockets, enabled by user.featureFlags.debugWebsockets.enabled or passing in true.
 export const logSocket = (
@@ -31,9 +42,9 @@ export const logSocket = (
   if (
     typeof user === "boolean"
       ? user
-      : user?.featureFlags?.debugWebsockets?.enabled || WEBSOCKETS_DEBUG
+      : user?.featureFlags?.debugWebsockets?.enabled || isWebsocketsDebugEnabled()
   ) {
-    console.debug(`[websocket]`, ...args);
+    console.info("[websocket]", ...args);
   }
 };
 
@@ -54,6 +65,13 @@ export interface BaseUrls {
   baseTasksUrl: string;
 }
 
+/**
+ * Sentinel value for `BASE_URL`. When set in `app.json` `extra.BASE_URL`, the
+ * base URL resolves to the runtime page origin (`window.location.origin`).
+ * Used by same-origin deployments such as the standalone admin SPA.
+ */
+export const SAME_ORIGIN_SENTINEL = "__SAME_ORIGIN__";
+
 const LOCALHOST: BaseUrls = {
   baseTasksUrl: "http://localhost:4000/tasks",
   baseUrl: "http://localhost:4000",
@@ -68,11 +86,28 @@ export const resolveBaseUrls = (args: {
   envApiUrl?: string;
   expoConstants: ExpoConstantsShape;
   isDev: boolean;
+  // Defaults to globalThis.location.origin at the module-level call site.
+  // Injectable so the sentinel resolution can be unit tested without a DOM.
+  windowOrigin?: string;
 }): BaseUrls => {
   const hostUriPrefix = args.expoConstants.expoConfig?.hostUri?.split(":").shift();
   const experiencePrefix = args.expoConstants.experienceUrl?.split(":")[1];
   const baseFromExtra = args.expoConstants.expoConfig?.extra?.BASE_URL;
-  const base = args.envApiUrl || (!args.isDev ? baseFromExtra : undefined);
+
+  // Same-origin sentinel: resolves to the page origin at runtime, regardless of
+  // isDev. This check must run before the isDev branching below, otherwise the
+  // sentinel would be silently dead in dev mode (which gates baseFromExtra).
+  if (baseFromExtra === SAME_ORIGIN_SENTINEL && args.windowOrigin) {
+    const origin = args.windowOrigin;
+    return {
+      baseTasksUrl: `${origin}/tasks`,
+      baseUrl: origin,
+      baseWebsocketsUrl: `${origin.replace(/^http/, "ws")}/`,
+    };
+  }
+  // Never treat the sentinel as a literal base URL in the fallback path.
+  const resolvedBaseFromExtra = baseFromExtra === SAME_ORIGIN_SENTINEL ? undefined : baseFromExtra;
+  const base = args.envApiUrl || (!args.isDev ? resolvedBaseFromExtra : undefined);
   const host = args.isDev ? hostUriPrefix : !base ? hostUriPrefix : undefined;
   const experience = !base && !host ? experiencePrefix : undefined;
   if (base)
@@ -106,10 +141,17 @@ if (Constants.expoGoConfig?.debuggerHost?.includes("exp.direct")) {
 
 const isDev = typeof __DEV__ !== "undefined" && __DEV__;
 
+const windowOrigin =
+  typeof globalThis !== "undefined" &&
+  (globalThis as {location?: {origin?: string}}).location?.origin
+    ? (globalThis as {location?: {origin?: string}}).location?.origin
+    : undefined;
+
 const resolved = resolveBaseUrls({
   envApiUrl: process.env.EXPO_PUBLIC_API_URL,
   expoConstants: Constants as ExpoConstantsShape,
   isDev,
+  windowOrigin,
 });
 
 export const baseUrl = resolved.baseUrl;

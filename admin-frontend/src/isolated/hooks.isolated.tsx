@@ -1,3 +1,5 @@
+// noExplicitAny: RTK Query API proxy uses dynamic property access and type-erased endpoint builders
+// biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 /**
  * Tests for admin-frontend hooks: useAdminApi, useAdminConfig,
  * useAdminScripts, useConfigurationApi, useDocumentStorageApi.
@@ -32,7 +34,7 @@ const makeMockApi = () => {
   const injected: CapturedEndpoints = {};
   const enhancedTagTypes: string[] = [];
 
-  const fakeHooks: Record<string, any> = {};
+  const fakeHooks: Record<string, unknown> = {};
 
   const addHookFor = (key: string, type: "query" | "mutation") => {
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -51,12 +53,12 @@ const makeMockApi = () => {
     }
   };
 
-  const base: any = {};
+  const base: Record<string, unknown> = {};
   Object.defineProperty(base, "__fakeHooks", {value: fakeHooks});
   Object.defineProperty(base, "__injected", {value: injected});
   Object.defineProperty(base, "__tagTypes", {value: enhancedTagTypes});
 
-  const apiProxy: any = new Proxy(base, {
+  const apiProxy: Record<string, unknown> = new Proxy(base, {
     get(target, prop: string) {
       if (prop === "enhanceEndpoints") {
         return ({addTagTypes}: {addTagTypes: string[]}) => {
@@ -65,7 +67,7 @@ const makeMockApi = () => {
         };
       }
       if (prop === "injectEndpoints") {
-        return ({endpoints}: {endpoints: (build: any) => Record<string, BuildSpec>}) => {
+        return ({endpoints}: {endpoints: (build: unknown) => Record<string, BuildSpec>}) => {
           const build = {
             mutation: (spec: BuildSpec) => ({...spec, __kind: "mutation"}),
             query: (spec: BuildSpec) => ({...spec, __kind: "query"}),
@@ -73,7 +75,8 @@ const makeMockApi = () => {
           const defs = endpoints(build);
           for (const [key, def] of Object.entries(defs)) {
             injected[key] = def;
-            const kind = (def as any).__kind === "mutation" ? "mutation" : "query";
+            const kind =
+              (def as Record<string, unknown>).__kind === "mutation" ? "mutation" : "query";
             addHookFor(key, kind);
           }
           return apiProxy;
@@ -107,7 +110,7 @@ describe("useAdminApi", () => {
     const api = makeMockApi();
     const result = runHook(() => useAdminApi(api, "/admin/users", "User"));
 
-    const injected = (api as any).__injected as CapturedEndpoints;
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
     expect(injected.adminList_User).toBeDefined();
     expect(injected.adminRead_User).toBeDefined();
     expect(injected.adminCreate_User).toBeDefined();
@@ -115,10 +118,10 @@ describe("useAdminApi", () => {
     expect(injected.adminDelete_User).toBeDefined();
 
     // tag types include the admin_<model>
-    expect((api as any).__tagTypes).toContain("admin_User");
+    expect((api as Record<string, unknown>).__tagTypes).toContain("admin_User");
 
     // Each endpoint's query fn produces expected URL/method
-    const listDef: any = injected.adminList_User;
+    const listDef = injected.adminList_User;
     expect(listDef.query({limit: 1})).toEqual({
       method: "GET",
       params: {limit: 1},
@@ -130,14 +133,14 @@ describe("useAdminApi", () => {
       url: "/admin/users",
     });
 
-    const readDef: any = injected.adminRead_User;
+    const readDef = injected.adminRead_User;
     expect(readDef.query("abc")).toEqual({
       method: "GET",
       url: "/admin/users/abc",
     });
     expect(readDef.providesTags(null, null, "abc")).toEqual([{id: "abc", type: "admin_User"}]);
 
-    const createDef: any = injected.adminCreate_User;
+    const createDef = injected.adminCreate_User;
     expect(createDef.query({name: "x"})).toEqual({
       body: {name: "x"},
       method: "POST",
@@ -145,7 +148,7 @@ describe("useAdminApi", () => {
     });
     expect(createDef.invalidatesTags).toEqual(["admin_User"]);
 
-    const updateDef: any = injected.adminUpdate_User;
+    const updateDef = injected.adminUpdate_User;
     expect(updateDef.query({body: {x: 1}, id: "123"})).toEqual({
       body: {x: 1},
       method: "PATCH",
@@ -156,7 +159,7 @@ describe("useAdminApi", () => {
       "admin_User",
     ]);
 
-    const deleteDef: any = injected.adminDelete_User;
+    const deleteDef = injected.adminDelete_User;
     expect(deleteDef.query("123")).toEqual({
       method: "DELETE",
       url: "/admin/users/123",
@@ -176,9 +179,9 @@ describe("useAdminConfig", () => {
     const api = makeMockApi();
     const result = runHook(() => useAdminConfig(api, "/admin"));
 
-    const injected = (api as any).__injected as CapturedEndpoints;
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
     expect(injected.adminConfig).toBeDefined();
-    const def: any = injected.adminConfig;
+    const def = injected.adminConfig;
     expect(def.query()).toEqual({method: "GET", url: "/admin/config"});
 
     expect(result).toMatchObject({
@@ -194,25 +197,25 @@ describe("useAdminScripts", () => {
     const api = makeMockApi();
     const result = runHook(() => useAdminScripts(api, "/admin"));
 
-    const injected = (api as any).__injected as CapturedEndpoints;
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
     expect(injected.adminRunScript).toBeDefined();
     expect(injected.adminGetScriptTask).toBeDefined();
     expect(injected.adminCancelScriptTask).toBeDefined();
 
-    const runDef: any = injected.adminRunScript;
+    const runDef = injected.adminRunScript;
     expect(runDef.query({name: "migrate", wetRun: false})).toEqual({
       method: "POST",
       url: "/admin/scripts/migrate/run?wetRun=false",
     });
 
-    const getDef: any = injected.adminGetScriptTask;
+    const getDef = injected.adminGetScriptTask;
     expect(getDef.query("task-1")).toEqual({
       method: "GET",
       url: "/admin/scripts/tasks/task-1",
     });
     expect(getDef.providesTags).toEqual(["admin_scriptTask"]);
 
-    const cancelDef: any = injected.adminCancelScriptTask;
+    const cancelDef = injected.adminCancelScriptTask;
     expect(cancelDef.query("task-1")).toEqual({
       method: "DELETE",
       url: "/admin/scripts/tasks/task-1",
@@ -230,29 +233,33 @@ describe("useConfigurationApi", () => {
     const api = makeMockApi();
     const result = runHook(() => useConfigurationApi({api, basePath: "/admin/configuration"}));
 
-    const injected = (api as any).__injected as CapturedEndpoints;
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
     expect(injected.configMeta).toBeDefined();
     expect(injected.configValues).toBeDefined();
     expect(injected.configUpdate).toBeDefined();
     expect(injected.configRefreshSecrets).toBeDefined();
-    expect((api as any).__tagTypes).toContain("configuration");
+    expect((api as Record<string, unknown>).__tagTypes).toContain("configuration");
 
-    expect((injected.configMeta as any).query()).toEqual({
+    expect((injected.configMeta as BuildSpec & Record<string, unknown>).query()).toEqual({
       method: "GET",
       url: "/admin/configuration/meta",
     });
-    expect((injected.configValues as any).query()).toEqual({
+    expect((injected.configValues as BuildSpec & Record<string, unknown>).query()).toEqual({
       method: "GET",
       url: "/admin/configuration",
     });
-    expect((injected.configValues as any).providesTags).toEqual(["configuration"]);
-    expect((injected.configUpdate as any).query({a: 1})).toEqual({
+    expect((injected.configValues as BuildSpec & Record<string, unknown>).providesTags).toEqual([
+      "configuration",
+    ]);
+    expect((injected.configUpdate as BuildSpec & Record<string, unknown>).query({a: 1})).toEqual({
       body: {a: 1},
       method: "PATCH",
       url: "/admin/configuration",
     });
-    expect((injected.configUpdate as any).invalidatesTags).toEqual(["configuration"]);
-    expect((injected.configRefreshSecrets as any).query()).toEqual({
+    expect((injected.configUpdate as BuildSpec & Record<string, unknown>).invalidatesTags).toEqual([
+      "configuration",
+    ]);
+    expect((injected.configRefreshSecrets as BuildSpec & Record<string, unknown>).query()).toEqual({
       method: "POST",
       url: "/admin/configuration/refresh-secrets",
     });
@@ -269,7 +276,7 @@ describe("useDocumentStorageApi", () => {
     const api = makeMockApi();
     const result = runHook(() => useDocumentStorageApi(api, "/documents"));
 
-    const injected = (api as any).__injected as CapturedEndpoints;
+    const injected = (api as Record<string, unknown>).__injected as CapturedEndpoints;
     expect(injected.documentStorageList).toBeDefined();
     expect(injected.documentStorageUpload).toBeDefined();
     expect(injected.documentStorageDownload).toBeDefined();
@@ -277,7 +284,7 @@ describe("useDocumentStorageApi", () => {
     expect(injected.documentStorageDeleteFolder).toBeDefined();
     expect(injected.documentStorageCreateFolder).toBeDefined();
 
-    const listDef: any = injected.documentStorageList;
+    const listDef = injected.documentStorageList;
     expect(listDef.query()).toEqual({
       method: "GET",
       params: {},
@@ -291,7 +298,7 @@ describe("useDocumentStorageApi", () => {
     expect(listDef.providesTags).toEqual(["documentStorage"]);
 
     // Upload appends prefix to formData when provided
-    const uploadDef: any = injected.documentStorageUpload;
+    const uploadDef = injected.documentStorageUpload;
     const fd: {append: (k: string, v: string) => void; entries: string[]} = {
       append(k: string, v: string) {
         this.entries.push(`${k}=${v}`);
@@ -318,7 +325,7 @@ describe("useDocumentStorageApi", () => {
     expect(fd2.entries.length).toBe(0);
 
     // Download returns a URL with encoded path and a responseHandler
-    const downloadDef: any = injected.documentStorageDownload;
+    const downloadDef = injected.documentStorageDownload;
     const dlSpec = downloadDef.query("my folder/file.pdf");
     expect(dlSpec.url).toBe("/documents/download/my%20folder%2Ffile.pdf");
     expect(dlSpec.method).toBe("GET");
@@ -360,18 +367,18 @@ describe("useDocumentStorageApi", () => {
       expect(textParsed).toEqual({detail: "boom", status: 500});
 
       // Delete endpoints
-      const deleteDef: any = injected.documentStorageDelete;
+      const deleteDef = injected.documentStorageDelete;
       expect(deleteDef.query("a b.pdf")).toEqual({
         method: "DELETE",
         url: "/documents/a%20b.pdf",
       });
-      const deleteFolderDef: any = injected.documentStorageDeleteFolder;
+      const deleteFolderDef = injected.documentStorageDeleteFolder;
       expect(deleteFolderDef.query("subdir/")).toEqual({
         method: "DELETE",
         url: "/documents/folder/subdir%2F",
       });
 
-      const createDef: any = injected.documentStorageCreateFolder;
+      const createDef = injected.documentStorageCreateFolder;
       expect(createDef.query({folderName: "new", prefix: "a/"})).toEqual({
         body: {folderName: "new", prefix: "a/"},
         method: "POST",

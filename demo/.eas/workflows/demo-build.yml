@@ -1,25 +1,36 @@
-name: Demo Build
+name: Demo PR Build
+
+# Invoked by .github/workflows/eas-pr.yml slow path and manual seed builds.
+# GitHub Actions decides whether matching builds exist; this workflow builds
+# the native dev clients directly when dispatched.
 
 on:
-  pull_request_labeled:
-    label: "build-expo"
+  workflow_dispatch: {}
+
+defaults:
+  tools:
+    bun: 1.3.10
+    node: "22"
 
 jobs:
   build_ios:
-    name: Build iOS
+    name: Build iOS dev client
     type: build
     params:
       platform: ios
       profile: development
 
+  build_ios_sim:
+    name: Build iOS simulator dev client
+    type: build
+    params:
+      platform: ios
+      profile: development:simulator
+
   build_android:
-    name: Build Android
+    name: Build Android dev client
     type: build
     params:
       platform: android
       profile: development
 
-  github_comment:
-    name: Post GitHub Comment
-    type: github-comment
-    after: [build_ios, build_android]

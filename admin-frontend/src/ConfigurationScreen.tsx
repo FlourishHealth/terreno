@@ -1,4 +1,3 @@
-import type {Api} from "@reduxjs/toolkit/query/react";
 import {
   BooleanField,
   Box,
@@ -14,14 +13,22 @@ import {
 } from "@terreno/ui";
 import startCase from "lodash/startCase";
 import React, {useCallback, useMemo, useState} from "react";
+import type {AdminApi} from "./types";
 import {useConfigurationApi} from "./useConfigurationApi";
+
+/**
+ * Configuration field/section values are heterogeneous across consumer apps — each app
+ * registers its own configuration schema with arbitrary field types. We treat them as
+ * unknown shapes at this boundary and narrow when rendering individual fields.
+ */
+type ConfigValue = unknown;
 
 interface ConfigFieldMeta {
   type: string;
   required: boolean;
   description?: string;
   enum?: string[];
-  default?: any;
+  default?: ConfigValue;
   secret?: boolean;
   widget?: string;
 }
@@ -41,7 +48,7 @@ interface ConfigurationScreenProps {
   /** Base URL for configuration routes (e.g., "/configuration"). */
   basePath?: string;
   /** RTK Query API instance. */
-  api: Api<any, any, any, any>;
+  api: AdminApi;
   /** Optional title override. Defaults to "Configuration". */
   title?: string;
 }
@@ -52,8 +59,8 @@ interface ConfigurationScreenProps {
 const ConfigField: React.FC<{
   fieldKey: string;
   fieldMeta: ConfigFieldMeta;
-  value: any;
-  onChange: (value: any) => void;
+  value: ConfigValue;
+  onChange: (value: ConfigValue) => void;
   sectionName: string;
 }> = ({fieldKey, fieldMeta, value, onChange, sectionName}) => {
   const label = startCase(fieldKey);
@@ -61,13 +68,10 @@ const ConfigField: React.FC<{
   const testID = `config-${sectionName}-${fieldKey}`;
 
   if (fieldMeta.type === "boolean") {
+    const boolValue =
+      typeof value === "boolean" ? value : ((fieldMeta.default as boolean) ?? false);
     return (
-      <BooleanField
-        helperText={helperText}
-        onChange={onChange}
-        title={label}
-        value={value ?? fieldMeta.default ?? false}
-      />
+      <BooleanField helperText={helperText} onChange={onChange} title={label} value={boolValue} />
     );
   }
 
@@ -76,8 +80,14 @@ const ConfigField: React.FC<{
       <TextField
         helperText={helperText}
         onChange={(text: string) => {
+          if (text === "") {
+            onChange("");
+            return;
+          }
           const num = Number(text);
-          onChange(Number.isNaN(num) ? text : num);
+          if (!Number.isNaN(num)) {
+            onChange(num);
+          }
         }}
         testID={testID}
         title={label}
@@ -93,7 +103,7 @@ const ConfigField: React.FC<{
         onChange={onChange}
         testID={testID}
         title={label}
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -106,7 +116,7 @@ const ConfigField: React.FC<{
         testID={testID}
         title={`${label} (Secret)`}
         type="password"
-        value={value ?? ""}
+        value={typeof value === "string" ? value : ""}
       />
     );
   }
@@ -117,7 +127,7 @@ const ConfigField: React.FC<{
       onChange={onChange}
       testID={testID}
       title={label}
-      value={value ?? ""}
+      value={typeof value === "string" ? value : ""}
     />
   );
 };
@@ -130,10 +140,13 @@ const SectionDescription: React.FC<{description: string}> = ({description}) => (
 
 const SectionCard: React.FC<{
   section: ConfigSectionMeta;
-  formState: Record<string, any>;
-  onFieldChange: (sectionName: string, fieldKey: string, value: any) => void;
+  formState: Record<string, ConfigValue>;
+  onFieldChange: (sectionName: string, fieldKey: string, value: ConfigValue) => void;
 }> = ({section, formState, onFieldChange}) => {
-  const sectionValues = section.name === "__root__" ? formState : (formState[section.name] ?? {});
+  const sectionValues =
+    section.name === "__root__"
+      ? formState
+      : ((formState[section.name] as Record<string, ConfigValue> | undefined) ?? {});
   return (
     <Card padding={4}>
       <Box gap={3}>
@@ -146,7 +159,7 @@ const SectionCard: React.FC<{
             fieldKey={fieldKey}
             fieldMeta={fieldMeta}
             key={fieldKey}
-            onChange={(value: any) => onFieldChange(section.name, fieldKey, value)}
+            onChange={(value: ConfigValue) => onFieldChange(section.name, fieldKey, value)}
             sectionName={section.name}
             value={sectionValues[fieldKey]}
           />
@@ -190,7 +203,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const [updateConfig, {isLoading: isSaving}] = useUpdateMutation();
 
   // Tracks only the fields the user has explicitly edited. null = no edits yet.
-  const [userEdits, setUserEdits] = useState<Record<string, any> | null>(null);
+  const [userEdits, setUserEdits] = useState<Record<string, ConfigValue> | null>(null);
   const [isDirty, setIsDirty] = useState(false);
 
   const toast = useToast();
@@ -198,26 +211,27 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const configMeta = meta as ConfigurationMetaResponse | undefined;
   // The baseQuery in emptyApi.ts unwraps {data: ...} responses, so valuesResponse
   // is already the config document — not a wrapper object.
-  const configValues = valuesResponse as Record<string, any> | undefined;
+  const configValues = valuesResponse as Record<string, ConfigValue> | undefined;
 
   // Derived synchronously so the form is never blank when data is already cached.
-  const serverValues = useMemo((): Record<string, any> => {
+  const serverValues = useMemo((): Record<string, ConfigValue> => {
     if (!configValues || !configMeta) return {};
     const emptyDefault = (fieldMeta: ConfigFieldMeta) =>
       fieldMeta.type === "boolean" ? false : "";
-    const initial: Record<string, any> = {};
+    const initial: Record<string, ConfigValue> = {};
     for (const section of configMeta.sections) {
       if (section.name === "__root__") {
         for (const [key, fieldMeta] of Object.entries(section.fields)) {
           initial[key] = configValues[key] ?? fieldMeta.default ?? emptyDefault(fieldMeta);
         }
       } else {
-        initial[section.name] = {};
-        const sectionValues = (configValues[section.name] as Record<string, any>) ?? {};
+        const nestedInitial: Record<string, ConfigValue> = {};
+        const sectionValues =
+          (configValues[section.name] as Record<string, ConfigValue> | undefined) ?? {};
         for (const [key, fieldMeta] of Object.entries(section.fields)) {
-          initial[section.name][key] =
-            sectionValues[key] ?? fieldMeta.default ?? emptyDefault(fieldMeta);
+          nestedInitial[key] = sectionValues[key] ?? fieldMeta.default ?? emptyDefault(fieldMeta);
         }
+        initial[section.name] = nestedInitial;
       }
     }
     return initial;
@@ -226,7 +240,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const formState = userEdits ?? serverValues;
 
   const handleFieldChange = useCallback(
-    (sectionName: string, fieldKey: string, value: any) => {
+    (sectionName: string, fieldKey: string, value: ConfigValue) => {
       setIsDirty(true);
       setUserEdits((prev) => {
         const base = prev ?? serverValues;
@@ -236,7 +250,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
         return {
           ...base,
           [sectionName]: {
-            ...(base[sectionName] as Record<string, any>),
+            ...(base[sectionName] as Record<string, ConfigValue>),
             [fieldKey]: value,
           },
         };

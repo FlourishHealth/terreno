@@ -655,6 +655,113 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/admin-frontend@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-admin-spa:
+    needs: [check-changes, publish-ui, publish-rtk, publish-admin-frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: admin-spa
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      # Build the static web export BEFORE replacing workspace deps, so metro resolves the
+      # local workspace sources. The resulting dist/ is shipped in the published package.
+      - name: Compile workspace dependencies
+        run: node ../.github/scripts/compile-workspace-deps.js
+
+      - name: Compile server plugin
+        run: bun run compile
+
+      - name: Build web export
+        run: bun run build:web
+
+      - name: Get latest @terreno/ui version
+        id: ui_version
+        run: |
+          UI_VERSION=$(npm view @terreno/ui version 2>/dev/null || echo "")
+          if [ -z "$UI_VERSION" ]; then
+            UI_VERSION="${{ needs.check-changes.outputs.version }}"
+          fi
+          echo "ui_version=$UI_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Replace catalog and workspace references
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          UI_VERSION="${{ steps.ui_version.outputs.ui_version }}"
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const version = process.env.VERSION;
+          const uiVersion = process.env.UI_VERSION;
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              } else if (value === 'workspace:*' && key === '@terreno/ui') {
+                pkg[depType][key] = uiVersion;
+              } else if (value === 'workspace:*' && key.startsWith('@terreno/')) {
+                pkg[depType][key] = version;
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+        env:
+          VERSION: ${{ needs.check-changes.outputs.version }}
+          UI_VERSION: ${{ steps.ui_version.outputs.ui_version }}
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/admin-spa@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   publish-ai:
     needs: [check-changes, publish-api]
     runs-on: ubuntu-latest
@@ -950,10 +1057,13 @@ jobs:
         run: echo "Published @terreno/feature-flags@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   update-version-on-master:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
+    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags]
+    # Run if any package was published and this is not a prerelease (beta/alpha) tag
     if: |
       always() &&
-      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success')
+      !contains(needs.check-changes.outputs.version, '-beta') &&
+      !contains(needs.check-changes.outputs.version, '-alpha') &&
+      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -996,6 +1106,7 @@ jobs:
           update_version rtk "${{ needs.publish-rtk.result }}"
           update_version admin-backend "${{ needs.publish-admin-backend.result }}"
           update_version admin-frontend "${{ needs.publish-admin-frontend.result }}"
+          update_version admin-spa "${{ needs.publish-admin-spa.result }}"
           update_version ai "${{ needs.publish-ai.result }}"
           update_version api-health "${{ needs.publish-api-health.result }}"
           update_version feature-flags "${{ needs.publish-feature-flags.result }}"
@@ -1008,11 +1119,12 @@ jobs:
             echo "No version changes to commit"
           else
             git commit -m "chore: bump package versions to ${VERSION}"
+            git pull --rebase origin master
             git push origin master
           fi
 
   notify:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-ai, publish-api-health, publish-feature-flags]
+    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -1039,6 +1151,7 @@ jobs:
           add_status "@terreno/rtk" "${{ needs.publish-rtk.result }}"
           add_status "@terreno/admin-backend" "${{ needs.publish-admin-backend.result }}"
           add_status "@terreno/admin-frontend" "${{ needs.publish-admin-frontend.result }}"
+          add_status "@terreno/admin-spa" "${{ needs.publish-admin-spa.result }}"
           add_status "@terreno/ai" "${{ needs.publish-ai.result }}"
           add_status "@terreno/api-health" "${{ needs.publish-api-health.result }}"
           add_status "@terreno/feature-flags" "${{ needs.publish-feature-flags.result }}"
