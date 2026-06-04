@@ -336,14 +336,13 @@ describe("PickerSelect", () => {
     const PlatformModule = require("react-native").Platform;
     let savedOS: any;
 
-    it("renders android headless when useNativeAndroidPickerStyle is false", () => {
+    it("renders android modal picker by default (useNativeAndroidPickerStyle false)", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "android";
-        const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} useNativeAndroidPickerStyle={false} value="1" />
-        );
+        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
         expect(getByTestId("android_touchable_wrapper")).toBeTruthy();
+        expect(getByTestId("icon_container")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
       }
@@ -382,23 +381,25 @@ describe("PickerSelect", () => {
       }
     });
 
-    it("renders native android picker style", () => {
+    it("renders native android picker style when useNativeAndroidPickerStyle is true", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "android";
-        const {getByTestId} = renderWithTheme(<RNPickerSelect {...defaultProps} value="1" />);
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} useNativeAndroidPickerStyle value="1" />
+        );
         expect(getByTestId("android_picker")).toBeTruthy();
       } finally {
         PlatformModule.OS = savedOS;
       }
     });
 
-    it("renders native android picker disabled", () => {
+    it("renders native android picker disabled when useNativeAndroidPickerStyle is true", () => {
       savedOS = PlatformModule.OS;
       try {
         PlatformModule.OS = "android";
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} disabled value="1" />
+          <RNPickerSelect {...defaultProps} disabled useNativeAndroidPickerStyle value="1" />
         );
         expect(getByTestId("android_picker")).toBeTruthy();
       } finally {
@@ -412,13 +413,69 @@ describe("PickerSelect", () => {
         PlatformModule.OS = "android";
         const mockOnValueChange = mock(() => {});
         const {getByTestId} = renderWithTheme(
-          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+          <RNPickerSelect
+            {...defaultProps}
+            onValueChange={mockOnValueChange}
+            useNativeAndroidPickerStyle
+            value="1"
+          />
         );
         const picker = getByTestId("android_picker");
         await act(async () => {
           picker.props.onValueChange?.("2", 1);
         });
         expect(mockOnValueChange).toHaveBeenCalledWith("2", 1);
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("fires onOpen when the android wrapper is pressed and onClose when Done is pressed", async () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const onOpen = mock(() => {});
+        const onClose = mock(() => {});
+        const onDonePress = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect
+            {...defaultProps}
+            onClose={onClose}
+            onDonePress={onDonePress}
+            onOpen={onOpen}
+          />
+        );
+
+        await act(async () => {
+          fireEvent.press(getByTestId("android_touchable_wrapper"));
+        });
+        expect(onOpen).toHaveBeenCalled();
+
+        await act(async () => {
+          fireEvent.press(getByTestId("done_button"));
+        });
+        expect(onClose).toHaveBeenCalled();
+        expect(onDonePress).toHaveBeenCalled();
+      } finally {
+        PlatformModule.OS = savedOS;
+      }
+    });
+
+    it("closes the android modal when the top overlay is pressed", async () => {
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "android";
+        const onClose = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onClose={onClose} />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("android_touchable_wrapper"));
+        });
+        await act(async () => {
+          fireEvent.press(getByTestId("android_modal_top"));
+        });
+        expect(onClose).toHaveBeenCalled();
       } finally {
         PlatformModule.OS = savedOS;
       }

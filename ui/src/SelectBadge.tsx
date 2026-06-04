@@ -21,9 +21,8 @@ export const SelectBadge = ({
 }: SelectBadgeProps): React.ReactElement => {
   const {theme} = useTheme();
   const [showPicker, setShowPicker] = useState(false);
-  // Temporary state to manage value changes for ios picker
-  // Assures the badge display value persists when user scrolls through options
-  const [iosDisplayValue, setIosDisplayValue] = useState<string | undefined>(value);
+  // Temporary state for modal picker (iOS/Android): keeps badge label stable while scrolling.
+  const [modalDisplayValue, setModalDisplayValue] = useState<string | undefined>(value);
 
   // Web-only: anchor the custom dropdown menu to the trigger element so that
   // Safari/Firefox/Chrome all render the same styled menu instead of the
@@ -103,14 +102,14 @@ export const SelectBadge = ({
     ));
   }, [options]);
 
-  const renderIosPicker = useCallback(() => {
-    const handleValueChangeIos = (itemValue: string) => {
-      setIosDisplayValue(itemValue);
+  const renderModalPicker = useCallback(() => {
+    const handleValueChangeModal = (itemValue: string) => {
+      setModalDisplayValue(itemValue);
     };
 
     const handleSave = () => {
-      if (iosDisplayValue && !disabled) {
-        handleOnChange(iosDisplayValue);
+      if (modalDisplayValue && !disabled) {
+        handleOnChange(modalDisplayValue);
       } else {
         setShowPicker(false);
       }
@@ -118,7 +117,7 @@ export const SelectBadge = ({
 
     const handleDismiss = () => {
       setShowPicker(false);
-      setIosDisplayValue(value);
+      setModalDisplayValue(value);
     };
 
     return (
@@ -181,8 +180,8 @@ export const SelectBadge = ({
             </View>
             <Picker
               enabled={!disabled}
-              onValueChange={handleValueChangeIos}
-              selectedValue={iosDisplayValue}
+              onValueChange={handleValueChangeModal}
+              selectedValue={modalDisplayValue}
             >
               {renderPickerItems()}
             </Picker>
@@ -190,7 +189,7 @@ export const SelectBadge = ({
         </View>
       </Modal>
     );
-  }, [showPicker, iosDisplayValue, disabled, theme, value, handleOnChange, renderPickerItems]);
+  }, [showPicker, modalDisplayValue, disabled, theme, value, handleOnChange, renderPickerItems]);
 
   const renderPicker = useCallback(() => {
     return (
@@ -265,6 +264,13 @@ export const SelectBadge = ({
             }
             return;
           }
+
+          if (Platform.OS === "ios" || Platform.OS === "android") {
+            setModalDisplayValue(value);
+            setShowPicker(true);
+            return;
+          }
+
           setShowPicker(!showPicker);
         }}
       >
@@ -332,8 +338,8 @@ export const SelectBadge = ({
           </View>
         </View>
       </TouchableOpacity>
-      {Platform.OS === "ios"
-        ? renderIosPicker()
+      {Platform.OS === "ios" || Platform.OS === "android"
+        ? renderModalPicker()
         : Platform.OS === "web"
           ? renderWebPicker()
           : renderPicker()}

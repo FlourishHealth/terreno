@@ -93,20 +93,20 @@ export interface RNPickerSelectProps {
   useNativeAndroidPickerStyle?: boolean;
   fixAndroidTouchableBug?: boolean;
 
-  // Custom Modal props (iOS only)
+  // Custom Modal props (iOS and Android modal picker)
   doneText?: string;
   onDonePress?: () => void;
   onUpArrow?: () => void;
   onDownArrow?: () => void;
   onClose?: () => void;
 
-  // Modal props (iOS only)
+  // Modal props (iOS and Android modal picker)
   modalProps?: Partial<ModalProps>;
 
   // TextInput props
   textInputProps?: Partial<TextInputProps>;
 
-  // Touchable Done props (iOS only)
+  // Touchable Done props (iOS and Android modal picker)
   touchableDoneProps?: Partial<PressableProps>;
 
   // Touchable wrapper props
@@ -123,7 +123,7 @@ export const RNPickerSelect = ({
   disabled = false,
   itemKey,
   children,
-  useNativeAndroidPickerStyle = true,
+  useNativeAndroidPickerStyle = false,
   fixAndroidTouchableBug = false,
   doneText = "Done",
   onDonePress,
@@ -372,8 +372,12 @@ export const RNPickerSelect = ({
   };
 
   const renderIcon = () => {
-    // Icon only needed for iOS, web and android use default icons
-    if (Platform.OS !== "ios") {
+    // Show chevron for modal picker (iOS and Android modal style); web has its own icon.
+    if (Platform.OS === "web") {
+      return null;
+    }
+
+    if (Platform.OS === "android" && (useNativeAndroidPickerStyle || children)) {
       return null;
     }
 
@@ -425,7 +429,8 @@ export const RNPickerSelect = ({
     );
   };
 
-  const renderIOS = () => {
+  const renderModalPicker = () => {
+    const isIos = Platform.OS === "ios";
     return (
       <View
         style={[
@@ -450,7 +455,7 @@ export const RNPickerSelect = ({
             minHeight: 40,
             width: "95%",
           }}
-          testID="ios_touchable_wrapper"
+          testID={isIos ? "ios_touchable_wrapper" : "android_touchable_wrapper"}
           {...touchableWrapperProps}
         >
           {renderTextInputOrChildren()}
@@ -459,7 +464,7 @@ export const RNPickerSelect = ({
           animationType={animationType}
           onOrientationChange={onOrientationChange}
           supportedOrientations={["portrait", "landscape"]}
-          testID="ios_modal"
+          testID={isIos ? "ios_modal" : "android_modal"}
           transparent
           visible={showPicker}
           {...modalProps}
@@ -472,7 +477,7 @@ export const RNPickerSelect = ({
             style={{
               flex: 1,
             }}
-            testID="ios_modal_top"
+            testID={isIos ? "ios_modal_top" : "android_modal_top"}
           />
           {renderInputAccessoryView()}
           <View
@@ -487,7 +492,7 @@ export const RNPickerSelect = ({
             <Picker
               onValueChange={onValueChangeEvent}
               selectedValue={selectedItem?.value}
-              testID="ios_picker"
+              testID={isIos ? "ios_picker" : "android_picker"}
             >
               {renderPickerItems()}
             </Picker>
@@ -684,11 +689,23 @@ export const RNPickerSelect = ({
 
   const render = () => {
     if (Platform.OS === "ios") {
-      return renderIOS();
+      return renderModalPicker();
     }
 
     if (Platform.OS === "web") {
       return renderWeb();
+    }
+
+    if (Platform.OS === "android") {
+      if (useNativeAndroidPickerStyle && !children) {
+        return renderAndroidNativePickerStyle();
+      }
+
+      if (children) {
+        return renderAndroidHeadless();
+      }
+
+      return renderModalPicker();
     }
 
     if (children || !useNativeAndroidPickerStyle) {
