@@ -217,7 +217,14 @@ const listAvailableModels = async (): Promise<SelectableModel[]> => {
     return available.map(toSelectableModel);
   }
 
-  // Google listing unavailable (no provider/key, or request failed): use the curated fallback.
+  // Google listing unavailable: no Vertex project and no Gemini API key are configured, so we can't
+  // ask Google which models exist. Surface a curated current set and explain how to get the full,
+  // live list (which is the only way newer models like 3.x appear — they must exist for the key).
+  logger.info(
+    "/ai/models: no GOOGLE_VERTEX_PROJECT or GEMINI_API_KEY configured; returning the curated " +
+      "fallback model set. Configure a Gemini API key or Vertex project to serve Google's live " +
+      "model list."
+  );
   return DEFAULT_CHAT_MODEL_IDS.map(toSelectableModel);
 };
 
