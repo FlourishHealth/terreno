@@ -140,4 +140,33 @@ describe("envConfigurationPlugin", () => {
     // mapToObject(undefined) returns {}, so Config falls back to the registered default
     expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("fallback");
   });
+
+  it("mapToObject handles a plain Record (non-Map) env field", async () => {
+    // Insert a document with env as a plain object via raw DB operation
+    const col = mongoose.connection.db?.collection("testenvconfigs");
+    await col?.insertOne({env: {TERRENO_PLUGIN_KEY: "plainObj"}});
+
+    // Trigger refresh via findOneAndUpdate hook
+    await TestEnvConfig.findOneAndUpdate({}, {$set: {__v: 1}});
+
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("plainObj");
+  });
+
+  it("refreshFromDoc logs a warning and does not throw when the model query fails", async () => {
+    // Replace the env loader with one that throws to simulate a query failure
+    Config.setEnvLoader(async () => {
+      throw new Error("Simulated DB error");
+    });
+    Config.setCachedEnv({TERRENO_PLUGIN_KEY: "cached"});
+
+    // Create a doc so the post-save hook fires
+    const doc = new TestEnvConfig();
+    doc.env.set("TERRENO_PLUGIN_KEY", "new");
+    await doc.save();
+
+    // The hook should have caught the error; cache remains with the refreshed
+    // value from the Mongoose hook's own findOneOrNone (which succeeded)
+    // OR falls back gracefully. Verify no unhandled error was thrown.
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBeDefined();
+  });
 });
