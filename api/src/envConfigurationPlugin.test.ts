@@ -153,20 +153,28 @@ describe("envConfigurationPlugin", () => {
   });
 
   it("refreshFromDoc logs a warning and does not throw when the model query fails", async () => {
-    // Replace the env loader with one that throws to simulate a query failure
-    Config.setEnvLoader(async () => {
-      throw new Error("Simulated DB error");
-    });
-    Config.setCachedEnv({TERRENO_PLUGIN_KEY: "cached"});
-
-    // Create a doc so the post-save hook fires
+    // Seed a document so findOneAndUpdate has a target
     const doc = new TestEnvConfig();
-    doc.env.set("TERRENO_PLUGIN_KEY", "new");
+    doc.env.set("TERRENO_PLUGIN_KEY", "initial");
     await doc.save();
 
-    // The hook should have caught the error; cache remains with the refreshed
-    // value from the Mongoose hook's own findOneOrNone (which succeeded)
-    // OR falls back gracefully. Verify no unhandled error was thrown.
-    expect(Config.get("TERRENO_PLUGIN_KEY")).toBeDefined();
+    // Pre-set cache to verify it is NOT overwritten when the hook errors
+    Config.setCachedEnv({TERRENO_PLUGIN_KEY: "cached"});
+
+    // Override Model.find to simulate a DB error inside refreshFromDoc
+    // (findOneOrNoneFor falls back to model.find when the findOneOrNone static is absent)
+    const originalFind = TestEnvConfig.find;
+    (TestEnvConfig as any).find = () => {
+      throw new Error("Simulated DB error");
+    };
+
+    // Trigger the post-findOneAndUpdate hook → refreshFromDoc → findOneOrNoneFor → throws
+    await TestEnvConfig.findOneAndUpdate({_id: doc._id}, {$set: {__v: 2}});
+
+    // Restore immediately
+    (TestEnvConfig as any).find = originalFind;
+
+    // The catch block should have swallowed the error; cache keeps old value
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("cached");
   });
 });
