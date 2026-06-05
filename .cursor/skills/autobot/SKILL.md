@@ -4,7 +4,7 @@ description: Use after feature work is ready to submit. Runs submit-style checks
 ---
 # Autobot: PR Mergeability Automation
 
-Run `/autobot` instead of `/submit` when feature work is already built and the user wants the branch taken from local work to a mergeable PR. Autobot includes the submit workflow directly, then delegates CI monitoring and CI failure fixes to `/check-watcher`, and keeps going through actionable bot review comments without prompting.
+Run `/autobot` instead of `/shipit` when you only need the bot review loop without the full pre-commit → commit → push → PR pipeline. For the complete ship cycle, use `/shipit` (which includes autobot behavior). Autobot delegates CI monitoring and CI failure fixes to `/check-watcher`, and keeps going through actionable bot review comments without prompting.
 
 Do not use this as the default feature implementation command. Use it when the current branch already contains the feature or fix the user wants to send out.
 

@@ -8,7 +8,7 @@ description: Invoke at the end of a session to evaluate whether any skills or ru
 Invoke explicitly at the end of a session with `/improve-rulesync`.
 
 ### Behavior
-Review the current conversation session and evaluate the skills and rules in `.rulesync/`. Identify any that:
+Review the current conversation session and evaluate the skills and rules. Skills source of truth is `cursor-plugin/skills/`; rules source of truth is `.rulesync/rules/`. Identify any that:
 - Gave misleading or incorrect guidance that caused errors or rework
 - Were missing and would have prevented incorrect behavior
 - Need to be updated to reflect decisions or patterns established in this session
@@ -22,7 +22,7 @@ Scan the session for:
 - New patterns, decisions, or constraints established that should be codified
 
 ### Step 2 — Rules Audit
-Check `.rulesync/` for relevant existing rules and skills. Evaluate:
+Check `cursor-plugin/skills/` and `.rulesync/rules/` for relevant existing skills and rules. Evaluate:
 - Are trigger conditions accurate?
 - Is the guidance still correct given what happened this session?
 - Are there gaps that caused confusion?
@@ -30,13 +30,13 @@ Check `.rulesync/` for relevant existing rules and skills. Evaluate:
 ### Step 3 — Make Changes
 For each issue found:
 - **Incorrect/misleading**: Edit the existing file to fix it
-- **Missing**: Create a new skill or rule file in `.rulesync/skills/` or `.rulesync/rules/`
+- **Missing**: Create a new skill in `cursor-plugin/skills/` or a new rule in `.rulesync/rules/`
 - **Outdated**: Update or remove the stale content
 
-Always edit `.rulesync/` as the source of truth.
+Always edit `cursor-plugin/skills/` for skills and `.rulesync/rules/` for rules.
 
 ### Step 4 — Sync
-After all changes, run `bun run rules` to sync to all AI tool directories.
+After all skill changes, run `bun run skills:sync` then `bun run rules` to propagate to `.rulesync/skills/` and all AI tool directories.
 
 ### Step 5 — Summary
 Output a brief summary of what was changed and why. Format:

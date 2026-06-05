@@ -2,11 +2,11 @@
 name: respond-to-review
 description: >-
   Review PR comments, infer PR from branch when needed, plan fixes, and
-  implement — auto-submitting when no clarifications are needed
+  implement — auto-shipping when no clarifications are needed
 ---
 # PR Review Response Workflow
 
-Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/submit` automatically without prompting.
+Review comments on a PR resolved from `$ARGUMENTS` or the current branch, then plan fixes. If the plan has open questions for the user, pause for confirmation; otherwise implement, commit, and run `/shipit` automatically without prompting.
 
 ## Step 0: Validate Input
 
@@ -170,7 +170,7 @@ Ask: **"Need your input on the questions above. Anything else to change before I
 - Incorporate any feedback
 - Re-present plan if significant changes requested
 
-**If there are no open questions:** skip confirmation entirely. Proceed directly to Step 5 — implement, commit, run `/submit`, and resolve threads without further prompts. Do not ask the user for plan approval in this case.
+**If there are no open questions:** skip confirmation entirely. Proceed directly to Step 5 — implement, commit, run `/shipit`, and resolve threads without further prompts. Do not ask the user for plan approval in this case.
 
 ## Step 5: Make the Fix
 
@@ -187,15 +187,15 @@ git diff
 git diff --stat
 ```
 
-Do **not** commit here. `/submit` (next step) handles pre-commit checks, staging, commit, push, and PR updates — running pre-commit *before* the commit, which is the correct order. Committing here would invert that order and leave broken code committed locally if pre-commit fails.
+Do **not** commit here. `/shipit` (next step) handles pre-commit checks, staging, commit, push, and PR updates — running pre-commit *before* the commit, which is the correct order. Committing here would invert that order and leave broken code committed locally if pre-commit fails.
 
-## Step 7: Run /submit
+## Step 7: Run /shipit
 
-Invoke the `/submit` skill to handle pre-commit checks, commit, push, and PR updates. This will also launch the CI check-watcher in the background. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
+Invoke the `/shipit` skill to handle pre-commit checks, commit, push, PR updates, CI monitoring, and bot review handling. Pass a `$DESCRIPTION` summarizing what review comments were addressed so the commit message reflects the work.
 
 ## Step 8: Resolve Addressed Threads
 
-After `/submit` completes, resolve each review thread that was addressed in the implementation. Use the thread `id` captured in Step 2.
+After `/shipit` completes, resolve each review thread that was addressed in the implementation. Use the thread `id` captured in Step 2.
 
 For each thread that was fixed or addressed (from the "Must Fix" and "Should Address" categories in the plan):
 ```bash

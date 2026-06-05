@@ -1,0 +1,10 @@
+{
+  "name": "terreno-skills",
+  "displayName": "Terreno Skills",
+  "version": "1.0.0",
+  "description": "Agent skills for the Terreno monorepo — TDD implementation, PR shipping, SDK generation, schema safety, and more.",
+  "author": {
+    "name": "Terreno"
+  },
+  "skills": "./skills"
+}

@@ -134,6 +134,7 @@
     "rtk:web": "bun run --filter '@terreno/rtk' web",
     "rules": "bunx rulesync generate",
     "rules:check": "bunx rulesync generate && git diff --exit-code",
+    "skills:sync": "bun run --filter '@terreno/cursor-plugin' sync",
     "test": "bun run --filter '*' test:ci",
     "ui:compile": "bun run --filter '@terreno/ui' compile",
     "ui:dev": "bun run --filter '@terreno/ui' dev",
@@ -143,6 +144,7 @@
   },
   "version": "1.0.0",
   "workspaces": [
+    "cursor-plugin",
     "admin-backend",
     "admin-frontend",
     "admin-spa",

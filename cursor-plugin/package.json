@@ -1,0 +1,9 @@
+{
+  "name": "@terreno/cursor-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cursor plugin packaging Terreno agent skills",
+  "scripts": {
+    "sync": "bun run scripts/sync-skills.ts"
+  }
+}
