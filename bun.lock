@@ -242,6 +242,10 @@
         "typescript": "5.8.2",
       },
     },
+    "cursor-plugin": {
+      "name": "@terreno/cursor-plugin",
+      "version": "1.0.0",
+    },
     "demo": {
       "name": "terreno-demo",
       "version": "1.0.0",
@@ -1632,6 +1636,8 @@
     "@terreno/api": ["@terreno/api@workspace:api"],
 
     "@terreno/api-health": ["@terreno/api-health@workspace:api-health"],
+
+    "@terreno/cursor-plugin": ["@terreno/cursor-plugin@workspace:cursor-plugin"],
 
     "@terreno/example-backend": ["@terreno/example-backend@workspace:example-backend"],
 
