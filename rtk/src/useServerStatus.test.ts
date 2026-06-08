@@ -63,7 +63,9 @@ describe("useServerStatus", () => {
   });
 
   it("returns initial online state from offlineSlice", () => {
-    globalThis.fetch = mock(async () => new Response("ok", {status: 200})) as unknown as typeof fetch;
+    globalThis.fetch = mock(
+      async () => new Response("ok", {status: 200})
+    ) as unknown as typeof fetch;
 
     const {result, unmount} = renderHook(() => useServerStatus({skip: true}), {
       wrapper: createWrapper(store),
