@@ -19,7 +19,7 @@ interface EasBuild {
 
 const EAS_CLI_PACKAGE = "eas-cli@latest";
 const DEFAULT_BUILD_PROFILES: Record<Platform, string> = {
-  android: "development",
+  android: "preview",
   ios: "development:simulator",
 };
 const PLATFORM_ENV_KEYS: Record<Platform, string> = {
@@ -80,7 +80,7 @@ const parseLatestBuild = (rawOutput: string): EasBuild => {
   const latestBuild = parsed[0] as unknown;
 
   if (!isRecord(latestBuild)) {
-    throw new Error("EAS did not return any finished dev-client builds.");
+    throw new Error("EAS did not return any finished builds for the selected profile.");
   }
 
   if (typeof latestBuild.id !== "string" || latestBuild.id.length === 0) {
@@ -104,7 +104,7 @@ const parseEasDownloadResult = (rawOutput: string): EasDownloadResult => {
   return {path: parsed.path};
 };
 
-const getLatestDevClientBuild = ({
+const getLatestBuild = ({
   platform,
   profile,
 }: {
@@ -141,7 +141,7 @@ const getLatestDevClientBuild = ({
   return parseLatestBuild(rawOutput);
 };
 
-const downloadDevClientBuild = ({buildId}: {buildId: string}): EasDownloadResult => {
+const downloadBuild = ({buildId}: {buildId: string}): EasDownloadResult => {
   const rawOutput = execFileSync(
     "bunx",
     [
@@ -203,11 +203,11 @@ const main = (): void => {
   }
 
   const profile = options.profile ?? DEFAULT_BUILD_PROFILES[options.platform];
-  const latestBuild = getLatestDevClientBuild({
+  const latestBuild = getLatestBuild({
     platform: options.platform,
     profile,
   });
-  const result = downloadDevClientBuild({buildId: latestBuild.id});
+  const result = downloadBuild({buildId: latestBuild.id});
 
   if (!existsSync(result.path)) {
     throw new Error(`Downloaded EAS artifact was not found at ${result.path}.`);

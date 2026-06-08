@@ -28,6 +28,24 @@ on:
         options:
           - smoke
           - full
+      android-build-profile:
+        description: "Android EAS build profile to download"
+        default: preview
+        required: true
+        type: choice
+        options:
+          - preview
+          - development
+          - production
+      ios-build-profile:
+        description: "iOS EAS build profile to download"
+        default: development:simulator
+        required: true
+        type: choice
+        options:
+          - development:simulator
+          - preview
+          - production
 
 jobs:
   appium-android:
@@ -38,6 +56,7 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
+      APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'preview' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -71,8 +90,8 @@ jobs:
         run: bun run compile
         working-directory: ui
 
-      - name: Download latest Android dev client from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform android --env-file "$GITHUB_ENV"
+      - name: Download latest Android build from EAS
+        run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --env-file "$GITHUB_ENV"
         working-directory: demo
 
       - name: Enable KVM
@@ -119,6 +138,7 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
+      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -152,8 +172,8 @@ jobs:
         run: bun run compile
         working-directory: ui
 
-      - name: Download latest iOS simulator dev client from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform ios --env-file "$GITHUB_ENV"
+      - name: Download latest iOS simulator build from EAS
+        run: bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --env-file "$GITHUB_ENV"
         working-directory: demo
 
       - name: Run Appium iOS tests
