@@ -140,7 +140,8 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
-      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
+      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'preview' }}
+      APPIUM_IOS_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'full' && 'development:simulator' || '' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -175,7 +176,7 @@ jobs:
         working-directory: ui
 
       - name: Download latest iOS simulator build from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --env-file "$GITHUB_ENV"
+        run: bun appium/downloadLatestEasBuild.ts --platform ios --profile "$APPIUM_IOS_EAS_PROFILE" --fallback-profile "$APPIUM_IOS_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
         working-directory: demo
 
       - name: Run Appium iOS tests
