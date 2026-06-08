@@ -233,7 +233,28 @@ const getLatestBuildWithFallback = ({
   for (let index = 0; index < profiles.length; index += 1) {
     const profile = profiles[index];
     try {
-      return getLatestBuild({platform, profile});
+      const resolvedBuild = getLatestBuild({platform, profile});
+      try {
+        // #region agent log
+        appendFileSync(
+          "/opt/cursor/logs/debug.log",
+          `${JSON.stringify({
+            hypothesisId: "H5",
+            location: "demo/appium/downloadLatestEasBuild.ts:240",
+            message: "Resolved latest EAS build id",
+            data: {
+              buildId: resolvedBuild.id,
+              platform,
+              profile,
+              usedFallbackProfile: profile !== primaryProfile,
+            },
+            timestamp: Date.now(),
+          })}\n`
+        );
+        // #endregion
+      } catch {}
+
+      return resolvedBuild;
     } catch (error) {
       latestError = error;
       const hasNextProfile = index < profiles.length - 1;
@@ -274,6 +295,27 @@ const main = (): void => {
   if (!existsSync(result.path)) {
     throw new Error(`Downloaded EAS artifact was not found at ${result.path}.`);
   }
+
+  try {
+    // #region agent log
+    appendFileSync(
+      "/opt/cursor/logs/debug.log",
+      `${JSON.stringify({
+        hypothesisId: "H3",
+        location: "demo/appium/downloadLatestEasBuild.ts:301",
+        message: "Downloaded EAS artifact path",
+        data: {
+          appPath: result.path,
+          buildId: latestBuild.id,
+          envKey: PLATFORM_ENV_KEYS[options.platform],
+          platform: options.platform,
+          profile: primaryProfile,
+        },
+        timestamp: Date.now(),
+      })}\n`
+    );
+    // #endregion
+  } catch {}
 
   const envKey = PLATFORM_ENV_KEYS[options.platform];
 

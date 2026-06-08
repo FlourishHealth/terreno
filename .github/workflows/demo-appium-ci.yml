@@ -205,6 +205,22 @@ jobs:
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
+      - name: Collect iOS diagnostics on failure
+        if: failure()
+        run: |
+          mkdir -p demo/logs
+          if [ -f /opt/cursor/logs/debug.log ]; then
+            cp /opt/cursor/logs/debug.log demo/logs/debug.log.ndjson
+          fi
+          xcodebuild -version > demo/logs/xcode-version.txt || true
+          xcrun simctl list > demo/logs/simctl-list.txt || true
+          xcrun simctl list devices > demo/logs/simctl-devices.txt || true
+          eval "$(bun demo/appium/selectIosSimulator.ts)" || true
+          if [ -n "${IOS_DEVICE_UDID:-}" ]; then
+            xcrun simctl bootstatus "$IOS_DEVICE_UDID" > demo/logs/simctl-bootstatus.txt 2>&1 || true
+            xcrun simctl spawn "$IOS_DEVICE_UDID" log show --style compact --last 20m > demo/logs/simulator-log.txt 2>&1 || true
+          fi
+
       - name: Upload Appium logs
         if: failure()
         uses: actions/upload-artifact@v7.0.1

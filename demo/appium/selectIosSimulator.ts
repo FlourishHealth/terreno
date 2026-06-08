@@ -1,4 +1,5 @@
 import {execSync} from "node:child_process";
+import {appendFileSync} from "node:fs";
 
 interface SimDevice {
   isAvailable?: boolean;
@@ -90,6 +91,28 @@ const prioritizedCandidates = [
   ...sdkCompatibleCandidates.filter((candidate) => candidate.version.major !== 18),
 ].sort((left, right) => compareRuntimeVersions(left.version, right.version));
 
+try {
+  // #region agent log
+  appendFileSync(
+    "/opt/cursor/logs/debug.log",
+    `${JSON.stringify({
+      hypothesisId: "H4",
+      location: "demo/appium/selectIosSimulator.ts:95",
+      message: "Computed simulator runtime candidates",
+      data: {
+        maxSupportedSdkVersion: maxSupportedSdkVersion
+          ? `${maxSupportedSdkVersion.major}.${maxSupportedSdkVersion.minor}`
+          : null,
+        prioritizedCandidateCount: prioritizedCandidates.length,
+        runtimeCandidateCount: runtimeCandidates.length,
+        sdkCompatibleCandidateCount: sdkCompatibleCandidates.length,
+      },
+      timestamp: Date.now(),
+    })}\n`
+  );
+  // #endregion
+} catch {}
+
 const selectedRuntime = prioritizedCandidates.at(-1);
 if (!selectedRuntime) {
   const maxSupportedVersionText = maxSupportedSdkVersion
@@ -120,6 +143,26 @@ if (!picked) {
   console.error(`::error::Could not find an iPhone simulator for iOS ${platformVersion}`);
   process.exit(1);
 }
+
+try {
+  // #region agent log
+  appendFileSync(
+    "/opt/cursor/logs/debug.log",
+    `${JSON.stringify({
+      hypothesisId: "H4",
+      location: "demo/appium/selectIosSimulator.ts:152",
+      message: "Selected simulator runtime and device",
+      data: {
+        platformVersion,
+        runtimeKey,
+        selectedDeviceName: picked.name,
+        selectedDeviceUdid: picked.udid,
+      },
+      timestamp: Date.now(),
+    })}\n`
+  );
+  // #endregion
+} catch {}
 
 console.log(`export IOS_PLATFORM_VERSION=${JSON.stringify(platformVersion)}`);
 console.log(`export IOS_DEVICE_NAME=${JSON.stringify(picked.name)}`);

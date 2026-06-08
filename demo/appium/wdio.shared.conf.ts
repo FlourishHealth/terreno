@@ -1,5 +1,6 @@
 import {dirname, join} from "node:path";
 import {fileURLToPath} from "node:url";
+import {appendFileSync} from "node:fs";
 
 export const configDir = dirname(fileURLToPath(import.meta.url));
 export const isCi = process.env.CI === "true";
@@ -30,6 +31,36 @@ const resolvedSpecs =
 const configuredSpecFileRetries = parseEnvNumber(process.env.APPIUM_SPEC_FILE_RETRIES);
 const specFileRetries = configuredSpecFileRetries ?? (isQuickLoop ? 0 : isCi ? 1 : 0);
 const quickLoopConnectionRetryTimeout = isIosRun ? 240000 : 120000;
+const resolvedConnectionRetryTimeout = isQuickLoop
+  ? quickLoopConnectionRetryTimeout
+  : isCi
+    ? 600000
+    : 300000;
+const resolvedConnectionRetryCount = isQuickLoop ? 1 : isCi ? 2 : 3;
+const resolvedAppiumStartupTimeout = isCi ? 600000 : undefined;
+
+try {
+  // #region agent log
+  appendFileSync(
+    "/opt/cursor/logs/debug.log",
+    `${JSON.stringify({
+      hypothesisId: "H1",
+      location: "demo/appium/wdio.shared.conf.ts:35",
+      message: "Resolved WDIO shared timeouts",
+      data: {
+        isCi,
+        isIosRun,
+        isQuickLoop,
+        resolvedAppiumStartupTimeout,
+        resolvedConnectionRetryCount,
+        resolvedConnectionRetryTimeout,
+        specFileRetries,
+      },
+      timestamp: Date.now(),
+    })}\n`
+  );
+  // #endregion
+} catch {}
 
 export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   runner: "local",
@@ -39,12 +70,8 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   logLevel: "warn",
   bail: 0,
   waitforTimeout: isQuickLoop ? 10000 : 15000,
-  connectionRetryTimeout: isQuickLoop
-    ? quickLoopConnectionRetryTimeout
-    : isCi
-      ? 600000
-      : 300000,
-  connectionRetryCount: isQuickLoop ? 1 : isCi ? 2 : 3,
+  connectionRetryTimeout: resolvedConnectionRetryTimeout,
+  connectionRetryCount: resolvedConnectionRetryCount,
   services: [
     [
       "appium",
@@ -53,7 +80,9 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
         args: {
           relaxedSecurity: true,
         },
-        ...(isCi ? {startupTimeout: 600000} : {}),
+        ...(resolvedAppiumStartupTimeout
+          ? {startupTimeout: resolvedAppiumStartupTimeout}
+          : {}),
       },
     ],
   ],
