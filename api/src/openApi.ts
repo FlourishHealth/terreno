@@ -8,7 +8,7 @@ import type {ModelRouterOptions, OpenApiMiddleware} from "./api";
 import {logger} from "./logger";
 import {getOpenApiSpecForModel} from "./populate";
 
-const noop = (_a, _b, next) => next();
+const noop = (_a: unknown, _b: unknown, next: () => void) => next();
 
 const m2sOptions = {
   props: ["readOnly", "required", "enum", "default"],
@@ -44,7 +44,7 @@ export const defaultOpenApiErrorResponses = {
 };
 
 // We repeat this constantly, so we make it a component so we only have to define it once.
-function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
+const createAPIErrorComponent = (openApi?: OpenApiMiddleware): void => {
   // Create a schema component called APIError
   openApi?.component("schemas", "APIError", {
     properties: {
@@ -111,12 +111,12 @@ function createAPIErrorComponent(openApi?: OpenApiMiddleware) {
     },
     type: "object",
   });
-}
+};
 
-export function getOpenApiMiddleware<T>(
+export const getOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-): express.RequestHandler {
+): express.RequestHandler => {
   createAPIErrorComponent(options.openApi);
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
@@ -158,12 +158,12 @@ export function getOpenApiMiddleware<T>(
       options.openApiOverwrite?.get ?? {}
     )
   );
-}
+};
 
-export function listOpenApiMiddleware<T>(
+export const listOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-): express.RequestHandler {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -324,12 +324,12 @@ export function listOpenApiMiddleware<T>(
       options.openApiOverwrite?.list ?? {}
     )
   );
-}
+};
 
-export function createOpenApiMiddleware<T>(
+export const createOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-): express.RequestHandler {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -376,12 +376,12 @@ export function createOpenApiMiddleware<T>(
       options.openApiOverwrite?.create ?? {}
     )
   );
-}
+};
 
-export function patchOpenApiMiddleware<T>(
+export const patchOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-): express.RequestHandler {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -428,12 +428,12 @@ export function patchOpenApiMiddleware<T>(
       options.openApiOverwrite?.update ?? {}
     )
   );
-}
+};
 
-export function deleteOpenApiMiddleware<T>(
+export const deleteOpenApiMiddleware = <T>(
   model: Model<T>,
   options: Partial<ModelRouterOptions<T>>
-): express.RequestHandler {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     return noop;
   }
@@ -456,16 +456,16 @@ export function deleteOpenApiMiddleware<T>(
       options.openApiOverwrite?.delete ?? {}
     )
   );
-}
+};
 
 // This is a generic OpenAPI wrapper for a read that returns any object described by `properties`.
 // Useful for endpoints that don't directly map to a model.
-export function readOpenApiMiddleware<T>(
+export const readOpenApiMiddleware = <T>(
   options: Partial<ModelRouterOptions<T>>,
   properties: Record<string, unknown>,
   required: string[],
   queryParameters: Array<Record<string, unknown>>
-): express.RequestHandler {
+): express.RequestHandler => {
   if (!options.openApi?.path) {
     // Just log this once rather than for each middleware.
     logger.debug(
@@ -502,4 +502,4 @@ export function readOpenApiMiddleware<T>(
       options.openApiOverwrite?.get ?? {}
     )
   );
-}
+};
