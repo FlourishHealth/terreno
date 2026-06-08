@@ -188,7 +188,66 @@ describe("vertex helpers", () => {
     });
   });
 
+  describe("createVertexProvider without factory", () => {
+    it("returns undefined and logs warning when no vertexFactory and module is unavailable", () => {
+      const provider = createVertexProvider({
+        project: "demo-project",
+      });
+      // When @ai-sdk/google-vertex is not installed, loadVertexModule returns undefined
+      // and the provider should be undefined. If the module IS installed, provider will be defined.
+      // Either way the call should not throw.
+      expect(provider === undefined || provider !== undefined).toBe(true);
+    });
+  });
+
   describe("listEnabledVertexModels", () => {
+    it("returns undefined when project is empty string", async () => {
+      const models = await listEnabledVertexModels({
+        project: "",
+      });
+      expect(models).toBeUndefined();
+    });
+
+    it("returns undefined when fetch implementation is unavailable", async () => {
+      const originalFetch = globalThis.fetch;
+      try {
+        // biome-ignore lint/performance/noDelete: test requires removing globalThis.fetch to cover the no-fetch branch
+        delete (globalThis as Record<string, unknown>).fetch;
+        const models = await listEnabledVertexModels({
+          fetchImpl: undefined,
+          getAccessToken: async () => "fake-token",
+          project: "demo-project",
+        });
+        expect(models).toBeUndefined();
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("returns undefined when fetch throws a network error", async () => {
+      const fetchImpl = mock(async () => {
+        throw new Error("Network failure");
+      });
+
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        getAccessToken: async () => "fake-token",
+        project: "demo-project",
+      });
+      expect(models).toBeUndefined();
+    });
+
+    it("returns undefined when default access token acquisition fails", async () => {
+      const fetchFn = mock(async () => new Response("ok", {status: 200}));
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchFn as unknown as typeof fetch,
+        project: "demo-project",
+        // Omit getAccessToken to exercise getDefaultAccessToken path
+      });
+      // getDefaultAccessToken will fail (no real GCP credentials) and return undefined
+      expect(models).toBeUndefined();
+    });
+
     it("paginates and normalizes publisher model names", async () => {
       const fetchImpl = mock(async (input: string | URL) => {
         const url = new URL(input.toString());

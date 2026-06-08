@@ -265,6 +265,26 @@ describe("getOpenApiSpecForModel edge cases", () => {
   });
 });
 
+describe("getOpenApiSpecForModel property merge path", () => {
+  it("merges properties when same populate path is specified twice", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "ownerId"}, {fields: ["name"], path: "ownerId"}],
+    });
+    const ownerSchema = result.properties.ownerId as Record<string, unknown>;
+    expect(ownerSchema.properties).toBeDefined();
+    const ownerProps = ownerSchema.properties as Record<string, unknown>;
+    expect(ownerProps.name).toBeDefined();
+  });
+
+  it("merges properties with openApiComponent $ref on a previously populated field", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "ownerId"}, {openApiComponent: "UserComponent", path: "ownerId"}],
+    });
+    const ownerSchema = result.properties.ownerId as Record<string, unknown>;
+    expect(ownerSchema.properties).toBeDefined();
+  });
+});
+
 describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
   it("filters populated fields using dot-notation keys", () => {
     const result = getOpenApiSpecForModel(FoodModel, {
