@@ -13,10 +13,18 @@ const DEMO_COMPONENT_TEST_IDS: Record<string, string> = {
 interface NavigationDiagnosticsOptions {
   componentName: string;
   error?: unknown;
-  stage: "deep-link-navigation" | "fallback-navigation";
+  stage: "deep-link-navigation" | "fallback-navigation" | "preflight";
 }
 
+const DEV_LAUNCHER_MARKERS = [
+  "development servers",
+  "dev launcher",
+  "expo-development-client",
+  "open from clipboard",
+];
+
 const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
+const isCi = process.env.CI === "true";
 const appiumLogsDir = join(process.cwd(), "logs");
 const appForegroundTimeoutMs = isQuickLoop ? 30000 : 60000;
 const deepLinkTargetTimeoutMs = isQuickLoop ? 30000 : 60000;
@@ -133,6 +141,47 @@ const waitForAppForeground = async (): Promise<void> => {
   );
 };
 
+const isDevLauncherVisible = async (): Promise<boolean> => {
+  if (driver.isAndroid) {
+    try {
+      const currentActivity = await driver.getCurrentActivity();
+      if (currentActivity.toLowerCase().includes("devlauncher")) {
+        return true;
+      }
+    } catch {
+      // Ignore activity lookup failures and continue with page source checks.
+    }
+  }
+
+  try {
+    const pageSource = (await driver.getPageSource()).toLowerCase();
+    return DEV_LAUNCHER_MARKERS.some((marker) => pageSource.includes(marker));
+  } catch {
+    return false;
+  }
+};
+
+const ensureNotInDevLauncher = async (componentName: string): Promise<void> => {
+  if (!isCi && !isQuickLoop) {
+    return;
+  }
+
+  const isDevLauncher = await isDevLauncherVisible();
+  if (!isDevLauncher) {
+    return;
+  }
+
+  const error = new Error(
+    'Detected Expo Dev Launcher instead of demo app UI. Configure APPIUM_*_EAS_PROFILE to a non-development-client profile (for example "preview").'
+  );
+  await captureNavigationDiagnostics({
+    componentName,
+    error,
+    stage: "preflight",
+  });
+  throw error;
+};
+
 const waitForDemoHomeReady = async (): Promise<void> => {
   const homeScreen = await $("~demo-home-screen");
 
@@ -220,6 +269,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   }
 
   await waitForAppForeground();
+  await ensureNotInDevLauncher(componentName);
   const target = await $(`~${testId}`);
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
