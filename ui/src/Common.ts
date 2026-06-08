@@ -2708,6 +2708,12 @@ export interface SelectFieldPropsBase {
    * The title of the select field.
    */
   title?: string;
+
+  /**
+   * Whether to show a search input in the dropdown for filtering options (web only).
+   * @default true
+   */
+  searchable?: boolean;
 }
 
 export interface SelectFieldPropsWithoutRequire extends SelectFieldPropsBase {

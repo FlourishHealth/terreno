@@ -121,6 +121,103 @@ describe("WebDropdownMenu", () => {
     expect(queryByTestId("web_dropdown_menu")).toBeNull();
   });
 
+  it("does not render a search input when searchable is false", () => {
+    const {queryByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        visible
+      />
+    );
+    expect(queryByTestId("web_dropdown_search_input")).toBeNull();
+  });
+
+  it("renders a search input when searchable is true", () => {
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    expect(getByTestId("web_dropdown_search_input")).toBeTruthy();
+  });
+
+  it("filters options by label when typing in the search input", () => {
+    const {getByTestId, queryByText, getByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    fireEvent.changeText(getByTestId("web_dropdown_search_input"), "Option A");
+    expect(getByText("Option A")).toBeTruthy();
+    expect(queryByText("Option B")).toBeNull();
+    expect(queryByText("Option C")).toBeNull();
+  });
+
+  it("filters case-insensitively", () => {
+    const {getByTestId, queryByText, getByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    fireEvent.changeText(getByTestId("web_dropdown_search_input"), "option b");
+    expect(getByText("Option B")).toBeTruthy();
+    expect(queryByText("Option A")).toBeNull();
+    expect(queryByText("Option C")).toBeNull();
+  });
+
+  it("shows empty state when no options match the search", () => {
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    fireEvent.changeText(getByTestId("web_dropdown_search_input"), "zzz");
+    expect(getByText("No matching options")).toBeTruthy();
+    expect(queryByText("Option A")).toBeNull();
+    expect(queryByText("Option B")).toBeNull();
+    expect(queryByText("Option C")).toBeNull();
+  });
+
+  it("reports the original index when selecting a filtered option", () => {
+    const onSelect = mock(() => {});
+    const {getByTestId} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={onSelect}
+        options={options}
+        searchable
+        visible
+      />
+    );
+    fireEvent.changeText(getByTestId("web_dropdown_search_input"), "Option C");
+    fireEvent.press(getByTestId("web_dropdown_option_c"));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect.mock.calls[0]).toEqual(["c", 2]);
+  });
+
   it("highlights the option matched by selectedIndex regardless of duplicated values", () => {
     const dupOptions = [
       {label: "Placeholder", value: ""},
