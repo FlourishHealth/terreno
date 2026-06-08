@@ -12,6 +12,31 @@ interface RtkError {
   status?: number;
 }
 
+interface IsForbiddenAdminConfigErrorOptions {
+  error: unknown;
+  isAuthenticated: boolean;
+  isConfigLoading: boolean;
+  status?: number;
+}
+
+export const isForbiddenAdminConfigError = ({
+  error,
+  isAuthenticated,
+  isConfigLoading,
+  status,
+}: IsForbiddenAdminConfigErrorOptions): boolean => {
+  if (!isAuthenticated) {
+    return false;
+  }
+  if (isConfigLoading) {
+    return false;
+  }
+  if (!error) {
+    return false;
+  }
+  return status === 403;
+};
+
 const LoadingScreen: React.FC = () => (
   <Box
     alignItems="center"
@@ -46,7 +71,12 @@ export const AdminGate: React.FC<{children: React.ReactNode}> = ({children}) => 
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   const {config, isLoading: isConfigLoading, error} = useAdminConfig(terrenoApi, apiBase);
   const status = (error as RtkError | undefined)?.status;
-  const isForbidden = isAuthenticated && !isConfigLoading && Boolean(error) && status !== 401;
+  const isForbidden = isForbiddenAdminConfigError({
+    error,
+    isAuthenticated,
+    isConfigLoading,
+    status,
+  });
   const isAdmin = isAuthenticated && !isConfigLoading && !error && Boolean(config);
 
   // Sync the better-auth session into Redux once on mount.

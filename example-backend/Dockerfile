@@ -17,7 +17,7 @@ RUN bun run --filter "@terreno/admin-frontend" compile
 RUN bun run --filter "@terreno/admin-spa" compile
 
 WORKDIR /app/example-backend
-RUN bun build --compile src/index.ts --outfile dist/backend
+RUN bun build --compile src/index.ts --packages external --outfile dist/backend
 
 # Runtime stage
 FROM debian:bookworm-slim
