@@ -208,18 +208,24 @@ jobs:
 
       - name: Collect iOS diagnostics on failure
         if: failure()
+        timeout-minutes: 2
         run: |
           mkdir -p demo/logs
+          echo "APPIUM_RUN_MODE=$APPIUM_RUN_MODE" > demo/logs/diag-env.txt
           if [ -f /opt/cursor/logs/debug.log ]; then
             cp /opt/cursor/logs/debug.log demo/logs/debug.log.ndjson
           fi
-          xcodebuild -version > demo/logs/xcode-version.txt || true
-          xcrun simctl list > demo/logs/simctl-list.txt || true
-          xcrun simctl list devices > demo/logs/simctl-devices.txt || true
-          eval "$(bun demo/appium/selectIosSimulator.ts)" || true
-          if [ -n "${IOS_DEVICE_UDID:-}" ]; then
-            xcrun simctl bootstatus "$IOS_DEVICE_UDID" > demo/logs/simctl-bootstatus.txt 2>&1 || true
-            xcrun simctl spawn "$IOS_DEVICE_UDID" log show --style compact --last 20m > demo/logs/simulator-log.txt 2>&1 || true
+          if [ "$APPIUM_RUN_MODE" = "full" ]; then
+            xcodebuild -version > demo/logs/xcode-version.txt || true
+            xcrun simctl list > demo/logs/simctl-list.txt || true
+            xcrun simctl list devices > demo/logs/simctl-devices.txt || true
+            eval "$(bun demo/appium/selectIosSimulator.ts)" || true
+            if [ -n "${IOS_DEVICE_UDID:-}" ]; then
+              xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b > demo/logs/simctl-bootstatus.txt 2>&1 || true
+              xcrun simctl spawn "$IOS_DEVICE_UDID" log show --style compact --last 20m > demo/logs/simulator-log.txt 2>&1 || true
+            fi
+          else
+            echo "Skipping full iOS diagnostics in smoke mode" >> demo/logs/diag-env.txt
           fi
 
       - name: Upload Appium logs
