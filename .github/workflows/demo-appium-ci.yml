@@ -57,6 +57,7 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
       APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'preview' }}
+      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: development
     steps:
       - uses: actions/checkout@v6
 
@@ -91,7 +92,7 @@ jobs:
         working-directory: ui
 
       - name: Download latest Android build from EAS
-        run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --env-file "$GITHUB_ENV"
+        run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --fallback-profile "$APPIUM_ANDROID_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
         working-directory: demo
 
       - name: Enable KVM

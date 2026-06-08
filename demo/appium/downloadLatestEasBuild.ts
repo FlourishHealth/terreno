@@ -5,6 +5,7 @@ type Platform = "android" | "ios";
 
 interface CliOptions {
   envFile?: string;
+  fallbackProfile?: string;
   platform?: Platform;
   profile?: string;
 }
@@ -18,6 +19,7 @@ interface EasBuild {
 }
 
 const EAS_CLI_PACKAGE = "eas-cli@latest";
+const NO_FINISHED_BUILDS_ERROR = "EAS did not return any finished builds for the selected profile.";
 const DEFAULT_BUILD_PROFILES: Record<Platform, string> = {
   android: "preview",
   ios: "development:simulator",
@@ -64,6 +66,12 @@ const parseArgs = (): CliOptions => {
       continue;
     }
 
+    if (arg === "--fallback-profile") {
+      options.fallbackProfile = args[index + 1];
+      index += 1;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -80,7 +88,7 @@ const parseLatestBuild = (rawOutput: string): EasBuild => {
   const latestBuild = parsed[0] as unknown;
 
   if (!isRecord(latestBuild)) {
-    throw new Error("EAS did not return any finished builds for the selected profile.");
+    throw new Error(NO_FINISHED_BUILDS_ERROR);
   }
 
   if (typeof latestBuild.id !== "string" || latestBuild.id.length === 0) {
@@ -195,6 +203,59 @@ const getProcessOutput = (error: unknown): string => {
     .join("\n");
 };
 
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return String(error);
+};
+
+const getLatestBuildWithFallback = ({
+  fallbackProfile,
+  platform,
+  primaryProfile,
+}: {
+  fallbackProfile?: string;
+  platform: Platform;
+  primaryProfile: string;
+}): EasBuild => {
+  const hasFallbackProfile =
+    typeof fallbackProfile === "string" &&
+    fallbackProfile.length > 0 &&
+    fallbackProfile !== primaryProfile;
+  const profiles = hasFallbackProfile
+    ? [primaryProfile, fallbackProfile]
+    : [primaryProfile];
+
+  let latestError: unknown;
+
+  for (let index = 0; index < profiles.length; index += 1) {
+    const profile = profiles[index];
+    try {
+      return getLatestBuild({platform, profile});
+    } catch (error) {
+      latestError = error;
+      const hasNextProfile = index < profiles.length - 1;
+      const message = getErrorMessage(error);
+      const shouldTryNextProfile =
+        hasNextProfile && message.includes(NO_FINISHED_BUILDS_ERROR);
+      if (!shouldTryNextProfile) {
+        throw error;
+      }
+
+      const nextProfile = profiles[index + 1];
+      process.stderr.write(
+        `No finished builds for profile "${profile}". Retrying with "${nextProfile}".\n`
+      );
+    }
+  }
+
+  throw latestError instanceof Error
+    ? latestError
+    : new Error(NO_FINISHED_BUILDS_ERROR);
+};
+
 const main = (): void => {
   const options = parseArgs();
 
@@ -202,10 +263,11 @@ const main = (): void => {
     throw new Error("Missing required --platform argument.");
   }
 
-  const profile = options.profile ?? DEFAULT_BUILD_PROFILES[options.platform];
-  const latestBuild = getLatestBuild({
+  const primaryProfile = options.profile ?? DEFAULT_BUILD_PROFILES[options.platform];
+  const latestBuild = getLatestBuildWithFallback({
+    fallbackProfile: options.fallbackProfile,
     platform: options.platform,
-    profile,
+    primaryProfile,
   });
   const result = downloadBuild({buildId: latestBuild.id});
 
