@@ -95,12 +95,7 @@ jobs:
           force-avd-creation: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
-            cd demo
-            if [ "$APPIUM_RUN_MODE" = "full" ]; then
-              CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android:full
-            else
-              CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android:smoke
-            fi
+            cd demo && CI=true APPIUM_CI=true NODE_ENV=production bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"
         env:
           APPIUM_CI: "true"
           NODE_ENV: production
