@@ -36,7 +36,7 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   logLevel: "warn",
   bail: 0,
   waitforTimeout: isQuickLoop ? 10000 : 15000,
-  connectionRetryTimeout: isCi ? 600000 : 300000,
+  connectionRetryTimeout: isQuickLoop ? 120000 : isCi ? 600000 : 300000,
   connectionRetryCount: isQuickLoop ? 1 : isCi ? 2 : 3,
   services: [
     [

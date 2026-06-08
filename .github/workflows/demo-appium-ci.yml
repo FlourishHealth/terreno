@@ -102,6 +102,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run Appium Android tests
+        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -178,6 +179,7 @@ jobs:
         working-directory: demo
 
       - name: Run Appium iOS tests
+        timeout-minutes: ${{ env.APPIUM_RUN_MODE == 'smoke' && 12 || 35 }}
         run: |
           set -eu
           if [ -z "$IOS_APP_PATH" ]; then
