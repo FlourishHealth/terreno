@@ -1,5 +1,5 @@
 import {describe, expect, it} from "bun:test";
-import {isForbiddenAdminConfigError} from "./AdminGate";
+import {isForbiddenAdminConfigError} from "./adminGateUtils";
 
 describe("isForbiddenAdminConfigError", () => {
   it("returns true only for authenticated 403 responses", () => {

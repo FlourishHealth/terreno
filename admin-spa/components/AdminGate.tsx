@@ -6,36 +6,12 @@ import React, {useEffect} from "react";
 import {useDispatch, useSelector} from "react-redux";
 import {terrenoApi} from "../store/sdk";
 import {useAppConfig} from "./AppConfigGate";
+import {isForbiddenAdminConfigError} from "./adminGateUtils";
 import {useAuth} from "./StoreProvider";
 
 interface RtkError {
   status?: number;
 }
-
-interface IsForbiddenAdminConfigErrorOptions {
-  error: unknown;
-  isAuthenticated: boolean;
-  isConfigLoading: boolean;
-  status?: number;
-}
-
-export const isForbiddenAdminConfigError = ({
-  error,
-  isAuthenticated,
-  isConfigLoading,
-  status,
-}: IsForbiddenAdminConfigErrorOptions): boolean => {
-  if (!isAuthenticated) {
-    return false;
-  }
-  if (isConfigLoading) {
-    return false;
-  }
-  if (!error) {
-    return false;
-  }
-  return status === 403;
-};
 
 const LoadingScreen: React.FC = () => (
   <Box
