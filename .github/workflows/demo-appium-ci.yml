@@ -57,7 +57,7 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
       APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'preview' }}
-      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: development
+      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'smoke' && '' || 'development' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -190,7 +190,9 @@ jobs:
           echo "Using simulator: $IOS_DEVICE_NAME ($IOS_DEVICE_UDID) on iOS $IOS_PLATFORM_VERSION"
           echo "Using app bundle: $IOS_APP_PATH"
           xcrun simctl boot "$IOS_DEVICE_UDID" 2>/dev/null || true
-          xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
+          if [ "$APPIUM_RUN_MODE" = "full" ]; then
+            xcrun simctl bootstatus "$IOS_DEVICE_UDID" -b
+          fi
           cd demo
           CI=true \
             APPIUM_CI=true \
