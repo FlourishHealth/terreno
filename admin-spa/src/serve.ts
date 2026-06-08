@@ -71,11 +71,23 @@ export class AdminSpaServeApp implements TerrenoPlugin {
     const distDir = this.opts.distDir ?? DIST_DIR;
     const appConfig = resolveAppConfig(this.opts.appConfig);
 
-    // Dev proxy short-circuit: forward everything under basePath to `expo start --web`.
+    // Dev proxy: forward SPA assets to `expo start --web`, but keep app-config on the plugin.
     if (this.opts.devProxyTarget) {
+      // Register before the catch-all proxy so Express matches this route first.
+      app.get(`${basePath}/app-config.json`, (_req, res) => {
+        res.set("Cache-Control", NO_STORE).json(appConfig);
+      });
       // Lazy require so production deploys without the dev dependency don't break.
       // biome-ignore lint/suspicious/noExplicitAny: dynamic require of optional dev dependency
-      const {createProxyMiddleware} = require("http-proxy-middleware") as any;
+      // noExplicitAny: module types are not available at runtime for optional dev-only dependency.
+      const {createProxyMiddleware} = require("http-proxy-middleware") as {
+        createProxyMiddleware: (options: {
+          changeOrigin: boolean;
+          pathRewrite: Record<string, string>;
+          target: string;
+          ws: boolean;
+        }) => express.RequestHandler;
+      };
       app.use(
         basePath,
         createProxyMiddleware({
@@ -85,10 +97,6 @@ export class AdminSpaServeApp implements TerrenoPlugin {
           ws: true,
         })
       );
-      // app-config is still served by the plugin so the dev SPA reads it from the same path.
-      app.get(`${basePath}/app-config.json`, (_req, res) => {
-        res.set("Cache-Control", NO_STORE).json(appConfig);
-      });
       logger.info(`Admin SPA dev-proxied to ${this.opts.devProxyTarget} at ${basePath}/`);
       return;
     }

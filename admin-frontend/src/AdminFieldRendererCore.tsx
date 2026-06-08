@@ -13,6 +13,21 @@ import {CheckboxListEditor} from "./CheckboxListEditor";
 import {LocaleContentEditor} from "./LocaleContentEditor";
 import type {AdminFieldConfig, AdminFieldValue, AdminScreenProps, RefRendererMap} from "./types";
 
+const USER_REF_MODEL_NAME = "User";
+const USER_TARGET_FIELD_KEYS = new Set([
+  "_id",
+  "createdBy",
+  "id",
+  "ownerId",
+  "sub",
+  "updatedBy",
+  "user._id",
+  "user.id",
+  "userId",
+]);
+const MULTI_VALUE_USER_OPERATORS = new Set(["in", "nin", "$in", "$nin"]);
+const SINGLE_VALUE_USER_OPERATORS = new Set(["eq", "neq", "$eq", "$ne"]);
+
 // Attempts to parse a string as JSON, returning the parsed value or the raw string
 const parseJsonValue = (text: string): AdminFieldValue => {
   const trimmed = text.trim();
@@ -35,6 +50,24 @@ const serializeJsonValue = (val: AdminFieldValue): string => {
     return val;
   }
   return JSON.stringify(val, null, 2);
+};
+
+const isUserTargetingValueField = (
+  fieldKey: string,
+  parentFormState?: Record<string, AdminFieldValue>
+): boolean => {
+  if (fieldKey !== "value") {
+    return false;
+  }
+  const targetField = parentFormState?.field;
+  return typeof targetField === "string" && USER_TARGET_FIELD_KEYS.has(targetField);
+};
+
+const getRefModel = (
+  modelConfigs: Array<{name: string; routePath: string}> | undefined,
+  refModelName: string
+): {name: string; routePath: string} | undefined => {
+  return modelConfigs?.find((m) => m.name === refModelName);
 };
 
 export interface AdminFieldRendererCoreProps extends AdminScreenProps {
@@ -74,6 +107,67 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
 }) => {
   const label = startCase(fieldKey);
   const helperText = fieldConfig.description;
+  const refModel = getRefModel(modelConfigs, USER_REF_MODEL_NAME);
+
+  if (isUserTargetingValueField(fieldKey, parentFormState)) {
+    const operator = parentFormState?.operator;
+    if (typeof operator === "string" && MULTI_VALUE_USER_OPERATORS.has(operator)) {
+      const arrayValue = Array.isArray(value)
+        ? value.filter((item): item is string => typeof item === "string")
+        : typeof value === "string" && value
+          ? [value]
+          : [];
+      return (
+        <AdminPrimitiveArrayField
+          api={api}
+          baseUrl={baseUrl}
+          errorText={errorText}
+          helperText={helperText ?? "Select users to target for this rule."}
+          itemRef={USER_REF_MODEL_NAME}
+          itemType="objectid"
+          modelConfigs={modelConfigs}
+          onChange={onChange}
+          refRenderers={refRenderers}
+          title={label}
+          value={arrayValue}
+        />
+      );
+    }
+    if (typeof operator === "string" && SINGLE_VALUE_USER_OPERATORS.has(operator)) {
+      const CustomRenderer = refRenderers?.[USER_REF_MODEL_NAME];
+      const stringValue = typeof value === "string" ? value : "";
+      if (CustomRenderer) {
+        return (
+          <CustomRenderer
+            api={api}
+            baseUrl={baseUrl}
+            errorText={errorText}
+            helperText={helperText ?? "Select the user to target for this rule."}
+            onChange={onChange}
+            refModelName={USER_REF_MODEL_NAME}
+            routePath={refModel?.routePath ?? ""}
+            title={label}
+            value={stringValue}
+          />
+        );
+      }
+      if (refModel) {
+        return (
+          <AdminRefField
+            api={api}
+            baseUrl={baseUrl}
+            errorText={errorText}
+            helperText={helperText ?? "Select the user to target for this rule."}
+            onChange={onChange}
+            refModelName={USER_REF_MODEL_NAME}
+            routePath={refModel.routePath}
+            title={label}
+            value={stringValue}
+          />
+        );
+      }
+    }
+  }
 
   // Dynamic enum: look for a sibling array field whose items have a `key` property.
   if (!fieldConfig.enum && parentFormState && fieldConfig.type === "string") {
@@ -102,7 +196,7 @@ export const AdminFieldRendererCore: React.FC<AdminFieldRendererCoreProps> = ({
   // ObjectId with ref -> reference field (skip arrays — those go to AdminPrimitiveArrayField)
   if (fieldConfig.ref && fieldConfig.type !== "array") {
     const CustomRenderer = refRenderers?.[fieldConfig.ref];
-    const refModel = modelConfigs?.find((m) => m.name === fieldConfig.ref);
+    const refModel = getRefModel(modelConfigs, fieldConfig.ref);
     if (CustomRenderer) {
       return (
         <CustomRenderer

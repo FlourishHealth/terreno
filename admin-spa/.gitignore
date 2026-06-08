@@ -11,3 +11,6 @@ store/openApiSdk.ts
 .expo/
 web-build/
 expo-env.d.ts
+
+# Playwright
+test-results/

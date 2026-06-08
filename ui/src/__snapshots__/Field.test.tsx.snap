@@ -4982,12 +4982,24 @@ exports[`Field renders signature field 1`] = `
           "$$typeof": Symbol(react.test.json),
           "children": null,
           "props": {
-            "style": {
-              "backgroundColor": "#FFFFFF",
+            "height": 180,
+            "onPointerDown": [Function],
+            "onPointerLeave": [Function],
+            "onPointerMove": [Function],
+            "onPointerUp": [Function],
+            "ref": {
+              "current": null,
             },
-            "testID": "signature-canvas",
+            "style": {
+              "display": "block",
+              "height": 180,
+              "maxWidth": "100%",
+              "touchAction": "none",
+              "width": "100%",
+            },
+            "width": 300,
           },
-          "type": "View",
+          "type": "canvas",
         },
       ],
       "props": {

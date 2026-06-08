@@ -35,6 +35,17 @@ export interface UpdateTodoBody {
   completed?: boolean;
 }
 
+export interface TodosBulkCompleteBody {
+  ids: string[];
+}
+
+export interface TodosBulkCompleteResponse {
+  data: {
+    matched: number;
+    modified: number;
+  };
+}
+
 // GptHistory types
 export interface GptHistoryPrompt {
   text: string;
@@ -56,11 +67,10 @@ export interface GptHistoryPrompt {
 export interface GptHistory {
   _id: string;
   id: string;
-  title?: string;
-  userId: string;
-  prompts: GptHistoryPrompt[];
   created: string;
   updated: string;
+  prompts: GptHistoryPrompt[];
+  rating?: number;
 }
 
 export interface GptHistoriesListResponse {
@@ -76,34 +86,13 @@ export interface GptHistoryResponse {
 }
 
 export interface CreateGptHistoryBody {
-  title?: string;
-  prompts?: GptHistoryPrompt[];
+  prompts: GptHistoryPrompt[];
+  rating?: number;
 }
 
 export interface UpdateGptHistoryBody {
-  title?: string;
-}
-
-// User types
-export interface User {
-  _id: string;
-  id: string;
-  email: string;
-  name: string;
-  created: string;
-  updated: string;
-}
-
-export interface UsersListResponse {
-  data: User[];
-  limit?: number;
-  more?: boolean;
-  page?: number;
-  total?: number;
-}
-
-export interface UserResponse {
-  data: User;
+  prompts?: GptHistoryPrompt[];
+  rating?: number;
 }
 
 const injectedRtkApi = api
@@ -112,7 +101,6 @@ const injectedRtkApi = api
   })
   .injectEndpoints({
     endpoints: (build) => ({
-      // GptHistory endpoints
       deleteGptHistoriesById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "gptHistories" as const},
@@ -123,7 +111,6 @@ const injectedRtkApi = api
           url: `/gpt/histories/${queryArg.id}`,
         }),
       }),
-
       deleteTodosById: build.mutation<void, {id: string}>({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "todos" as const},
@@ -134,7 +121,10 @@ const injectedRtkApi = api
           url: `/todos/${queryArg.id}`,
         }),
       }),
-      getGptHistories: build.query<GptHistoriesListResponse, void>({
+      getGptHistories: build.query<
+        GptHistoriesListResponse,
+        {limit?: number; page?: number; sort?: string}
+      >({
         providesTags: (result) =>
           result?.data
             ? [
@@ -142,7 +132,14 @@ const injectedRtkApi = api
                 {id: "LIST", type: "gptHistories" as const},
               ]
             : [{id: "LIST", type: "gptHistories" as const}],
-        query: () => ({url: "/gpt/histories"}),
+        query: (queryArg) => ({
+          params: {
+            limit: queryArg.limit,
+            page: queryArg.page,
+            sort: queryArg.sort,
+          },
+          url: "/gpt/histories",
+        }),
       }),
       getGptHistoriesById: build.query<GptHistoryResponse, {id: string}>({
         providesTags: (_result, _error, {id}) => [{id, type: "gptHistories" as const}],
@@ -169,8 +166,10 @@ const injectedRtkApi = api
         providesTags: (_result, _error, {id}) => [{id, type: "todos" as const}],
         query: (queryArg) => ({url: `/todos/${queryArg.id}`}),
       }),
-      // Users endpoints
-      getUsers: build.query<UsersListResponse, {email?: string; name?: string}>({
+      getUsers: build.query<
+        {data: Array<{_id: string; id: string; email: string; name: string}>},
+        {limit?: number; page?: number}
+      >({
         providesTags: (result) =>
           result?.data
             ? [
@@ -180,13 +179,16 @@ const injectedRtkApi = api
             : [{id: "LIST", type: "users" as const}],
         query: (queryArg) => ({
           params: {
-            email: queryArg.email,
-            name: queryArg.name,
+            limit: queryArg.limit,
+            page: queryArg.page,
           },
           url: "/users",
         }),
       }),
-      getUsersById: build.query<UserResponse, {id: string}>({
+      getUsersById: build.query<
+        {data: {_id: string; id: string; email: string; name: string}},
+        {id: string}
+      >({
         providesTags: (_result, _error, {id}) => [{id, type: "users" as const}],
         query: (queryArg) => ({url: `/users/${queryArg.id}`}),
       }),
@@ -215,7 +217,10 @@ const injectedRtkApi = api
           url: `/todos/${queryArg.id}`,
         }),
       }),
-      patchUsersById: build.mutation<UserResponse, {id: string; body: Partial<User>}>({
+      patchUsersById: build.mutation<
+        {data: {_id: string; id: string; email: string; name: string}},
+        {id: string; body: {name?: string; email?: string}}
+      >({
         invalidatesTags: (_result, _error, {id}) => [
           {id, type: "users" as const},
           {id: "LIST", type: "users" as const},
@@ -242,8 +247,26 @@ const injectedRtkApi = api
           url: "/todos",
         }),
       }),
+      todosBulkComplete: build.mutation<TodosBulkCompleteResponse, TodosBulkCompleteBody>({
+        invalidatesTags: [{id: "LIST", type: "todos" as const}],
+        query: (queryArg) => ({
+          body: queryArg,
+          method: "POST",
+          url: "/todos/bulkComplete",
+        }),
+      }),
+      todosMarkComplete: build.mutation<TodoResponse, string>({
+        invalidatesTags: (_result, _error, id) => [
+          {id, type: "todos" as const},
+          {id: "LIST", type: "todos" as const},
+        ],
+        query: (queryArg) => ({
+          method: "POST",
+          url: `/todos/${queryArg}/markComplete`,
+        }),
+      }),
     }),
-    overrideExisting: false,
+    overrideExisting: true,
   });
 
 export {injectedRtkApi as openapi};
@@ -252,8 +275,6 @@ export const {
   useDeleteGptHistoriesByIdMutation,
   useGetGptHistoriesQuery,
   useGetGptHistoriesByIdQuery,
-  useGetVersionCheckQuery,
-  useLazyGetVersionCheckQuery,
   usePatchGptHistoriesByIdMutation,
   usePostGptHistoriesMutation,
   useGetTodosQuery,
@@ -261,6 +282,8 @@ export const {
   usePostTodosMutation,
   usePatchTodosByIdMutation,
   useDeleteTodosByIdMutation,
+  useTodosBulkCompleteMutation,
+  useTodosMarkCompleteMutation,
   useGetUsersQuery,
   useGetUsersByIdQuery,
   usePatchUsersByIdMutation,

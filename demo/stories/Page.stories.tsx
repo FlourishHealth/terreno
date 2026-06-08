@@ -1,8 +1,13 @@
-import {Page, type PageProps} from "@terreno/ui";
+import {Box, Page, type PageProps} from "@terreno/ui";
 import React from "react";
 
-export const PageDemo = (props: Partial<PageProps>): React.ReactElement => {
-  return <Page title="Page Title" {...props} />;
+export const PageDemo = (props: Partial<PageProps> & {preview?: boolean}): React.ReactElement => {
+  if (props.preview) {
+    return <Box />;
+  }
+
+  const {preview: _preview, ...pageProps} = props;
+  return <Page title="Page Title" {...pageProps} />;
 };
 
 export const PageLoadingBoolean = (): React.ReactElement => {

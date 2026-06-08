@@ -74,6 +74,16 @@ export interface AIRequestExplorerParams {
   startDate?: string;
 }
 
+// Selectable AI chat model option returned by GET /ai/models
+export interface AiModelOption {
+  label: string;
+  value: string;
+}
+
+export interface AiModelsResponse {
+  models: AiModelOption[];
+}
+
 // Profile update request type
 export interface UpdateProfileRequest {
   name?: string;
@@ -89,6 +99,13 @@ export interface SetAdminUserPasswordRequest {
 export const terrenoApi = openapi
   .injectEndpoints({
     endpoints: (builder) => ({
+      // Selectable AI chat models (derived from backend config + Vertex enabled-model check)
+      getAiModels: builder.query<AiModelsResponse, void>({
+        query: () => ({
+          method: "GET",
+          url: "/ai/models",
+        }),
+      }),
       // AI Request Explorer (admin only)
       getAiRequestsExplorer: builder.query<
         AIRequestExplorerResponse,
@@ -129,6 +146,7 @@ export const terrenoApi = openapi
         }),
       }),
     }),
+    overrideExisting: true,
   })
   // Enhance endpoints is where we can add different tags to endpoints and more complex
   // invalidations.
@@ -149,6 +167,7 @@ export const {
   useGetMeQuery,
   usePatchMeMutation,
   useGetAiRequestsExplorerQuery,
+  useGetAiModelsQuery,
   useSetAdminUserPasswordMutation,
 } = terrenoApi;
 export * from "./openApiSdk";

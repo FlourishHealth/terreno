@@ -1119,6 +1119,7 @@ jobs:
             echo "No version changes to commit"
           else
             git commit -m "chore: bump package versions to ${VERSION}"
+            git pull --rebase origin master
             git push origin master
           fi
 

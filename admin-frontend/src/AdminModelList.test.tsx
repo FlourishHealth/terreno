@@ -75,9 +75,9 @@ describe("AdminModelList", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("renders cards for models, custom screens, scripts, and configuration", () => {
+  it("groups tools before models when tool cards are configured", () => {
     mockConfigState.data = baseConfig;
-    const {toJSON} = renderWithTheme(
+    const {getByTestId, getByText} = renderWithTheme(
       <AdminModelList
         api={{} as unknown as AdminApi}
         baseUrl="/admin"
@@ -85,15 +85,51 @@ describe("AdminModelList", () => {
         customScreens={[{displayName: "Local", name: "local-screen"}]}
       />
     );
-    expect(toJSON()).toBeDefined();
+    expect(getByText("Tools")).toBeDefined();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-dashboard")).toBeDefined();
+    expect(getByTestId("admin-custom-screen-card-local-screen")).toBeDefined();
+    expect(getByTestId("admin-scripts-card")).toBeDefined();
+    expect(getByTestId("admin-configuration-card")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
   });
 
-  it("renders the model grid when config has no scripts/custom screens", () => {
+  it("renders only the model section when config has no tool cards", () => {
     mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
-    const {toJSON} = renderWithTheme(
+    const {getByTestId, getByText, queryByText} = renderWithTheme(
       <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
     );
-    expect(toJSON()).toBeDefined();
+    expect(queryByText("Tools")).toBeNull();
+    expect(getByText("Models")).toBeDefined();
+    expect(getByTestId("admin-model-card-User")).toBeDefined();
+  });
+
+  it("fetches config from apiBase but navigates using routeBase when split", async () => {
+    mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
+    const {getByLabelText} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} apiBase="/admin" routeBase="/console" />
+    );
+    // Data fetching must use the API base.
+    expect(configApiBaseCalls).toContain("/admin");
+    // Card press must navigate using the route base, not the API base.
+    await act(async () => {
+      fireEvent.press(getByLabelText("User"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(routerPush).toHaveBeenCalledWith("/console/User");
+  });
+
+  it("uses baseUrl for both fetching and navigation (backward compat)", async () => {
+    mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
+    const {getByLabelText} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    expect(configApiBaseCalls).toContain("/admin");
+    await act(async () => {
+      fireEvent.press(getByLabelText("User"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(routerPush).toHaveBeenCalledWith("/admin/User");
   });
 
   it("fetches config from apiBase but navigates using routeBase when split", async () => {

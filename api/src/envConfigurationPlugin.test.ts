@@ -140,4 +140,41 @@ describe("envConfigurationPlugin", () => {
     // mapToObject(undefined) returns {}, so Config falls back to the registered default
     expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("fallback");
   });
+
+  it("mapToObject handles a plain Record (non-Map) env field", async () => {
+    // Insert a document with env as a plain object via raw DB operation
+    const col = mongoose.connection.db?.collection("testenvconfigs");
+    await col?.insertOne({env: {TERRENO_PLUGIN_KEY: "plainObj"}});
+
+    // Trigger refresh via findOneAndUpdate hook
+    await TestEnvConfig.findOneAndUpdate({}, {$set: {__v: 1}});
+
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("plainObj");
+  });
+
+  it("refreshFromDoc logs a warning and does not throw when the model query fails", async () => {
+    // Seed a document so findOneAndUpdate has a target
+    const doc = new TestEnvConfig();
+    doc.env.set("TERRENO_PLUGIN_KEY", "initial");
+    await doc.save();
+
+    // Pre-set cache to verify it is NOT overwritten when the hook errors
+    Config.setCachedEnv({TERRENO_PLUGIN_KEY: "cached"});
+
+    // Override Model.find to simulate a DB error inside refreshFromDoc
+    // (findOneOrNoneFor falls back to model.find when the findOneOrNone static is absent)
+    const originalFind = TestEnvConfig.find;
+    (TestEnvConfig as any).find = () => {
+      throw new Error("Simulated DB error");
+    };
+
+    // Trigger the post-findOneAndUpdate hook → refreshFromDoc → findOneOrNoneFor → throws
+    await TestEnvConfig.findOneAndUpdate({_id: doc._id}, {$set: {__v: 2}});
+
+    // Restore immediately
+    (TestEnvConfig as any).find = originalFind;
+
+    // The catch block should have swallowed the error; cache keeps old value
+    expect(Config.get("TERRENO_PLUGIN_KEY")).toBe("cached");
+  });
 });

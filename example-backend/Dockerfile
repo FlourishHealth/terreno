@@ -12,6 +12,9 @@ RUN bun run --filter "@terreno/ai" compile
 RUN bun run --filter "@terreno/admin-backend" compile
 RUN bun run --filter "@terreno/feature-flags" compile
 RUN bun run --filter "@terreno/ui" compile
+RUN bun run --filter "@terreno/rtk" compile
+RUN bun run --filter "@terreno/admin-frontend" compile
+RUN bun run --filter "@terreno/admin-spa" compile
 
 WORKDIR /app/example-backend
 RUN bun build --compile src/index.ts --outfile dist/backend
