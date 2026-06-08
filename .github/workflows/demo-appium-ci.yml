@@ -57,7 +57,7 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
       APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'preview' }}
-      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'smoke' && '' || 'development' }}
+      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'full' && 'development' || '' }}
     steps:
       - uses: actions/checkout@v6
 
