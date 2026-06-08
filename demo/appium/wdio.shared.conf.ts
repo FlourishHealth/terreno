@@ -3,17 +3,41 @@ import {fileURLToPath} from "node:url";
 
 export const configDir = dirname(fileURLToPath(import.meta.url));
 export const isCi = process.env.CI === "true";
+const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
+
+const parseEnvNumber = (value: string | undefined): number | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed)) {
+    return undefined;
+  }
+
+  return parsed;
+};
+
+const resolvedSpecs =
+  process.env.APPIUM_SPECS
+    ?.split(",")
+    .map((spec) => spec.trim())
+    .filter(Boolean)
+    .map((spec) => join(configDir, spec)) ?? [join(configDir, "specs/**/*.spec.ts")];
+
+const configuredSpecFileRetries = parseEnvNumber(process.env.APPIUM_SPEC_FILE_RETRIES);
+const specFileRetries = configuredSpecFileRetries ?? (isQuickLoop ? 0 : isCi ? 1 : 0);
 
 export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   runner: "local",
-  specs: [join(configDir, "specs/**/*.spec.ts")],
+  specs: resolvedSpecs,
   maxInstances: 1,
-  specFileRetries: isCi ? 1 : 0,
+  specFileRetries,
   logLevel: "warn",
   bail: 0,
-  waitforTimeout: 15000,
+  waitforTimeout: isQuickLoop ? 10000 : 15000,
   connectionRetryTimeout: isCi ? 600000 : 300000,
-  connectionRetryCount: isCi ? 2 : 3,
+  connectionRetryCount: isQuickLoop ? 1 : isCi ? 2 : 3,
   services: [
     [
       "appium",
@@ -29,6 +53,6 @@ export const sharedConfig: Omit<WebdriverIO.Config, "capabilities"> = {
   reporters: ["spec"],
   mochaOpts: {
     ui: "bdd",
-    timeout: isCi ? 300000 : 120000,
+    timeout: isQuickLoop ? 180000 : isCi ? 300000 : 120000,
   },
 };

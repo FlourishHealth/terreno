@@ -9,14 +9,35 @@ on:
       - "demo/app.json"
       - "demo/eas.json"
       - ".github/workflows/demo-appium-ci.yml"
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Which Appium platform to run"
+        default: all
+        required: true
+        type: choice
+        options:
+          - all
+          - android
+          - ios
+      run-mode:
+        description: "Smoke mode runs the fast loop spec"
+        default: smoke
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
 
 jobs:
   appium-android:
     name: Demo Appium · Android
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -48,10 +69,6 @@ jobs:
 
       - name: Build UI dependency
         run: bun run compile
-        working-directory: ui
-
-      - name: Generate UI type documentation
-        run: bun run types
         working-directory: ui
 
       - name: Download latest Android dev client from EAS
@@ -77,7 +94,13 @@ jobs:
           disable-spellchecker: true
           force-avd-creation: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
-          script: cd demo && CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android
+          script: |
+            cd demo
+            if [ "$APPIUM_RUN_MODE" = "full" ]; then
+              CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android:full
+            else
+              CI=true APPIUM_CI=true NODE_ENV=production bun run appium:test:ci:android:smoke
+            fi
         env:
           APPIUM_CI: "true"
           NODE_ENV: production
@@ -94,11 +117,13 @@ jobs:
 
   appium-ios:
     name: Demo Appium · iOS
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios' }}
     # macos-latest resolves to macos-26 with iOS 26.x beta runtimes that break WDA (xcodebuild exit 70).
     runs-on: macos-15
     timeout-minutes: 60
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -130,10 +155,6 @@ jobs:
 
       - name: Build UI dependency
         run: bun run compile
-        working-directory: ui
-
-      - name: Generate UI type documentation
-        run: bun run types
         working-directory: ui
 
       - name: Download latest iOS simulator dev client from EAS
@@ -160,7 +181,7 @@ jobs:
             IOS_DEVICE_NAME="$IOS_DEVICE_NAME" \
             IOS_DEVICE_UDID="$IOS_DEVICE_UDID" \
             IOS_PLATFORM_VERSION="$IOS_PLATFORM_VERSION" \
-            bun run appium:test:ci:ios
+            bun run "appium:test:ci:ios:$APPIUM_RUN_MODE"
         env:
           NODE_OPTIONS: --openssl-legacy-provider
 
