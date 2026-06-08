@@ -24,10 +24,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check PR diff for relevant changes
+      - name: Check PR files for relevant changes
         id: check
         run: |
-          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          FILES=""
+          PAGE=1
+          while :; do
+            RESPONSE=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100&page=${PAGE}")
+            PAGE_FILES=$(echo "$RESPONSE" | jq -r '.[].filename')
+            if [ -z "$PAGE_FILES" ]; then
+              break
+            fi
+            FILES="${FILES}"$'\n'"${PAGE_FILES}"
+            PAGE=$((PAGE + 1))
+          done
           CHANGES=$(echo "$FILES" | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
           BACKEND_CHANGES=$(echo "$FILES" | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT

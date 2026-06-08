@@ -20,10 +20,22 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Check PR diff for demo or ui changes
+      - name: Check PR files for demo or ui changes
         id: check
         run: |
-          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(demo/|ui/)' || true)
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          FILES=""
+          PAGE=1
+          while :; do
+            RESPONSE=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUMBER}/files?per_page=100&page=${PAGE}")
+            PAGE_FILES=$(echo "$RESPONSE" | jq -r '.[].filename')
+            if [ -z "$PAGE_FILES" ]; then
+              break
+            fi
+            FILES="${FILES}"$'\n'"${PAGE_FILES}"
+            PAGE=$((PAGE + 1))
+          done
+          CHANGES=$(echo "$FILES" | grep -cE '^(demo/|ui/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
