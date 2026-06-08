@@ -1,9 +1,7 @@
 ---
 name: blend
 description: Use ONLY when a concrete spec/Linear ticket/feature request must be converted into an Implementation Plan document. Do NOT use for code implementation, PR submission, or post-PR review handling.
-disable-model-invocation: true
 ---
-
 # Blend
 
 Turn a raw request into an Implementation Plan (IP) using the existing `/ip` structure and lifecycle.

@@ -1,8 +1,10 @@
 ---
 name: roast
-description: Use ONLY when an approved IP exists and the work now needs to be executed in code through a strict TDD cycle. Do NOT use for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
+description: >-
+  Use ONLY when an approved IP exists and the work now needs to be executed in
+  code through a strict TDD cycle. Do NOT use for creating IPs, opening PRs, or
+  monitoring CI/review comments after a PR is open.
 ---
-
 # Roast
 
 Implement from an IP using strict TDD, with independent review checkpoints and drift detection at every commit.

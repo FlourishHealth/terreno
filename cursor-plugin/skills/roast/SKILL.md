@@ -72,7 +72,7 @@ Repeat until scoped behavior is complete.
 ### Backend (`@terreno/api`, backends)
 
 - Use real test DB patterns and route-level tests where appropriate.
-- Never use raw `Model.findOne`; use `findExactlyOne`/`findOneOrThrow` patterns.
+- Never use raw `Model.findOne`; use `findExactlyOne`/`findOneOrNone` patterns.
 - Apply schema-safety checks for any model change (types, indexes, migration/backfill risks, cross-package ripple).
 
 ### Backend tests mutating env
