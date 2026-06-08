@@ -65,3 +65,6 @@ research.md
 # Generated typedoc output (embeds commit SHA, causes noisy diffs)
 demo/ui-types-documentation.json
 mcp-server/src/docs/ui-types-documentation.json
+
+# Per-IP research notes (transient, not part of the repo)
+research.md
