@@ -79,9 +79,11 @@ Repeat until scoped behavior is complete.
 
 When tests mutate `process.env`, follow the backend env contract:
 
-- Rely on preload defaults when possible.
-- Mutate env safely and restore after each test.
-- Ensure newly required keys are added to setup paths.
+- Treat the package preload `beforeEach` as the baseline reset source of truth.
+- Mutate only the keys needed by the test; do not use whole-env snapshot/restore patterns.
+- Do not add redundant manual restore for keys the preload already resets.
+- Use `Reflect.deleteProperty(process.env, "KEY")` when a key must be unset.
+- Ensure newly required keys are added to shared setup paths (`setupEnvironment()` and relevant preload setup files).
 
 ### AI prompt changes (`@terreno/ai`)
 

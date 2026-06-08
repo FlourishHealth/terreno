@@ -139,6 +139,69 @@ Support the existing lifecycle commands from legacy `/ip`:
 - `Status` (index/task progression view)
 - `Close` (archive/update index/commit housekeeping)
 
+### Lifecycle: Init
+
+Initialize IP tracking in the current project root.
+
+1. Infer project context from `CLAUDE.md`, language/tooling files, and existing `docs/implementationPlans/` files.
+2. Create the standard structure:
+   - `docs/implementationPlans/archive/`
+   - `docs/tasks/`
+3. Ensure `docs/implementationPlans/PLAN_INDEX.md` exists with sections for Active, Completed, Deferred/Closed, and Backlog.
+4. Ensure `docs/implementationPlans/IP_TEMPLATE.md` exists with the full legacy IP section layout and task-list scaffold.
+5. Ensure project `CLAUDE.md` includes IP lifecycle conventions (statuses, numbering, archive rules, `%%` annotation behavior).
+6. Print an init summary listing created/updated files and next actions.
+
+### Lifecycle: Explore
+
+Run parallel context gathering and synthesize one briefing.
+
+1. Launch three parallel explore passes:
+   - Project overview (docs, layout, stack, gotchas)
+   - IP history (`PLAN_INDEX.md`, active IPs, archive, tasks, recent `IP-` commits)
+   - Recent activity (recent commits, changed files, branch state, uncommitted work)
+2. Merge the outputs into a single briefing containing:
+   - Project overview
+   - IP status and active task progress
+   - Recent activity snapshot
+   - Quick-reference table (project, branch, active IP count, active task count, recent focus)
+
+### Lifecycle: Deep Analysis
+
+Run a multi-angle deep analysis and produce a verified synthesis.
+
+1. Parse the problem and gather minimal starter context.
+2. Define four distinct analysis angles (non-overlapping lenses).
+3. Launch four parallel explore agents, one per angle.
+4. Verify key claims before final recommendation:
+   - Identify and resolve contradictions between agent reports.
+   - Spot-check the highest-impact factual claims directly in code/docs.
+5. Produce a synthesis with agreements, tensions, surprises, corrections, recommendation, assumptions, and immediate next step.
+
+### Lifecycle: Status
+
+Report current IP state with optional grooming.
+
+1. Fast path (when state is known-fresh): read active index entries and active IP files, then print the status table.
+2. Full grooming (when state may be stale):
+   - Sync each active row to the IP file `**Status:**` value (file is source of truth).
+   - Archive non-archived IPs already marked Complete/Deferred/Closed.
+   - Detect index/file orphans.
+   - Compute task progress (`completed/total`) from corresponding `docs/tasks/` files.
+3. Output a concise Active Plans table and totals.
+
+### Lifecycle: Close
+
+Close a single IP and keep files/index consistent.
+
+1. Resolve the target IP from explicit argument or clear conversation context.
+2. Update the IP file status to one of `Complete`, `Closed`, or `Deferred` and add completion/closed date metadata.
+3. Update `PLAN_INDEX.md`:
+   - Remove from Active.
+   - Add to Completed or Deferred/Closed as appropriate.
+4. Archive the IP file under `docs/implementationPlans/archive/` (and associated task file when applicable).
+5. Produce a close summary with disposition, file moves, and index updates.
+
 ## Conventions
 
 - Keep inline annotations (`%%`) behavior for user-provided instructions in plan/task artifacts.
