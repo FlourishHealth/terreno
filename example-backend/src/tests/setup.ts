@@ -1,4 +1,4 @@
-import {afterAll, afterEach, beforeAll} from "bun:test";
+import {afterAll, afterEach, beforeAll, beforeEach} from "bun:test";
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
 
@@ -34,6 +34,11 @@ beforeAll(async () => {
     logger.error("Failed to connect to test database:", error);
     throw error;
   }
+});
+
+beforeEach(() => {
+  process.env.ADMIN_SPA_ENABLED = "false";
+  Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
 });
 
 afterEach(async () => {
