@@ -1,13 +1,18 @@
 import type {AdminScreenProps} from "@terreno/admin-frontend";
-import {emptySplitApi} from "@terreno/rtk";
+import {createSessionApi} from "@terreno/rtk";
 
 /**
  * Base RTK Query API for the admin SPA. Admin CRUD endpoints are injected at runtime
  * by `@terreno/admin-frontend`'s `useAdminApi`/`useAdminConfig` hooks, so no codegen is
  * required for the admin flow itself. We only declare the cache tag types those hooks
  * (and any consumer extensions) expect.
+ *
+ * Uses the cookie-session API (NOT `emptySplitApi`): the SPA authenticates with the
+ * better-auth session cookie on the same origin, and `emptySplitApi`'s JWT base query
+ * would dispatch a global logout (killing the better-auth session) whenever no bearer
+ * token is found in storage.
  */
-export const openapi = emptySplitApi.enhanceEndpoints({
+export const openapi = createSessionApi().enhanceEndpoints({
   addTagTypes: ["admin-models", "admin-version-config", "admin-scripts", "profile"],
 });
 
