@@ -269,4 +269,30 @@ describe("Button", () => {
     // The ThemeContext provides a default computed theme, so the button renders
     expect(toJSON()).toBeTruthy();
   });
+
+  it("uses Pressable when disabled (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("uses Pressable when loading (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("renders with custom confirmationText and modalSubTitle", () => {
+    const {toJSON} = renderWithTheme(
+      <Button
+        confirmationText="Custom confirmation text"
+        modalSubTitle="Custom subtitle"
+        modalTitle="Custom Title"
+        onClick={() => {}}
+        text="Confirm Btn"
+        withConfirmation
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
 });
