@@ -274,19 +274,29 @@ describe("vertex helpers", () => {
     });
 
     it("returns undefined when default access token acquisition fails (no credentials)", async () => {
-      // When getAccessToken is not provided, it falls back to getDefaultAccessToken
-      // which tries to use google-auth-library. In test env without GCP credentials,
-      // this should return undefined (either require fails or token acquisition fails).
-      const fetchImpl = mock(
-        async () => ({json: async () => ({}), ok: true}) as unknown as Response
-      );
-      const models = await listEnabledVertexModels({
-        fetchImpl: fetchImpl as unknown as typeof fetch,
-        project: "demo-project",
-      });
-      expect(models).toBeUndefined();
-      // fetchImpl should not have been called since token acquisition should fail first
-      expect(fetchImpl).not.toHaveBeenCalled();
+      // Mock google-auth-library to simulate credential failure deterministically,
+      // regardless of whether ADC is configured in the environment.
+      mock.module("google-auth-library", () => ({
+        GoogleAuth: class {
+          async getClient(): Promise<never> {
+            throw new Error("No credentials configured");
+          }
+        },
+      }));
+      try {
+        const fetchImpl = mock(
+          async () => ({json: async () => ({}), ok: true}) as unknown as Response
+        );
+        const models = await listEnabledVertexModels({
+          fetchImpl: fetchImpl as unknown as typeof fetch,
+          project: "demo-project",
+        });
+        expect(models).toBeUndefined();
+        // fetchImpl should not have been called since token acquisition should fail first
+        expect(fetchImpl).not.toHaveBeenCalled();
+      } finally {
+        mock.module("google-auth-library", () => ({}));
+      }
     });
 
     it("returns undefined when no fetch implementation is available", async () => {
