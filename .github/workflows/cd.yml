@@ -249,6 +249,27 @@ jobs:
         run: |
           docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
           docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:latest
+      # Better Auth is only enabled once the terraform-managed secret exists,
+      # so deploys keep working before the first terraform apply creates it.
+      - name: Resolve Better Auth deploy config
+        id: better-auth
+        run: |
+          set -euo pipefail
+          SECRET_NAME="${{ env.GCP_BACKEND_SERVICE }}-better-auth-secret"
+          if gcloud secrets versions access latest --secret="$SECRET_NAME" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "Better Auth secret found; enabling better-auth on this revision."
+            {
+              echo "env_vars<<BETTER_AUTH_EOF"
+              echo "AUTH_PROVIDER=better-auth"
+              echo "BETTER_AUTH_URL=https://terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+              echo "BETTER_AUTH_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "secrets=BETTER_AUTH_SECRET=$SECRET_NAME:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Better Auth secret '$SECRET_NAME' is not accessible yet (terraform apply has not created it); deploying without better-auth, console login will be unavailable."
+            echo "env_vars=" >> "$GITHUB_OUTPUT"
+            echo "secrets=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -260,10 +281,12 @@ jobs:
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
+            ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
             LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+            ${{ steps.better-auth.outputs.secrets }}
           flags: |
             --port=3000
             --memory=512Mi
@@ -371,6 +394,27 @@ jobs:
             .
       - name: Push Docker image
         run: docker push ${{ env.GCP_BACKEND_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_BACKEND_SERVICE }}/${{ env.GCP_BACKEND_SERVICE }}:${{ github.sha }}
+      # Better Auth is only enabled once the terraform-managed secret exists,
+      # so preview deploys keep working before the first terraform apply on master.
+      - name: Resolve Better Auth deploy config
+        id: better-auth
+        run: |
+          set -euo pipefail
+          SECRET_NAME="${{ env.GCP_BACKEND_SERVICE }}-better-auth-secret"
+          if gcloud secrets versions access latest --secret="$SECRET_NAME" --project="${{ env.GCP_PROJECT_ID }}" >/dev/null 2>&1; then
+            echo "Better Auth secret found; enabling better-auth on this revision."
+            {
+              echo "env_vars<<BETTER_AUTH_EOF"
+              echo "AUTH_PROVIDER=better-auth"
+              echo "BETTER_AUTH_URL=https://pr-${{ github.event.pull_request.number }}---terreno-backend-example-7knxlrnpqq-uc.a.run.app"
+              echo "BETTER_AUTH_EOF"
+            } >> "$GITHUB_OUTPUT"
+            echo "secrets=BETTER_AUTH_SECRET=$SECRET_NAME:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Better Auth secret '$SECRET_NAME' is not accessible yet (terraform apply has not created it); deploying without better-auth, console login will be unavailable."
+            echo "env_vars=" >> "$GITHUB_OUTPUT"
+            echo "secrets=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Deploy to Cloud Run with tag
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -383,10 +427,12 @@ jobs:
           env_vars: |
             NODE_ENV=production
             ADMIN_SPA_ENABLED=true
+            ${{ steps.better-auth.outputs.env_vars }}
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
             LANGFUSE_PUBLIC_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-public-key:latest
+            ${{ steps.better-auth.outputs.secrets }}
           flags: |
             --port=3000
             --memory=512Mi

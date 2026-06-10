@@ -143,6 +143,32 @@ module "backend_secret_langfuse_public_key" {
   depends_on = [module.bootstrap]
 }
 
+module "backend_secret_better_auth" {
+  source = "./modules/secret"
+
+  project_id = var.project_id
+  secret_id  = "${var.backend_service_name}-better-auth-secret"
+  labels     = local.common_labels
+
+  accessor_members = {
+    cloud-run-runtime = "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  }
+
+  depends_on = [module.bootstrap]
+}
+
+# Better Auth only needs a stable random value for session encryption, so the
+# secret version is generated here instead of being provisioned manually.
+resource "random_password" "better_auth_secret" {
+  length  = 64
+  special = false
+}
+
+resource "google_secret_manager_secret_version" "better_auth_secret" {
+  secret      = module.backend_secret_better_auth.name
+  secret_data = random_password.better_auth_secret.result
+}
+
 module "backend_service" {
   source = "./modules/cloud_run_service"
 
@@ -165,6 +191,7 @@ module "backend_service" {
     module.backend_secret_mongodb_uri,
     module.backend_secret_langfuse_secret_key,
     module.backend_secret_langfuse_public_key,
+    module.backend_secret_better_auth,
   ]
 }
 
