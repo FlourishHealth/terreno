@@ -188,6 +188,15 @@ describe("vertex helpers", () => {
     });
   });
 
+  describe("createVertexProvider without vertexFactory", () => {
+    it("returns undefined when @ai-sdk/google-vertex is not installed (no factory)", () => {
+      // When no vertexFactory is passed, loadVertexModule is called.
+      // Since @ai-sdk/google-vertex is likely not installed in the test env, it returns undefined.
+      const provider = createVertexProvider({project: "demo-project"});
+      expect(provider).toBeUndefined();
+    });
+  });
+
   describe("listEnabledVertexModels", () => {
     it("paginates and normalizes publisher model names", async () => {
       const fetchImpl = mock(async (input: string | URL) => {
@@ -251,6 +260,56 @@ describe("vertex helpers", () => {
         fetchImpl: mock(
           async () => ({json: async () => ({}), ok: false, status: 403}) as unknown as Response
         ) as unknown as typeof fetch,
+        getAccessToken: async () => "fake-token",
+        project: "demo-project",
+      });
+      expect(models).toBeUndefined();
+    });
+
+    it("returns undefined when project is not provided", async () => {
+      const models = await listEnabledVertexModels({
+        project: "",
+      });
+      expect(models).toBeUndefined();
+    });
+
+    it("returns undefined when default access token acquisition fails (no credentials)", async () => {
+      // When getAccessToken is not provided, it falls back to getDefaultAccessToken
+      // which tries to use google-auth-library. In test env without GCP credentials,
+      // this should return undefined (either require fails or token acquisition fails).
+      const fetchImpl = mock(
+        async () => ({json: async () => ({}), ok: true}) as unknown as Response
+      );
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+        project: "demo-project",
+      });
+      expect(models).toBeUndefined();
+      // fetchImpl should not have been called since token acquisition should fail first
+      expect(fetchImpl).not.toHaveBeenCalled();
+    });
+
+    it("returns undefined when no fetch implementation is available", async () => {
+      const originalFetch = globalThis.fetch;
+      // Temporarily remove globalThis.fetch to test the fallback
+      (globalThis as {fetch?: typeof fetch}).fetch = undefined as unknown as typeof fetch;
+      try {
+        const models = await listEnabledVertexModels({
+          getAccessToken: async () => "fake-token",
+          project: "demo-project",
+        });
+        expect(models).toBeUndefined();
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it("returns undefined when fetch throws a network error", async () => {
+      const fetchImpl = mock(async () => {
+        throw new Error("Network failure");
+      });
+      const models = await listEnabledVertexModels({
+        fetchImpl: fetchImpl as unknown as typeof fetch,
         getAccessToken: async () => "fake-token",
         project: "demo-project",
       });
