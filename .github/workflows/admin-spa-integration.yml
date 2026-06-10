@@ -39,6 +39,15 @@ jobs:
             bun-${{ runner.os }}-${{ github.ref }}-
             bun-${{ runner.os }}-
 
+      # The mongodb action builds its own helper image FROM docker:latest, which pulls
+      # from Docker Hub and intermittently times out on GitHub runners. Pre-pull the
+      # base image from the GCR mirror so the action's build resolves it locally.
+      - name: Pre-pull docker base image from mirror
+        continue-on-error: true
+        run: |
+          docker pull mirror.gcr.io/library/docker:latest
+          docker tag mirror.gcr.io/library/docker:latest docker:latest
+
       - name: Start MongoDB
         uses: supercharge/mongodb-github-action@1.12.1
         with:
