@@ -259,6 +259,7 @@ jobs:
           tag: prod
           env_vars: |
             NODE_ENV=production
+            ADMIN_SPA_ENABLED=true
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest
@@ -381,6 +382,7 @@ jobs:
           no_traffic: true
           env_vars: |
             NODE_ENV=production
+            ADMIN_SPA_ENABLED=true
           secrets: |
             MONGO_URI=${{ env.GCP_BACKEND_SERVICE }}-mongodb-uri:latest
             LANGFUSE_SECRET_KEY=${{ env.GCP_BACKEND_SERVICE }}-langfuse-secret-key:latest

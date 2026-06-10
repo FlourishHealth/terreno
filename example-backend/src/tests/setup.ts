@@ -39,6 +39,7 @@ beforeAll(async () => {
 beforeEach(() => {
   process.env.ADMIN_SPA_ENABLED = "false";
   Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
+  Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
 });
 
 afterEach(async () => {

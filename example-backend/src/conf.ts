@@ -87,6 +87,14 @@ Configuration.register("ADMIN_SPA_DEV_PROXY", {
   type: "string",
 });
 
+Configuration.register("ADMIN_SPA_DIST_DIR", {
+  description:
+    "Directory containing the pre-built admin SPA web export. Required in compiled deploys " +
+    "(for example Cloud Run), where the plugin's __dirname-relative default cannot resolve.",
+  envVar: "ADMIN_SPA_DIST_DIR",
+  type: "string",
+});
+
 Configuration.register("PR_SERVICE_URL", {
   defaultValue: "EXAMPLE-ue.a.run.app",
   description: "Cloud run service URL for PR environments",
@@ -164,6 +172,7 @@ export {API_URL, TASKS_URL};
 export const WEBSOCKETS_DEBUG = Configuration.get<boolean>("WEBSOCKETS_DEBUG");
 export const ADMIN_SPA_ENABLED = Configuration.get<boolean>("ADMIN_SPA_ENABLED");
 export const ADMIN_SPA_DEV_PROXY = Configuration.get<string>("ADMIN_SPA_DEV_PROXY");
+export const ADMIN_SPA_DIST_DIR = Configuration.get<string>("ADMIN_SPA_DIST_DIR");
 
 Configuration.register("LANGFUSE_BASE_URL", {
   defaultValue: "https://cloud.langfuse.com",

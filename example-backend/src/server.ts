@@ -364,6 +364,9 @@ export async function start(skipListen = false): Promise<express.Application> {
           },
           basePath: "/console",
           devProxyTarget: process.env.ADMIN_SPA_DEV_PROXY,
+          // Compiled deploys (Cloud Run) must point at the bundled SPA export, since the
+          // plugin's __dirname-relative default cannot resolve inside a bun-compiled binary.
+          distDir: process.env.ADMIN_SPA_DIST_DIR,
         })
       );
     }
