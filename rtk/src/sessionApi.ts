@@ -7,14 +7,14 @@
 import {createApi, fetchBaseQuery} from "@reduxjs/toolkit/query/react";
 import qs from "qs";
 
-interface CreateSessionApiOptions {
+interface CreateSessionApiOptions<ReducerPath extends string> {
   /**
    * Base URL for API requests. Defaults to "" so paths resolve against the current
    * origin on web (the SPA is served by the same backend that hosts the API).
    */
   baseUrl?: string;
   /** Redux reducer path for the generated api. Defaults to "terreno-session". */
-  reducerPath?: string;
+  reducerPath?: ReducerPath;
 }
 
 /**
@@ -22,10 +22,10 @@ interface CreateSessionApiOptions {
  * instead of JWT bearer tokens. Response shaping matches emptyApi: list responses
  * (with `more`) are returned whole, and `{data}` envelopes are unwrapped.
  */
-export const createSessionApi = ({
+export const createSessionApi = <ReducerPath extends string = "terreno-session">({
   baseUrl = "",
-  reducerPath = "terreno-session",
-}: CreateSessionApiOptions = {}) => {
+  reducerPath = "terreno-session" as ReducerPath,
+}: CreateSessionApiOptions<ReducerPath> = {}) => {
   const sessionBaseQuery = fetchBaseQuery({
     baseUrl,
     credentials: "same-origin",
