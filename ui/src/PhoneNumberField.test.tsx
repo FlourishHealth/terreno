@@ -154,15 +154,18 @@ describe("PhoneNumberField", () => {
 
   it("clears error state when valid number is entered after invalid one", async () => {
     const handleChange = mock((_value: string) => {});
-    const {getByDisplayValue, queryByText} = renderWithTheme(
-      <PhoneNumberField label="Phone" onChange={handleChange} value="" />
+    // Start with an invalid value so that blur triggers the error path.
+    // TextField's onBlur uses its own value prop (localValue), not nativeEvent.text.
+    const {getByDisplayValue, getByText, queryByText} = renderWithTheme(
+      <PhoneNumberField label="Phone" onChange={handleChange} value="abc" />
     );
-    const input = getByDisplayValue("");
-    // First trigger an error by blurring with invalid input
+    const input = getByDisplayValue("abc");
+    // Blur triggers validatePhoneNumber("abc") → "Invalid phone number format"
     await act(async () => {
-      fireEvent.changeText(input, "abc");
-      fireEvent(input, "blur", {nativeEvent: {text: "abc"}});
+      fireEvent(input, "blur", {nativeEvent: {}});
     });
+    // Confirm error IS displayed
+    expect(getByText("Invalid phone number format")).toBeTruthy();
     // Now type a valid number to clear the error
     await act(async () => {
       fireEvent.changeText(input, "2025551234");
