@@ -113,4 +113,61 @@ describe("PhoneNumberField", () => {
     });
     expect(handleBlur).toHaveBeenCalled();
   });
+
+  it("shows 'Invalid phone number format' on blur when number cannot be parsed", async () => {
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue, getByText} = renderWithTheme(
+      <PhoneNumberField label="Phone" onChange={handleChange} value="abc" />
+    );
+    const input = getByDisplayValue("abc");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "abc"}});
+    });
+    expect(getByText("Invalid phone number format")).toBeTruthy();
+  });
+
+  it("shows 'Phone number is not valid' when number is possible but not valid", async () => {
+    const handleChange = mock((_value: string) => {});
+    // A number that parses and isPossible() but not isValid() for US
+    const {getByDisplayValue, getByText} = renderWithTheme(
+      <PhoneNumberField label="Phone" onChange={handleChange} value="(555) 555-5555" />
+    );
+    const input = getByDisplayValue("(555) 555-5555");
+    await act(async () => {
+      fireEvent(input, "blur", {nativeEvent: {text: "(555) 555-5555"}});
+    });
+    expect(getByText("Phone number is not valid")).toBeTruthy();
+  });
+
+  it("uses inputValue as-is when it matches formattedValue or has length 4", async () => {
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue} = renderWithTheme(
+      <PhoneNumberField label="Phone" onChange={handleChange} value="" />
+    );
+    const input = getByDisplayValue("");
+    // Input of length 4 triggers the else branch (setLocalValue(inputValue))
+    await act(async () => {
+      fireEvent.changeText(input, "(12)");
+    });
+    expect(getByDisplayValue("(12)")).toBeTruthy();
+  });
+
+  it("clears error state when valid number is entered after invalid one", async () => {
+    const handleChange = mock((_value: string) => {});
+    const {getByDisplayValue, queryByText} = renderWithTheme(
+      <PhoneNumberField label="Phone" onChange={handleChange} value="" />
+    );
+    const input = getByDisplayValue("");
+    // First trigger an error by blurring with invalid input
+    await act(async () => {
+      fireEvent.changeText(input, "abc");
+      fireEvent(input, "blur", {nativeEvent: {text: "abc"}});
+    });
+    // Now type a valid number to clear the error
+    await act(async () => {
+      fireEvent.changeText(input, "2025551234");
+    });
+    expect(queryByText("Invalid phone number format")).toBeNull();
+    expect(handleChange).toHaveBeenCalled();
+  });
 });
