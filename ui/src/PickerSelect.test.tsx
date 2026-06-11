@@ -87,6 +87,20 @@ describe("PickerSelect", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders the picker display as a TextInput with placeholder support", () => {
+    const {getByTestId} = renderWithTheme(
+      <RNPickerSelect
+        {...defaultProps}
+        placeholder={{label: "", value: ""}}
+        textInputProps={{placeholder: "Custom placeholder"}}
+      />
+    );
+    const input = getByTestId("text_input");
+    expect(input.type).toBe("TextInput");
+    expect(input.props.placeholder).toBe("Custom placeholder");
+    expect(input.props.value).toBe("");
+  });
+
   it("calls onValueChange when value changes", () => {
     const mockOnValueChange = mock(() => {});
     renderWithTheme(
