@@ -18,16 +18,17 @@ exports[`SelectField renders correctly with default props 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Please select an option.",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#1C1C1C",
                         },
                         "testID": "text_input",
+                        "value": "Please select an option.",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {
@@ -324,16 +325,17 @@ exports[`SelectField renders with title 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Please select an option.",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#1C1C1C",
                         },
                         "testID": "text_input",
+                        "value": "Please select an option.",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {
@@ -615,16 +617,17 @@ exports[`SelectField renders with selected value 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Option 2",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#1C1C1C",
                         },
                         "testID": "text_input",
+                        "value": "Option 2",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {
@@ -906,16 +909,17 @@ exports[`SelectField renders with custom placeholder 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Choose one...",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#1C1C1C",
                         },
                         "testID": "text_input",
+                        "value": "Choose one...",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {
@@ -1197,16 +1201,17 @@ exports[`SelectField renders disabled state 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Please select an option.",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#686868",
                         },
                         "testID": "text_input",
+                        "value": "Please select an option.",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {
@@ -1490,16 +1495,17 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                   "children": [
                     {
                       "$$typeof": Symbol(react.test.json),
-                      "children": [
-                        "Option 1",
-                      ],
+                      "children": null,
                       "props": {
+                        "editable": false,
+                        "multiline": true,
                         "style": {
                           "color": "#1C1C1C",
                         },
                         "testID": "text_input",
+                        "value": "Option 1",
                       },
-                      "type": "Text",
+                      "type": "TextInput",
                     },
                   ],
                   "props": {

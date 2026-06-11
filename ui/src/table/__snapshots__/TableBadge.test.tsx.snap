@@ -452,16 +452,17 @@ exports[`TableBadge renders select field when editing 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Option A",
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
                               "color": "#1C1C1C",
                             },
                             "testID": "text_input",
+                            "value": "Option A",
                           },
-                          "type": "Text",
+                          "type": "TextInput",
                         },
                       ],
                       "props": {

@@ -36,8 +36,8 @@ import {
   type PressableProps,
   StyleSheet,
   Text,
+  TextInput,
   type TextInputProps,
-  type TextProps,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -388,18 +388,12 @@ export const RNPickerSelect = ({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
-    // Use Text (not TextInput) for the selected-value display so long labels wrap
-    // onto multiple lines on native. TextInput is single-line by default on iOS/Android
-    // and silently truncates the value even when given flex constraints. The actual
-    // input happens in the Picker modal/wheel, so the trigger only needs to display
-    // text.
-    //
-    // The Text is wrapped in a `flex: 1` View rather than given `flex: 1` directly
-    // because on iOS a Text node's intrinsic content width can override a `flex: 1`
-    // style on the Text itself when laid out as a flex child next to a sibling — the
-    // wrapper View pins the available width unambiguously so the Text wraps to fit.
-    const textProps = textInputProps as Partial<TextProps> | undefined;
-    const baseTextStyle = {
+    // Use a read-only multiline TextInput so textInputProps (placeholder, onFocus,
+    // onBlur, etc.) keep their documented behaviour while long labels still wrap onto
+    // multiple lines on native. The input is wrapped in a flex:1 View to pin the
+    // available width unambiguously next to the chevron icon.
+    const selectedLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const baseTextInputStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
     };
     return (
@@ -412,13 +406,18 @@ export const RNPickerSelect = ({
         }}
       >
         <View style={{flex: 1, paddingRight: 8}}>
-          <Text
-            {...textProps}
-            style={textProps?.style ? [baseTextStyle, textProps.style] : baseTextStyle}
+          <TextInput
+            editable={false}
+            multiline
+            {...textInputProps}
+            style={
+              textInputProps?.style
+                ? [baseTextInputStyle, textInputProps.style]
+                : baseTextInputStyle
+            }
             testID={textInputProps?.testID ?? "text_input"}
-          >
-            {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-          </Text>
+            value={selectedLabel}
+          />
         </View>
         {renderIcon()}
       </View>
