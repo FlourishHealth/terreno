@@ -385,7 +385,7 @@ const ComponentPage: FC = () => {
   }, [navigation, component]);
 
   return (
-    <Box padding={4} scroll>
+    <Box flex="grow" height="100%" padding={4} scroll>
       <Box marginBottom={4}>
         <Heading size="lg">{config?.name}</Heading>
       </Box>

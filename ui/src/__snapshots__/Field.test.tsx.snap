@@ -1188,16 +1188,29 @@ exports[`Field renders time field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "readOnly": true,
-                                "style": {
-                                  "color": "#1C1C1C",
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "am",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                    },
+                                    "testID": "text_input",
+                                  },
+                                  "type": "Text",
                                 },
-                                "testID": "text_input",
-                                "value": "am",
+                              ],
+                              "props": {
+                                "style": {
+                                  "flex": 1,
+                                  "paddingRight": 8,
+                                },
+                                "testID": undefined,
                               },
-                              "type": "TextInput",
+                              "type": "View",
                             },
                             {
                               "$$typeof": Symbol(react.test.json),
@@ -1213,8 +1226,8 @@ exports[`Field renders time field 1`] = `
                           ],
                           "props": {
                             "style": {
+                              "alignItems": "center",
                               "flexDirection": "row",
-                              "justifyContent": "space-between",
                               "pointerEvents": "box-only",
                               "width": "100%",
                             },
@@ -1224,13 +1237,15 @@ exports[`Field renders time field 1`] = `
                         },
                       ],
                       "props": {
+                        "disabled": false,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
                           "flexDirection": "row",
                           "justifyContent": "center",
                           "minHeight": 40,
-                          "width": "95%",
+                          "paddingHorizontal": 8,
+                          "width": "100%",
                         },
                         "testID": "ios_touchable_wrapper",
                       },
@@ -1459,16 +1474,29 @@ exports[`Field renders time field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "readOnly": true,
-                                "style": {
-                                  "color": "#1C1C1C",
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "EDT",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                    },
+                                    "testID": "text_input",
+                                  },
+                                  "type": "Text",
                                 },
-                                "testID": "text_input",
-                                "value": "EDT",
+                              ],
+                              "props": {
+                                "style": {
+                                  "flex": 1,
+                                  "paddingRight": 8,
+                                },
+                                "testID": undefined,
                               },
-                              "type": "TextInput",
+                              "type": "View",
                             },
                             {
                               "$$typeof": Symbol(react.test.json),
@@ -1484,8 +1512,8 @@ exports[`Field renders time field 1`] = `
                           ],
                           "props": {
                             "style": {
+                              "alignItems": "center",
                               "flexDirection": "row",
-                              "justifyContent": "space-between",
                               "pointerEvents": "box-only",
                               "width": "100%",
                             },
@@ -1495,13 +1523,15 @@ exports[`Field renders time field 1`] = `
                         },
                       ],
                       "props": {
+                        "disabled": false,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
                           "flexDirection": "row",
                           "justifyContent": "center",
                           "minHeight": 40,
-                          "width": "95%",
+                          "paddingHorizontal": 8,
+                          "width": "100%",
                         },
                         "testID": "ios_touchable_wrapper",
                       },
@@ -2185,16 +2215,29 @@ exports[`Field renders datetime field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "readOnly": true,
-                                "style": {
-                                  "color": "#1C1C1C",
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "am",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                    },
+                                    "testID": "text_input",
+                                  },
+                                  "type": "Text",
                                 },
-                                "testID": "text_input",
-                                "value": "am",
+                              ],
+                              "props": {
+                                "style": {
+                                  "flex": 1,
+                                  "paddingRight": 8,
+                                },
+                                "testID": undefined,
                               },
-                              "type": "TextInput",
+                              "type": "View",
                             },
                             {
                               "$$typeof": Symbol(react.test.json),
@@ -2210,8 +2253,8 @@ exports[`Field renders datetime field 1`] = `
                           ],
                           "props": {
                             "style": {
+                              "alignItems": "center",
                               "flexDirection": "row",
-                              "justifyContent": "space-between",
                               "pointerEvents": "box-only",
                               "width": "100%",
                             },
@@ -2221,13 +2264,15 @@ exports[`Field renders datetime field 1`] = `
                         },
                       ],
                       "props": {
+                        "disabled": false,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
                           "flexDirection": "row",
                           "justifyContent": "center",
                           "minHeight": 40,
-                          "width": "95%",
+                          "paddingHorizontal": 8,
+                          "width": "100%",
                         },
                         "testID": "ios_touchable_wrapper",
                       },
@@ -2456,16 +2501,29 @@ exports[`Field renders datetime field 1`] = `
                           "children": [
                             {
                               "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "readOnly": true,
-                                "style": {
-                                  "color": "#1C1C1C",
+                              "children": [
+                                {
+                                  "$$typeof": Symbol(react.test.json),
+                                  "children": [
+                                    "EDT",
+                                  ],
+                                  "props": {
+                                    "style": {
+                                      "color": "#1C1C1C",
+                                    },
+                                    "testID": "text_input",
+                                  },
+                                  "type": "Text",
                                 },
-                                "testID": "text_input",
-                                "value": "EDT",
+                              ],
+                              "props": {
+                                "style": {
+                                  "flex": 1,
+                                  "paddingRight": 8,
+                                },
+                                "testID": undefined,
                               },
-                              "type": "TextInput",
+                              "type": "View",
                             },
                             {
                               "$$typeof": Symbol(react.test.json),
@@ -2481,8 +2539,8 @@ exports[`Field renders datetime field 1`] = `
                           ],
                           "props": {
                             "style": {
+                              "alignItems": "center",
                               "flexDirection": "row",
-                              "justifyContent": "space-between",
                               "pointerEvents": "box-only",
                               "width": "100%",
                             },
@@ -2492,13 +2550,15 @@ exports[`Field renders datetime field 1`] = `
                         },
                       ],
                       "props": {
+                        "disabled": false,
                         "onPress": [Function],
                         "style": {
                           "alignItems": "center",
                           "flexDirection": "row",
                           "justifyContent": "center",
                           "minHeight": 40,
-                          "width": "95%",
+                          "paddingHorizontal": 8,
+                          "width": "100%",
                         },
                         "testID": "ios_touchable_wrapper",
                       },
@@ -2828,16 +2888,29 @@ exports[`Field renders select field 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "readOnly": true,
-                    "style": {
-                      "color": "#1C1C1C",
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        "Please select an option.",
+                      ],
+                      "props": {
+                        "style": {
+                          "color": "#1C1C1C",
+                        },
+                        "testID": "text_input",
+                      },
+                      "type": "Text",
                     },
-                    "testID": "text_input",
-                    "value": "Please select an option.",
+                  ],
+                  "props": {
+                    "style": {
+                      "flex": 1,
+                      "paddingRight": 8,
+                    },
+                    "testID": undefined,
                   },
-                  "type": "TextInput",
+                  "type": "View",
                 },
                 {
                   "$$typeof": Symbol(react.test.json),
@@ -2853,8 +2926,8 @@ exports[`Field renders select field 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -2864,13 +2937,15 @@ exports[`Field renders select field 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -3706,16 +3781,29 @@ exports[`Field renders address field 1`] = `
                     "children": [
                       {
                         "$$typeof": Symbol(react.test.json),
-                        "children": null,
-                        "props": {
-                          "readOnly": true,
-                          "style": {
-                            "color": "#1C1C1C",
+                        "children": [
+                          {
+                            "$$typeof": Symbol(react.test.json),
+                            "children": [
+                              "Please select an option.",
+                            ],
+                            "props": {
+                              "style": {
+                                "color": "#1C1C1C",
+                              },
+                              "testID": "text_input",
+                            },
+                            "type": "Text",
                           },
-                          "testID": "text_input",
-                          "value": "Please select an option.",
+                        ],
+                        "props": {
+                          "style": {
+                            "flex": 1,
+                            "paddingRight": 8,
+                          },
+                          "testID": undefined,
                         },
-                        "type": "TextInput",
+                        "type": "View",
                       },
                       {
                         "$$typeof": Symbol(react.test.json),
@@ -3731,8 +3819,8 @@ exports[`Field renders address field 1`] = `
                     ],
                     "props": {
                       "style": {
+                        "alignItems": "center",
                         "flexDirection": "row",
-                        "justifyContent": "space-between",
                         "pointerEvents": "box-only",
                         "width": "100%",
                       },
@@ -3742,13 +3830,15 @@ exports[`Field renders address field 1`] = `
                   },
                 ],
                 "props": {
+                  "disabled": false,
                   "onPress": [Function],
                   "style": {
                     "alignItems": "center",
                     "flexDirection": "row",
                     "justifyContent": "center",
                     "minHeight": 40,
-                    "width": "95%",
+                    "paddingHorizontal": 8,
+                    "width": "100%",
                   },
                   "testID": "ios_touchable_wrapper",
                 },

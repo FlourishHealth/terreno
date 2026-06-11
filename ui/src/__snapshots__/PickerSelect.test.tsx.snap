@@ -12,16 +12,29 @@ exports[`PickerSelect renders correctly with default props 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select an option",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Select an option",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -37,8 +50,8 @@ exports[`PickerSelect renders correctly with default props 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -48,13 +61,15 @@ exports[`PickerSelect renders correctly with default props 1`] = `
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -276,16 +291,29 @@ exports[`PickerSelect renders with selected value 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option 2",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Option 2",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -301,8 +329,8 @@ exports[`PickerSelect renders with selected value 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -312,13 +340,15 @@ exports[`PickerSelect renders with selected value 1`] = `
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -541,16 +571,28 @@ exports[`PickerSelect renders disabled state 1`] = `
             {
               "$$typeof": Symbol(react.test.json),
               "children": [
-                "Select an option",
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select an option",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#686868",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
+                },
               ],
               "props": {
                 "style": {
-                  "color": "#686868",
                   "flex": 1,
+                  "paddingRight": 8,
                 },
-                "testID": "text_input",
+                "testID": undefined,
               },
-              "type": "Text",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -566,8 +608,8 @@ exports[`PickerSelect renders disabled state 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -577,13 +619,15 @@ exports[`PickerSelect renders disabled state 1`] = `
         },
       ],
       "props": {
+        "disabled": true,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -807,16 +851,29 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option 1",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Option 1",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -832,8 +889,8 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -843,13 +900,15 @@ exports[`PickerSelect renders without placeholder when placeholder is empty obje
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1061,16 +1120,29 @@ exports[`PickerSelect matches items by itemKey 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option 2",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Option 2",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -1086,8 +1158,8 @@ exports[`PickerSelect matches items by itemKey 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1097,13 +1169,15 @@ exports[`PickerSelect matches items by itemKey 1`] = `
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1315,16 +1389,29 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Select an option",
+                  ],
+                  "props": {
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Select an option",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -1340,8 +1427,8 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1351,13 +1438,15 @@ exports[`PickerSelect renders custom InputAccessoryView 1`] = `
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },
@@ -1499,17 +1588,30 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
           "children": [
             {
               "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "placeholder": "Custom placeholder",
-                "readOnly": true,
-                "style": {
-                  "color": "#1C1C1C",
+              "children": [
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    "Option 1",
+                  ],
+                  "props": {
+                    "placeholder": "Custom placeholder",
+                    "style": {
+                      "color": "#1C1C1C",
+                    },
+                    "testID": "text_input",
+                  },
+                  "type": "Text",
                 },
-                "testID": "text_input",
-                "value": "Option 1",
+              ],
+              "props": {
+                "style": {
+                  "flex": 1,
+                  "paddingRight": 8,
+                },
+                "testID": undefined,
               },
-              "type": "TextInput",
+              "type": "View",
             },
             {
               "$$typeof": Symbol(react.test.json),
@@ -1525,8 +1627,8 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
           ],
           "props": {
             "style": {
+              "alignItems": "center",
               "flexDirection": "row",
-              "justifyContent": "space-between",
               "pointerEvents": "box-only",
               "width": "100%",
             },
@@ -1536,13 +1638,15 @@ exports[`PickerSelect passes textInputProps to TextInput 1`] = `
         },
       ],
       "props": {
+        "disabled": false,
         "onPress": [Function],
         "style": {
           "alignItems": "center",
           "flexDirection": "row",
           "justifyContent": "center",
           "minHeight": 40,
-          "width": "95%",
+          "paddingHorizontal": 8,
+          "width": "100%",
         },
         "testID": "ios_touchable_wrapper",
       },

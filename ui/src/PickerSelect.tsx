@@ -36,7 +36,6 @@ import {
   type PressableProps,
   StyleSheet,
   Text,
-  TextInput,
   type TextInputProps,
   type TextProps,
   TouchableOpacity,
@@ -389,37 +388,38 @@ export const RNPickerSelect = ({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
+    // Use Text (not TextInput) for the selected-value display so long labels wrap
+    // onto multiple lines on native. TextInput is single-line by default on iOS/Android
+    // and silently truncates the value even when given flex constraints. The actual
+    // input happens in the Picker modal/wheel, so the trigger only needs to display
+    // text.
+    //
+    // The Text is wrapped in a `flex: 1` View rather than given `flex: 1` directly
+    // because on iOS a Text node's intrinsic content width can override a `flex: 1`
+    // style on the Text itself when laid out as a flex child next to a sibling — the
+    // wrapper View pins the available width unambiguously so the Text wraps to fit.
     const textProps = textInputProps as Partial<TextProps> | undefined;
+    const baseTextStyle = {
+      color: disabled ? theme.text.secondaryLight : theme.text.primary,
+    };
     return (
       <View
         style={{
+          alignItems: "center",
           flexDirection: "row",
-          justifyContent: "space-between",
           pointerEvents: "box-only",
           width: "100%",
         }}
       >
-        {disabled ? (
+        <View style={{flex: 1, paddingRight: 8}}>
           <Text
             {...textProps}
-            style={
-              textProps?.style
-                ? [{color: theme.text.secondaryLight, flex: 1}, textProps.style]
-                : {color: theme.text.secondaryLight, flex: 1}
-            }
+            style={textProps?.style ? [baseTextStyle, textProps.style] : baseTextStyle}
             testID={textInputProps?.testID ?? "text_input"}
           >
             {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
           </Text>
-        ) : (
-          <TextInput
-            readOnly
-            style={{color: theme.text.primary}}
-            testID="text_input"
-            value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-            {...textInputProps}
-          />
-        )}
+        </View>
         {renderIcon()}
       </View>
     );
@@ -440,6 +440,7 @@ export const RNPickerSelect = ({
         ]}
       >
         <Pressable
+          disabled={disabled}
           onPress={() => {
             togglePicker(true);
           }}
@@ -448,7 +449,8 @@ export const RNPickerSelect = ({
             flexDirection: "row",
             justifyContent: "center",
             minHeight: 40,
-            width: "95%",
+            paddingHorizontal: 8,
+            width: "100%",
           }}
           testID="ios_touchable_wrapper"
           {...touchableWrapperProps}
@@ -507,7 +509,12 @@ export const RNPickerSelect = ({
       children?: ReactNode;
     }>;
     return (
-      <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
+      <Component
+        {...(!fixAndroidTouchableBug ? {disabled} : {})}
+        onPress={onOpen}
+        testID="android_touchable_wrapper"
+        {...touchableWrapperProps}
+      >
         <View>
           {renderTextInputOrChildren()}
           <Picker
@@ -636,7 +643,6 @@ export const RNPickerSelect = ({
           style={{
             alignItems: "center",
             flexDirection: "row",
-            justifyContent: "space-between",
             minHeight: 40,
             paddingHorizontal: 8,
             width: "100%",
@@ -644,17 +650,14 @@ export const RNPickerSelect = ({
           testID="web_picker"
           {...touchableWrapperProps}
         >
-          <Text
-            numberOfLines={disabled ? undefined : 1}
-            style={{
-              color: disabled ? theme.text.secondaryLight : theme.text.primary,
-              flex: 1,
-              paddingRight: 8,
-            }}
-            testID="text_input"
-          >
-            {displayLabel}
-          </Text>
+          <View style={{flex: 1, paddingRight: 8}}>
+            <Text
+              style={{color: disabled ? theme.text.secondaryLight : theme.text.primary}}
+              testID="text_input"
+            >
+              {displayLabel}
+            </Text>
+          </View>
           <Icon
             color={disabled ? "secondaryLight" : "primary"}
             iconName={showPicker ? "angle-up" : "angle-down"}
