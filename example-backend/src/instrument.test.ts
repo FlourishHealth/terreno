@@ -1,28 +1,37 @@
 import {describe, expect, it} from "bun:test";
-import {existsSync} from "node:fs";
 
 describe("instrument startup", () => {
   it("does not crash when SENTRY_DSN is missing in production", async () => {
-    const bunExecutable =
-      ["/proc/self/exe", process.execPath, process.argv0, Bun.which("bun")]
-        .filter((candidate): candidate is string => candidate !== undefined)
-        .find((candidate) => existsSync(candidate)) || "bun";
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalSentryDsn = process.env.SENTRY_DSN;
+    const originalStderrWrite = process.stderr.write.bind(process.stderr);
+    let stderrOutput = "";
 
-    const child = Bun.spawn({
-      cmd: [bunExecutable, "--eval", 'import("./src/instrument.ts")'],
-      cwd: "/workspace/example-backend",
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        SENTRY_DSN: "",
-      },
-      stderr: "pipe",
-      stdout: "pipe",
-    });
+    process.stderr.write = ((chunk: string | Uint8Array) => {
+      stderrOutput += typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8");
+      return true;
+    }) as typeof process.stderr.write;
 
-    const [exitCode, stderr] = await Promise.all([child.exited, new Response(child.stderr).text()]);
+    try {
+      process.env.NODE_ENV = "production";
+      process.env.SENTRY_DSN = "";
+      await import(`./instrument.ts?instrument-test=${Date.now()}`);
+    } finally {
+      process.stderr.write = originalStderrWrite;
 
-    expect(exitCode).toBe(0);
-    expect(stderr).toContain("SENTRY_DSN is not set; Sentry initialization skipped.");
+      if (originalNodeEnv === undefined) {
+        Reflect.deleteProperty(process.env, "NODE_ENV");
+      } else {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+
+      if (originalSentryDsn === undefined) {
+        Reflect.deleteProperty(process.env, "SENTRY_DSN");
+      } else {
+        process.env.SENTRY_DSN = originalSentryDsn;
+      }
+    }
+
+    expect(stderrOutput).toContain("SENTRY_DSN is not set; Sentry initialization skipped.");
   });
 });
