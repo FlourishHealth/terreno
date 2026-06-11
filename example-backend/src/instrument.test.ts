@@ -2,8 +2,9 @@ import {describe, expect, it} from "bun:test";
 
 describe("instrument startup", () => {
   it("does not crash when SENTRY_DSN is missing in production", async () => {
+    const bunExecutable = process.execPath || "bun";
     const child = Bun.spawn({
-      cmd: ["bun", "--eval", 'import("./src/instrument.ts")'],
+      cmd: [bunExecutable, "--eval", 'import("./src/instrument.ts")'],
       cwd: "/workspace/example-backend",
       env: {
         ...process.env,
