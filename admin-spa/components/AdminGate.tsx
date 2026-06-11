@@ -6,6 +6,7 @@ import React, {useEffect} from "react";
 import {useDispatch, useSelector} from "react-redux";
 import {terrenoApi} from "../store/sdk";
 import {useAppConfig} from "./AppConfigGate";
+import {isForbiddenAdminConfigError} from "./adminGateUtils";
 import {useAuth} from "./StoreProvider";
 
 interface RtkError {
@@ -46,7 +47,12 @@ export const AdminGate: React.FC<{children: React.ReactNode}> = ({children}) => 
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
   const {config, isLoading: isConfigLoading, error} = useAdminConfig(terrenoApi, apiBase);
   const status = (error as RtkError | undefined)?.status;
-  const isForbidden = isAuthenticated && !isConfigLoading && Boolean(error) && status !== 401;
+  const isForbidden = isForbiddenAdminConfigError({
+    error,
+    isAuthenticated,
+    isConfigLoading,
+    status,
+  });
   const isAdmin = isAuthenticated && !isConfigLoading && !error && Boolean(config);
 
   // Sync the better-auth session into Redux once on mount.

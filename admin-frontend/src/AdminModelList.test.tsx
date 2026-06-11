@@ -131,4 +131,32 @@ describe("AdminModelList", () => {
     });
     expect(routerPush).toHaveBeenCalledWith("/admin/User");
   });
+
+  it("fetches config from apiBase but navigates using routeBase when split", async () => {
+    mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
+    const {getByLabelText} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} apiBase="/admin" routeBase="/console" />
+    );
+    // Data fetching must use the API base.
+    expect(configApiBaseCalls).toContain("/admin");
+    // Card press must navigate using the route base, not the API base.
+    await act(async () => {
+      fireEvent.press(getByLabelText("User"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(routerPush).toHaveBeenCalledWith("/console/User");
+  });
+
+  it("uses baseUrl for both fetching and navigation (backward compat)", async () => {
+    mockConfigState.data = {...baseConfig, customScreens: [], scripts: []};
+    const {getByLabelText} = renderWithTheme(
+      <AdminModelList api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    expect(configApiBaseCalls).toContain("/admin");
+    await act(async () => {
+      fireEvent.press(getByLabelText("User"));
+      await new Promise((r) => setTimeout(r, 50));
+    });
+    expect(routerPush).toHaveBeenCalledWith("/admin/User");
+  });
 });

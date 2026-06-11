@@ -170,8 +170,17 @@ export async function start(skipListen = false): Promise<express.Application> {
       skipListen,
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
-    })
-      .configure(AppConfiguration)
+    }).configure(AppConfiguration);
+
+    // Register Better Auth first: registrations mount in order, so its session
+    // middleware must be installed before any routes (admin, SPA, model routers)
+    // that rely on req.user being populated from the better-auth session.
+    if (betterAuthConfig) {
+      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    terraApp
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
@@ -355,14 +364,11 @@ export async function start(skipListen = false): Promise<express.Application> {
           },
           basePath: "/console",
           devProxyTarget: process.env.ADMIN_SPA_DEV_PROXY,
+          // Compiled deploys (Cloud Run) must point at the bundled SPA export, since the
+          // plugin's __dirname-relative default cannot resolve inside a bun-compiled binary.
+          distDir: process.env.ADMIN_SPA_DIST_DIR,
         })
       );
-    }
-
-    // Register Better Auth plugin if configured
-    if (betterAuthConfig) {
-      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
     }
 
     // Register Langfuse plugin if configured
