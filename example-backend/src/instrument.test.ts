@@ -1,8 +1,13 @@
 import {describe, expect, it} from "bun:test";
+import {existsSync} from "node:fs";
 
 describe("instrument startup", () => {
   it("does not crash when SENTRY_DSN is missing in production", async () => {
-    const bunExecutable = Bun.which("bun") || process.execPath || process.argv0 || "bun";
+    const bunExecutable =
+      ["/proc/self/exe", process.execPath, process.argv0, Bun.which("bun")]
+        .filter((candidate): candidate is string => candidate !== undefined)
+        .find((candidate) => existsSync(candidate)) || "bun";
+
     const child = Bun.spawn({
       cmd: [bunExecutable, "--eval", 'import("./src/instrument.ts")'],
       cwd: "/workspace/example-backend",
