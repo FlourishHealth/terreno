@@ -10,9 +10,10 @@ This plan closes the gap with five additions, ordered by value:
 
 1. **Docs search tools** on the hosted server (`terreno_search_docs`, `terreno_get_component_docs`) — agents call tools; they rarely read passive MCP resources.
 2. **A local stdio companion** (`@terreno/mcp`, `terreno-mcp-local` bin) that runs inside consumer apps and exposes runtime introspection: package versions, Mongo schema, read-only queries, backend logs, last error.
-3. **Browser/device log capture** — a dev-only frontend logger that ships console errors to the backend, where the local MCP can read them. Boost's most original feature, and arguably more valuable for React Native where agents can't see the simulator.
+3. **Unified log capture (backend + app + bundler)** — one `read_logs` tool merging backend winston logs, the running app's console output (read over Chrome DevTools Protocol from Metro — no app code changes), Metro build errors, and a POST-based fallback logger for cases CDP can't reach. Boost's most original feature, and arguably more valuable for React Native where agents can't see the simulator.
 4. **Per-package guidelines and skills** — move AI guideline content out of the monolithic `mcp-server/src/bootstrap.ts` (~2,900 lines) into each package's `.ai/` directory, composed at build time and shipped in published npm packages.
 5. **Upgrade prompts** — per-release upgrade notes plus a `terreno_upgrade` prompt. Frontend/Expo SDK work delegates to the official [`upgrading-expo` skill](https://github.com/expo/skills/tree/main/plugins/expo/skills/upgrading-expo) from `expo/skills`; the prompt handles the Terreno-specific parts (`@terreno/ui`, `@terreno/rtk`, `@terreno/api`).
+6. **Simulator/web app control** — compose existing MCP servers (official `expo-mcp` for simulator tap/screenshot, Playwright MCP for web, Maestro for E2E flows) via bootstrap wiring rather than building UI automation ourselves, and add a small set of Terreno-differentiated runtime tools (RTK state inspection, expo-router navigation, opt-in JS evaluate) over CDP. See the ecosystem survey in Phase 6.
 
 **Key design decisions:**
 
@@ -22,7 +23,8 @@ This plan closes the gap with five additions, ordered by value:
 - The local server never imports consumer code. It reads `package.json`/`bun.lock`, connects to Mongo via the consumer's `.env`, and tails log files. This avoids version conflicts between the MCP's dependencies and the app's.
 - Mongo query tool is read-only by allowlist (`find`, `aggregate` without `$out`/`$merge`, `countDocuments`, `distinct`), mirroring Boost's SQL allowlist.
 - Log tools require `@terreno/api` to gain an opt-out dev-only file transport (`.terreno/logs/app.log`) since the winston logger is currently console-only (`api/src/logger.ts`).
-- Browser logs flow frontend → backend dev endpoint → file → local MCP tool, rather than tailing Metro. This works identically for web and physical devices (which can already reach the backend).
+- App console logs are read over the Chrome DevTools Protocol that Metro already exposes (`/json/list` + `/inspector/debug` from `@react-native/dev-middleware`) instead of patching `console` in app code. This is zero-instrumentation and also unlocks `Runtime.evaluate` for the control tools in Phase 6. A POST-to-backend fallback logger covers what CDP can't reach (web browsers when not driven by Playwright, non-dev builds on physical devices).
+- For UI automation we compose existing MCP servers (official `expo-mcp`, Playwright MCP, Maestro) instead of building tap/screenshot tools — that space is mature and Expo now ships it first-party. We only build runtime tools where Terreno has an information advantage: we control store creation (`generateAuthSlice`) and routing conventions, so RTK state inspection and expo-router navigation can be reliable rather than heuristic.
 
 **Related work:** `docs/implementationPlans/model-router-mcp.md` adds MCP tools to consumer apps' own APIs — that is the *app's* MCP surface; this plan is about the *development-time* MCP surface. The companion plan `docs-site-and-versioning.md` covers versioned documentation, which `terreno_search_docs` will consume once it exists.
 
@@ -121,14 +123,13 @@ src/local/tools/
 ├── applicationInfo.ts   # application_info
 ├── databaseSchema.ts    # database_schema
 ├── databaseQuery.ts     # database_query
-├── readLogs.ts          # read_log_entries, last_error
-└── browserLogs.ts       # browser_logs (Phase 4)
+├── readLogs.ts          # read_logs, last_error (Phase 4)
+└── runtime.ts           # evaluate, get_rtk_state, navigate (Phase 6, CDP)
 ```
 
 - **`application_info`** — parse the consumer's root + workspace `package.json` and `bun.lock`; report `@terreno/*` versions, expo, react-native, mongoose, bun. Tool description copies Boost's trick: *"Use this tool at the start of each chat and write version-specific code."*
 - **`database_schema`** — connect using `MONGO_URI` from the consumer backend's `.env`; list collections, indexes, and document counts; additionally parse `backend/src/models/*.ts` (static, no imports) to report declared fields, types, refs, and plugins. Summary mode + name filter, like Boost.
 - **`database_query`** — read-only allowlist: `find`, `aggregate` (rejecting `$out`/`$merge`/`$function`), `countDocuments`, `distinct`. Hard result cap (default 50 docs), JSON output.
-- **`read_log_entries`** / **`last_error`** — tail `.terreno/logs/app.log` (JSONL, multi-line safe); `last_error` returns the most recent `error`-level entry with stack.
 
 ### Required `@terreno/api` change
 
@@ -138,23 +139,26 @@ src/local/tools/
 
 The local server resolves the consumer project root by walking up from `cwd` to the nearest `package.json` with a `backend`/`frontend` workspace (the bootstrap layout), with a `TERRENO_PROJECT_ROOT` override.
 
-## Phase 4: Browser/Device Log Capture
+## Phase 4: Unified Log Capture (backend + app + bundler)
 
-### Frontend (`@terreno/ui` or generated app)
+One tool instead of Boost's three (`read-log-entries`, `browser-logs`, `last-error` split):
 
-A `DevConsoleLogger` module, no-op unless `__DEV__`:
+- **`read_logs({ sources?, entries, level?, since? })`** — merges entries chronologically across sources, each tagged with its origin:
+  - `backend` — `.terreno/logs/app.log` JSONL written by the winston file transport (Phase 3), including request logs from `@terreno/api`'s request logging middleware.
+  - `app` — console output from the running native app, captured over CDP (below).
+  - `metro` — bundler build errors (`build_failed`, `bundling_error`) from Metro's `/events` WebSocket.
+  - `browser` — fallback file `.terreno/logs/browser.log` fed by the POST logger (below).
+- **`last_error({ sources? })`** — most recent `error`-level entry with stack across backend and app sources. The agent's first stop after "it broke".
 
-- Patches `console.error`/`console.warn`, registers `ErrorUtils.setGlobalHandler` (native) and `window.onerror` + `unhandledrejection` (web).
-- Batches entries (level, message, stack, timestamp, platform) and POSTs to the backend every few seconds.
-- Wired into the bootstrap frontend template's root layout; existing apps add one import.
+### App console capture via CDP (primary, zero app code)
 
-### Backend (`@terreno/api`)
+Metro exposes the Chrome DevTools Protocol through `@react-native/dev-middleware`: `GET /json/list` returns debuggable targets with a `webSocketDebuggerUrl`; attaching and enabling the `Runtime` domain streams `Runtime.consoleAPICalled` events (all console levels, with stack traces, symbolicated via the source map). `terreno-mcp-local` keeps a ring buffer of these events. This is the approach proven by [`metro-mcp`](https://github.com/steve228uk/metro-mcp) and [`expo-metro-mcp`](https://github.com/synnode/expo-metro-mcp).
 
-- `TerrenoApp` auto-registers `POST /__terreno/browser-logs` only when `NODE_ENV === "development"`; appends JSONL to `.terreno/logs/browser.log` (rotation, no auth needed in dev, route 404s in production).
+**Hermes constraint:** Hermes accepts a single CDP debugger connection. Opening React Native DevTools (pressing `j` in Metro) steals it. v1 mitigation: connect lazily, buffer, and release cleanly, with the connection status reported by the tool; if contention proves painful, adopt metro-mcp's CDP-proxy multiplexing approach (or take `metro-mcp` as a dependency) rather than building our own proxy first.
 
-### MCP
+### POST fallback logger (secondary, covers CDP gaps)
 
-- Local tool `browser_logs({ entries: number })` reads the last N entries, exactly like Boost's `browser-logs`.
+CDP reaches dev builds connected to Metro. It does not cover web browsers (when the agent isn't driving them via Playwright, which exposes console messages itself) or device builds not attached to a dev server. For those, a `DevConsoleLogger` module (no-op unless `__DEV__`): patches `console.error`/`console.warn`, registers `ErrorUtils.setGlobalHandler` (native) and `window.onerror` + `unhandledrejection` (web), batches entries to the backend. `TerrenoApp` auto-registers `POST /__terreno/browser-logs` only when `NODE_ENV === "development"`, appending JSONL to `.terreno/logs/browser.log` (route 404s in production). Wired into the bootstrap frontend template; existing apps add one import.
 
 ## Phase 5: Upgrade Prompts
 
@@ -174,13 +178,46 @@ A `DevConsoleLogger` module, no-op unless `__DEV__`:
   5. **Terreno frontend:** apply `@terreno/ui` / `@terreno/rtk` note instructions, regenerate the SDK (`generate-sdk` skill), verify with `compile` + lint.
 - `terreno_bootstrap_ai_rules` adds a pointer to `expo/skills` in the generated frontend rules so consumer agents discover `upgrading-expo` organically.
 
+## Phase 6: Simulator & Web App Control
+
+Goal: the agent can drive the running app — tap, type, screenshot, navigate, inspect state — not just read its logs.
+
+### Ecosystem survey (what already exists)
+
+| Project | What it controls | Mechanism | Notes for Terreno |
+|---|---|---|---|
+| [`expo-mcp` (official Expo MCP)](https://docs.expo.dev/eas/ai/mcp/) | Running Expo app in simulator/emulator | Hosted server (`https://mcp.expo.dev/mcp`, OAuth) + local capabilities via `expo-mcp` package and `EXPO_UNSTABLE_MCP_SERVER=1 npx expo start` | `automation_tap` (x/y or `testID`), `automation_take_screenshot` (full or by `testID`), `automation_find_view`, `open_devtools`, `collect_app_logs`, expo-router sitemap; plus hosted docs search and EAS build/log/crash inspection. First-party fit for Terreno apps; flag-gated "unstable", free plan has usage limits on hosted tools |
+| [`microsoft/playwright-mcp`](https://github.com/microsoft/playwright-mcp) | Web app (Expo web export / `expo start --web`) | Accessibility-tree-driven browser automation | The standard for web control; also surfaces browser console messages and network, covering web log capture |
+| [Maestro MCP](https://docs.maestro.dev/get-started/maestro-mcp) (`maestro mcp`, bundled in CLI) | iOS sim, Android emulator, real devices, Chromium | Maestro engine: `list_devices`, `inspect_screen` (view hierarchy), `tap_on`, `input_text`, `run_flow` (YAML), screenshots, embedded device Viewer | Works on compiled apps with no instrumentation; natural bridge from agent exploration to durable E2E flows |
+| [`mobile-next/mobile-mcp`](https://github.com/mobile-next/mobile-mcp) | iOS/Android sims, emulators, and real devices | Accessibility APIs, WebDriverAgent (iOS), ADB/UI Automator (Android) | Framework-agnostic, strongest real-device story; heavier prerequisites (Xcode/Android SDK) |
+| [`steve228uk/metro-mcp`](https://github.com/steve228uk/metro-mcp) | RN runtime via Metro | CDP: console, network, errors, evaluate, Redux state + dispatch, component tree, AsyncStorage, expo-router state, deep links, simulator control, profiler, test recorder; CDP proxy multiplexes Hermes's single connection | Closest existing project to what Phase 4/6 builds; reference implementation, or candidate dependency |
+| [`synnode/expo-metro-mcp`](https://github.com/synnode/expo-metro-mcp), [`jeffdhooton/expo-agent-bridge`](https://github.com/jeffdhooton/expo-agent-bridge) | RN logs/runtime | CDP log buffer + flag-gated `evaluate`; agent-bridge adds an in-app plugin for nav/store/network state | Smaller validations of the same CDP pattern |
+
+### Decision: compose for UI automation, build only Terreno-differentiated runtime tools
+
+**Compose (bootstrap wiring, no new automation code):**
+
+- `terreno_bootstrap_app` adds `expo-mcp` to the frontend dev dependencies, sets `EXPO_UNSTABLE_MCP_SERVER=1` in the generated dev script, and writes the Expo MCP and Playwright MCP entries into the generated `.cursor/mcp.json` alongside the two Terreno servers. Generated AI rules explain which server to use for what (simulator interaction → expo-mcp; web → Playwright; Mongo/logs/codegen → terreno).
+- Generated rules recommend Maestro MCP (opt-in, requires Maestro CLI) when the user asks for E2E tests — the agent explores with expo-mcp, then captures the flow as Maestro YAML via `run_flow`/test generation.
+- `mobile-mcp` documented as the real-device option; not wired by default.
+
+**Build (in `terreno-mcp-local`, reusing the Phase 4 CDP connection):**
+
+- **`evaluate({ code })`** — `Runtime.evaluate` in the app's Hermes runtime. Opt-in via `TERRENO_MCP_EVAL=1`, mirroring Boost's config-gated Tinker tool. Supports async expressions; results JSON-serialized.
+- **`get_rtk_state({ slice?, query? })`** — inspect the Redux store: auth slice, RTK Query cache entries (endpoint, args, status, error), pending mutations. Reliable rather than heuristic because `@terreno/rtk` will expose the store on a dev-only global (`globalThis.__TERRENO_STORE__`, set inside `generateAuthSlice` when `__DEV__`) — this is the small `@terreno/rtk` change this phase needs.
+- **`navigate({ path })`** — expo-router navigation via evaluated `router.push(path)`, plus a deep-link fallback (`xcrun simctl openurl` / `adb shell am start`) when no CDP target is attached. Combined with expo-mcp's screenshot tool, this gives the agent "go to screen X and look at it" in two calls.
+
+### What we deliberately do not build
+
+Tap/swipe/type/screenshot/view-hierarchy tools, device lifecycle management, and test recording — all covered by the composed servers above, with Expo now shipping the core interactions first-party.
+
 ## Notifications
 
 None.
 
 ## UI
 
-No new UI surfaces. Phase 4 adds the invisible `DevConsoleLogger` to the frontend template.
+No new UI surfaces. Phase 4 adds the invisible `DevConsoleLogger` fallback to the frontend template; Phase 6 adds a dev-only store global to `@terreno/rtk`.
 
 ## Phases & Dependency Order
 
@@ -189,8 +226,9 @@ No new UI surfaces. Phase 4 adds the invisible `DevConsoleLogger` to the fronten
 | 1. Docs search tools | `mcp-server` only | — |
 | 2. Per-package guidelines | all packages + `mcp-server` | — (parallel with 1) |
 | 3. Local stdio server | `mcp-server` packaging, `@terreno/api` logger | publish pipeline change |
-| 4. Browser logs | `@terreno/ui`/template, `@terreno/api`, local MCP | 3 |
+| 4. Unified logs (backend + app + Metro) | local MCP CDP client, `@terreno/api`, template fallback logger | 3 |
 | 5. Upgrade prompts | `mcp-server`, release skill | 1 (notes searchable), benefits from 3 |
+| 6. App control | bootstrap wiring (`expo-mcp`, Playwright), local MCP runtime tools, `@terreno/rtk` dev global | 4 (shares the CDP connection) |
 
 ## Feature Flags & Migrations
 
@@ -203,3 +241,6 @@ No new UI surfaces. Phase 4 adds the invisible `DevConsoleLogger` to the fronten
 - **Read-only enforcement on Mongo** is allowlist-based; `aggregate` stage filtering must be tested against bypass attempts (`$out` nested in `$facet`, etc.).
 - **Local server vs. consumer env drift**: reading `.env` directly can miss values injected by other tooling; document `TERRENO_PROJECT_ROOT` and `MONGO_URI` overrides.
 - **Doc search quality**: BM25 over chunks is keyword-level, not semantic. Acceptable for v1; the docs-site plan's search index is the upgrade path.
+- **Hermes single CDP connection**: the log/runtime tools contend with React Native DevTools for the one debugger slot. Lazy connect/release is the v1 answer; a CDP multiplexing proxy (metro-mcp's approach) is the fallback if contention is a real-world problem.
+- **`expo-mcp` instability**: Expo gates local capabilities behind `EXPO_UNSTABLE_MCP_SERVER=1` and warns the tool list may change; hosted tools meter usage per Expo account (OAuth). Bootstrap wiring should treat it as optional and degrade gracefully.
+- **`evaluate` is arbitrary code execution** in the user's app runtime — opt-in env flag, never enabled by bootstrap defaults, mirroring Boost's Tinker posture.
