@@ -1,4 +1,5 @@
 import {ErrorBoundary} from "@components";
+import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
   DemoConfig,
   type DemoConfigStatus,
@@ -370,6 +371,7 @@ const ComponentAdditionalDocs: FC<{config: DemoConfiguration}> = ({config}) => {
 
 const ComponentPage: FC = () => {
   const {component} = useLocalSearchParams<{component: string}>();
+  const {isEmbedMode} = useEmbedMode();
 
   const config = DemoConfig.find((c) => c.name === component);
 
@@ -383,6 +385,14 @@ const ComponentPage: FC = () => {
   useEffect(() => {
     navigation.setOptions({title: component});
   }, [navigation, component]);
+
+  if (isEmbedMode) {
+    return (
+      <Box padding={2} width="100%">
+        <ComponentDemo config={config} />
+      </Box>
+    );
+  }
 
   return (
     <Box padding={4} scroll>
