@@ -29,7 +29,7 @@ import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
 import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
-import {isDeployed, WEBSOCKETS_DEBUG} from "./conf";
+import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -202,15 +202,22 @@ export async function start(skipListen = false): Promise<express.Application> {
             };
           },
         })
-      )
-      .register(
+      );
+
+    if (isWebsocketService) {
+      terraApp.register(
         new RealtimeApp({
           changeStream: {
             ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
           },
           debug: websocketsDebug,
         })
-      )
+      );
+    } else {
+      logger.info("RealtimeApp disabled because BACKEND_SERVICE is not websockets/all");
+    }
+
+    terraApp
       .register(
         new FeatureFlagsApp({
           segments: {
