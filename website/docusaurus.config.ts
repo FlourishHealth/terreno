@@ -3,6 +3,7 @@ import type {Config} from "@docusaurus/types";
 import {themes as prismThemes} from "prism-react-renderer";
 
 const demoUrl = process.env.DEMO_URL ?? "https://terreno-demo.netlify.app";
+const docsUrl = process.env.DOCS_URL ?? "https://terreno-docs.netlify.app";
 
 const config: Config = {
   baseUrl: "/",
@@ -100,7 +101,7 @@ const config: Config = {
     ],
   ],
   title: "Terreno",
-  url: process.env.DOCS_URL ?? "https://terreno-docs.netlify.app",
+  url: docsUrl,
 };
 
 export default config;
