@@ -2705,6 +2705,13 @@ export interface SelectFieldPropsBase {
   placeholder?: string;
 
   /**
+   * When true, the web select field becomes a searchable input that filters
+   * options by label as the user types in the field itself. Only affects web.
+   * @default true
+   */
+  searchable?: boolean;
+
+  /**
    * The title of the select field.
    */
   title?: string;
