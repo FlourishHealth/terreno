@@ -7,7 +7,7 @@ import {addAuthRoutes, setupAuth} from "./auth";
 import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
-import {authAsUser, FoodModel, setupDb, UserModel} from "./tests";
+import {FoodModel, setupDb, UserModel} from "./tests";
 import {z} from "./zodOpenApi";
 
 const foodActionPermissions = {
