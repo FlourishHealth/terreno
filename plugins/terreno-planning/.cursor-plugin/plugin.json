@@ -1,0 +1,12 @@
+{
+  "name": "terreno-planning",
+  "displayName": "Terreno Planning",
+  "description": "Plugins for planning and executing plans for the whole SDLC",
+  "version": "1.0.0",
+  "author": {
+    "name": "Flourish Health",
+    "email": "josh@flourish.health"
+  },
+  "keywords": ["terreno", "planning", "sdlc", "implementation", "review", "tdd"],
+  "skills": "skills"
+}
