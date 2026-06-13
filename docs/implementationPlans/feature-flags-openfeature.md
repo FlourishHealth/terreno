@@ -153,12 +153,12 @@ export class MongoFeatureFlagProvider implements Provider {
     if (flag.type !== expectedType) {
       return {value: defaultValue, reason: "ERROR", errorCode: "TYPE_MISMATCH" as const};
     }
-    const targetingKey = context.targetingKey ?? "";
-    const user = context.user ?? context;  // accept either {targetingKey, user: {...}} or flat
-    const result = evaluateFlag(flag, targetingKey, user, this.segments);
     if (!flag.enabled) {
       return {value: defaultValue, reason: "DISABLED", variant: flag.defaultVariant};
     }
+    const targetingKey = context.targetingKey ?? "";
+    const user = context.user ?? context;  // accept either {targetingKey, user: {...}} or flat
+    const result = evaluateFlag(flag, targetingKey, user, this.segments);
     if (expectedType === "boolean") {
       const value = (result as boolean) as T;
       return {value, reason: "TARGETING_MATCH", variant: value ? "on" : "off"};

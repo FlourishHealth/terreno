@@ -22,6 +22,8 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   onChange,
   errorText,
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   modelConfigs,
   parentFormState,
@@ -31,6 +33,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
     return (
       <AdminNestedArrayField
         api={api}
+        apiBase={apiBase}
         baseUrl={baseUrl}
         errorText={errorText}
         helperText={fieldConfig.description}
@@ -39,6 +42,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
         onChange={onChange}
         parentFormState={parentFormState}
         refRenderers={refRenderers}
+        routeBase={routeBase}
         title={startCase(fieldKey)}
         value={Array.isArray(value) ? (value as Record<string, AdminFieldValue>[]) : []}
       />
@@ -48,6 +52,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
   return (
     <AdminFieldRendererCore
       api={api}
+      apiBase={apiBase}
       baseUrl={baseUrl}
       errorText={errorText}
       fieldConfig={fieldConfig}
@@ -56,6 +61,7 @@ export const AdminFieldRenderer: React.FC<AdminFieldRendererProps> = ({
       onChange={onChange}
       parentFormState={parentFormState}
       refRenderers={refRenderers}
+      routeBase={routeBase}
       value={value}
     />
   );

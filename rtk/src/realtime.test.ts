@@ -1,7 +1,10 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: realtime RTK tests mock Socket.io and RTK Query runtime shapes
 import {afterEach, describe, expect, it} from "bun:test";
+import type {Socket} from "socket.io-client";
 
-const {realtimeDocument, realtimeList, setRealtimeSocket} = await import("./realtime");
+const {getRealtimeSocket, realtimeDocument, realtimeList, setRealtimeSocket} = await import(
+  "./realtime"
+);
 
 interface MockSocket {
   emitted: Array<{event: string; payload: any}>;
@@ -151,6 +154,56 @@ describe("realtimeDocument", () => {
     });
 
     expect(socket.emitted).toEqual([]);
+  });
+
+  it("returns early when socket resolves to null before subscribing", async () => {
+    setRealtimeSocket(null);
+    const removed = createDeferred();
+    const task = realtimeDocument("todos")("doc-1", {
+      cacheDataLoaded: Promise.resolve(),
+      cacheEntryRemoved: removed.promise,
+      updateCachedData: () => undefined,
+    });
+    await Promise.resolve();
+    removed.resolve();
+    await task;
+    // No socket → no subscription events
+  });
+
+  it("logs sync events when websockets debug is enabled", async () => {
+    const {setRealtimeDebug} = await import("./constants");
+    const originalInfo = console.info;
+    const calls: unknown[][] = [];
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+
+    setRealtimeDebug(true);
+    try {
+      const draft = {id: "doc-1", title: "Old"};
+      const api = createCacheApi(draft);
+      const socket = createMockSocket();
+      setRealtimeSocket(socket as unknown as Socket);
+      const task = realtimeDocument("todos")("doc-1", api);
+      await flushPromises();
+
+      socket.trigger("sync", {
+        collection: "todos",
+        data: {_id: "doc-1", title: "New"},
+        id: "doc-1",
+        method: "update",
+        model: "Todo",
+        timestamp: 1,
+      });
+
+      expect(calls.some((c) => (c[0] as string)?.includes("[websocket]"))).toBe(true);
+
+      api.remove();
+      await task;
+    } finally {
+      setRealtimeDebug(false);
+      console.info = originalInfo;
+    }
   });
 });
 
@@ -312,5 +365,67 @@ describe("realtimeList", () => {
     await Promise.resolve();
     removed.resolve();
     await task;
+  });
+
+  it("logs sync events when websockets debug is enabled", async () => {
+    const {setRealtimeDebug} = await import("./constants");
+    const originalInfo = console.info;
+    const calls: unknown[][] = [];
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+
+    setRealtimeDebug(true);
+    try {
+      const socket = createMockSocket();
+      setRealtimeSocket(socket as unknown as Socket);
+      const draft = {data: [{id: "todo-1", title: "Existing"}], total: 1};
+      const api = createCacheApi(draft);
+      const task = realtimeList("todos")({limit: 20}, api);
+
+      await flushPromises();
+
+      socket.trigger("sync", {
+        collection: "todos",
+        data: {_id: "todo-2", title: "Created"},
+        id: "todo-2",
+        method: "create",
+        model: "Todo",
+        timestamp: 1,
+      });
+
+      expect(calls.some((c) => (c[0] as string)?.includes("[websocket]"))).toBe(true);
+
+      api.remove();
+      await task;
+    } finally {
+      setRealtimeDebug(false);
+      console.info = originalInfo;
+    }
+  });
+});
+
+describe("getRealtimeSocket", () => {
+  afterEach(() => {
+    setRealtimeSocket(null);
+  });
+
+  it("returns null when no socket has been set", () => {
+    setRealtimeSocket(null);
+    expect(getRealtimeSocket()).toBeNull();
+  });
+
+  it("returns the socket after setRealtimeSocket is called", () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    expect(getRealtimeSocket()).toBe(socket as unknown as Socket);
+  });
+
+  it("returns null after socket is cleared", () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    expect(getRealtimeSocket()).toBe(socket as unknown as Socket);
+    setRealtimeSocket(null);
+    expect(getRealtimeSocket()).toBeNull();
   });
 });

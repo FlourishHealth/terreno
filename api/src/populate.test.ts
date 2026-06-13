@@ -265,6 +265,31 @@ describe("getOpenApiSpecForModel edge cases", () => {
   });
 });
 
+describe("getOpenApiSpecForModel populate with existing properties", () => {
+  it("merges populated properties into a path that already has properties", () => {
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "likesIds.userId"}],
+    });
+    // likesIds is an array subschema with its own properties already;
+    // populating userId should merge the user properties into the existing structure.
+    expect(result.properties.likesIds).toBeDefined();
+    const likesIds = result.properties.likesIds as Record<string, unknown>;
+    const items = likesIds.items as Record<string, Record<string, unknown>>;
+    expect(items.properties.userId).toBeDefined();
+  });
+
+  it("creates intermediate path structure when navigating to nested populate", () => {
+    // eatenBy is defined as [{ ref: "User", type: ObjectId }] - an array of refs.
+    // When we populate eatenBy, the openApiPath resolves through items.
+    const result = getOpenApiSpecForModel(FoodModel, {
+      populatePaths: [{path: "eatenBy"}],
+    });
+    expect(result.properties.eatenBy).toBeDefined();
+    const eatenBy = result.properties.eatenBy as Record<string, unknown>;
+    expect(eatenBy.items).toBeDefined();
+  });
+});
+
 describe("filterKeys (via getOpenApiSpecForModel populatePaths)", () => {
   it("filters populated fields using dot-notation keys", () => {
     const result = getOpenApiSpecForModel(FoodModel, {

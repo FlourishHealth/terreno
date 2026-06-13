@@ -2,6 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent} from "@testing-library/react-native";
 
 import {ConsentFormScreen} from "./ConsentFormScreen";
+import {SignatureField} from "./SignatureField";
 import {renderWithTheme} from "./test-utils";
 import type {ConsentFormPublic} from "./useConsentForms";
 
@@ -115,6 +116,21 @@ describe("ConsentFormScreen", () => {
         resolve();
       }, 600);
     });
+  });
+
+  it("keeps decline and agree buttons in equal-width columns when both are shown", () => {
+    const {getAllByTestId, getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={baseForm} locale="en" onAgree={() => {}} onDecline={() => {}} />
+    );
+
+    const actionRow = getByTestId("consent-form-action-row");
+    const actionColumns = getAllByTestId("consent-form-action-column");
+
+    expect(actionRow.props.style).toMatchObject({flexDirection: "row"});
+    expect(actionColumns.length).toBe(2);
+    for (const column of actionColumns) {
+      expect(column.props.style).toMatchObject({flexBasis: 0, minWidth: 0});
+    }
   });
 
   it("fires scroll handlers without crashing", () => {
@@ -333,5 +349,26 @@ describe("ConsentFormScreen", () => {
       fireEvent.press(getByTestId("consent-form-checkbox-0"));
     });
     expect(queryByTestId("consent-footer-checkboxes-hint")).toBeNull();
+  });
+
+  it("exercises SignatureField onChange, onStart, and onEnd callbacks", () => {
+    const form: ConsentFormPublic = {
+      ...baseForm,
+      captureSignature: true,
+    };
+    const {UNSAFE_getByType} = renderWithTheme(
+      <ConsentFormScreen form={form} locale="en" onAgree={() => {}} />
+    );
+    const sig = UNSAFE_getByType(SignatureField);
+    act(() => {
+      sig.props.onChange("data:image/png;base64,abc");
+    });
+    act(() => {
+      sig.props.onStart();
+    });
+    act(() => {
+      sig.props.onEnd();
+    });
+    expect(sig).toBeTruthy();
   });
 });

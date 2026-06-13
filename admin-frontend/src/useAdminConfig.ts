@@ -11,7 +11,7 @@ const ENDPOINT_NAME = "adminConfig";
  * field types, required fields, references, and display settings.
  *
  * @param api - RTK Query API instance to inject the endpoint into
- * @param baseUrl - Base URL for admin routes (e.g., "/admin")
+ * @param apiBase - Base URL where admin API requests are sent (e.g., "/admin")
  * @returns Object with `config` (model metadata), `isLoading`, and `error`
  *
  * @example
@@ -32,21 +32,22 @@ const ENDPOINT_NAME = "adminConfig";
  * @see AdminConfigResponse for the returned configuration structure
  * @see AdminModelList for usage in the model list screen
  */
-export const useAdminConfig = (api: AdminApi, baseUrl: string) => {
+export const useAdminConfig = (api: AdminApi, apiBase: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
         [ENDPOINT_NAME]: build.query({
           query: () => ({
             method: "GET",
-            url: `${baseUrl}/config`,
+            url: `${apiBase}/config`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, apiBase]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const useConfigQuery = (enhancedApi as any).useAdminConfigQuery;
 

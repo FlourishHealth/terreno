@@ -4,6 +4,11 @@ const options: FieldOption[] = [
   {label: "First", value: "first"},
   {label: "Second", value: "second"},
   {label: "Third, A Really Long Option", value: "third"},
+  {
+    label:
+      "This is an extremely long option label designed to test how the select field handles text wrapping in the disabled read-only state across web and native platforms, ensuring that long content is displayed in full rather than being clipped or truncated by a single-line constraint",
+    value: "long",
+  },
 ];
 
 export const SelectFieldDemo = (props: {
@@ -73,9 +78,20 @@ export const SelectFieldExamples = () => {
           disabled
           onChange={() => {}}
           options={options}
-          placeholder="This is disabled"
-          title="Select field"
+          title="Select field (disabled, short label)"
           value="third"
+        />
+      </Box>
+      <Box marginBottom={2} padding={4}>
+        <Box marginBottom={1}>
+          <Heading size="md">Disabled — long label wrapping test</Heading>
+        </Box>
+        <SelectField
+          disabled
+          onChange={() => {}}
+          options={options}
+          title="Select field (disabled, long label)"
+          value="long"
         />
       </Box>
     </Box>

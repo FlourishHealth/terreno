@@ -1,5 +1,4 @@
-// use this with enhanceEndpoints since the code generator doesn't invalidate by individual ids,
-// only at the full collection level
+// Tag generation utilities for RTK Query endpoint cache invalidation by individual IDs
 
 interface TagProviderResult {
   data?: Array<{_id: string}>;
@@ -34,17 +33,15 @@ const invalidatesIdTags =
   (result: TagProviderResult | null | undefined): TagEntry[] =>
     result ? [...(result?.data?.map(({_id}) => ({id: _id, type: path})) ?? []), path] : [path];
 
+/** Strips CRUD prefixes and "ById" suffix to extract the base resource name. */
 const cleanEndpointStringToGenerateTag = (string: string): string => {
-  // Define the prefixes and suffix
   const prefixes = ["patch", "get", "delete"];
   const suffix = "ById";
 
-  // Create a regular expression to match the prefixes and suffix
   const prefixPattern = `^(${prefixes.join("|")})`;
   const suffixPattern = `${suffix}$`;
   const regex = new RegExp(`${prefixPattern}|${suffixPattern}`, "gi");
 
-  // Replace the matched parts and convert to lowercase
   return string.replace(regex, "")?.toLowerCase();
 };
 
@@ -52,8 +49,6 @@ export const generateTags = (
   api: ApiWithEndpoints,
   tagTypes: string[]
 ): Record<string, EndpointTagConfig> => {
-  // take the api, and for each get and list endpoint, generate tags that invalidate the cache by id
-  // and by the list endpoint
   const endpoints = api.endpoints;
   const tags: Record<string, Partial<EndpointTagConfig>> = {};
   Object.keys(endpoints).forEach((endpoint) => {
@@ -64,7 +59,6 @@ export const generateTags = (
       // List endpoints
       if (!endpoint.toLowerCase().includes("byid")) {
         const tag = tagTypes.find((t: string) =>
-          // remove "get" from the endpoint name and "ById" from the endpoint name
           t.toLowerCase().includes(cleanEndpointStringToGenerateTag(endpoint))
         );
         if (tag) {

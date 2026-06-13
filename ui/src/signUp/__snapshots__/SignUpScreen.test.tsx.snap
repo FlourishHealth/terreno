@@ -397,11 +397,15 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
                                   "alignItems": "center",
+                                  "display": "flex",
                                   "flexDirection": "row",
                                   "gap": 8,
                                   "marginBottom": 4,
+                                  "testID": "signup-screen-password-requirements-minLength",
                                 },
                                 "testID": "signup-screen-password-requirements-minLength",
                               },
@@ -437,11 +441,15 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
                                   "alignItems": "center",
+                                  "display": "flex",
                                   "flexDirection": "row",
                                   "gap": 8,
                                   "marginBottom": 4,
+                                  "testID": "signup-screen-password-requirements-uppercase",
                                 },
                                 "testID": "signup-screen-password-requirements-uppercase",
                               },
@@ -477,11 +485,15 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
                                   "alignItems": "center",
+                                  "display": "flex",
                                   "flexDirection": "row",
                                   "gap": 8,
                                   "marginBottom": 4,
+                                  "testID": "signup-screen-password-requirements-lowercase",
                                 },
                                 "testID": "signup-screen-password-requirements-lowercase",
                               },
@@ -517,11 +529,15 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
                                   "alignItems": "center",
+                                  "display": "flex",
                                   "flexDirection": "row",
                                   "gap": 8,
                                   "marginBottom": 4,
+                                  "testID": "signup-screen-password-requirements-number",
                                 },
                                 "testID": "signup-screen-password-requirements-number",
                               },
@@ -557,11 +573,15 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                                 },
                               ],
                               "props": {
+                                "onPointerEnter": [Function: AsyncFunction],
+                                "onPointerLeave": [Function: AsyncFunction],
                                 "style": {
                                   "alignItems": "center",
+                                  "display": "flex",
                                   "flexDirection": "row",
                                   "gap": 8,
                                   "marginBottom": 4,
+                                  "testID": "signup-screen-password-requirements-special",
                                 },
                                 "testID": "signup-screen-password-requirements-special",
                               },
@@ -569,7 +589,11 @@ exports[`SignUpScreen renders correctly with all props 1`] = `
                             },
                           ],
                           "props": {
-                            "style": undefined,
+                            "onPointerEnter": [Function: AsyncFunction],
+                            "onPointerLeave": [Function: AsyncFunction],
+                            "style": {
+                              "testID": "signup-screen-password-requirements",
+                            },
                             "testID": "signup-screen-password-requirements",
                           },
                           "type": "View",

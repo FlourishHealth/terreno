@@ -17,12 +17,23 @@ import type {Href} from "expo-router";
 import {router, useNavigation} from "expo-router";
 import startCase from "lodash/startCase";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminApi, AdminFieldConfig, AdminFieldValue, AdminModelConfig} from "./types";
+import {
+  type AdminApi,
+  type AdminFieldConfig,
+  type AdminFieldValue,
+  type AdminModelConfig,
+  resolveAdminBases,
+} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelTableProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   modelName: string;
   columns?: string[];
@@ -196,12 +207,19 @@ const EmptyContent: React.FC = () => (
  */
 export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   modelName,
   columns: columnsProp,
   columnWidths,
 }) => {
-  const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const [page, setPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<ColumnSortInterface | undefined>();
   const navigation = useNavigation();
@@ -219,7 +237,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       headerRight: () => (
         <Box alignItems="center" justifyContent="center" marginRight={3}>
           <Button
-            onClick={() => router.push(`${baseUrl}/${modelName}/create` as Href)}
+            onClick={() => router.push(`${resolvedRouteBase}/${modelName}/create` as Href)}
             testID="admin-create-button"
             text="Create"
             variant="primary"
@@ -228,7 +246,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       ),
       title: modelConfig.displayName,
     });
-  }, [navigation, modelConfig, baseUrl, modelName]);
+  }, [navigation, modelConfig, resolvedRouteBase, modelName]);
 
   const displayFields = useMemo(
     () => columnsProp ?? modelConfig?.listFields ?? [],
@@ -312,7 +330,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       if (isFirst) {
         return {
           value: {
-            href: `${baseUrl}/${modelName}/${item._id}`,
+            href: `${resolvedRouteBase}/${modelName}/${item._id}`,
             text: formatted,
           },
         };
@@ -323,7 +341,9 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
       };
     });
 
-    const actionsCell = {value: {baseUrl, id: item._id, modelName, onDelete: handleDelete}};
+    const actionsCell = {
+      value: {baseUrl: resolvedRouteBase, id: item._id, modelName, onDelete: handleDelete},
+    };
     return [...fieldCells, actionsCell];
   });
 

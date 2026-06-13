@@ -54,7 +54,7 @@ export interface GenerateTokensOptions {
   sessionId?: string;
 }
 
-export function authenticateMiddleware(anonymous = false) {
+export const authenticateMiddleware = (anonymous = false) => {
   const strategies = ["jwt"];
   if (anonymous) {
     strategies.push("anonymous");
@@ -70,14 +70,14 @@ export function authenticateMiddleware(anonymous = false) {
     }
     return passportAuth(req, res, next);
   };
-}
+};
 
-export async function signupUser(
+export const signupUser = async (
   userModel: UserModel,
   email: string,
   password: string,
   body?: Record<string, unknown>
-) {
+) => {
   // Strip email and password from the body. They can cause mongoose to throw an error if strict is
   // set.
   const {email: _email, password: _password, ...bodyRest} = body ?? {};
@@ -100,7 +100,7 @@ export async function signupUser(
     const message = errorMessage(error);
     throw new APIError({title: message});
   }
-}
+};
 
 /**
  * Generates both an access token (JWT) and a refresh token for a given user.
@@ -126,7 +126,7 @@ export const generateTokens = async (
 ) => {
   const tokenSecretOrKey = process.env.TOKEN_SECRET;
   if (!tokenSecretOrKey) {
-    throw new Error("TOKEN_SECRET must be set in env.");
+    throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
   }
   const tokenUser = user as {_id?: ObjectId | string} | null | undefined;
   if (!tokenUser?._id) {
@@ -186,7 +186,7 @@ export const generateTokens = async (
 };
 
 // TODO allow customization
-export function setupAuth(app: express.Application, userModel: UserModel) {
+export const setupAuth = (app: express.Application, userModel: UserModel): void => {
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
   passport.use(
@@ -208,7 +208,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
   );
 
   if (!userModel.createStrategy) {
-    throw new Error("setupAuth userModel must have .createStrategy()");
+    throw new APIError({status: 500, title: "setupAuth userModel must have .createStrategy()"});
   }
 
   const customTokenExtractor: JwtFromRequestFunction = (req) => {
@@ -228,7 +228,7 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
 
     const secretOrKey = process.env.TOKEN_SECRET;
     if (!secretOrKey) {
-      throw new Error("TOKEN_SECRET must be set in env.");
+      throw new APIError({status: 500, title: "TOKEN_SECRET must be set in env."});
     }
     const jwtOpts: StrategyOptions = {
       issuer: process.env.TOKEN_ISSUER,
@@ -264,11 +264,11 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
 
   // Adds req.user to the request. This may wind up duplicating requests with passport,
   // but passport doesn't give us req.user early enough.
-  async function decodeJWTMiddleware(
+  const decodeJWTMiddleware = async (
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
-  ) {
+  ) => {
     if (!process.env.TOKEN_SECRET) {
       return next();
     }
@@ -324,17 +324,17 @@ export function setupAuth(app: express.Application, userModel: UserModel) {
       }
     }
     return next();
-  }
+  };
   app.use(decodeJWTMiddleware);
   // biome-ignore lint/suspicious/noExplicitAny: express 5 type for urlencoded doesn't match RequestHandler
   app.use(express.urlencoded({extended: false}) as any);
-}
+};
 
-export function addAuthRoutes(
+export const addAuthRoutes = (
   app: express.Application,
   userModel: UserModel,
   authOptions?: AuthOptions
-): void {
+): void => {
   const router = express.Router();
   router.post("/login", async (req, res, next) => {
     passport.authenticate(
@@ -430,13 +430,13 @@ export function addAuthRoutes(
   }
   app.set("etag", false);
   app.use("/auth", router);
-}
+};
 
-export function addMeRoutes(
+export const addMeRoutes = (
   app: express.Application,
   userModel: UserModel,
   _authOptions?: AuthOptions
-): void {
+): void => {
   const router = express.Router();
   router.get("/me", authenticateMiddleware(), async (req, res) => {
     if (!req.user?.id) {
@@ -483,4 +483,4 @@ export function addMeRoutes(
   app.set("etag", false);
   app.use("/auth", router);
   app.use(apiErrorMiddleware);
-}
+};

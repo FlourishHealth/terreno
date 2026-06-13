@@ -108,6 +108,7 @@ export const Badge = ({
             paddingVertical: variant === "iconOnly" ? 1 : theme.spacing.xs,
             width: variant === "iconOnly" ? 16 : "auto",
           },
+          ...(variant === "numberOnly" ? [{minWidth: 20}] : []),
           isIconOnly && {height: 16, width: 16},
           secondary && {borderColor, borderWidth: 1},
         ]}

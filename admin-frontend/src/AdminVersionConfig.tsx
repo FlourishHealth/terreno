@@ -1,7 +1,7 @@
 import {Box, Button, NumberField, Page, Spinner, Text, TextField, useToast} from "@terreno/ui";
 import {router} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminApi, EndpointBuilder} from "./types";
+import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 
 interface VersionConfigData {
   mobileRequiredVersion?: number;
@@ -17,12 +17,23 @@ interface VersionConfigData {
 
 interface AdminVersionConfigProps {
   api: AdminApi;
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
 }
 
 const VERSION_CONFIG_ENDPOINT = "adminVersionConfig";
 
-export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, baseUrl}) => {
+export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
+  api,
+  baseUrl,
+  apiBase,
+  routeBase,
+}) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const [formState, setFormState] = useState<VersionConfigData>({});
   const [isSaving, setIsSaving] = useState(false);
   const toast = useToast();
@@ -33,21 +44,22 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({api, base
         [VERSION_CONFIG_ENDPOINT]: build.query({
           query: () => ({
             method: "GET",
-            url: `${baseUrl}/version-config`,
+            url: `${resolvedApiBase}/version-config`,
           }),
         }),
         updateVersionConfig: build.mutation({
           query: (body: VersionConfigData) => ({
             body,
             method: "PUT",
-            url: `${baseUrl}/version-config`,
+            url: `${resolvedApiBase}/version-config`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, resolvedApiBase]);
 
+  // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API
   const enhanced = enhancedApi as any;
   const useVersionConfigQuery = enhanced.useAdminVersionConfigQuery;

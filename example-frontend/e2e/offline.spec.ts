@@ -1,10 +1,17 @@
-import {expect, test} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {clearTodos} from "./helpers/clearTodos";
 import {loginAs} from "./helpers/login";
-import {createTodoViaApi, goOffline, goOnline, updateTodoViaApi} from "./helpers/offlineHelpers";
+import {
+  allowOfflineNoise,
+  createTodoViaApi,
+  goOffline,
+  goOnline,
+  updateTodoViaApi,
+} from "./helpers/offlineHelpers";
 
 test.describe("Offline Sync", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -175,7 +182,8 @@ test.describe("Offline Sync", () => {
 });
 
 test.describe("Offline Sync — Multiple Mutations", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -282,7 +290,8 @@ test.describe("Offline Sync — Multiple Mutations", () => {
 });
 
 test.describe("Offline Sync — Syncing Indicator", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -314,7 +323,8 @@ test.describe("Offline Sync — Syncing Indicator", () => {
 });
 
 test.describe("Offline Sync — Network Flapping", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -400,7 +410,8 @@ test.describe("Offline Sync — Network Flapping", () => {
 });
 
 test.describe("Offline Sync — Queue Count & Banner Accuracy", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -470,7 +481,8 @@ test.describe("Offline Sync — Queue Count & Banner Accuracy", () => {
 });
 
 test.describe("Offline Sync — Multiple Conflicts", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -573,7 +585,8 @@ test.describe("Offline Sync — Multiple Conflicts", () => {
 });
 
 test.describe("Offline Sync — Optimistic UI", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
@@ -644,7 +657,8 @@ test.describe("Offline Sync — Optimistic UI", () => {
 });
 
 test.describe("Offline Sync — Edge Cases", () => {
-  test.beforeEach(async ({page}) => {
+  test.beforeEach(async ({page, consoleGuard}) => {
+    allowOfflineNoise(consoleGuard);
     await clearTodos();
     await loginAs(page);
     await page.goto("/");
