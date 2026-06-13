@@ -6,5 +6,6 @@
       "@site/*": ["./*"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "docusaurus.config.ts", "sidebars.ts"]
+  "include": ["src/**/*", "scripts/**/*", "docusaurus.config.ts", "sidebars.ts"],
+  "exclude": ["scripts/**/*.test.ts"]
 }
