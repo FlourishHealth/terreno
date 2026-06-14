@@ -164,6 +164,7 @@ describe("useTerrenoFeatureFlags", () => {
         built.useTerrenoFlagConfigurationQuery.mockImplementation(() => ({
           data,
           error: undefined,
+          isError: false,
           isFetching: false,
           isLoading: false,
           isSuccess: true,
