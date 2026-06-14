@@ -4,15 +4,8 @@ import {act, renderHook} from "@testing-library/react-native";
 import React from "react";
 import {Provider} from "react-redux";
 
-import {
-  addConflict,
-  type ConflictRecord,
-  enqueue,
-  offlineReducer,
-  type QueuedMutation,
-  setOnlineStatus,
-  setSyncing,
-} from "./offlineSlice";
+import {addConflict, enqueue, offlineReducer, setOnlineStatus, setSyncing} from "./offlineSlice";
+import {createTestConflictRecord, createTestQueuedMutation} from "./offlineTestUtils";
 import {useOfflineStatus} from "./useOfflineStatus";
 
 const createTestStore = () =>
@@ -56,13 +49,11 @@ describe("useOfflineStatus", () => {
   });
 
   it("reports queue length", () => {
-    const mutation: QueuedMutation = {
+    const mutation = createTestQueuedMutation({
       args: {body: {title: "Test"}},
       endpointName: "postTodos",
       id: "test-1",
-      timestamp: "2026-01-01T00:00:00.000Z",
-      type: "create",
-    };
+    });
     store.dispatch(enqueue(mutation));
 
     const {result} = renderHook(() => useOfflineStatus(), {
@@ -83,14 +74,13 @@ describe("useOfflineStatus", () => {
   });
 
   it("filters undismissed conflicts", () => {
-    const conflict: ConflictRecord = {
+    const conflict = createTestConflictRecord({
       args: {id: "abc"},
-      dismissed: false,
-      endpointName: "patchTodosById",
       id: "conflict-1",
+      localArgs: {id: "abc"},
       serverDocument: {title: "Server"},
-      timestamp: "2026-01-01T00:00:00.000Z",
-    };
+      serverValue: {title: "Server"},
+    });
     store.dispatch(addConflict(conflict));
 
     const {result} = renderHook(() => useOfflineStatus(), {
@@ -102,14 +92,13 @@ describe("useOfflineStatus", () => {
   });
 
   it("dismissConflict dispatches the action", () => {
-    const conflict: ConflictRecord = {
+    const conflict = createTestConflictRecord({
       args: {id: "abc"},
-      dismissed: false,
-      endpointName: "patchTodosById",
       id: "conflict-to-dismiss",
+      localArgs: {id: "abc"},
       serverDocument: {title: "Server"},
-      timestamp: "2026-01-01T00:00:00.000Z",
-    };
+      serverValue: {title: "Server"},
+    });
     store.dispatch(addConflict(conflict));
 
     const {result} = renderHook(() => useOfflineStatus(), {
@@ -125,14 +114,13 @@ describe("useOfflineStatus", () => {
   });
 
   it("clearConflicts removes all conflicts", () => {
-    const conflict: ConflictRecord = {
+    const conflict = createTestConflictRecord({
       args: {id: "abc"},
-      dismissed: false,
-      endpointName: "patchTodosById",
       id: "conflict-clear",
+      localArgs: {id: "abc"},
       serverDocument: {title: "Server"},
-      timestamp: "2026-01-01T00:00:00.000Z",
-    };
+      serverValue: {title: "Server"},
+    });
     store.dispatch(addConflict(conflict));
 
     const {result} = renderHook(() => useOfflineStatus(), {

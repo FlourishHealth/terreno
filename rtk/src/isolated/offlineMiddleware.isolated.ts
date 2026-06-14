@@ -13,16 +13,28 @@ mock.module("../authSlice", () => ({
   getAuthToken: async () => authToken,
   selectCurrentUserId: (state: {auth?: {userId?: string}}) => state.auth?.userId,
 }));
+const TOKEN_REFRESHED_SUCCESS_TYPE = "auth/tokenRefreshedSuccess";
+
 mock.module("../constants", () => ({
   baseUrl: "http://localhost:4000",
   LOGOUT_ACTION_TYPE: "auth/logout",
+  TOKEN_REFRESHED_SUCCESS: TOKEN_REFRESHED_SUCCESS_TYPE,
 }));
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
-const {createOfflineMiddleware} = await import("../offlineMiddleware");
-const {selectConflicts, selectIsOnline, selectIsSyncing, selectOfflineQueue, setOnlineStatus} =
-  await import("../offlineSlice");
+const {createOfflineMiddleware} = await import("../offline/offlineMiddleware");
+const {isObjectIdShape} = await import("../offline/offlineIds");
+const {
+  resumeReplayAfterAuth,
+  selectConflicts,
+  selectIsOnline,
+  selectIsReplayPausedForAuth,
+  selectIsSyncing,
+  selectOfflineQueue,
+  selectQueueLength,
+  setOnlineStatus,
+} = await import("../offline/offlineSlice");
 
 interface TodoRecord {
   _id?: string;
@@ -353,7 +365,8 @@ describe("createOfflineMiddleware", () => {
       const allTodos = getCachedTodos(store, {});
       const filteredTodos = getCachedTodos(store, {completed: false});
       expect(allTodos[0]).toMatchObject({completed: false, title: "Offline new"});
-      expect(allTodos[0].id).toStartWith("temp-postTodos-");
+      expect(allTodos[0].id).toBeDefined();
+      expect(isObjectIdShape(String(allTodos[0].id))).toBe(true);
       expect(filteredTodos[0]).toMatchObject({completed: false, title: "Offline new"});
     });
 
@@ -431,7 +444,13 @@ describe("createOfflineMiddleware", () => {
       const headers = options.headers as Record<string, string>;
       expect(url).toBe("http://localhost:4000/todos");
       expect(options.method).toBe("POST");
-      expect(options.body).toBe(JSON.stringify({completed: false, title: "Created offline"}));
+      const postBody = JSON.parse(options.body as string) as {
+        _id: string;
+        completed: boolean;
+        title: string;
+      };
+      expect(postBody).toMatchObject({completed: false, title: "Created offline"});
+      expect(isObjectIdShape(postBody._id)).toBe(true);
       expect(headers.authorization).toBe("Bearer auth-token");
       expect(headers["If-Unmodified-Since"]).toBeUndefined();
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);
@@ -562,7 +581,9 @@ describe("createOfflineMiddleware", () => {
         endpointName: "patchTodosById",
         serverDocument: {_id: "123", completed: false, title: "Remote version"},
       });
-      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(selectOfflineQueue(store.getState())[0].status).toBe("conflicted");
+      expect(selectQueueLength(store.getState())).toBe(0);
     });
 
     it("creates a conflict record from raw 409 data when the server does not wrap data", async () => {
@@ -577,7 +598,9 @@ describe("createOfflineMiddleware", () => {
         _id: "123",
         title: "Raw remote",
       });
-      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(1);
+      expect(selectOfflineQueue(store.getState())[0].status).toBe("conflicted");
+      expect(selectQueueLength(store.getState())).toBe(0);
     });
 
     it("continues replaying after a conflict so later local changes still sync", async () => {
@@ -597,12 +620,15 @@ describe("createOfflineMiddleware", () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(selectConflicts(store.getState())).toHaveLength(1);
-      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      const queueAfterReplay = selectOfflineQueue(store.getState());
+      expect(queueAfterReplay).toHaveLength(1);
+      expect(queueAfterReplay[0].status).toBe("conflicted");
+      expect(selectQueueLength(store.getState())).toBe(0);
     });
 
     it("dequeues permanent non-conflict 4xx failures to avoid infinite retry loops", async () => {
       mockFetch.mockImplementationOnce(() =>
-        Promise.resolve(createResponse({data: {message: "Forbidden"}, status: 403}))
+        Promise.resolve(createResponse({data: {message: "Not found"}, status: 404}))
       );
       goOfflineAndQueue(store);
 
@@ -645,7 +671,7 @@ describe("createOfflineMiddleware", () => {
       expect(selectIsSyncing(store.getState())).toBe(false);
     });
 
-    it("retries preserved mutations on a later online event after a transient failure", async () => {
+    it("retries preserved mutations after auth resume following a transient replay failure", async () => {
       mockFetch
         .mockImplementationOnce(() => Promise.reject(new Error("network down")))
         .mockImplementation(() => Promise.resolve(createResponse()));
@@ -654,8 +680,25 @@ describe("createOfflineMiddleware", () => {
       await syncQueuedMutations(store);
       expect(selectOfflineQueue(store.getState())).toHaveLength(1);
 
+      store.dispatch(resumeReplayAfterAuth());
       store.dispatch(setOnlineStatus(false));
       await syncQueuedMutations(store);
+
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+    });
+
+    it("resumes replay via token refresh success after replay was paused for auth", async () => {
+      mockFetch
+        .mockImplementationOnce(() => Promise.reject(new Error("network down")))
+        .mockImplementation(() => Promise.resolve(createResponse()));
+      goOfflineAndQueue(store);
+
+      await syncQueuedMutations(store);
+      expect(selectIsReplayPausedForAuth(store.getState())).toBe(true);
+
+      store.dispatch({type: TOKEN_REFRESHED_SUCCESS_TYPE});
+      await waitForEffects(120);
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(selectOfflineQueue(store.getState())).toHaveLength(0);

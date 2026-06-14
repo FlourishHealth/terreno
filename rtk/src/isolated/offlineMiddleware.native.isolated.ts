@@ -12,6 +12,7 @@ mock.module("../authSlice", () => ({
 mock.module("../constants", () => ({
   baseUrl: "http://localhost:4000",
   LOGOUT_ACTION_TYPE: "auth/logout",
+  TOKEN_REFRESHED_SUCCESS: "auth/tokenRefreshedSuccess",
 }));
 
 let networkListener: ((state: {isConnected?: boolean}) => void) | undefined;
@@ -26,8 +27,8 @@ mock.module("expo-network", () => ({
 
 const {configureStore} = await import("@reduxjs/toolkit");
 const {createApi, fetchBaseQuery} = await import("@reduxjs/toolkit/query");
-const {createOfflineMiddleware} = await import("../offlineMiddleware");
-const {selectIsOnline} = await import("../offlineSlice");
+const {createOfflineMiddleware} = await import("../offline/offlineMiddleware");
+const {selectIsOnline} = await import("../offline/offlineSlice");
 
 const api = createApi({
   baseQuery: fetchBaseQuery({baseUrl: "http://localhost:4000"}),

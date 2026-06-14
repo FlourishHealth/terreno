@@ -24,7 +24,20 @@ const authSlice = generateAuthSlice(terrenoApi);
 
 const offlineConfig = createOfflineMiddleware({
   api: terrenoApi,
-  endpoints: ["postTodos", "patchTodosById", "deleteTodosById"],
+  offline: {
+    enabled: true,
+    models: [
+      {
+        endpoints: {
+          create: {endpointName: "postTodos"},
+          delete: {endpointName: "deleteTodosById"},
+          update: {endpointName: "patchTodosById"},
+        },
+        modelName: "Todo",
+        tagType: "todos",
+      },
+    ],
+  },
 });
 
 export const {logout} = authSlice;

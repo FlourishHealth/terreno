@@ -4,13 +4,21 @@ import {act, renderHook} from "@testing-library/react-native";
 import React from "react";
 import {Provider} from "react-redux";
 
-import {offlineReducer, setOnlineStatus} from "./offlineSlice";
-import {useServerStatus} from "./useServerStatus";
+import {
+  type OfflineState,
+  offlineReducer,
+  selectConnectionQuality,
+  setOnlineStatus,
+} from "./offline/offlineSlice";
+import {connectionQualityFromConfig, useServerStatus} from "./offline/useServerStatus";
 
 const createTestStore = () =>
   configureStore({
     reducer: {offline: offlineReducer},
   });
+
+const getOfflineState = (store: ReturnType<typeof createTestStore>): OfflineState =>
+  store.getState().offline as OfflineState;
 
 const createWrapper = (store: ReturnType<typeof createTestStore>) => {
   const Wrapper: React.FC<{children: React.ReactNode}> = ({children}) =>
@@ -45,6 +53,37 @@ const createMockWindow = (): MockWindow => {
     },
   };
 };
+
+describe("connectionQualityFromConfig", () => {
+  it("applies built-in defaults when config is omitted", () => {
+    const resolved = connectionQualityFromConfig();
+    expect(resolved.healthUrl).toBeUndefined();
+    expect(resolved.offlineFailureCount).toBe(3);
+    expect(resolved.offlinePollIntervalMs).toBe(3000);
+    expect(resolved.pollIntervalMs).toBe(5000);
+    expect(resolved.spottyFailureRate).toBe(0.4);
+    expect(resolved.spottyLatencyMs).toBe(1500);
+    expect(resolved.timeoutMs).toBe(4000);
+  });
+
+  it("preserves explicit overrides alongside defaults", () => {
+    expect(
+      connectionQualityFromConfig({
+        healthUrl: "https://api.example/healthz",
+        pollIntervalMs: 12_000,
+        spottyLatencyMs: 900,
+      })
+    ).toEqual({
+      healthUrl: "https://api.example/healthz",
+      offlineFailureCount: 3,
+      offlinePollIntervalMs: 3000,
+      pollIntervalMs: 12_000,
+      spottyFailureRate: 0.4,
+      spottyLatencyMs: 900,
+      timeoutMs: 4000,
+    });
+  });
+});
 
 describe("useServerStatus", () => {
   let store: ReturnType<typeof createTestStore>;
@@ -112,7 +151,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
     unmount();
   });
 
@@ -124,6 +163,7 @@ describe("useServerStatus", () => {
       () =>
         useServerStatus({
           healthUrl: "http://localhost:4000/health",
+          offlineFailureCount: 1,
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -134,7 +174,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
     unmount();
   });
 
@@ -148,6 +188,7 @@ describe("useServerStatus", () => {
       () =>
         useServerStatus({
           healthUrl: "http://localhost:4000/health",
+          offlineFailureCount: 1,
           pollIntervalMs: 60_000,
         }),
       {wrapper: createWrapper(store)}
@@ -158,7 +199,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
     unmount();
   });
 
@@ -180,7 +221,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
     unmount();
   });
 
@@ -225,13 +266,69 @@ describe("useServerStatus", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
 
     act(() => {
       mockWindow._dispatch("offline");
     });
 
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
+    unmount();
+  });
+
+  it("dispatches spotty when recent health failures exceed the failure-rate threshold", async () => {
+    let callCount = 0;
+    const fetchFn = mock(async () => {
+      callCount += 1;
+      if (callCount <= 4) {
+        return new Response("err", {status: 500});
+      }
+      return new Response("ok", {status: 200});
+    });
+    globalThis.fetch = fetchFn as unknown as typeof fetch;
+
+    const {unmount} = renderHook(
+      () =>
+        useServerStatus({
+          healthUrl: "http://localhost:4000/health",
+          offlineFailureCount: 100,
+          pollIntervalMs: 40,
+          spottyFailureRate: 0.35,
+        }),
+      {wrapper: createWrapper(store)}
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 280));
+    });
+
+    expect(selectConnectionQuality(store.getState())).toBe("spotty");
+    unmount();
+  });
+
+  it("dispatches spotty when successful health checks are slower than the latency threshold", async () => {
+    const fetchFn = mock(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      return new Response("ok", {status: 200});
+    });
+    globalThis.fetch = fetchFn as unknown as typeof fetch;
+
+    const {unmount} = renderHook(
+      () =>
+        useServerStatus({
+          healthUrl: "http://localhost:4000/health",
+          offlineFailureCount: 100,
+          pollIntervalMs: 60_000,
+          spottyLatencyMs: 10,
+        }),
+      {wrapper: createWrapper(store)}
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    });
+
+    expect(selectConnectionQuality(store.getState())).toBe("spotty");
     unmount();
   });
 
