@@ -203,14 +203,18 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
     );
     await waitFor(
       () => {
-        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(true);
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(
+          true
+        );
       },
       {timeout: 5000}
     );
     unmount();
     await waitFor(
       () => {
-        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(false);
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(
+          false
+        );
       },
       {timeout: 5000}
     );
