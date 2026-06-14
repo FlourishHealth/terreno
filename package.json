@@ -139,7 +139,10 @@
     "ui:dev": "bun run --filter '@terreno/ui' dev",
     "ui:lint": "bun run --filter '@terreno/ui' lint",
     "ui:test": "bun run --filter '@terreno/ui' test:ci",
-    "ui:web": "bun run --filter '@terreno/ui' web"
+    "ui:web": "bun run --filter '@terreno/ui' web",
+    "website:build": "bun run --filter '@terreno/website' build",
+    "website:generate": "bun run --filter '@terreno/website' generate",
+    "website:start": "bun run --filter '@terreno/website' start"
   },
   "version": "1.0.0",
   "workspaces": [
@@ -155,6 +158,7 @@
     "feature-flags",
     "mcp-server",
     "rtk",
-    "ui"
+    "ui",
+    "website"
   ]
 }

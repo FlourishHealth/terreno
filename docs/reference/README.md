@@ -18,5 +18,5 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 
 ## Other references
 
-- Root [package.json](../../package.json) — Workspace scripts and catalog
-- Per-package `package.json` — Commands and dependencies
+- Root [package.json](https://github.com/flourishhealth/terreno/blob/master/package.json) — Workspace scripts and catalog
+- Per-package `package.json` in each package directory — Commands and dependencies
