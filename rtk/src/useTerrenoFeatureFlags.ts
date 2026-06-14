@@ -1,6 +1,6 @@
 import {NOOP_PROVIDER, OpenFeature, TypedInMemoryProvider} from "@openfeature/web-sdk";
 import type {Api} from "@reduxjs/toolkit/query/react";
-import {useCallback, useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 
 /** Shape returned by `GET .../flagConfiguration` (OpenFeature static flag map). */
 export interface TerrenoFlagDefinition {
@@ -70,6 +70,9 @@ const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedTerrenoFlagsAp
 
 let terrenoOpenFeatureHookRefCount = 0;
 
+/** Last in-flight `setProviderAndWait` per OpenFeature domain (shared across hook instances). */
+const domainProviderSwitchPromises = new Map<string, Promise<void>>();
+
 /**
  * Wires Terreno's bulk `/flagConfiguration` fetch into OpenFeature's
  * {@link TypedInMemoryProvider} for the given domain. Prefer OpenFeature React
@@ -98,7 +101,6 @@ export const useTerrenoFeatureFlags = (
   } = useTerrenoFlagConfigurationQuery({cacheKey: userId ?? ""}, {skip});
 
   const [providerReady, setProviderReady] = useState<boolean>(skip);
-  const inFlightProviderSwitch = useRef<Promise<void> | null>(null);
   const client = useMemo(() => OpenFeature.getClient(domain), [domain]);
 
   useEffect(() => {
@@ -107,7 +109,13 @@ export const useTerrenoFeatureFlags = (
       terrenoOpenFeatureHookRefCount -= 1;
       if (terrenoOpenFeatureHookRefCount <= 0) {
         terrenoOpenFeatureHookRefCount = 0;
-        void OpenFeature.setProviderAndWait(domain, NOOP_PROVIDER);
+        void (async (): Promise<void> => {
+          const pending = domainProviderSwitchPromises.get(domain);
+          if (pending) {
+            await pending;
+          }
+          await OpenFeature.setProviderAndWait(domain, NOOP_PROVIDER);
+        })();
       }
     };
   }, [domain]);
@@ -135,19 +143,19 @@ export const useTerrenoFeatureFlags = (
     let cancelled = false;
 
     const applyProvider = async (): Promise<void> => {
-      const pending = inFlightProviderSwitch.current;
-      if (pending) {
-        await pending;
-      }
+      const pending = domainProviderSwitchPromises.get(domain);
       const run = (async (): Promise<void> => {
+        if (pending) {
+          await pending;
+        }
         await OpenFeature.setProviderAndWait(domain, new TypedInMemoryProvider(data));
       })();
-      inFlightProviderSwitch.current = run;
+      domainProviderSwitchPromises.set(domain, run);
       try {
         await run;
       } finally {
-        if (inFlightProviderSwitch.current === run) {
-          inFlightProviderSwitch.current = null;
+        if (domainProviderSwitchPromises.get(domain) === run) {
+          domainProviderSwitchPromises.delete(domain);
         }
       }
       if (!cancelled) {

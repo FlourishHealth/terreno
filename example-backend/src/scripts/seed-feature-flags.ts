@@ -94,6 +94,8 @@ export const seedFeatureFlags = async (): Promise<{results: string[]; success: b
             $cond: {
               else: {$ifNull: [{$arrayElemAt: ["$variants.key", 0]}, "off"]},
               if: {$eq: ["$type", "boolean"]},
+              // MongoDB `$cond` requires `then`; Biome treats bare `then` as Promise-like — suppress.
+              // biome-ignore lint/suspicious/noThenProperty: MongoDB aggregation $cond shape
               then: "off",
             },
           },
