@@ -116,7 +116,7 @@ jobs:
           force-avd-creation: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
-            bash -lc 'set -eu; cd demo; mkdir -p logs; NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --port 8085 > logs/expo-dev-server.log 2>&1 & for _ in $(seq 1 45); do if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then break; fi; sleep 2; done; if ! curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then echo "::error::Expo dev server did not start on port 8085"; exit 1; fi; adb reverse tcp:8085 tcp:8085; CI=true APPIUM_CI=true NODE_ENV=production APPIUM_DEV_SERVER_URL="http://localhost:8085" bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"'
+            bash -lc 'set -eu; cd demo; mkdir -p logs; NODE_ENV=development NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --port 8085 > logs/expo-dev-server.log 2>&1 & for _ in $(seq 1 45); do if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then break; fi; sleep 2; done; if ! curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then echo "::error::Expo dev server did not start on port 8085"; exit 1; fi; curl --silent --show-error --fail "http://127.0.0.1:8085/index.bundle?platform=android&dev=true&minify=false" -o logs/prewarm-android.bundle; adb reverse tcp:8085 tcp:8085; CI=true APPIUM_CI=true NODE_ENV=production APPIUM_DEV_SERVER_URL="http://localhost:8085" bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"'
         env:
           APPIUM_CI: "true"
           NODE_ENV: production
@@ -220,6 +220,8 @@ jobs:
             echo "::error::Expo dev server did not start on port 8085"
             exit 1
           fi
+
+          curl --silent --show-error --fail "http://127.0.0.1:8085/index.bundle?platform=ios&dev=true&minify=false" -o logs/prewarm-ios.bundle
 
           CI=true \
             APPIUM_CI=true \
