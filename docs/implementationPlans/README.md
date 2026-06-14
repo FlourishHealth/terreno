@@ -19,6 +19,7 @@ This directory contains detailed technical plans for major features **before imp
 - **[Offline Mode](offline-mode.md)** — Placeholder plan for offline queueing, replay, conflict handling, and UI surfaces
 - **[MCP Boost Parity](mcp-boost-parity.md)** — Docs search tools, local stdio MCP with runtime introspection, browser log capture, per-package guidelines, and upgrade prompts (inspired by laravel/boost)
 - **[Docs Site & Versioning](docs-site-and-versioning.md)** — Docusaurus site, versioned docs per release, UI demo embeds, and docs-maintenance skills
+- **[MMKV migration (AsyncStorage boot migration)](mmkv-asyncstorage-migration.md)** — Native MMKV for persist/preferences, idempotent one-time copy from AsyncStorage, web unchanged
 
 ## Status Tracking
 
