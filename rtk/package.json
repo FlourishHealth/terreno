@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@better-auth/expo": "^1.2.8",
+    "@openfeature/core": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
     "@reduxjs/toolkit": "^2.11.1",
     "@terreno/ui": "workspace:*",
@@ -22,6 +23,8 @@
   "description": "Redux Toolkit Query utilities for @terreno/api backends",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@openfeature/react-sdk": "catalog:",
+    "@openfeature/web-sdk": "catalog:",
     "@testing-library/react-native": "^13.2.0",
     "@types/bun": "^1.2.4",
     "@types/luxon": "catalog:",
@@ -50,6 +53,8 @@
   "main": "dist/index.js",
   "name": "@terreno/rtk",
   "peerDependencies": {
+    "@openfeature/react-sdk": "catalog:",
+    "@openfeature/web-sdk": "catalog:",
     "react": "catalog:"
   },
   "publishConfig": {

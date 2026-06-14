@@ -21,6 +21,8 @@ export type FeatureFlagDocument = mongoose.Document<mongoose.Types.ObjectId> & {
   key: string;
   name: string;
   description: string;
+  /** OpenFeature default variant key; see schema description on {@link FeatureFlag}. */
+  defaultVariant?: string;
   enabled: boolean;
   type: FeatureFlagType;
   variants: FeatureFlagVariant[];
@@ -38,6 +40,21 @@ export type FeatureFlagModel = mongoose.Model<FeatureFlagDocument> &
 
 export type SegmentFunction = (user: unknown) => boolean;
 
+/** Minimal Socket.io server shape for broadcasting flag change notifications. */
+export interface FeatureFlagsSocketEmitter {
+  emit(event: string, ...args: unknown[]): unknown;
+}
+
+export interface FeatureFlagsLiveUpdatesOptions {
+  /**
+   * Socket.io server (or a getter returning it once initialized). When null,
+   * live updates are skipped.
+   */
+  socketIoServer: FeatureFlagsSocketEmitter | (() => FeatureFlagsSocketEmitter | null);
+  /** Custom event name. Default: `featureFlagsChanged`. */
+  eventName?: string;
+}
+
 export interface FeatureFlagsOptions {
   basePath?: string;
   segments?: Record<string, SegmentFunction>;
@@ -54,6 +71,24 @@ export interface FeatureFlagsOptions {
    * to checking `user.admin === true` when not provided.
    */
   segmentsPermission?: (user: unknown) => boolean;
+  /** Optional Socket.io integration for live client refresh when flags change. */
+  liveUpdates?: FeatureFlagsLiveUpdatesOptions;
+  /**
+   * OpenFeature provider domain for {@link OpenFeature.setProvider}. Defaults
+   * to `"feature-flags"` so the global default provider is left untouched.
+   */
+  openFeatureDomain?: string;
 }
 
 export type EvaluationResult = Record<string, boolean | string | null>;
+
+/** One flag entry in the `/flagConfiguration` response (OpenFeature static shape). */
+export interface FlagDefinition {
+  variants: Record<string, boolean | string>;
+  disabled: boolean;
+  defaultVariant: string;
+}
+
+export interface FlagConfigurationResponse {
+  data: Record<string, FlagDefinition>;
+}
