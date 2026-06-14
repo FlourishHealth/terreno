@@ -65,6 +65,7 @@ research.md
 # Generated typedoc output (embeds commit SHA, causes noisy diffs)
 demo/ui-types-documentation.json
 mcp-server/src/docs/ui-types-documentation.json
+mcp-server/src/docs/versioned/
 
 # Generated docs site artifacts (built at site build time)
 docs/reference/components/*.mdx
