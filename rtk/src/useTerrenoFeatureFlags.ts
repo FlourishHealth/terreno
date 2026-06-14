@@ -68,7 +68,8 @@ const getEnhancedApi = (api: FlagsApi, basePath: string): EnhancedTerrenoFlagsAp
   return enhanced;
 };
 
-let terrenoOpenFeatureHookRefCount = 0;
+/** In-flight `useTerrenoFeatureFlags` instances per OpenFeature domain (for last-unmount NOOP cleanup). */
+const terrenoOpenFeatureHookRefCounts = new Map<string, number>();
 
 /** Last in-flight `setProviderAndWait` per OpenFeature domain (shared across hook instances). */
 const domainProviderSwitchPromises = new Map<string, Promise<void>>();
@@ -105,11 +106,13 @@ export const useTerrenoFeatureFlags = (
   const client = useMemo(() => OpenFeature.getClient(domain), [domain]);
 
   useEffect(() => {
-    terrenoOpenFeatureHookRefCount += 1;
+    const prev = terrenoOpenFeatureHookRefCounts.get(domain) ?? 0;
+    terrenoOpenFeatureHookRefCounts.set(domain, prev + 1);
     return (): void => {
-      terrenoOpenFeatureHookRefCount -= 1;
-      if (terrenoOpenFeatureHookRefCount <= 0) {
-        terrenoOpenFeatureHookRefCount = 0;
+      const current = terrenoOpenFeatureHookRefCounts.get(domain) ?? 0;
+      const next = current - 1;
+      if (next <= 0) {
+        terrenoOpenFeatureHookRefCounts.delete(domain);
         void (async (): Promise<void> => {
           const pending = domainProviderSwitchPromises.get(domain);
           if (pending) {
@@ -117,6 +120,8 @@ export const useTerrenoFeatureFlags = (
           }
           await OpenFeature.setProviderAndWait(domain, NOOP_PROVIDER);
         })();
+      } else {
+        terrenoOpenFeatureHookRefCounts.set(domain, next);
       }
     };
   }, [domain]);
