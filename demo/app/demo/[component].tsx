@@ -1,11 +1,11 @@
 import {ErrorBoundary} from "@components";
-import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
   DemoConfig,
   type DemoConfigStatus,
   type DemoConfiguration,
   type DemoConfigurationProp,
 } from "@config";
+import {useEmbedMode} from "@contexts/EmbedModeContext";
 import {
   Box,
   DataTable,
