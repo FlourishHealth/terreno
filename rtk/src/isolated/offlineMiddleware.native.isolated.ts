@@ -12,6 +12,7 @@ mock.module("../authSlice", () => ({
 mock.module("../constants", () => ({
   baseUrl: "http://localhost:4000",
   LOGOUT_ACTION_TYPE: "auth/logout",
+  TOKEN_REFRESHED_SUCCESS: "auth/tokenRefreshedSuccess",
 }));
 
 let networkListener: ((state: {isConnected?: boolean}) => void) | undefined;

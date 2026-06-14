@@ -10,18 +10,26 @@ import {
   dismissConflict,
   enqueue,
   markMutationAuthBlocked,
+  markMutationStatus,
   offlineReducer,
+  resolveConflictKeepMine,
+  resolveConflictUseServer,
+  resumeReplayAfterAuth,
   selectConflicts,
   selectConnectionQuality,
   selectIsOnline,
   selectIsOnlineSafe,
   selectIsReplayPausedForAuth,
   selectIsSyncing,
+  selectLastHealthCheck,
   selectOfflineQueue,
   selectQueueLength,
   selectUndismissedConflicts,
+  setConnectionQuality,
+  setHealthCheckSnapshot,
   setOnlineStatus,
   setSyncing,
+  updateQueuedMutation,
 } from "./offlineSlice";
 import {createTestConflictRecord, createTestQueuedMutation} from "./offlineTestUtils";
 
@@ -168,6 +176,22 @@ describe("offlineSlice", () => {
 
       expect(selectConflicts(store.getState())).toHaveLength(0);
     });
+
+    it("replaces an undismissed conflict that shares the same queue id", () => {
+      store.dispatch(addConflict(conflict1));
+      store.dispatch(
+        addConflict({
+          ...conflict1,
+          id: "c-replaced",
+          serverDocument: {_id: "123", title: "Newer server"},
+          serverValue: {_id: "123", title: "Newer server"},
+        })
+      );
+
+      const conflicts = selectConflicts(store.getState());
+      expect(conflicts).toHaveLength(1);
+      expect(conflicts[0].id).toBe("c-replaced");
+    });
   });
 
   describe("selectIsOnlineSafe", () => {
@@ -194,6 +218,132 @@ describe("offlineSlice", () => {
       store.dispatch(markMutationAuthBlocked());
       expect(selectIsReplayPausedForAuth(store.getState())).toBe(true);
       expect(selectOfflineQueue(store.getState())[0].status).toBe("authBlocked");
+    });
+
+    it("clears auth pause and restores queued status on resumeReplayAfterAuth", () => {
+      store.dispatch(
+        enqueue(
+          createTestQueuedMutation({
+            endpointName: "postTodos",
+            id: "auth-2",
+          })
+        )
+      );
+      store.dispatch(markMutationAuthBlocked());
+      store.dispatch(resumeReplayAfterAuth());
+
+      expect(selectIsReplayPausedForAuth(store.getState())).toBe(false);
+      expect(selectOfflineQueue(store.getState())[0].status).toBe("queued");
+    });
+  });
+
+  describe("mutation status and queue patches", () => {
+    const mutation1 = createTestQueuedMutation({
+      args: {body: {title: "Updated"}, id: "123"},
+      endpointName: "patchTodosById",
+      id: "m1",
+      operation: "update",
+      type: "update",
+    });
+
+    it("updates status and increments attempts via markMutationStatus", () => {
+      store.dispatch(enqueue(mutation1));
+      store.dispatch(markMutationStatus({id: "m1", status: "replaying"}));
+
+      const queued = selectOfflineQueue(store.getState())[0];
+      expect(queued.status).toBe("replaying");
+      expect(queued.attemptCount).toBe(1);
+    });
+
+    it("merges fields via updateQueuedMutation", () => {
+      store.dispatch(enqueue(mutation1));
+      store.dispatch(updateQueuedMutation({id: "m1", patch: {modelName: "CustomModel"}}));
+
+      expect(selectOfflineQueue(store.getState())[0].modelName).toBe("CustomModel");
+    });
+  });
+
+  describe("conflict resolution reducers", () => {
+    it("marks conflict dismissed and re-queues mutation on resolveConflictKeepMine", () => {
+      const queued = createTestQueuedMutation({
+        args: {body: {title: "Local"}, id: "99"},
+        endpointName: "patchTodosById",
+        id: "q-99",
+        operation: "update",
+        type: "update",
+      });
+      store.dispatch(enqueue(queued));
+      store.dispatch(
+        addConflict(
+          createTestConflictRecord({
+            id: "conf-99",
+            localArgs: queued.args,
+            queueId: "q-99",
+            serverDocument: {_id: "99", title: "Server"},
+            serverValue: {_id: "99", title: "Server"},
+          })
+        )
+      );
+
+      store.dispatch(
+        resolveConflictKeepMine({
+          conflictId: "conf-99",
+          serverUpdatedAt: "2026-05-20T10:00:00.000Z",
+        })
+      );
+
+      expect(selectConflicts(store.getState())[0].dismissed).toBe(true);
+      const after = selectOfflineQueue(store.getState())[0];
+      expect(after.status).toBe("queued");
+      expect(after.baseUpdatedAt).toBe("2026-05-20T10:00:00.000Z");
+    });
+
+    it("removes queued mutation on resolveConflictUseServer", () => {
+      const queued = createTestQueuedMutation({
+        args: {body: {title: "Local"}, id: "88"},
+        endpointName: "patchTodosById",
+        id: "q-88",
+        operation: "update",
+        type: "update",
+      });
+      store.dispatch(enqueue(queued));
+      store.dispatch(
+        addConflict(
+          createTestConflictRecord({
+            id: "conf-88",
+            localArgs: queued.args,
+            queueId: "q-88",
+            serverDocument: {_id: "88", title: "Server wins"},
+            serverValue: {_id: "88", title: "Server wins"},
+          })
+        )
+      );
+
+      store.dispatch(resolveConflictUseServer("conf-88"));
+
+      expect(selectOfflineQueue(store.getState())).toHaveLength(0);
+      expect(selectConflicts(store.getState())[0].dismissed).toBe(true);
+    });
+  });
+
+  describe("connection and health snapshot", () => {
+    it("sets arbitrary connection quality including spotty", () => {
+      store.dispatch(setConnectionQuality("spotty"));
+      expect(selectConnectionQuality(store.getState())).toBe("spotty");
+      expect(selectIsOnline(store.getState())).toBe(true);
+    });
+
+    it("records the latest health check snapshot", () => {
+      store.dispatch(
+        setHealthCheckSnapshot({
+          checkedAt: "2026-06-01T12:00:00.000Z",
+          consecutiveFailures: 2,
+          latencyMs: 42,
+          recentFailureRate: 0.25,
+        })
+      );
+
+      expect(selectLastHealthCheck(store.getState())?.latencyMs).toBe(42);
     });
   });
 
