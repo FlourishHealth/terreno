@@ -227,28 +227,19 @@ const openDemoDeepLink = async (componentName: string): Promise<void> => {
   });
 };
 
-const buildDevClientComponentUrl = (componentName: string): string => {
+const buildDevClientComponentUrl = (): string => {
   if (!appiumDevServerUrl || appiumDevServerUrl.length === 0) {
     throw new Error(
       "APPIUM_DEV_SERVER_URL must be set when running against a development client build (for example: http://127.0.0.1:8085)."
     );
   }
 
-  const normalizedUrl = appiumDevServerUrl.replace(/\/+$/, "");
-  const componentRoute = `demo/${encodeURIComponent(componentName)}`;
-  let projectUrl = "";
-
-  if (normalizedUrl.includes("/--")) {
-    projectUrl = `${normalizedUrl}/${componentRoute}`;
-  } else {
-    projectUrl = `${normalizedUrl}/--/${componentRoute}`;
-  }
-
+  const projectUrl = appiumDevServerUrl.replace(/\/+$/, "");
   return `${DEMO_DEEP_LINK_SCHEME}://expo-development-client/?url=${encodeURIComponent(projectUrl)}`;
 };
 
-const openDevClientComponentUrl = async (componentName: string): Promise<void> => {
-  const url = buildDevClientComponentUrl(componentName);
+const openDevClientComponentUrl = async (): Promise<void> => {
+  const url = buildDevClientComponentUrl();
   console.info(`Opening dev-client URL: ${url}`);
 
   if (driver.isAndroid) {
@@ -308,7 +299,7 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
   try {
     const didSelectServer = await selectDevServerFromIosLauncher();
     if (!didSelectServer) {
-      await openDevClientComponentUrl(componentName);
+      await openDevClientComponentUrl();
     }
     await driver.waitUntil(
       async () => {
