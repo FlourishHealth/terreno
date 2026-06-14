@@ -13,7 +13,7 @@ const DEMO_COMPONENT_TEST_IDS: Record<string, string> = {
 interface NavigationDiagnosticsOptions {
   componentName: string;
   error?: unknown;
-  stage: "deep-link-navigation" | "fallback-navigation" | "preflight";
+  stage: "deep-link-navigation" | "dev-launcher-bootstrap" | "fallback-navigation" | "preflight";
 }
 
 const DEV_LAUNCHER_MARKERS = [
@@ -25,6 +25,7 @@ const DEV_LAUNCHER_MARKERS = [
 
 const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
 const isCi = process.env.CI === "true";
+const appiumDevServerUrl = process.env.APPIUM_DEV_SERVER_URL?.trim();
 const shouldRequireNonDevClient = process.env.APPIUM_REQUIRE_NON_DEV_CLIENT === "true";
 const appiumLogsDir = join(process.cwd(), "logs");
 const appForegroundTimeoutMs = isQuickLoop ? 30000 : 60000;
@@ -226,6 +227,68 @@ const openDemoDeepLink = async (componentName: string): Promise<void> => {
   });
 };
 
+const buildDevClientComponentUrl = (componentName: string): string => {
+  if (!appiumDevServerUrl || appiumDevServerUrl.length === 0) {
+    throw new Error(
+      "APPIUM_DEV_SERVER_URL must be set when running against a development client build."
+    );
+  }
+
+  const normalizedUrl = appiumDevServerUrl.replace(/\/+$/, "");
+  const componentRoute = `demo/${encodeURIComponent(componentName)}`;
+  if (normalizedUrl.includes("/--")) {
+    return `${normalizedUrl}/${componentRoute}`;
+  }
+
+  return `${normalizedUrl}/--/${componentRoute}`;
+};
+
+const openDevClientComponentUrl = async (componentName: string): Promise<void> => {
+  const url = buildDevClientComponentUrl(componentName);
+  console.info(`Opening dev-client URL: ${url}`);
+
+  if (driver.isAndroid) {
+    await driver.execute("mobile: deepLink", {
+      url,
+      package: DEMO_APP_PACKAGE,
+    });
+    return;
+  }
+
+  await driver.execute("mobile: deepLink", {
+    url,
+    bundleId: DEMO_APP_BUNDLE_ID,
+  });
+};
+
+const ensureDevClientAppLoaded = async (componentName: string): Promise<void> => {
+  const isLauncherVisible = await isDevLauncherVisible();
+  if (!isLauncherVisible) {
+    return;
+  }
+
+  try {
+    await openDevClientComponentUrl(componentName);
+    await driver.waitUntil(
+      async () => {
+        return !(await isDevLauncherVisible());
+      },
+      {
+        interval: 1000,
+        timeout: isQuickLoop ? 45000 : 90000,
+        timeoutMsg: "Dev Launcher remained visible after opening APPIUM_DEV_SERVER_URL",
+      }
+    );
+  } catch (error) {
+    await captureNavigationDiagnostics({
+      componentName,
+      error,
+      stage: "dev-launcher-bootstrap",
+    });
+    throw error;
+  }
+};
+
 const scrollDemoHome = async (componentName: string): Promise<void> => {
   if (driver.isAndroid) {
     await driver.execute("mobile: scrollGesture", {
@@ -274,6 +337,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   }
 
   await waitForAppForeground();
+  await ensureDevClientAppLoaded(componentName);
   await ensureNotInDevLauncher(componentName);
   const target = await $(`~${testId}`);
 
