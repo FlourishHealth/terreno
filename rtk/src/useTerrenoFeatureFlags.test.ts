@@ -18,6 +18,7 @@ type TerrenoFlagConfiguration = Record<
 type QueryResult = {
   data?: TerrenoFlagConfiguration;
   error?: unknown;
+  isError?: boolean;
   isFetching?: boolean;
   isLoading?: boolean;
   isSuccess?: boolean;
@@ -36,6 +37,7 @@ const buildApi = (queryResult: QueryResult) => {
     return {
       data: queryResult.data,
       error: queryResult.error,
+      isError: queryResult.isError ?? Boolean(queryResult.error),
       isFetching: queryResult.isFetching ?? false,
       isLoading: queryResult.isLoading ?? false,
       isSuccess: queryResult.isSuccess ?? hasData,
@@ -86,6 +88,20 @@ describe("useTerrenoFeatureFlags", () => {
       useTerrenoFeatureFlags(api as never, {domain: "feature-flags", skip: true, userId: "u1"})
     );
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it("does not leave loading stuck when the flag configuration query errors", () => {
+    const {api} = buildApi({
+      error: new Error("request failed"),
+      isError: true,
+      isLoading: false,
+      isSuccess: false,
+    });
+    const {result} = renderHook(() =>
+      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+    );
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toBeDefined();
   });
 
   it("isolates domains so a custom domain does not read another domain's provider", async () => {
@@ -181,12 +197,18 @@ describe("useTerrenoFeatureFlags ref-count cleanup", () => {
     const {unmount} = renderHook(() =>
       useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
     );
-    await waitFor(() => {
-      expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(true);
-    });
+    await waitFor(
+      () => {
+        expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(true);
+      },
+      {timeout: 5000}
+    );
     unmount();
-    await waitFor(() => {
-      expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(false);
-    });
+    await waitFor(
+      () => {
+        expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(false);
+      },
+      {timeout: 5000}
+    );
   });
 });

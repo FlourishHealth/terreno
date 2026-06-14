@@ -94,6 +94,7 @@ export const useTerrenoFeatureFlags = (
   const {
     data,
     error,
+    isError,
     isFetching,
     isLoading: isQueryLoading,
     isSuccess,
@@ -191,6 +192,9 @@ export const useTerrenoFeatureFlags = (
     if (skip) {
       return false;
     }
+    if (isError) {
+      return false;
+    }
     if (!isSuccess || !data) {
       return true;
     }
@@ -201,7 +205,7 @@ export const useTerrenoFeatureFlags = (
       return true;
     }
     return false;
-  }, [data, isFetching, isQueryLoading, isSuccess, providerReady, skip]);
+  }, [data, isError, isFetching, isQueryLoading, isSuccess, providerReady, skip]);
 
   const stableRefetch = useCallback((): unknown => {
     return refetch();
