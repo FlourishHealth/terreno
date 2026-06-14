@@ -1,16 +1,18 @@
 import type express from "express";
 import type {Model, Schema} from "mongoose";
 
-import {asyncHandler} from "./api";
+import {asyncHandler, type RESTMethod} from "./api";
 import {authenticateMiddleware} from "./auth";
 import type {SecretFieldMeta} from "./configurationPlugin";
 import {APIError} from "./errors";
 import {logger} from "./logger";
+import {checkPermissions, type PermissionMethod} from "./permissions";
 import {getOpenApiSpecForModel} from "./populate";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 
 /**
- * Middleware that requires the user to be an admin.
+ * Middleware that requires the user to be an admin. Used as the default guard
+ * for every configuration route when no custom `permissions` are supplied.
  */
 const requireAdmin = (
   req: express.Request,
@@ -23,6 +25,29 @@ const requireAdmin = (
   }
   next();
 };
+
+/**
+ * Builds an Express middleware that AND-combines terreno permission functions
+ * (the same {@link PermissionMethod} contract used by `modelRouter`). The
+ * configuration singleton has no per-object ownership, so the loaded config
+ * document is passed as the permission object.
+ */
+const buildPermissionMiddleware = (
+  perms: PermissionMethod<unknown>[],
+  method: RESTMethod,
+  loadObj?: () => Promise<unknown>
+): express.RequestHandler =>
+  asyncHandler(async (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const obj = loadObj ? await loadObj() : undefined;
+    const allowed = await checkPermissions(method, perms, req.user, obj);
+    if (!allowed) {
+      throw new APIError({
+        status: 403,
+        title: "Access to configuration denied",
+      });
+    }
+    next();
+  });
 
 /**
  * Metadata for a single configuration field, sent to the frontend.
@@ -55,6 +80,54 @@ export interface ConfigurationMetaResponse {
 }
 
 /**
+ * Per-route permission overrides for ConfigurationApp. Each value is an array of
+ * terreno permission functions ({@link PermissionMethod}), AND-combined like
+ * `modelRouter` permissions. When a route is omitted, the default admin-only
+ * guard applies.
+ *
+ * @example
+ * ```typescript
+ * permissions: {
+ *   read: [IsStaff],
+ *   update: [IsSuperUser],
+ * }
+ * ```
+ */
+export interface ConfigurationPermissions {
+  /** Guards `GET {basePath}` (current values). */
+  read?: PermissionMethod<unknown>[];
+  /** Guards `PATCH {basePath}` (update values). */
+  update?: PermissionMethod<unknown>[];
+  /** Guards `GET {basePath}/meta` (schema metadata). */
+  meta?: PermissionMethod<unknown>[];
+  /** Guards `POST {basePath}/list-secrets` and `/validate-secrets`. */
+  listSecrets?: PermissionMethod<unknown>[];
+}
+
+/**
+ * Hook invoked before a configuration update is applied. Receives the incoming
+ * (already system-field- and secret-field-stripped) body and the request, and
+ * returns the body to apply. Use it to validate or normalize input. Throw an
+ * {@link APIError} to reject the update.
+ */
+export type ConfigurationPreUpdateHook = (
+  body: Record<string, unknown>,
+  req: express.Request
+) => Record<string, unknown> | Promise<Record<string, unknown>>;
+
+/**
+ * Hook invoked after a configuration update is applied. Receives the updated
+ * configuration and the previous value (both with secret values redacted) plus
+ * the request, enabling audit logging of who changed what. Secret values are
+ * never included.
+ */
+export type ConfigurationPostUpdateHook = (
+  config: Record<string, unknown>,
+  prevValue: Record<string, unknown>,
+  req: express.Request
+) => void | Promise<void>;
+
+/**
  * Options for ConfigurationApp.
  */
 export interface ConfigurationAppOptions {
@@ -65,6 +138,16 @@ export interface ConfigurationAppOptions {
   basePath?: string;
   /** Per-field widget overrides (e.g., {"ai.systemPrompt": "markdown"}). */
   fieldOverrides?: Record<string, {widget?: string}>;
+  /**
+   * Per-route permission overrides. Defaults to admin-only for every route when
+   * omitted. Supply terreno permission functions (e.g. `[IsStaff]`) to expose
+   * configuration to a consumer's own permission system.
+   */
+  permissions?: ConfigurationPermissions;
+  /** Hook run before an update is applied (validation/normalization). */
+  preUpdate?: ConfigurationPreUpdateHook;
+  /** Hook run after an update is applied (audit logging). */
+  postUpdate?: ConfigurationPostUpdateHook;
 }
 
 /**
@@ -153,6 +236,41 @@ const redactSecrets = (
 };
 
 /**
+ * Removes secret field values from an incoming update body so a secret value can
+ * never be written to the configuration document through the update path.
+ * Copies nodes along each secret path to avoid mutating the caller's object.
+ */
+const stripSecretFields = (
+  obj: Record<string, unknown>,
+  secretFields: SecretFieldMeta[]
+): Record<string, unknown> => {
+  const stripped: Record<string, unknown> = {...obj};
+  for (const field of secretFields) {
+    const parts = field.path.split(".");
+    let current: Record<string, unknown> | null = stripped;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current) {
+        break;
+      }
+      const part = parts[i];
+      const nested = current[part];
+      if (nested != null && typeof nested === "object") {
+        const copy = {...(nested as Record<string, unknown>)};
+        current[part] = copy;
+        current = copy;
+      } else {
+        current = null;
+        break;
+      }
+    }
+    if (current != null) {
+      delete current[parts[parts.length - 1]];
+    }
+  }
+  return stripped;
+};
+
+/**
  * Converts a camelCase or PascalCase string into a display-friendly title.
  */
 const toDisplayName = (name: string): string => {
@@ -167,11 +285,21 @@ const toDisplayName = (name: string): string => {
  *
  * Inspects the Mongoose configuration model to auto-generate:
  * - `GET {basePath}/meta` — Schema metadata (sections, fields, types, descriptions)
- * - `GET {basePath}` — Current configuration values
- * - `PATCH {basePath}` — Update configuration values
- * - `POST {basePath}/refresh-secrets` — Trigger secret refresh (if provider configured)
+ * - `GET {basePath}` — Current configuration values (secret values redacted)
+ * - `PATCH {basePath}` — Update configuration values (secret fields stripped; never written)
+ * - `POST {basePath}/list-secrets` (alias `POST {basePath}/validate-secrets`) —
+ *   Read-only status of each secret field (whether the provider can resolve it).
+ *   This endpoint never resolves values into the document and returns no secret values.
  *
- * All endpoints require `Permissions.IsAdmin`.
+ * By default all endpoints require `Permissions.IsAdmin`. Supply `permissions`
+ * to gate routes with a consumer's own permission functions, and `preUpdate`/
+ * `postUpdate` hooks to validate and audit-log changes. This makes
+ * `ConfigurationApp` suitable as a single, consumer-owned configuration surface
+ * that can replace a bespoke config router.
+ *
+ * Secret values never touch the database, logs, audit payloads, or API
+ * responses: secret fields are stripped from incoming updates and redacted on
+ * every read.
  *
  * Nested subschemas in the model become separate sections in the metadata,
  * making them renderable as cards/accordions in the admin UI.
@@ -193,7 +321,10 @@ const toDisplayName = (name: string): string => {
  * const AppConfig = mongoose.model("AppConfig", configSchema);
  *
  * new TerrenoApp({ userModel: User })
- *   .configure(AppConfig)
+ *   .configure(AppConfig, {
+ *     permissions: {read: [IsStaff], update: [IsSuperUser]},
+ *     postUpdate: (config, prevValue, req) => auditLog(req.user, prevValue, config),
+ *   })
  *   .start();
  * ```
  */
@@ -202,6 +333,21 @@ export class ConfigurationApp implements TerrenoPlugin {
 
   constructor(options: ConfigurationAppOptions) {
     this.options = options;
+  }
+
+  /**
+   * Resolves the guard middleware for a route: the consumer's terreno permission
+   * functions when supplied, otherwise the default admin-only guard.
+   */
+  private guardFor(
+    route: keyof ConfigurationPermissions,
+    method: RESTMethod
+  ): express.RequestHandler {
+    const perms = this.options.permissions?.[route];
+    if (perms && perms.length > 0) {
+      return buildPermissionMiddleware(perms, method);
+    }
+    return requireAdmin;
   }
 
   register(app: express.Application): void {
@@ -216,7 +362,7 @@ export class ConfigurationApp implements TerrenoPlugin {
     app.get(
       `${basePath}/meta`,
       authenticateMiddleware(),
-      requireAdmin,
+      this.guardFor("meta", "read"),
       (_req: express.Request, res: express.Response) => {
         return res.json(meta);
       }
@@ -239,7 +385,7 @@ export class ConfigurationApp implements TerrenoPlugin {
     app.get(
       `${basePath}`,
       authenticateMiddleware(),
-      requireAdmin,
+      this.guardFor("read", "read"),
       asyncHandler(async (_req: express.Request, res: express.Response) => {
         const config = await ConfigStatics.getConfig();
         const data = redactSecrets(config.toJSON(), secretFields);
@@ -247,44 +393,78 @@ export class ConfigurationApp implements TerrenoPlugin {
       })
     );
 
-    // PATCH /configuration — update values (secrets redacted in response)
+    // PATCH /configuration — update values (secret fields stripped; secrets redacted in response)
     app.patch(
       `${basePath}`,
       authenticateMiddleware(),
-      requireAdmin,
+      this.guardFor("update", "update"),
       asyncHandler(async (req: express.Request, res: express.Response) => {
-        // Strip internal system fields that should never be updated via the API
-        const {_singleton: _s, _id: _i, __v: _v, ...safeBody} = req.body;
+        // Strip internal system fields that should never be updated via the API.
+        const {_singleton: _s, _id: _i, __v: _v, ...rest} = req.body;
+        // Strip secret fields so a secret value can never be persisted via update.
+        let safeBody = stripSecretFields(rest, secretFields);
+
+        // Allow consumers to validate/normalize before applying.
+        if (this.options.preUpdate) {
+          safeBody = await this.options.preUpdate(safeBody, req);
+        }
+
+        // Capture the previous (redacted) value for audit hooks.
+        let prevValue: Record<string, unknown> = {};
+        if (this.options.postUpdate) {
+          const before = await ConfigStatics.getConfig();
+          prevValue = redactSecrets(before.toJSON(), secretFields);
+        }
+
         const config = await ConfigStatics.updateConfig(safeBody);
         logger.info(`Configuration updated by ${req.user?.email ?? "unknown"}`);
         const data = redactSecrets(config.toJSON(), secretFields);
+
+        if (this.options.postUpdate) {
+          await this.options.postUpdate(data, prevValue, req);
+        }
+
         return res.json({data});
       })
     );
 
-    // POST /configuration/list-secrets — list secret fields and optionally resolve from provider
+    // POST /configuration/list-secrets — read-only status of each secret field.
+    // Never resolves values into the document and never returns secret values.
+    const validateSecretsHandler = asyncHandler(
+      async (_req: express.Request, res: express.Response) => {
+        // In-memory resolution only — used to report whether each secret is
+        // configured/resolvable. Values are never persisted or returned.
+        const resolved: Map<string, string> = await ConfigStatics.resolveSecrets();
+        const fields = secretFields.map((s) => ({
+          isConfigured: resolved.has(s.path),
+          path: s.path,
+          resolvable: resolved.has(s.path),
+          secretName: s.secretName,
+          version: s.version,
+        }));
+        logger.info(`Validated ${resolved.size}/${secretFields.length} secrets (read-only)`);
+
+        return res.json({
+          message: `${resolved.size}/${secretFields.length} secrets resolvable.`,
+          resolved: resolved.size,
+          secretFields: fields,
+          total: secretFields.length,
+        });
+      }
+    );
+
     app.post(
       `${basePath}/list-secrets`,
       authenticateMiddleware(),
-      requireAdmin,
-      asyncHandler(async (_req: express.Request, res: express.Response) => {
-        const resolved: Map<string, string> = await ConfigStatics.resolveSecrets();
-        if (resolved.size > 0) {
-          const updates: Record<string, unknown> = {};
-          for (const [path, value] of resolved) {
-            updates[path] = value;
-          }
-          await ConfigStatics.updateConfig(updates);
-          logger.info(`Refreshed ${resolved.size}/${secretFields.length} secrets`);
-        }
-
-        return res.json({
-          message: `Resolved ${resolved.size}/${secretFields.length} secrets.`,
-          resolved: resolved.size,
-          secretFields: secretFields.map((s) => ({path: s.path, secretName: s.secretName})),
-          total: secretFields.length,
-        });
-      })
+      this.guardFor("listSecrets", "read"),
+      validateSecretsHandler
+    );
+    // Accurate alias for the read-only validation semantics.
+    app.post(
+      `${basePath}/validate-secrets`,
+      authenticateMiddleware(),
+      this.guardFor("listSecrets", "read"),
+      validateSecretsHandler
     );
 
     logger.info(`Configuration routes mounted at ${basePath}`);
