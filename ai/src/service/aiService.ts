@@ -24,6 +24,7 @@ import type {
   SummaryOptions,
   TranslateOptions,
 } from "../types";
+import {normalizeLlmJsonTextForStructuredOutput} from "./parseAiJson";
 import {
   CONTENT_SUMMARY_PROMPT,
   DEFAULT_GPT_MEMORY,
@@ -42,19 +43,9 @@ export const TemperaturePresets = {
 } as const;
 
 /**
- * Strips leading/trailing markdown fences (including ```json, ```json:, and other ```lang
- * prefixes) so structured JSON parsing succeeds when models wrap the payload.
- */
-const stripJsonMarkdownFenceText = (text: string): string => {
-  let t = text.trim();
-  t = t.replace(/^```[a-zA-Z0-9_-]*\s*:?\s*\n?/, "");
-  t = t.replace(/\n?```\s*$/m, "").trim();
-  return t;
-};
-
-/**
- * Wraps a language model so non-streaming `doGenerate` text parts are passed through
- * {@link stripJsonMarkdownFenceText} before structured-output parsing (models often wrap JSON in ``` fences).
+ * Wraps a language model so non-streaming `doGenerate` text parts are normalized via
+ * {@link normalizeLlmJsonTextForStructuredOutput} (fences, preamble, balanced slice, light repairs)
+ * before Vercel `Output.*` parsing.
  */
 const withStrippedJsonFencesModel = (model: LanguageModel): LanguageModel => {
   if (typeof model === "string") {
@@ -89,7 +80,7 @@ const withStrippedJsonFencesModel = (model: LanguageModel): LanguageModel => {
 
               return {
                 ...part,
-                text: stripJsonMarkdownFenceText(part.text),
+                text: normalizeLlmJsonTextForStructuredOutput(part.text),
               };
             }),
           };

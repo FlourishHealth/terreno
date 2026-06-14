@@ -5,6 +5,8 @@ export {FileStorageService} from "./fileStorage";
 export type {ListGeminiApiModelsOptions} from "./gemini";
 export {GEMINI_API_BASE_URL, listGeminiApiModels, normalizeGeminiModelId} from "./gemini";
 export {MCPService} from "./mcpService";
+export type {ParseFailure, ParseResult, ParseSuccess} from "./parseAiJson";
+export {normalizeLlmJsonTextForStructuredOutput, parseAiJson} from "./parseAiJson";
 export {
   CONTENT_SUMMARY_PROMPT,
   DEFAULT_GPT_MEMORY,
