@@ -112,31 +112,7 @@ jobs:
           force-avd-creation: true
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -camera-front none
           script: |
-            set -eu
-            cd demo
-            mkdir -p logs
-            NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --localhost --non-interactive --port 8085 > logs/expo-dev-server.log 2>&1 &
-            EXPO_DEV_SERVER_PID=$!
-            cleanup() {
-              kill "$EXPO_DEV_SERVER_PID" >/dev/null 2>&1 || true
-            }
-            trap cleanup EXIT
-
-            expo_server_ready=false
-            for _ in $(seq 1 45); do
-              if curl --silent --fail "http://127.0.0.1:8085" >/dev/null; then
-                expo_server_ready=true
-                break
-              fi
-              sleep 2
-            done
-
-            if [ "$expo_server_ready" != "true" ]; then
-              echo "::error::Expo dev server did not start on port 8085"
-              exit 1
-            fi
-
-            CI=true APPIUM_CI=true NODE_ENV=production APPIUM_DEV_SERVER_URL="exp://10.0.2.2:8085" bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"
+            bash -lc 'set -eu; cd demo; mkdir -p logs; NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --localhost --port 8085 > logs/expo-dev-server.log 2>&1 & for _ in $(seq 1 45); do if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then break; fi; sleep 2; done; if ! curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then echo "::error::Expo dev server did not start on port 8085"; exit 1; fi; CI=true APPIUM_CI=true NODE_ENV=production APPIUM_DEV_SERVER_URL="exp://10.0.2.2:8085" bun run "appium:test:ci:android:${APPIUM_RUN_MODE}"'
         env:
           APPIUM_CI: "true"
           NODE_ENV: production
@@ -216,7 +192,7 @@ jobs:
           fi
           cd demo
           mkdir -p logs
-          NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --localhost --non-interactive --port 8085 > logs/expo-dev-server.log 2>&1 &
+          NODE_OPTIONS=--openssl-legacy-provider bunx expo start --dev-client --localhost --port 8085 > logs/expo-dev-server.log 2>&1 &
           EXPO_DEV_SERVER_PID=$!
           cleanup() {
             kill "$EXPO_DEV_SERVER_PID" >/dev/null 2>&1 || true
@@ -225,7 +201,7 @@ jobs:
 
           expo_server_ready=false
           for _ in $(seq 1 45); do
-            if curl --silent --fail "http://127.0.0.1:8085" >/dev/null; then
+            if curl --silent --fail "http://127.0.0.1:8085/status" >/dev/null; then
               expo_server_ready=true
               break
             fi
