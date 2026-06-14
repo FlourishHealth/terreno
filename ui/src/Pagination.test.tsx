@@ -84,6 +84,16 @@ describe("Pagination", () => {
     expect(toJSON()).toMatchSnapshot();
   });
 
+  it("renders correctly when on the very last page of a large set", () => {
+    const {toJSON} = renderWithTheme(<Pagination page={20} setPage={() => {}} totalPages={20} />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders correctly when two pages before the last", () => {
+    const {toJSON} = renderWithTheme(<Pagination page={18} setPage={() => {}} totalPages={20} />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
   it("renders 'more' button for large page sets without throwing when pressed", () => {
     const handleSetPage = mock((_page: number) => {});
     const {UNSAFE_getAllByProps} = renderWithTheme(

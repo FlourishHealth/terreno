@@ -1,0 +1,20 @@
+{
+  "name": "terreno",
+  "displayName": "Terreno",
+  "description": "Rules and agent skills for developing in the Terreno monorepo (React Native, Express, Mongoose, and shared packages).",
+  "version": "1.0.0",
+  "author": {
+    "name": "Terreno"
+  },
+  "keywords": [
+    "terreno",
+    "react-native",
+    "expo",
+    "express",
+    "mongoose",
+    "redux-toolkit",
+    "openapi"
+  ],
+  "rules": ".cursor/rules",
+  "skills": ".cursor/skills"
+}

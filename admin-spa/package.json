@@ -1,0 +1,105 @@
+{
+  "author": "Josh Gachnang",
+  "bugs": {
+    "url": "https://github.com/FlourishHealth/terreno/issues"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "catalog:",
+    "@react-native-async-storage/async-storage": "catalog:",
+    "@react-navigation/native": "catalog:",
+    "@reduxjs/toolkit": "catalog:",
+    "@terreno/admin-frontend": "workspace:*",
+    "@terreno/rtk": "workspace:*",
+    "@terreno/ui": "workspace:*",
+    "better-auth": "^1.2.8",
+    "express": "^5.2.1",
+    "expo": "catalog:",
+    "expo-constants": "catalog:",
+    "expo-font": "catalog:",
+    "expo-linking": "catalog:",
+    "expo-router": "catalog:",
+    "expo-splash-screen": "catalog:",
+    "expo-status-bar": "catalog:",
+    "http-proxy-middleware": "^3.0.3",
+    "luxon": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-native": "catalog:",
+    "react-native-gesture-handler": "catalog:",
+    "react-native-reanimated": "catalog:",
+    "react-native-safe-area-context": "catalog:",
+    "react-native-screens": "catalog:",
+    "react-native-web": "catalog:",
+    "react-native-worklets": "catalog:",
+    "react-redux": "catalog:",
+    "redux-persist": "catalog:"
+  },
+  "description": "Opt-in admin SPA (Expo Router web app) plus an Express plugin that serves it from a Terreno backend",
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@playwright/test": "^1.58.2",
+    "@terreno/api": "workspace:*",
+    "@types/bun": "^1.2.4",
+    "@types/express": "^5.0.6",
+    "@types/luxon": "catalog:",
+    "@types/react": "catalog:",
+    "@types/supertest": "^6.0.2",
+    "babel-preset-expo": "~54.0.10",
+    "supertest": "^7.0.0",
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/dist/index.d.ts",
+      "default": "./src/dist/index.js"
+    },
+    "./serve": {
+      "types": "./src/dist/index.d.ts",
+      "default": "./src/dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src/dist/**",
+    "dist/**"
+  ],
+  "homepage": "https://github.com/FlourishHealth/terreno#readme",
+  "keywords": [
+    "admin",
+    "api",
+    "expo",
+    "express",
+    "spa",
+    "terreno"
+  ],
+  "license": "Apache-2.0",
+  "main": "expo-router/entry",
+  "name": "@terreno/admin-spa",
+  "peerDependencies": {
+    "@terreno/api": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/FlourishHealth/terreno.git"
+  },
+  "scripts": {
+    "build:web": "expo export --platform web --output-dir dist",
+    "compile": "tsc -p tsconfig.server.json",
+    "compile:watch": "tsc -p tsconfig.server.json -w",
+    "dev": "expo start --web --port 8083",
+    "lint": "biome check ./src ./app ./store ./components ./e2e playwright.config.ts playwright.integration.config.ts",
+    "lint:fix": "biome check --write ./src ./app ./store ./components ./e2e playwright.config.ts playwright.integration.config.ts",
+    "smoke": "bun e2e/smoke.ts",
+    "start": "expo start",
+    "test": "bun test ./src",
+    "test:ci": "bun test ./src",
+    "test:e2e": "playwright test",
+    "test:integration": "playwright test --config playwright.integration.config.ts",
+    "web": "expo start --web --port 8083"
+  },
+  "types": "./src/dist/index.d.ts",
+  "version": "0.18.0"
+}

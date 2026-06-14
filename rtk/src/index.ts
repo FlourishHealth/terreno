@@ -16,6 +16,7 @@ export * from "./offline/useOfflineStatus";
 export * from "./offline/useServerStatus";
 export * from "./platform";
 export * from "./realtime";
+export * from "./sessionApi";
 export * from "./socket";
 export * from "./sync";
 export * from "./tagGenerator";

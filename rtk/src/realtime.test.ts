@@ -2,7 +2,9 @@
 import {afterEach, describe, expect, it} from "bun:test";
 import type {Socket} from "socket.io-client";
 
-const {realtimeDocument, realtimeList, setRealtimeSocket} = await import("./realtime");
+const {getRealtimeSocket, realtimeDocument, realtimeList, setRealtimeSocket} = await import(
+  "./realtime"
+);
 
 interface MockSocket {
   emitted: Array<{event: string; payload: any}>;
@@ -400,5 +402,30 @@ describe("realtimeList", () => {
       setRealtimeDebug(false);
       console.info = originalInfo;
     }
+  });
+});
+
+describe("getRealtimeSocket", () => {
+  afterEach(() => {
+    setRealtimeSocket(null);
+  });
+
+  it("returns null when no socket has been set", () => {
+    setRealtimeSocket(null);
+    expect(getRealtimeSocket()).toBeNull();
+  });
+
+  it("returns the socket after setRealtimeSocket is called", () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    expect(getRealtimeSocket()).toBe(socket as unknown as Socket);
+  });
+
+  it("returns null after socket is cleared", () => {
+    const socket = createMockSocket();
+    setRealtimeSocket(socket as unknown as Socket);
+    expect(getRealtimeSocket()).toBe(socket as unknown as Socket);
+    setRealtimeSocket(null);
+    expect(getRealtimeSocket()).toBeNull();
   });
 });

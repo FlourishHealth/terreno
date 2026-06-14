@@ -1,6 +1,7 @@
 import type React from "react";
-import {Pressable, View} from "react-native";
+import {Pressable} from "react-native";
 
+import {Box} from "./Box";
 import type {DismissButtonProps} from "./Common";
 import {Icon} from "./Icon";
 
@@ -23,9 +24,9 @@ export const DismissButton = ({
         width: 24.5,
       }}
     >
-      <View>
+      <Box>
         <Icon color={color} iconName="x" type="solid" />
-      </View>
+      </Box>
     </Pressable>
   );
 };

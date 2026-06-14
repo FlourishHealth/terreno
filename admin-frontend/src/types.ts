@@ -106,18 +106,64 @@ export interface BackgroundTask {
   updated: string;
 }
 
+/**
+ * Common props for admin screens.
+ *
+ * The admin panel separates two distinct concepts:
+ * - `apiBase`: the base path where JSON/API requests are sent (e.g. "/admin").
+ * - `routeBase`: the base path used for in-app navigation (e.g. "/admin" when mounted
+ *   inside an app, or "" for a standalone admin SPA whose navigation stays at its root).
+ *
+ * `baseUrl` is a backward-compatible alias: when only `baseUrl` is provided it is used
+ * for BOTH the API base and the route base, preserving the original behavior. When
+ * `apiBase`/`routeBase` are provided they take precedence over `baseUrl`. Use
+ * {@link resolveAdminBases} to resolve the effective bases.
+ */
 export interface AdminScreenProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase` and `routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where JSON/API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
 }
 
 /**
+ * Resolves the effective API and route bases from the (optional) `baseUrl`, `apiBase`,
+ * and `routeBase` props. When only `baseUrl` is provided, both resolved bases equal it,
+ * preserving the original single-prop behavior.
+ */
+export const resolveAdminBases = ({
+  baseUrl,
+  apiBase,
+  routeBase,
+}: {
+  baseUrl?: string;
+  apiBase?: string;
+  routeBase?: string;
+}): {apiBase: string; routeBase: string} => {
+  return {
+    apiBase: apiBase ?? baseUrl ?? "",
+    routeBase: routeBase ?? baseUrl ?? "",
+  };
+};
+
+/**
  * Props passed to a custom ref-field renderer. Matches AdminRefField's interface so a
  * custom renderer is a drop-in replacement.
+ *
+ * `routePath` is the API path used to fetch reference options (e.g. "/admin/users").
+ * `routeBase` is the base path for in-app navigation to the referenced item.
  */
 export interface RefFieldRendererProps {
   api: AdminApi;
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where JSON/API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   routePath: string;
   refModelName: string;
   title: string;

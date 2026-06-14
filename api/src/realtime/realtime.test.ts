@@ -1776,6 +1776,17 @@ describe("startChangeStreamWatcher", () => {
     };
   };
 
+  const invokeRegisteredChangeHandler = async (
+    mockStream: ReturnType<typeof createMockChangeStream>,
+    event: Record<string, unknown>
+  ): Promise<void> => {
+    const changeHandler = mockStream.listeners.get("change");
+    if (!changeHandler) {
+      throw new Error("expected change handler");
+    }
+    await changeHandler(event);
+  };
+
   const createMockIo = () => {
     const rooms = new Map<string, Set<string>>();
     const sockets = new Map<string, any>();
@@ -1864,12 +1875,7 @@ describe("startChangeStreamWatcher", () => {
     startChangeStreamWatcher(io, {}, true);
 
     // Trigger an insert change event
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Test Todo"},
       ns: {coll: "todos"},
@@ -1889,13 +1895,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Trigger for an unregistered collection — should not throw
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1"},
       ns: {coll: "unknown_collection"},
@@ -1934,13 +1935,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Update event should be skipped because "update" not in methods
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Updated"},
       ns: {coll: "todos"},
@@ -1980,13 +1976,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Hard delete (no fullDocument)
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {coll: "todos"},
       operationType: "delete",
@@ -2024,13 +2015,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Hard delete for broadcast strategy
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {coll: "broadcasts"},
       operationType: "delete",
@@ -2068,12 +2054,7 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Updated", status: "done"},
       ns: {coll: "todos"},
@@ -2133,13 +2114,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {ignoredOperations: ["insert"]}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // This insert should be skipped because "insert" is ignored
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1"},
       ns: {coll: "todos"},
@@ -2159,19 +2135,14 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Missing ns.coll
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       ns: {},
       operationType: "insert",
     });
     // Missing documentKey
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {},
       ns: {coll: "todos"},
       operationType: "insert",
@@ -2190,13 +2161,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // "drop" is not in our pipeline filter, should be skipped
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       operationType: "drop",
     });
   });
@@ -2292,13 +2258,8 @@ describe("startChangeStreamWatcher", () => {
 
     startChangeStreamWatcher(io, {}, true);
 
-    const changeHandler = mockStream.listeners.get("change");
-    expect(changeHandler).toBeDefined();
-    if (!changeHandler) {
-      return;
-    }
     // Should not throw even though permission check throws
-    await changeHandler({
+    await invokeRegisteredChangeHandler(mockStream, {
       documentKey: {_id: "doc-1"},
       fullDocument: {_id: "doc-1", name: "Test"},
       ns: {coll: "todos"},

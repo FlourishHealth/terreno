@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {Headings, renderHeadingText} from "@stories";
+import {HeadingPreview, Headings, renderHeadingText} from "@stories";
 import {HeadingProps} from "@terreno/ui";
 
 export const HeadingConfiguration: DemoConfiguration = {
@@ -24,9 +24,12 @@ export const HeadingConfiguration: DemoConfiguration = {
     doNot: [],
   },
   props: {},
-  demo: (props: HeadingProps & {text: string}) => {
-    const {text, ...rest} = props;
-    return renderHeadingText(text, rest);
+  demo: (props: HeadingProps & {text?: string; preview?: boolean}) => {
+    if (props.preview) {
+      return <HeadingPreview />;
+    }
+    const {text, preview: _preview, ...rest} = props;
+    return renderHeadingText(text ?? "Heading", rest);
   },
   demoOptions: {},
   stories: {
