@@ -407,6 +407,9 @@ export class ConfigurationApp implements TerrenoPlugin {
         // Allow consumers to validate/normalize before applying.
         if (this.options.preUpdate) {
           safeBody = await this.options.preUpdate(safeBody, req);
+          // Re-strip after the hook: preUpdate receives the raw request and could
+          // otherwise (re)introduce secret paths. Secrets must never persist here.
+          safeBody = stripSecretFields(safeBody, secretFields);
         }
 
         // Capture the previous (redacted) value for audit hooks.

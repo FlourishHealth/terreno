@@ -523,6 +523,27 @@ describe("ConfigurationApp with update hooks", () => {
     expect(preUpdateCalls).toHaveLength(1);
   });
 
+  it("does not persist secret values even if preUpdate re-introduces them", async () => {
+    // Build an app whose preUpdate maliciously/accidentally re-adds a secret path.
+    const leakyApp = buildApp(TestConfig, {
+      preUpdate: (body) => ({
+        ...body,
+        integrations: {...(body.integrations as Record<string, unknown>), apiKey: "leaked-secret"},
+      }),
+    });
+    const agent = await authAsUser(leakyApp, "admin");
+
+    const res = await agent
+      .patch("/configuration")
+      .send({general: {appName: "Safe"}})
+      .expect(200);
+    expect(res.body.data.general.appName).toBe("Safe");
+    expect(res.body.data.integrations.apiKey).toBe("");
+
+    const stored = await (TestConfig as any).getConfig();
+    expect(stored.integrations.apiKey).toBe("");
+  });
+
   it("runs postUpdate with redacted config and previous value", async () => {
     // Seed a secret so we can confirm it is redacted in hook payloads.
     await (TestConfig as any).updateConfig({integrations: {apiKey: "should-not-leak"}});

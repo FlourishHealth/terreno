@@ -83,6 +83,19 @@ softDeleteSchema.plugin(configurationPlugin);
 softDeleteSchema.plugin(isDeletedPlugin);
 const SoftDeleteConfigModel = model("SoftDeleteConfiguration", softDeleteSchema) as any;
 
+// --- Schema with a validated field (enum) for runValidators coverage ---
+
+const validatedSchema = new Schema({
+  level: {
+    default: "low",
+    description: "Severity level",
+    enum: ["low", "medium", "high"],
+    type: String,
+  },
+});
+validatedSchema.plugin(configurationPlugin);
+const ValidatedConfigModel = model("ValidatedConfiguration", validatedSchema) as any;
+
 describe("configurationPlugin", () => {
   describe("schema setup", () => {
     it("does not add a _singleton index by default", () => {
@@ -327,6 +340,22 @@ describe("configurationPlugin", () => {
       }
       const config = await SimpleConfigModel.updateConfig({value: "custom"});
       expect(config.value).toBe("custom");
+    });
+
+    it("runs schema validators on updateConfig (rejects invalid enum)", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      try {
+        await ValidatedConfigModel.collection.drop();
+      } catch {
+        // Collection may not exist yet
+      }
+      await ValidatedConfigModel.getConfig();
+      await expect(ValidatedConfigModel.updateConfig({level: "bogus"})).rejects.toThrow();
+      // A valid value still applies.
+      const ok = await ValidatedConfigModel.updateConfig({level: "high"});
+      expect(ok.level).toBe("high");
     });
 
     it("prevents deleteOne", async () => {

@@ -337,7 +337,15 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
       return (this as unknown as ConfigurationModel<Record<string, unknown>>).getConfig();
     }
 
-    const updated = await this.findOneAndUpdate(singletonFilter, {$set: setFields}, {new: true});
+    // runValidators keeps schema validation (enum/min/custom validators) on the
+    // patched paths, matching the prior doc.save() behavior. Legacy/out-of-schema
+    // fields already on the document are untouched (not in $set), so they are not
+    // re-validated.
+    const updated = await this.findOneAndUpdate(
+      singletonFilter,
+      {$set: setFields},
+      {new: true, runValidators: true}
+    );
     if (updated) {
       return updated;
     }
@@ -345,7 +353,11 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
     // No singleton yet — create one (with subdocument defaults applied), then
     // apply the patch.
     await (this as unknown as ConfigurationModel<Record<string, unknown>>).getConfig();
-    return this.findOneAndUpdate(singletonFilter, {$set: setFields}, {new: true}).orFail();
+    return this.findOneAndUpdate(
+      singletonFilter,
+      {$set: setFields},
+      {new: true, runValidators: true}
+    ).orFail();
   };
 
   // Static: discover secret fields from schema options
