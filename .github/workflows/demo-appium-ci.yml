@@ -87,6 +87,10 @@ jobs:
         run: bun run compile
         working-directory: ui
 
+      - name: Generate UI type documentation
+        run: bun run types
+        working-directory: ui
+
       - name: Download latest Android build from EAS
         run: bun appium/downloadLatestEasBuild.ts --platform android --profile "$APPIUM_ANDROID_EAS_PROFILE" --fallback-profile "$APPIUM_ANDROID_EAS_FALLBACK_PROFILE" --env-file "$GITHUB_ENV"
         working-directory: demo
@@ -169,6 +173,10 @@ jobs:
 
       - name: Build UI dependency
         run: bun run compile
+        working-directory: ui
+
+      - name: Generate UI type documentation
+        run: bun run types
         working-directory: ui
 
       - name: Download latest iOS simulator build from EAS
