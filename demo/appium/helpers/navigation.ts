@@ -265,6 +265,40 @@ const openDevClientComponentUrl = async (componentName: string): Promise<void> =
   });
 };
 
+const getDevServerOriginLabel = (): string => {
+  if (!appiumDevServerUrl || appiumDevServerUrl.length === 0) {
+    throw new Error(
+      "APPIUM_DEV_SERVER_URL must be set when running against a development client build."
+    );
+  }
+
+  const normalizedUrl = appiumDevServerUrl.replace(/\/+$/, "");
+  const parsedUrl = new URL(normalizedUrl);
+  const hostname = parsedUrl.hostname === "127.0.0.1" ? "localhost" : parsedUrl.hostname;
+  const portSuffix = parsedUrl.port.length > 0 ? `:${parsedUrl.port}` : "";
+  return `${parsedUrl.protocol}//${hostname}${portSuffix}`;
+};
+
+const selectDevServerFromIosLauncher = async (): Promise<boolean> => {
+  if (!driver.isIOS) {
+    return false;
+  }
+
+  const serverLabel = getDevServerOriginLabel();
+  const serverButton = await $(`~${serverLabel}`);
+  const isVisible = await serverButton
+    .isDisplayed()
+    .then((value) => value)
+    .catch(() => false);
+  if (!isVisible) {
+    return false;
+  }
+
+  console.info(`Selecting iOS dev server entry: ${serverLabel}`);
+  await serverButton.click();
+  return true;
+};
+
 const ensureDevClientAppLoaded = async (componentName: string): Promise<void> => {
   const isLauncherVisible = await isDevLauncherVisible();
   if (!isLauncherVisible) {
@@ -272,7 +306,10 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
   }
 
   try {
-    await openDevClientComponentUrl(componentName);
+    const didSelectServer = await selectDevServerFromIosLauncher();
+    if (!didSelectServer) {
+      await openDevClientComponentUrl(componentName);
+    }
     await driver.waitUntil(
       async () => {
         return !(await isDevLauncherVisible());
