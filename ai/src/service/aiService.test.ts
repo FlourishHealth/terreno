@@ -118,6 +118,28 @@ describe("AIService", () => {
       expect(JSON.parse(logs[0].response ?? "{}")).toEqual({n: 3, ok: true});
     });
 
+    it("parses JSON wrapped in markdown fences (including ```json:)", async () => {
+      const model = createMockModel('```json:\n{"colon":true}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const result = await service.generateJsonValue({
+        prompt: "Return JSON",
+      });
+
+      expect(result).toEqual({colon: true});
+    });
+
+    it("parses JSON wrapped in a generic ```lang fence", async () => {
+      const model = createMockModel("```typescript\n[1,2]\n```");
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const result = await service.generateJsonValue({
+        prompt: "Return JSON",
+      });
+
+      expect(result).toEqual([1, 2]);
+    });
+
     it("logs errors when JSON output cannot be produced", async () => {
       const model = createMockModel("not-json");
       const service = new AIService({model: model as unknown as LanguageModel});
@@ -128,6 +150,8 @@ describe("AIService", () => {
       expect(logs.length).toBe(1);
       expect(logs[0].error).toBeTruthy();
       expect(logs[0].requestType).toBe("json_value");
+      expect(logs[0].response).toBe("not-json");
+      expect(logs[0].metadata?.rawModelTextCaptured).toBe(true);
     });
   });
 
@@ -158,6 +182,28 @@ describe("AIService", () => {
       const logs = await AIRequest.find({userId});
       expect(logs[0].requestType).toBe("json_object");
     });
+
+    it("parses object output wrapped in markdown fences", async () => {
+      const model = createMockModel('```json\n{"id":"fenced","count":9}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const schema = jsonSchema<{count: number; id: string}>({
+        additionalProperties: false,
+        properties: {
+          count: {type: "number"},
+          id: {type: "string"},
+        },
+        required: ["id", "count"],
+        type: "object",
+      });
+
+      const result = await service.generateJsonObject({
+        prompt: "Extract fields",
+        schema,
+      });
+
+      expect(result).toEqual({count: 9, id: "fenced"});
+    });
   });
 
   describe("generateJsonArray", () => {
@@ -178,6 +224,19 @@ describe("AIService", () => {
 
       const logs = await AIRequest.find({userId});
       expect(logs[0].requestType).toBe("json_array");
+    });
+
+    it("parses array payload when model wraps elements in markdown fences", async () => {
+      const model = createMockModel('```json\n{"elements":[1,2]}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const element = jsonSchema<number>({type: "number"});
+
+      const result = await service.generateJsonArray({
+        element,
+        prompt: "List numbers",
+      });
+
+      expect(result).toEqual([1, 2]);
     });
   });
 

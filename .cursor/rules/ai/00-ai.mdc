@@ -73,7 +73,9 @@ const aiService = new AIService({
 | `translateText({text, targetLanguage, sourceLanguage?, userId?})` | Translate text |
 | `generateChatStream({messages, systemPrompt?, userId?})` | Stream chat response |
 
-Structured helpers default to `TemperaturePresets.DETERMINISTIC` and use `JSON_VALUE_SYSTEM_PROMPT` when `systemPrompt` is omitted. Re-exported from `@terreno/ai`: `Output`, `jsonSchema`, and types `JSONValue`, `FlexibleSchema` (from the `ai` package) for building schemas in app code.
+Structured helpers default to `TemperaturePresets.DETERMINISTIC` and use `JSON_VALUE_SYSTEM_PROMPT` when `systemPrompt` is omitted. They run against a thin model wrapper that strips common markdown ``` / ```json fences (including ```lang:`) from `doGenerate` text before parsing. On failure, `logger.error` records prompt, system, raw model text, and error details; `AIRequest` rows store `response` (raw text or a sentinel), `error`, and `metadata` (`system`, `finishReason`, `errorStack`, `rawModelTextCaptured`).
+
+Re-exported from `@terreno/ai`: `Output`, `jsonSchema`, and types `JSONValue`, `FlexibleSchema` (from the `ai` package) for building schemas in app code.
 
 All methods automatically log requests to the AIRequest model.
 
