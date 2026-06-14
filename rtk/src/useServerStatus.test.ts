@@ -4,13 +4,16 @@ import {act, renderHook} from "@testing-library/react-native";
 import React from "react";
 import {Provider} from "react-redux";
 
-import {offlineReducer, setOnlineStatus} from "./offlineSlice";
-import {useServerStatus} from "./useServerStatus";
+import {type OfflineState, offlineReducer, setOnlineStatus} from "./offline/offlineSlice";
+import {useServerStatus} from "./offline/useServerStatus";
 
 const createTestStore = () =>
   configureStore({
     reducer: {offline: offlineReducer},
   });
+
+const getOfflineState = (store: ReturnType<typeof createTestStore>): OfflineState =>
+  store.getState().offline as OfflineState;
 
 const createWrapper = (store: ReturnType<typeof createTestStore>) => {
   const Wrapper: React.FC<{children: React.ReactNode}> = ({children}) =>
@@ -112,7 +115,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
     unmount();
   });
 
@@ -134,7 +137,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
     unmount();
   });
 
@@ -158,7 +161,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
     unmount();
   });
 
@@ -180,7 +183,7 @@ describe("useServerStatus", () => {
     });
 
     expect(fetchFn).toHaveBeenCalled();
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
     unmount();
   });
 
@@ -225,13 +228,13 @@ describe("useServerStatus", () => {
       await new Promise((resolve) => setTimeout(resolve, 50));
     });
 
-    expect(store.getState().offline.isOnline).toBe(true);
+    expect(getOfflineState(store).isOnline).toBe(true);
 
     act(() => {
       mockWindow._dispatch("offline");
     });
 
-    expect(store.getState().offline.isOnline).toBe(false);
+    expect(getOfflineState(store).isOnline).toBe(false);
     unmount();
   });
 
