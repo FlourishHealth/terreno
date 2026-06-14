@@ -1,3 +1,5 @@
+export type {FlexibleSchema, JSONValue} from "ai";
+export {jsonSchema, Output} from "ai";
 export {AIService, TemperaturePresets} from "./aiService";
 export {FileStorageService} from "./fileStorage";
 export type {ListGeminiApiModelsOptions} from "./gemini";
@@ -6,6 +8,7 @@ export {MCPService} from "./mcpService";
 export {
   CONTENT_SUMMARY_PROMPT,
   DEFAULT_GPT_MEMORY,
+  JSON_VALUE_SYSTEM_PROMPT,
   REMIX_PROMPT,
   TITLE_GENERATION_PROMPT,
   TRANSLATION_PROMPT,

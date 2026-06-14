@@ -1,6 +1,6 @@
 import {logger} from "@terreno/api";
-import type {DataContent, LanguageModel, ModelMessage} from "ai";
-import {generateText as aiGenerateText, stepCountIs, streamText} from "ai";
+import type {DataContent, JSONValue, LanguageModel, ModelMessage} from "ai";
+import {generateText as aiGenerateText, Output, stepCountIs, streamText} from "ai";
 import type mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -8,6 +8,9 @@ import type {
   AIRequestType,
   AIServiceOptions,
   GenerateChatStreamOptions,
+  GenerateJsonArrayOptions,
+  GenerateJsonObjectOptions,
+  GenerateJsonValueOptions,
   GenerateStreamOptions,
   GenerateTextOptions,
   GptHistoryPrompt,
@@ -18,6 +21,7 @@ import type {
 import {
   CONTENT_SUMMARY_PROMPT,
   DEFAULT_GPT_MEMORY,
+  JSON_VALUE_SYSTEM_PROMPT,
   REMIX_PROMPT,
   TRANSLATION_PROMPT,
 } from "./prompts";
@@ -101,6 +105,174 @@ export class AIService {
         error: error instanceof Error ? error.message : String(error),
         prompt,
         requestType: "general",
+        responseTime,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /** Any JSON value (object, array, primitive, or null) via the AI SDK `Output.json()` parser. */
+  async generateJsonValue(options: GenerateJsonValueOptions): Promise<JSONValue> {
+    const {
+      maxOutputTokens,
+      outputDescription,
+      outputName,
+      prompt,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-value", isEnabled: true},
+        maxOutputTokens,
+        model: this.model,
+        output: Output.json({description: outputDescription, name: outputName}),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_value",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        error: error instanceof Error ? error.message : String(error),
+        prompt,
+        requestType: "json_value",
+        responseTime,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /** Typed object from a Zod schema, `jsonSchema(...)`, or other `FlexibleSchema` (`Output.object()`). */
+  async generateJsonObject<OBJECT>(options: GenerateJsonObjectOptions<OBJECT>): Promise<OBJECT> {
+    const {
+      maxOutputTokens,
+      prompt,
+      schema,
+      schemaDescription,
+      schemaName,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-object", isEnabled: true},
+        maxOutputTokens,
+        model: this.model,
+        output: Output.object({
+          description: schemaDescription,
+          name: schemaName,
+          schema,
+        }),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_object",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        error: error instanceof Error ? error.message : String(error),
+        prompt,
+        requestType: "json_object",
+        responseTime,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Typed array: the model is steered to emit `{"elements":[...]}`; the SDK validates each entry
+   * and this method returns the plain array (`Output.array()`).
+   */
+  async generateJsonArray<ELEMENT>(
+    options: GenerateJsonArrayOptions<ELEMENT>
+  ): Promise<Array<ELEMENT>> {
+    const {
+      element,
+      maxOutputTokens,
+      outputDescription,
+      outputName,
+      prompt,
+      systemPrompt,
+      temperature,
+      userId,
+    } = options;
+    const startTime = Date.now();
+    const system = systemPrompt ?? JSON_VALUE_SYSTEM_PROMPT;
+
+    try {
+      const result = await aiGenerateText({
+        experimental_telemetry: {functionId: "generate-json-array", isEnabled: true},
+        maxOutputTokens,
+        model: this.model,
+        output: Output.array({
+          description: outputDescription,
+          element,
+          name: outputName,
+        }),
+        prompt,
+        system,
+        temperature: temperature ?? TemperaturePresets.DETERMINISTIC,
+      });
+
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        prompt,
+        requestType: "json_array",
+        response: JSON.stringify(result.output),
+        responseTime,
+        tokensUsed: result.usage?.totalTokens,
+        userId,
+      });
+
+      return result.output;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await this.logRequest({
+        aiModel: getModelId(this.model),
+        error: error instanceof Error ? error.message : String(error),
+        prompt,
+        requestType: "json_array",
         responseTime,
         userId,
       });
