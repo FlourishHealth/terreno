@@ -71,8 +71,8 @@ git push origin HEAD
 
 Create or update the PR as a draft unless the user has explicitly requested otherwise.
 
-- Preserve human-authored PR edits when updating the body.
-- Ensure the PR body reflects all commits on the branch, not just the newest commit.
+- When updating an existing PR, **merge** into the current `body` from `gh pr view`: keep prior sections and reviewer context; append or revise only what is stale for the branch (same merge policy as `/submit` Step 4). Do not replace the entire description with a fresh template.
+- Ensure the merged PR body still reflects **all** commits on the branch, not only the latest push.
 
 ### 4. Fix CI until checks pass
 
