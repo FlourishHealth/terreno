@@ -15,7 +15,6 @@ const Layout = () => {
         screenOptions={{
           headerBackTitle: "Back",
           headerBackVisible: !isEmbedMode && isMobileDevice(),
-          headerShown: !isEmbedMode,
           headerRight: isEmbedMode
             ? undefined
             : () => (
@@ -28,6 +27,7 @@ const Layout = () => {
                   <Text style={{fontWeight: "bold"}}>Dev Mode</Text>
                 </Pressable>
               ),
+          headerShown: !isEmbedMode,
         }}
       >
         <Stack.Screen name="sidebar-navigation" options={{headerShown: false}} />
