@@ -2010,9 +2010,13 @@ describe("@terreno/api", () => {
     });
 
     it("returns 409 when precise conflict timestamp is older than doc.updated", async () => {
+      const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T12:00:01.000Z").toHTTP();
+      if (!ifUnmodifiedSince) {
+        throw new Error("expected If-Unmodified-Since header value");
+      }
       await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T12:00:01.000Z").toHTTP()!)
+        .set("If-Unmodified-Since", ifUnmodifiedSince)
         .set("X-Unmodified-Since-ISO", "2025-06-15T11:59:59.500Z")
         .send({name: "Precise Stale"})
         .expect(409);
@@ -2024,9 +2028,13 @@ describe("@terreno/api", () => {
         {$unset: {updated: ""}}
       );
 
+      const ifUnmodifiedSince = DateTime.fromISO("2025-06-15T11:59:59.999Z").toHTTP();
+      if (!ifUnmodifiedSince) {
+        throw new Error("expected If-Unmodified-Since header value");
+      }
       const res = await agent
         .patch(`/food/${spinach._id}`)
-        .set("If-Unmodified-Since", DateTime.fromISO("2025-06-15T11:59:59.999Z").toHTTP()!)
+        .set("If-Unmodified-Since", ifUnmodifiedSince)
         .send({name: "Created Fallback"})
         .expect(409);
 

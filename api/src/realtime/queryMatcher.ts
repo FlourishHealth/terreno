@@ -6,7 +6,6 @@
  * Supports: equality, $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $exists, $and, $or, $not.
  */
 
-// biome-ignore lint/suspicious/noExplicitAny: traversing arbitrary nested document fields by user-supplied dotted path
 const getNestedValue = (doc: any, path: string): any => {
   const parts = path.split(".");
   let current = doc;
@@ -19,7 +18,6 @@ const getNestedValue = (doc: any, path: string): any => {
   return current;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: value may be any document field type (string, number, ObjectId, etc.)
 const normalize = (value: any): any => {
   if (value === null || value === undefined) {
     return value;
@@ -36,7 +34,6 @@ const normalize = (value: any): any => {
   return value;
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: rawValue is an arbitrary document field, condition is an arbitrary user query operand
 const matchesCondition = (rawValue: any, condition: any): boolean => {
   const value = normalize(rawValue);
 
@@ -91,7 +88,6 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
           return false;
         }
         const inValues = operand.map(normalize);
-        // biome-ignore lint/suspicious/noExplicitAny: normalized value of arbitrary document field
         if (!inValues.some((v: any) => v === value || String(v) === String(value))) {
           return false;
         }
@@ -102,7 +98,6 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
           return false;
         }
         const ninValues = operand.map(normalize);
-        // biome-ignore lint/suspicious/noExplicitAny: normalized value of arbitrary document field
         if (ninValues.some((v: any) => v === value || String(v) === String(value))) {
           return false;
         }
@@ -137,7 +132,6 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
  * @param query - MongoDB-style query object
  * @returns true if the document matches all query conditions
  */
-// biome-ignore lint/suspicious/noExplicitAny: doc is arbitrary; query values are arbitrary user-supplied JSON
 export const matchesQuery = (doc: any, query: Record<string, any>): boolean => {
   for (const [key, condition] of Object.entries(query)) {
     if (key === "$and") {
