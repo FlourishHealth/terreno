@@ -812,7 +812,6 @@ describe("expressServer", () => {
       // Mock app.listen on the Express prototype to avoid opening a real port
       const express = await import("express");
       const originalListen = express.default.application.listen;
-      // biome-ignore lint/suspicious/noExplicitAny: mocking Express internals requires type escape
       express.default.application.listen = mock(function (this: unknown, ...args: unknown[]) {
         const cb = args.find((a: unknown) => typeof a === "function") as (() => void) | undefined;
         if (cb) {
