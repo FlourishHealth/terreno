@@ -185,29 +185,32 @@ describe("useTerrenoFeatureFlags", () => {
 });
 
 describe("useTerrenoFeatureFlags ref-count cleanup", () => {
+  /** Dedicated domain so parallel test files do not hold extra `feature-flags` hook refs. */
+  const refcountTestDomain = "terreno-refcount-test-isolation";
+
   beforeEach(async () => {
-    await OpenFeature.setProviderAndWait("feature-flags", NOOP_PROVIDER);
+    await OpenFeature.setProviderAndWait(refcountTestDomain, NOOP_PROVIDER);
   });
 
   afterEach(async () => {
-    await OpenFeature.setProviderAndWait("feature-flags", NOOP_PROVIDER);
+    await OpenFeature.setProviderAndWait(refcountTestDomain, NOOP_PROVIDER);
   });
 
   it("installs NOOP provider after the last hook instance unmounts", async () => {
     const {api} = buildApi({data: {alpha: boolDef("on")}});
     const {unmount} = renderHook(() =>
-      useTerrenoFeatureFlags(api as never, {domain: "feature-flags", userId: "u1"})
+      useTerrenoFeatureFlags(api as never, {domain: refcountTestDomain, userId: "u1"})
     );
     await waitFor(
       () => {
-        expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(true);
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(true);
       },
       {timeout: 5000}
     );
     unmount();
     await waitFor(
       () => {
-        expect(OpenFeature.getClient("feature-flags").getBooleanValue("alpha", false)).toBe(false);
+        expect(OpenFeature.getClient(refcountTestDomain).getBooleanValue("alpha", false)).toBe(false);
       },
       {timeout: 5000}
     );
