@@ -83,6 +83,10 @@ Test UI package component changes only in the demo app.
    - For visual primitives: compare default, disabled, loading, icon, and full-width states when relevant.
    - For interactive components: click, type, open, close, hover, and keyboard navigate as appropriate.
 
+5. When shipping a **new** `@terreno/ui` component or changing public props, also verify the generated docs page:
+   - Run `cd ui && bun run types && bun run website:generate`
+   - Check the docs deploy preview (or `bun run website:build` locally) for the component page and embedded demo iframe.
+
 Do not launch the example app to validate isolated `@terreno/ui` component changes unless the change also affects an app-level integration.
 
 ### `admin-frontend` and example app UI changes

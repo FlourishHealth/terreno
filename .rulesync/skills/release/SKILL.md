@@ -129,6 +129,10 @@ gh release create "$VERSION" --target master --title "$VERSION" --notes-file /tm
 
 3. Confirm the `chore: bump package versions to $VERSION` commit landed on master (`git fetch origin master && git log origin/master -1 --oneline`). Skipped for prereleases.
 
+4. For `X.Y.0` releases (minor/major), confirm the `chore: cut docs version $VERSION` commit landed and the docs site deployed (`docs-deploy` workflow). Patch releases rebuild the current docs version in place.
+
+5. If breaking changes were flagged in Step 4, add or update `mcp-server/src/docs/upgrades/$VERSION.md` (rendered on the docs site when the upgrades section exists).
+
 ## Step 8: If a publish job fails
 
 1. Inspect: `gh run view "$RUN_ID" --log-failed`.
