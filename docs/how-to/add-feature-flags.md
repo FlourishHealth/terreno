@@ -48,30 +48,55 @@ new TerrenoApp({userModel: User})
 
 ### 3. Regenerate the frontend SDK
 
-After adding the backend routes, regenerate the SDK so the frontend can call the new endpoints:
+After adding the backend routes, regenerate the SDK so the frontend can call the new endpoints (with the example backend running, or set `OPENAPI_URL` to your deployed `openapi.json`):
 
 ```bash
 cd your-frontend && bun run sdk
 ```
 
+Regeneration may emit a hook for `/feature-flags/flagConfiguration`; prefer **`useTerrenoFeatureFlags`** / **`useFeatureFlags`** from `@terreno/rtk` so OpenFeature domain, cache keying, and optional socket refetch stay consistent.
+
 ### 4. Use feature flags in the frontend
 
-Use the `useFeatureFlags` hook from `@terreno/rtk`:
+**Recommended (OpenFeature):** add `@openfeature/react-sdk` to the app, wrap the tree (or the subtree that reads flags) in `<OpenFeatureProvider domain="feature-flags">`, and call `useTerrenoFeatureFlags(terrenoApi, {userId, socket})` once after auth so the OpenFeature client receives `GET /feature-flags/flagConfiguration`. Then use standard hooks such as `useBooleanFlagValue` / `useStringFlagValue` / `FeatureFlag`.
+
+**Back-compat:** `useFeatureFlags(terrenoApi)` from `@terreno/rtk` still returns `{flags, getFlag, getVariant, isLoading, …}` with the same semantics as before; it uses `/flagConfiguration` under the hood. You do not need to call a generated RTK hook for `/flagConfiguration` directly.
+
+```typescript
+import {useBooleanFlagValue} from "@openfeature/react-sdk";
+import {useTerrenoFeatureFlags, useSelectCurrentUserId} from "@terreno/rtk";
+import {terrenoApi} from "@/store/sdk";
+
+const GatedBanner: React.FC = () => {
+  const userId = useSelectCurrentUserId();
+  useTerrenoFeatureFlags(terrenoApi, {userId, skip: !userId});
+  const showBanner = useBooleanFlagValue("new-ui", false);
+  return showBanner ? <NewUI /> : null;
+};
+```
 
 ```typescript
 import {useFeatureFlags} from "@terreno/rtk";
 import {terrenoApi} from "@/store/sdk";
 
-const MyComponent = () => {
+const LegacyStyle: React.FC = () => {
   const {getFlag, isLoading} = useFeatureFlags(terrenoApi);
 
-  if (isLoading) return <Spinner />;
+  if (isLoading) {
+    return <Spinner />;
+  }
 
-  const showNewUI = getFlag("new-ui");  // true | false
+  const showNewUI = getFlag("new-ui");
 
   return showNewUI ? <NewUI /> : <OldUI />;
 };
 ```
+
+### 4b. Live updates (optional)
+
+To push flag changes to open clients without a refresh, pass **`liveUpdates`** when constructing `FeatureFlagsApp` (see `example-backend/src/server.ts`): Mongoose **`FeatureFlag.watch()`** drives a Socket.io broadcast. **MongoDB must run as a replica set** (a single-node replica set is enough); standalone instances cannot use change streams, and the plugin logs a warning if `watch()` fails.
+
+On the client, pass the same Socket.io **client** into `useTerrenoFeatureFlags` / `useFeatureFlags` as `socket`; the hook listens for `featureFlagsChanged` (or `socketEventName`) and refetches `/flagConfiguration`. The event payload is only `{ key: string }` — the same flag keys are already returned to every authenticated user in `/flagConfiguration`, so this is not considered a new exposure.
 
 ### 5. Create flags via the admin panel
 

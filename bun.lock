@@ -378,6 +378,8 @@
       "version": "1.0.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
+        "@openfeature/react-sdk": "catalog:",
+        "@openfeature/web-sdk": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
         "@react-navigation/native": "catalog:",
         "@reduxjs/toolkit": "catalog:",
@@ -420,6 +422,7 @@
       "name": "@terreno/feature-flags",
       "version": "0.18.0",
       "dependencies": {
+        "@openfeature/server-sdk": "catalog:",
         "@terreno/api": "workspace:*",
         "express": "^5.2.1",
         "lodash": "catalog:",
@@ -461,6 +464,7 @@
       "version": "0.18.0",
       "dependencies": {
         "@better-auth/expo": "^1.2.8",
+        "@openfeature/core": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
         "@reduxjs/toolkit": "^2.11.1",
         "@terreno/ui": "workspace:*",
@@ -481,6 +485,8 @@
       },
       "devDependencies": {
         "@biomejs/biome": "catalog:",
+        "@openfeature/react-sdk": "catalog:",
+        "@openfeature/web-sdk": "catalog:",
         "@testing-library/react-native": "^13.2.0",
         "@types/bun": "^1.2.4",
         "@types/luxon": "catalog:",
@@ -492,6 +498,8 @@
         "typescript": "catalog:",
       },
       "peerDependencies": {
+        "@openfeature/react-sdk": "catalog:",
+        "@openfeature/web-sdk": "catalog:",
         "react": "catalog:",
       },
     },
@@ -601,6 +609,10 @@
     "@expo/config-plugins": "~54.0.4",
     "@expo/vector-icons": "^15.0.3",
     "@happy-dom/global-registrator": "^17.4.4",
+    "@openfeature/core": "^1.11.0",
+    "@openfeature/react-sdk": "^1.4.0",
+    "@openfeature/server-sdk": "^1.22.0",
+    "@openfeature/web-sdk": "^1.9.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-community/slider": "5.0.1",
@@ -1246,6 +1258,14 @@
     "@opencensus/core": ["@opencensus/core@0.1.0", "", { "dependencies": { "continuation-local-storage": "^3.2.1", "log-driver": "^1.2.7", "semver": "^7.0.0", "shimmer": "^1.2.0", "uuid": "^8.0.0" } }, "sha512-Bdbi5vi44a1fwyHNyKh6bwzuFZJeZJPhzdwogk/Kw5juoEeRGPworK1sgtB3loeR8cqLyi5us0mz9h0xqINiSQ=="],
 
     "@opencensus/propagation-stackdriver": ["@opencensus/propagation-stackdriver@0.1.0", "", { "dependencies": { "@opencensus/core": "^0.1.0", "hex2dec": "^1.0.1", "uuid": "^8.0.0" } }, "sha512-YLklu8jnnYKaJ8gUFz3rM0FVdsWXEJAMLzeeU4JRac6LI34raENy4kvRezZtNEFS5KthaJUsYg04sPc/Ag0w4w=="],
+
+    "@openfeature/core": ["@openfeature/core@1.11.0", "", {}, "sha512-P0u3/ht/oZCQT89fOed+laLk0kZR529a825cS02uPDglxXbE97irWYpDAeRGGVETIzKfuy+H2g8c3Ccv/tXJNQ=="],
+
+    "@openfeature/react-sdk": ["@openfeature/react-sdk@1.4.0", "", { "peerDependencies": { "@openfeature/web-sdk": "^1.9.0", "react": ">=16.8.0" } }, "sha512-dRDvhkEVg/GqRToO2mO1JN2vm+pu86CWVnXM8SnB1yRujVkW21Leb6PcfyS6YjsF9Ob9JkqQtCrnpISd3OF8RQ=="],
+
+    "@openfeature/server-sdk": ["@openfeature/server-sdk@1.22.0", "", { "peerDependencies": { "@openfeature/core": "^1.11.0" } }, "sha512-YBrf6SQkn0FNB/dRAtLEs41dvFMUE8CrQTwI+iLaMFUIqWlqGNJfGnulKSneEKS+2OgKTAC6DdmKcZ6tK7kBcg=="],
+
+    "@openfeature/web-sdk": ["@openfeature/web-sdk@1.9.0", "", { "peerDependencies": { "@openfeature/core": "^1.11.0" } }, "sha512-FCrNfqvE/thHVfCNU0KKx1SD7rk+1wE2UaR5B5OPZl917QJv6AsKRwaI3N+SVgwXWI07GgtXP6hNlTVb49PGhg=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 

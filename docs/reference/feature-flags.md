@@ -48,16 +48,38 @@ import {useFeatureFlags} from "@terreno/rtk";
 import {terrenoApi} from "@/store/sdk";
 
 const MyComponent = () => {
-  const {getFlag, isLoading} = useFeatureFlags(terrenoApi);
+  const {getFlag, getVariant, isLoading} = useFeatureFlags(terrenoApi);
 
   if (isLoading) return <Spinner />;
 
-  const showNewFeature = getFlag("new-feature");        // boolean
-  const variant = getFlag("checkout-experiment");        // string | null
+  const showNewFeature = getFlag("new-feature"); // boolean
+  const variant = getVariant("checkout-experiment"); // string | null
 
   return showNewFeature ? <NewFeature /> : <OldFeature />;
 };
 ```
+
+New code can also use OpenFeature React hooks (`useBooleanFlagValue`, `useStringFlagValue`, `FeatureFlag`, …) after wiring `useTerrenoFeatureFlags` and `<OpenFeatureProvider domain="feature-flags">` — see `@terreno/rtk` and [how-to: add feature flags](../how-to/add-feature-flags.md).
+
+## OpenFeature integration
+
+`FeatureFlagsApp` registers an OpenFeature **server** provider (`MongoFeatureFlagProvider`) on a dedicated domain (default `"feature-flags"`) so the global default provider is unchanged. The authenticated bulk endpoint **`GET {basePath}/flagConfiguration`** returns a `FlagConfiguration`-compatible map (suitable for `TypedInMemoryProvider` on the client). The legacy **`GET {basePath}/evaluate`** response shape is unchanged but is **deprecated**: responses include `Deprecation: true` and a `Sunset` HTTP-date header (~90 days). Prefer `useTerrenoFeatureFlags` / `useFeatureFlags` from `@terreno/rtk`, or migrate direct HTTP callers to `/flagConfiguration`.
+
+### `defaultVariant` on `FeatureFlag`
+
+Stored OpenFeature default variant key: for boolean flags `"on"` or `"off"`; for variant flags one of `variants[].key`. On save, if omitted, the schema sets boolean → `"off"` and variant → first variant key. `/flagConfiguration` builds each entry’s `defaultVariant` and `variants` from the **resolved** value for the current user (so client-side OpenFeature reads the correct branch without re-running targeting).
+
+### `MongoFeatureFlagProvider`
+
+Server-side OpenFeature `Provider` that resolves flags via `findOneOrNone` and existing `evaluateFlag()` logic. Unsupported evaluation types: **`resolveNumberEvaluation` / `resolveObjectEvaluation` always return `FLAG_NOT_FOUND`** with the caller’s default.
+
+### Type-safe flag keys (optional)
+
+Consumers may augment `@openfeature/core` with `BooleanFlagKey` / `StringFlagKey` unions. Those types are **compile-time hints only**; keys created in the admin UI can drift until types are updated.
+
+### Live updates (optional)
+
+Pass `liveUpdates: { socketIoServer: io | () => io }` to broadcast on Mongoose change streams. **Requires MongoDB as a replica set** (single-node replset is fine). Emits a socket event (default `featureFlagsChanged`, payload `{ key }`) and `PROVIDER_CONFIGURATION_CHANGED` on the server provider. All authenticated subscribers receive the same event name; payload is only the flag key (same keys are already exposed per user via `/flagConfiguration`).
 
 ## Exports
 
@@ -65,7 +87,8 @@ const MyComponent = () => {
 
 | Export | Description |
 |--------|-------------|
-| `FeatureFlagsApp` | `TerrenoPlugin` that registers admin CRUD and evaluation endpoints |
+| `FeatureFlagsApp` | `TerrenoPlugin` that registers admin CRUD, `/flagConfiguration`, and `/evaluate` |
+| `MongoFeatureFlagProvider` | OpenFeature server `Provider` backed by Mongo evaluation |
 
 ### Models
 
@@ -83,6 +106,8 @@ const MyComponent = () => {
 
 | Export | Description |
 |--------|-------------|
+| `buildFlagDefinition` | Build one `FlagDefinition` for `/flagConfiguration` |
+| `effectiveDefaultVariantForFlag` | Resolve `defaultVariant` including legacy docs |
 | `evaluateFlag` | Evaluate a single flag for a user |
 | `evaluateAllFlags` | Evaluate all enabled, non-archived flags for a user |
 | `deterministicHash` | Hash a string to 0–99 for consistent assignment |
@@ -99,6 +124,10 @@ const MyComponent = () => {
 | `FeatureFlagsOptions` | Constructor options for `FeatureFlagsApp` |
 | `SegmentFunction` | `(user: unknown) => boolean` |
 | `EvaluationResult` | `Record<string, boolean \| string \| null>` |
+| `FlagDefinition` | One flag entry for `/flagConfiguration` |
+| `FlagConfigurationResponse` | `{ data: Record<string, FlagDefinition> }` |
+| `FeatureFlagsLiveUpdatesOptions` | Socket.io + optional custom event name |
+| `FeatureFlagsSocketEmitter` | Minimal `emit` shape for live updates |
 
 ## FeatureFlagsApp Options
 
@@ -108,6 +137,8 @@ interface FeatureFlagsOptions {
   segments?: Record<string, SegmentFunction>;       // Named segment functions
   permissions?: ModelRouterOptions["permissions"];   // Override default IsAdmin on CRUD
   segmentsPermission?: (user: unknown) => boolean;  // Override admin check on /segments
+  liveUpdates?: FeatureFlagsLiveUpdatesOptions;     // Optional: change stream → socket.io
+  openFeatureDomain?: string;                       // Default: "feature-flags"
 }
 ```
 
@@ -130,11 +161,32 @@ All routes are mounted under the configured `basePath` (default: `/feature-flags
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `{basePath}/evaluate` | Evaluate all flags for the current user |
+| `GET` | `{basePath}/flagConfiguration` | OpenFeature static configuration for enabled, non-archived flags (authenticated) |
+| `GET` | `{basePath}/evaluate` | **Deprecated** — legacy `Record<key, boolean \| string \| null>` for the current user |
 
 ### Response Shapes
 
-**`GET /feature-flags/evaluate`**:
+**`GET /feature-flags/flagConfiguration`** (enabled flags only; disabled/archived keys are omitted):
+
+```json
+{
+  "data": {
+    "todo-summary-card": {
+      "variants": {"off": false, "on": true},
+      "defaultVariant": "on",
+      "disabled": false
+    },
+    "profile-layout": {
+      "variants": {"compact": "compact", "detailed": "detailed"},
+      "defaultVariant": "compact",
+      "disabled": false
+    }
+  }
+}
+```
+
+**`GET /feature-flags/evaluate`** (deprecated headers on response):
+
 ```json
 {
   "data": {
@@ -220,7 +272,7 @@ import {FeatureFlag} from "@terreno/feature-flags";
 
 {
   displayName: "Feature Flags",
-  listFields: ["key", "name", "type", "enabled", "archived", "created"],
+  listFields: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
   model: FeatureFlag,
   routePath: "/feature-flags",
 }

@@ -14,6 +14,7 @@ import {connectToMongoDB} from "../utils/database";
 
 export const SEED_FLAGS = [
   {
+    defaultVariant: "on",
     description: "Show a summary card with todo counts above the todo list",
     enabled: true,
     key: "todo-summary-card",
@@ -23,6 +24,7 @@ export const SEED_FLAGS = [
     type: "boolean" as const,
   },
   {
+    defaultVariant: "off",
     description: "Allow users to set priority (low/medium/high) on todos",
     enabled: true,
     key: "todo-priority",
@@ -37,6 +39,7 @@ export const SEED_FLAGS = [
     type: "boolean" as const,
   },
   {
+    defaultVariant: "on",
     description: "Show dark mode toggle in profile settings",
     enabled: true,
     key: "dark-mode-toggle",
@@ -46,6 +49,7 @@ export const SEED_FLAGS = [
     type: "boolean" as const,
   },
   {
+    defaultVariant: "compact",
     description: "A/B test for the profile page layout",
     enabled: true,
     key: "profile-layout",
@@ -58,6 +62,7 @@ export const SEED_FLAGS = [
     ],
   },
   {
+    defaultVariant: "off",
     description: "Show the AI features tab in the main navigation",
     enabled: false,
     key: "ai-features",
@@ -77,6 +82,28 @@ export const seedFeatureFlags = async (): Promise<{results: string[]; success: b
   let created = 0;
   let skipped = 0;
   const results: string[] = [];
+
+  const backfill = await FeatureFlag.updateMany(
+    {
+      $or: [{defaultVariant: {$exists: false}}, {defaultVariant: null}, {defaultVariant: ""}],
+    },
+    [
+      {
+        $set: {
+          defaultVariant: {
+            $cond: {
+              else: {$ifNull: [{$arrayElemAt: ["$variants.key", 0]}, "off"]},
+              if: {$eq: ["$type", "boolean"]},
+              then: "off",
+            },
+          },
+        },
+      },
+    ]
+  );
+  if (backfill.modifiedCount > 0) {
+    results.push(`Backfilled defaultVariant on ${String(backfill.modifiedCount)} existing flag(s)`);
+  }
 
   for (const flag of SEED_FLAGS) {
     const existing = await FeatureFlag.findOneOrNone({key: flag.key});
