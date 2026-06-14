@@ -25,6 +25,7 @@ const DEV_LAUNCHER_MARKERS = [
 
 const isQuickLoop = process.env.APPIUM_QUICK_LOOP === "true";
 const isCi = process.env.CI === "true";
+const shouldRequireNonDevClient = process.env.APPIUM_REQUIRE_NON_DEV_CLIENT === "true";
 const appiumLogsDir = join(process.cwd(), "logs");
 const appForegroundTimeoutMs = isQuickLoop ? 30000 : 60000;
 const deepLinkTargetTimeoutMs = isQuickLoop ? 30000 : 60000;
@@ -162,6 +163,10 @@ const isDevLauncherVisible = async (): Promise<boolean> => {
 };
 
 const ensureNotInDevLauncher = async (componentName: string): Promise<void> => {
+  if (!shouldRequireNonDevClient) {
+    return;
+  }
+
   if (!isCi && !isQuickLoop) {
     return;
   }
@@ -172,7 +177,7 @@ const ensureNotInDevLauncher = async (componentName: string): Promise<void> => {
   }
 
   const error = new Error(
-    'Detected Expo Dev Launcher instead of demo app UI. Configure APPIUM_*_EAS_PROFILE to a non-development-client profile (for example "preview").'
+    "Detected Expo Dev Launcher instead of demo app UI while APPIUM_REQUIRE_NON_DEV_CLIENT=true. Use a non-development-client profile or unset APPIUM_REQUIRE_NON_DEV_CLIENT."
   );
   await captureNavigationDiagnostics({
     componentName,

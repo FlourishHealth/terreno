@@ -30,13 +30,11 @@ on:
           - full
       android-build-profile:
         description: "Android EAS build profile to download"
-        default: preview
+        default: development
         required: true
         type: choice
         options:
-          - preview
           - development
-          - production
       ios-build-profile:
         description: "iOS EAS build profile to download"
         default: development:simulator
@@ -44,8 +42,6 @@ on:
         type: choice
         options:
           - development:simulator
-          - preview
-          - production
 
 jobs:
   appium-android:
@@ -56,8 +52,8 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
-      APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'preview' }}
-      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'full' && 'development' || '' }}
+      APPIUM_ANDROID_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.android-build-profile || 'development' }}
+      APPIUM_ANDROID_EAS_FALLBACK_PROFILE: ""
     steps:
       - uses: actions/checkout@v6
 
@@ -140,8 +136,8 @@ jobs:
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       APPIUM_RUN_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke' }}
-      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'preview' }}
-      APPIUM_IOS_EAS_FALLBACK_PROFILE: ${{ (github.event_name == 'workflow_dispatch' && inputs.run-mode || 'smoke') == 'full' && 'development:simulator' || '' }}
+      APPIUM_IOS_EAS_PROFILE: ${{ github.event_name == 'workflow_dispatch' && inputs.ios-build-profile || 'development:simulator' }}
+      APPIUM_IOS_EAS_FALLBACK_PROFILE: ""
     steps:
       - uses: actions/checkout@v6
 

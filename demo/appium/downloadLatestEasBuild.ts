@@ -21,7 +21,7 @@ interface EasBuild {
 const EAS_CLI_PACKAGE = "eas-cli@latest";
 const NO_FINISHED_BUILDS_ERROR = "EAS did not return any finished builds for the selected profile.";
 const DEFAULT_BUILD_PROFILES: Record<Platform, string> = {
-  android: "preview",
+  android: "development",
   ios: "development:simulator",
 };
 const PLATFORM_ENV_KEYS: Record<Platform, string> = {
