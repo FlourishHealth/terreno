@@ -230,17 +230,21 @@ const openDemoDeepLink = async (componentName: string): Promise<void> => {
 const buildDevClientComponentUrl = (componentName: string): string => {
   if (!appiumDevServerUrl || appiumDevServerUrl.length === 0) {
     throw new Error(
-      "APPIUM_DEV_SERVER_URL must be set when running against a development client build."
+      "APPIUM_DEV_SERVER_URL must be set when running against a development client build (for example: http://127.0.0.1:8085)."
     );
   }
 
   const normalizedUrl = appiumDevServerUrl.replace(/\/+$/, "");
   const componentRoute = `demo/${encodeURIComponent(componentName)}`;
+  let projectUrl = "";
+
   if (normalizedUrl.includes("/--")) {
-    return `${normalizedUrl}/${componentRoute}`;
+    projectUrl = `${normalizedUrl}/${componentRoute}`;
+  } else {
+    projectUrl = `${normalizedUrl}/--/${componentRoute}`;
   }
 
-  return `${normalizedUrl}/--/${componentRoute}`;
+  return `${DEMO_DEEP_LINK_SCHEME}://expo-development-client/?url=${encodeURIComponent(projectUrl)}`;
 };
 
 const openDevClientComponentUrl = async (componentName: string): Promise<void> => {
