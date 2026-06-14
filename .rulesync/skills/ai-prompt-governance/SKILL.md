@@ -38,7 +38,7 @@ Pick the lowest temperature that still produces good results. Don't override the
 
 Every `AIService` method already logs to the `AIRequest` model via the internal `logRequest()` call. Do not bypass `AIService` and call the Vercel SDK directly from routes — you lose request logging, error capture, and the `requestType` taxonomy.
 
-Current `AIRequest.requestType` values: `"general" | "remix" | "summarization" | "translation"`. If you add a new category, extend the type union in `ai/src/types/index.ts` and update the admin explorer filters in `ai/src/routes/aiRequestsExplorer.ts`.
+Current `AIRequest.requestType` values include `"general"`, `"remix"`, `"summarization"`, `"translation"`, `"json_value"`, `"json_object"`, and `"json_array"`. If you add a new category, extend the type union in `ai/src/types/index.ts` and update the admin explorer filters in `ai/src/routes/aiRequestsExplorer.ts`.
 
 Logging failures must never break the main flow — the existing pattern catches and logs internally. Preserve that behavior.
 
