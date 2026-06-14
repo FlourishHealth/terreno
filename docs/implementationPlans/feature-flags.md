@@ -1,5 +1,7 @@
 # Implementation Plan: Feature Flags & A/B Testing
 
+> **OpenFeature migration:** For the OpenFeature-based provider, `/flagConfiguration`, live updates, and RTK hook details, see [feature-flags-openfeature.md](./feature-flags-openfeature.md) and the task list [feature-flags-openfeature.md](../tasks/feature-flags-openfeature.md).
+
 *When an engineer is assigned to a project but before you begin coding, you should fill in the implementation plan and get feedback from the engineering team. Once you have finished or you make any changes, tag Josh with the @ symbol so he can review. Also tag anyone else that needs to be notified, has conflicting work, etc.*
 
 ## **Models**

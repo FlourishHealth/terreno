@@ -37,6 +37,7 @@ import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
+import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
 
@@ -220,6 +221,9 @@ export async function start(skipListen = false): Promise<express.Application> {
     terraApp
       .register(
         new FeatureFlagsApp({
+          liveUpdates: {
+            socketIoServer: () => io,
+          },
           segments: {
             "admin-users": (user: unknown) => (user as {admin?: boolean}).admin === true,
             "has-name": (user: unknown) => Boolean((user as {name?: string}).name),

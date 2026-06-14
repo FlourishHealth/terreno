@@ -18,4 +18,5 @@ export * from "./useFeatureFlags";
 export * from "./useOfflineStatus";
 export * from "./useRealtimeDebug";
 export * from "./useServerStatus";
+export * from "./useTerrenoFeatureFlags";
 export * from "./useUpgradeCheck";
