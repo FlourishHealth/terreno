@@ -1,5 +1,5 @@
 ---
-name: dialin
+name: terreno-dialin
 description: Use ONLY when a PR is already open and the task is to run the reactive review loop (CI + bot/human comments) until mergeable or timeout. Do NOT use for initial planning, feature implementation from scratch, or opening the PR itself.
 disable-model-invocation: true
 ---
@@ -10,7 +10,7 @@ Own all post-review-open reactive work: CI watching/fixing, comment triage/fixes
 
 ## Ownership Boundary
 
-Dialin starts after `pour` opens/updates the PR and triggers CI.
+Dialin starts after `terreno-pour` opens/updates the PR and triggers CI.
 Dialin exclusively owns all work after that handoff.
 
 ## Timer Loop Contract
@@ -33,7 +33,7 @@ Each cycle:
    - Clarifications / out-of-scope items
 4. Apply code fixes for actionable items.
 5. Run targeted checks.
-6. Commit + push fixes (same commit hygiene rules as `pour`; no AI attribution).
+6. Commit + push fixes (same commit hygiene rules as `terreno-pour`; no AI attribution).
 7. Re-check CI and continue loop.
 8. Reply to addressed comments and resolve threads when fully fixed.
 

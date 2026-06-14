@@ -1,12 +1,12 @@
 ---
-name: pour
+name: terreno-pour
 description: Use ONLY when code is ready to enter review and the task is to perform commit/push/PR setup plus immediate handoff. Do NOT use for implementation work, independent verification, or waiting on CI/comments after the PR is open.
 disable-model-invocation: true
 ---
 
 # Pour
 
-Get work into review, then immediately hand ownership to `dialin`.
+Get work into review, then immediately hand ownership to `terreno-dialin`.
 
 ## Scope Boundary
 
@@ -17,7 +17,7 @@ Pour owns only pre-review-open and review-open actions:
 3. Create/update draft PR.
 4. Resolve merge conflicts required to get PR updated.
 5. Ensure CI is triggered on the first push.
-6. Immediately invoke `dialin`.
+6. Immediately invoke `terreno-dialin`.
 
 Pour must never block on CI completion or review comments.
 
@@ -60,8 +60,8 @@ If push/rebase/merge conflicts block PR update:
 
 As soon as PR is open/updated and CI has been triggered on first push:
 
-- Invoke `dialin` immediately.
-- Exit `pour` without waiting.
+- Invoke `terreno-dialin` immediately.
+- Exit `terreno-pour` without waiting.
 
 ## Branch/Repo Conventions
 

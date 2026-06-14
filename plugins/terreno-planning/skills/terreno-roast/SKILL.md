@@ -1,5 +1,5 @@
 ---
-name: roast
+name: terreno-roast
 description: Use ONLY when an approved IP exists and the work now needs to be executed in code through a strict TDD cycle. Do NOT use for creating IPs, opening PRs, or monitoring CI/review comments after a PR is open.
 ---
 
@@ -116,4 +116,4 @@ For every commit:
 - All planned implementation tasks for the scoped slice are complete.
 - Tests are credible under anti-mocking rules.
 - No unresolved review findings remain from independent sub-agents.
-- Work is ready for `pour`.
+- Work is ready for `terreno-pour`.
