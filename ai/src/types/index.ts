@@ -8,6 +8,9 @@ import type mongoose from "mongoose";
 
 export const DEFAULT_AI_REQUEST_TYPES = [
   "general",
+  "json_array",
+  "json_object",
+  "json_value",
   "remix",
   "summarization",
   "translation",
@@ -202,6 +205,44 @@ export interface TranslateOptions {
   sourceLanguage?: string;
   targetLanguage: string;
   text: string;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface GenerateJsonValueOptions {
+  maxOutputTokens?: number;
+  /** Optional name passed to the provider for structured-output guidance. */
+  outputName?: string;
+  /** Optional description passed to the provider for structured-output guidance. */
+  outputDescription?: string;
+  prompt: string;
+  systemPrompt?: string;
+  temperature?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface GenerateJsonObjectOptions<OBJECT> {
+  maxOutputTokens?: number;
+  prompt: string;
+  /** Zod schema, `jsonSchema(...)`, or other `FlexibleSchema` accepted by the AI SDK. */
+  schema: import("ai").FlexibleSchema<OBJECT>;
+  schemaDescription?: string;
+  schemaName?: string;
+  systemPrompt?: string;
+  temperature?: number;
+  userId?: mongoose.Types.ObjectId;
+}
+
+export interface GenerateJsonArrayOptions<ELEMENT> {
+  /** Schema for each array element. */
+  element: import("ai").FlexibleSchema<ELEMENT>;
+  /** Optional description for the array output (provider guidance). */
+  outputDescription?: string;
+  /** Optional name for the array output (provider guidance). */
+  outputName?: string;
+  maxOutputTokens?: number;
+  prompt: string;
+  systemPrompt?: string;
+  temperature?: number;
   userId?: mongoose.Types.ObjectId;
 }
 

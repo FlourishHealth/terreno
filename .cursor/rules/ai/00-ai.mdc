@@ -64,11 +64,18 @@ const aiService = new AIService({
 | Method | Description |
 |--------|-------------|
 | `generateText(options)` | Generate text (non-streaming) |
+| `generateJsonValue(options)` | Parse any JSON value via AI SDK `Output.json()` (logged as `json_value`) |
+| `generateJsonObject(options)` | Typed object from `jsonSchema` / Zod / `FlexibleSchema` via `Output.object()` (`json_object`) |
+| `generateJsonArray(options)` | Typed array via `Output.array()`; model emits `{"elements":[...]}` (`json_array`) |
 | `generateTextStream(options)` | Stream text chunks (AsyncGenerator) |
 | `generateRemix({text, userId?})` | Reword text naturally |
 | `generateSummary({text, userId?})` | Summarize text |
 | `translateText({text, targetLanguage, sourceLanguage?, userId?})` | Translate text |
 | `generateChatStream({messages, systemPrompt?, userId?})` | Stream chat response |
+
+Structured helpers default to `TemperaturePresets.DETERMINISTIC` and use `JSON_VALUE_SYSTEM_PROMPT` when `systemPrompt` is omitted. They run against a thin model wrapper that strips common markdown ``` / ```json fences (including ```lang:`) from `doGenerate` text before parsing. On failure, `logger.error` records prompt, system, raw model text, and error details; `AIRequest` rows store `response` (raw text or a sentinel), `error`, and `metadata` (`system`, `finishReason`, `errorStack`, `rawModelTextCaptured`).
+
+Re-exported from `@terreno/ai`: `Output`, `jsonSchema`, and types `JSONValue`, `FlexibleSchema` (from the `ai` package) for building schemas in app code.
 
 All methods automatically log requests to the AIRequest model.
 
@@ -95,7 +102,7 @@ Logs all AI requests with metrics for monitoring and debugging.
 // Fields
 aiModel: string          // Model identifier (e.g., "gemini-2.5-flash")
 prompt: string           // Input prompt
-requestType: "general" | "remix" | "summarization" | "translation"
+requestType: string       // e.g. "general" | "remix" | "summarization" | "translation" | "json_value" | "json_object" | "json_array"
 response?: string        // AI response text
 responseTime?: number    // Response time in ms
 tokensUsed?: number      // Total tokens consumed
