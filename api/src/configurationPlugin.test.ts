@@ -2,7 +2,8 @@
 import {afterAll, beforeAll, beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {model, Schema} from "mongoose";
 import type {SecretProvider} from "./configurationPlugin";
-import {configurationPlugin} from "./configurationPlugin";
+import {configurationPlugin, flattenToDotPaths} from "./configurationPlugin";
+import {isDeletedPlugin} from "./plugins";
 
 // --- Test schema with secret fields ---
 
@@ -65,10 +66,36 @@ const simpleSchema = new Schema({
 simpleSchema.plugin(configurationPlugin);
 const SimpleConfigModel = model("SimpleConfiguration", simpleSchema) as any;
 
+// --- Schema opting into the _singleton unique index ---
+
+const indexedSchema = new Schema({
+  value: {default: "default", description: "A value", type: String},
+});
+indexedSchema.plugin(configurationPlugin, {enforceSingletonIndex: true});
+const IndexedConfigModel = model("IndexedConfiguration", indexedSchema) as any;
+
+// --- Soft-delete-aware schema ---
+
+const softDeleteSchema = new Schema({
+  value: {default: "default", description: "A value", type: String},
+});
+softDeleteSchema.plugin(configurationPlugin);
+softDeleteSchema.plugin(isDeletedPlugin);
+const SoftDeleteConfigModel = model("SoftDeleteConfiguration", softDeleteSchema) as any;
+
 describe("configurationPlugin", () => {
   describe("schema setup", () => {
-    it("adds a _singleton field with unique index", () => {
+    it("does not add a _singleton index by default", () => {
       const indexes = SimpleConfigModel.schema.indexes();
+      const singletonIndex = indexes.find(
+        ([fields]: [Record<string, any>]) => fields._singleton !== undefined
+      );
+      expect(singletonIndex).toBeUndefined();
+      expect(SimpleConfigModel.schema.path("_singleton")).toBeUndefined();
+    });
+
+    it("adds a _singleton field with unique index when enforceSingletonIndex is true", () => {
+      const indexes = IndexedConfigModel.schema.indexes();
       const singletonIndex = indexes.find(
         ([fields]: [Record<string, any>]) => fields._singleton !== undefined
       );
@@ -167,6 +194,50 @@ describe("configurationPlugin", () => {
       const resolved = await TestConfigModel.resolveSecrets(provider);
       expect(resolved.size).toBe(1);
       expect(resolved.get("apiKey")).toBe("resolved-key");
+    });
+
+    it("passes the discovered secret version to the provider", async () => {
+      const versionedSchema = new Schema({
+        token: {
+          default: "",
+          description: "Pinned secret",
+          secret: true,
+          secretName: "pinned-token",
+          secretVersion: "5",
+          type: String,
+        },
+      });
+      versionedSchema.plugin(configurationPlugin);
+      const VersionedModel = model("VersionedConfiguration", versionedSchema) as any;
+
+      const received: Array<{name: string; version?: string}> = [];
+      const provider: SecretProvider = {
+        getSecret: async (name: string, version?: string) => {
+          received.push({name, version});
+          return "value";
+        },
+        name: "versioned-provider",
+      };
+
+      await VersionedModel.resolveSecrets(provider);
+      expect(received).toEqual([{name: "pinned-token", version: "5"}]);
+    });
+  });
+
+  describe("flattenToDotPaths", () => {
+    it("flattens nested plain objects into dotted paths", () => {
+      expect(flattenToDotPaths({a: {b: 1}})).toEqual([["a.b", 1]]);
+    });
+
+    it("treats arrays as leaves", () => {
+      expect(flattenToDotPaths({a: [1, 2]})).toEqual([["a", [1, 2]]]);
+    });
+
+    it("treats null as a leaf and keeps top-level keys", () => {
+      expect(flattenToDotPaths({a: null, b: "x"})).toEqual([
+        ["a", null],
+        ["b", "x"],
+      ]);
     });
   });
 
@@ -295,6 +366,78 @@ describe("configurationPlugin", () => {
       } catch (err: any) {
         expect(err.title).toMatch(/Cannot hard-delete the configuration document/);
       }
+    });
+  });
+
+  describe("soft-delete-aware singleton (requires MongoDB)", () => {
+    let dbConnected = false;
+
+    beforeAll(async () => {
+      try {
+        if (mongoose.connection.readyState === 1) {
+          dbConnected = true;
+        } else {
+          await mongoose.connect("mongodb://127.0.0.1/terreno-config-test", {
+            connectTimeoutMS: 3000,
+            serverSelectionTimeoutMS: 3000,
+          });
+          dbConnected = true;
+        }
+      } catch {
+        dbConnected = false;
+      }
+    });
+
+    beforeEach(async () => {
+      if (!dbConnected) {
+        return;
+      }
+      try {
+        await SoftDeleteConfigModel.collection.drop();
+      } catch {
+        // Collection may not exist yet
+      }
+    });
+
+    it("operates on the non-deleted singleton", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const config = await SoftDeleteConfigModel.getConfig();
+      expect(config.value).toBe("default");
+      const updated = await SoftDeleteConfigModel.updateConfig({value: "live"});
+      expect(updated.value).toBe("live");
+      expect(updated.deleted).toBe(false);
+    });
+
+    it("allows a new singleton after the existing one is soft-deleted", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const first = await SoftDeleteConfigModel.getConfig();
+      // Soft delete by setting deleted: true (allowed)
+      first.deleted = true;
+      await first.save();
+
+      // A new non-deleted singleton can now be created
+      const second = await SoftDeleteConfigModel.getConfig();
+      expect(second.deleted).toBe(false);
+      expect(second._id.toString()).not.toBe(first._id.toString());
+    });
+
+    it("does not let updateConfig touch a soft-deleted document", async () => {
+      if (!dbConnected) {
+        return;
+      }
+      const first = await SoftDeleteConfigModel.getConfig();
+      first.deleted = true;
+      await first.save();
+
+      // updateConfig creates and targets a fresh non-deleted singleton
+      const updated = await SoftDeleteConfigModel.updateConfig({value: "fresh"});
+      expect(updated.deleted).toBe(false);
+      expect(updated.value).toBe("fresh");
+      expect(updated._id.toString()).not.toBe(first._id.toString());
     });
   });
 });
