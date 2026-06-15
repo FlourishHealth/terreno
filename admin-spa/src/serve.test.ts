@@ -146,7 +146,6 @@ describe("AdminSpaServeApp", () => {
     const res = await request(makeApp()).get("/unrelated");
     expect(res.status).toBe(404);
   });
-
   it("serves app-config from the plugin before the dev proxy", async () => {
     const proxyTarget = express();
     proxyTarget.get("/app-config.json", (_req, res) => {

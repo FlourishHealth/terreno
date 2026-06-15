@@ -1,6 +1,6 @@
 import type {CountryCode} from "libphonenumber-js";
 import type React from "react";
-import type {ReactElement, ReactNode} from "react";
+import type {FC, ReactElement, ReactNode} from "react";
 import type {
   ImageStyle,
   ListRenderItemInfo,
@@ -355,8 +355,51 @@ export type Direction = "up" | "right" | "down" | "left";
 
 export type OnChangeCallback = (result: string) => void;
 
+/**
+ * Augmentable registry of custom icon names. Downstream consumers extend this
+ * interface via TypeScript declaration merging to register their own icons and
+ * get type-safe, autocompleted names everywhere an `iconName` is accepted.
+ *
+ * @example
+ * ```typescript
+ * declare module "@terreno/ui" {
+ *   interface CustomIconRegistry {
+ *     brandLogo: true;
+ *     sparkle: true;
+ *   }
+ * }
+ * ```
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: Intentionally empty so consumers can augment it via declaration merging.
+export interface CustomIconRegistry {}
+
+/** The set of custom icon names registered via {@link CustomIconRegistry}. */
+export type CustomIconName = keyof CustomIconRegistry & string;
+
 // Update if we start supporting more icon packs from Expo Icons.
-export type IconName = FontAwesome6SolidNames | FontAwesome6BrandNames | FontAwesome6RegularNames;
+export type IconName =
+  | FontAwesome6SolidNames
+  | FontAwesome6BrandNames
+  | FontAwesome6RegularNames
+  | CustomIconName;
+
+/** Props passed to a custom icon component when it is rendered. */
+export interface CustomIconProps {
+  /** Resolved color string, already mapped from the active theme. */
+  color: string;
+  /** Resolved icon size in pixels. */
+  size: number;
+  testID?: string;
+}
+
+/** A component that renders a custom (non-FontAwesome) icon. */
+export type CustomIconComponent = FC<CustomIconProps>;
+
+/**
+ * Map of custom icon name to the component that renders it. Provided to
+ * `TerrenoProvider` via the `icons` prop to register custom icons.
+ */
+export type IconRegistryMap = Record<string, CustomIconComponent>;
 
 export type AlignContent = "start" | "end" | "center" | "between" | "around" | "stretch";
 export type AlignSelf = "auto" | "start" | "end" | "center" | "baseline" | "stretch";

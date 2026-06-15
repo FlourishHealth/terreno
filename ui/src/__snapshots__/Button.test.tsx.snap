@@ -1042,3 +1042,145 @@ exports[`Button renders with tooltip on desktop (wrapped in Tooltip) 1`] = `
   "type": "PressableScale",
 }
 `;
+
+exports[`Button renders with tooltipIncludeArrow and tooltipIdealPosition 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Arrow Tip",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Press to perform action",
+    "accessibilityLabel": "Arrow Tip",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;
+
+exports[`Button renders with custom confirmationText and modalSubTitle 1`] = `
+{
+  "$$typeof": Symbol(react.test.json),
+  "children": [
+    {
+      "$$typeof": Symbol(react.test.json),
+      "children": [
+        {
+          "$$typeof": Symbol(react.test.json),
+          "children": [
+            {
+              "$$typeof": Symbol(react.test.json),
+              "children": [
+                "Confirm Btn",
+              ],
+              "props": {
+                "style": {
+                  "color": "#FFFFFF",
+                  "fontSize": 16,
+                  "fontWeight": "700",
+                },
+              },
+              "type": "Text",
+            },
+          ],
+          "props": {
+            "style": {
+              "flexDirection": "row",
+            },
+            "testID": undefined,
+          },
+          "type": "View",
+        },
+      ],
+      "props": {
+        "style": {
+          "flexDirection": "row",
+        },
+        "testID": undefined,
+      },
+      "type": "View",
+    },
+  ],
+  "props": {
+    "accessibilityHint": "Opens a confirmation dialog",
+    "accessibilityLabel": "Confirm Btn",
+    "accessibilityRole": "button",
+    "accessibilityState": {
+      "disabled": false,
+    },
+    "disabled": false,
+    "onPress": [Function: debounced],
+    "style": {
+      "alignItems": "center",
+      "alignSelf": "flex-start",
+      "backgroundColor": "#0E9DCD",
+      "borderColor": undefined,
+      "borderRadius": 360,
+      "borderWidth": undefined,
+      "flexDirection": "column",
+      "justifyContent": "center",
+      "paddingHorizontal": 20,
+      "paddingVertical": 8,
+      "width": "auto",
+    },
+    "testID": undefined,
+  },
+  "type": "PressableScale",
+}
+`;

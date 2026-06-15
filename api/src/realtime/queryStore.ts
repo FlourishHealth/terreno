@@ -9,7 +9,6 @@
 
 interface QuerySubscription {
   collection: string;
-  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
   query: Record<string, any>;
   queryId: string;
 }
@@ -18,13 +17,8 @@ interface QuerySubscription {
  * Compute a deterministic queryId from collection and query on the server side.
  * This prevents clients from hijacking other subscriptions by providing a colliding queryId.
  */
-export const computeQueryId = (
-  collection: string,
-  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
-  query: Record<string, any>
-): string => {
+export const computeQueryId = (collection: string, query: Record<string, any>): string => {
   const sortedKeys = Object.keys(query).sort();
-  // biome-ignore lint/suspicious/noExplicitAny: mirrors the input query value shape
   const normalized: Record<string, any> = {};
   for (const key of sortedKeys) {
     normalized[key] = query[key];
@@ -45,7 +39,6 @@ const socketQueries = new Map<string, Set<string>>();
 export const addQuerySubscription = (
   socketId: string,
   collection: string,
-  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
   query: Record<string, any>,
   queryId: string
 ): void => {
@@ -109,9 +102,7 @@ export const removeAllSocketQueries = (socketId: string): void => {
  */
 export const getQuerySubscriptionsForCollection = (
   collection: string
-  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
 ): {queryId: string; query: Record<string, any>}[] => {
-  // biome-ignore lint/suspicious/noExplicitAny: MongoDB query filter values are arbitrary user-supplied JSON
   const result: {queryId: string; query: Record<string, any>}[] = [];
 
   for (const [queryId, sub] of querySubscriptions) {

@@ -188,6 +188,15 @@ describe("vertex helpers", () => {
     });
   });
 
+  describe("createVertexProvider without vertexFactory", () => {
+    it("returns undefined when @ai-sdk/google-vertex is not installed (no factory)", () => {
+      // When no vertexFactory is passed, loadVertexModule is called.
+      // Since @ai-sdk/google-vertex is likely not installed in the test env, it returns undefined.
+      const provider = createVertexProvider({project: "demo-project"});
+      expect(provider).toBeUndefined();
+    });
+  });
+
   describe("listEnabledVertexModels", () => {
     it("paginates and normalizes publisher model names", async () => {
       const fetchImpl = mock(async (input: string | URL) => {
@@ -257,20 +266,52 @@ describe("vertex helpers", () => {
       expect(models).toBeUndefined();
     });
 
-    it("returns undefined when project is empty", async () => {
+    it("returns undefined when project is not provided", async () => {
       const models = await listEnabledVertexModels({
         project: "",
       });
       expect(models).toBeUndefined();
     });
 
-    it("returns undefined when fetchImpl is not available", async () => {
-      const models = await listEnabledVertexModels({
-        fetchImpl: undefined as unknown as typeof fetch,
-        getAccessToken: async () => "fake-token",
-        project: "demo-project",
-      });
-      expect(models).toBeUndefined();
+    it("returns undefined when default access token acquisition fails (no credentials)", async () => {
+      // Mock google-auth-library to simulate credential failure deterministically,
+      // regardless of whether ADC is configured in the environment.
+      mock.module("google-auth-library", () => ({
+        GoogleAuth: class {
+          async getClient(): Promise<never> {
+            throw new Error("No credentials configured");
+          }
+        },
+      }));
+      try {
+        const fetchImpl = mock(
+          async () => ({json: async () => ({}), ok: true}) as unknown as Response
+        );
+        const models = await listEnabledVertexModels({
+          fetchImpl: fetchImpl as unknown as typeof fetch,
+          project: "demo-project",
+        });
+        expect(models).toBeUndefined();
+        // fetchImpl should not have been called since token acquisition should fail first
+        expect(fetchImpl).not.toHaveBeenCalled();
+      } finally {
+        mock.module("google-auth-library", () => ({}));
+      }
+    });
+
+    it("returns undefined when no fetch implementation is available", async () => {
+      const originalFetch = globalThis.fetch;
+      // Temporarily remove globalThis.fetch to test the fallback
+      (globalThis as {fetch?: typeof fetch}).fetch = undefined as unknown as typeof fetch;
+      try {
+        const models = await listEnabledVertexModels({
+          getAccessToken: async () => "fake-token",
+          project: "demo-project",
+        });
+        expect(models).toBeUndefined();
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
     });
 
     it("returns undefined when fetch throws a network error", async () => {
@@ -284,7 +325,6 @@ describe("vertex helpers", () => {
       });
       expect(models).toBeUndefined();
     });
-
     it("skips models without a name in the response", async () => {
       const fetchImpl = mock(async () => ({
         json: async () => ({
@@ -304,35 +344,6 @@ describe("vertex helpers", () => {
         project: "demo-project",
       });
       expect(models).toEqual(["gemini-2.5-flash", "gemini-2.5-pro"]);
-    });
-
-    it("returns undefined when getDefaultAccessToken is used and google-auth-library is unavailable", async () => {
-      const fetchImpl = mock(async () => ({
-        json: async () => ({publisherModels: []}),
-        ok: true,
-        status: 200,
-      })) as unknown as typeof fetch;
-      // Don't provide getAccessToken — uses getDefaultAccessToken which
-      // fails because google-auth-library is not installed in test env
-      const models = await listEnabledVertexModels({
-        fetchImpl,
-        project: "demo-project",
-      });
-      expect(models).toBeUndefined();
-    });
-
-    it("returns undefined when neither fetchImpl nor globalThis.fetch is available", async () => {
-      const origFetch = globalThis.fetch;
-      try {
-        delete (globalThis as Record<string, unknown>).fetch;
-        const models = await listEnabledVertexModels({
-          getAccessToken: async () => "fake-token",
-          project: "demo-project",
-        });
-        expect(models).toBeUndefined();
-      } finally {
-        globalThis.fetch = origFetch;
-      }
     });
 
     it("uses global location when GOOGLE_VERTEX_LOCATION env is set", async () => {

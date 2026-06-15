@@ -12,6 +12,7 @@ import {ActivityIndicator, Pressable, type PressableProps, Text, View} from "rea
 
 import {Box} from "./Box";
 import type {ButtonPressAnimation, ButtonProps} from "./Common";
+import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
@@ -53,6 +54,7 @@ const ButtonComponent: React.FC<ButtonProps> = ({
   const [loading, setLoading] = useState(propsLoading);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
+  const CustomIcon = useCustomIcon(iconName);
 
   const {backgroundColor, borderColor, borderWidth, color} = useMemo(() => {
     if (!theme) {
@@ -157,7 +159,11 @@ const ButtonComponent: React.FC<ButtonProps> = ({
                 marginRight: iconPosition === "left" ? 8 : 0,
               }}
             >
-              <FontAwesome6 color={color} name={iconName} size={16} solid />
+              {CustomIcon ? (
+                <CustomIcon color={color ?? theme.text.inverted} size={16} />
+              ) : (
+                <FontAwesome6 color={color} name={iconName} size={16} solid />
+              )}
             </View>
           )}
           <Text style={{color, fontSize: 16, fontWeight: "700"}}>{text}</Text>

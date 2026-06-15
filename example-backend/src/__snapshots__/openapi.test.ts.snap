@@ -2522,6 +2522,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "format": "date-time",
                             "type": "string",
                           },
+                          "defaultVariant": {
+                            "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                            "required": false,
+                            "type": "string",
+                          },
                           "deleted": {
                             "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                             "type": "boolean",
@@ -2717,6 +2722,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "defaultVariant": {
+                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                    "required": false,
+                    "type": "string",
+                  },
                   "deleted": {
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
@@ -2838,6 +2848,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
+                      "type": "string",
+                    },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -3094,6 +3109,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "format": "date-time",
                       "type": "string",
                     },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
+                      "type": "string",
+                    },
                     "deleted": {
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
@@ -3282,6 +3302,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "defaultVariant": {
+                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                    "required": false,
+                    "type": "string",
+                  },
                   "deleted": {
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
@@ -3403,6 +3428,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
+                      "type": "string",
+                    },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -5396,6 +5426,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "format": "date-time",
                             "type": "string",
                           },
+                          "defaultVariant": {
+                            "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                            "required": false,
+                            "type": "string",
+                          },
                           "deleted": {
                             "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                             "type": "boolean",
@@ -5591,6 +5626,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "defaultVariant": {
+                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                    "required": false,
+                    "type": "string",
+                  },
                   "deleted": {
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
@@ -5712,6 +5752,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
+                      "type": "string",
+                    },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
@@ -5968,6 +6013,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "format": "date-time",
                       "type": "string",
                     },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
+                      "type": "string",
+                    },
                     "deleted": {
                       "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                       "type": "boolean",
@@ -6156,6 +6206,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "defaultVariant": {
+                    "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                    "required": false,
+                    "type": "string",
+                  },
                   "deleted": {
                     "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
                     "type": "boolean",
@@ -6277,6 +6332,11 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "created": {
                       "description": "When this document was created",
                       "format": "date-time",
+                      "type": "string",
+                    },
+                    "defaultVariant": {
+                      "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                      "required": false,
                       "type": "string",
                     },
                     "deleted": {
