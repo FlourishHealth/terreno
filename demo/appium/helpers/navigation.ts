@@ -336,15 +336,18 @@ const tapIfDisplayed = async (selector: string): Promise<boolean> => {
 };
 
 const dismissDevMenuOverlay = async (): Promise<void> => {
-  const didTapContinue = driver.isAndroid
-    ? await tapIfDisplayed('//android.widget.TextView[@text="Continue"]')
-    : await tapIfDisplayed("~Continue");
-  if (didTapContinue) {
-    await driver.pause(500);
-  }
+  const dismissUntil = Date.now() + 5000;
+  while (Date.now() < dismissUntil) {
+    const didTapContinue = driver.isAndroid
+      ? (await tapIfDisplayed('//android.widget.TextView[@text="Continue"]/..')) ||
+        (await tapIfDisplayed('//android.widget.TextView[@text="Continue"]')) ||
+        (await tapIfDisplayed("~Continue"))
+      : await tapIfDisplayed("~Continue");
+    const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
+    if (!didTapContinue && !didTapClose) {
+      return;
+    }
 
-  const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
-  if (didTapClose) {
     await driver.pause(500);
   }
 };
