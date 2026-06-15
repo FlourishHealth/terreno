@@ -35,6 +35,7 @@ const homeScreenTimeoutMs = isQuickLoop ? 45000 : 120000;
 const homeItemTimeoutMs = isQuickLoop ? 15000 : 30000;
 const itemInitialTimeoutMs = isQuickLoop ? 6000 : 10000;
 const itemPostScrollTimeoutMs = isQuickLoop ? 15000 : 30000;
+const overlayDismissTimeoutMs = isQuickLoop ? 15000 : 30000;
 
 const toDemoHomeTestId = (componentName: string): string =>
   `demo-home-${componentName.toLowerCase().replace(/\s+/g, "-")}`;
@@ -189,20 +190,15 @@ const ensureNotInDevLauncher = async (componentName: string): Promise<void> => {
 };
 
 const waitForDemoHomeReady = async (): Promise<void> => {
-  const homeScreen = await $("~demo-home-screen");
-
   try {
-    await homeScreen.waitForExist({
-      interval: 1000,
+    await waitForSelectorDisplayedWithRecovery("~demo-home-screen", {
       timeout: homeScreenTimeoutMs,
       timeoutMsg: "Demo home screen did not render",
     });
     return;
   } catch {
     // ScrollView testIDs are unreliable on Android; fall back to a home list item.
-    const homeItem = await $("~demo-home-button");
-    await homeItem.waitForDisplayed({
-      interval: 1000,
+    await waitForSelectorDisplayedWithRecovery("~demo-home-button", {
       timeout: homeItemTimeoutMs,
       timeoutMsg: "Demo home screen did not render",
     });
@@ -335,13 +331,47 @@ const tapIfDisplayed = async (selector: string): Promise<boolean> => {
   return true;
 };
 
+const waitForSelectorDisplayedWithRecovery = async (
+  selector: string,
+  options: {timeout: number; timeoutMsg: string}
+): Promise<void> => {
+  await driver.waitUntil(
+    async () => {
+      await dismissDevMenuOverlay();
+      const element = await $(selector);
+      return element
+        .isDisplayed()
+        .then((value) => value)
+        .catch(() => false);
+    },
+    {
+      interval: 1000,
+      timeout: options.timeout,
+      timeoutMsg: options.timeoutMsg,
+    }
+  );
+};
+
+const tryTapSelectors = async (selectors: string[]): Promise<boolean> => {
+  for (const selector of selectors) {
+    if (await tapIfDisplayed(selector)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const dismissDevMenuOverlay = async (): Promise<void> => {
-  const dismissUntil = Date.now() + 5000;
+  const dismissUntil = Date.now() + overlayDismissTimeoutMs;
   while (Date.now() < dismissUntil) {
     const didTapContinue = driver.isAndroid
-      ? (await tapIfDisplayed('//android.widget.TextView[@text="Continue"]/..')) ||
-        (await tapIfDisplayed('//android.widget.TextView[@text="Continue"]')) ||
-        (await tapIfDisplayed("~Continue"))
+      ? await tryTapSelectors([
+          'android=new UiSelector().text("Continue")',
+          '//android.widget.TextView[@text="Continue"]/ancestor::android.view.View[@clickable="true"][1]',
+          '//android.widget.TextView[@text="Continue"]',
+          "~Continue",
+        ])
       : await tapIfDisplayed("~Continue");
     const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
     if (!didTapContinue && !didTapClose) {
@@ -403,13 +433,15 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   await ensureDevClientAppLoaded(componentName);
   await ensureNotInDevLauncher(componentName);
   await dismissDevMenuOverlay();
-  const target = await $(`~${testId}`);
+  const targetSelector = `~${testId}`;
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
     await openDemoDeepLink(componentName);
-    await dismissDevMenuOverlay();
-    await target.waitForDisplayed({timeout: deepLinkTargetTimeoutMs});
+    await waitForSelectorDisplayedWithRecovery(targetSelector, {
+      timeout: deepLinkTargetTimeoutMs,
+      timeoutMsg: `Element "~${testId}" did not display after deep-link navigation`,
+    });
     return;
   } catch (error) {
     await captureNavigationDiagnostics({
@@ -424,7 +456,10 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   try {
     await waitForDemoHomeReady();
     await tapComponentOnDemoHome(componentName);
-    await target.waitForDisplayed({timeout: fallbackTargetTimeoutMs});
+    await waitForSelectorDisplayedWithRecovery(targetSelector, {
+      timeout: fallbackTargetTimeoutMs,
+      timeoutMsg: `Element "~${testId}" did not display after fallback navigation`,
+    });
   } catch (error) {
     await captureNavigationDiagnostics({
       componentName,
