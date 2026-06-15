@@ -321,6 +321,34 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
   }
 };
 
+const tapIfDisplayed = async (selector: string): Promise<boolean> => {
+  const element = await $(selector);
+  const isVisible = await element
+    .isDisplayed()
+    .then((value) => value)
+    .catch(() => false);
+  if (!isVisible) {
+    return false;
+  }
+
+  await element.click();
+  return true;
+};
+
+const dismissDevMenuOverlay = async (): Promise<void> => {
+  const didTapContinue = driver.isAndroid
+    ? await tapIfDisplayed('//android.widget.TextView[@text="Continue"]')
+    : await tapIfDisplayed("~Continue");
+  if (didTapContinue) {
+    await driver.pause(500);
+  }
+
+  const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
+  if (didTapClose) {
+    await driver.pause(500);
+  }
+};
+
 const scrollDemoHome = async (componentName: string): Promise<void> => {
   if (driver.isAndroid) {
     await driver.execute("mobile: scrollGesture", {
@@ -371,11 +399,13 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   await waitForAppForeground();
   await ensureDevClientAppLoaded(componentName);
   await ensureNotInDevLauncher(componentName);
+  await dismissDevMenuOverlay();
   const target = await $(`~${testId}`);
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
     await openDemoDeepLink(componentName);
+    await dismissDevMenuOverlay();
     await target.waitForDisplayed({timeout: deepLinkTargetTimeoutMs});
     return;
   } catch (error) {
@@ -385,6 +415,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
       stage: "deep-link-navigation",
     });
     console.warn(`Deep link navigation failed for ${componentName}; falling back to demo home`, error);
+    await dismissDevMenuOverlay();
   }
 
   try {
