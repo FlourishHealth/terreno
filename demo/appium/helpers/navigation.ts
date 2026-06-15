@@ -312,8 +312,9 @@ const selectDevServerFromAndroidLauncher = async (): Promise<boolean> => {
 
   for (const serverLabel of getAndroidDevServerOriginLabels()) {
     const didTapServer = await tryTapSelectors([
-      `android=new UiSelector().text("${serverLabel}")`,
       `//android.widget.TextView[@text="${serverLabel}"]/ancestor::android.view.View[@clickable="true"][1]`,
+      `android=new UiSelector().text("${serverLabel}").clickable(true)`,
+      `android=new UiSelector().text("${serverLabel}")`,
     ]);
     if (didTapServer) {
       console.info(`Selecting Android dev server entry: ${serverLabel}`);
@@ -333,7 +334,7 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
   try {
     const didSelectServer =
       (await selectDevServerFromIosLauncher()) || (await selectDevServerFromAndroidLauncher());
-    if (!didSelectServer) {
+    if (driver.isAndroid || !didSelectServer) {
       await openDevClientComponentUrl();
     }
     await driver.waitUntil(
