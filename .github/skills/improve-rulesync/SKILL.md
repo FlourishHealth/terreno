@@ -1,9 +1,8 @@
 ---
 name: improve-rulesync
 description: >-
-  Invoke at the end of a session to evaluate whether any skills or rules were
-  misleading, incorrect, or missing — and fix or create them. Trigger with
-  /improve-rulesync.
+  End-of-session pass to evaluate whether skills or rules were misleading,
+  incorrect, or missing — then fix or create them (/improve-rulesync).
 ---
 # Improve Rulesync
 
