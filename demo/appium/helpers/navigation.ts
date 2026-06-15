@@ -29,7 +29,7 @@ const appiumDevServerUrl = process.env.APPIUM_DEV_SERVER_URL?.trim();
 const shouldRequireNonDevClient = process.env.APPIUM_REQUIRE_NON_DEV_CLIENT === "true";
 const appiumLogsDir = join(process.cwd(), "logs");
 const appForegroundTimeoutMs = isQuickLoop ? 30000 : 60000;
-const deepLinkTargetTimeoutMs = isQuickLoop ? 30000 : 60000;
+const deepLinkTargetTimeoutMs = isQuickLoop ? 60000 : 90000;
 const fallbackTargetTimeoutMs = isQuickLoop ? 30000 : 60000;
 const homeScreenTimeoutMs = isQuickLoop ? 45000 : 120000;
 const homeItemTimeoutMs = isQuickLoop ? 15000 : 30000;
@@ -411,6 +411,37 @@ const tryTapSelectors = async (selectors: string[]): Promise<boolean> => {
   return false;
 };
 
+const waitForDeepLinkTarget = async (
+  componentName: string,
+  selector: string,
+  options: {timeout: number; timeoutMsg: string}
+): Promise<void> => {
+  let lastDeepLinkAt = 0;
+  await driver.waitUntil(
+    async () => {
+      await dismissDevMenuOverlay();
+      // Re-issue the deep link periodically: the first dev-client launch races the
+      // Metro bundle load, so an early deep link is dropped before expo-router mounts.
+      // Resending is idempotent once the app is interactive.
+      if (Date.now() - lastDeepLinkAt > 4000) {
+        await openDemoDeepLink(componentName);
+        lastDeepLinkAt = Date.now();
+      }
+
+      const element = await $(selector);
+      return element
+        .isDisplayed()
+        .then((value) => value)
+        .catch(() => false);
+    },
+    {
+      interval: 1500,
+      timeout: options.timeout,
+      timeoutMsg: options.timeoutMsg,
+    }
+  );
+};
+
 const isAndroidDevMenuPanelVisible = async (): Promise<boolean> => {
   if (!driver.isAndroid) {
     return false;
@@ -509,8 +540,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
-    await openDemoDeepLink(componentName);
-    await waitForSelectorDisplayedWithRecovery(targetSelector, {
+    await waitForDeepLinkTarget(componentName, targetSelector, {
       timeout: deepLinkTargetTimeoutMs,
       timeoutMsg: `Element "~${testId}" did not display after deep-link navigation`,
     });
