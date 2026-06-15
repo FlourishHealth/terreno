@@ -40,6 +40,12 @@ const overlayDismissTimeoutMs = isQuickLoop ? 15000 : 30000;
 const toDemoHomeTestId = (componentName: string): string =>
   `demo-home-${componentName.toLowerCase().replace(/\s+/g, "-")}`;
 
+// React Native maps `testID` to an Android resource-id and to an iOS
+// accessibilityIdentifier. WebdriverIO's `~` selector resolves to the Android
+// content-desc, so Android lookups must target the resource-id explicitly.
+export const byTestId = (testId: string): string =>
+  driver.isAndroid ? `android=new UiSelector().resourceId("${testId}")` : `~${testId}`;
+
 const toDemoDeepLink = (componentName: string): string =>
   `${DEMO_DEEP_LINK_SCHEME}:///demo/${encodeURIComponent(componentName)}`;
 
@@ -191,14 +197,14 @@ const ensureNotInDevLauncher = async (componentName: string): Promise<void> => {
 
 const waitForDemoHomeReady = async (): Promise<void> => {
   try {
-    await waitForSelectorDisplayedWithRecovery("~demo-home-screen", {
+    await waitForSelectorDisplayedWithRecovery(byTestId("demo-home-screen"), {
       timeout: homeScreenTimeoutMs,
       timeoutMsg: "Demo home screen did not render",
     });
     return;
   } catch {
     // ScrollView testIDs are unreliable on Android; fall back to a home list item.
-    await waitForSelectorDisplayedWithRecovery("~demo-home-button", {
+    await waitForSelectorDisplayedWithRecovery(byTestId("demo-home-button"), {
       timeout: homeItemTimeoutMs,
       timeoutMsg: "Demo home screen did not render",
     });
@@ -506,7 +512,7 @@ const scrollDemoHome = async (componentName: string): Promise<void> => {
 
 const tapComponentOnDemoHome = async (componentName: string): Promise<void> => {
   const homeTestId = toDemoHomeTestId(componentName);
-  let item = await $(`~${homeTestId}`);
+  let item = await $(byTestId(homeTestId));
 
   try {
     await item.waitForDisplayed({timeout: itemInitialTimeoutMs});
@@ -536,7 +542,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
   await ensureDevClientAppLoaded(componentName);
   await ensureNotInDevLauncher(componentName);
   await dismissDevMenuOverlay();
-  const targetSelector = `~${testId}`;
+  const targetSelector = byTestId(testId);
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
