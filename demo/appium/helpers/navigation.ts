@@ -266,6 +266,25 @@ const getDevServerOriginLabel = (): string => {
   return `${parsedUrl.protocol}//${hostname}${portSuffix}`;
 };
 
+const getAndroidDevServerOriginLabels = (): string[] => {
+  if (!appiumDevServerUrl || appiumDevServerUrl.length === 0) {
+    throw new Error(
+      "APPIUM_DEV_SERVER_URL must be set when running against a development client build."
+    );
+  }
+
+  const parsedUrl = new URL(appiumDevServerUrl.replace(/\/+$/, ""));
+  const portSuffix = parsedUrl.port.length > 0 ? `:${parsedUrl.port}` : "";
+  const labels = new Set<string>();
+  labels.add(`${parsedUrl.protocol}//${parsedUrl.hostname}${portSuffix}`);
+  labels.add(getDevServerOriginLabel());
+  if (parsedUrl.hostname === "localhost" || parsedUrl.hostname === "127.0.0.1") {
+    labels.add(`${parsedUrl.protocol}//10.0.2.2${portSuffix}`);
+  }
+
+  return [...labels];
+};
+
 const selectDevServerFromIosLauncher = async (): Promise<boolean> => {
   if (!driver.isIOS) {
     return false;
@@ -286,6 +305,25 @@ const selectDevServerFromIosLauncher = async (): Promise<boolean> => {
   return true;
 };
 
+const selectDevServerFromAndroidLauncher = async (): Promise<boolean> => {
+  if (!driver.isAndroid) {
+    return false;
+  }
+
+  for (const serverLabel of getAndroidDevServerOriginLabels()) {
+    const didTapServer = await tryTapSelectors([
+      `android=new UiSelector().text("${serverLabel}")`,
+      `//android.widget.TextView[@text="${serverLabel}"]/ancestor::android.view.View[@clickable="true"][1]`,
+    ]);
+    if (didTapServer) {
+      console.info(`Selecting Android dev server entry: ${serverLabel}`);
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const ensureDevClientAppLoaded = async (componentName: string): Promise<void> => {
   const isLauncherVisible = await isDevLauncherVisible();
   if (!isLauncherVisible) {
@@ -293,7 +331,8 @@ const ensureDevClientAppLoaded = async (componentName: string): Promise<void> =>
   }
 
   try {
-    const didSelectServer = await selectDevServerFromIosLauncher();
+    const didSelectServer =
+      (await selectDevServerFromIosLauncher()) || (await selectDevServerFromAndroidLauncher());
     if (!didSelectServer) {
       await openDevClientComponentUrl();
     }
