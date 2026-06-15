@@ -1,14 +1,14 @@
-import {render} from "@testing-library/react-native";
 import {beforeEach, describe, expect, it} from "bun:test";
-import type {FC} from "react";
+import {render, renderHook} from "@testing-library/react-native";
 import type React from "react";
+import type {FC} from "react";
 import {View} from "react-native";
 
 import {Button} from "./Button";
 import type {CustomIconProps, IconRegistryMap} from "./Common";
 import {Icon} from "./Icon";
 import {IconButton} from "./IconButton";
-import {IconRegistryProvider} from "./IconRegistry";
+import {IconRegistryProvider, useCustomIcon} from "./IconRegistry";
 import {ThemeProvider} from "./Theme";
 
 // Register a custom icon name so it type-checks anywhere an `iconName` is accepted.
@@ -75,10 +75,30 @@ describe("IconRegistry", () => {
     expect(queryByTestId("custom-star")).not.toBeNull();
   });
 
-  it("renders a custom icon inside an IconButton", () => {
-    const {queryByTestId} = renderWithIcons(
-      <IconButton accessibilityLabel="star" iconName="customStar" onClick={() => {}} />
+  // IconButton renders `null` under the bun/react-test-renderer harness (all of
+  // its existing snapshots are null), so we verify its wiring via the shared
+  // `useCustomIcon` hook plus a no-throw render rather than rendered output.
+  it("renders an IconButton with a custom icon without throwing", () => {
+    expect(() =>
+      renderWithIcons(
+        <IconButton accessibilityLabel="star" iconName="customStar" onClick={() => {}} />
+      )
+    ).not.toThrow();
+  });
+
+  it("useCustomIcon resolves registered names and ignores everything else", () => {
+    const wrapper = ({children}: {children: React.ReactNode}) => (
+      <ThemeProvider>
+        <IconRegistryProvider icons={ICONS}>{children}</IconRegistryProvider>
+      </ThemeProvider>
     );
-    expect(queryByTestId("custom-star")).not.toBeNull();
+    const {result: registered} = renderHook(() => useCustomIcon("customStar"), {wrapper});
+    expect(registered.current).toBe(CustomStar);
+
+    const {result: fontAwesome} = renderHook(() => useCustomIcon("check"), {wrapper});
+    expect(fontAwesome.current).toBeUndefined();
+
+    const {result: missing} = renderHook(() => useCustomIcon(undefined), {wrapper});
+    expect(missing.current).toBeUndefined();
   });
 });

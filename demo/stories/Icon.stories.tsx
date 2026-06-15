@@ -4,8 +4,8 @@ import {
   type CustomIconProps,
   Icon,
   IconButton,
-  IconRegistryProvider,
   type IconProps,
+  IconRegistryProvider,
   Text,
 } from "@terreno/ui";
 import Svg, {Path} from "react-native-svg";
@@ -15,10 +15,7 @@ import {StorybookContainer} from "./StorybookContainer";
 // A custom icon is any component that accepts a resolved `color` and `size`.
 const SparkleIcon = ({color, size, testID}: CustomIconProps) => (
   <Svg fill="none" height={size} testID={testID} viewBox="0 0 24 24" width={size}>
-    <Path
-      d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z"
-      fill={color}
-    />
+    <Path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" fill={color} />
   </Svg>
 );
 
