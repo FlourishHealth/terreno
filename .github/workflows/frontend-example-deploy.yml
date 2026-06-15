@@ -27,7 +27,9 @@ jobs:
       - name: Check PR diff for relevant changes
         id: check
         run: |
-          FILES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          # Use the "List pull request files" API (paginated) instead of `gh pr diff`,
+          # which fails with HTTP 406 once a PR exceeds 300 changed files.
+          FILES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" --jq '.[].filename')
           CHANGES=$(echo "$FILES" | grep -cE '^(example-frontend/|ui/|rtk/|admin-frontend/)' || true)
           BACKEND_CHANGES=$(echo "$FILES" | grep -cE '^(example-backend/|api/|api-health/|admin-backend/|ai/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT

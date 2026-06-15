@@ -23,7 +23,9 @@ jobs:
       - name: Check PR diff for demo or ui changes
         id: check
         run: |
-          CHANGES=$(gh pr diff ${{ github.event.pull_request.number }} --name-only | grep -cE '^(demo/|ui/)' || true)
+          # Use the "List pull request files" API (paginated) instead of `gh pr diff`,
+          # which fails with HTTP 406 once a PR exceeds 300 changed files.
+          CHANGES=$(gh api --paginate "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files?per_page=100" --jq '.[].filename' | grep -cE '^(demo/|ui/)' || true)
           echo "has_changes=$( [ "$CHANGES" -gt 0 ] && echo true || echo false )" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
