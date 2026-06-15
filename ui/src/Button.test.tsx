@@ -2,7 +2,7 @@ import {describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
-import {renderWithTheme} from "./test-utils";
+import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 
 describe("Button", () => {
   it("renders correctly with default props", () => {
@@ -294,5 +294,22 @@ describe("Button", () => {
       />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  describe("custom icons", () => {
+    it("renders a registered custom icon by name", () => {
+      const {queryByTestId} = renderWithIcons(
+        <Button iconName="testCustomIcon" onClick={() => {}} text="Custom" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).not.toBeNull();
+    });
+
+    it("renders a FontAwesome icon (not the custom one) for unregistered names", () => {
+      const {queryByTestId, getByText} = renderWithIcons(
+        <Button iconName="check" onClick={() => {}} text="FontAwesome" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).toBeNull();
+      expect(getByText("FontAwesome")).toBeTruthy();
+    });
   });
 });
