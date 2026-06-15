@@ -223,12 +223,18 @@ export const staggeredBaseQuery = retry(
     let token = await getAuthToken();
 
     if (
-      ["emailLogin", "emailSignUp", "getVersionCheck", "getZoomSignature", "googleLogin"].includes(
-        api.endpoint
-      )
+      [
+        "emailLogin",
+        "emailSignUp",
+        "getConsentLink",
+        "getVersionCheck",
+        "getZoomSignature",
+        "googleLogin",
+        "submitConsentViaLink",
+      ].includes(api.endpoint)
     ) {
-      // just pass thru the request without token validation for login/signup requests
-      // (even if there's a stale token in storage)
+      // Pass through without token validation for public/unauthenticated endpoints
+      // (login/signup and the signed consent link flow), even if a stale token exists.
       return getBaseQuery(args, api, extraOptions, token);
     }
     if (!token) {

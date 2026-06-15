@@ -40,7 +40,7 @@ interface ConsentLinkEnhancedApi {
 
 interface ConsentLinkQueryBuilder {
   mutation: (options: {
-    invalidatesTags: string[];
+    invalidatesTags?: string[];
     query: (args: {body: SubmitConsentViaLinkBody; token: string}) => {
       body: SubmitConsentViaLinkBody;
       method: "POST";
@@ -89,7 +89,9 @@ const getEnhancedApi = (api: ConsentLinkApi, base: string): ConsentLinkEnhancedA
         query: (token: string) => `${base}/consents/link/${token}`,
       }),
       submitConsentViaLink: build.mutation({
-        invalidatesTags: ["ConsentLink"],
+        // Intentionally does not invalidate the getConsentLink query: a single-use
+        // link is consumed by this POST, so a refetch would 410. ConsentLinkScreen
+        // advances through the forms it loaded up front instead.
         query: ({body, token}: {body: SubmitConsentViaLinkBody; token: string}) => ({
           body,
           method: "POST",

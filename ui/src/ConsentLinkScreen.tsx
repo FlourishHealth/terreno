@@ -52,15 +52,15 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
   variables,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [completed, setCompleted] = useState(false);
   const hasCompletedRef = useRef(false);
-  const {forms, isLoading, error, refetch, submit, isSubmitting} = useConsentLink(
-    api,
-    token,
-    baseUrl
-  );
+  const {forms, isLoading, error, submit, isSubmitting} = useConsentLink(api, token, baseUrl);
   const locale = detectLocale();
 
-  const isComplete = Boolean(token) && !isLoading && !error && forms.length === 0;
+  // Complete when the link had no pending forms, or after the last form is submitted.
+  // We advance through the forms loaded up front rather than refetching, because a
+  // single-use link is consumed on submit and a refetch would fail.
+  const isComplete = completed || (Boolean(token) && !isLoading && !error && forms.length === 0);
 
   // Notify the consumer once when all forms for the link are completed.
   useEffect(() => {
@@ -69,6 +69,17 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
       onComplete?.();
     }
   }, [isComplete, onComplete]);
+
+  const advanceAfterSubmit = useCallback((): void => {
+    setCurrentIndex((index) => {
+      const nextIndex = index + 1;
+      if (nextIndex >= forms.length) {
+        setCompleted(true);
+        return index;
+      }
+      return nextIndex;
+    });
+  }, [forms.length]);
 
   const handleAgree = useCallback(
     async (data: {checkboxValues: Record<string, boolean>; signature?: string}): Promise<void> => {
@@ -85,15 +96,13 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
       };
       try {
         await submit(body);
-        // Reset and refetch so the pending list reflects the submitted form.
-        setCurrentIndex(0);
-        await refetch();
+        advanceAfterSubmit();
       } catch (err) {
         console.warn("[ConsentLinkScreen] Failed to submit consent via link", {error: err});
         onError?.(err);
       }
     },
-    [currentIndex, forms, locale, onError, refetch, submit]
+    [advanceAfterSubmit, currentIndex, forms, locale, onError, submit]
   );
 
   const handleDecline = useCallback(async (): Promise<void> => {
@@ -103,13 +112,12 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
     }
     try {
       await submit({agreed: false, consentFormId: currentForm.id, locale});
-      setCurrentIndex(0);
-      await refetch();
+      advanceAfterSubmit();
     } catch (err) {
       console.warn("[ConsentLinkScreen] Failed to decline consent via link", {error: err});
       onError?.(err);
     }
-  }, [currentIndex, forms, locale, onError, refetch, submit]);
+  }, [advanceAfterSubmit, currentIndex, forms, locale, onError, submit]);
 
   if (!token) {
     return (
@@ -136,23 +144,6 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
     );
   }
 
-  if (error) {
-    return (
-      <Box
-        alignItems="center"
-        flex="grow"
-        gap={3}
-        justifyContent="center"
-        padding={6}
-        testID="consent-link-error"
-      >
-        <Text align="center" color="error" size="lg">
-          {getErrorMessage(error)}
-        </Text>
-      </Box>
-    );
-  }
-
   if (isComplete) {
     return (
       <Box
@@ -168,6 +159,23 @@ export const ConsentLinkScreen: React.FC<ConsentLinkScreenProps> = ({
         </Heading>
         <Text align="center" size="md">
           You have completed all required consent forms.
+        </Text>
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        alignItems="center"
+        flex="grow"
+        gap={3}
+        justifyContent="center"
+        padding={6}
+        testID="consent-link-error"
+      >
+        <Text align="center" color="error" size="lg">
+          {getErrorMessage(error)}
         </Text>
       </Box>
     );
