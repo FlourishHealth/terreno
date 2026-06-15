@@ -362,9 +362,23 @@ const tryTapSelectors = async (selectors: string[]): Promise<boolean> => {
   return false;
 };
 
+const isAndroidDevMenuPanelVisible = async (): Promise<boolean> => {
+  if (!driver.isAndroid) {
+    return false;
+  }
+
+  try {
+    const pageSource = (await driver.getPageSource()).toLowerCase();
+    return pageSource.includes("connected to:") && pageSource.includes("toggle dev menu");
+  } catch {
+    return false;
+  }
+};
+
 const dismissDevMenuOverlay = async (): Promise<void> => {
   const dismissUntil = Date.now() + overlayDismissTimeoutMs;
   while (Date.now() < dismissUntil) {
+    const isAndroidDevMenuVisible = await isAndroidDevMenuPanelVisible();
     const didTapContinue = driver.isAndroid
       ? await tryTapSelectors([
           'android=new UiSelector().text("Continue")',
@@ -373,8 +387,22 @@ const dismissDevMenuOverlay = async (): Promise<void> => {
           "~Continue",
         ])
       : await tapIfDisplayed("~Continue");
+    const didTapAndroidPanelAction =
+      driver.isAndroid && isAndroidDevMenuVisible
+        ? await tryTapSelectors([
+            'android=new UiSelector().text("Go home")',
+            '//android.widget.TextView[@text="Go home"]/ancestor::android.view.View[@clickable="true"][1]',
+            'android=new UiSelector().description("Home")',
+            'android=new UiSelector().text("Reload")',
+          ])
+        : false;
     const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
-    if (!didTapContinue && !didTapClose) {
+    if (!didTapContinue && !didTapClose && !didTapAndroidPanelAction) {
+      if (isAndroidDevMenuVisible) {
+        await driver.back();
+        await driver.pause(500);
+        continue;
+      }
       return;
     }
 
