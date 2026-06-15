@@ -427,7 +427,16 @@ const isAndroidDevMenuPanelVisible = async (): Promise<boolean> => {
 const dismissDevMenuOverlay = async (): Promise<void> => {
   const dismissUntil = Date.now() + overlayDismissTimeoutMs;
   while (Date.now() < dismissUntil) {
+    // The full Expo dev menu (over the running app) exposes "Go home"/"Reload" actions.
+    // Tapping "Go home" returns to the Dev Launcher, so the menu must be closed with a
+    // back press instead, which keeps the app in the foreground.
     const isAndroidDevMenuVisible = await isAndroidDevMenuPanelVisible();
+    if (isAndroidDevMenuVisible) {
+      await driver.back();
+      await driver.pause(500);
+      continue;
+    }
+
     const didTapContinue = driver.isAndroid
       ? await tryTapSelectors([
           'android=new UiSelector().text("Continue")',
@@ -436,22 +445,8 @@ const dismissDevMenuOverlay = async (): Promise<void> => {
           "~Continue",
         ])
       : await tapIfDisplayed("~Continue");
-    const didTapAndroidPanelAction =
-      driver.isAndroid && isAndroidDevMenuVisible
-        ? await tryTapSelectors([
-            'android=new UiSelector().text("Go home")',
-            '//android.widget.TextView[@text="Go home"]/ancestor::android.view.View[@clickable="true"][1]',
-            'android=new UiSelector().description("Home")',
-            'android=new UiSelector().text("Reload")',
-          ])
-        : false;
     const didTapClose = (await tapIfDisplayed("~Close")) || (await tapIfDisplayed("~xmark"));
-    if (!didTapContinue && !didTapClose && !didTapAndroidPanelAction) {
-      if (isAndroidDevMenuVisible) {
-        await driver.back();
-        await driver.pause(500);
-        continue;
-      }
+    if (!didTapContinue && !didTapClose) {
       return;
     }
 
