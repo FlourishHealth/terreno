@@ -42,6 +42,7 @@ export * from "./HeightActionSheet";
 export * from "./HeightField";
 export * from "./Icon";
 export * from "./IconButton";
+export * from "./IconRegistry";
 export * from "./Image";
 export * from "./ImageBackground";
 export * from "./InfoModalIcon";
