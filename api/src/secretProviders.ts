@@ -1,3 +1,5 @@
+import {DateTime} from "luxon";
+
 import type {SecretProvider} from "./configurationPlugin";
 import {APIError} from "./errors";
 import {logger} from "./logger";
@@ -245,7 +247,7 @@ export class CachingSecretProvider implements SecretProvider {
 
   async getSecret(secretName: string, version?: string): Promise<string | null> {
     const key = this.cacheKey(secretName, version);
-    const now = Date.now();
+    const now = DateTime.now().toMillis();
     const cached = this.cache.get(key);
     if (cached && cached.expiresAt > now) {
       return cached.value;
