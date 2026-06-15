@@ -1,6 +1,6 @@
 ---
 name: terreno-pour
-description: Use ONLY when code is ready to enter review and the task is to perform commit/push/PR setup plus immediate handoff. Do NOT use for implementation work, independent verification, or waiting on CI/comments after the PR is open.
+description: Commit, push, and set up the PR, then hand off to terreno-dialin. Use ONLY when code is ready to enter review — not for implementation work, independent verification, or waiting on CI/comments after the PR is open.
 disable-model-invocation: true
 ---
 

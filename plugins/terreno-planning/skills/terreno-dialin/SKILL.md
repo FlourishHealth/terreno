@@ -1,6 +1,6 @@
 ---
 name: terreno-dialin
-description: Use ONLY when a PR is already open and the task is to run the reactive review loop (CI + bot/human comments) until mergeable or timeout. Do NOT use for initial planning, feature implementation from scratch, or opening the PR itself.
+description: Run the reactive PR review loop — watch and fix CI plus bot/human comments until the PR is mergeable or times out. Use ONLY when a PR is already open — not for initial planning, feature implementation from scratch, or opening the PR itself.
 disable-model-invocation: true
 ---
 
