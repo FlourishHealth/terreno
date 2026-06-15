@@ -1,6 +1,6 @@
 ---
 name: terreno-cupping
-description: Use ONLY when implementation already exists and you need an independent verification pass against the IP/spec. Do NOT use for writing new feature code, planning the IP, or running the PR submission/review loop.
+description: Independently verify a completed implementation against the IP/spec with concrete evidence. Use ONLY when implementation already exists — not for writing feature code, planning the IP, or running the PR submission/review loop.
 ---
 
 # Cupping
