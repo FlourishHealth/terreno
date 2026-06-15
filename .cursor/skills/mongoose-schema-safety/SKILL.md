@@ -1,6 +1,6 @@
 ---
 name: mongoose-schema-safety
-description: Safety steps for any Mongoose schema change (add/remove/rename fields, new model, indexes, backfills) — five-type pattern, risk matrix, and rollout.
+description: 'Invoke when making any Mongoose schema change: adding/removing/renaming fields, creating a new model, adding indexes, or writing a backfill migration. Provides the five-type pattern, risk matrix, type file checklist, and rollout safety steps for terreno backends.'
 ---
 # Mongoose Schema Safety — Terreno
 

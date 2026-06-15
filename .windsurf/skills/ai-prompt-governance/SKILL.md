@@ -1,8 +1,10 @@
 ---
 name: ai-prompt-governance
 description: >-
-  Rules for adding, changing, or reviewing `@terreno/ai` prompts —
-  prompt-as-constant, temperature presets, logging, and a testing checklist.
+  Invoke when adding, modifying, or reviewing any prompt used by `@terreno/ai`
+  (AIService methods, system prompts, helpers). Provides prompt-as-constant
+  rules, temperature preset guidance, logging requirements, and a testing
+  checklist.
 ---
 # AI Prompt Governance — `@terreno/ai`
 

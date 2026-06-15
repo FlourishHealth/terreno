@@ -1,6 +1,10 @@
 ---
 name: backend-test-env
-description: How to safely mutate `process.env` in backend tests (`@terreno/api`, `@terreno/ai`, example-backend) — the preload contract and `setupEnvironment()`.
+description: >-
+  Invoke when writing tests that mutate `process.env` in `@terreno/api`,
+  `@terreno/ai`, or `example-backend` — feature flags, auth secrets, integration
+  toggles. Covers the preload contract, `setupEnvironment()`, and safe mutation
+  patterns.
 ---
 # Backend Test — `process.env` Contract
 

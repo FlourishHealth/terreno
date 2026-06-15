@@ -1,6 +1,6 @@
 ---
 name: docs-audit
-description: Detect documentation drift — undocumented components, missing TypeDoc props, and stale generated pages; run locally or via weekly CI.
+description: Detect documentation drift — undocumented components, missing TypeDoc props, and stale generated pages. Runnable locally or via the weekly CI workflow.
 ---
 # Docs Audit
 

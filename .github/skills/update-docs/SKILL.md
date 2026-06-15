@@ -2,7 +2,7 @@
 name: update-docs
 description: >-
   Keep Terreno docs in sync when public APIs change — regenerate component
-  pages, update reference/how-to docs, and run rulesync before the PR.
+  pages, update reference/how-to docs, and run rulesync before opening a PR.
 ---
 # Update Docs
 
