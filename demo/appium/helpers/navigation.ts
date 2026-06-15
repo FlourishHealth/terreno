@@ -310,6 +310,15 @@ const selectDevServerFromAndroidLauncher = async (): Promise<boolean> => {
     return false;
   }
 
+  const didTapRecentProject = await tryTapSelectors([
+    '//android.widget.TextView[@text="Terreno Demo" and following-sibling::android.widget.TextView[contains(@text,"http://10.0.2.2:8085")]]/ancestor::android.view.View[@clickable="true"][1]',
+    '//android.widget.TextView[@text="Terreno Demo" and following-sibling::android.widget.TextView[contains(@text,"http://localhost:8085")]]/ancestor::android.view.View[@clickable="true"][1]',
+  ]);
+  if (didTapRecentProject) {
+    console.info("Selecting Android recently opened project entry");
+    return true;
+  }
+
   for (const serverLabel of getAndroidDevServerOriginLabels()) {
     const didTapServer = await tryTapSelectors([
       `//android.widget.TextView[@text="${serverLabel}"]/ancestor::android.view.View[@clickable="true"][1]`,
