@@ -1,6 +1,7 @@
 import {randomUUID} from "node:crypto";
 import express from "express";
 import jwt, {type JwtPayload} from "jsonwebtoken";
+import {DateTime} from "luxon";
 import type {Model, ObjectId} from "mongoose";
 import ms, {type StringValue} from "ms";
 import passport from "passport";
@@ -185,7 +186,6 @@ export const generateTokens = async (
   return {refreshToken, sessionId, token};
 };
 
-// TODO allow customization
 export const setupAuth = (app: express.Application, userModel: UserModel): void => {
   passport.use(new AnonymousStrategy());
   passport.use(userModel.createStrategy());
@@ -300,7 +300,7 @@ export const setupAuth = (app: express.Application, userModel: UserModel): void 
           ? (error as {expiredAt?: unknown}).expiredAt
           : undefined;
       const message = errorMessage(error);
-      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${Date.now()}`;
+      const details = `[jwt] Error decoding token${userText}: ${error}, expired at ${expiredAt}, current time: ${DateTime.now().toMillis()}`;
       logger.debug(details);
       return res.status(401).json({details, message});
     }
