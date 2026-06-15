@@ -15,6 +15,7 @@ This directory contains detailed technical plans for major features **before imp
 
 ## Current Plans
 
+- **[Admin UI v2 — Django-parity admin](admin-ui-v2-django-parity.md)** — Config-driven admin shell (sidebar, home widgets, changelist, forms, bulk + background actions); tasks in [`docs/tasks/admin-ui-v2-django-parity.md`](../tasks/admin-ui-v2-django-parity.md)
 - **[Modular API (TerrenoApp)](ModularAPI.md)** — New fluent builder API to replace `setupServer` in `@terreno/api`
 - **[Offline Mode](offline-mode.md)** — Placeholder plan for offline queueing, replay, conflict handling, and UI surfaces
 - **[MCP Boost Parity](mcp-boost-parity.md)** — Docs search tools, local stdio MCP with runtime introspection, browser log capture, per-package guidelines, and upgrade prompts (inspired by laravel/boost)
@@ -24,6 +25,7 @@ This directory contains detailed technical plans for major features **before imp
 
 | Plan | Status | Target Version | Discussion |
 |------|--------|----------------|------------|
+| Admin UI v2 (Django parity) | ✅ Approved | TBD | — |
 | Modular API | 📝 Planning | 2.0.0 | [#149](https://github.com/FlourishHealth/terreno/pull/149) |
 | Offline Mode | Placeholder | TBD | TBD |
 | MCP Boost Parity | 📝 Planning | TBD | TBD |
