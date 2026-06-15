@@ -52,7 +52,8 @@ export const tools: Tool[] = [
     name: "terreno_generate_model",
   },
   {
-    description: "Generate a modelRouter route configuration for a Mongoose model",
+    description:
+      "Generate a modelRouter route configuration for a Mongoose model. For non-CRUD operations, add instanceActions (/:id/action) or collectionActions (/action) with Zod schemas — see docs/explanation/model-router-actions.md",
     inputSchema: {
       properties: {
         modelName: {
@@ -379,6 +380,10 @@ import { ${modelName} } from "../models/${lowerName}";`;
 
   return `import { Router } from "express";
 ${imports}
+
+// Non-CRUD endpoints: use instanceActions (POST/GET /:id/actionName) or
+// collectionActions (POST/GET /actionName) on modelRouter options. See
+// docs/explanation/model-router-actions.md. Requires zod in the backend app.
 
 export const add${modelName}Routes = (router: Router) => {
   router.use(

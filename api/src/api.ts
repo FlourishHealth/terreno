@@ -9,6 +9,12 @@ import cloneDeep from "lodash/cloneDeep";
 import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
+import {
+  assertNoActionCollisions,
+  type CollectionActionConfig,
+  type InstanceActionConfig,
+  registerActionRoutes,
+} from "./actions";
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
@@ -199,6 +205,10 @@ export interface ModelRouterOptions<T> {
   maxLimit?: number; // defaults to 500
   /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
   endpoints?: (router: express.Router, options?: Partial<ModelRouterOptions<T>>) => void;
+  /** Named instance-scoped operations at `/:id/:actionName` (GET or POST). */
+  instanceActions?: Record<string, InstanceActionConfig<T, unknown, unknown, unknown>>;
+  /** Named collection-scoped operations at `/:actionName` (GET or POST). */
+  collectionActions?: Record<string, CollectionActionConfig<unknown, unknown, unknown>>;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
@@ -543,7 +553,10 @@ export function modelRouter<T>(
 function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
 
-  // Do before the other router options so endpoints take priority.
+  assertNoActionCollisions(model, options);
+  registerActionRoutes(router, model, options);
+
+  // User endpoints run after actions; actions win on path conflicts.
   if (options.endpoints) {
     options.endpoints(router, options);
   }

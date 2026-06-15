@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@terreno/ui";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
-import type {AdminApi, EndpointBuilder} from "./types";
+import {type AdminApi, type EndpointBuilder, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface CheckboxConfig {
@@ -45,7 +45,12 @@ interface ConsentFormDocument {
 }
 
 interface ConsentFormEditorProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   id?: string;
   supportedLocales?: string[];
@@ -118,6 +123,8 @@ const getEnhancedApi = (api: AdminApi): unknown => {
 
 export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   id,
   supportedLocales = ["en"],
@@ -125,6 +132,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   onSave,
   onCancel,
 }) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const isEditMode = Boolean(id);
   const toast = useToast();
 
@@ -167,7 +175,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
   const [generateDescription, setGenerateDescription] = useState("");
   const [generateType, setGenerateType] = useState(type);
 
-  const routePath = `${baseUrl}${CONSENT_FORM_ROUTE}`;
+  const routePath = `${resolvedApiBase}${CONSENT_FORM_ROUTE}`;
 
   const {useReadQuery, useCreateMutation, useUpdateMutation} = useAdminApi(
     api,

@@ -16,6 +16,14 @@ const featureFlagSchema = new mongoose.Schema<FeatureFlagDocument, FeatureFlagMo
         "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
       type: Boolean,
     },
+    defaultVariant: {
+      description:
+        "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. " +
+        "For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in `variants`. " +
+        "Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+      required: false,
+      type: String,
+    },
     description: {
       default: "",
       description: "Explanation of what this flag controls",
@@ -130,6 +138,37 @@ featureFlagSchema.pre("save", function () {
       });
     }
   }
+
+  if (
+    this.defaultVariant === undefined ||
+    this.defaultVariant === null ||
+    this.defaultVariant === ""
+  ) {
+    if (this.type === "boolean") {
+      this.set("defaultVariant", "off");
+    } else if (this.type === "variant" && this.variants?.length) {
+      this.set("defaultVariant", this.variants[0].key);
+    }
+  }
+
+  if (this.defaultVariant) {
+    if (this.type === "boolean") {
+      if (this.defaultVariant !== "on" && this.defaultVariant !== "off") {
+        throw new APIError({
+          status: 400,
+          title: "Boolean flags must use defaultVariant 'on' or 'off'",
+        });
+      }
+    } else if (this.type === "variant") {
+      const keys = new Set(this.variants.map((v) => v.key));
+      if (!keys.has(this.defaultVariant)) {
+        throw new APIError({
+          status: 400,
+          title: "defaultVariant must match one of the variant keys",
+        });
+      }
+    }
+  }
 });
 
 export const FeatureFlag = mongoose.model<FeatureFlagDocument, FeatureFlagModel>(
@@ -156,7 +195,7 @@ export const FeatureFlag = mongoose.model<FeatureFlagDocument, FeatureFlagModel>
  */
 export const featureFlagAdminConfig = {
   displayName: "Feature Flags",
-  listFields: ["key", "name", "type", "enabled", "archived", "created"],
+  listFields: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
   model: FeatureFlag,
   routePath: "/feature-flags",
 };

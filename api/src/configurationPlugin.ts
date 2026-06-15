@@ -11,6 +11,12 @@ export interface SecretFieldMeta {
   path: string;
   secretProvider?: string;
   secretName: string;
+  /**
+   * Optional secret version to pin resolution to. When omitted the provider
+   * resolves the latest version. Discovered from the `secretVersion` schema
+   * path option.
+   */
+  version?: string;
 }
 
 /**
@@ -18,7 +24,15 @@ export interface SecretFieldMeta {
  */
 export interface SecretProvider {
   name: string;
-  getSecret(secretName: string): Promise<string | null>;
+  /**
+   * Resolve a secret value by name. Returns `null` when the secret is not found.
+   *
+   * @param secretName - The secret identifier (short name or provider-specific path).
+   * @param version - Optional version to pin resolution to. Providers that do not
+   *   support versioning (e.g. environment variables) ignore this parameter. When
+   *   omitted, the latest version is resolved.
+   */
+  getSecret(secretName: string, version?: string): Promise<string | null>;
 }
 
 /**
@@ -30,6 +44,18 @@ export interface ConfigurationPluginOptions {
    * Typically set during app startup so the model can resolve secrets on demand.
    */
   secretProvider?: SecretProvider;
+  /**
+   * When `true`, adds a `_singleton` sentinel field with a unique index to
+   * enforce the singleton constraint at the database level.
+   *
+   * Defaults to `false`. Leave this off when the consuming app already enforces
+   * a single non-deleted document via the pre-save guard (the default behavior)
+   * or via its own indexes/soft-delete plugin, to avoid double-enforcement and
+   * conflicting indexes.
+   *
+   * @defaultValue false
+   */
+  enforceSingletonIndex?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -75,14 +101,26 @@ export interface ConfigurationStatics<T extends object> {
   getConfig(): Promise<T & Document>;
   /** Get a specific value by dot-notation key. */
   getConfig<P extends Paths<T>>(key: P): Promise<PathValue<T, P>>;
-  /** Update the singleton configuration document (deep merge). */
+  /**
+   * Update the singleton configuration document.
+   *
+   * The patch is flattened into MongoDB dotted paths and applied with
+   * `findOneAndUpdate({$set})`. This preserves sibling fields inside nested
+   * subdocuments when a partial nested patch is supplied, and tolerates legacy /
+   * out-of-schema fields already persisted on the document (unlike a full
+   * `doc.save()`, which throws under `strict: "throw"`).
+   */
   updateConfig(updates: DeepPartial<T>): Promise<T & Document>;
   /** Get secret field metadata discovered from the schema. */
   getSecretFields(): SecretFieldMeta[];
   /**
    * Resolve all secret field values from a provider.
    * Uses the provider passed here, or falls back to the one configured in the plugin options.
-   * Returns a map of path -> value.
+   * Returns an **in-memory** map of path -> value for programmatic use (startup
+   * self-checks, request-time resolution).
+   *
+   * This method never persists resolved values. Secret material must never be
+   * written to the configuration document.
    */
   resolveSecrets(provider?: SecretProvider): Promise<Map<string, string>>;
 }
@@ -104,6 +142,47 @@ export interface ConfigurationStatics<T extends object> {
 export interface ConfigurationModel<T extends object> extends Model<T>, ConfigurationStatics<T> {}
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Flattens a nested patch into MongoDB-style dotted paths, recursing into plain
+ * objects only; arrays and other values are treated as leaves.
+ *
+ * @example
+ * flattenToDotPaths({a: {b: 1}}) // => [["a.b", 1]]
+ */
+export const flattenToDotPaths = (
+  obj: Record<string, unknown>,
+  prefix = ""
+): Array<[string, unknown]> => {
+  const out: Array<[string, unknown]> = [];
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+    const isPlainObject =
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.getPrototypeOf(value) === Object.prototype;
+    if (isPlainObject) {
+      out.push(...flattenToDotPaths(value as Record<string, unknown>, path));
+    } else {
+      out.push([path, value]);
+    }
+  }
+  return out;
+};
+
+/**
+ * Builds the filter used to locate the singleton document. When the schema is
+ * soft-delete aware (has a `deleted` path, e.g. via `isDeletedPlugin`), the
+ * singleton is "the one non-deleted document"; otherwise any document matches.
+ */
+const buildSingletonFilter = (schema: Schema): Record<string, unknown> => {
+  return schema.path("deleted") ? {deleted: false} : {};
+};
+
+// ---------------------------------------------------------------------------
 // Plugin
 // ---------------------------------------------------------------------------
 
@@ -111,13 +190,23 @@ export interface ConfigurationModel<T extends object> extends Model<T>, Configur
  * Mongoose schema plugin that adds singleton configuration behavior.
  *
  * Adds:
- * - Pre-save hook enforcing exactly one document
+ * - Pre-save hook enforcing exactly one non-deleted document (soft-delete aware
+ *   when the schema has a `deleted` path, e.g. via `isDeletedPlugin`)
  * - `getConfig()` static: fetches or creates the singleton (full doc or keyed value)
- * - `updateConfig(updates)` static: patches the singleton
+ * - `updateConfig(updates)` static: patches the singleton via `findOneAndUpdate({$set})`
+ *   with dotted paths (preserves sibling subdoc fields; tolerates legacy fields)
  * - `getSecretFields()` static: returns metadata for fields with `secret: true`
- * - `resolveSecrets(provider?)` static: fetches secret values, using the plugin provider by default
+ * - `resolveSecrets(provider?)` static: resolves secret values into an in-memory map,
+ *   using the plugin provider by default (never persists values)
+ * - Hard-delete blockers (`deleteOne`/`deleteMany`/`findOneAndDelete`); soft deletes
+ *   (setting `deleted: true`) are allowed
  *
- * Mark fields as secrets using schema path options:
+ * Soft deletes are allowed and a soft-deleted document does not block creating a
+ * new singleton. The `_singleton` unique index is opt-in via
+ * `enforceSingletonIndex` (default off).
+ *
+ * Mark fields as secrets using schema path options. Pin a version with the
+ * optional `secretVersion` option:
  * ```typescript
  * const configSchema = new Schema({
  *   apiKey: {
@@ -125,6 +214,7 @@ export interface ConfigurationModel<T extends object> extends Model<T>, Configur
  *     description: "Third-party API key",
  *     secret: true,
  *     secretName: "my-api-key",
+ *     secretVersion: "3", // optional — resolves "latest" when omitted
  *   },
  * });
  * configSchema.plugin(configurationPlugin, {secretProvider: new EnvSecretProvider()});
@@ -136,24 +226,31 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
   // Apply findOneOrNone so the singleton lookup avoids bare Model.findOne (idempotent).
   findOneOrNone(schema);
 
-  // Add a sentinel field with a unique index to enforce singleton at the DB level.
-  // All config documents get _singleton: "config", and the unique index prevents duplicates.
-  schema.add({
-    _singleton: {
-      default: "config",
-      description: "Sentinel field enforcing singleton constraint",
-      immutable: true,
-      select: false,
-      type: String,
-    },
-  });
-  schema.index({_singleton: 1}, {unique: true});
+  // Optionally add a sentinel field with a unique index to enforce the singleton
+  // at the database level. This is opt-in (default off) so it does not conflict
+  // with consumers that already enforce a single non-deleted document via the
+  // pre-save guard below or via their own soft-delete plugin/indexes.
+  if (pluginOptions.enforceSingletonIndex) {
+    schema.add({
+      _singleton: {
+        default: "config",
+        description: "Sentinel field enforcing singleton constraint",
+        immutable: true,
+        select: false,
+        type: String,
+      },
+    });
+    schema.index({_singleton: 1}, {unique: true});
+  }
 
-  // Enforce singleton: only one document allowed (application-level guard)
+  // Enforce singleton: only one non-deleted document allowed (application-level
+  // guard). Soft-delete-aware: a soft-deleted document does not block creating a
+  // new singleton.
   schema.pre("save", async function () {
     if (this.isNew) {
+      const filter = buildSingletonFilter(schema);
       // Cheap existence check — no document needs to be returned.
-      const existing = await (this.constructor as Model<unknown>).exists({});
+      const existing = await (this.constructor as Model<unknown>).exists(filter);
       if (existing) {
         throw new APIError({
           status: 409,
@@ -183,9 +280,10 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
   // Static: get the singleton configuration document or a value at a path (race-safe via upsert)
   schema.statics.getConfig = async function (key?: string): Promise<unknown> {
+    const singletonFilter = buildSingletonFilter(this.schema);
     const findSingleton = (): Promise<Document | null> =>
       (this as unknown as FindOneOrNonePlugin<unknown>).findOneOrNone(
-        {}
+        singletonFilter
       ) as Promise<Document | null>;
     let config: Document | null = await findSingleton();
     if (!config) {
@@ -222,14 +320,44 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
     return value;
   };
 
-  // Static: update the singleton configuration document (race-safe)
+  // Static: update the singleton configuration document via $set dotted paths.
+  // Flattening to dotted paths preserves sibling subdoc fields and tolerates
+  // legacy/out-of-schema fields already persisted on the document.
   schema.statics.updateConfig = async function (
     updates: Record<string, unknown>
   ): Promise<unknown> {
-    const config = await (this as ConfigurationModel<Record<string, unknown>>).getConfig();
-    Object.assign(config, updates);
-    await (config as Document).save();
-    return config;
+    const singletonFilter = buildSingletonFilter(this.schema);
+    const setFields: Record<string, unknown> = {};
+    for (const [path, value] of flattenToDotPaths(updates)) {
+      setFields[path] = value;
+    }
+
+    // Nothing to set — return the current singleton (creating it if missing).
+    if (Object.keys(setFields).length === 0) {
+      return (this as unknown as ConfigurationModel<Record<string, unknown>>).getConfig();
+    }
+
+    // runValidators keeps schema validation (enum/min/custom validators) on the
+    // patched paths, matching the prior doc.save() behavior. Legacy/out-of-schema
+    // fields already on the document are untouched (not in $set), so they are not
+    // re-validated.
+    const updated = await this.findOneAndUpdate(
+      singletonFilter,
+      {$set: setFields},
+      {new: true, runValidators: true}
+    );
+    if (updated) {
+      return updated;
+    }
+
+    // No singleton yet — create one (with subdocument defaults applied), then
+    // apply the patch.
+    await (this as unknown as ConfigurationModel<Record<string, unknown>>).getConfig();
+    return this.findOneAndUpdate(
+      singletonFilter,
+      {$set: setFields},
+      {new: true, runValidators: true}
+    ).orFail();
   };
 
   // Static: discover secret fields from schema options
@@ -243,6 +371,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
             path: prefix ? `${prefix}.${pathName}` : pathName,
             secretName: (opts.secretName as string) ?? pathName,
             secretProvider: opts.secretProvider as string | undefined,
+            version: opts.secretVersion as string | undefined,
           });
         }
         // Recurse into subschemas
@@ -275,7 +404,7 @@ export const configurationPlugin = (schema: Schema, options?: ConfigurationPlugi
 
     const results = await Promise.allSettled(
       secrets.map(async (meta: SecretFieldMeta) => {
-        const value = await resolvedProvider.getSecret(meta.secretName);
+        const value = await resolvedProvider.getSecret(meta.secretName, meta.version);
         if (value !== null) {
           resolved.set(meta.path, value);
         }

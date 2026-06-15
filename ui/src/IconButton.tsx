@@ -4,6 +4,7 @@ import {type FC, useState} from "react";
 import {ActivityIndicator, Text as NativeText, Pressable, View} from "react-native";
 
 import type {IconButtonProps} from "./Common";
+import {useCustomIcon} from "./IconRegistry";
 import {isMobileDevice} from "./MediaQuery";
 import {Modal} from "./Modal";
 import {Text} from "./Text";
@@ -12,14 +13,14 @@ import {Tooltip} from "./Tooltip";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
-type ConfirmationModalProps = {
+interface ConfirmationModalProps {
   visible: boolean;
   title: string;
   subtitle?: string;
   text: string;
   onConfirm: () => void;
   onCancel: () => void;
-};
+}
 
 const ConfirmationModal: FC<ConfirmationModalProps> = ({
   visible,
@@ -64,6 +65,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   const [loading, setLoading] = useState(propsLoading);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
+  const CustomIcon = useCustomIcon(iconName);
   let accessLabel = accessibilityLabel;
   if (tooltipText && accessibilityLabel === "") {
     accessLabel = tooltipText;
@@ -140,6 +142,8 @@ const IconButtonComponent: FC<IconButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator color={color} size="small" />
+      ) : CustomIcon ? (
+        <CustomIcon color={color} size={variant === "navigation" ? 20 : 16} />
       ) : (
         <FontAwesome6
           color={color}

@@ -60,7 +60,6 @@ export interface RealtimeSocketLike extends SocketWithDecodedToken {
   join: (room: string) => Promise<void> | void;
   leave: (room: string) => Promise<void> | void;
   emit: (event: string, payload: unknown) => void;
-  // biome-ignore lint/suspicious/noExplicitAny: Socket.io event handlers accept arbitrary argument shapes per event name
   on: (event: string, handler: (...args: any[]) => any) => void;
 }
 

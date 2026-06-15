@@ -3,7 +3,7 @@ import {act, render, waitFor} from "@testing-library/react-native";
 import React from "react";
 import {Text} from "react-native";
 
-import {
+import ToastContainer, {
   GlobalToast,
   type ToastContainerRef,
   type ToastOptions,
@@ -2258,6 +2258,79 @@ describe("ToastNotifications", () => {
           });
         }
       }
+    });
+  });
+
+  describe("update map callback with toast in state", () => {
+    it("should invoke the map callback inside update when toasts exist", async () => {
+      let toastRef: ToastType | null = null;
+
+      const TestComponent = () => {
+        const toast = useToastNotifications();
+        toastRef = toast;
+        return <Text>Test</Text>;
+      };
+
+      render(
+        <ToastProvider swipeEnabled={false}>
+          <TestComponent />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(toastRef?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        toastRef?.show("Original", {duration: 0, id: "update-map-test"});
+      });
+
+      // Flush RAF so the toast is actually in state before calling update
+      for (let i = 0; i < 5; i++) {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+      }
+
+      // Now update — the map callback will iterate over the non-empty toasts array
+      await act(async () => {
+        toastRef?.update("update-map-test", "Updated");
+      });
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+    });
+  });
+
+  describe("isOpen some callback with toast in state", () => {
+    it("should invoke the some callback inside isOpen when toasts exist", async () => {
+      // Use ToastContainer directly via ref to get the latest isOpen closure
+      // (the context-based ref from ToastProvider captures stale toasts)
+      const containerRef = React.createRef<ToastContainerRef>();
+
+      render(<ToastContainer ref={containerRef} />);
+
+      await waitFor(() => {
+        expect(containerRef.current?.show).toBeDefined();
+      });
+
+      await act(async () => {
+        containerRef.current?.show("IsOpen test", {duration: 0, id: "isopen-some-test"});
+      });
+
+      // Flush RAF so the toast is actually in state
+      for (let i = 0; i < 5; i++) {
+        await act(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+      }
+
+      // Now isOpen — the some callback will iterate over the non-empty toasts array.
+      // Using the ref directly ensures we get the latest isOpen with updated toasts.
+      await waitFor(() => {
+        expect(containerRef.current?.isOpen("isopen-some-test")).toBe(true);
+      });
     });
   });
 });

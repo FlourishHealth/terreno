@@ -5,9 +5,13 @@ on:
     paths:
       - "ai/**"
       - "admin-backend/**"
+      - "admin-frontend/**"
+      - "admin-spa/**"
       - "example-backend/**"
       - "api-health/**"
       - "feature-flags/**"
+      - "rtk/**"
+      - "ui/**"
       - ".github/workflows/example-backend-ci.yml"
 
 jobs:
@@ -69,6 +73,18 @@ jobs:
       - name: Build UI dependency
         run: bun run compile
         working-directory: ui
+
+      - name: Build RTK dependency
+        run: bun run compile
+        working-directory: rtk
+
+      - name: Build Admin Frontend dependency
+        run: bun run compile
+        working-directory: admin-frontend
+
+      - name: Build Admin SPA dependency
+        run: bun run compile
+        working-directory: admin-spa
 
       - name: Lint
         run: bun run lint

@@ -3,11 +3,16 @@ import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Image} from "react-native";
 import {generateConsentPdf} from "./generateConsentPdf";
-import type {AdminApi} from "./types";
+import {type AdminApi, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
 
 interface ConsentResponseViewerProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   id: string;
 }
@@ -23,8 +28,15 @@ const formatDate = (value: unknown): string => {
   return dt.toLocaleString(DateTime.DATETIME_FULL);
 };
 
-export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({baseUrl, api, id}) => {
-  const routePath = `${baseUrl}/consent-responses`;
+export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
+  baseUrl,
+  apiBase,
+  routeBase,
+  api,
+  id,
+}) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
+  const routePath = `${resolvedApiBase}/consent-responses`;
   const {useReadQuery} = useAdminApi(api, routePath, "ConsentResponse");
 
   const {data: response, isLoading} = useReadQuery(id, {skip: !id});

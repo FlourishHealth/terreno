@@ -1,13 +1,13 @@
+import {customIcons} from "@components";
 import {TerrenoProvider} from "@terreno/ui";
 import {Slot} from "expo-router";
-import type React from "react";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 
-const RootLayout: React.FC = () => {
+const RootLayout = () => {
   // TODO: Store dev/demo in AsyncStorage to persist.
   return (
     <GestureHandlerRootView style={{flex: 1}}>
-      <TerrenoProvider>
+      <TerrenoProvider icons={customIcons}>
         <Slot initialRouteName={process.env.NODE_ENV === "development" ? "dev" : "demo"} />
       </TerrenoProvider>
     </GestureHandlerRootView>

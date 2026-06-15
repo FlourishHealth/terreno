@@ -116,7 +116,7 @@ export const TapToEdit: FC<TapToEditProps> = ({
                   }
                 : undefined
             }
-            onChange={setValue ?? (() => {})}
+            onChange={setValue as NonNullable<typeof setValue>}
             row={fieldProps?.type === "textarea" ? 5 : undefined}
             type={(fieldProps?.type ?? "text") as NonNullable<FieldProps["type"]>}
             value={value}

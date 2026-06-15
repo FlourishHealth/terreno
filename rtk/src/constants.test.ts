@@ -9,6 +9,7 @@ import {
   logAuth,
   logSocket,
   resolveBaseUrls,
+  SAME_ORIGIN_SENTINEL,
   setRealtimeDebug,
 } from "./constants";
 
@@ -186,6 +187,70 @@ describe("resolveBaseUrls", () => {
     expect(urls.baseUrl).toBe("https://backend.example.com");
     expect(urls.baseWebsocketsUrl).toBe("https://backend.example.com/");
     expect(urls.baseTasksUrl).toBe("https://backend.example.com/tasks");
+  });
+
+  it("resolves the same-origin sentinel to the window origin (https -> wss)", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}}},
+      isDev: false,
+      windowOrigin: "https://api.example.com",
+    });
+    expect(urls.baseUrl).toBe("https://api.example.com");
+    expect(urls.baseWebsocketsUrl).toBe("wss://api.example.com/");
+    expect(urls.baseTasksUrl).toBe("https://api.example.com/tasks");
+  });
+
+  it("resolves the same-origin sentinel to the window origin (http -> ws)", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}}},
+      isDev: false,
+      windowOrigin: "http://localhost:4000",
+    });
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
+    expect(urls.baseTasksUrl).toBe("http://localhost:4000/tasks");
+  });
+
+  it("resolves the same-origin sentinel even in dev mode when a window origin exists", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}, hostUri: "10.0.0.5:8081"},
+      },
+      isDev: true,
+      windowOrigin: "https://admin.example.com",
+    });
+    expect(urls.baseUrl).toBe("https://admin.example.com");
+    expect(urls.baseWebsocketsUrl).toBe("wss://admin.example.com/");
+  });
+
+  it("falls back to existing resolution when the sentinel is set but no window origin", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}}},
+      isDev: false,
+    });
+    expect(urls.baseUrl).toBe("http://localhost:4000");
+    expect(urls.baseWebsocketsUrl).toBe("ws://localhost:4000/");
+  });
+
+  it("does not treat the sentinel as a literal base URL when a window origin is absent", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {
+        expoConfig: {extra: {BASE_URL: SAME_ORIGIN_SENTINEL}, hostUri: "172.16.0.3:8081"},
+      },
+      isDev: false,
+    });
+    // Sentinel ignored -> falls through to hostUri resolution, not the literal "__SAME_ORIGIN__".
+    expect(urls.baseUrl).toBe("http://172.16.0.3:4000");
+  });
+
+  it("leaves a non-sentinel BASE_URL unchanged when a window origin is present", () => {
+    const urls = resolveBaseUrls({
+      expoConstants: {expoConfig: {extra: {BASE_URL: "https://api.prod.com"}}},
+      isDev: false,
+      windowOrigin: "https://some-other-origin.com",
+    });
+    expect(urls.baseUrl).toBe("https://api.prod.com");
+    expect(urls.baseWebsocketsUrl).toBe("https://ws.prod.com/");
   });
 });
 

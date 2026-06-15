@@ -308,6 +308,28 @@ describe("PickerSelect", () => {
         restoreDocument();
       }
     });
+
+    it("calls onValueChange when a web dropdown option is selected", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const mockOnValueChange = mock(() => {});
+        const {getByTestId} = renderWithTheme(
+          <RNPickerSelect {...defaultProps} onValueChange={mockOnValueChange} value="1" />
+        );
+        await act(async () => {
+          fireEvent.press(getByTestId("web_picker"));
+        });
+        await act(async () => {
+          fireEvent.press(getByTestId("web_dropdown_option_2"));
+        });
+        expect(mockOnValueChange).toHaveBeenCalledWith("2", 2);
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
   });
 
   describe("android rendering", () => {

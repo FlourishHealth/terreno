@@ -5,6 +5,7 @@ import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
 import type {ReactTestInstance} from "react-test-renderer";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
+import {AdminFieldRendererCore} from "./AdminFieldRendererCore";
 import type {AdminApi, AdminFieldConfig, RefFieldRendererProps} from "./types";
 
 const api = {} as unknown as AdminApi;
@@ -438,6 +439,88 @@ describe("AdminFieldRenderer (main)", () => {
       (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
         .calls[0][0] as RefFieldRendererProps
     ).toHaveProperty("routePath", "");
+  });
+
+  it("uses user ref renderers for multi-user feature flag rule values", () => {
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
+    renderWithTheme(
+      <AdminFieldRendererCore
+        {...base}
+        fieldConfig={{required: false, type: "mixed"}}
+        fieldKey="value"
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        parentFormState={{field: "_id", operator: "in"}}
+        refRenderers={{User: CustomRenderer}}
+        value={["user-1", "user-2"]}
+      />
+    );
+    expect(CustomRenderer).toHaveBeenCalledTimes(2);
+    const firstProps = (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+      .calls[0][0] as RefFieldRendererProps;
+    const secondProps = (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+      .calls[1][0] as RefFieldRendererProps;
+    expect(firstProps.refModelName).toBe("User");
+    expect(firstProps.routePath).toBe("/admin/users");
+    expect(firstProps.value).toBe("user-1");
+    expect(secondProps.value).toBe("user-2");
+  });
+
+  it("passes nested array item values into parentFormState for subfield renderers", () => {
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
+    renderWithTheme(
+      <AdminFieldRenderer
+        {...base}
+        fieldConfig={
+          {
+            items: {
+              field: {required: false, type: "string"},
+              operator: {required: false, type: "string"},
+              value: {required: false, type: "mixed"},
+            },
+            required: false,
+            type: "array",
+          } as unknown as AdminFieldConfig
+        }
+        fieldKey="rules"
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        parentFormState={{key: "flag-key"}}
+        refRenderers={{User: CustomRenderer}}
+        value={[{field: "_id", operator: "in", value: ["user-1"]}]}
+      />
+    );
+    expect(CustomRenderer).toHaveBeenCalledTimes(1);
+    const props = (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+      .calls[0][0] as RefFieldRendererProps;
+    expect(props.refModelName).toBe("User");
+    expect(props.routePath).toBe("/admin/users");
+    expect(props.value).toBe("user-1");
+  });
+
+  it("uses user ref renderers for single-user feature flag rule values", () => {
+    const CustomRenderer = mock((_props: RefFieldRendererProps) => (
+      <></>
+    )) as unknown as React.FC<RefFieldRendererProps>;
+    renderWithTheme(
+      <AdminFieldRendererCore
+        {...base}
+        fieldConfig={{required: false, type: "mixed"}}
+        fieldKey="value"
+        modelConfigs={[{name: "User", routePath: "/admin/users"}]}
+        parentFormState={{field: "id", operator: "eq"}}
+        refRenderers={{User: CustomRenderer}}
+        value="user-1"
+      />
+    );
+    expect(CustomRenderer).toHaveBeenCalledTimes(1);
+    const props = (CustomRenderer as unknown as {mock: {calls: unknown[][]}}).mock
+      .calls[0][0] as RefFieldRendererProps;
+    expect(props.refModelName).toBe("User");
+    expect(props.routePath).toBe("/admin/users");
+    expect(props.value).toBe("user-1");
   });
 
   it("triggers onChange handlers for number, enum, array, object", () => {

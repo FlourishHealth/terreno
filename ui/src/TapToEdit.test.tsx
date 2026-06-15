@@ -375,4 +375,37 @@ describe("TapToEdit - additional function coverage", () => {
     });
     expect(queryByText("Save")).toBeTruthy();
   });
+
+  it("renders textarea in editing mode with grow and row defaults", async () => {
+    const setValue = mock(() => {});
+    const {getByLabelText, queryByText} = renderWithTheme(
+      <TapToEdit setValue={setValue} title="Notes" type="textarea" value="Some notes" />
+    );
+    await act(async () => {
+      fireEvent.press(getByLabelText("Edit"));
+    });
+    expect(queryByText("Save")).toBeTruthy();
+    expect(queryByText("Cancel")).toBeTruthy();
+  });
+
+  it("hides helperText in title when onlyShowHelperTextWhileEditing is true (default)", () => {
+    const {queryByText} = renderWithTheme(
+      <TapToEdit
+        editable={false}
+        helperText="Should be hidden in title"
+        title="Field"
+        value="val"
+      />
+    );
+    expect(queryByText("Field")).toBeTruthy();
+    expect(queryByText("Should be hidden in title")).toBeNull();
+  });
+
+  it("renders non-editable textarea with display value below title", () => {
+    const {getByText} = renderWithTheme(
+      <TapToEdit editable={false} title="Bio" type="textarea" value="A long bio text" />
+    );
+    expect(getByText("Bio")).toBeTruthy();
+    expect(getByText("A long bio text")).toBeTruthy();
+  });
 });

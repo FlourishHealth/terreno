@@ -27,7 +27,7 @@ export const PhoneNumberConfiguration: DemoConfiguration = {
   demoOptions: {},
   stories: {
     "Phone Number Field": {
-      render: PhoneNumberFieldDemo,
+      render: () => <PhoneNumberFieldDemo />,
     },
   },
 };
