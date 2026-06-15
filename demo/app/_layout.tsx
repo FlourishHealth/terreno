@@ -1,6 +1,6 @@
-import type React from "react";
 import {TerrenoProvider} from "@terreno/ui";
 import {Slot} from "expo-router";
+import type React from "react";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 const RootLayout: React.FC = () => {
