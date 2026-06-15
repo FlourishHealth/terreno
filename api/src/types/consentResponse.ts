@@ -22,6 +22,7 @@ export interface ConsentResponseDocument extends mongoose.Document {
   locale: string;
   signature?: string;
   signedAt?: Date;
+  submittedViaLinkId?: mongoose.Types.ObjectId;
   ipAddress?: string;
   userAgent?: string;
   contentSnapshot?: string;

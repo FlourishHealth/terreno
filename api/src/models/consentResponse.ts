@@ -50,6 +50,11 @@ const consentResponseSchema = new mongoose.Schema<ConsentResponseDocument, Conse
       description: "Timestamp when the user provided their signature",
       type: Date,
     },
+    submittedViaLinkId: {
+      description: "Reference to the ConsentLink used to submit this response, if any (audit)",
+      ref: "ConsentLink",
+      type: mongoose.Schema.Types.ObjectId,
+    },
     userAgent: {
       description: "User-agent string of the browser or app used to submit the response",
       type: String,

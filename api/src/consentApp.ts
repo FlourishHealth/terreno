@@ -8,17 +8,40 @@
 
 import {type Application, Router} from "express";
 import {DateTime} from "luxon";
+import mongoose from "mongoose";
+import ms, {type StringValue} from "ms";
 import type {CollectionActionConfig} from "./actions";
 import {asyncHandler, modelRouter} from "./api";
 import type {User} from "./auth";
 import {authenticateMiddleware} from "./auth";
+import {getPendingFormsForUser, recordConsentResponse, resolveConsentLink} from "./consentHelpers";
+import {generateConsentLinkToken, hashConsentLinkToken} from "./consentLinkTokens";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 import {ConsentForm} from "./models/consentForm";
+import {ConsentLink} from "./models/consentLink";
 import {ConsentResponse} from "./models/consentResponse";
 import {Permissions} from "./permissions";
 import type {TerrenoPlugin} from "./terrenoPlugin";
 import type {ConsentFormDocument} from "./types/consentForm";
+import type {ConsentLinkDocument} from "./types/consentLink";
+
+const DEFAULT_LINK_EXPIRES_IN = "14d";
+
+export interface SignedLinksConfig {
+  enabled: boolean;
+  // Base URL the generated link points at. The raw token is appended as ?token=...
+  linkBaseUrl: string;
+  // Default link lifetime, parsed with `ms` (e.g. "14d", "48h"). Defaults to 14 days.
+  defaultExpiresIn?: string;
+}
+
+const serializeConsentLink = (link: ConsentLinkDocument): Record<string, unknown> => {
+  const obj = link.toObject() as Record<string, unknown>;
+  // Never expose the token hash to clients.
+  obj.tokenHash = undefined;
+  return obj;
+};
 
 export interface ConsentAppOptions {
   auditTrail?: boolean;
@@ -39,6 +62,8 @@ export interface ConsentAppOptions {
     forms: ConsentFormDocument[]
   ) => ConsentFormDocument[] | Promise<ConsentFormDocument[]>;
   supportedLocales?: string[];
+  // Enables per-user signed links so users can complete consents without logging in.
+  signedLinks?: SignedLinksConfig;
 }
 
 const requireAdmin = (user: User | undefined): void => {
@@ -55,7 +80,7 @@ export class ConsentApp implements TerrenoPlugin {
   }
 
   register(app: Application): void {
-    const {auditTrail, resolveConsentForms, aiConfig} = this.options;
+    const {auditTrail, resolveConsentForms, aiConfig, signedLinks} = this.options;
 
     const collectionActions: Record<string, CollectionActionConfig<unknown, unknown, unknown>> = {};
 
@@ -212,57 +237,10 @@ export class ConsentApp implements TerrenoPlugin {
 
         logger.debug("Fetching pending consent forms", {userId: user.id});
 
-        const activeForms = await ConsentForm.find({active: true}).sort({order: 1});
-
-        let resolvedForms: ConsentFormDocument[];
-        if (resolveConsentForms) {
-          resolvedForms = await resolveConsentForms(user, activeForms);
-          logger.debug("resolveConsentForms applied", {
-            activeFormCount: activeForms.length,
-            resolvedFormCount: resolvedForms.length,
-            userAdmin: Boolean(user.admin),
-            userId: user.id,
-          });
-        } else {
-          resolvedForms = activeForms;
-        }
-
-        const existingResponses = await ConsentResponse.find({userId: user.id});
-
-        const respondedFormVersions = new Map<string, number>();
-        for (const response of existingResponses) {
-          const formId = response.consentFormId.toString();
-          respondedFormVersions.set(formId, response.formVersionSnapshot ?? 0);
-        }
-
-        const respondedFormIds = existingResponses.map((r) => r.consentFormId);
-        const respondedForms = await ConsentForm.find({_id: {$in: respondedFormIds}});
-        const formVersionByFormId = new Map<string, number>();
-        for (const form of respondedForms) {
-          formVersionByFormId.set(form._id.toString(), form.version);
-        }
-
-        const pendingForms = resolvedForms.filter((form) => {
-          const formId = form._id.toString();
-          const matchingResponses = existingResponses.filter(
-            (r) => r.consentFormId.toString() === formId
-          );
-          if (matchingResponses.length === 0) {
-            return true;
-          }
-          return !matchingResponses.some((r) => r.formVersionSnapshot === form.version);
-        });
-
-        const filteredOutByResolverCount = Math.max(activeForms.length - resolvedForms.length, 0);
-        const filteredOutByResponsesCount = Math.max(resolvedForms.length - pendingForms.length, 0);
+        const pendingForms = await getPendingFormsForUser({resolveConsentForms, user});
 
         logger.info("Pending consent forms fetched", {
-          activeFormCount: activeForms.length,
-          filteredOutByResolverCount,
-          filteredOutByResponsesCount,
           pendingFormCount: pendingForms.length,
-          resolvedFormCount: resolvedForms.length,
-          responseCount: existingResponses.length,
           userAdmin: Boolean(user.admin),
           userId: user.id,
         });
@@ -281,80 +259,17 @@ export class ConsentApp implements TerrenoPlugin {
           throw new APIError({status: 401, title: "Authentication required"});
         }
 
-        const {agreed, checkboxValues, consentFormId, locale, signature} = req.body;
-
-        if (!consentFormId) {
-          throw new APIError({status: 400, title: "consentFormId is required"});
-        }
-        if (agreed === undefined || agreed === null) {
-          throw new APIError({status: 400, title: "agreed field is required"});
-        }
-        if (!locale) {
-          throw new APIError({status: 400, title: "locale is required"});
-        }
-
-        const form = await ConsentForm.findExactlyOne(
-          {_id: consentFormId},
-          {status: 404, title: "Consent form not found"}
-        );
-
-        if (!form.active) {
-          throw new APIError({status: 400, title: "Consent form is not active"});
-        }
-
-        if (form.captureSignature && agreed && !signature) {
-          throw new APIError({
-            status: 400,
-            title: "Signature is required for this consent form",
-          });
-        }
-
-        if (agreed && form.checkboxes.length > 0) {
-          const values = checkboxValues ?? {};
-          for (let i = 0; i < form.checkboxes.length; i++) {
-            const checkbox = form.checkboxes[i];
-            if (checkbox.required && !values[i.toString()]) {
-              throw new APIError({
-                status: 400,
-                title: `Required checkbox "${checkbox.label}" must be checked`,
-              });
-            }
-          }
-        }
-
-        const responseData: Record<string, unknown> = {
-          agreed,
-          agreedAt: DateTime.now().toJSDate(),
-          consentFormId: form._id,
-          locale,
+        const response = await recordConsentResponse({
+          auditInfo: {ipAddress: req.ip, userAgent: req.headers["user-agent"]},
+          auditTrail,
+          body: req.body,
           userId: user.id,
-        };
-
-        if (checkboxValues !== undefined) {
-          responseData.checkboxValues = checkboxValues;
-        }
-
-        if (signature) {
-          responseData.signature = signature;
-          responseData.signedAt = DateTime.now().toJSDate();
-        }
-
-        if (auditTrail) {
-          responseData.ipAddress = req.ip;
-          responseData.userAgent = req.headers["user-agent"];
-          responseData.contentSnapshot =
-            form.content.get(locale) ?? form.content.get(form.defaultLocale);
-          responseData.formVersionSnapshot = form.version;
-        } else {
-          responseData.formVersionSnapshot = form.version;
-        }
-
-        const response = await ConsentResponse.create(responseData);
+        });
 
         logger.info("Consent response recorded", {
-          agreed,
-          consentFormId: form._id.toString(),
-          locale,
+          agreed: response.agreed,
+          consentFormId: response.consentFormId.toString(),
+          locale: response.locale,
           userId: user.id,
         });
 
@@ -455,8 +370,197 @@ export class ConsentApp implements TerrenoPlugin {
       );
     }
 
+    if (signedLinks?.enabled) {
+      this.registerSignedLinkRoutes(router, signedLinks, {auditTrail, resolveConsentForms});
+    }
+
     app.use("/consents", router);
 
-    logger.info("ConsentApp registered", {auditTrail: Boolean(auditTrail)});
+    logger.info("ConsentApp registered", {
+      auditTrail: Boolean(auditTrail),
+      signedLinks: Boolean(signedLinks?.enabled),
+    });
+  }
+
+  private registerSignedLinkRoutes(
+    router: Router,
+    signedLinks: SignedLinksConfig,
+    deps: {
+      auditTrail?: boolean;
+      resolveConsentForms?: ConsentAppOptions["resolveConsentForms"];
+    }
+  ): void {
+    const {auditTrail, resolveConsentForms} = deps;
+
+    const resolveExpiresAt = (expiresIn?: string): Date => {
+      const ttl = expiresIn ?? signedLinks.defaultExpiresIn ?? DEFAULT_LINK_EXPIRES_IN;
+      let durationMs: number;
+      try {
+        const parsed = ms(ttl as StringValue);
+        durationMs =
+          typeof parsed === "number" && Number.isFinite(parsed)
+            ? parsed
+            : (ms(DEFAULT_LINK_EXPIRES_IN) as number);
+      } catch {
+        durationMs = ms(DEFAULT_LINK_EXPIRES_IN) as number;
+      }
+      return DateTime.now().plus({milliseconds: durationMs}).toJSDate();
+    };
+
+    const loadTargetUser = async (userId: unknown): Promise<User | null> => {
+      const userModel = mongoose.models.User;
+      if (!userModel) {
+        return null;
+      }
+      try {
+        return (await userModel.findById(userId as string)) as unknown as User | null;
+      } catch {
+        return null;
+      }
+    };
+
+    // POST /consents/links - admin generates a signed link for a user
+    router.post(
+      "/links",
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        requireAdmin(req.user as User | undefined);
+
+        const {consentFormIds, expiresIn, maxUses, note, userId} = req.body;
+        if (!userId) {
+          throw new APIError({status: 400, title: "userId is required"});
+        }
+
+        const targetUser = await loadTargetUser(userId);
+        if (!targetUser) {
+          throw new APIError({status: 404, title: "User not found"});
+        }
+
+        const token = generateConsentLinkToken();
+        const tokenHash = hashConsentLinkToken(token);
+
+        const link = await ConsentLink.create({
+          consentFormIds,
+          createdByUserId: (req.user as User | undefined)?.id,
+          expiresAt: resolveExpiresAt(expiresIn),
+          maxUses: maxUses ?? 1,
+          note,
+          tokenHash,
+          userId,
+        });
+
+        logger.info("Consent link generated", {
+          consentLinkId: link._id.toString(),
+          createdBy: (req.user as User | undefined)?.id,
+          userId: String(userId),
+        });
+
+        const separator = signedLinks.linkBaseUrl.includes("?") ? "&" : "?";
+        const url = `${signedLinks.linkBaseUrl}${separator}token=${token}`;
+
+        // The raw token is returned exactly once and never persisted.
+        return res.json({
+          data: {_id: link._id, expiresAt: link.expiresAt, token, url},
+        });
+      })
+    );
+
+    // GET /consents/links - admin lists generated links (no token exposed)
+    router.get(
+      "/links",
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        requireAdmin(req.user as User | undefined);
+
+        const query: Record<string, unknown> = {};
+        if (req.query.userId) {
+          query.userId = req.query.userId;
+        }
+
+        const links = await ConsentLink.find(query).sort({created: -1}).limit(200);
+        return res.json({data: links.map(serializeConsentLink)});
+      })
+    );
+
+    // POST /consents/links/:id/revoke - admin revokes a link
+    router.post(
+      "/links/:id/revoke",
+      authenticateMiddleware(),
+      asyncHandler(async (req, res) => {
+        requireAdmin(req.user as User | undefined);
+
+        const link = await ConsentLink.findExactlyOne(
+          {_id: req.params.id},
+          {status: 404, title: "Consent link not found"}
+        );
+        link.revoked = true;
+        await link.save();
+
+        logger.info("Consent link revoked", {consentLinkId: link._id.toString()});
+        return res.json({data: serializeConsentLink(link)});
+      })
+    );
+
+    // GET /consents/link/:token - public: resolve a link to the user's pending forms
+    router.get(
+      "/link/:token",
+      asyncHandler(async (req, res) => {
+        const link = await resolveConsentLink(req.params.token);
+
+        const targetUser = await loadTargetUser(link.userId);
+        if (!targetUser) {
+          throw new APIError({
+            disableExternalErrorTracking: true,
+            status: 404,
+            title: "User not found",
+          });
+        }
+
+        const forms = await getPendingFormsForUser({
+          formIds: link.consentFormIds,
+          resolveConsentForms,
+          user: targetUser,
+        });
+
+        const context = {
+          expiresAt: link.expiresAt,
+          formCount: forms.length,
+          name: (targetUser as unknown as {name?: string}).name,
+        };
+
+        return res.json({data: {context, forms}});
+      })
+    );
+
+    // POST /consents/link/:token/respond - public: submit a response via the link
+    router.post(
+      "/link/:token/respond",
+      asyncHandler(async (req, res) => {
+        const link = await resolveConsentLink(req.params.token);
+
+        const response = await recordConsentResponse({
+          allowedFormIds:
+            link.consentFormIds && link.consentFormIds.length > 0 ? link.consentFormIds : undefined,
+          auditInfo: {ipAddress: req.ip, userAgent: req.headers["user-agent"]},
+          auditTrail,
+          body: req.body,
+          submittedViaLinkId: link._id,
+          userId: link.userId,
+        });
+
+        link.useCount += 1;
+        link.usedAt = DateTime.now().toJSDate();
+        link.lastUsedIp = req.ip;
+        await link.save();
+
+        logger.info("Consent response recorded via signed link", {
+          consentFormId: response.consentFormId.toString(),
+          consentLinkId: link._id.toString(),
+          userId: link.userId.toString(),
+        });
+
+        return res.json({data: response});
+      })
+    );
   }
 }
