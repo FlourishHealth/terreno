@@ -7,7 +7,15 @@ const ADMIN_BASE_URL = "/admin";
 
 const ConsentResponseScreen: React.FC = () => {
   const {id} = useLocalSearchParams<{id: string}>();
-  return <ConsentResponseViewer api={terrenoApi} baseUrl={ADMIN_BASE_URL} id={id} />;
+  return (
+    <ConsentResponseViewer
+      api={terrenoApi}
+      baseUrl={ADMIN_BASE_URL}
+      consentsBase=""
+      id={id}
+      showGenerateLink
+    />
+  );
 };
 
 export default ConsentResponseScreen;

@@ -143,8 +143,10 @@ const RootLayoutNav = (): React.ReactElement => {
   // Redirect based on auth state — keeps all routes declared so refresh works
   useEffect(() => {
     const isOnAuthPage = segments[0] === "login" || segments[0] === "signup";
+    // The signed consent link flow is public — never force these visitors to log in.
+    const isPublicPage = segments[0] === "consents";
 
-    if (!userId && !isOnAuthPage) {
+    if (!userId && !isOnAuthPage && !isPublicPage) {
       router.replace("/login");
     } else if (userId && isOnAuthPage) {
       router.replace("/(tabs)");
@@ -178,6 +180,7 @@ const RootLayoutNav = (): React.ReactElement => {
     <Stack screenOptions={{headerShown: false}}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin" />
+      <Stack.Screen name="consents/sign" />
       <Stack.Screen name="login" />
       <Stack.Screen name="signup" />
     </Stack>

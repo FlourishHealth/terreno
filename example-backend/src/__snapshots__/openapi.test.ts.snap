@@ -1584,6 +1584,851 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/admin/consent-links/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "consentFormIds": {
+                            "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                            "items": {
+                              "type": "schemaobjectid",
+                            },
+                            "type": "array",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "createdByUserId": {
+                            "description": "The admin/user who generated this link, captured for audit purposes",
+                            "type": "schemaobjectid",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "expiresAt": {
+                            "description": "Timestamp after which the link can no longer be used",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "lastUsedIp": {
+                            "description": "IP address recorded the last time the link was used, captured for audit",
+                            "type": "string",
+                          },
+                          "maxUses": {
+                            "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                            "type": "number",
+                          },
+                          "note": {
+                            "description": "Optional admin note describing why the link was created",
+                            "type": "string",
+                          },
+                          "revoked": {
+                            "description": "Whether the link has been manually revoked by an admin",
+                            "type": "boolean",
+                          },
+                          "tokenHash": {
+                            "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "useCount": {
+                            "description": "Number of times the link has been successfully used to submit a consent",
+                            "type": "number",
+                          },
+                          "usedAt": {
+                            "description": "Timestamp the link was last successfully used to submit a consent",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "userId": {
+                            "description": "The user this link allows to complete consent forms on behalf of",
+                            "type": "schemaobjectid",
+                          },
+                        },
+                        "required": [
+                          "expiresAt",
+                          "tokenHash",
+                          "userId",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "consentlinks",
+        ],
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "consentFormIds": {
+                    "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                    "items": {
+                      "type": "schemaobjectid",
+                    },
+                    "type": "array",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "createdByUserId": {
+                    "description": "The admin/user who generated this link, captured for audit purposes",
+                    "type": "schemaobjectid",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "expiresAt": {
+                    "description": "Timestamp after which the link can no longer be used",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "lastUsedIp": {
+                    "description": "IP address recorded the last time the link was used, captured for audit",
+                    "type": "string",
+                  },
+                  "maxUses": {
+                    "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                    "type": "number",
+                  },
+                  "note": {
+                    "description": "Optional admin note describing why the link was created",
+                    "type": "string",
+                  },
+                  "revoked": {
+                    "description": "Whether the link has been manually revoked by an admin",
+                    "type": "boolean",
+                  },
+                  "tokenHash": {
+                    "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "useCount": {
+                    "description": "Number of times the link has been successfully used to submit a consent",
+                    "type": "number",
+                  },
+                  "usedAt": {
+                    "description": "Timestamp the link was last successfully used to submit a consent",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "The user this link allows to complete consent forms on behalf of",
+                    "type": "schemaobjectid",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "consentFormIds": {
+                      "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "createdByUserId": {
+                      "description": "The admin/user who generated this link, captured for audit purposes",
+                      "type": "schemaobjectid",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "expiresAt": {
+                      "description": "Timestamp after which the link can no longer be used",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "lastUsedIp": {
+                      "description": "IP address recorded the last time the link was used, captured for audit",
+                      "type": "string",
+                    },
+                    "maxUses": {
+                      "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                      "type": "number",
+                    },
+                    "note": {
+                      "description": "Optional admin note describing why the link was created",
+                      "type": "string",
+                    },
+                    "revoked": {
+                      "description": "Whether the link has been manually revoked by an admin",
+                      "type": "boolean",
+                    },
+                    "tokenHash": {
+                      "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "useCount": {
+                      "description": "Number of times the link has been successfully used to submit a consent",
+                      "type": "number",
+                    },
+                    "usedAt": {
+                      "description": "Timestamp the link was last successfully used to submit a consent",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user this link allows to complete consent forms on behalf of",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "expiresAt",
+                    "tokenHash",
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful create",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "consentlinks",
+        ],
+      },
+    },
+    "/admin/consent-links/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful delete",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "consentlinks",
+        ],
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "consentFormIds": {
+                      "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "createdByUserId": {
+                      "description": "The admin/user who generated this link, captured for audit purposes",
+                      "type": "schemaobjectid",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "expiresAt": {
+                      "description": "Timestamp after which the link can no longer be used",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "lastUsedIp": {
+                      "description": "IP address recorded the last time the link was used, captured for audit",
+                      "type": "string",
+                    },
+                    "maxUses": {
+                      "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                      "type": "number",
+                    },
+                    "note": {
+                      "description": "Optional admin note describing why the link was created",
+                      "type": "string",
+                    },
+                    "revoked": {
+                      "description": "Whether the link has been manually revoked by an admin",
+                      "type": "boolean",
+                    },
+                    "tokenHash": {
+                      "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "useCount": {
+                      "description": "Number of times the link has been successfully used to submit a consent",
+                      "type": "number",
+                    },
+                    "usedAt": {
+                      "description": "Timestamp the link was last successfully used to submit a consent",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user this link allows to complete consent forms on behalf of",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "expiresAt",
+                    "tokenHash",
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "consentlinks",
+        ],
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                  },
+                  "consentFormIds": {
+                    "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                    "items": {
+                      "type": "schemaobjectid",
+                    },
+                    "type": "array",
+                  },
+                  "created": {
+                    "description": "When this document was created",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "createdByUserId": {
+                    "description": "The admin/user who generated this link, captured for audit purposes",
+                    "type": "schemaobjectid",
+                  },
+                  "deleted": {
+                    "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                    "type": "boolean",
+                  },
+                  "expiresAt": {
+                    "description": "Timestamp after which the link can no longer be used",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "lastUsedIp": {
+                    "description": "IP address recorded the last time the link was used, captured for audit",
+                    "type": "string",
+                  },
+                  "maxUses": {
+                    "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                    "type": "number",
+                  },
+                  "note": {
+                    "description": "Optional admin note describing why the link was created",
+                    "type": "string",
+                  },
+                  "revoked": {
+                    "description": "Whether the link has been manually revoked by an admin",
+                    "type": "boolean",
+                  },
+                  "tokenHash": {
+                    "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                    "type": "string",
+                  },
+                  "updated": {
+                    "description": "When this document was last updated",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "useCount": {
+                    "description": "Number of times the link has been successfully used to submit a consent",
+                    "type": "number",
+                  },
+                  "usedAt": {
+                    "description": "Timestamp the link was last successfully used to submit a consent",
+                    "format": "date-time",
+                    "type": "string",
+                  },
+                  "userId": {
+                    "description": "The user this link allows to complete consent forms on behalf of",
+                    "type": "schemaobjectid",
+                  },
+                },
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "consentFormIds": {
+                      "description": "Specific consent forms this link grants access to; empty means all forms currently pending for the user",
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "createdByUserId": {
+                      "description": "The admin/user who generated this link, captured for audit purposes",
+                      "type": "schemaobjectid",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "expiresAt": {
+                      "description": "Timestamp after which the link can no longer be used",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "lastUsedIp": {
+                      "description": "IP address recorded the last time the link was used, captured for audit",
+                      "type": "string",
+                    },
+                    "maxUses": {
+                      "description": "Maximum number of times the link may be used; 0 means unlimited until expiry",
+                      "type": "number",
+                    },
+                    "note": {
+                      "description": "Optional admin note describing why the link was created",
+                      "type": "string",
+                    },
+                    "revoked": {
+                      "description": "Whether the link has been manually revoked by an admin",
+                      "type": "boolean",
+                    },
+                    "tokenHash": {
+                      "description": "SHA-256 hash of the raw link token; the raw token itself is never stored",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "useCount": {
+                      "description": "Number of times the link has been successfully used to submit a consent",
+                      "type": "number",
+                    },
+                    "usedAt": {
+                      "description": "Timestamp the link was last successfully used to submit a consent",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "userId": {
+                      "description": "The user this link allows to complete consent forms on behalf of",
+                      "type": "schemaobjectid",
+                    },
+                  },
+                  "required": [
+                    "expiresAt",
+                    "tokenHash",
+                    "userId",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful update",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "consentlinks",
+        ],
+      },
+    },
     "/admin/consent-responses/": {
       "get": {
         "parameters": [
@@ -1689,6 +2534,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                             "description": "Timestamp when the user provided their signature",
                             "format": "date-time",
                             "type": "string",
+                          },
+                          "submittedViaLinkId": {
+                            "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                            "type": "schemaobjectid",
                           },
                           "updated": {
                             "description": "When this document was last updated",
@@ -1848,6 +2697,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "submittedViaLinkId": {
+                    "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                    "type": "schemaobjectid",
+                  },
                   "updated": {
                     "description": "When this document was last updated",
                     "format": "date-time",
@@ -1930,6 +2783,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Timestamp when the user provided their signature",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "submittedViaLinkId": {
+                      "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                      "type": "schemaobjectid",
                     },
                     "updated": {
                       "description": "When this document was last updated",
@@ -2148,6 +3005,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "format": "date-time",
                       "type": "string",
                     },
+                    "submittedViaLinkId": {
+                      "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                      "type": "schemaobjectid",
+                    },
                     "updated": {
                       "description": "When this document was last updated",
                       "format": "date-time",
@@ -2299,6 +3160,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "format": "date-time",
                     "type": "string",
                   },
+                  "submittedViaLinkId": {
+                    "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                    "type": "schemaobjectid",
+                  },
                   "updated": {
                     "description": "When this document was last updated",
                     "format": "date-time",
@@ -2381,6 +3246,10 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                       "description": "Timestamp when the user provided their signature",
                       "format": "date-time",
                       "type": "string",
+                    },
+                    "submittedViaLinkId": {
+                      "description": "Reference to the ConsentLink used to submit this response, if any (audit)",
+                      "type": "schemaobjectid",
                     },
                     "updated": {
                       "description": "When this document was last updated",

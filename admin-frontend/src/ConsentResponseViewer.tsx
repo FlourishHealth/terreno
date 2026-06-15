@@ -2,6 +2,7 @@ import {Badge, Box, Button, Card, Heading, MarkdownView, Page, Spinner, Text} fr
 import {DateTime} from "luxon";
 import React, {useCallback, useState} from "react";
 import {Image} from "react-native";
+import {GenerateConsentLinkModal} from "./GenerateConsentLinkModal";
 import {generateConsentPdf} from "./generateConsentPdf";
 import {type AdminApi, resolveAdminBases} from "./types";
 import {useAdminApi} from "./useAdminApi";
@@ -15,6 +16,10 @@ interface ConsentResponseViewerProps {
   routeBase?: string;
   api: AdminApi;
   id: string;
+  /** When true, shows a "Generate signed link" action for this response's user. */
+  showGenerateLink?: boolean;
+  /** Base path where the /consents routes are mounted (for signed links). Defaults to "". */
+  consentsBase?: string;
 }
 
 const formatDate = (value: unknown): string => {
@@ -34,6 +39,8 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
   routeBase,
   api,
   id,
+  showGenerateLink = false,
+  consentsBase = "",
 }) => {
   const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const routePath = `${resolvedApiBase}/consent-responses`;
@@ -45,6 +52,7 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
   // the loading → loaded transition (otherwise: "Rendered more hooks than during the
   // previous render", React error #310).
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isLinkModalVisible, setIsLinkModalVisible] = useState(false);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!response) {
@@ -112,14 +120,35 @@ export const ConsentResponseViewer: React.FC<ConsentResponseViewerProps> = ({
       <Box gap={4} padding={4}>
         <Box alignItems="center" direction="row" justifyContent="between">
           <Heading size="lg">Consent Response</Heading>
-          <Button
-            iconName="download"
-            loading={isDownloading}
-            onClick={handleDownloadPdf}
-            text="Download PDF"
-            variant="outline"
-          />
+          <Box alignItems="center" direction="row" gap={2}>
+            {showGenerateLink && userId ? (
+              <Button
+                iconName="link"
+                onClick={() => setIsLinkModalVisible(true)}
+                testID="consent-response-generate-link"
+                text="Generate Signed Link"
+                variant="outline"
+              />
+            ) : null}
+            <Button
+              iconName="download"
+              loading={isDownloading}
+              onClick={handleDownloadPdf}
+              text="Download PDF"
+              variant="outline"
+            />
+          </Box>
         </Box>
+
+        {showGenerateLink && userId ? (
+          <GenerateConsentLinkModal
+            api={api}
+            consentsBase={consentsBase}
+            onDismiss={() => setIsLinkModalVisible(false)}
+            userId={userId}
+            visible={isLinkModalVisible}
+          />
+        ) : null}
 
         {/* Core Fields */}
         <Card padding={4}>

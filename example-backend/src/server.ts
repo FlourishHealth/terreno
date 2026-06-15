@@ -9,6 +9,7 @@ import {
   type BetterAuthConfig,
   ConsentApp,
   ConsentForm,
+  ConsentLink,
   ConsentResponse,
   checkModelsStrict,
   configureOpenApiValidator,
@@ -290,6 +291,13 @@ export async function start(skipListen = false): Promise<express.Application> {
               model: ConsentResponse,
               routePath: "/consent-responses",
             },
+            {
+              displayName: "Consent Links",
+              hiddenFields: ["tokenHash"],
+              listFields: ["userId", "expiresAt", "useCount", "revoked", "created"],
+              model: ConsentLink,
+              routePath: "/consent-links",
+            },
           ],
           scripts: [
             {
@@ -359,6 +367,11 @@ export async function start(skipListen = false): Promise<express.Application> {
         new ConsentApp({
           auditTrail: true,
           resolveConsentForms: (user, forms) => (user.admin ? [] : forms),
+          signedLinks: {
+            defaultExpiresIn: "14d",
+            enabled: true,
+            linkBaseUrl: `${process.env.FRONTEND_BASE_URL ?? "http://localhost:8082"}/consents/sign`,
+          },
           supportedLocales: ["en", "es"],
         })
       );
