@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories";
+import {CustomIcons, IconDemo, IconSizes, IconStyles, SolidIcons} from "@stories";
 import {Icon} from "@terreno/ui";
 
 export const IconConfiguration: DemoConfiguration = {
@@ -87,6 +87,11 @@ export const IconConfiguration: DemoConfiguration = {
     IconSizes: {
       description: "",
       render: () => IconSizes,
+    },
+    CustomIcons: {
+      description:
+        "Register custom icons (e.g. SVGs) via TerrenoProvider's `icons` prop and use them by name in Icon, Button, IconButton, and other icon-aware components.",
+      render: () => CustomIcons,
     },
   },
 };
