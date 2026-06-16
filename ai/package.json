@@ -27,10 +27,10 @@
     "@types/supertest": "catalog:",
     "@terreno/api": "workspace:*",
     "mongoose": "catalog:",
-    "passport-local-mongoose": "catalog:",
-    "supertest": "catalog:",
+    "passport-local-mongoose": "^9.0.1",
+    "supertest": "^7.0.0",
     "typescript": "catalog:",
-    "winston": "catalog:"
+    "winston": "^3.18.3"
   },
   "exports": {
     ".": {
