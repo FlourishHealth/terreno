@@ -9,12 +9,22 @@ import {logger, winstonLogger} from "../logger";
 
 const shouldConnectToTestDb = process.env.BUN_TEST_DISABLE_DB !== "true";
 
+const defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
+
+/** When set by {@link TERRENO_TEST_USE_MEMORY_MONGO}, holds the server to stop in afterAll. */
+let memoryMongo: {stop: () => Promise<boolean>} | undefined;
+
 // Connect to MongoDB once for all tests
 if (shouldConnectToTestDb) {
   beforeAll(async () => {
-    await mongoose
-      .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
-      .catch(logger.catch);
+    let uri = process.env.TERRENO_TEST_MONGODB_URI?.trim();
+    if (!uri && process.env.TERRENO_TEST_USE_MEMORY_MONGO === "true") {
+      const {MongoMemoryServer} = await import("mongodb-memory-server");
+      memoryMongo = await MongoMemoryServer.create();
+      uri = memoryMongo.getUri();
+    }
+    const connectUri = uri ?? defaultLocalMongoUri;
+    await mongoose.connect(connectUri).catch(logger.catch);
   });
 }
 
@@ -22,6 +32,9 @@ if (shouldConnectToTestDb) {
 if (shouldConnectToTestDb) {
   afterAll(async () => {
     await mongoose.connection.close();
+    if (memoryMongo) {
+      await memoryMongo.stop();
+    }
   });
 }
 

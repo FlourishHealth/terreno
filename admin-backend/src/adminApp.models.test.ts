@@ -545,7 +545,7 @@ describe("AdminApp admin UI v2 routes", () => {
   });
 
   it("rejects bulk-patch with more than 1000 ids", async () => {
-    const ids = Array.from({length: 1001}, () => "000000000000000000000001");
+    const ids = Array.from({length: 1001}, (_, index) => index.toString(16).padStart(24, "0"));
     const res = await adminAgent
       .post("/admin/foods/bulk-patch")
       .send({ids, patch: {calories: 1}})
