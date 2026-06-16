@@ -33,7 +33,7 @@ const App = () => {
           width: "100%",
         }}
       >
-        <View style={styles.body}>
+        <View style={styles.body} testID="demo-home-screen">
           <DemoHomePage
             onPress={(component: string) => {
               router.push(`demo/${encodeURIComponent(component)}`);
