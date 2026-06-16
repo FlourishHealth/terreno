@@ -1,13 +1,14 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
+import type {
+  ChangeStream,
+  ChangeStreamDocument,
+  ChangeStreamOptions,
+} from "mongodb";
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
 import mongoose from "mongoose";
 import type {Server, Socket} from "socket.io";
-
-type ChangeStream = mongoose.mongo.ChangeStream;
-type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
-type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
 
 /**
  * The subset of ChangeStreamDocument variants this watcher actually processes.

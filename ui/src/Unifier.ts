@@ -83,7 +83,7 @@ class UnifierClass {
   // tracking: Tracking,
   utils = {
     copyToClipboard: (text: string) => {
-      Clipboard.setString(text);
+      void Clipboard.setStringAsync(text);
     },
     dimensions: () => ({
       height: Dimensions.get("window").height,

@@ -6,7 +6,6 @@
   "dependencies": {
     "@expo/vector-icons": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
-    "@react-navigation/native": "catalog:",
     "@reduxjs/toolkit": "catalog:",
     "@terreno/admin-frontend": "workspace:*",
     "@terreno/rtk": "workspace:*",
@@ -44,7 +43,7 @@
     "@types/luxon": "catalog:",
     "@types/react": "catalog:",
     "@types/supertest": "^6.0.2",
-    "babel-preset-expo": "~54.0.10",
+    "babel-preset-expo": "catalog:",
     "supertest": "^7.0.0",
     "typescript": "catalog:"
   },

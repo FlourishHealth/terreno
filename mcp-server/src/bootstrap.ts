@@ -657,22 +657,22 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       dependencies: {
-        "@react-navigation/native": "^7.1.8",
         "@sentry/react": "^10.29.0",
         "@terreno/admin-frontend": "latest",
         "@terreno/rtk": "latest",
         "@terreno/ui": "latest",
-        expo: "~54.0.29",
-        react: "19.1.0",
-        "react-dom": "19.1.0",
-        "react-native": "0.81.5",
+        expo: "~56.0.12",
+        "expo-router": "~56.2.11",
+        react: "19.2.3",
+        "react-dom": "19.2.3",
+        "react-native": "0.85.3",
         "react-redux": "^9.2.0",
       },
       devDependencies: {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
-        "@types/react": "~19.1.10",
-        typescript: "~5.9.2",
+        "@types/react": "~19.2.14",
+        typescript: "~6.0.3",
       },
       main: "expo-router/entry",
       name: `@${appName}/frontend`,
@@ -949,7 +949,7 @@ exec(command, (error, _stdout, stderr) => {
 
 const generateFrontendRootLayout = (_args: BootstrapArgs): string => {
   return `import FontAwesome from "@expo/vector-icons/FontAwesome";
-import {DefaultTheme, ThemeProvider} from "@react-navigation/native";
+import {DefaultTheme, ThemeProvider} from "expo-router/react-navigation";
 import {useFonts} from "expo-font";
 import {Stack} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
