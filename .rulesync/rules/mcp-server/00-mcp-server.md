@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "@terreno/mcp-server - MCP server for AI assistant integration"
 globs: ["**/*"]
 ---

@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "Require description on all Mongoose model fields"
 globs: ["**/*"]
 ---

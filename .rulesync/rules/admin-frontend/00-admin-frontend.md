@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "@terreno/admin-frontend - Admin panel frontend screens for @terreno/api backends"
 globs: ["**/*"]
 ---
