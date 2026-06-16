@@ -9,6 +9,9 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Pin Bun so Netlify resolves the same dependency tree (and TypeScript 6.x) as CI/local,
+  # rather than an older default that can mis-resolve the workspace.
+  BUN_VERSION = "1.3.14"
   DEMO_URL = "https://terreno-demo.netlify.app"
 
 [[headers]]
