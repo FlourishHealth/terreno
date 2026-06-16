@@ -50,6 +50,12 @@ export interface AdminFieldConfig {
   itemRef?: string;
 }
 
+export interface AdminModelPermissions {
+  create?: boolean;
+  delete?: boolean;
+  update?: boolean;
+}
+
 export interface AdminModelConfig {
   name: string;
   routePath: string;
@@ -60,6 +66,27 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
+  /** Admin UI v2 — declarative bulk actions */
+  actions?: {
+    background?: boolean;
+    confirm?: string;
+    id: string;
+    label: string;
+    patchKeys?: string[];
+  }[];
+  bulkPatchAllowlist?: string[];
+  fieldsets?: {fields: string[]; title: string}[];
+  filters?: {field: string; kind: string; label?: string}[];
+  group?: string;
+  hiddenFields?: string[];
+  listDisplay?: string[];
+  listDisplayLinks?: string[];
+  pageSize?: number;
+  permissions?: AdminModelPermissions;
+  readonlyFields?: string[];
+  realtime?: boolean;
+  searchFields?: string[];
+  sortableFields?: string[];
 }
 
 export interface AdminCustomScreen {
@@ -73,9 +100,24 @@ export interface AdminScriptConfig {
   description: string;
 }
 
+/** Admin UI v2 home layout slots (Django template-block analogue). */
+export interface AdminHomeSlots {
+  contentTop?: string[];
+  main?: string[];
+  navGlobal?: string[];
+  sidebar?: string[];
+}
+
+export interface AdminHome {
+  slots: AdminHomeSlots;
+  title: string;
+}
+
 export interface AdminConfigResponse {
   customScreens?: AdminCustomScreen[];
+  home?: AdminHome;
   models: AdminModelConfig[];
+  schemaVersion?: number;
   scripts: AdminScriptConfig[];
 }
 

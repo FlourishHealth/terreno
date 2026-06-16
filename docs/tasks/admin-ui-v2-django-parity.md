@@ -6,13 +6,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 1: Admin config contract (backend)
 
-- [ ] **Task 1.1**: Extend `AdminConfigResponse` / `GET /admin/config` for schema v2  
+- [x] **Task 1.1**: Extend `AdminConfigResponse` / `GET /admin/config` for schema v2  
   - Description: Add `schemaVersion`, per-model `group`, `listDisplay`, `listDisplayLinks`, `sortableFields`, `searchFields`, `filters` (typed: boolean, choice, text, dateRange, ref), `fieldsets`, `readonlyFields`, `hiddenFields`, declared `actions` (sync vs `background: true`), `permissions` (`create`/`update`/`delete` booleans), `pageSize`, `realtime`, `home` with **`title` + `slots`** (`navGlobal?`, `contentTop?`, `main?`, `sidebar?` — each an ordered `string[]` of widget ids; Django template-block analogue). Optionally accept legacy `home.widgets[]` for migration → normalize into `slots.main` + `recentActivity` forced last in `sidebar`. Include `customScreens`, existing `scripts`. Preserve v1 config fields for backward compatibility.  
   - Files: `admin-backend/src/adminApp.ts`, `admin-backend/src/index.ts` (exports if needed), tests under `admin-backend/src/*.test.ts`  
   - Depends on: none  
   - Acceptance: Typed response; tests assert v1 fields still present; new fields optional-safe for old clients.
 
-- [ ] **Task 1.2**: Document OpenAPI for extended config  
+- [x] **Task 1.2**: Document OpenAPI for extended config  
   - Description: Ensure generated OpenAPI documents the new response shape (or manual `openApiBuilder` attachment on config route if required).  
   - Files: `admin-backend/src/adminApp.ts`  
   - Depends on: 1.1  
@@ -20,13 +20,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 2: Bulk patch + background tasks (backend)
 
-- [ ] **Task 2.1**: Implement `POST {basePath}{routePath}/bulk-patch`  
+- [x] **Task 2.1**: Implement `POST {basePath}{routePath}/bulk-patch`  
   - Description: Body `{ ids: string[]; patch: Record<string, unknown> }`. Enforce **max 1000** ids. Allowlist patch keys per model from config (or from schema paths). Use `updateMany` / batched updates with per-id validation where needed. Return `{ updated: number; failures?: ... }`.  
   - Files: `admin-backend/src/adminApp.ts`, new helper module if >300 LOC, tests  
   - Depends on: 1.1  
   - Acceptance: Tests for cap, unknown keys rejected, partial failure reporting; `IsAdmin` only.
 
-- [ ] **Task 2.2**: Implement `POST /admin/background-tasks` (name finalized in code)  
+- [x] **Task 2.2**: Implement `POST /admin/background-tasks` (name finalized in code)  
   - Description: Map prototype `background: true` actions to enqueue `BackgroundTask` (or existing script runner) with `kind`, target route, ids, metadata. Return `{ taskId }`. Reuse logging/error patterns from script routes.  
   - Files: `admin-backend/src/adminApp.ts`, tests  
   - Depends on: 1.1, 2.1 (shared validation helpers optional)  

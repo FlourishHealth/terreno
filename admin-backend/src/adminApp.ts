@@ -5,6 +5,7 @@ import {
   BackgroundTask,
   type BackgroundTaskDocument,
   checkPermissions,
+  createOpenApiBuilder,
   getOpenApiSpecForModel,
   type JSONValue,
   logger,
@@ -23,6 +24,19 @@ import express from "express";
 import {DateTime} from "luxon";
 import type {Model} from "mongoose";
 import mongoose from "mongoose";
+
+import {
+  ADMIN_SCHEMA_VERSION,
+  type AdminActionInput,
+  type AdminFieldsetInput,
+  type AdminHomeInput,
+  type AdminListFilter,
+  type AdminModelPermissionsInput,
+  defaultBulkPatchAllowlistFrom,
+  MAX_BULK_PATCH_IDS,
+  normalizeAdminHome,
+  SYSTEM_ADMIN_FIELDS,
+} from "./adminUiV2";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -50,6 +64,32 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
   /** Fields to hide from admin forms/responses (e.g., password hash fields). */
   hiddenFields?: string[];
+  /** Optional sidebar / nav grouping label for schema v2 shells */
+  group?: string;
+  /** Changelist columns (defaults to listFields) */
+  listDisplay?: string[];
+  /** Subset of list columns rendered as links to detail */
+  listDisplayLinks?: string[];
+  /** Fields the changelist may sort by (informational + future enforcement) */
+  sortableFields?: string[];
+  /** Fields exposed to text / quick search in the admin UI */
+  searchFields?: string[];
+  /** Typed list filters (queryFields-compatible on the wire) */
+  filters?: AdminListFilter[];
+  /** Form layout: grouped fields */
+  fieldsets?: AdminFieldsetInput[];
+  /** Fields shown read-only in forms; stripped from PATCH bodies server-side */
+  readonlyFields?: string[];
+  /** Declarative row / selection actions */
+  actions?: AdminActionInput[];
+  /** Fine-grained CRUD toggles for admin UI + route wiring */
+  permissions?: AdminModelPermissionsInput;
+  /** Suggested page size for the changelist */
+  pageSize?: number;
+  /** UI-only hint that live updates may be available */
+  realtime?: boolean;
+  /** Allowlisted keys for POST .../bulk-patch (defaults from listFields minus system/readonly/hidden) */
+  bulkPatchAllowlist?: string[];
 }
 
 /**
@@ -74,6 +114,10 @@ export interface AdminOptions {
   scripts?: AdminScriptConfig[];
   /** Base path for all admin routes. Defaults to "/admin". */
   basePath?: string;
+  /** Optional home dashboard layout (schema v2 slots) */
+  home?: AdminHomeInput;
+  /** Extra custom screens merged with built-ins (e.g. version-config) */
+  customScreens?: {displayName: string; name: string}[];
 }
 
 interface AdminFieldMeta {
@@ -96,13 +140,27 @@ interface AdminFieldMeta {
 }
 
 interface AdminModelMeta {
-  name: string;
-  routePath: string;
-  displayName: string;
-  listFields: string[];
+  actions: AdminActionInput[];
+  bulkPatchAllowlist: string[];
   defaultSort: string;
-  fields: Record<string, AdminFieldMeta>;
+  displayName: string;
   fieldOrder?: string[];
+  fieldsets?: AdminFieldsetInput[];
+  fields: Record<string, AdminFieldMeta>;
+  filters: AdminListFilter[];
+  group?: string;
+  hiddenFields: string[];
+  listDisplay: string[];
+  listDisplayLinks: string[];
+  listFields: string[];
+  name: string;
+  pageSize?: number;
+  permissions: {create: boolean; delete: boolean; update: boolean};
+  readonlyFields: string[];
+  realtime: boolean;
+  routePath: string;
+  searchFields: string[];
+  sortableFields: string[];
 }
 
 interface AdminScriptMeta {
@@ -112,7 +170,9 @@ interface AdminScriptMeta {
 
 interface AdminConfigResponse {
   customScreens?: {displayName: string; name: string}[];
+  home: ReturnType<typeof normalizeAdminHome>;
   models: AdminModelMeta[];
+  schemaVersion: number;
   scripts: AdminScriptMeta[];
 }
 
@@ -207,6 +267,18 @@ const extractFieldMeta = (
   return fields;
 };
 
+const asMiddlewareList = (
+  middleware: express.RequestHandler | express.RequestHandler[] | undefined
+): express.RequestHandler[] => {
+  if (middleware === undefined) {
+    return [];
+  }
+  if (Array.isArray(middleware)) {
+    return middleware;
+  }
+  return [middleware];
+};
+
 /**
  * TerrenoPlugin that auto-generates admin CRUD endpoints for Mongoose models.
  *
@@ -277,6 +349,7 @@ export class AdminApp {
    */
   register(app: express.Application, openApi?: unknown): void {
     const basePath = this.options.basePath ?? "/admin";
+    const openApiMw = openApi as OpenApiMiddleware | undefined;
     const modelConfigs = this.options.models;
 
     // Build config response with field metadata from Mongoose schemas
@@ -345,14 +418,48 @@ export class AdminApp {
         }
       }
 
+      const readonlyFields = config.readonlyFields ?? [];
+      const listFields = config.listFields.filter((field) => !hiddenFieldSet.has(field));
+      const listDisplay = config.listDisplay ?? listFields;
+      const derivedSearchFields = listFields.filter((field) => fields[field]?.searchable);
+      const searchFields = config.searchFields ?? derivedSearchFields;
+      const sortableFields = config.sortableFields ?? [...listDisplay, "_id"];
+      const schemaPathKeys = new Set(Object.keys(config.model.schema.paths));
+      const bulkPatchAllowlist =
+        config.bulkPatchAllowlist ??
+        defaultBulkPatchAllowlistFrom({
+          hiddenFieldSet,
+          listFields,
+          readonlyFields,
+          schemaPaths: schemaPathKeys,
+        });
+
       return {
+        actions: config.actions ?? [],
+        bulkPatchAllowlist,
         defaultSort: config.defaultSort ?? "-created",
         displayName: config.displayName,
         fieldOrder: config.fieldOrder,
         fields,
-        listFields: config.listFields.filter((field) => !hiddenFieldSet.has(field)),
+        fieldsets: config.fieldsets,
+        filters: config.filters ?? [],
+        group: config.group,
+        hiddenFields: [...hiddenFieldSet],
+        listDisplay,
+        listDisplayLinks: config.listDisplayLinks ?? [],
+        listFields,
         name: config.model.modelName,
+        pageSize: config.pageSize,
+        permissions: {
+          create: config.permissions?.create !== false,
+          delete: config.permissions?.delete !== false,
+          update: config.permissions?.update !== false,
+        },
+        readonlyFields,
+        realtime: config.realtime ?? false,
         routePath: `${basePath}${config.routePath}`,
+        searchFields,
+        sortableFields,
       };
     });
 
@@ -363,21 +470,54 @@ export class AdminApp {
       name: script.name,
     }));
 
+    const defaultScreens = [{displayName: "Version Config", name: "version-config"}];
+    const mergedScreens = [...defaultScreens, ...(this.options.customScreens ?? [])];
+
     const configResponse: AdminConfigResponse = {
-      customScreens: [
-        {
-          displayName: "Version Config",
-          name: "version-config",
-        },
-      ],
+      customScreens: mergedScreens,
+      home: normalizeAdminHome(this.options.home),
       models: configModels,
+      schemaVersion: ADMIN_SCHEMA_VERSION,
       scripts: configScripts,
     };
+
+    const adminConfigOpenApi = openApiMw
+      ? createOpenApiBuilder({openApi: openApiMw})
+          .withTags(["admin"])
+          .withSummary("Admin panel configuration")
+          .withResponse(200, {
+            customScreens: {
+              items: {
+                properties: {
+                  displayName: {type: "string"},
+                  name: {type: "string"},
+                },
+                type: "object",
+              },
+              type: "array",
+            },
+            home: {type: "object"},
+            models: {type: "array"},
+            schemaVersion: {type: "number"},
+            scripts: {
+              items: {
+                properties: {
+                  description: {type: "string"},
+                  name: {type: "string"},
+                },
+                type: "object",
+              },
+              type: "array",
+            },
+          })
+          .build()
+      : undefined;
 
     // GET /admin/config
     app.get(
       `${basePath}/config`,
       authenticateMiddleware(),
+      ...asMiddlewareList(adminConfigOpenApi),
       asyncHandler(async (req, res) => {
         if (
           !(await checkPermissions("read", [Permissions.IsAdmin], req.user as User | undefined))
@@ -385,6 +525,95 @@ export class AdminApp {
           throw new APIError({status: 403, title: "Admin access required"});
         }
         return res.json(configResponse);
+      })
+    );
+
+    const backgroundTasksOpenApi = openApiMw
+      ? createOpenApiBuilder({openApi: openApiMw})
+          .withTags(["admin"])
+          .withSummary("Enqueue a generic admin background task")
+          .withRequestBody<{
+            ids?: string[];
+            kind: string;
+            metadata?: Record<string, unknown>;
+            resourceRoute?: string;
+          }>({
+            ids: {
+              description: "Optional target document ids",
+              items: {type: "string"},
+              type: "array",
+            },
+            kind: {
+              description: "Task kind label persisted as taskType",
+              required: true,
+              type: "string",
+            },
+            metadata: {description: "Opaque JSON metadata for workers", type: "object"},
+            resourceRoute: {
+              description: "Optional admin model route this task relates to",
+              type: "string",
+            },
+          })
+          .withResponse(201, {taskId: {type: "string"}})
+          .build()
+      : undefined;
+
+    app.post(
+      `${basePath}/background-tasks`,
+      authenticateMiddleware(),
+      ...asMiddlewareList(backgroundTasksOpenApi),
+      asyncHandler(async (req, res) => {
+        if (
+          !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+        ) {
+          throw new APIError({status: 403, title: "Admin access required"});
+        }
+        const user = req.user as {_id: unknown} | undefined;
+        const raw = req.body as {
+          ids?: unknown;
+          kind?: unknown;
+          metadata?: unknown;
+          resourceRoute?: unknown;
+        };
+        if (typeof raw.kind !== "string" || !raw.kind.trim()) {
+          throw new APIError({status: 400, title: "kind is required"});
+        }
+        const now = DateTime.now().toJSDate();
+        const summary = {
+          ids: Array.isArray(raw.ids) ? raw.ids : [],
+          metadata:
+            raw.metadata && typeof raw.metadata === "object" && !Array.isArray(raw.metadata)
+              ? raw.metadata
+              : {},
+          resourceRoute: typeof raw.resourceRoute === "string" ? raw.resourceRoute : undefined,
+        };
+        let task: BackgroundTaskDocument;
+        try {
+          task = (await BackgroundTask.create({
+            createdBy: user?._id as mongoose.Types.ObjectId,
+            isDryRun: false,
+            logs: [
+              {
+                level: "info",
+                message: `Queued background task ${raw.kind}: ${JSON.stringify(summary)}`,
+                timestamp: now,
+              },
+            ],
+            progress: {message: "Queued", percentage: 0, stage: "Queued"},
+            startedAt: now,
+            status: "pending",
+            taskType: raw.kind,
+          })) as BackgroundTaskDocument;
+        } catch (err: unknown) {
+          const detail = err instanceof Error ? err.message : String(err);
+          logger.error(`Failed to create admin background task: ${detail}`);
+          throw new APIError({
+            detail,
+            status: 500,
+            title: "Failed to enqueue background task",
+          });
+        }
+        return res.status(201).json({taskId: task._id.toString()});
       })
     );
 
@@ -543,15 +772,79 @@ export class AdminApp {
     // Mount modelRouter for each model with IsAdmin permissions
     for (const config of modelConfigs) {
       const hiddenFieldSet = new Set(config.hiddenFields ?? []);
+      const readonlySet = new Set(config.readonlyFields ?? []);
+      const modelMeta = configModels.find((m) => m.name === config.model.modelName);
+      const allowlist = new Set(modelMeta?.bulkPatchAllowlist ?? []);
+
+      const adminPermission = (allowed: boolean | undefined): (typeof Permissions.IsAdmin)[] => {
+        if (allowed === false) {
+          return [];
+        }
+        return [Permissions.IsAdmin];
+      };
+
+      const stripProtectedFromBody = (body: unknown): Record<string, unknown> => {
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          return {};
+        }
+        const next = {...(body as Record<string, unknown>)};
+        for (const key of readonlySet) {
+          delete next[key];
+        }
+        for (const key of hiddenFieldSet) {
+          delete next[key];
+        }
+        for (const key of SYSTEM_ADMIN_FIELDS) {
+          delete next[key];
+        }
+        return next;
+      };
+
+      const bulkPatchOpenApi = openApiMw
+        ? createOpenApiBuilder({openApi: openApiMw})
+            .withTags(["admin"])
+            .withSummary(`Bulk patch ${config.model.modelName} documents`)
+            .withRequestBody<{ids: string[]; patch: Record<string, unknown>}>({
+              ids: {
+                description: "Document ids to update",
+                items: {type: "string"},
+                required: true,
+                type: "array",
+              },
+              patch: {
+                description: "Partial document; keys must be allowlisted for this model",
+                required: true,
+                type: "object",
+              },
+            })
+            .withResponse(200, {
+              failures: {type: "array"},
+              updated: {type: "number"},
+            })
+            .build()
+        : undefined;
+
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
-        ...(openApi ? {openApi: openApi as OpenApiMiddleware} : {}),
+        ...(openApiMw ? {openApi: openApiMw} : {}),
         permissions: {
-          create: [Permissions.IsAdmin],
-          delete: [Permissions.IsAdmin],
+          create: adminPermission(config.permissions?.create),
+          delete: adminPermission(config.permissions?.delete),
           list: [Permissions.IsAdmin],
           read: [Permissions.IsAdmin],
-          update: [Permissions.IsAdmin],
+          update: adminPermission(config.permissions?.update),
+        },
+        preCreate: async (body, _req) => {
+          if (!body || typeof body !== "object") {
+            return body;
+          }
+          return stripProtectedFromBody(body) as typeof body;
+        },
+        preUpdate: async (body, _req) => {
+          if (!body || typeof body !== "object") {
+            return body;
+          }
+          return stripProtectedFromBody(body) as typeof body;
         },
         responseHandler:
           hiddenFieldSet.size > 0
@@ -561,7 +854,78 @@ export class AdminApp {
         sort: config.defaultSort ?? "-created",
       };
 
-      app.use(`${basePath}${config.routePath}`, modelRouter(config.model, routerOptions));
+      const modelBase = express.Router();
+      modelBase.post(
+        "/bulk-patch",
+        authenticateMiddleware(),
+        ...asMiddlewareList(bulkPatchOpenApi),
+        asyncHandler(async (req, res) => {
+          if (
+            !(await checkPermissions("update", [Permissions.IsAdmin], req.user as User | undefined))
+          ) {
+            throw new APIError({status: 403, title: "Admin access required"});
+          }
+          if (config.permissions?.update === false) {
+            throw new APIError({status: 403, title: "Updates are disabled for this model"});
+          }
+          const body = req.body as {ids?: unknown; patch?: unknown};
+          if (!Array.isArray(body.ids)) {
+            throw new APIError({status: 400, title: "Request body must include an ids array"});
+          }
+          if (typeof body.patch !== "object" || body.patch === null || Array.isArray(body.patch)) {
+            throw new APIError({status: 400, title: "Request body must include a patch object"});
+          }
+          const ids = [...new Set(body.ids.map((id) => String(id)))];
+          if (ids.length === 0) {
+            throw new APIError({status: 400, title: "ids must include at least one id"});
+          }
+          if (ids.length > MAX_BULK_PATCH_IDS) {
+            throw new APIError({
+              status: 400,
+              title: `At most ${MAX_BULK_PATCH_IDS} ids may be patched at once`,
+            });
+          }
+          const rawPatch = body.patch as Record<string, unknown>;
+          const unknownKeys = Object.keys(rawPatch).filter((key) => !allowlist.has(key));
+          if (unknownKeys.length > 0) {
+            throw new APIError({
+              detail: unknownKeys.join(", "),
+              status: 400,
+              title: "Patch contains keys that are not allowlisted for bulk patch",
+            });
+          }
+          const patch = stripProtectedFromBody(rawPatch);
+          if (Object.keys(patch).length === 0) {
+            throw new APIError({
+              status: 400,
+              title: "Patch must include at least one writable field",
+            });
+          }
+          let updated = 0;
+          const failures: {id: string; title: string}[] = [];
+          for (const id of ids) {
+            if (!mongoose.isValidObjectId(id)) {
+              failures.push({id, title: "Invalid id"});
+              continue;
+            }
+            try {
+              const resUpdate = await config.model.updateOne({_id: id}, {$set: patch});
+              if (resUpdate.matchedCount === 0) {
+                failures.push({id, title: "Not found"});
+              } else {
+                updated += 1;
+              }
+            } catch (err: unknown) {
+              const message = err instanceof Error ? err.message : String(err);
+              failures.push({id, title: message});
+            }
+          }
+          return res.json({failures: failures.length > 0 ? failures : undefined, updated});
+        })
+      );
+      modelBase.use(modelRouter(config.model, routerOptions));
+
+      app.use(`${basePath}${config.routePath}`, modelBase);
     }
 
     // Mount script routes

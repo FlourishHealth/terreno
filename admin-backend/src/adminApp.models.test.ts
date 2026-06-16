@@ -3,6 +3,7 @@ import {
   addAuthRoutes,
   apiErrorMiddleware,
   apiUnauthorizedMiddleware,
+  BackgroundTask,
   setupAuth,
   type UserModel as UserModelType,
   VersionConfig,
@@ -19,10 +20,13 @@ import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import type {AdminModelConfig} from "./adminApp";
+import type {AdminModelConfig, AdminOptions} from "./adminApp";
 import {AdminApp} from "./adminApp";
 
-const buildApp = (models: AdminModelConfig[] = []): express.Application => {
+const buildApp = (
+  models: AdminModelConfig[] = [],
+  adminOverrides?: Partial<AdminOptions>
+): express.Application => {
   const app = getBaseServer();
   setupAuth(app, UserModel as unknown as UserModelType);
   addAuthRoutes(app, UserModel as unknown as UserModelType);
@@ -30,6 +34,7 @@ const buildApp = (models: AdminModelConfig[] = []): express.Application => {
   const admin = new AdminApp({
     basePath: "/admin",
     models,
+    ...adminOverrides,
   });
   admin.register(app);
 
@@ -73,6 +78,9 @@ describe("AdminApp /admin/config", () => {
   it("returns metadata for configured models to admins", async () => {
     const res = await adminAgent.get("/admin/config").expect(200);
 
+    expect(res.body.schemaVersion).toBe(2);
+    expect(res.body.home?.title).toBe("Administration");
+    expect(res.body.home?.slots?.main).toEqual(["modelsGrid"]);
     expect(res.body.models).toHaveLength(1);
     const [foodMeta] = res.body.models;
     expect(foodMeta.name).toBe("Food");
@@ -178,6 +186,19 @@ describe("AdminApp /admin/config", () => {
     expect(res.body.customScreens).toEqual([
       {displayName: "Version Config", name: "version-config"},
     ]);
+  });
+
+  it("normalizes home.slots so recentActivity is last in sidebar", async () => {
+    app = buildApp([foodModelConfig], {
+      home: {
+        slots: {sidebar: ["recentActivity", "versionConfig"]},
+        title: "Ops",
+      },
+    });
+    const agent = await authAsUser(app, "admin");
+    const res = await agent.get("/admin/config").expect(200);
+    expect(res.body.home.title).toBe("Ops");
+    expect(res.body.home.slots.sidebar).toEqual(["versionConfig", "recentActivity"]);
   });
 });
 
@@ -475,5 +496,134 @@ describe("AdminApp with scripts that use context", () => {
     // addLog("info", "hello") should have persisted
     expect(task?.logs.some((l: {message: string}) => l.message === "hello")).toBe(true);
     expect(task?.progress?.percentage).toBe(100);
+  });
+});
+
+describe("AdminApp admin UI v2 routes", () => {
+  let app: express.Application;
+  let adminAgent: TestAgent;
+  let notAdminAgent: TestAgent;
+
+  beforeEach(async () => {
+    await setupDb();
+    app = buildApp([{...foodModelConfig, hiddenFields: ["hidden"]}]);
+    adminAgent = await authAsUser(app, "admin");
+    notAdminAgent = await authAsUser(app, "notAdmin");
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+    await BackgroundTask.deleteMany({});
+  });
+
+  it("rejects bulk-patch with an empty ids array", async () => {
+    const res = await adminAgent
+      .post("/admin/foods/bulk-patch")
+      .send({ids: [], patch: {calories: 1}})
+      .expect(400);
+    expect(res.body.title).toInclude("at least one");
+  });
+
+  it("bulk-patches allowlisted fields for many ids", async () => {
+    const a = await FoodModel.create({calories: 1, name: "A"});
+    const b = await FoodModel.create({calories: 2, name: "B"});
+    const res = await adminAgent
+      .post("/admin/foods/bulk-patch")
+      .send({
+        ids: [String(a._id), String(b._id)],
+        patch: {calories: 50},
+      })
+      .expect(200);
+    expect(res.body.updated).toBe(2);
+    expect(res.body.failures).toBeUndefined();
+    const updated = await FoodModel.find({_id: {$in: [a._id, b._id]}})
+      .lean()
+      .exec();
+    for (const row of updated) {
+      expect(row.calories).toBe(50);
+    }
+  });
+
+  it("rejects bulk-patch with more than 1000 ids", async () => {
+    const ids = Array.from({length: 1001}, () => "000000000000000000000001");
+    const res = await adminAgent
+      .post("/admin/foods/bulk-patch")
+      .send({ids, patch: {calories: 1}})
+      .expect(400);
+    expect(res.body.title).toInclude("1000");
+  });
+
+  it("rejects bulk-patch keys outside the allowlist", async () => {
+    const a = await FoodModel.create({calories: 1, name: "A"});
+    const res = await adminAgent
+      .post("/admin/foods/bulk-patch")
+      .send({
+        ids: [String(a._id)],
+        patch: {thisFieldIsNotAllowlisted: true},
+      })
+      .expect(400);
+    expect(res.body.title).toInclude("allowlisted");
+  });
+
+  it("enqueues a background task and returns taskId", async () => {
+    const res = await adminAgent
+      .post("/admin/background-tasks")
+      .send({kind: "reindex-search", metadata: {scope: "foods"}})
+      .expect(201);
+    expect(typeof res.body.taskId).toBe("string");
+    const task = await BackgroundTask.findById(res.body.taskId);
+    expect(task?.taskType).toBe("reindex-search");
+    expect(task?.status).toBe("pending");
+  });
+
+  it("returns 403 for background-tasks when not admin", async () => {
+    await notAdminAgent.post("/admin/background-tasks").send({kind: "x"}).expect(403);
+  });
+
+  it("strips readonly fields from PATCH updates", async () => {
+    app = buildApp([
+      {
+        ...foodModelConfig,
+        readonlyFields: ["name"],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    const food = await FoodModel.create({calories: 10, name: "KeepMe"});
+    await agent.patch(`/admin/foods/${food._id}`).send({calories: 99, name: "Changed"}).expect(200);
+    const reRead = await FoodModel.findById(food._id).lean();
+    expect(reRead?.name).toBe("KeepMe");
+    expect(reRead?.calories).toBe(99);
+  });
+
+  it("strips readonly fields from POST create", async () => {
+    app = buildApp([
+      {
+        ...foodModelConfig,
+        readonlyFields: ["name"],
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    const res = await agent
+      .post("/admin/foods")
+      .send({calories: 5, name: "IgnoredName"})
+      .expect(201);
+    expect(res.body.data.name).toBeUndefined();
+    expect(res.body.data.calories).toBe(5);
+    const stored = await FoodModel.findById(res.body.data._id).lean();
+    expect(stored?.name).toBeUndefined();
+    expect(stored?.calories).toBe(5);
+  });
+
+  it("disables DELETE when permissions.delete is false", async () => {
+    app = buildApp([
+      {
+        ...foodModelConfig,
+        permissions: {delete: false},
+      },
+    ]);
+    const agent = await authAsUser(app, "admin");
+    const food = await FoodModel.create({calories: 1, name: "Nope"});
+    const res = await agent.delete(`/admin/foods/${food._id}`);
+    expect([403, 405]).toContain(res.status);
   });
 });
