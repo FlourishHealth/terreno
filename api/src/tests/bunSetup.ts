@@ -12,7 +12,7 @@ const shouldConnectToTestDb = process.env.BUN_TEST_DISABLE_DB !== "true";
 const defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
 
 /** When set by {@link TERRENO_TEST_USE_MEMORY_MONGO}, holds the server to stop in afterAll. */
-let memoryMongo: {stop: () => Promise<boolean>} | undefined;
+let memoryMongo: {getUri: () => string; stop: () => Promise<boolean>} | undefined;
 
 // Connect to MongoDB once for all tests
 if (shouldConnectToTestDb) {
