@@ -9,12 +9,17 @@ import type {
   AdminModelConfig,
   RefRendererMap,
 } from "./types";
-import {SYSTEM_FIELDS} from "./types";
+import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
 interface AdminModelFormProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   modelName: string;
   mode: "create" | "edit";
@@ -162,6 +167,8 @@ const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fiel
  */
 export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   modelName,
   mode,
@@ -171,7 +178,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   onSaveSuccess,
   refRenderers,
 }) => {
-  const {config, isLoading: isConfigLoading} = useAdminConfig(api, baseUrl);
+  const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
+    apiBase,
+    baseUrl,
+    routeBase,
+  });
+  const {config, isLoading: isConfigLoading} = useAdminConfig(api, resolvedApiBase);
   const [formState, setFormState] = useState<Record<string, AdminFieldValue>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -358,7 +370,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         {editableFields.map(([fieldKey, fieldConfig]) => (
           <AdminFieldRenderer
             api={api}
-            baseUrl={baseUrl}
+            apiBase={resolvedApiBase}
             errorText={errors[fieldKey]}
             fieldConfig={fieldConfig}
             fieldKey={fieldKey}
@@ -367,6 +379,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
             onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
             parentFormState={formState}
             refRenderers={refRenderers}
+            routeBase={resolvedRouteBase}
             value={formState[fieldKey]}
           />
         ))}

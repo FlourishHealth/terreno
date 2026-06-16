@@ -96,7 +96,7 @@ export const useServerStatus = (options: ServerStatusOptions = {}): ServerStatus
 
   // Also respond to browser online/offline events for instant detection
   useEffect(() => {
-    if (skip || typeof window === "undefined") {
+    if (skip || typeof window === "undefined" || typeof window.addEventListener !== "function") {
       return;
     }
 

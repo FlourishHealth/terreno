@@ -21,30 +21,18 @@ exports[`CustomSelectField renders correctly with default props 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Please select an option.",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Please select an option.",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -366,30 +354,18 @@ exports[`CustomSelectField renders with title 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Please select an option.",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Please select an option.",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -696,30 +672,18 @@ exports[`CustomSelectField renders with placeholder 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Choose one...",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Choose one...",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -1026,30 +990,18 @@ exports[`CustomSelectField renders with selected value 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Option B",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Option B",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -1356,30 +1308,18 @@ exports[`CustomSelectField renders with custom value (not in options) 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Custom",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Custom",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -1790,30 +1730,18 @@ exports[`CustomSelectField renders disabled state 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#686868",
-                                },
-                                "testID": "text_input",
-                                "value": "Option A",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#686868",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Option A",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),
@@ -2122,30 +2050,18 @@ exports[`CustomSelectField includes custom option in dropdown 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            {
-                              "$$typeof": Symbol(react.test.json),
-                              "children": null,
-                              "props": {
-                                "editable": false,
-                                "multiline": true,
-                                "style": {
-                                  "color": "#1C1C1C",
-                                },
-                                "testID": "text_input",
-                                "value": "Please select an option.",
-                              },
-                              "type": "TextInput",
-                            },
-                          ],
+                          "children": null,
                           "props": {
+                            "editable": false,
+                            "multiline": true,
                             "style": {
+                              "color": "#1C1C1C",
                               "flex": 1,
-                              "paddingRight": 8,
                             },
-                            "testID": undefined,
+                            "testID": "text_input",
+                            "value": "Please select an option.",
                           },
-                          "type": "View",
+                          "type": "TextInput",
                         },
                         {
                           "$$typeof": Symbol(react.test.json),

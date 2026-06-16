@@ -68,6 +68,18 @@ export const SelectFieldExamples = () => {
           disabled
           onChange={() => {}}
           options={options}
+          title="Select field (disabled, short label)"
+          value="third"
+        />
+      </Box>
+      <Box marginBottom={2} padding={4}>
+        <Box marginBottom={1}>
+          <Heading size="md">Disabled — long label wrapping test</Heading>
+        </Box>
+        <SelectField
+          disabled
+          onChange={() => {}}
+          options={options}
           title="Select field (disabled, long label)"
           value="long"
         />

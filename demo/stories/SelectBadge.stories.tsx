@@ -81,6 +81,26 @@ export const BadgeSelectBadgeComparison = () => {
         <Badge secondary status="info" value="Badge" />
         <SecondarySelectBadge />
       </Box>
+      <Box gap={1} paddingY={3}>
+        <Text bold>All Badge variants — height comparison</Text>
+        <Text color="secondaryDark" size="sm">
+          Text, iconOnly, and numberOnly should all be 20px tall.
+        </Text>
+      </Box>
+      <Box alignItems="center" direction="row" gap={3} paddingY={2}>
+        <Box width={80}>
+          <Text size="sm">Variants</Text>
+        </Box>
+        <Badge status="info" value="Text" />
+        <Badge iconName="check" status="success" value="" variant="iconOnly" />
+        <Badge maxValue={99} status="error" value="5" variant="numberOnly" />
+        <SelectBadge
+          onChange={() => {}}
+          options={statusOptions}
+          status="info"
+          value="active"
+        />
+      </Box>
     </StorybookContainer>
   );
 };

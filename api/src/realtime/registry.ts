@@ -17,7 +17,6 @@ export interface RealtimeRegistryEntry {
   /**
    * Full modelRouter options (for responseHandler, permissions, etc.).
    */
-  // biome-ignore lint/suspicious/noExplicitAny: registry stores heterogeneous models — narrowing the generic is not useful at the registry level
   options: ModelRouterOptions<any>;
 }
 

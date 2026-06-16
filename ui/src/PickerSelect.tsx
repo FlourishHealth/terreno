@@ -388,13 +388,10 @@ export const RNPickerSelect = ({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
-    // Use a read-only multiline TextInput so textInputProps (placeholder, onFocus,
-    // onBlur, etc.) keep their documented behaviour while long labels still wrap onto
-    // multiple lines on native. The input is wrapped in a flex:1 View to pin the
-    // available width unambiguously next to the chevron icon.
     const selectedLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
     const baseTextInputStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
+      flex: 1,
     };
     return (
       <View
@@ -405,20 +402,18 @@ export const RNPickerSelect = ({
           width: "100%",
         }}
       >
-        <View style={{flex: 1, paddingRight: 8}}>
-          <TextInput
-            editable={false}
-            multiline
-            {...textInputProps}
-            style={
-              textInputProps?.style
-                ? [baseTextInputStyle, textInputProps.style]
-                : baseTextInputStyle
-            }
-            testID={textInputProps?.testID ?? "text_input"}
-            value={selectedLabel}
-          />
-        </View>
+        <TextInput
+          editable={false}
+          multiline
+          {...textInputProps}
+          style={
+            textInputProps?.style
+              ? [baseTextInputStyle, textInputProps.style]
+              : baseTextInputStyle
+          }
+          testID={textInputProps?.testID ?? "text_input"}
+          value={selectedLabel}
+        />
         {renderIcon()}
       </View>
     );
@@ -649,14 +644,17 @@ export const RNPickerSelect = ({
           testID="web_picker"
           {...touchableWrapperProps}
         >
-          <View style={{flex: 1, paddingRight: 8}}>
-            <Text
-              style={{color: disabled ? theme.text.secondaryLight : theme.text.primary}}
-              testID="text_input"
-            >
-              {displayLabel}
-            </Text>
-          </View>
+          <Text
+            numberOfLines={disabled ? undefined : 1}
+            style={{
+              color: disabled ? theme.text.secondaryLight : theme.text.primary,
+              flex: 1,
+              paddingRight: 8,
+            }}
+            testID="text_input"
+          >
+            {displayLabel}
+          </Text>
           <Icon
             color={disabled ? "secondaryLight" : "primary"}
             iconName={showPicker ? "angle-up" : "angle-down"}

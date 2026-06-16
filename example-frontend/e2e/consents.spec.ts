@@ -1,4 +1,4 @@
-import {expect, test} from "@playwright/test";
+import {expect, test} from "./fixtures/test";
 import {getAdminToken} from "./helpers/adminAuth";
 import {createConsentForm, deleteConsentForm} from "./helpers/consentForms";
 import {loginAs} from "./helpers/login";

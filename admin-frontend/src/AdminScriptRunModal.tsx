@@ -1,10 +1,15 @@
 import {Badge, Box, Button, Heading, Icon, Modal, Spinner, Text} from "@terreno/ui";
 import React, {useCallback, useEffect, useRef, useState} from "react";
-import type {AdminApi, BackgroundTask} from "./types";
+import {type AdminApi, type BackgroundTask, resolveAdminBases} from "./types";
 import {useAdminScripts} from "./useAdminScripts";
 
 interface AdminScriptRunModalProps {
-  baseUrl: string;
+  /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
+  baseUrl?: string;
+  /** Base path where admin API requests are sent. Falls back to `baseUrl`. */
+  apiBase?: string;
+  /** Base path used for in-app navigation. Falls back to `baseUrl`. */
+  routeBase?: string;
   api: AdminApi;
   scriptName: string | null;
   scriptDescription?: string;
@@ -23,6 +28,8 @@ type Phase = "confirm" | "running" | "done";
 
 export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   baseUrl,
+  apiBase,
+  routeBase,
   api,
   scriptName,
   scriptDescription,
@@ -30,6 +37,7 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   onDismiss,
   dryRunOnly = false,
 }) => {
+  const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const [taskId, setTaskId] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("confirm");
   const [isDryRun, setIsDryRun] = useState(false);
@@ -37,7 +45,7 @@ export const AdminScriptRunModal: React.FC<AdminScriptRunModalProps> = ({
   const startingRef = useRef(false);
 
   const {useRunScriptMutation, useGetScriptTaskQuery, useCancelScriptTaskMutation} =
-    useAdminScripts(api, baseUrl);
+    useAdminScripts(api, resolvedApiBase);
 
   const [runScript] = useRunScriptMutation();
   const [cancelTask, {isLoading: isCancelling}] = useCancelScriptTaskMutation();

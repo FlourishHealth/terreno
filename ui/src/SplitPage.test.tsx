@@ -561,5 +561,22 @@ describe("SplitPage", () => {
       // showItemList=true triggers onItemDeselect -> onSelectionChange(undefined)
       expect(onSelectionChange).toHaveBeenCalled();
     });
+
+    it("renders SegmentedControl with >2 children and tabs on mobile", async () => {
+      const {fireEvent} = await import("@testing-library/react-native");
+      const {getAllByLabelText, root} = renderWithTheme(
+        <SplitPage {...defaultProps} tabs={["Tab A", "Tab B", "Tab C"]}>
+          <View testID="child-a" />
+          <View testID="child-b" />
+          <View testID="child-c" />
+        </SplitPage>
+      );
+      // First select an item to show children content
+      const boxes = getAllByLabelText("Select");
+      await act(async () => {
+        fireEvent.press(boxes[0]);
+      });
+      expect(root).toBeTruthy();
+    });
   });
 });

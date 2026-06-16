@@ -1,10 +1,10 @@
-import * as Sentry from "@sentry/bun";
 import type express from "express";
 import type {NextFunction} from "express";
-import mongoose, {type Model} from "mongoose";
+import type {Model} from "mongoose";
 
-import {addPopulateToQuery, type ModelRouterOptions, type RESTMethod} from "./api";
+import type {ModelRouterOptions, RESTMethod} from "./api";
 import type {User} from "./auth";
+import {loadDocOr404} from "./docLoader";
 import {APIError} from "./errors";
 import {logger} from "./logger";
 
@@ -145,65 +145,7 @@ export const permissionMiddleware = <T>(
         return next();
       }
 
-      const builtQuery = model.findById(req.params.id);
-      const populatedQuery = addPopulateToQuery(
-        // biome-ignore lint/suspicious/noExplicitAny: Query types vary based on populate paths
-        builtQuery as any,
-        options.populatePaths
-      );
-      let data: T | null;
-      try {
-        data = (await populatedQuery.exec()) as T | null;
-      } catch (error: unknown) {
-        throw new APIError({
-          error: error as Error,
-          status: 500,
-          title: `GET failed on ${req.params.id}`,
-        });
-      }
-      if (!data) {
-        // Check if document exists but is hidden. Completely skip plugins.
-        const hiddenDoc = await model.collection.findOne({
-          _id: new mongoose.Types.ObjectId(req.params.id as string),
-        });
-
-        if (!hiddenDoc) {
-          Sentry.captureMessage(`Document ${req.params.id} not found for model ${model.modelName}`);
-          const error = new APIError({
-            status: 404,
-            title: `Document ${req.params.id} not found for model ${model.modelName}`,
-          });
-          error.meta = undefined;
-          throw error;
-        }
-
-        // Document exists but is hidden
-        let reason: {[key: string]: string} | null = null;
-        if (hiddenDoc.deleted) {
-          reason = {deleted: "true"};
-        } else if (hiddenDoc.disabled) {
-          reason = {disabled: "true"};
-        } else if (hiddenDoc.archived) {
-          reason = {archived: "true"};
-        }
-
-        // If no reason found, treat as not found
-        if (!reason) {
-          const error = new APIError({
-            status: 404,
-            title: `Document ${req.params.id} not found for model ${model.modelName}`,
-          });
-          error.meta = undefined;
-          throw error;
-        }
-        throw new APIError({
-          // We don't want to send this to Sentry because it's expected behavior.
-          disableExternalErrorTracking: true,
-          meta: reason,
-          status: 404,
-          title: `Document ${req.params.id} not found for model ${model.modelName}`,
-        });
-      }
+      const data = await loadDocOr404<T>(model, req.params.id as string, options.populatePaths);
 
       if (!(await checkPermissions(method, options.permissions[method], req.user, data))) {
         throw new APIError({

@@ -2,8 +2,10 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useFonts} from "expo-font";
 import {Stack, useRouter, useSegments} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import {useEffect} from "react";
+import React, {type FC, type ReactNode, useEffect} from "react";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 import "react-native-reanimated";
+import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
   getAuthToken,
@@ -12,6 +14,7 @@ import {
   useSelectCurrentUserId,
   useServerStatus,
   useSocketConnection,
+  useTerrenoFeatureFlags,
   useUpgradeCheck,
 } from "@terreno/rtk";
 import {Banner, ConsentNavigator, TerrenoProvider, UpgradeRequiredScreen} from "@terreno/ui";
@@ -20,6 +23,15 @@ import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 import {terrenoApi} from "@/store/sdk";
+
+const OpenFeatureBridge: FC<{
+  children: ReactNode;
+  socket: ReturnType<typeof useSocketConnection>["socket"];
+}> = ({children, socket}) => {
+  const bridgeUserId = useSelectCurrentUserId();
+  useTerrenoFeatureFlags(terrenoApi, {socket, userId: bridgeUserId});
+  return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
+};
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -67,13 +79,15 @@ const RootLayout = (): React.ReactElement | null => {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
-          <RootLayoutNav />
-        </TerrenoProvider>
-      </PersistGate>
-    </Provider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <TerrenoProvider openAPISpecUrl={`${baseUrl}/openapi.json`}>
+            <RootLayoutNav />
+          </TerrenoProvider>
+        </PersistGate>
+      </Provider>
+    </GestureHandlerRootView>
   );
 };
 
@@ -182,7 +196,11 @@ const RootLayoutNav = (): React.ReactElement => {
       profileLoaded: !!profile,
       userId,
     });
-    return <ConsentNavigator api={terrenoApi}>{content}</ConsentNavigator>;
+    return (
+      <ConsentNavigator api={terrenoApi}>
+        <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>
+      </ConsentNavigator>
+    );
   }
 
   console.debug("[RootLayout] Skipping ConsentNavigator", {
@@ -190,7 +208,7 @@ const RootLayoutNav = (): React.ReactElement => {
     profileLoaded: !!profile,
     userId: userId ?? "none",
   });
-  return content;
+  return <OpenFeatureBridge socket={socket}>{content}</OpenFeatureBridge>;
 };
 
 export default RootLayout;

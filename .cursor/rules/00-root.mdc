@@ -14,6 +14,7 @@ A monorepo containing shared packages for building full-stack applications with 
 - **rtk/** - Redux Toolkit Query utilities for API backends (`@terreno/rtk`)
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (`@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (`@terreno/admin-frontend`)
+- **admin-spa/** - Standalone admin SPA (Expo Router web app) + Express plugin to serve it from a backend (`@terreno/admin-spa`)
 - **mcp-server/** - MCP server for AI assistant integration (`@terreno/mcp-server`)
 - **demo/** - Demo app for showcasing and testing UI components
 - **example-frontend/** - Example Expo app demonstrating full stack usage
@@ -24,12 +25,17 @@ A monorepo containing shared packages for building full-stack applications with 
 Uses [Bun](https://bun.sh/) as the package manager.
 
 ```bash
+bun run bootstrap        # Install dependencies + compile all packages (dev-ready setup)
+bun run bootstrap:update # Reinstall + recompile after pulling changes or switching branches
 bun install              # Install dependencies
 bun run compile          # Compile all packages
 bun run lint             # Lint all packages
 bun run lint:fix         # Fix lint issues
 bun run test             # Run tests in api and ui
 ```
+
+- **`bootstrap`**: Run when first cloning the repo or creating a new dev environment. Installs all dependencies and compiles every package so the workspace is ready for development.
+- **`bootstrap:update`**: Run when resuming work after pulling changes, switching branches, or when dependencies have changed.
 
 ### Package-specific commands
 
@@ -340,3 +346,38 @@ GitHub Actions workflows that use secrets or environment variables must validate
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.
+
+## Cursor Cloud specific instructions
+
+### Bootstrap
+
+From the repo root after clone or when dependencies change:
+
+```bash
+bun bootstrap
+```
+
+Installs workspace dependencies and compiles all packages (`bun install && bun run compile`).
+
+### Cloud VM toolchain
+
+Shared install script (in **flourish** repo): `bash /agent/repos/flourish/scripts/install-cloud-dev-tools.sh` then `source ~/.cloud-dev-tools.env`. Provides **terraform**, **gcloud**, **gh**, **Playwright** (after `bun bootstrap` in packages with `@playwright/test`), **Appium**, and **Android emulator** helpers. Terreno/terraform details: `terraform/README.md`.
+
+### Example full stack
+
+| Service | Port | Start command |
+|---------|------|---------------|
+| example-backend | 4000 | `bun run backend:dev` (from repo root) |
+| example-frontend web | 8082 | `bun run frontend:web` |
+
+`example-frontend` uses in-memory Mongo via `example-backend` — no system MongoDB required for the example apps.
+
+### Tests and lint
+
+- `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
+- `demo:start` serves the UI component demo on port **8085**.
+
+### Gotchas
+
+- **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
+- Use `$HOME/.bun/bin/bun` if `bun` is not on `PATH` in non-interactive shells (install via https://bun.sh).

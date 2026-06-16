@@ -500,7 +500,6 @@ describe("Tooltip", () => {
       root.props.onPointerEnter?.();
     });
     unmount();
-    // No assertions needed - just ensuring no crashes on unmount.
     expect(true).toBe(true);
   });
 

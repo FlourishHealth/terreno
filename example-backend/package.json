@@ -17,6 +17,7 @@
     "@socket.io/mongo-adapter": "^0.4.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@terreno/admin-backend": "workspace:*",
+    "@terreno/admin-spa": "workspace:*",
     "@terreno/ai": "workspace:*",
     "@terreno/api": "workspace:*",
     "@terreno/api-health": "workspace:*",
@@ -44,7 +45,7 @@
     "@types/supertest": "^7.2.0",
     "@types/winston": "^2.4.4",
     "bun-types": "latest",
-    "mongodb": "^7.1.0",
+    "mongodb": "~6.20.0",
     "supertest": "^7.2.2",
     "typescript": "~5.8.3"
   },
