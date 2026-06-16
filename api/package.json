@@ -68,7 +68,7 @@
     "sinon": "^21.0.1",
     "supertest": "^7.0.0",
     "typedoc": "~0.28.17",
-    "typescript": "5.9.3",
+    "typescript": "catalog:",
     "zod": "^4.3.6"
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
