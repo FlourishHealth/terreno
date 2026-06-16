@@ -12,7 +12,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "types": ["bun"],
+    "types": ["bun-types"],
+    "ignoreDeprecations": "6.0",
+    "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
       "@api/*": ["src/api/*"],
