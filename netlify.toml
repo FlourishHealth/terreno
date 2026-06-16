@@ -1,6 +1,10 @@
 [build]
   base = "website"
-  command = "cd .. && bun install --frozen-lockfile && bun run --filter '@terreno/ui' compile && cd ui && bun run types && cd .. && bun run website:build"
+  # Remove any cached node_modules before installing. A stale node_modules restored across
+  # lockfile changes can retain an old TypeScript (5.9.x) that a frozen install won't prune,
+  # which trips ignoreDeprecations "6.0" (TS5103) during ui compile / typedoc. A clean install
+  # guarantees only the lockfile-pinned TypeScript 6.0.3 is present.
+  command = "cd .. && rm -rf node_modules && bun install --frozen-lockfile && bun run --filter '@terreno/ui' compile && cd ui && bun run types && cd .. && bun run website:build"
   publish = "build"
 
 [build.environment]
