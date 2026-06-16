@@ -216,7 +216,6 @@
         "mongoose": "catalog:",
         "sinon": "^21.0.1",
         "supertest": "^7.0.0",
-        "typedoc": "~0.28.17",
         "typescript": "catalog:",
         "zod": "^4.3.6",
       },

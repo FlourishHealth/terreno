@@ -67,7 +67,6 @@
     "mongoose": "catalog:",
     "sinon": "^21.0.1",
     "supertest": "^7.0.0",
-    "typedoc": "~0.28.17",
     "typescript": "catalog:",
     "zod": "^4.3.6"
   },
@@ -99,7 +98,7 @@
     "compile": "bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
-    "docs": "typedoc --out docs src/index.ts",
+    "docs": "bunx typedoc@0.28.19 --out docs src/index.ts",
     "lint": "biome check ./src",
     "lint:fix": "biome check --write ./src",
     "lint:unsafefix": "biome check --fix --unsafe ./src",
