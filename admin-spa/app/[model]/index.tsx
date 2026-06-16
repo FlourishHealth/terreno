@@ -1,4 +1,10 @@
-import {AdminModelTable, AdminScriptList, AdminShell, AdminVersionConfig, useAdminConfig} from "@terreno/admin-frontend";
+import {
+  AdminModelTable,
+  AdminScriptList,
+  AdminShell,
+  AdminVersionConfig,
+  useAdminConfig,
+} from "@terreno/admin-frontend";
 import {useLocalSearchParams} from "expo-router";
 import React, {useMemo} from "react";
 import {useAppConfig} from "../../components/AppConfigGate";

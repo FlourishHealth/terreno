@@ -257,14 +257,22 @@ export async function start(skipListen = false): Promise<express.Application> {
                 },
               ],
               group: "Platform",
-              listDisplay: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
+              listDisplay: [
+                "key",
+                "name",
+                "type",
+                "enabled",
+                "archived",
+                "defaultVariant",
+                "created",
+              ],
               pageSize: 50,
               searchFields: ["key", "name", "description"],
               sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
             },
             {
-              displayName: "Todos",
               defaultSort: "-created",
+              displayName: "Todos",
               filters: [
                 {field: "completed", kind: "boolean", label: "Completed"},
                 {
@@ -293,9 +301,9 @@ export async function start(skipListen = false): Promise<express.Application> {
               group: "Users",
               hiddenFields: ["hash", "salt"],
               listFields: ["email", "name", "admin", "created"],
-              pageSize: 50,
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
+              pageSize: 50,
               routePath: "/users",
               searchFields: ["email", "name"],
               sortableFields: ["email", "name", "admin", "created"],
