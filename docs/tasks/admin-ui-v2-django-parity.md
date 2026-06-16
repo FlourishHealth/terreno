@@ -34,7 +34,7 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 3: modelRouter metadata parity (backend / examples)
 
-- [ ] **Task 3.1**: Align `modelRouter` registration options with config lists  
+- [x] **Task 3.1**: Align `modelRouter` registration options with config lists  
   - Description: For each model exposed in `example-backend` (or chosen demo), set `queryFields`, `sort`, `defaultLimit`/`maxLimit`, `responseHandler` for hidden fields, and `permissions.delete: []` for DotPhrase-style demo.  
   - Files: `example-backend/src/**`, any consumer `AdminApp` registration  
   - Depends on: 1.1  
@@ -42,13 +42,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 4: Admin frontend — shell + navigation
 
-- [ ] **Task 4.1**: Admin shell (sidebar groups, screens, tools, user footer)  
+- [x] **Task 4.1**: Admin shell (sidebar groups, screens, tools, user footer)  
   - Description: New layout components using `@terreno/ui`; consume config for groups and `customScreens`; support `apiBase`/`routeBase` from prior admin-spa work.  
   - Files: `admin-frontend/src/**` (new shell module + exports in `index.tsx`)  
   - Depends on: 1.1  
   - Acceptance: Lint/compile; story or test renders grouped nav from mock config.
 
-- [ ] **Task 4.2**: Top bar breadcrumbs + contextual actions  
+- [x] **Task 4.2**: Top bar breadcrumbs + contextual actions  
   - Description: Match prototype routes (home, list, form, tool, screen); “Add {singular}” when `permissions.create !== false`.  
   - Files: `admin-frontend/src/**`  
   - Depends on: 4.1  

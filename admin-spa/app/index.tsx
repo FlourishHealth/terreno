@@ -1,4 +1,4 @@
-import {AdminModelList} from "@terreno/admin-frontend";
+import {AdminModelList, AdminShell} from "@terreno/admin-frontend";
 import React from "react";
 import {useAppConfig} from "../components/AppConfigGate";
 import {terrenoApi} from "../store/sdk";
@@ -10,12 +10,20 @@ const ModelListScreen: React.FC = () => {
   // routeBase="" keeps navigation inside the SPA's own router root (expo-router applies
   // the mount baseUrl); apiBase points data fetching at the admin API on the same origin.
   return (
-    <AdminModelList
+    <AdminShell
       api={terrenoApi}
       apiBase={apiBase}
+      breadcrumbs={[{label: "Admin"}]}
       configurationPath="/configuration"
       routeBase=""
-    />
+    >
+      <AdminModelList
+        api={terrenoApi}
+        apiBase={apiBase}
+        configurationPath="/configuration"
+        routeBase=""
+      />
+    </AdminShell>
   );
 };
 

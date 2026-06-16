@@ -109,6 +109,35 @@ export type AdminListFilter =
   | AdminListFilterRef
   | AdminListFilterText;
 
+/** Inputs shared by admin config and {@link buildAdminModelQueryFields}. */
+export interface AdminModelQueryFieldSource {
+  filters?: AdminListFilter[];
+  listDisplay?: string[];
+  listFields: string[];
+  searchFields?: string[];
+}
+
+/**
+ * Derives `modelRouter` `queryFields` from admin UI v2 list metadata so changelist
+ * filters and sort keys match allowed query parameters on `GET` list routes.
+ */
+export const buildAdminModelQueryFields = (config: AdminModelQueryFieldSource): string[] => {
+  const fields = new Set<string>(["_id"]);
+  for (const name of config.listFields) {
+    fields.add(name);
+  }
+  for (const name of config.listDisplay ?? []) {
+    fields.add(name);
+  }
+  for (const name of config.searchFields ?? []) {
+    fields.add(name);
+  }
+  for (const filter of config.filters ?? []) {
+    fields.add(filter.field);
+  }
+  return [...fields];
+};
+
 export interface AdminFieldsetInput {
   fields: string[];
   title: string;

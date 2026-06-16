@@ -32,6 +32,7 @@ import {
   type AdminHomeInput,
   type AdminListFilter,
   type AdminModelPermissionsInput,
+  buildAdminModelQueryFields,
   defaultBulkPatchAllowlistFrom,
   MAX_BULK_PATCH_IDS,
   normalizeAdminHome,
@@ -827,6 +828,8 @@ export class AdminApp {
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApiMw ? {openApi: openApiMw} : {}),
+        defaultLimit: config.pageSize ?? 100,
+        maxLimit: 500,
         permissions: {
           create: adminPermission(config.permissions?.create),
           delete: adminPermission(config.permissions?.delete),
@@ -834,6 +837,12 @@ export class AdminApp {
           read: [Permissions.IsAdmin],
           update: adminPermission(config.permissions?.update),
         },
+        queryFields: buildAdminModelQueryFields({
+          filters: config.filters,
+          listDisplay: config.listDisplay,
+          listFields: config.listFields,
+          searchFields: config.searchFields,
+        }),
         preCreate: async (body, _req) => {
           if (!body || typeof body !== "object") {
             return body;

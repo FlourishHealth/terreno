@@ -241,20 +241,64 @@ export async function start(skipListen = false): Promise<express.Application> {
       .register(
         new AdminApp({
           models: [
-            featureFlagAdminConfig,
+            {
+              ...featureFlagAdminConfig,
+              filters: [
+                {field: "enabled", kind: "boolean", label: "Enabled"},
+                {field: "archived", kind: "boolean", label: "Archived"},
+                {
+                  choices: [
+                    {label: "Boolean", value: "boolean"},
+                    {label: "Variant", value: "variant"},
+                  ],
+                  field: "type",
+                  kind: "choice",
+                  label: "Type",
+                },
+              ],
+              group: "Platform",
+              listDisplay: ["key", "name", "type", "enabled", "archived", "defaultVariant", "created"],
+              pageSize: 50,
+              searchFields: ["key", "name", "description"],
+              sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
+            },
             {
               displayName: "Todos",
-              listFields: ["title", "completed", "ownerId", "created"],
+              defaultSort: "-created",
+              filters: [
+                {field: "completed", kind: "boolean", label: "Completed"},
+                {
+                  choices: [
+                    {label: "Low", value: "low"},
+                    {label: "Medium", value: "medium"},
+                    {label: "High", value: "high"},
+                  ],
+                  field: "priority",
+                  kind: "choice",
+                  label: "Priority",
+                },
+              ],
+              group: "Examples",
+              listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
               model: Todo,
+              pageSize: 25,
+              permissions: {delete: false},
               routePath: "/todos",
+              searchFields: ["title", "tags"],
+              sortableFields: ["title", "completed", "created", "priority"],
             },
             {
               displayName: "Users",
+              filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
+              group: "Users",
               hiddenFields: ["hash", "salt"],
               listFields: ["email", "name", "admin", "created"],
+              pageSize: 50,
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
               routePath: "/users",
+              searchFields: ["email", "name"],
+              sortableFields: ["email", "name", "admin", "created"],
             },
             {
               displayName: "Consent Forms",
@@ -280,15 +324,42 @@ export async function start(skipListen = false): Promise<express.Application> {
                 content: {widget: "locale-content"},
                 defaultLocale: {widget: "locale-default"},
               },
+              filters: [
+                {field: "active", kind: "boolean", label: "Active"},
+                {
+                  choices: [
+                    {label: "Agreement", value: "agreement"},
+                    {label: "Privacy", value: "privacy"},
+                    {label: "HIPAA", value: "hipaa"},
+                    {label: "Research", value: "research"},
+                    {label: "Terms", value: "terms"},
+                    {label: "Custom", value: "custom"},
+                  ],
+                  field: "type",
+                  kind: "choice",
+                  label: "Type",
+                },
+              ],
+              group: "Compliance",
               listFields: ["title", "type", "version", "active", "order"],
               model: ConsentForm,
               routePath: "/consent-forms",
+              searchFields: ["title", "slug"],
+              sortableFields: ["title", "type", "version", "active", "order", "created"],
             },
             {
               displayName: "Consent Responses",
+              filters: [
+                {field: "agreed", kind: "boolean", label: "Agreed"},
+                {field: "locale", kind: "text", label: "Locale"},
+              ],
+              group: "Compliance",
               listFields: ["userId", "agreed", "locale", "agreedAt"],
               model: ConsentResponse,
+              permissions: {delete: false},
               routePath: "/consent-responses",
+              searchFields: ["locale"],
+              sortableFields: ["agreed", "locale", "agreedAt", "created"],
             },
           ],
           scripts: [
