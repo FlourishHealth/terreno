@@ -7,7 +7,7 @@ describe("buildAdminModelQueryFields", () => {
     const fields = buildAdminModelQueryFields({
       filters: [
         {field: "completed", kind: "boolean"},
-        {field: "priority", kind: "choice", choices: [{label: "L", value: "low"}]},
+        {choices: [{label: "L", value: "low"}], field: "priority", kind: "choice"},
       ],
       listDisplay: ["title", "created"],
       listFields: ["title", "ownerId"],

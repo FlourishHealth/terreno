@@ -627,3 +627,45 @@ describe("AdminApp admin UI v2 routes", () => {
     expect([403, 405]).toContain(res.status);
   });
 });
+
+describe("AdminApp per-model queryFilter", () => {
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+    await VersionConfig.deleteMany({});
+  });
+
+  it("returns an empty list when queryFilter returns null", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        queryFilter: (): null => null,
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "HiddenRow"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it("merges queryFilter constraints into list queries for that model only", async () => {
+    const localApp = buildApp([
+      {
+        ...foodModelConfig,
+        queryFilter: (_user, query): Record<string, unknown> => ({
+          ...(query ?? {}),
+          name: "FilteredOnly",
+        }),
+      },
+    ]);
+    await FoodModel.create({calories: 1, name: "Other"});
+    await FoodModel.create({calories: 2, name: "FilteredOnly"});
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.get("/admin/foods").expect(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("FilteredOnly");
+  });
+});

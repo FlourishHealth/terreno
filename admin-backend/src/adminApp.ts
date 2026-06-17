@@ -91,6 +91,16 @@ export interface AdminModelConfig {
   realtime?: boolean;
   /** Allowlisted keys for POST .../bulk-patch (defaults from listFields minus system/readonly/hidden) */
   bulkPatchAllowlist?: string[];
+  /**
+   * Per-model `modelRouter` query filter (list and other query-shaped reads).
+   * Same contract as {@link ModelRouterOptions.queryFilter} in `@terreno/api`: merge into the
+   * Mongoose query, return the incoming `query` unchanged if allowed, or return `null` to yield
+   * an empty list without error.
+   */
+  queryFilter?: (
+    user?: User,
+    query?: Record<string, unknown>
+  ) => Record<string, unknown> | null | Promise<Record<string, unknown> | null>;
 }
 
 /**
@@ -306,6 +316,8 @@ const asMiddlewareList = (
  *       routePath: "/todos",
  *       displayName: "Todos",
  *       listFields: ["title", "completed", "ownerId"],
+ *       // Optional: constrain admin list queries (e.g. tenant) — same as modelRouter queryFilter.
+ *       queryFilter: (_user, query) => ({...query, tenantId: "acme"}),
  *     },
  *   ],
  * });
@@ -843,6 +855,7 @@ export class AdminApp {
           listFields: config.listFields,
           searchFields: config.searchFields,
         }),
+        ...(config.queryFilter ? {queryFilter: config.queryFilter} : {}),
         preCreate: async (body, _req) => {
           if (!body || typeof body !== "object") {
             return body;
