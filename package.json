@@ -110,6 +110,7 @@
     "demo:appium:test:android": "bun run --filter 'terreno-demo' appium:test:android",
     "demo:appium:test:ios": "bun run --filter 'terreno-demo' appium:test:ios",
     "demo:compile": "bun run --filter 'terreno-demo' compile",
+    "demo:generate-types": "bun run --filter 'terreno-demo' generate-types",
     "demo:eas:android": "bun run --filter 'terreno-demo' eas:android",
     "demo:eas:ios": "bun run --filter 'terreno-demo' eas:ios",
     "demo:eas:ios-sim": "bun run --filter 'terreno-demo' eas:ios-sim",
