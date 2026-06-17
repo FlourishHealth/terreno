@@ -15,6 +15,7 @@ export * from "./Box";
 export * from "./Button";
 export * from "./Card";
 export * from "./CheckBox";
+export * from "./CitationTooltip";
 export * from "./Common";
 export * from "./ConsentFormScreen";
 export * from "./ConsentHistory";

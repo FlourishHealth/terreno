@@ -9,6 +9,7 @@ export * from "./Box.stories";
 export * from "./Button.stories";
 export * from "./Card.stories";
 export * from "./CheckBox.stories";
+export * from "./CitationTooltip.stories";
 export * from "./ConsentFormScreen.stories";
 export * from "./CustomSelectField.stories";
 export * from "./DataTable.stories";
