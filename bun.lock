@@ -11,7 +11,7 @@
     },
     "admin-backend": {
       "name": "@terreno/admin-backend",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@google-cloud/storage": "^7.15.0",
         "@terreno/api": "workspace:*",
@@ -36,7 +36,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -67,7 +67,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -118,7 +118,7 @@
     },
     "ai": {
       "name": "@terreno/ai",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@ai-sdk/mcp": "^1.0.21",
         "@google-cloud/storage": "^7.15.0",
@@ -153,7 +153,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@sentry/bun": "^10.25.0",
@@ -228,7 +228,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "^5.2.1",
@@ -431,7 +431,7 @@
     },
     "feature-flags": {
       "name": "@terreno/feature-flags",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@openfeature/server-sdk": "catalog:",
         "@terreno/api": "workspace:*",
@@ -472,7 +472,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@better-auth/expo": "^1.2.8",
         "@openfeature/core": "catalog:",
@@ -516,7 +516,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.20.0",
+      "version": "0.20.2",
       "dependencies": {
         "@expo-google-fonts/nunito": "^0.4.2",
         "@expo-google-fonts/titillium-web": "^0.4.1",
