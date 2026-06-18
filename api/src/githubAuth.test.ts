@@ -8,10 +8,10 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {generateTokens, type UserModel} from "./auth";
-import {TerrenoApp} from "./terrenoApp";
 import {type GitHubUserFields, githubUserPlugin, setupGitHubAuth} from "./githubAuth";
 import {logger} from "./logger";
 import {createdUpdatedPlugin, isDisabledPlugin} from "./plugins";
+import {TerrenoApp} from "./terrenoApp";
 
 interface FakeStrategyOutcome {
   type: "success" | "redirect" | "fail";

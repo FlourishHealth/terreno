@@ -6,9 +6,9 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {TerrenoApp} from "./terrenoApp";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, UserModel} from "./tests";
 
 function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptions<any>>): void {

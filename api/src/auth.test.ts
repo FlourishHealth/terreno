@@ -7,9 +7,9 @@ import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
-import {TerrenoApp} from "./terrenoApp";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
+import {TerrenoApp} from "./terrenoApp";
 import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";

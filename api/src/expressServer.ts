@@ -6,7 +6,7 @@ import cloneDeep from "lodash/cloneDeep";
 import onFinished from "on-finished";
 import passport from "passport";
 import type {ModelRouterOptions} from "./api";
-import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {type LoggingOptions, logger} from "./logger";
 import {sendToSlack} from "./notifiers";
 
 const SLOW_READ_MAX = 200;

@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp, type TerrenoAppOptions} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -106,7 +106,7 @@ describe("Langfuse routes", () => {
         addEvaluationRoutes(router, "/admin/langfuse", []);
       },
       skipListen: true,
-      userModel: UserModel as any,
+      userModel: UserModel as unknown as TerrenoAppOptions["userModel"],
     }).build();
   });
 

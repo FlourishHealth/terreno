@@ -6,7 +6,6 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {TerrenoApp} from "./terrenoApp";
 import {
   createOpenApiMiddleware,
   deleteOpenApiMiddleware,
@@ -16,6 +15,7 @@ import {
   readOpenApiMiddleware,
 } from "./openApi";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, setupDb, UserModel} from "./tests";
 
 function getMessageSummaryOpenApiMiddleware(options: Partial<ModelRouterOptions<any>>): any {
