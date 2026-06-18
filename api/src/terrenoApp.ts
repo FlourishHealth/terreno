@@ -14,6 +14,7 @@ import {
 import {type AuthOptions, logRequests} from "./expressServer";
 import {addGitHubAuthRoutes, type GitHubAuthOptions, setupGitHubAuth} from "./githubAuth";
 import {type LoggingOptions, logger, setupLogging} from "./logger";
+import {jsonResponseRequestIdMiddleware} from "./middleware";
 import {openApiCompatMiddleware, patchAppUse} from "./openApiCompat";
 import {openApiEtagMiddleware} from "./openApiEtag";
 import {RealtimeApp} from "./realtime/realtimeApp";
@@ -85,7 +86,7 @@ export interface TerrenoAppOptions {
  * 5. JWT authentication setup
  * 6. Request logging
  * 7. Sentry scopes
- * 8. OpenAPI middleware
+ * 8. OpenAPI middleware (including JSON `requestId` on object responses)
  * 9. /auth/me routes
  * 10. GitHub OAuth routes (if enabled)
  * 11. Registered model routers and plugins
@@ -317,6 +318,7 @@ export class TerrenoApp {
     // OpenAPI
     app.use(openApiCompatMiddleware);
     app.use(openApiEtagMiddleware);
+    app.use(jsonResponseRequestIdMiddleware);
     const oapi = openapi({
       info: {
         description: "Generated docs from an Express api",

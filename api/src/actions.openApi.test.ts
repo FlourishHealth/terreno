@@ -57,6 +57,8 @@ const primeActionOpenApiRoutes = async (
 };
 
 const assertActionOpenApiSpec = (spec: Record<string, unknown>): void => {
+  expect(spec.requestId).toBeUndefined();
+
   const paths = spec.paths as Record<string, Record<string, unknown>>;
   const collectionPath = paths["/food/summarize"];
   const instancePath = paths["/food/{id}/ping"];
@@ -139,6 +141,10 @@ describe("action OpenAPI emission", () => {
 
       const specRes = await server.get("/openapi.json").expect(200);
       assertActionOpenApiSpec(specRes.body);
+
+      const pingRes = await server.get(`/food/${foodId}/ping`).expect(200);
+      expect(pingRes.body.data).toEqual({id: foodId});
+      expect(pingRes.body.requestId).toBe(pingRes.headers["x-request-id"]);
     });
   });
 
