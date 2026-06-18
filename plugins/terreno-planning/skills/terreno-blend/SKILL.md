@@ -14,6 +14,7 @@ Turn a raw request into an Implementation Plan (IP) using the existing `/ip` str
 - Keep scope bounded and explicit.
 - Preserve existing project conventions, tool usage, and repository patterns.
 - **Question-first:** do not write the IP (or any section that commits product or architecture decisions) until blocking questions are asked and the user has answered. Present options as questions or labeled alternatives (A/B/C), not as a finalized plan.
+- **Post-attack questions:** when the Attack and adjust phase (Step 10) runs, always follow with a dedicated question pass (Step 11) and user answers before treating the plan as implementation-ready.
 
 ## Project Registry
 
@@ -144,6 +145,18 @@ Run independent review passes (parallel) and merge findings:
 
 Stress-test assumptions, then tighten scope/plan before implementation.
 
+Document what changed during attack (scope cuts, new risks, deferred work). **If Step 10 runs, you must continue to Step 11** before finalizing the IP for handoff.
+
+### Step 11: Post-attack clarification (mandatory when Step 10 ran)
+
+Run this step whenever Step 10 (Attack and adjust) was executed. If Step 10 was skipped, Step 11 is optional (skip or ask a single catch-all: any remaining ambiguities?).
+
+1. Summarize attack outcomes: what was challenged, tightened, deferred, or newly exposed.
+2. Emit numbered **blocking follow-up questions** raised by the attack pass (risk acceptance, sequencing, owner/product sign-off, cut-line for “not included,” technical bets).
+3. Present options where tradeoffs remain — **do not** bake unresolved attack findings into the IP as silent decisions.
+4. **Pause** for explicit user answers or named-assumption approval.
+5. Only then update `docs/implementationPlans/` and `docs/tasks/` to match; if no file edits are needed, still confirm alignment in the thread before calling the plan final.
+
 ## Lifecycle Operations
 
 Support the existing lifecycle commands from legacy `/ip`:
@@ -221,4 +234,4 @@ Close a single IP and keep files/index consistent.
 
 - Keep inline annotations (`%%`) behavior for user-provided instructions in plan/task artifacts.
 - Preserve MCP/Linear/tool references already present in existing workflows.
-- Keep recommendations opinionated and evidence-based **after** the clarification pass; during research and Step 3, frame strong takes as options to choose from, not as the committed plan.
+- Keep recommendations opinionated and evidence-based **after** the clarification pass; during research and Step 3, frame strong takes as options to choose from, not as the committed plan. The same applies after Step 10 until Step 11 is complete: attack may surface new choices — ask, do not assume.
