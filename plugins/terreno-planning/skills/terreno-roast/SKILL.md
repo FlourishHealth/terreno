@@ -116,4 +116,4 @@ For every commit:
 - All planned implementation tasks for the scoped slice are complete.
 - Tests are credible under anti-mocking rules.
 - No unresolved review findings remain from independent sub-agents.
-- Work is ready for `terreno-pour`.
+- Work is ready for **Pour** (`plugins/terreno-planning/skills/terreno-pour/SKILL.md`).
