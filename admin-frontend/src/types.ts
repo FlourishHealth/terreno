@@ -76,7 +76,7 @@ export interface AdminModelConfig {
   }[];
   bulkPatchAllowlist?: string[];
   fieldsets?: {fields: string[]; title: string}[];
-  filters?: {field: string; kind: string; label?: string}[];
+  filters?: {choices?: {label: string; value: string}[]; field: string; kind: string; label?: string}[];
   group?: string;
   hiddenFields?: string[];
   listDisplay?: string[];
@@ -213,6 +213,8 @@ export interface RefFieldRendererProps {
   onChange: (value: string) => void;
   errorText?: string;
   helperText?: string;
+  /** When true, the picker is display-only and does not submit changes. */
+  readOnly?: boolean;
 }
 
 /**

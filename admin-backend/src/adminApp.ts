@@ -116,6 +116,22 @@ export interface AdminScriptConfig {
 }
 
 /**
+ * Emitted after successful admin modelRouter mutations when {@link AdminOptions.onAdminAudit}
+ * is configured.
+ */
+export interface AdminAuditEvent {
+  /** Terreno user id performing the action, when available */
+  actorId?: string;
+  /** Mongoose model name (e.g. "Todo") */
+  modelName: string;
+  /** Target document id when known */
+  recordId?: string;
+  /** Short human-readable label derived from list fields */
+  recordLabel?: string;
+  verb: "created" | "deleted" | "updated";
+}
+
+/**
  * Configuration options for the AdminApp plugin.
  */
 export interface AdminOptions {
@@ -129,6 +145,11 @@ export interface AdminOptions {
   home?: AdminHomeInput;
   /** Extra custom screens merged with built-ins (e.g. version-config) */
   customScreens?: {displayName: string; name: string}[];
+  /**
+   * Optional audit sink for admin CRUD after modelRouter succeeds.
+   * Consumers typically persist to an `AdminAuditLog` collection.
+   */
+  onAdminAudit?: (event: AdminAuditEvent, req: express.Request) => void | Promise<void>;
 }
 
 interface AdminFieldMeta {
@@ -214,6 +235,41 @@ const removeHiddenFields = (value: unknown, hiddenFieldSet: Set<string>): unknow
     }
   }
   return nextValue;
+};
+
+const auditDocumentToPlain = (value: unknown): Record<string, unknown> => {
+  if (
+    value &&
+    typeof value === "object" &&
+    "toObject" in value &&
+    typeof (value as {toObject?: unknown}).toObject === "function"
+  ) {
+    return (value as {toObject: () => Record<string, unknown>}).toObject();
+  }
+  return value as Record<string, unknown>;
+};
+
+const auditLabelFromListFields = (
+  doc: Record<string, unknown>,
+  listFields: string[]
+): string | undefined => {
+  for (const key of listFields) {
+    const fieldValue = doc[key];
+    if (fieldValue == null || typeof fieldValue === "object") {
+      continue;
+    }
+    return String(fieldValue);
+  }
+  const id = doc._id;
+  return id != null ? String(id) : undefined;
+};
+
+const auditActorId = (request: express.Request): string | undefined => {
+  const user = request.user as {_id?: unknown} | undefined;
+  if (!user || user._id == null) {
+    return undefined;
+  }
+  return String(user._id);
 };
 
 interface OpenApiProperty {
@@ -364,6 +420,7 @@ export class AdminApp {
     const basePath = this.options.basePath ?? "/admin";
     const openApiMw = openApi as OpenApiMiddleware | undefined;
     const modelConfigs = this.options.models;
+    const onAdminAudit = this.options.onAdminAudit;
 
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
@@ -837,6 +894,61 @@ export class AdminApp {
             .build()
         : undefined;
 
+      const auditEligible =
+        Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
+      const auditHooks =
+        auditEligible && onAdminAudit
+          ? {
+              postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+                const doc = auditDocumentToPlain(value);
+                const rid = doc._id;
+                await onAdminAudit(
+                  {
+                    actorId: auditActorId(request),
+                    modelName: config.model.modelName,
+                    recordId: rid != null ? String(rid) : undefined,
+                    recordLabel: auditLabelFromListFields(doc, config.listFields),
+                    verb: "created",
+                  },
+                  request
+                );
+              },
+              postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+                const doc = auditDocumentToPlain(value);
+                const rid = doc._id;
+                await onAdminAudit(
+                  {
+                    actorId: auditActorId(request),
+                    modelName: config.model.modelName,
+                    recordId: rid != null ? String(rid) : undefined,
+                    recordLabel: auditLabelFromListFields(doc, config.listFields),
+                    verb: "deleted",
+                  },
+                  request
+                );
+              },
+              postUpdate: async (
+                value: unknown,
+                _cleanedBody: unknown,
+                request: express.Request,
+                _prev: unknown
+              ): Promise<void> => {
+                const doc = auditDocumentToPlain(value);
+                const rid = doc._id;
+                await onAdminAudit(
+                  {
+                    actorId: auditActorId(request),
+                    modelName: config.model.modelName,
+                    recordId: rid != null ? String(rid) : undefined,
+                    recordLabel: auditLabelFromListFields(doc, config.listFields),
+                    verb: "updated",
+                  },
+                  request
+                );
+              },
+            }
+          : {};
+
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {
         ...(openApiMw ? {openApi: openApiMw} : {}),
@@ -874,6 +986,7 @@ export class AdminApp {
                 removeHiddenFields(value, hiddenFieldSet) as JSONValue
             : undefined,
         sort: config.defaultSort ?? "-created",
+        ...auditHooks,
       };
 
       const modelBase = express.Router();

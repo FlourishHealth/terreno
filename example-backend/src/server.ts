@@ -1,6 +1,6 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
-import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminApp, type AdminAuditEvent, DocumentStorageApp} from "@terreno/admin-backend";
 import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
@@ -32,6 +32,7 @@ import {addUserRoutes} from "./api/users";
 import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
+import {AdminAuditLog} from "./models/adminAuditLog";
 import {Configuration} from "./models/configuration";
 import {Todo} from "./models/todo";
 import {User} from "./models/user";
@@ -240,6 +241,14 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new AdminApp({
+          home: {
+            slots: {
+              main: ["modelsGrid"],
+              navGlobal: ["scriptRunner"],
+              sidebar: ["versionConfig", "recentActivity"],
+            },
+            title: "Example administration",
+          },
           models: [
             {
               ...featureFlagAdminConfig,
@@ -369,7 +378,33 @@ export async function start(skipListen = false): Promise<express.Application> {
               searchFields: ["locale"],
               sortableFields: ["agreed", "locale", "agreedAt", "created"],
             },
+            {
+              displayName: "Audit log",
+              group: "Platform",
+              listFields: ["verb", "modelName", "recordLabel", "recordId", "actorId", "createdAt"],
+              model: AdminAuditLog,
+              pageSize: 50,
+              permissions: {create: false, delete: false, update: false},
+              routePath: "/audit-logs",
+              searchFields: ["modelName", "recordLabel"],
+              sortableFields: ["verb", "modelName", "createdAt"],
+            },
           ],
+          onAdminAudit: async (event: AdminAuditEvent) => {
+            await AdminAuditLog.create({
+              actorId:
+                event.actorId && mongoose.isValidObjectId(event.actorId)
+                  ? new mongoose.Types.ObjectId(event.actorId)
+                  : undefined,
+              modelName: event.modelName,
+              recordId:
+                event.recordId && mongoose.isValidObjectId(event.recordId)
+                  ? new mongoose.Types.ObjectId(event.recordId)
+                  : undefined,
+              recordLabel: event.recordLabel,
+              verb: event.verb,
+            });
+          },
           scripts: [
             {
               description: "Count all todos and users in the database",

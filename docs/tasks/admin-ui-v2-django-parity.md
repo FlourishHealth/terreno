@@ -56,13 +56,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 5: Admin frontend — list (changelist)
 
-- [ ] **Task 5.1**: List view v2 — search, filters, sort, pagination  
+- [x] **Task 5.1**: List view v2 — search, filters, sort, pagination  
   - Description: Wire `DataTable` to server sort/page; debounced search; typed filters mapped to query params; `listDisplayLinks` drives link columns; inline boolean uses PATCH.  
   - Files: `admin-frontend/src/AdminModelTable.tsx`, hooks, types  
   - Depends on: 1.1, 3.1, 4.1  
   - Acceptance: Tests with MSW or harness for query serialization; loading/error/empty states.
 
-- [ ] **Task 5.2**: Bulk selection + action menu  
+- [x] **Task 5.2**: Bulk selection + action menu  
   - Description: Sync actions call `bulk-patch`; confirm modals for `confirm` strings; background actions call enqueue endpoint; cap selection client-side at 1000 with user-visible message.  
   - Files: `admin-frontend/src/AdminModelTable.tsx`, possibly `AdminScriptRunModal.tsx` reuse  
   - Depends on: 2.1, 2.2, 5.1  
@@ -70,13 +70,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 6: Admin frontend — form (change view)
 
-- [ ] **Task 6.1**: Fieldsets + readonly + exclude/hidden fields  
+- [x] **Task 6.1**: Fieldsets + readonly + exclude/hidden fields  
   - Description: Render `fieldsets` with `Accordion`/`Card`; readonly fields not submitted; hidden fields omitted from form and detail panels as specified.  
   - Files: `admin-frontend/src/AdminModelForm.tsx`, types  
   - Depends on: 1.1, 4.1  
   - Acceptance: Test that PATCH body excludes readonly keys.
 
-- [ ] **Task 6.2**: Autocomplete ref picker  
+- [x] **Task 6.2**: Autocomplete ref picker  
   - Description: Debounced fetch against referenced model list endpoint; keyboard/accessibility basics.  
   - Files: `admin-frontend/src/AdminRefField.tsx` or new component, tests  
   - Depends on: 5.1 (shared debounce util optional)  
@@ -84,7 +84,7 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 7: Home dashboard widgets
 
-- [ ] **Task 7.1**: Widget registry + **`home.slots`** layout  
+- [x] **Task 7.1**: Widget registry + **`home.slots`** layout  
   - Description: Implement built-ins: `modelStats`, `modelsGrid`, `feature-flags-overrides` (or generic “quick toggles” plugin slot), `versionConfig` summary, `scriptRunner`, `recentActivity`. Render regions in order: **`navGlobal`** (horizontal strip) → **`contentTop`** (full-width above grid) → **`main` | `sidebar`** (two-column). Enforce **`recentActivity` last within `sidebar`** when present. Validate unknown widget ids in dev.  
   - Files: `admin-frontend/src/**` (new `AdminHome.tsx` or similar), exports  
   - Depends on: 1.1, 4.1  
@@ -92,13 +92,13 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 8: admin-spa + example integration
 
-- [ ] **Task 8.1**: Wire new shell + routes in `admin-spa`  
+- [x] **Task 8.1**: Wire new shell + routes in `admin-spa`  
   - Description: Routes for home v2, list, form, tools, deep links to plugin URLs for screens; regenerate admin SDK if needed.  
   - Files: `admin-spa/app/**`, `admin-spa/store/**`  
   - Depends on: 4.x–7.x  
   - Acceptance: `bun run admin-spa:compile` / smoke script; manual checklist in plan.
 
-- [ ] **Task 8.2**: Example-backend registration + seed  
+- [x] **Task 8.2**: Example-backend registration + seed  
   - Description: Register illustrative models + `AdminApp` config entries matching v2 demo shape (subset acceptable).  
   - Files: `example-backend/**`  
   - Depends on: 3.1  
@@ -106,25 +106,25 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 9 (last): Audit log + recent actions
 
-- [ ] **Task 9.1**: `AdminAuditLog` model + persistence (consumer or example-backend)  
+- [x] **Task 9.1**: `AdminAuditLog` model + persistence (consumer or example-backend)  
   - Description: Schema with descriptions, indexes on `created`, `modelName`, `actorId`. Optional TTL for retention.  
   - Files: `example-backend/src/models/**` (or consumer app), types  
   - Depends on: 8.2 (demo path)  
   - Acceptance: Model compiles; `checkModelsStrict` happy in non-prod.
 
-- [ ] **Task 9.2**: `modelRouter` or read-only list route for audit entries  
+- [x] **Task 9.2**: `modelRouter` or read-only list route for audit entries  
   - Description: `GET` list with pagination, `IsAdmin`, sort `-created`. Consider create-only via internal hooks (no public POST from browser) — prefer server-side logging middleware writing entries.  
   - Files: `example-backend/src/api/**`, tests  
   - Depends on: 9.1  
   - Acceptance: supertest list route returns inserted fixture rows.
 
-- [ ] **Task 9.3**: Emit audit rows from admin mutations  
+- [x] **Task 9.3**: Emit audit rows from admin mutations  
   - Description: Hook `postUpdate`/`postCreate`/`postDelete` on registered admin models or central middleware in `AdminApp` to write `AdminAuditLog` with verb + label resolution.  
   - Files: `admin-backend/src/adminApp.ts` and/or example-backend hooks  
   - Depends on: 9.2  
   - Acceptance: Integration test proves a PATCH creates an audit row.
 
-- [ ] **Task 9.4**: Home `recentActivity` widget backed by API  
+- [x] **Task 9.4**: Home `recentActivity` widget backed by API  
   - Description: Fetch latest N audit rows; render as the **final widget in `home.slots.sidebar`**; empty/error states.  
   - Files: `admin-frontend/src/**` (home widget), `useAdminApi` or dedicated hook  
   - Depends on: 7.1, 9.3  

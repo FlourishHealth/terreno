@@ -1,5 +1,6 @@
 export {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
+export {AdminHome} from "./AdminHome";
 export {AdminModelForm} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";

@@ -39,6 +39,7 @@ const listState: {data: unknown; isLoading: boolean} = {
 const deleteFn = mock(() => ({unwrap: async () => ({})}));
 mock.module("./useAdminApi", () => ({
   useAdminApi: () => ({
+    useBulkPatchMutation: () => [mock(() => ({unwrap: async () => ({updated: 0})})), {isLoading: false}],
     useCreateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
     useDeleteMutation: () => [deleteFn, {isLoading: false}],
     useListQuery: () => ({
@@ -49,6 +50,13 @@ mock.module("./useAdminApi", () => ({
     useReadQuery: () => ({data: null, error: null, isLoading: false}),
     useUpdateMutation: () => [mock(() => ({unwrap: async () => ({})})), {isLoading: false}],
   }),
+}));
+
+mock.module("./useAdminBackgroundTask", () => ({
+  useAdminBackgroundTaskMutation: () => [
+    mock(() => ({unwrap: async () => ({taskId: "t1"})})),
+    {isLoading: false},
+  ],
 }));
 
 import {AdminModelTable} from "./AdminModelTable";

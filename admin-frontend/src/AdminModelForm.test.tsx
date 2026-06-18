@@ -618,6 +618,48 @@ describe("AdminModelForm", () => {
     expect(routerBack).not.toHaveBeenCalled();
   });
 
+  it("excludes readonly fields from the PATCH body on save", async () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "name"],
+          fields: {
+            email: {required: false, type: "string"},
+            name: {required: false, type: "string"},
+          },
+          readonlyFields: ["email"],
+        },
+      ],
+    };
+    readState.data = {email: "locked@x.com", name: "N"};
+    let savedHeaderRight: React.ReactElement | null = null;
+    setOptions.mockImplementation((opts: Record<string, unknown>) => {
+      if (opts?.headerRight) {
+        savedHeaderRight = opts.headerRight();
+      }
+    });
+    renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    const header = renderWithTheme(savedHeaderRight as unknown as React.ReactElement);
+    await act(async () => {
+      fireEvent.press(header.getByTestId("admin-save-button"));
+      await new Promise((r) => setTimeout(r, 600));
+    });
+    expect(updateFn).toHaveBeenCalled();
+    const arg = updateFn.mock.calls[0][0] as {body: Record<string, unknown>; id: string};
+    expect(arg.body.email).toBeUndefined();
+    expect(arg.body.name).toBeDefined();
+  });
+
   it("updates an existing item in edit mode", async () => {
     configState.config = config;
     readState.data = {active: true, age: 1, email: "e@x.com", name: "Name"};

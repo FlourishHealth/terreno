@@ -1,9 +1,9 @@
-import {AdminModelList, AdminShell} from "@terreno/admin-frontend";
+import {AdminHome, AdminShell} from "@terreno/admin-frontend";
 import React from "react";
 import {useAppConfig} from "../components/AppConfigGate";
 import {terrenoApi} from "../store/sdk";
 
-const ModelListScreen: React.FC = () => {
+const AdminIndexScreen: React.FC = () => {
   const {appConfig} = useAppConfig();
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
 
@@ -13,18 +13,13 @@ const ModelListScreen: React.FC = () => {
     <AdminShell
       api={terrenoApi}
       apiBase={apiBase}
-      breadcrumbs={[{label: "Admin"}]}
+      breadcrumbs={[{label: "Home"}]}
       configurationPath="/configuration"
       routeBase=""
     >
-      <AdminModelList
-        api={terrenoApi}
-        apiBase={apiBase}
-        configurationPath="/configuration"
-        routeBase=""
-      />
+      <AdminHome api={terrenoApi} apiBase={apiBase} routeBase="" />
     </AdminShell>
   );
 };
 
-export default ModelListScreen;
+export default AdminIndexScreen;

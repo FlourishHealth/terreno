@@ -1,4 +1,4 @@
-import {Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
+import {Accordion, Box, Button, Page, Spinner, Text, useToast} from "@terreno/ui";
 import {router, useNavigation} from "expo-router";
 import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminFieldRenderer} from "./AdminFieldRenderer";
@@ -65,6 +65,16 @@ const getEditableFields = (
     ordered.push([key, config]);
   }
   return ordered;
+};
+
+/** Non-system fields minus `hiddenFields` (still includes readonly keys for display). */
+const getVisibleFieldEntries = (
+  fields: Record<string, AdminFieldConfig>,
+  fieldOrder: string[] | undefined,
+  hiddenFields: string[] | undefined
+): [string, AdminFieldConfig][] => {
+  const hidden = new Set(hiddenFields ?? []);
+  return getEditableFields(fields, fieldOrder).filter(([key]) => !hidden.has(key));
 };
 
 const getFieldDefault = (fieldConfig: AdminFieldConfig): AdminFieldValue => {
@@ -215,9 +225,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     if (mode === "edit" && itemData && !isInitialized) {
       const initial: Record<string, AdminFieldValue> = {};
       if (modelConfig) {
-        for (const [key, fieldConfig] of getEditableFields(
+        for (const [key, fieldConfig] of getVisibleFieldEntries(
           modelConfig.fields,
-          modelConfig.fieldOrder
+          modelConfig.fieldOrder,
+          modelConfig.hiddenFields
         )) {
           const raw = itemData[key];
           initial[key] = raw ?? getFieldDefault(fieldConfig);
@@ -232,9 +243,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   useEffect(() => {
     if (mode === "create" && modelConfig && !isInitialized) {
       const initial: Record<string, AdminFieldValue> = {};
-      for (const [key, fieldConfig] of getEditableFields(
+      for (const [key, fieldConfig] of getVisibleFieldEntries(
         modelConfig.fields,
-        modelConfig.fieldOrder
+        modelConfig.fieldOrder,
+        modelConfig.hiddenFields
       )) {
         initial[key] = getFieldDefault(fieldConfig);
       }
@@ -257,9 +269,10 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       return false;
     }
     const newErrors: Record<string, string> = {};
-    for (const [key, fieldConfig] of getEditableFields(
+    for (const [key, fieldConfig] of getVisibleFieldEntries(
       modelConfig.fields,
-      modelConfig.fieldOrder
+      modelConfig.fieldOrder,
+      modelConfig.hiddenFields
     )) {
       if (fieldConfig.required && (formState[key] == null || formState[key] === "")) {
         newErrors[key] = `${key} is required`;
@@ -270,14 +283,24 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   }, [modelConfig, formState]);
 
   const handleSave = useCallback(async () => {
+    if (!modelConfig) {
+      return;
+    }
     if (!validate()) {
       return;
     }
     try {
       const sanitizedPayload = sanitizePayloadValue(formState) as Record<string, AdminFieldValue>;
+      const readonlyKeys = new Set(modelConfig.readonlyFields ?? []);
+      const stripped: Record<string, AdminFieldValue> = {};
+      for (const [k, v] of Object.entries(sanitizedPayload)) {
+        if (!readonlyKeys.has(k)) {
+          stripped[k] = v;
+        }
+      }
       const payload = transformPayload
-        ? await transformPayload({mode, payload: sanitizedPayload})
-        : sanitizedPayload;
+        ? await transformPayload({mode, payload: stripped})
+        : stripped;
       let result: AdminFieldValue;
       if (mode === "create") {
         result = await createItem(payload).unwrap();
@@ -295,6 +318,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     mode,
     formState,
     itemId,
+    modelConfig,
     createItem,
     updateItem,
     validate,
@@ -326,7 +350,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     navigation.setOptions({
       headerRight: () => (
         <Box alignItems="center" direction="row" gap={2} justifyContent="center" marginRight={3}>
-          {mode === "edit" && <DeleteButton loading={isDeleting} onDelete={handleDelete} />}
+          {mode === "edit" && modelConfig.permissions?.delete !== false ? (
+            <DeleteButton loading={isDeleting} onDelete={handleDelete} />
+          ) : null}
           <Button
             loading={isSaving}
             onClick={handleSave}
@@ -338,6 +364,51 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
       ),
     });
   }, [navigation, modelConfig, mode, isSaving, isDeleting, handleSave, handleDelete]);
+
+  const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
+    if (!modelConfig) {
+      return [];
+    }
+    return getVisibleFieldEntries(
+      modelConfig.fields,
+      modelConfig.fieldOrder,
+      modelConfig.hiddenFields
+    );
+  }, [modelConfig]);
+
+  const readonlyKeySet = useMemo(() => {
+    if (!modelConfig) {
+      return new Set<string>();
+    }
+    return new Set(modelConfig.readonlyFields ?? []);
+  }, [modelConfig]);
+
+  const fieldSections = useMemo(() => {
+    if (!modelConfig?.fieldsets?.length) {
+      return null;
+    }
+    const visibleMap = new Map(visibleFields);
+    const used = new Set<string>();
+    const sections: {title: string; entries: [string, AdminFieldConfig][]}[] = [];
+    for (const fs of modelConfig.fieldsets) {
+      const entries: [string, AdminFieldConfig][] = [];
+      for (const key of fs.fields) {
+        const cfg = visibleMap.get(key);
+        if (cfg) {
+          entries.push([key, cfg]);
+          used.add(key);
+        }
+      }
+      if (entries.length > 0) {
+        sections.push({title: fs.title, entries});
+      }
+    }
+    const remaining = visibleFields.filter(([k]) => !used.has(k));
+    if (remaining.length > 0) {
+      sections.push({title: "Other", entries: remaining});
+    }
+    return sections;
+  }, [modelConfig?.fieldsets, visibleFields]);
 
   if (isConfigLoading || !modelConfig) {
     return (
@@ -359,31 +430,57 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     );
   }
 
-  const editableFields = getEditableFields(modelConfig.fields, modelConfig.fieldOrder);
-
   const modelConfigs =
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
 
   return (
     <Page maxWidth="100%" scroll>
       <Box gap={3} padding={4}>
-        {editableFields.map(([fieldKey, fieldConfig]) => (
-          <AdminFieldRenderer
-            api={api}
-            apiBase={resolvedApiBase}
-            errorText={errors[fieldKey]}
-            fieldConfig={fieldConfig}
-            fieldKey={fieldKey}
-            key={fieldKey}
-            modelConfigs={modelConfigs}
-            onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
-            parentFormState={formState}
-            refRenderers={refRenderers}
-            routeBase={resolvedRouteBase}
-            value={formState[fieldKey]}
-          />
-        ))}
-        {editableFields.length === 0 && <EmptyFields />}
+        {fieldSections
+          ? fieldSections.map((section, sectionIndex) => (
+              <Accordion
+                key={`admin-fieldset-${sectionIndex}-${section.title}`}
+                title={section.title}
+              >
+                <Box gap={3}>
+                  {section.entries.map(([fieldKey, fieldConfig]) => (
+                    <AdminFieldRenderer
+                      api={api}
+                      apiBase={resolvedApiBase}
+                      errorText={errors[fieldKey]}
+                      fieldConfig={fieldConfig}
+                      fieldKey={fieldKey}
+                      key={fieldKey}
+                      modelConfigs={modelConfigs}
+                      onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                      parentFormState={formState}
+                      readOnly={readonlyKeySet.has(fieldKey)}
+                      refRenderers={refRenderers}
+                      routeBase={resolvedRouteBase}
+                      value={formState[fieldKey]}
+                    />
+                  ))}
+                </Box>
+              </Accordion>
+            ))
+          : visibleFields.map(([fieldKey, fieldConfig]) => (
+              <AdminFieldRenderer
+                api={api}
+                apiBase={resolvedApiBase}
+                errorText={errors[fieldKey]}
+                fieldConfig={fieldConfig}
+                fieldKey={fieldKey}
+                key={fieldKey}
+                modelConfigs={modelConfigs}
+                onChange={(value: AdminFieldValue) => handleFieldChange(fieldKey, value)}
+                parentFormState={formState}
+                readOnly={readonlyKeySet.has(fieldKey)}
+                refRenderers={refRenderers}
+                routeBase={resolvedRouteBase}
+                value={formState[fieldKey]}
+              />
+            ))}
+        {visibleFields.length === 0 && <EmptyFields />}
         {footerContent}
       </Box>
     </Page>
