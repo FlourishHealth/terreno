@@ -86,6 +86,12 @@ describe("jsonResponseRequestIdMiddleware", () => {
     app.get("/openapi.json", (_req, res) => {
       return res.json({openapi: "3.0.0", paths: {}});
     });
+    app.get("/openapi/components/schemas/Food.json", (_req, res) => {
+      return res.json({description: "A food", type: "object"});
+    });
+    app.get("/openapi/validate", (_req, res) => {
+      return res.json({document: {openapi: "3.0.0"}, valid: true});
+    });
     return app;
   };
 
@@ -108,6 +114,20 @@ describe("jsonResponseRequestIdMiddleware", () => {
     const app = buildStackedApp();
     const res = await supertest(app).get("/openapi.json").expect(200);
     expect(res.body).toEqual({openapi: "3.0.0", paths: {}});
+    expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("does not inject requestId into GET /openapi/components/...json bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/openapi/components/schemas/Food.json").expect(200);
+    expect(res.body).toEqual({description: "A food", type: "object"});
+    expect(res.body.requestId).toBeUndefined();
+  });
+
+  it("does not inject requestId into GET /openapi/validate bodies", async () => {
+    const app = buildStackedApp();
+    const res = await supertest(app).get("/openapi/validate").expect(200);
+    expect(res.body).toEqual({document: {openapi: "3.0.0"}, valid: true});
     expect(res.body.requestId).toBeUndefined();
   });
 

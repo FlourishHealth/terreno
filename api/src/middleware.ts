@@ -23,14 +23,32 @@ export const sentryAppVersionMiddleware = (
   next();
 };
 
-const isOpenApiJsonRequest = (req: Request): boolean => {
-  return req.method === "GET" && req.path === "/openapi.json";
+/**
+ * OpenAPI vendor routes that must return pristine JSON (no injected requestId).
+ * Matches @wesleytodd/openapi: main spec, per-component JSON, and validate payload.
+ */
+const isOpenApiToolingJsonRequest = (req: Request): boolean => {
+  if (req.method !== "GET") {
+    return false;
+  }
+  const {path} = req;
+  if (path === "/openapi.json") {
+    return true;
+  }
+  if (path === "/openapi/validate") {
+    return true;
+  }
+  if (path.startsWith("/openapi/components/") && path.endsWith(".json")) {
+    return true;
+  }
+  return false;
 };
 
 /**
  * TerrenoApp middleware: augments `res.json` so plain-object payloads include
- * `requestId` for client correlation. Skips GET `/openapi.json` so the spec
- * document stays valid OpenAPI. Does not wrap arrays or primitives.
+ * `requestId` for client correlation. Skips OpenAPI tooling GET JSON routes
+ * (`/openapi.json`, `/openapi/components/...json`, `/openapi/validate`) so
+ * machine-consumed payloads stay valid. Does not wrap arrays or primitives.
  */
 export const jsonResponseRequestIdMiddleware = (
   req: Request,
@@ -39,7 +57,7 @@ export const jsonResponseRequestIdMiddleware = (
 ): void => {
   const originalJson = res.json.bind(res);
   res.json = (body?: unknown): Response => {
-    if (isOpenApiJsonRequest(req)) {
+    if (isOpenApiToolingJsonRequest(req)) {
       return originalJson(body);
     }
 
