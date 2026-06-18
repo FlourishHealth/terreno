@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -57,13 +57,13 @@ describe("MCP Routes", () => {
       })),
       reconnectServer: mock(async () => true),
     } as unknown as MockMcpService;
-    app = setupServer({
-      addRoutes: (router, options) => {
+    app = new TerrenoApp({
+      configureApp: (router, options) => {
         addMcpRoutes(router, {mcpService: mcpService as MCPService, openApiOptions: options});
       },
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
   });
 
   describe("GET /mcp/servers", () => {
@@ -116,13 +116,13 @@ describe("MCP Routes", () => {
 
     it("returns connected=false when reconnect fails", async () => {
       mcpService.reconnectServer = mock(async () => false);
-      const customApp = setupServer({
-        addRoutes: (router, options) => {
+      const customApp = new TerrenoApp({
+        configureApp: (router, options) => {
           addMcpRoutes(router, {mcpService: mcpService as MCPService, openApiOptions: options});
         },
         skipListen: true,
         userModel: UserModel,
-      });
+      }).build();
       const agent = await authAsUser(customApp, "admin");
       const res = await agent.post("/mcp/servers/unknown/reconnect");
       expect(res.status).toBe(200);

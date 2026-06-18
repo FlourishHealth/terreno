@@ -6,8 +6,7 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
+import {TerrenoApp} from "./terrenoApp";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
 import {FoodModel, UserModel} from "./tests";
@@ -145,13 +144,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes: addRoutesWithBuilder,
+    app = new TerrenoApp({
+      configureApp: addRoutesWithBuilder,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   describe("builder pattern", () => {

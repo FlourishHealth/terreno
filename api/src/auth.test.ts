@@ -7,7 +7,7 @@ import type TestAgent from "supertest/lib/agent";
 
 import {modelRouter} from "./api";
 import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
+import {TerrenoApp} from "./terrenoApp";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
@@ -151,11 +151,11 @@ describe("auth tests", () => {
         })
       );
     }
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -827,11 +827,11 @@ describe("addAuthRoutes /refresh_token error paths", () => {
   beforeEach(async () => {
     setSystemTime();
     await setupDb();
-    app = setupServer({
-      addRoutes: () => {},
+    app = new TerrenoApp({
+      configureApp: () => {},
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -892,11 +892,11 @@ describe("addMeRoutes edge cases", () => {
   beforeEach(async () => {
     setSystemTime();
     await setupDb();
-    app = setupServer({
-      addRoutes: () => {},
+    app = new TerrenoApp({
+      configureApp: () => {},
       skipListen: true,
       userModel: UserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
