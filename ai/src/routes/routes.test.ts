@@ -1243,7 +1243,7 @@ describe("AI Routes", () => {
           },
           skipListen: true,
           userModel: UserModel,
-        });
+        }).build();
         const agent = await authAsUser(customApp, "notAdmin");
         const res = await agent
           .post("/gpt/prompt")
