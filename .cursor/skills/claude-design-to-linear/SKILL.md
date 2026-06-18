@@ -169,10 +169,9 @@ Create:
 
 Examples:
 
-- `Scheduling rules Implementation Plan`
-- `Scheduling rules Backend`
-- `Scheduling rules Admin UI`
-- `Scheduling rules Validation`
+- `Scheduling rules editor Implementation Plan`
+- `Scheduling rules editor Admin UI`
+- `Scheduling rules editor Validation`
 
 Avoid generic names like `Part 1`, `Part 2`, or `Misc`.
 
@@ -256,9 +255,13 @@ Before making changes, prepare a concise plan like:
 ### Create new projects
 - Project: <name>
   - Why separate: <reason>
-  - Required issues:
+  - Required issues (single-part):
     - <feature> Implementation Plan
     - <feature> Execution
+  - Required issues (multi-part):
+    - <feature> Implementation Plan
+    - <feature> <slice A>
+    - <feature> <slice B>
 
 ### Split decisions
 - <large feature> was split into:
