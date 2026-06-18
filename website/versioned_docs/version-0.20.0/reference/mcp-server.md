@@ -23,7 +23,7 @@ The MCP server exposes Terreno's documentation and code generation capabilities 
 **Key concepts:**
 
 - **Resources**: Read-only documentation from `docs/` directory
-- **Tools**: Executable code generators that return text (AI writes files)
+- **Tools**: Code generators that return text (AI writes files), plus documentation search (`terreno_search_docs`, `terreno_get_component_docs`) over bundled Diátaxis docs and UI type reference
 - **Prompts**: Pre-built multi-step instructions for complex workflows
 
 ## Installation
@@ -96,6 +96,32 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 ## Tools
 
 Code generation tools that return TypeScript/JavaScript code as text. **Tools do not write files** — the AI assistant receives the code and writes it to appropriate locations.
+
+### terreno_search_docs
+
+BM25-style keyword search over markdown bundled with the MCP server: `docs/resources/*.md`, synced Diátaxis docs under `docs/versioned/`, and per-component excerpts derived from `ui-types-documentation.json`. **Prefer this tool before guessing** Terreno APIs (same posture as Laravel Boost `search-docs`).
+
+**Parameters:**
+
+``````typescript
+{
+  queries: string[];       // Required — one or more search phrases
+  packages?: string[];     // Optional — filter by package id or scope, e.g. ["api", "@terreno/ui"]
+  tokenLimit?: number;      // Approximate max tokens of markdown (default 3000)
+}
+``````
+
+### terreno_get_component_docs
+
+Returns the full props table for a single `@terreno/ui` component from `ui-types-documentation.json`, plus short related markdown excerpts when the search index finds matches.
+
+**Parameters:**
+
+``````typescript
+{
+  component: string;        // e.g. "Button", "TextField"
+}
+``````
 
 ### terreno_generate_model
 

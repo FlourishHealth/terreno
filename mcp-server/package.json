@@ -25,7 +25,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@sentry/bun": "^10.39.0",
-    "@terreno/api": "workspace:*"
+    "@terreno/api": "workspace:*",
+    "minisearch": "^7.2.0"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

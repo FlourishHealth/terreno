@@ -13,6 +13,8 @@ describe("tools", () => {
     expect(toolNames).toContain("terreno_install_admin");
     expect(toolNames).toContain("terreno_bootstrap_app");
     expect(toolNames).toContain("terreno_bootstrap_ai_rules");
+    expect(toolNames).toContain("terreno_search_docs");
+    expect(toolNames).toContain("terreno_get_component_docs");
   });
 
   test("should have valid tool structure", () => {

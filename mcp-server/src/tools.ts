@@ -1,8 +1,55 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
+import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
+
+const docSearchTools: Tool[] = [
+  {
+    description:
+      "Search Terreno documentation (Diátaxis docs, bundled package guides, and @terreno/ui component props) with BM25-style keyword search. **Call this before guessing** modelRouter, OpenAPI, RTK Query, or UI APIs — same workflow as Laravel Boost search-docs.",
+    inputSchema: {
+      properties: {
+        packages: {
+          description:
+            'Optional filter: short names or npm scopes, e.g. ["api", "@terreno/ui"]. Matches chunks tagged for those packages.',
+          items: {type: "string"},
+          type: "array",
+        },
+        queries: {
+          description:
+            'One or more search phrases (multiple angles help, e.g. ["toggle", "switch field"]).',
+          items: {type: "string"},
+          type: "array",
+        },
+        tokenLimit: {
+          description: "Approximate max tokens of markdown to return (default 3000, hard-capped).",
+          type: "number",
+        },
+      },
+      required: ["queries"],
+      type: "object",
+    },
+    name: "terreno_search_docs",
+  },
+  {
+    description:
+      "Return the full props table for one @terreno/ui component from ui-types-documentation.json, plus short related markdown excerpts when available.",
+    inputSchema: {
+      properties: {
+        component: {
+          description: 'Component name as exported by @terreno/ui, e.g. "Button", "TextField".',
+          type: "string",
+        },
+      },
+      required: ["component"],
+      type: "object",
+    },
+    name: "terreno_get_component_docs",
+  },
+];
 
 export const tools: Tool[] = [
   ...bootstrapTools,
+  ...docSearchTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -1024,6 +1071,32 @@ export const handleToolCall = (
   }
 
   let result: string;
+
+  if (name === "terreno_search_docs") {
+    const queries = args.queries;
+    if (!Array.isArray(queries) || !queries.every((q) => typeof q === "string")) {
+      return {
+        content: [
+          {
+            text: '`queries` must be an array of strings, e.g. { "queries": ["modelRouter", "permissions"] }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    const packages = Array.isArray(args.packages)
+      ? args.packages.filter((p): p is string => typeof p === "string")
+      : undefined;
+    const tokenLimit = typeof args.tokenLimit === "number" ? args.tokenLimit : undefined;
+    result = searchDocs({packages, queries, tokenLimit});
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_component_docs") {
+    const component = typeof args.component === "string" ? args.component : "";
+    result = getComponentDocsMarkdown(component);
+    return {content: [{text: result, type: "text"}]};
+  }
 
   switch (name) {
     case "terreno_generate_model": {
