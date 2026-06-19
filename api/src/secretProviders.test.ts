@@ -1,7 +1,13 @@
-import {beforeEach, describe, expect, it} from "bun:test";
+import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
 
 import type {SecretProvider} from "./configurationPlugin";
-import {CachingSecretProvider, CompositeSecretProvider, EnvSecretProvider} from "./secretProviders";
+import {APIError} from "./errors";
+import {
+  CachingSecretProvider,
+  CompositeSecretProvider,
+  EnvSecretProvider,
+  GcpSecretProvider,
+} from "./secretProviders";
 
 describe("EnvSecretProvider", () => {
   beforeEach(() => {
@@ -23,6 +29,150 @@ describe("EnvSecretProvider", () => {
     process.env.MY_SECRET_KEY = "value";
     const provider = new EnvSecretProvider();
     expect(await provider.getSecret("my-secret-key", "5")).toBe("value");
+  });
+});
+
+describe("GcpSecretProvider", () => {
+  interface SecretVersionResponse {
+    payload?: {data?: string | Uint8Array};
+  }
+
+  const mockAccessSecretVersion = mock(
+    () => Promise.resolve([{payload: {data: "secret-value"}}] as SecretVersionResponse[])
+  );
+
+  const createMockSecretManagerModule = (overrides?: Record<string, unknown>) => ({
+    SecretManagerServiceClient: class {
+      accessSecretVersion = mockAccessSecretVersion;
+    },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    mockAccessSecretVersion.mockReset();
+    mockAccessSecretVersion.mockImplementation(() =>
+      Promise.resolve([{payload: {data: "secret-value"}}] as SecretVersionResponse[])
+    );
+  });
+
+  afterEach(() => {
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+  });
+
+  it("resolves a short secret name to a full resource path", async () => {
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    const result = await provider.getSecret("openai-api-key");
+    expect(result).toBe("secret-value");
+    expect(mockAccessSecretVersion).toHaveBeenCalledWith({
+      name: "projects/my-project/secrets/openai-api-key/versions/latest",
+    });
+  });
+
+  it("resolves a short secret name with an explicit version", async () => {
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    await provider.getSecret("my-key", "3");
+    expect(mockAccessSecretVersion).toHaveBeenCalledWith({
+      name: "projects/my-project/secrets/my-key/versions/3",
+    });
+  });
+
+  it("honours a full resource path without appending a version", async () => {
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    await provider.getSecret("projects/other/secrets/s/versions/5");
+    expect(mockAccessSecretVersion).toHaveBeenCalledWith({
+      name: "projects/other/secrets/s/versions/5",
+    });
+  });
+
+  it("appends version to a full resource path that lacks /versions/", async () => {
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    await provider.getSecret("projects/other/secrets/s", "7");
+    expect(mockAccessSecretVersion).toHaveBeenCalledWith({
+      name: "projects/other/secrets/s/versions/7",
+    });
+  });
+
+  it("returns null and warns when the payload is empty", async () => {
+    mockAccessSecretVersion.mockImplementation(() =>
+      Promise.resolve([{payload: {}}] as SecretVersionResponse[])
+    );
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "p"});
+    expect(await provider.getSecret("empty-secret")).toBeNull();
+  });
+
+  it("decodes Uint8Array payloads", async () => {
+    const encoded = new TextEncoder().encode("binary-secret");
+    mockAccessSecretVersion.mockImplementation(() =>
+      Promise.resolve([{payload: {data: encoded}}] as SecretVersionResponse[])
+    );
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "p"});
+    expect(await provider.getSecret("bin")).toBe("binary-secret");
+  });
+
+  it("returns null for NOT_FOUND errors (gRPC code 5)", async () => {
+    const notFound = Object.assign(new Error("NOT_FOUND"), {code: 5});
+    mockAccessSecretVersion.mockImplementation(() => Promise.reject(notFound));
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "p"});
+    expect(await provider.getSecret("missing")).toBeNull();
+  });
+
+  it("re-throws non-NOT_FOUND errors", async () => {
+    const err = new Error("permission denied");
+    mockAccessSecretVersion.mockImplementation(() => Promise.reject(err));
+    mock.module("@google-cloud/secret-manager", () => createMockSecretManagerModule());
+    const provider = new GcpSecretProvider({projectId: "p"});
+    await expect(provider.getSecret("forbidden")).rejects.toThrow("permission denied");
+  });
+
+  it("throws APIError when SecretManagerServiceClient is missing from module", async () => {
+    mock.module("@google-cloud/secret-manager", () => ({
+      default: {SecretManagerServiceClient: undefined},
+      SecretManagerServiceClient: undefined,
+    }));
+    const provider = new GcpSecretProvider({projectId: "p"});
+    try {
+      await provider.getSecret("any");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      expect((error as APIError).title).toContain("SecretManagerServiceClient not found");
+    }
+  });
+
+  it("caches the client after the first call", async () => {
+    let constructorCalls = 0;
+    mock.module("@google-cloud/secret-manager", () => ({
+      SecretManagerServiceClient: class {
+        constructor() {
+          constructorCalls++;
+        }
+        accessSecretVersion = mockAccessSecretVersion;
+      },
+    }));
+    const provider = new GcpSecretProvider({projectId: "p"});
+    await provider.getSecret("a");
+    await provider.getSecret("b");
+    expect(constructorCalls).toBe(1);
+  });
+
+  it("resolves SecretManagerServiceClient from default export", async () => {
+    mock.module("@google-cloud/secret-manager", () => ({
+      default: {
+        SecretManagerServiceClient: class {
+          accessSecretVersion = mockAccessSecretVersion;
+        },
+      },
+    }));
+    const provider = new GcpSecretProvider({projectId: "p"});
+    const result = await provider.getSecret("key");
+    expect(result).toBe("secret-value");
   });
 });
 
