@@ -4,7 +4,6 @@ import passportLocalMongoose from "passport-local-mongoose";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
 import {addAuthRoutes, setupAuth, type UserModel as UserMongooseModel} from "./auth";
-import {setupServer} from "./expressServer";
 import {logger} from "./logger";
 import {Permissions} from "./permissions";
 import {
@@ -14,6 +13,7 @@ import {
   findOneOrNone,
   isDeletedPlugin,
 } from "./plugins";
+import {TerrenoApp} from "./terrenoApp";
 
 mongoose
   .connect("mongodb://localhost:27017/example")
@@ -116,12 +116,12 @@ const getBaseServer = () => {
     );
   };
 
-  return setupServer({
-    addRoutes,
+  return new TerrenoApp({
+    configureApp: addRoutes,
     loggingOptions: {
       level: "debug",
     },
     userModel: UserModel as unknown as UserMongooseModel,
-  });
+  }).build();
 };
 getBaseServer();

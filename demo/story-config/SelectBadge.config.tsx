@@ -1,5 +1,5 @@
 import {DemoConfiguration} from "@config";
-import {SelectBadgeDemo, SelectBadgeStories} from "@stories";
+import {BadgeSelectBadgeComparison, SelectBadgeDemo, SelectBadgeStories} from "@stories";
 import {SelectBadge} from "@terreno/ui";
 import React from "react";
 
@@ -59,6 +59,9 @@ export const SelectBadgeConfiguration: DemoConfiguration = {
     },
   },
   stories: {
+    "Badge vs SelectBadge": {
+      render: () => <BadgeSelectBadgeComparison />,
+    },
     SelectBadges: {
       description: "",
       render: () => <SelectBadgeStories />,

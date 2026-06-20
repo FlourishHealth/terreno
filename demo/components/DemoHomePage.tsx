@@ -25,11 +25,15 @@ const DemoCard: React.FC<DemoCardProps> = ({config, onPress}) => {
     return null;
   }
 
+  const homeTestId = `demo-home-${config.name.toLowerCase().replace(/\s+/g, "-")}`;
+
   return (
     <Pressable
       accessibilityHint={`Open the ${config.name} component demo.`}
       accessibilityLabel={`${config.name} demo card`}
+      accessibilityRole="button"
       onPress={handlePress}
+      testID={homeTestId}
     >
       <View
         style={{

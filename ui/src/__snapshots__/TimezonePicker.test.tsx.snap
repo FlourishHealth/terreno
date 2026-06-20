@@ -32,9 +32,11 @@ exports[`TimezonePicker renders correctly with default props 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "Please select an option.",
@@ -55,8 +57,8 @@ exports[`TimezonePicker renders correctly with default props 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -66,13 +68,15 @@ exports[`TimezonePicker renders correctly with default props 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -348,9 +352,11 @@ exports[`TimezonePicker hides title when hideTitle is true 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "Please select an option.",
@@ -371,8 +377,8 @@ exports[`TimezonePicker hides title when hideTitle is true 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -382,13 +388,15 @@ exports[`TimezonePicker hides title when hideTitle is true 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -679,9 +687,11 @@ exports[`TimezonePicker renders with selected timezone 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "Eastern",
@@ -702,8 +712,8 @@ exports[`TimezonePicker renders with selected timezone 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -713,13 +723,15 @@ exports[`TimezonePicker renders with selected timezone 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -1010,9 +1022,11 @@ exports[`TimezonePicker renders USA timezones by default 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "Eastern",
@@ -1033,8 +1047,8 @@ exports[`TimezonePicker renders USA timezones by default 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -1044,13 +1058,15 @@ exports[`TimezonePicker renders USA timezones by default 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -1341,9 +1357,11 @@ exports[`TimezonePicker renders with short timezone labels 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "EDT",
@@ -1364,8 +1382,8 @@ exports[`TimezonePicker renders with short timezone labels 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -1375,13 +1393,15 @@ exports[`TimezonePicker renders with short timezone labels 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
@@ -1672,9 +1692,11 @@ exports[`TimezonePicker calls onChange when timezone is selected 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
-                    "readOnly": true,
+                    "editable": false,
+                    "multiline": true,
                     "style": {
                       "color": "#1C1C1C",
+                      "flex": 1,
                     },
                     "testID": "text_input",
                     "value": "Eastern",
@@ -1695,8 +1717,8 @@ exports[`TimezonePicker calls onChange when timezone is selected 1`] = `
               ],
               "props": {
                 "style": {
+                  "alignItems": "center",
                   "flexDirection": "row",
-                  "justifyContent": "space-between",
                   "pointerEvents": "box-only",
                   "width": "100%",
                 },
@@ -1706,13 +1728,15 @@ exports[`TimezonePicker calls onChange when timezone is selected 1`] = `
             },
           ],
           "props": {
+            "disabled": false,
             "onPress": [Function],
             "style": {
               "alignItems": "center",
               "flexDirection": "row",
               "justifyContent": "center",
               "minHeight": 40,
-              "width": "95%",
+              "paddingHorizontal": 8,
+              "width": "100%",
             },
             "testID": "ios_touchable_wrapper",
           },
