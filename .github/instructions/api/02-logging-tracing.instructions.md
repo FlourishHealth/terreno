@@ -1,8 +1,7 @@
 ---
-description: Traceable backend logging, scoped loggers, Google Cloud Logging
-globs: api/**/*.ts,example-backend/**/*.ts,**/server.ts
+description: 'Traceable backend logging, scoped loggers, Google Cloud Logging'
+applyTo: 'api/**/*.ts,example-backend/**/*.ts,**/server.ts'
 ---
-
 # Backend logging and tracing (@terreno/api)
 
 ## Goals

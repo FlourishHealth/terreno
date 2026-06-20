@@ -18,4 +18,7 @@ export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
   // return new array/object references each call. TODO(rtk/example-frontend):
   // audit selectors and wrap with createSelector where appropriate.
   "Selector unknown returned a different result when called with the same parameters",
+
+  // RTK Query: terrenoFlagConfiguration rejects until auth tokens exist (expected on signup/login flows).
+  "terrenoFlagConfiguration rejected query: No token found for terrenoFlagConfiguration",
 ];
