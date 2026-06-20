@@ -78,6 +78,7 @@ export class AdminSpaServeApp implements TerrenoPlugin {
         res.set("Cache-Control", NO_STORE).json(appConfig);
       });
       // Lazy require so production deploys without the dev dependency don't break.
+      // Module types are not available at runtime for this optional dev-only dependency.
       const {createProxyMiddleware} = require("http-proxy-middleware") as {
         createProxyMiddleware: (options: {
           changeOrigin: boolean;

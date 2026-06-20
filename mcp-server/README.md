@@ -1,4 +1,4 @@
-# @terreno/mcp-server
+# @terreno/mcp
 
 MCP (Model Context Protocol) server for Terreno. Provides documentation, tools, and prompts for building full-stack applications with Terreno packages.
 

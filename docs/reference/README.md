@@ -10,7 +10,7 @@ Technical reference for Terreno packages and APIs. Information-oriented, precise
 - [@terreno/admin-backend](admin-backend.md) — Auto-generated admin CRUD endpoints
 - [@terreno/admin-frontend](admin-frontend.md) — Admin panel UI components
 - [@terreno/feature-flags](feature-flags.md) — Feature flags and A/B testing plugin
-- [@terreno/mcp-server](mcp-server.md) — AI coding assistant integration (MCP)
+- [@terreno/mcp](mcp-server.md) — AI coding assistant integration (MCP)
 
 ## Configuration
 
