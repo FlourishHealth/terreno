@@ -140,6 +140,19 @@ All **`Permissions.IsAdmin`** (or stricter consumer override).
 5. **admin-spa + example** — runnable demo; link plugin screens.  
 6. **Audit log & recent actions (last)** — `AdminAuditLog` model (if approved for deployment), logging hooks, `GET` list, wire **`recentActivity` as the final id in `home.slots.sidebar`**.
 
+### Phase completion (all shipped)
+
+| # | Scope | Evidence |
+|---|--------|----------|
+| 1 | Config + OpenAPI for `/admin/config` | `admin-backend/src/adminApp.models.test.ts` (`schemaVersion`, `home.slots`, scripts metadata) |
+| 2 | Bulk-patch + background-tasks | Same file + `adminApp.test.ts` |
+| 3 | Example modelRouter alignment | `example-backend/src/server.ts` registrations |
+| 4–6 | Shell, list, form | `admin-frontend` compile + `AdminModelTable.test.tsx`, `AdminModelForm.test.tsx`, `AdminBreadcrumbs.test.tsx` |
+| 7 | Home widgets + slots | `admin-frontend/src/AdminHome.test.tsx` |
+| 8 | admin-spa + example | `admin-spa/app/**`, Playwright `admin-spa/e2e/**` |
+| 9 | Audit + recent activity | `example-backend` `AdminAuditLog` + `onAdminAudit`; `admin-backend` **`AdminApp onAdminAudit`** tests (POST/PATCH/DELETE); `AdminHome.test.tsx` sidebar order |
+
+
 ## Feature Flags & Migrations
 
 - **Config `schemaVersion`:** clients switch parsers/layout when `>= 2`.  
@@ -188,4 +201,4 @@ See **`docs/tasks/admin-ui-v2-django-parity.md`** for the executable, phased che
 - [x] Home: when `recentActivity` is configured, it is **last in `slots.sidebar`**.  
 - [x] Phase last: audit entries created for configured mutations; recent widget shows data from API.
 
-Verification pointers: `admin-backend/src/adminApp.models.test.ts` (config `schemaVersion`, bulk-patch caps/allowlist, background-tasks), `admin-frontend/src/AdminModelForm.test.tsx` (readonly PATCH body), `admin-frontend/src/AdminHome.test.tsx` (slot/widget placement + sidebar order), `example-backend` admin registration + audit model tests / OpenAPI snapshot.
+Verification pointers: `admin-backend/src/adminApp.models.test.ts` (config `schemaVersion`, bulk-patch caps/allowlist, background-tasks, **`AdminApp onAdminAudit`** hooks after POST/PATCH/DELETE), `admin-frontend/src/AdminModelForm.test.tsx` (readonly PATCH body), `admin-frontend/src/AdminHome.test.tsx` (slot/widget placement + sidebar order), `example-backend` admin registration + audit model + OpenAPI snapshot.

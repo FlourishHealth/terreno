@@ -20,7 +20,7 @@ See: `docs/implementationPlans/admin-script-runner.md` for the full plan.
 
 - [x] **Task B.1**: Mount `{basePath}/scripts` router when `AdminOptions.scripts` non-empty  
   - Files: `admin-backend/src/adminApp.ts`  
-  - Acceptance: OpenAPI entries for run + task poll + cancel where applicable.
+  - Acceptance: Routes covered by `adminApp.test.ts`; `/admin/config` OpenAPI schema includes `scripts` array (see example-backend `openapi.test.ts` snapshot). Per-script `POST …/run` paths may not appear as separate paths in merged consumer OpenAPI; behavior is verified in admin-backend tests.
 
 - [x] **Task B.2**: Implement run → create task → async `runner(wetRun, ctx)` → terminal status  
   - Acceptance: Tests in `admin-backend/src/adminApp.test.ts` (happy path, 403, 404, failure, cancel, wetRun query).

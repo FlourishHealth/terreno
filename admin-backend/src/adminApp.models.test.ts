@@ -20,7 +20,7 @@ import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
-import type {AdminModelConfig, AdminOptions} from "./adminApp";
+import type {AdminAuditEvent, AdminModelConfig, AdminOptions} from "./adminApp";
 import {AdminApp} from "./adminApp";
 
 const buildApp = (
@@ -625,6 +625,44 @@ describe("AdminApp admin UI v2 routes", () => {
     const food = await FoodModel.create({calories: 1, name: "Nope"});
     const res = await agent.delete(`/admin/foods/${food._id}`);
     expect([403, 405]).toContain(res.status);
+  });
+});
+
+describe("AdminApp onAdminAudit", () => {
+  let app: express.Application;
+  let adminAgent: TestAgent;
+  const auditEvents: AdminAuditEvent[] = [];
+
+  beforeEach(async () => {
+    await setupDb();
+    auditEvents.length = 0;
+    app = buildApp([{...foodModelConfig, hiddenFields: ["hidden"]}], {
+      onAdminAudit: async (event): Promise<void> => {
+        auditEvents.push(event);
+      },
+    });
+    adminAgent = await authAsUser(app, "admin");
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+  });
+
+  it("invokes onAdminAudit with verb created after POST", async () => {
+    await adminAgent.post("/admin/foods").send({calories: 5, name: "Audited"}).expect(201);
+    expect(auditEvents.some((e) => e.verb === "created" && e.modelName === "Food")).toBe(true);
+  });
+
+  it("invokes onAdminAudit with verb updated after PATCH", async () => {
+    const food = await FoodModel.create({calories: 10, name: "PatchMe"});
+    await adminAgent.patch(`/admin/foods/${food._id}`).send({calories: 42}).expect(200);
+    expect(auditEvents.some((e) => e.verb === "updated" && e.modelName === "Food")).toBe(true);
+  });
+
+  it("invokes onAdminAudit with verb deleted after DELETE", async () => {
+    const food = await FoodModel.create({calories: 1, name: "DeleteMe"});
+    await adminAgent.delete(`/admin/foods/${food._id}`).expect(204);
+    expect(auditEvents.some((e) => e.verb === "deleted" && e.modelName === "Food")).toBe(true);
   });
 });
 

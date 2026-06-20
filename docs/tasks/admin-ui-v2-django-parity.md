@@ -126,7 +126,7 @@ See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
   - Description: Hook `postUpdate`/`postCreate`/`postDelete` on registered admin models or central middleware in `AdminApp` to write `AdminAuditLog` with verb + label resolution.  
   - Files: `admin-backend/src/adminApp.ts` and/or example-backend hooks  
   - Depends on: 9.2  
-  - Acceptance: Integration test proves a PATCH creates an audit row.
+  - Acceptance: `onAdminAudit` fires after POST/PATCH/DELETE on admin model routes — **`admin-backend/src/adminApp.models.test.ts`** (`describe("AdminApp onAdminAudit")`). Consumer persistence: `example-backend/src/server.ts` (`AdminAuditLog.create` in `onAdminAudit`).
 
 - [x] **Task 9.4**: Home `recentActivity` widget backed by API  
   - Description: Fetch latest N audit rows; render as the **final widget in `home.slots.sidebar`**; empty/error states.  

@@ -41,6 +41,17 @@ Browser
 
 Types: `ScriptRunner`, `ScriptContext`, `ScriptResult` in `api/src/scriptRunner.ts`.
 
+### Phase completion (all shipped)
+
+| Phase | Scope | Evidence |
+|-------|--------|----------|
+| A | Types + `BackgroundTask` | `api/src/scriptRunner.ts` |
+| B | HTTP routes + config metadata | `admin-backend/src/adminApp.ts`; `admin-backend/src/adminApp.test.ts` (run, poll, cancel, wetRun, 403/404); `adminApp.models.test.ts` (`/admin/config` includes `scripts`) |
+| C | Hooks + UI | `admin-frontend/src/useAdminScripts.ts`, `AdminScriptList.tsx`, `AdminScriptRunModal.tsx`, `AdminShell.tsx`, `AdminHome.tsx`; tests + isolated specs |
+| D | SPA + example | `admin-spa/app/scripts.tsx`, `app/[model]/index.tsx` (`__scripts`); `example-backend/src/server.ts` `scripts` |
+
+Script **run** paths are exercised in **`admin-backend` tests**; the aggregated **`openapi.json`** snapshot in **`example-backend`** documents `/admin/config` (including the `scripts` array shape) and may not list every dynamic `POST /admin/scripts/:name/run` path depending on OpenAPI aggregation — runtime behavior is still covered by admin-backend tests.
+
 ## APIs (implemented)
 
 | Method | Path | Purpose |
