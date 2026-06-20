@@ -5,6 +5,7 @@ export * from "./auth";
 export * from "./betterAuth";
 export * from "./betterAuthApp";
 export * from "./betterAuthSetup";
+export * from "./browserLogsRoute";
 export * from "./config";
 export * from "./configurationApp";
 export * from "./configurationPlugin";

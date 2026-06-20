@@ -3,7 +3,7 @@
 Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
 
 - **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
-- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned)
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs` (JSONL + optional Metro `/events` + Hermes CDP console ring), `last_error`, `get_rtk_state` (local `__TERRENO_STORE__` or CDP), `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (expo-router via CDP, same gate). Metro URL defaults from `frontend/package.json` `--port` or `TERRENO_METRO_URL`.
 
 It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 

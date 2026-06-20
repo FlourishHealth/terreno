@@ -8,6 +8,8 @@ import "react-native-reanimated";
 import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
+  getAuthToken,
+  installTerrenoDevConsoleLogger,
   selectBetterAuthIsLoading,
   selectBetterAuthUserId,
   setRealtimeSocket,
@@ -38,6 +40,8 @@ import {getSessionToken} from "@/lib/betterAuth";
 import store, {persistor, syncBetterAuthSession} from "@/store/index";
 import {terrenoApi, useGetMeQuery} from "@/store/sdk";
 import {setSyncDbReady, syncDb} from "@/store/syncdb";
+
+installTerrenoDevConsoleLogger();
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
