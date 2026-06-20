@@ -1,3 +1,29 @@
+/**
+ * Backend logging for `@terreno/api`.
+ *
+ * Three building blocks cooperate so a single request or background job can be followed across
+ * many log lines, both in plain-text consoles and in structured transports (Google Cloud Logging,
+ * Sentry):
+ *
+ * - **{@link logger}** – the global logger (`debug` / `info` / `warn` / `error` / `catch`). Use it
+ *   for one-off messages.
+ * - **{@link createScopedLogger}** – returns a logger that prepends a stable `prefix` and/or
+ *   attaches `labels` (workflow dimensions such as `invoiceId`) to every line. Use it when a
+ *   handler, job, or service runs multiple steps that should share identifiers.
+ * - **{@link createFeatureFlaggedLogger}** – wraps any {@link ScopedLogger} behind an
+ *   `isEnabled()` predicate so verbose diagnostics can be toggled with a feature flag or env var
+ *   without a redeploy.
+ *
+ * **Correlation** is automatic: while a request/job AsyncLocalStorage scope is active (see
+ * `requestContext.ts` – HTTP middleware or `runWithRequestContext`), every log line is enriched
+ * with `requestId`, `userId`, `traceId`, etc. and a nested `terrenoRequestLog` object, regardless
+ * of which logger above emitted it.
+ *
+ * @see {@link createScopedLogger}
+ * @see {@link createFeatureFlaggedLogger}
+ * @see {@link formatLogContextSuffix}
+ * @module logger
+ */
 import fs from "node:fs";
 import {inspect} from "node:util";
 import * as Sentry from "@sentry/bun";
@@ -202,6 +228,26 @@ const sendToSentry = (
   }
 };
 
+/**
+ * Global application logger. Each method writes through Winston (console/file transports) and, when
+ * `USE_SENTRY_LOGGING=true`, mirrors the line to Sentry with the active request context attached.
+ *
+ * Prefer {@link createScopedLogger} when a workflow spans multiple log lines that should share a
+ * prefix or labels.
+ *
+ * @example
+ * ```typescript
+ * import {logger} from "@terreno/api";
+ *
+ * logger.info("Server started", {port: 4000});
+ * logger.warn("Slow query", {ms: 500});
+ * logger.error("Failed to process", {error});
+ * logger.debug("Request details", {body: req.body});
+ *
+ * // Convenient `.catch` handler for promises – logs and captures the exception.
+ * await chargeCard(id).catch(logger.catch);
+ * ```
+ */
 export const logger = {
   // simple way to log a caught exception. e.g. promise().catch(logger.catch)
   catch: (e: unknown) => {
@@ -257,7 +303,12 @@ const applyMessagePrefix = (prefix: string | undefined, msg: string): string => 
   return `${trimmed} ${msg}`;
 };
 
+/**
+ * Logger-shaped object returned by {@link createScopedLogger} and {@link createFeatureFlaggedLogger}.
+ * Method signatures match the global {@link logger} so the three are interchangeable at call sites.
+ */
 export interface ScopedLogger {
+  /** Log a caught exception. Suitable as a promise handler: `promise.catch(log.catch)`. */
   catch: (e: unknown) => void;
   debug: (msg: string, ...args: unknown[]) => void;
   error: (msg: string, ...args: unknown[]) => void;
@@ -277,12 +328,7 @@ export interface CreateScopedLoggerOptions {
   labels?: Record<string, string | number | boolean | undefined>;
 }
 
-/**
- * Returns a logger-like object that prefixes messages and/or attaches stable labels to every
- * line. `terrenoLabels` and `terrenoLogPrefix` ride on the Winston child logger so structured
- * transports (for example `@google-cloud/logging-winston`) receive them as jsonPayload fields.
- * Request-scoped ids and `terrenoRequestLog` still come from AsyncLocalStorage when active.
- */
+/** Winston child-logger metadata defaults applied to every line a scoped logger emits. */
 interface TerrenoScopedLoggerDefaults {
   terrenoLabels?: Record<string, string>;
   terrenoLogPrefix?: string;
@@ -304,6 +350,42 @@ const buildScopedLoggerSentryExtras = (
   return Object.keys(out).length > 0 ? out : undefined;
 };
 
+/**
+ * Creates a {@link ScopedLogger} that prefixes every message and/or attaches stable `labels` to
+ * every line, so multi-step workflows are easy to group and search.
+ *
+ * - `prefix` is prepended to the human-readable message (easy grep / Log Explorer text search) and
+ *   also stored as the Winston metadata field `terrenoLogPrefix`.
+ * - `labels` are normalized to strings and stored as the Winston metadata field `terrenoLabels`.
+ *   They appear in the plain-text ` key=value` suffix (see {@link formatLogContextSuffix}) and as
+ *   discrete fields on structured transports such as `@google-cloud/logging-winston`.
+ *
+ * Both ride on a Winston **child logger**, so they merge with — and never overwrite — the
+ * request/job correlation fields that AsyncLocalStorage injects (`requestId`, `userId`,
+ * `terrenoRequestLog`, etc.). Avoid label keys that collide with those framework fields:
+ * `requestId`, `jobId`, `sessionId`, `userId`, `traceId`, `spanId`, `terrenoLogPrefix`,
+ * `terrenoRequestLog`, `terrenoLabels`.
+ *
+ * If both `prefix` and `labels` are empty, the global {@link logger} is returned unchanged.
+ *
+ * @param options - Optional `prefix` token and/or `labels` dimensions for this scope.
+ * @returns A scoped logger sharing the same methods as the global {@link logger}.
+ * @see {@link createFeatureFlaggedLogger} to gate a scoped logger behind a feature flag.
+ *
+ * @example Reuse one instance for a whole workflow so every line shares identifiers
+ * ```typescript
+ * import {createScopedLogger} from "@terreno/api";
+ *
+ * const log = createScopedLogger({
+ *   prefix: "[InvoicePay]",
+ *   labels: {invoiceId: invoice._id.toString(), attempt: String(attemptNumber)},
+ * });
+ *
+ * log.info("Starting capture");        // -> "[InvoicePay] Starting capture invoiceId=... attempt=1 requestId=..."
+ * log.warn("Stripe rate limited, backing off");
+ * await capture(invoice).catch(log.catch);
+ * ```
+ */
 export const createScopedLogger = (options: CreateScopedLoggerOptions = {}): ScopedLogger => {
   const trimmedPrefix = options.prefix?.trim() ? options.prefix.trim() : undefined;
   const terrenoLabels = normalizeLogLabels(options.labels);
@@ -378,8 +460,39 @@ export interface CreateFeatureFlaggedLoggerOptions {
 }
 
 /**
- * Wraps a {@link ScopedLogger} so all traffic is dropped while `isEnabled()` is false. Wire
- * `isEnabled` to any feature-flag source; `@terreno/api` does not depend on `@terreno/feature-flags`.
+ * Wraps a {@link ScopedLogger} so all `debug` / `info` / `warn` / `error` traffic is dropped while
+ * `isEnabled()` returns false. Use it to keep verbose diagnostics in the code but silent until a
+ * flag turns them on — no redeploy required.
+ *
+ * `isEnabled` is evaluated on **every** call, so it can read any feature-flag source: an
+ * environment variable, a cached/remote flag map, or a call into `@terreno/feature-flags` from your
+ * app. (`@terreno/api` deliberately does not import `@terreno/feature-flags` to avoid a package
+ * cycle — you supply the predicate.)
+ *
+ * @param options - The `isEnabled` predicate plus an optional `target` logger and `gateCatch`.
+ * @returns A scoped logger that forwards to `target` only while the flag is enabled.
+ * @see {@link createScopedLogger} for the usual `target`.
+ *
+ * @example Gate a scoped logger behind an env var (flips live, no restart)
+ * ```typescript
+ * import {createFeatureFlaggedLogger, createScopedLogger} from "@terreno/api";
+ *
+ * const jobLog = createFeatureFlaggedLogger({
+ *   isEnabled: () => process.env.JOB_TRACE_LOGS === "true",
+ *   target: createScopedLogger({prefix: "[Job]", labels: {jobName: "nightly-sync"}}),
+ * });
+ *
+ * jobLog.info("step 1"); // silent unless JOB_TRACE_LOGS=true
+ * ```
+ *
+ * @example Drive it from `@terreno/feature-flags` in app code
+ * ```typescript
+ * const debugLog = createFeatureFlaggedLogger({
+ *   isEnabled: () => flags.isEnabled("debug.billing"),
+ *   target: createScopedLogger({prefix: "[Billing]"}),
+ *   gateCatch: true, // also silence `catch` while the flag is off (default: false)
+ * });
+ * ```
  */
 export const createFeatureFlaggedLogger = (
   options: CreateFeatureFlaggedLoggerOptions
