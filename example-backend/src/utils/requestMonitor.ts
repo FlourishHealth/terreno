@@ -1,10 +1,11 @@
 import {AsyncLocalStorage} from "node:async_hooks";
 import {logger} from "@terreno/api";
 import type {NextFunction, Request, Response} from "express";
+import {DateTime} from "luxon";
 
 interface RequestTiming {
   startTime: [number, number];
-  middlewareTimes: {[key: string]: number};
+  middlewareTimes: Record<string, number>;
   dbQueries: Array<{
     query: string;
     duration: number;
@@ -89,7 +90,7 @@ export const requestMonitorMiddleware = (req: Request, res: Response, next: Next
       timing.memorySnapshots.push({
         heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
         heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-        timestamp: Date.now(),
+        timestamp: DateTime.now().toMillis(),
       });
     }, MEMORY_SAMPLE_INTERVAL_MS);
 
@@ -137,7 +138,9 @@ export const trackMiddleware = (name: string) => {
 
 export const trackDbQuery = (req: Request, query: string, startTime: [number, number]): void => {
   const timing = requestTimings.get(req);
-  if (!timing) return;
+  if (!timing) {
+    return;
+  }
 
   const diff = process.hrtime(startTime);
   const duration = Math.round(diff[0] * 1000 + diff[1] * 0.000001);
@@ -145,11 +148,12 @@ export const trackDbQuery = (req: Request, query: string, startTime: [number, nu
   timing.dbQueries.push({
     duration,
     query: query.substring(0, 100) + (query.length > 100 ? "..." : ""),
-    timestamp: Date.now(),
+    timestamp: DateTime.now().toMillis(),
   });
 };
 
 export const setupMongooseMonitoring = (): void => {
+  // Dynamic require for untyped monkey-patching of Mongoose internals
   const mongoose = require("mongoose");
 
   const originalExec = mongoose.Query.prototype.exec;

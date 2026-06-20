@@ -14,6 +14,8 @@ export default defineConfig({
   reporter: process.env.CI ? "list" : "html",
   retries: process.env.CI ? 1 : 0,
   testDir: "./e2e",
+  // Integration specs need a real backend; they run via playwright.integration.config.ts.
+  testIgnore: "**/integration/**",
   testMatch: "**/*.spec.ts",
   use: {
     baseURL: `http://localhost:${PORT}`,

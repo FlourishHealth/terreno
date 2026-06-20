@@ -3,11 +3,9 @@ import {beforeEach, describe, expect, it} from "bun:test";
 import type express from "express";
 import supertest from "supertest";
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
 import {Permissions} from "./permissions";
 import {TerrenoApp} from "./terrenoApp";
-import {authAsUser, FoodModel, setupDb, UserModel} from "./tests";
+import {FoodModel, setupDb, UserModel} from "./tests";
 import {z} from "./zodOpenApi";
 
 const foodActionPermissions = {
@@ -142,11 +140,11 @@ describe("action OpenAPI emission", () => {
     });
   });
 
-  describe("setupServer", () => {
+  describe("configureApp", () => {
     let app: express.Application;
 
     beforeEach(() => {
-      const addRoutes = (
+      const configureApp = (
         router: express.Router,
         routerOptions?: Partial<ModelRouterOptions<unknown>>
       ): void => {
@@ -156,16 +154,14 @@ describe("action OpenAPI emission", () => {
         );
       };
 
-      app = setupServer({
-        addRoutes,
+      app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
-      setupAuth(app, UserModel as any);
-      addAuthRoutes(app, UserModel as any);
+      }).build();
     });
 
-    it("emits the same action operations on first hit via legacy setupServer", async () => {
+    it("emits the same action operations on first hit via configureApp", async () => {
       const server = supertest(app);
       await primeActionOpenApiRoutes(server, foodId);
 

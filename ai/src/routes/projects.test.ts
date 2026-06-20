@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -51,13 +51,13 @@ describe("Project Routes", () => {
 
   beforeEach(async () => {
     await Project.deleteMany({});
-    app = setupServer({
-      addRoutes: (router, options) => {
+    app = new TerrenoApp({
+      configureApp: (router, options) => {
         addProjectRoutes(router, {openApiOptions: options});
       },
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
   });
 
   describe("project memories (subdoc)", () => {

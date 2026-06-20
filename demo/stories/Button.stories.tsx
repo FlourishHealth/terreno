@@ -46,7 +46,13 @@ const handleDemoClick = (): void => {
 export const ButtonDemo: React.FC<Partial<ButtonProps>> = (props) => {
   return (
     <Box alignItems="center" justifyContent="center">
-      <Button iconName="plus" onClick={handleDemoClick} text="Button" {...props} />
+      <Button
+        iconName="plus"
+        onClick={handleDemoClick}
+        testID="demo-button"
+        text="Button"
+        {...props}
+      />
     </Box>
   );
 };

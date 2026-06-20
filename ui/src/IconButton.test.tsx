@@ -1,7 +1,7 @@
 import {describe, expect, it, mock} from "bun:test";
 
 import {IconButton} from "./IconButton";
-import {renderWithTheme} from "./test-utils";
+import {renderWithIcons, renderWithTheme} from "./test-utils";
 
 describe("IconButton", () => {
   it("renders correctly with default props", () => {
@@ -141,5 +141,27 @@ describe("IconButton", () => {
       />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  describe("custom icons", () => {
+    // IconButton renders `null` under the bun/react-test-renderer harness (all of
+    // its snapshots are null), so we verify the custom-icon code path renders
+    // without throwing rather than asserting on rendered output. The registry
+    // resolution itself is covered in IconRegistry.test.tsx via useCustomIcon.
+    it("accepts a registered custom icon name without throwing", () => {
+      expect(() =>
+        renderWithIcons(
+          <IconButton accessibilityLabel="Custom" iconName="testCustomIcon" onClick={() => {}} />
+        )
+      ).not.toThrow();
+    });
+
+    it("accepts an unregistered (FontAwesome) icon name without throwing", () => {
+      expect(() =>
+        renderWithIcons(
+          <IconButton accessibilityLabel="Check" iconName="check" onClick={() => {}} />
+        )
+      ).not.toThrow();
+    });
   });
 });

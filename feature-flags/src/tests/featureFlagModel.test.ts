@@ -202,6 +202,51 @@ describe("FeatureFlag model", () => {
     const maybe = await FeatureFlag.findOneOrNone({key: "missing-flag"});
     expect(maybe).toBeNull();
   });
+
+  it("auto-fills defaultVariant to off for boolean flags when omitted", async () => {
+    const flag = await FeatureFlag.create({
+      key: "default-variant-bool",
+      name: "Default variant bool",
+    });
+    expect(flag.defaultVariant).toBe("off");
+  });
+
+  it("auto-fills defaultVariant to the first variant key when omitted on variant flags", async () => {
+    const flag = await FeatureFlag.create({
+      key: "default-variant-var",
+      name: "Default variant var",
+      type: "variant",
+      variants: [
+        {key: "control", weight: 40},
+        {key: "treatment", weight: 60},
+      ],
+    });
+    expect(flag.defaultVariant).toBe("control");
+  });
+
+  it("accepts explicit defaultVariant on for boolean flags", async () => {
+    const flag = await FeatureFlag.create({
+      defaultVariant: "on",
+      enabled: true,
+      key: "explicit-on-bool",
+      name: "Explicit on",
+      rolloutPercentage: 100,
+      type: "boolean",
+    });
+    expect(flag.defaultVariant).toBe("on");
+  });
+
+  it("rejects boolean defaultVariant values other than on or off", async () => {
+    await expect(
+      FeatureFlag.create({
+        defaultVariant: "maybe",
+        enabled: true,
+        key: "bad-default-variant",
+        name: "Bad default",
+        type: "boolean",
+      })
+    ).rejects.toMatchObject({title: "Boolean flags must use defaultVariant 'on' or 'off'"});
+  });
 });
 
 describe("featureFlagAdminConfig", () => {
@@ -215,6 +260,7 @@ describe("featureFlagAdminConfig", () => {
       "type",
       "enabled",
       "archived",
+      "defaultVariant",
       "created",
     ]);
   });

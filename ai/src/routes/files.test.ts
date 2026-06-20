@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -69,8 +69,8 @@ describe("File Routes", () => {
         })
       ),
     };
-    app = setupServer({
-      addRoutes: (router, options) => {
+    app = new TerrenoApp({
+      configureApp: (router, options) => {
         addFileRoutes(router, {
           fileStorageService: fileStorageService as FileStorageService,
           openApiOptions: options,
@@ -78,7 +78,7 @@ describe("File Routes", () => {
       },
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
   });
 
   describe("POST /files/upload", () => {

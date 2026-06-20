@@ -59,6 +59,7 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 - **admin-backend/** - Admin panel backend plugin for @terreno/api (published as `@terreno/admin-backend`)
 - **admin-frontend/** - Admin panel frontend screens for @terreno/api backends (published as `@terreno/admin-frontend`)
 - **api-health/** - Health check plugin for @terreno/api (published as `@terreno/api-health`)
+- **feature-flags/** - Feature flags and A/B testing plugin for @terreno/api (published as `@terreno/feature-flags`)
 
 ### Deployed Services
 
@@ -71,6 +72,32 @@ Terreno is designed to be the best framework for AI-assisted app development. Th
 - **example-backend/** - Example backend application using `@terreno/api`
 - **example-frontend/** - Example frontend application using `@terreno/ui` and `@terreno/rtk`
 - **demo/** - Demo app for showcasing and testing UI components
+
+## Feature flags: OpenFeature migration
+
+Terreno’s feature-flag stack uses **OpenFeature** (`@terreno/feature-flags` on the server, `@terreno/rtk` on the client). If you upgrade from a Terreno release that only documented `GET …/evaluate`, use this checklist.
+
+### Backend (`@terreno/feature-flags`)
+
+1. Keep **`FeatureFlagsApp`** registered as before; admin CRUD is unchanged.
+2. Prefer authenticated clients calling **`GET {basePath}/flagConfiguration`** — the JSON body matches OpenFeature’s static configuration shape (for `TypedInMemoryProvider` on the client).
+3. **`GET {basePath}/evaluate`** still returns the legacy `Record<key, boolean | string | null>` map but is **deprecated** (`Deprecation: true`, `Sunset` header). Migrate direct HTTP or hand-written clients to `/flagConfiguration`, or rely on `@terreno/rtk` hooks below.
+4. **`FeatureFlag`** documents gain optional **`defaultVariant`** (boolean: `"on"` / `"off"`; variant: a key from `variants`). Omitted values are filled on save. For existing databases, run a one-off backfill or reuse the pattern in `example-backend/src/scripts/seed-feature-flags.ts`.
+5. **Live updates (optional):** pass `liveUpdates: { socketIoServer: io | () => io }` to `FeatureFlagsApp`. MongoDB must run as a **replica set** (a single-node replset is enough) so Mongoose change streams work.
+
+### Frontend (`@terreno/rtk` + OpenFeature)
+
+1. **`useFeatureFlags(terrenoApi, …)`** — no code changes required for the common case; it already uses `/flagConfiguration` and keeps `{ flags, getFlag, getVariant, isLoading, refetch }`.
+2. **OpenFeature React hooks** (`useBooleanFlagValue`, `useStringFlagValue`, `<FeatureFlag>`, …): add **`@openfeature/react-sdk`** and **`@openfeature/web-sdk`** to your app (align versions with `@terreno/rtk` **peerDependencies** and the root **`catalog`** in this repo).
+3. Wrap the UI that reads flags in **`<OpenFeatureProvider domain="feature-flags">`** (or the same `domain` you pass into the hook).
+4. After auth, call **`useTerrenoFeatureFlags(terrenoApi, { userId, skip, socket, … })`** once under your Redux `Provider` so OpenFeature is populated before hooks read flag values.
+5. **Regenerate the OpenAPI SDK** after the backend exposes the new route: `cd your-frontend && bun run sdk`. Prefer **`useTerrenoFeatureFlags` / `useFeatureFlags`** over calling a generated `flagConfiguration` hook directly, so domain, cache keys, and optional socket refetch stay consistent.
+
+### Further reading
+
+- [`docs/reference/feature-flags.md`](docs/reference/feature-flags.md)
+- [`docs/how-to/add-feature-flags.md`](docs/how-to/add-feature-flags.md)
+- [`docs/implementationPlans/feature-flags-openfeature.md`](docs/implementationPlans/feature-flags-openfeature.md)
 
 ## Development
 

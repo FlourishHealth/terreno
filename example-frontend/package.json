@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@expo/vector-icons": "catalog:",
+    "@openfeature/react-sdk": "catalog:",
+    "@openfeature/web-sdk": "catalog:",
     "@react-native-async-storage/async-storage": "catalog:",
     "@react-navigation/native": "catalog:",
     "@reduxjs/toolkit": "catalog:",
