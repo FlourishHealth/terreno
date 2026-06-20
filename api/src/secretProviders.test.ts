@@ -334,3 +334,215 @@ describe("CachingSecretProvider", () => {
     expect(calls).toBe(1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// GcpSecretProvider
+// ---------------------------------------------------------------------------
+
+interface MockSecretManagerClient {
+  accessSecretVersion: (request: {
+    name: string;
+  }) => Promise<[{payload?: {data?: string | Uint8Array}}]>;
+}
+
+/** Inject a pre-built mock client into a GcpSecretProvider, bypassing getClient(). */
+const injectClient = (provider: GcpSecretProvider, client: MockSecretManagerClient): void => {
+  // Bypass the private `client` field for testing — avoids the dynamic import of
+  // @google-cloud/secret-manager which is an optional peer dependency.
+  Object.defineProperty(provider, "client", {configurable: true, value: client, writable: true});
+};
+
+describe("GcpSecretProvider", () => {
+  it("has the name 'gcp'", () => {
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    expect(provider.name).toBe("gcp");
+  });
+
+  it("throws APIError when @google-cloud/secret-manager is not installed", async () => {
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    try {
+      await provider.getSecret("some-secret");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBeInstanceOf(APIError);
+      expect((error as APIError).title).toContain(
+        "GcpSecretProvider requires @google-cloud/secret-manager"
+      );
+    }
+  });
+
+  it("resolves a short secret name to the full resource path with default version", async () => {
+    const calls: string[] = [];
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async (req) => {
+        calls.push(req.name);
+        return [{payload: {data: "secret-value"}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "my-project"});
+    injectClient(provider, mockClient);
+
+    const result = await provider.getSecret("openai-api-key");
+    expect(result).toBe("secret-value");
+    expect(calls).toEqual(["projects/my-project/secrets/openai-api-key/versions/latest"]);
+  });
+
+  it("resolves a short secret name with an explicit version", async () => {
+    const calls: string[] = [];
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async (req) => {
+        calls.push(req.name);
+        return [{payload: {data: "v3-value"}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    const result = await provider.getSecret("my-key", "3");
+    expect(result).toBe("v3-value");
+    expect(calls).toEqual(["projects/p/secrets/my-key/versions/3"]);
+  });
+
+  it("honors a full resource path that already contains /versions/", async () => {
+    const calls: string[] = [];
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async (req) => {
+        calls.push(req.name);
+        return [{payload: {data: "pinned"}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "ignored"});
+    injectClient(provider, mockClient);
+
+    const result = await provider.getSecret("projects/p/secrets/s/versions/7");
+    expect(result).toBe("pinned");
+    expect(calls).toEqual(["projects/p/secrets/s/versions/7"]);
+  });
+
+  it("appends /versions/latest to a full resource path without a version suffix", async () => {
+    const calls: string[] = [];
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async (req) => {
+        calls.push(req.name);
+        return [{payload: {data: "latest-value"}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "ignored"});
+    injectClient(provider, mockClient);
+
+    const result = await provider.getSecret("projects/p/secrets/s");
+    expect(result).toBe("latest-value");
+    expect(calls).toEqual(["projects/p/secrets/s/versions/latest"]);
+  });
+
+  it("appends the explicit version when full path lacks /versions/", async () => {
+    const calls: string[] = [];
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async (req) => {
+        calls.push(req.name);
+        return [{payload: {data: "v5"}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "ignored"});
+    injectClient(provider, mockClient);
+
+    const result = await provider.getSecret("projects/p/secrets/s", "5");
+    expect(result).toBe("v5");
+    expect(calls).toEqual(["projects/p/secrets/s/versions/5"]);
+  });
+
+  it("decodes a Uint8Array payload", async () => {
+    const encoded = new TextEncoder().encode("binary-secret");
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => [{payload: {data: encoded}}],
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    expect(await provider.getSecret("bin-key")).toBe("binary-secret");
+  });
+
+  it("returns null when the payload is empty", async () => {
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => [{payload: {}}],
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    expect(await provider.getSecret("empty-payload")).toBeNull();
+  });
+
+  it("returns null when the payload field is missing entirely", async () => {
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => [{}],
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    expect(await provider.getSecret("no-payload")).toBeNull();
+  });
+
+  it("returns null on NOT_FOUND (gRPC code 5)", async () => {
+    const notFound = Object.assign(new Error("NOT_FOUND"), {code: 5});
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => {
+        throw notFound;
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    expect(await provider.getSecret("missing-secret")).toBeNull();
+  });
+
+  it("re-throws non-NOT_FOUND errors", async () => {
+    const permissionDenied = Object.assign(new Error("PERMISSION_DENIED"), {code: 7});
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => {
+        throw permissionDenied;
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    try {
+      await provider.getSecret("forbidden-secret");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBe(permissionDenied);
+    }
+  });
+
+  it("re-throws non-Error throwables", async () => {
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => {
+        throw "string-error";
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    try {
+      await provider.getSecret("x");
+      expect.unreachable("should have thrown");
+    } catch (error) {
+      expect(error).toBe("string-error");
+    }
+  });
+
+  it("caches the client across multiple getSecret calls", async () => {
+    let callCount = 0;
+    const mockClient: MockSecretManagerClient = {
+      accessSecretVersion: async () => {
+        callCount++;
+        return [{payload: {data: `call-${callCount}`}}];
+      },
+    };
+    const provider = new GcpSecretProvider({projectId: "p"});
+    injectClient(provider, mockClient);
+
+    expect(await provider.getSecret("a")).toBe("call-1");
+    expect(await provider.getSecret("b")).toBe("call-2");
+    expect(callCount).toBe(2);
+  });
+});

@@ -363,6 +363,56 @@ describe("setRealtimeDebug / isWebsocketsDebugEnabled", () => {
   });
 });
 
+describe("logSocket edge cases", () => {
+  const originalInfo = console.info;
+  const calls: unknown[][] = [];
+
+  beforeEach(() => {
+    calls.length = 0;
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+  });
+
+  afterEach(() => {
+    console.info = originalInfo;
+    setRealtimeDebug(false);
+  });
+
+  it("logSocket does not log when user object has no featureFlags", () => {
+    logSocket({}, "no flags");
+    expect(calls).toEqual([]);
+  });
+
+  it("logSocket does not log when featureFlags exists but debugWebsockets is missing", () => {
+    logSocket({featureFlags: {}}, "missing debugWebsockets");
+    expect(calls).toEqual([]);
+  });
+
+  it("logSocket does not log when debugWebsockets exists but enabled is undefined", () => {
+    logSocket({featureFlags: {debugWebsockets: {}}}, "undefined enabled");
+    expect(calls).toEqual([]);
+  });
+
+  it("logSocket logs multiple args when runtime debug is enabled", () => {
+    setRealtimeDebug(true);
+    logSocket(undefined, "arg1", "arg2", "arg3");
+    expect(calls).toEqual([["[websocket]", "arg1", "arg2", "arg3"]]);
+  });
+
+  it("logSocket prefers user boolean over runtime debug setting", () => {
+    setRealtimeDebug(true);
+    logSocket(false, "should not log");
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("SAME_ORIGIN_SENTINEL", () => {
+  it("is the literal string __SAME_ORIGIN__", () => {
+    expect(SAME_ORIGIN_SENTINEL).toBe("__SAME_ORIGIN__");
+  });
+});
+
 // Mock.module tests (expo tunnel warning, AUTH_DEBUG) moved to
 // src/isolated/constants.isolated.ts to avoid coverage tracking interference.
 
