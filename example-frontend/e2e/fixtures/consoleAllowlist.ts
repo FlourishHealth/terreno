@@ -19,6 +19,8 @@ export const GLOBAL_CONSOLE_ALLOWLIST: ReadonlyArray<string | RegExp> = [
   // audit selectors and wrap with createSelector where appropriate.
   "Selector unknown returned a different result when called with the same parameters",
 
-  // RTK Query: terrenoFlagConfiguration rejects until auth tokens exist (expected on signup/login flows).
-  "terrenoFlagConfiguration rejected query: No token found for terrenoFlagConfiguration",
+  // Feature-flags RTK query (terrenoFlagConfiguration) rejects until auth tokens
+  // exist — expected on signup/login flows (e.g. duplicate-email signup) before a
+  // token is available. Broad substring covers the "No token found" message too.
+  "terrenoFlagConfiguration rejected query",
 ];
