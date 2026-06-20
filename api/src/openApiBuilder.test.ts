@@ -299,7 +299,8 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("stats endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/stats").expect(200);
-      expect(res.body).toEqual({avgCalories: 250, count: 10});
+      expect(res.body).toMatchObject({avgCalories: 250, count: 10});
+      expect(res.body.requestId).toEqual(expect.any(String));
     });
 
     it("reports endpoint returns correct data", async () => {
@@ -308,7 +309,8 @@ describe("OpenApiMiddlewareBuilder", () => {
         .post("/food/reports")
         .send({endDate: "2024-12-31", startDate: "2024-01-01"})
         .expect(201);
-      expect(res.body).toEqual({reportId: "report-123"});
+      expect(res.body).toMatchObject({reportId: "report-123"});
+      expect(res.body.requestId).toEqual(expect.any(String));
     });
 
     it("categories endpoint returns array data", async () => {
@@ -322,7 +324,8 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("category by id endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/categories/cat-123").expect(200);
-      expect(res.body).toEqual({id: "cat-123", name: "Fruits"});
+      expect(res.body).toMatchObject({id: "cat-123", name: "Fruits"});
+      expect(res.body.requestId).toEqual(expect.any(String));
     });
   });
 
