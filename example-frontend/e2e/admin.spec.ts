@@ -1,6 +1,15 @@
+import type {Page} from "@playwright/test";
 import {expect, test} from "./fixtures/test";
 import {getAdminToken, loginAsAdmin} from "./helpers/adminAuth";
 import {loginAs} from "./helpers/login";
+
+/** AdminHome grid and legacy model cards use @terreno/ui Box `onClick`, which exposes `${testID}-clickable`. */
+const adminModelEntry = (page: Page, modelName: string) =>
+  page
+    .getByTestId(`admin-home-models-grid-${modelName}-clickable`)
+    .or(page.getByTestId(`admin-model-card-${modelName}-clickable`))
+    .or(page.getByTestId(`admin-home-models-grid-${modelName}`))
+    .or(page.getByTestId(`admin-model-card-${modelName}`));
 
 test.describe("Admin Panel", () => {
   test.beforeEach(async ({page}) => {
@@ -10,12 +19,8 @@ test.describe("Admin Panel", () => {
   });
 
   test("admin panel renders model list", async ({page}) => {
-    const userEntry = page
-      .getByTestId("admin-model-card-User")
-      .or(page.getByTestId("admin-home-models-grid-User"));
-    const todoEntry = page
-      .getByTestId("admin-model-card-Todo")
-      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    const userEntry = adminModelEntry(page, "User");
+    const todoEntry = adminModelEntry(page, "Todo");
     await userEntry.first().waitFor({state: "visible"});
     await expect(userEntry.first()).toBeVisible();
     await expect(todoEntry.first()).toBeVisible();
@@ -28,9 +33,7 @@ test.describe("Admin Panel", () => {
   });
 
   test("can navigate to model table", async ({page}) => {
-    const todoEntry = page
-      .getByTestId("admin-model-card-Todo")
-      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    const todoEntry = adminModelEntry(page, "Todo");
     await todoEntry.first().waitFor({state: "visible"});
     await todoEntry.first().click();
     await page.getByTestId("admin-create-button").waitFor({state: "visible"});
@@ -38,9 +41,7 @@ test.describe("Admin Panel", () => {
   });
 
   test("can navigate to create form", async ({page}) => {
-    const todoEntry = page
-      .getByTestId("admin-model-card-Todo")
-      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    const todoEntry = adminModelEntry(page, "Todo");
     await todoEntry.first().waitFor({state: "visible"});
     await todoEntry.first().click();
     await page.getByTestId("admin-create-button").waitFor({state: "visible"});
@@ -53,26 +54,17 @@ test.describe("Admin Panel", () => {
     const API_URL = process.env.BACKEND_URL ?? "http://localhost:4000";
     const token = await getAdminToken(request);
 
-    // Get the admin user's ID for the required ownerId field
-    const meRes = await request.get(`${API_URL}/auth/me`, {
-      headers: {authorization: `Bearer ${token}`},
-    });
-    const meData = (await meRes.json()) as Record<string, unknown>;
-    const data = (meData.data ?? meData) as Record<string, unknown>;
-    const adminUserId = data._id as string;
-
-    // Create a todo via the admin API
+    // Seed via the consumer todos API — ownerId is assigned server-side. Admin POST
+    // strips readonly ownerId, so /admin/todos cannot accept it in the body.
     const todoTitle = `Admin Todo ${Date.now()}`;
-    const createRes = await request.post(`${API_URL}/admin/todos`, {
-      data: {ownerId: adminUserId, title: todoTitle},
+    const createRes = await request.post(`${API_URL}/todos`, {
+      data: {title: todoTitle},
       headers: {authorization: `Bearer ${token}`},
     });
     expect(createRes.ok()).toBeTruthy();
 
     // Navigate to the Todos admin table
-    const todoEntry = page
-      .getByTestId("admin-model-card-Todo")
-      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    const todoEntry = adminModelEntry(page, "Todo");
     await todoEntry.first().waitFor({state: "visible"});
     await todoEntry.first().click();
     await page.waitForLoadState("networkidle");
