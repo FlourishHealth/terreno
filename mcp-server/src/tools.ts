@@ -1,8 +1,75 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
+import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
+import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
+
+const docSearchTools: Tool[] = [
+  {
+    description:
+      "Search Terreno documentation (Diátaxis docs, bundled package guides, and @terreno/ui component props) with BM25-style keyword search. **Call this before guessing** modelRouter, OpenAPI, RTK Query, or UI APIs — same workflow as Laravel Boost search-docs.",
+    inputSchema: {
+      properties: {
+        packages: {
+          description:
+            'Optional filter: short names or npm scopes, e.g. ["api", "@terreno/ui"]. Matches chunks tagged for those packages.',
+          items: {type: "string"},
+          type: "array",
+        },
+        queries: {
+          description:
+            'One or more search phrases (multiple angles help, e.g. ["toggle", "switch field"]).',
+          items: {type: "string"},
+          type: "array",
+        },
+        tokenLimit: {
+          description: "Approximate max tokens of markdown to return (default 3000, hard-capped).",
+          type: "number",
+        },
+      },
+      required: ["queries"],
+      type: "object",
+    },
+    name: "terreno_search_docs",
+  },
+  {
+    description:
+      "Return the full props table for one @terreno/ui component from ui-types-documentation.json, plus short related markdown excerpts when available.",
+    inputSchema: {
+      properties: {
+        component: {
+          description: 'Component name as exported by @terreno/ui, e.g. "Button", "TextField".',
+          type: "string",
+        },
+      },
+      required: ["component"],
+      type: "object",
+    },
+    name: "terreno_get_component_docs",
+  },
+  {
+    description:
+      "Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to @terreno/* packages.",
+    inputSchema: {
+      properties: {
+        fromVersion: {
+          description: "Installed @terreno/* semver (e.g. 0.19.0)",
+          type: "string",
+        },
+        toVersion: {
+          description: "Target semver to upgrade to (e.g. 0.20.0)",
+          type: "string",
+        },
+      },
+      required: ["fromVersion", "toVersion"],
+      type: "object",
+    },
+    name: "terreno_get_upgrade_guide",
+  },
+];
 
 export const tools: Tool[] = [
   ...bootstrapTools,
+  ...docSearchTools,
   {
     description:
       "Generate a Mongoose model with proper Terreno conventions including schema, interfaces, and plugins",
@@ -52,7 +119,8 @@ export const tools: Tool[] = [
     name: "terreno_generate_model",
   },
   {
-    description: "Generate a modelRouter route configuration for a Mongoose model",
+    description:
+      "Generate a modelRouter route configuration for a Mongoose model. For non-CRUD operations, add instanceActions (/:id/action) or collectionActions (/action) with Zod schemas — see docs/explanation/model-router-actions.md",
     inputSchema: {
       properties: {
         modelName: {
@@ -379,6 +447,10 @@ import { ${modelName} } from "../models/${lowerName}";`;
 
   return `import { Router } from "express";
 ${imports}
+
+// Non-CRUD endpoints: use instanceActions (POST/GET /:id/actionName) or
+// collectionActions (POST/GET /actionName) on modelRouter options. See
+// docs/explanation/model-router-actions.md. Requires zod in the backend app.
 
 export const add${modelName}Routes = (router: Router) => {
   router.use(
@@ -1019,6 +1091,49 @@ export const handleToolCall = (
   }
 
   let result: string;
+
+  if (name === "terreno_search_docs") {
+    const queries = args.queries;
+    if (!Array.isArray(queries) || !queries.every((q) => typeof q === "string")) {
+      return {
+        content: [
+          {
+            text: '`queries` must be an array of strings, e.g. { "queries": ["modelRouter", "permissions"] }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    const packages = Array.isArray(args.packages)
+      ? args.packages.filter((p): p is string => typeof p === "string")
+      : undefined;
+    const tokenLimit = typeof args.tokenLimit === "number" ? args.tokenLimit : undefined;
+    result = searchDocs({packages, queries, tokenLimit});
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_component_docs") {
+    const component = typeof args.component === "string" ? args.component : "";
+    result = getComponentDocsMarkdown(component);
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_upgrade_guide") {
+    const fromVersion = typeof args.fromVersion === "string" ? args.fromVersion.trim() : "";
+    const toVersion = typeof args.toVersion === "string" ? args.toVersion.trim() : "";
+    if (!fromVersion || !toVersion) {
+      return {
+        content: [
+          {
+            text: 'Provide `fromVersion` and `toVersion` semver strings, e.g. { "fromVersion": "0.19.0", "toVersion": "0.20.0" }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    result = getUpgradeGuideMarkdown(fromVersion, toVersion);
+    return {content: [{text: result, type: "text"}]};
+  }
 
   switch (name) {
     case "terreno_generate_model": {

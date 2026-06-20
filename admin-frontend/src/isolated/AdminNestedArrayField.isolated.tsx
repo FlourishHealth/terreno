@@ -7,12 +7,18 @@ import type {ReactTestInstance} from "react-test-renderer";
 import {fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
 import type {AdminApi, AdminFieldConfig} from "../types";
 
-mock.module("../AdminFieldRenderer", () => ({
-  AdminFieldRenderer: ({fieldKey, onChange}: {fieldKey: string; onChange: (v: unknown) => void}) =>
-    React.createElement("AdminFieldRenderer", {
+mock.module("../AdminFieldRendererCore", () => ({
+  AdminFieldRendererCore: ({
+    fieldKey,
+    onChange,
+  }: {
+    fieldKey: string;
+    onChange: (v: unknown) => void;
+  }) =>
+    React.createElement("AdminFieldRendererCore", {
       fieldKey,
       onChange,
-      testID: `admin-field-renderer-${fieldKey}`,
+      testID: `admin-field-${fieldKey}`,
     }),
 }));
 
@@ -223,7 +229,7 @@ describe("AdminNestedArrayField", () => {
         ]}
       />
     );
-    const nameFields = getAllByTestId("admin-field-renderer-name");
+    const nameFields = getAllByTestId("admin-field-name");
     (nameFields[1] as ReactTestInstance).props.onChange("new name");
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0][0];

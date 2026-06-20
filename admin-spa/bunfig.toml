@@ -1,0 +1,3 @@
+[test]
+root = "./src"
+coveragePathIgnorePatterns = ["**/*.test.ts", "dist/**", "src/dist/**", "**/node_modules/**"]

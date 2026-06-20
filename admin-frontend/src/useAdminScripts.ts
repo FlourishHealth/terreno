@@ -1,7 +1,7 @@
 import {useMemo} from "react";
 import type {AdminApi, BackgroundTask, EndpointBuilder} from "./types";
 
-export const useAdminScripts = (api: AdminApi, baseUrl: string) => {
+export const useAdminScripts = (api: AdminApi, apiBase: string) => {
   const enhancedApi = useMemo(() => {
     return api.injectEndpoints({
       endpoints: (build: EndpointBuilder) => ({
@@ -9,26 +9,26 @@ export const useAdminScripts = (api: AdminApi, baseUrl: string) => {
           invalidatesTags: ["admin_scriptTask"],
           query: (taskId: string) => ({
             method: "DELETE",
-            url: `${baseUrl}/scripts/tasks/${taskId}`,
+            url: `${apiBase}/scripts/tasks/${taskId}`,
           }),
         }),
         adminGetScriptTask: build.query({
           providesTags: ["admin_scriptTask"],
           query: (taskId: string) => ({
             method: "GET",
-            url: `${baseUrl}/scripts/tasks/${taskId}`,
+            url: `${apiBase}/scripts/tasks/${taskId}`,
           }),
         }),
         adminRunScript: build.mutation({
           query: ({name, wetRun}: {name: string; wetRun: boolean}) => ({
             method: "POST",
-            url: `${baseUrl}/scripts/${name}/run?wetRun=${wetRun}`,
+            url: `${apiBase}/scripts/${name}/run?wetRun=${wetRun}`,
           }),
         }),
       }),
       overrideExisting: true,
     });
-  }, [api, baseUrl]);
+  }, [api, apiBase]);
 
   // noExplicitAny: RTK Query generates hook names dynamically; not statically expressible
   // biome-ignore lint/suspicious/noExplicitAny: dynamic hook lookup on RTK Query enhanced API

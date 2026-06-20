@@ -8,10 +8,10 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {generateTokens, type UserModel} from "./auth";
-import {setupServer} from "./expressServer";
 import {type GitHubUserFields, githubUserPlugin, setupGitHubAuth} from "./githubAuth";
 import {logger} from "./logger";
 import {createdUpdatedPlugin, isDisabledPlugin} from "./plugins";
+import {TerrenoApp} from "./terrenoApp";
 
 interface FakeStrategyOutcome {
   type: "success" | "redirect" | "fail";
@@ -142,8 +142,8 @@ describe("GitHub auth routes", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       githubAuth: {
         allowAccountLinking: true,
         callbackURL: "http://localhost:9000/auth/github/callback",
@@ -152,7 +152,7 @@ describe("GitHub auth routes", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -249,11 +249,11 @@ describe("GitHub auth disabled", () => {
     }
 
     // Setup server WITHOUT GitHub auth
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       skipListen: true,
       userModel: GitHubTestUserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -517,8 +517,8 @@ describe("addGitHubAuthRoutes link endpoints", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       githubAuth: {
         allowAccountLinking: true,
         callbackURL: "http://localhost:9000/auth/github/callback",
@@ -527,7 +527,7 @@ describe("addGitHubAuthRoutes link endpoints", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as any,
-    });
+    }).build();
     agent = supertest.agent(app);
   });
 
@@ -586,10 +586,10 @@ describe("GitHub callback handler (fake strategy)", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    app = setupServer({
-      addMiddleware: (a) => {
+    app = new TerrenoApp({
+      beforeJsonSetup: (a) => {
         // The handler reads (req as unknown as {session?: {returnTo?: string}}).session?.returnTo.
-        // setupServer does not install express-session, so prime a fake session from a request
+        // TerrenoApp does not install express-session, so prime a fake session from a request
         // header for tests.
         a.use((req, _res, next) => {
           const headerReturnTo = req.headers["x-mock-return-to"];
@@ -599,7 +599,7 @@ describe("GitHub callback handler (fake strategy)", () => {
           next();
         });
       },
-      addRoutes,
+      configureApp: addRoutes,
       githubAuth: {
         allowAccountLinking: true,
         callbackURL: "http://localhost:9000/auth/github/callback",
@@ -608,8 +608,8 @@ describe("GitHub callback handler (fake strategy)", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as unknown as UserModel,
-    });
-    // Swap the github strategy with our fake after setupServer registered it.
+    }).build();
+    // Swap the github strategy with our fake after TerrenoApp registered it.
     installFakeGithubStrategy();
     agent = supertest.agent(app);
   });
@@ -691,8 +691,8 @@ describe("GET /auth/github/link with JWT (fake strategy)", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       githubAuth: {
         allowAccountLinking: true,
         callbackURL: "http://localhost:9000/auth/github/callback",
@@ -701,7 +701,7 @@ describe("GET /auth/github/link with JWT (fake strategy)", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as unknown as UserModel,
-    });
+    }).build();
     installFakeGithubStrategy();
     agent = supertest.agent(app);
   });
@@ -746,8 +746,8 @@ describe("DELETE /auth/github/unlink edge cases", () => {
       router.get("/test", (_req, res) => res.json({ok: true}));
     }
 
-    app = setupServer({
-      addRoutes,
+    app = new TerrenoApp({
+      configureApp: addRoutes,
       githubAuth: {
         allowAccountLinking: true,
         callbackURL: "http://localhost:9000/auth/github/callback",
@@ -756,7 +756,7 @@ describe("DELETE /auth/github/unlink edge cases", () => {
       },
       skipListen: true,
       userModel: GitHubTestUserModel as unknown as UserModel,
-    });
+    }).build();
     installFakeGithubStrategy();
     agent = supertest.agent(app);
   });

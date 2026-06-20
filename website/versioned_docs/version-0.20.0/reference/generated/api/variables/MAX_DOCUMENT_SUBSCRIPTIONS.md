@@ -1,0 +1,1 @@
+> `const` **MAX\_DOCUMENT\_SUBSCRIPTIONS**: `500` = `500`

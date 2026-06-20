@@ -1,5 +1,5 @@
 import {beforeAll, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
 import type {LanguageModel} from "ai";
 import type express from "express";
 import mongoose from "mongoose";
@@ -73,11 +73,11 @@ describe("AiApp", () => {
     const {AIService} = await import("./service/aiService");
     const aiService = new AIService({model: createMockModel() as unknown as LanguageModel});
     const plugin = new AiApp({aiService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
 
     const agent = await authAsUser(app);
     const tools = await agent.get("/gpt/tools");
@@ -101,11 +101,11 @@ describe("AiApp", () => {
       })),
     } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService, gcsBucket: "test-bucket"});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     // Unauthenticated access to upload route: ensure it exists (returns 401, not 404).
     const upload = await supertest(app).post("/files/upload");
     expect(upload.status).not.toBe(404);
@@ -122,11 +122,11 @@ describe("AiApp", () => {
       })),
     } as unknown as FileStorageService;
     const plugin = new AiApp({fileStorageService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     const upload = await supertest(app).post("/files/upload");
     expect(upload.status).toBe(404);
   });
@@ -138,11 +138,11 @@ describe("AiApp", () => {
       reconnectServer: mock(async () => {}),
     } as unknown as MCPService;
     const plugin = new AiApp({mcpService});
-    const app = setupServer({
-      addRoutes: (router) => plugin.register(router as unknown as express.Application),
+    const app = new TerrenoApp({
+      configureApp: (router) => plugin.register(router as unknown as express.Application),
       skipListen: true,
       userModel: UserModel,
-    });
+    }).build();
     const agent = await authAsUser(app);
     const servers = await agent.get("/mcp/servers");
     expect(servers.status).not.toBe(404);

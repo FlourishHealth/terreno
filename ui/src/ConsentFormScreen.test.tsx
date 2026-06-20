@@ -118,6 +118,21 @@ describe("ConsentFormScreen", () => {
     });
   });
 
+  it("keeps decline and agree buttons in equal-width columns when both are shown", () => {
+    const {getAllByTestId, getByTestId} = renderWithTheme(
+      <ConsentFormScreen form={baseForm} locale="en" onAgree={() => {}} onDecline={() => {}} />
+    );
+
+    const actionRow = getByTestId("consent-form-action-row");
+    const actionColumns = getAllByTestId("consent-form-action-column");
+
+    expect(actionRow.props.style).toMatchObject({flexDirection: "row"});
+    expect(actionColumns.length).toBe(2);
+    for (const column of actionColumns) {
+      expect(column.props.style).toMatchObject({flexBasis: 0, minWidth: 0});
+    }
+  });
+
   it("fires scroll handlers without crashing", () => {
     const form = {...baseForm, requireScrollToBottom: true};
     const {getByTestId} = renderWithTheme(

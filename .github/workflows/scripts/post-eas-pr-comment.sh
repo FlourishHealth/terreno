@@ -11,12 +11,14 @@
 #   APP_SLUG          EAS project slug (e.g. terreno-example, terreno-demo)
 #   APP_SCHEME        Deep-link URL scheme (from app.json — e.g. frontend, terreno)
 #   PROJECT_ID        EAS project UUID
-#   IOS_MATCH         "true" if a finished iOS dev build matches IOS_HASH
+#   IOS_DEVICE_MATCH  "true" if a finished iOS device dev build matches IOS_HASH
+#   IOS_SIM_MATCH     "true" if a finished iOS simulator dev build matches IOS_HASH
 #   ANDROID_MATCH     "true" if a finished Android dev build matches ANDROID_HASH
 #   PATH_TAKEN        "fast" or "slow"
 #   IOS_DEVICE_BUILD_ID Latest finished iOS device dev build ID (may be empty)
 #   IOS_SIM_BUILD_ID    Latest finished iOS simulator dev build ID (may be empty)
 #   ANDROID_BUILD_ID    Latest finished Android dev build ID (may be empty)
+#   EAS_UPDATE_GROUP_ID  Published EAS Update group ID (may be empty if publish failed)
 
 set -euo pipefail
 
@@ -29,7 +31,8 @@ set -euo pipefail
 : "${APP_SLUG:?missing}"
 : "${APP_SCHEME:?missing}"
 : "${PROJECT_ID:?missing}"
-: "${IOS_MATCH:?missing}"
+: "${IOS_DEVICE_MATCH:?missing}"
+: "${IOS_SIM_MATCH:?missing}"
 : "${ANDROID_MATCH:?missing}"
 : "${PATH_TAKEN:?missing}"
 
@@ -40,13 +43,26 @@ urlencode() {
 }
 
 branch="pr-$PR_NUMBER"
-update_url="https://u.expo.dev/$PROJECT_ID?channel-name=$branch"
-deep_link="$APP_SCHEME://expo-development-client/?url=$(urlencode "$update_url")"
-qr_image="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(urlencode "$deep_link")"
 branch_dashboard="https://expo.dev/accounts/flourishhealth/projects/$APP_SLUG/updates?branchName=$branch"
 
-ios_status="⚠️ Fingerprint changed — rebuilding"
-[ "$IOS_MATCH" = "true" ] && ios_status="✅ Existing build matches"
+if [ -n "${EAS_UPDATE_GROUP_ID:-}" ]; then
+  update_url="https://u.expo.dev/$PROJECT_ID/group/$EAS_UPDATE_GROUP_ID"
+  deep_link="$APP_SCHEME://expo-development-client/?url=$(urlencode "$update_url")"
+  qr_image="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=$(urlencode "$deep_link")"
+  launch_section=$(cat <<EOF
+[![Scan with phone camera]($qr_image)]($deep_link)
+
+[Open exact EAS Update group]($update_url)
+EOF
+)
+else
+  launch_section="EAS Update publish did not complete, so there is no group URL to launch yet."
+fi
+
+ios_device_status="⚠️ Fingerprint changed — rebuilding"
+[ "$IOS_DEVICE_MATCH" = "true" ] && ios_device_status="✅ Existing build matches"
+ios_sim_status="⚠️ Fingerprint changed — rebuilding"
+[ "$IOS_SIM_MATCH" = "true" ] && ios_sim_status="✅ Existing build matches"
 android_status="⚠️ Fingerprint changed — rebuilding"
 [ "$ANDROID_MATCH" = "true" ] && android_status="✅ Existing build matches"
 
@@ -78,7 +94,7 @@ $MARKER
 <details>
 <summary>Launch on device</summary>
 
-[![Scan with phone camera]($qr_image)]($deep_link)
+$launch_section
 
 [Open branch on EAS dashboard]($branch_dashboard)
 
@@ -87,13 +103,14 @@ $install_section
 
 **Status**
 - Path: $path_line
-- iOS dev build matches fingerprint: $ios_status
+- iOS device dev build matches fingerprint: $ios_device_status
+- iOS simulator dev build matches fingerprint: $ios_sim_status
 - Android dev build matches fingerprint: $android_status
 
 **Instructions**
 1. Install the right dev build above (one-time, per phone/simulator).
-2. Scan the QR with your phone's camera — it opens the dev client straight onto this PR's branch. Or in the dev client, tap "Extensions" → "Branch" → \`$branch\`.
-3. Pull to refresh after pushing more commits.
+2. Scan the QR with your phone's camera — it opens the dev client straight onto this exact update group.
+3. After pushing more commits, wait for this comment to update and scan the new QR.
 
 </details>
 EOF

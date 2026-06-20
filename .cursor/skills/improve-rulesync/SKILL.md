@@ -35,6 +35,8 @@ For each issue found:
 
 Always edit `.rulesync/` as the source of truth.
 
+When the guidance belongs to a published Terreno package (`@terreno/api`, `@terreno/ui`, `@terreno/rtk`, admin packages), prefer updating that package’s **`.ai/guidelines/`** or **`.ai/skills/`** (see `docs/implementationPlans/mcp-boost-parity.md` Phase 2). The MCP server copies those trees at build time; keep monorepo-wide rulesync files for cross-cutting or repo-only concerns.
+
 ### Step 4 — Sync
 After all changes, run `bun run rules` to sync to all AI tool directories.
 

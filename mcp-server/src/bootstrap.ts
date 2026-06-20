@@ -1,5 +1,16 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
 
+import {
+  composePackageGuidelinesForRules,
+  filterGuidelineIdsForRootRules,
+  type GuidelinePackageId,
+  loadPackageGuidelineMarkdown,
+  resolveBootstrapGuidelinePackages,
+} from "./packageGuidelines.js";
+
+/** Pinned so `npx -y` does not resolve a moving `@latest` target in generated MCP configs. */
+export const PLAYWRIGHT_MCP_PACKAGE_VERSION = "0.0.76";
+
 export const bootstrapTools: Tool[] = [
   {
     description:
@@ -48,6 +59,12 @@ export const bootstrapTools: Tool[] = [
           description: "A brief description of the app (optional)",
           type: "string",
         },
+        packages: {
+          description:
+            'Optional list of Terreno packages to include in merged guidelines (e.g. ["api","ui","rtk"]). Use names like `api`, `ui`, `rtk`, `admin-backend`, `admin-frontend`, or `@terreno/api`. Omit admin packages if the app does not use the admin panel.',
+          items: {type: "string"},
+          type: "array",
+        },
       },
       required: ["appName", "appDisplayName"],
       type: "object",
@@ -61,6 +78,11 @@ interface BootstrapArgs {
   appDisplayName: string;
   description?: string;
   mcpServerUrl?: string;
+}
+
+export interface BootstrapAiRulesArgs extends BootstrapArgs {
+  /** Optional `@terreno/*` package ids to include (e.g. `["api","ui"]`). Omits others from merged guidelines. */
+  packages?: string[];
 }
 
 const _toPascalCase = (str: string): string => {
@@ -144,15 +166,45 @@ const generateMcpSettings = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       mcpServers: {
+        expo: {
+          type: "http",
+          url: "https://mcp.expo.dev/mcp",
+        },
+        playwright: {
+          args: ["-y", `@playwright/mcp@${PLAYWRIGHT_MCP_PACKAGE_VERSION}`],
+          command: "npx",
+        },
         terreno: {
           type: "http",
           url: `${mcpUrl}/mcp`,
+        },
+        "terreno-local": {
+          args: ["terreno-mcp-local"],
+          command: "bunx",
         },
       },
     },
     null,
     2
   );
+};
+
+const generateRootGitignore = (): string => {
+  return [
+    "# Dependencies",
+    "node_modules/",
+    "",
+    "# Local Terreno dev logs (winston JSONL + optional browser fallback)",
+    ".terreno/",
+    "",
+    "# Build outputs",
+    "dist/",
+    "build/",
+    "",
+    "# OS",
+    ".DS_Store",
+    "",
+  ].join("\n");
 };
 
 const generateClaudeMd = (args: BootstrapArgs): string => {
@@ -672,21 +724,22 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
         "@types/react": "~19.1.10",
+        "expo-mcp": "^0.2.4",
         typescript: "~5.9.2",
       },
       main: "expo-router/entry",
       name: `@${appName}/frontend`,
       private: true,
       scripts: {
-        android: "bun expo start --android --port 8082",
-        ios: "bun expo start --ios --port 8082",
+        android: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --android --port 8082",
+        ios: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --ios --port 8082",
         lint: "bun biome check .",
         "lint:fix": "bun biome check --write .",
         "lint:unsafefix": "biome check --write . --unsafe",
         sdk: "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
-        start: "bun expo start --port 8082",
+        start: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --port 8082",
         test: "bun test",
-        web: "bun expo start --web --port 8082",
+        web: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --web --port 8082",
       },
       version: "1.0.0",
     },
@@ -1337,7 +1390,7 @@ export default NotFoundScreen;
 const generateFrontendStoreIndex = (): string => {
   return `import AsyncStorage from "@react-native-async-storage/async-storage";
 import {combineReducers, configureStore} from "@reduxjs/toolkit";
-import {generateAuthSlice} from "@terreno/rtk";
+import {generateAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage} from "redux-persist";
@@ -1415,6 +1468,8 @@ const store = configureStore({
   },
   reducer: persistedReducer,
 });
+
+registerTerrenoDevStore(store);
 
 export const persistor = persistStore(store);
 
@@ -1884,236 +1939,7 @@ const generateRulesyncConfig = (): string => {
   );
 };
 
-const generateRootRulesFile = (args: BootstrapArgs): string => {
-  const {appDisplayName, description} = args;
-  const appDescription =
-    description || `A full-stack application built with the Terreno framework.`;
-
-  return `---
-root: true
-targets: ["cursor", "windsurf", "copilot"]
-description: "${appDisplayName} root guidelines"
-globs: ["**/*"]
----
-
-# ${appDisplayName}
-
-${appDescription}
-
-## Project Structure
-
-- **frontend/** - Expo/React Native frontend using @terreno/ui and @terreno/rtk
-- **backend/** - Express/Mongoose backend using @terreno/api
-
-## Development
-
-Uses [Bun](https://bun.sh/) as the package manager.
-
-\`\`\`bash
-# Backend
-cd backend && bun run dev    # Start backend on port 4000
-
-# Frontend
-cd frontend && bun run web   # Start web frontend
-cd frontend && bun run sdk   # Regenerate SDK after backend changes
-\`\`\`
-
-## Code Style
-
-### TypeScript/JavaScript
-- Use ES module syntax and TypeScript for all code
-- Prefer interfaces over types; avoid enums, use maps
-- Prefer const arrow functions over \`function\` keyword
-- Use descriptive variable names with auxiliary verbs (e.g., \`isLoading\`)
-- Use camelCase directories (e.g., \`components/authWizard\`)
-- Favor named exports
-- Use the RORO pattern (Receive an Object, Return an Object)
-
-### Dates and Time
-- Always use Luxon instead of Date or dayjs
-
-### Error Handling
-- Check error conditions at start of functions and return early
-- Limit nested if statements
-- Use multiline syntax with curly braces for all conditionals
-
-### Testing
-- Use bun test with expect for testing
-
-### Logging
-- Frontend: Use \`console.info\`, \`console.debug\`, \`console.warn\`, or \`console.error\` for permanent logs
-- Backend: Use \`logger.info/warn/error/debug\` for permanent logs
-- Use \`console.log\` only for debugging (to be removed)
-
-### Development Practices
-- Don't apologize for errors: fix them
-- Prioritize modularity, DRY, performance, and security
-- Focus on readability over performance
-- Write complete, functional code without TODOs when possible
-- Comments should describe purpose, not effect
-
-## Package Reference
-
-### @terreno/api
-
-REST API framework providing:
-
-- **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
-- **Permissions**: \`IsAuthenticated\`, \`IsOwner\`, \`IsAdmin\`, \`IsAuthenticatedOrReadOnly\`
-- **Query Filters**: \`OwnerQueryFilter\` for filtering list queries by owner
-- **setupServer**: Express server setup with auth, OpenAPI, and middleware
-- **APIError**: Standardized error handling
-- **logger**: Winston-based logging
-
-Key imports:
-\`\`\`typescript
-import {
-  modelRouter,
-  setupServer,
-  Permissions,
-  OwnerQueryFilter,
-  APIError,
-  logger,
-  asyncHandler,
-  authenticateMiddleware,
-} from "@terreno/api";
-\`\`\`
-
-#### modelRouter Usage
-
-\`\`\`typescript
-import {modelRouter, modelRouterOptions, Permissions} from "@terreno/api";
-
-const router = modelRouter(YourModel, {
-  permissions: {
-    list: [Permissions.IsAuthenticated],
-    create: [Permissions.IsAuthenticated],
-    read: [Permissions.IsOwner],
-    update: [Permissions.IsOwner],
-    delete: [],  // Disabled
-  },
-  sort: "-created",
-  queryFields: ["_id", "type", "name"],
-});
-\`\`\`
-
-#### Custom Routes
-
-For non-CRUD endpoints, use the OpenAPI builder:
-
-\`\`\`typescript
-import {asyncHandler, authenticateMiddleware, createOpenApiBuilder} from "@terreno/api";
-
-router.get("/yourRoute/:id", [
-  authenticateMiddleware(),
-  createOpenApiBuilder(options)
-    .withTags(["yourTag"])
-    .withSummary("Brief summary")
-    .withPathParameter("id", {type: "string"})
-    .withResponse(200, {data: {type: "object"}})
-    .build(),
-], asyncHandler(async (req, res) => {
-  return res.json({data: result});
-}));
-\`\`\`
-
-#### API Conventions
-
-- Throw \`APIError\` with appropriate status codes: \`throw new APIError({status: 400, title: "Message"})\`
-- Do not use \`Model.findOne\` - use \`Model.findExactlyOne\` or \`Model.findOneOrThrow\`
-- Define statics/methods by direct assignment: \`schema.methods = {bar() {}}\`
-- All model types live in \`src/types/models/\`
-- In routes: \`req.user\` is \`UserDocument | undefined\`
-
-### @terreno/ui
-
-React Native component library with 88+ components:
-
-- **Layout**: Box, Page, SplitPage, Card
-- **Forms**: TextField, SelectField, DateTimeField, CheckBox
-- **Display**: Text, Heading, Badge, DataTable
-- **Actions**: Button, IconButton, Link
-- **Feedback**: Spinner, Modal, Toast
-- **Theming**: TerrenoProvider, useTheme
-
-Key imports:
-\`\`\`typescript
-import {
-  Box,
-  Button,
-  Card,
-  Page,
-  Text,
-  TextField,
-  TerrenoProvider,
-} from "@terreno/ui";
-\`\`\`
-
-#### UI Component Examples
-
-Layout with Box:
-\`\`\`typescript
-<Box direction="row" padding={4} gap={2} alignItems="center">
-  <Text>Content</Text>
-  <Button text="Action" />
-</Box>
-\`\`\`
-
-Buttons:
-\`\`\`typescript
-<Button
-  text="Submit"
-  variant="primary"  // 'primary' | 'secondary' | 'outline' | 'ghost'
-  onClick={handleSubmit}
-  loading={isLoading}
-  iconName="check"
-/>
-\`\`\`
-
-Forms:
-\`\`\`typescript
-<TextField
-  label="Email"
-  value={email}
-  onChangeText={setEmail}
-  error={emailError}
-  helperText="Enter a valid email"
-/>
-\`\`\`
-
-#### UI Common Pitfalls
-
-- Don't use inline styles when theme values are available
-- Don't use raw \`View\`/\`Text\` when \`Box\`/@terreno/ui \`Text\` are available
-- Don't forget loading and error states
-- Don't use \`style\` prop when equivalent props exist (\`padding\`, \`margin\`)
-- Never modify \`openApiSdk.ts\` manually
-
-### @terreno/rtk
-
-Redux Toolkit Query integration:
-
-- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
-- **emptyApi**: Base RTK Query API for code generation
-- **Platform utilities**: Secure token storage
-
-Key imports:
-\`\`\`typescript
-import {generateAuthSlice} from "@terreno/rtk";
-\`\`\`
-
-Always use generated SDK hooks - never use \`axios\` or \`request\` directly:
-
-\`\`\`typescript
-// Correct
-import {useGetYourRouteQuery} from "@/store/openApiSdk";
-const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
-
-// Wrong - don't use axios directly
-// const result = await axios.get("/api/yourRoute/value");
-\`\`\`
-
-## React Best Practices
+const REACT_BEST_PRACTICES_MARKDOWN = `## React Best Practices
 
 - Use functional components with \`React.FC\` type
 - Import hooks directly: \`import {useEffect, useMemo} from 'react'\`
@@ -2127,21 +1953,21 @@ const {data, isLoading, error} = useGetYourRouteQuery({id: "value"});
 - Minimize \`use client\`, \`useEffect\`, and \`setState\`
 - Always support React-Native Web
 `;
-};
 
-const generateClaudeCodeRootRulesFile = (args: BootstrapArgs): string => {
+const buildSharedRootRulesMarkdownBody = (
+  args: BootstrapArgs,
+  rootPackageIds: readonly GuidelinePackageId[]
+): string => {
   const {appDisplayName, description} = args;
   const appDescription =
     description || `A full-stack application built with the Terreno framework.`;
+  const pkgRef = composePackageGuidelinesForRules(rootPackageIds);
+  const pkgSection =
+    pkgRef.trim().length > 0
+      ? `## Package Reference\n\n${pkgRef}`
+      : "## Package Reference\n\n_(No package guidelines matched the selected packages.)_";
 
-  return `---
-localRoot: true
-targets: ["claudecode"]
-description: "${appDisplayName} Claude Code guidelines"
-globs: ["**/*"]
----
-
-# ${appDisplayName}
+  return `# ${appDisplayName}
 
 ${appDescription}
 
@@ -2197,73 +2023,65 @@ cd frontend && bun run sdk   # Regenerate SDK after backend changes
 - Write complete, functional code without TODOs when possible
 - Comments should describe purpose, not effect
 
-## Package Reference
+${pkgSection}
 
-### @terreno/api
-
-REST API framework providing:
-
-- **modelRouter**: Auto-generates CRUD endpoints for Mongoose models
-- **Permissions**: \`IsAuthenticated\`, \`IsOwner\`, \`IsAdmin\`, \`IsAuthenticatedOrReadOnly\`
-- **setupServer**: Express server setup with auth, OpenAPI, and middleware
-- **APIError**: Standardized error handling
-- **logger**: Winston-based logging
-
-Key imports:
-\`\`\`typescript
-import {
-  modelRouter,
-  setupServer,
-  Permissions,
-  OwnerQueryFilter,
-  APIError,
-  logger,
-  asyncHandler,
-  authenticateMiddleware,
-} from "@terreno/api";
-\`\`\`
-
-### @terreno/ui
-
-React Native component library with 88+ components:
-
-- **Layout**: Box, Page, SplitPage, Card
-- **Forms**: TextField, SelectField, DateTimeField, CheckBox
-- **Display**: Text, Heading, Badge, DataTable
-- **Actions**: Button, IconButton, Link
-- **Feedback**: Spinner, Modal, Toast
-- **Theming**: TerrenoProvider, useTheme
-
-Key imports:
-\`\`\`typescript
-import {
-  Box,
-  Button,
-  Card,
-  Page,
-  Text,
-  TextField,
-  TerrenoProvider,
-} from "@terreno/ui";
-\`\`\`
-
-### @terreno/rtk
-
-Redux Toolkit Query integration:
-
-- **generateAuthSlice**: Creates auth reducer and middleware with JWT handling
-- **emptyApi**: Base RTK Query API for code generation
-- **Platform utilities**: Secure token storage
-
-Key imports:
-\`\`\`typescript
-import {generateAuthSlice} from "@terreno/rtk";
-\`\`\`
-`;
+${REACT_BEST_PRACTICES_MARKDOWN}`;
 };
 
-const generateBackendRulesFile = (args: BootstrapArgs): string => {
+const generateRootRulesFile = (
+  args: BootstrapArgs,
+  packageIds: readonly GuidelinePackageId[]
+): string => {
   const {appDisplayName} = args;
+  const body = buildSharedRootRulesMarkdownBody(args, filterGuidelineIdsForRootRules(packageIds));
+  return `---
+root: true
+targets: ["cursor", "windsurf", "copilot"]
+description: "${appDisplayName} root guidelines"
+globs: ["**/*"]
+---
+
+${body}`;
+};
+
+const generateClaudeCodeRootRulesFile = (
+  args: BootstrapArgs,
+  packageIds: readonly GuidelinePackageId[]
+): string => {
+  const {appDisplayName} = args;
+  const body = buildSharedRootRulesMarkdownBody(args, filterGuidelineIdsForRootRules(packageIds));
+  return `---
+localRoot: true
+targets: ["claudecode"]
+description: "${appDisplayName} Claude Code guidelines"
+globs: ["**/*"]
+---
+
+${body}`;
+};
+
+const appendAdminBackendGuidelines = (packageIds: readonly GuidelinePackageId[]): string => {
+  if (!packageIds.includes("admin-backend")) {
+    return "";
+  }
+  const md = loadPackageGuidelineMarkdown("admin-backend");
+  return md ? `\n\n${md}\n` : "";
+};
+
+const appendAdminFrontendGuidelines = (packageIds: readonly GuidelinePackageId[]): string => {
+  if (!packageIds.includes("admin-frontend")) {
+    return "";
+  }
+  const md = loadPackageGuidelineMarkdown("admin-frontend");
+  return md ? `\n\n${md}\n` : "";
+};
+
+const generateBackendRulesFile = (
+  args: BootstrapArgs,
+  packageIds: readonly GuidelinePackageId[]
+): string => {
+  const {appDisplayName} = args;
+  const admin = appendAdminBackendGuidelines(packageIds);
   return `---
 root: true
 targets: ["cursor", "windsurf", "copilot"]
@@ -2291,14 +2109,7 @@ bun run lint     # Lint code
 - Use \`Model.findExactlyOne\` or \`Model.findOneOrNone\` (not \`Model.findOne\`)
 - All model types live in \`src/types/models/\`
 - In routes: \`req.user\` is \`UserDocument | undefined\`
-
-## Admin Panel
-
-The backend uses \`@terreno/admin-backend\`'s \`AdminApp\` for auto-generated admin CRUD endpoints.
-All admin routes require \`IsAdmin\` permission and are mounted at \`/admin\`.
-Add models to \`AdminApp\` in \`src/server.ts\` to expose them in the admin panel.
-
-## Runtime Configuration
+${admin}## Runtime Configuration
 
 Use \`AppConfig.getConfig()\` or \`AppConfig.getConfig("section.field")\` to read config values.
 Use \`AppConfig.updateConfig(updates)\` to write. All values are persisted in MongoDB.
@@ -2354,8 +2165,12 @@ bun run lint     # Lint code
 `;
 };
 
-const generateFrontendRulesFile = (args: BootstrapArgs): string => {
+const generateFrontendRulesFile = (
+  args: BootstrapArgs,
+  packageIds: readonly GuidelinePackageId[]
+): string => {
   const {appDisplayName} = args;
+  const admin = appendAdminFrontendGuidelines(packageIds);
   return `---
 root: true
 targets: ["cursor", "windsurf", "copilot"]
@@ -2382,16 +2197,17 @@ bun run lint     # Lint code
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 - Use Luxon for date operations
 - Use Redux Toolkit for state management
+${admin}## Expo SDK upgrades
 
-## Admin Panel Frontend
+- For Expo/React Native dependency upgrades, install and use the official \`upgrading-expo\` skill from \`expo/skills\` (\`bunx skills add expo/skills\` when using the Skills CLI). It covers \`expo install\`, doctor, caches, and SDK breaking changes.
+- Terreno-specific upgrade notes ship with \`@terreno/mcp\` as bundled markdown; call the \`terreno_get_upgrade_guide\` tool (hosted Terreno MCP) for lockstep \`@terreno/*\` release notes.
 
-The frontend uses \`@terreno/admin-frontend\` components for the admin panel:
-- \`AdminModelList\` — entry screen listing all admin models
-- \`AdminModelTable\` — table view for a model with pagination
-- \`AdminModelForm\` — create/edit form (auto-generated from schema)
-- \`ConfigurationScreen\` — admin configuration editor
+## MCP servers (dev)
 
-Admin screens live in \`app/(tabs)/admin/\`. The panel reads metadata from \`GET /admin/config\`.
+- **terreno** (HTTP): codegen, docs search, bootstrap tools.
+- **terreno-local** (stdio): Mongo introspection, dev logs, RTK state (via \`registerTerrenoDevStore\`).
+- **expo** (HTTP): Expo docs + local simulator automation when \`EXPO_UNSTABLE_MCP_SERVER=1\` dev server is running.
+- **playwright**: web UI automation for \`expo start --web\`.
 
 ## Adding a New Screen
 
@@ -2445,19 +2261,23 @@ interface AiRulesFile {
   content: string;
 }
 
-const generateAiRulesFiles = (args: BootstrapArgs): AiRulesFile[] => {
+const generateAiRulesFiles = (args: BootstrapAiRulesArgs): AiRulesFile[] => {
+  const packageIds = resolveBootstrapGuidelinePackages(args.packages);
   // Strip frontmatter for direct output files
   const stripFrontmatter = (content: string): string => {
     return content.replace(/^---[\s\S]*?---\n\n?/, "");
   };
 
-  const backendContent = stripFrontmatter(generateBackendRulesFile(args));
-  const frontendContent = stripFrontmatter(generateFrontendRulesFile(args));
+  const backendContent = stripFrontmatter(generateBackendRulesFile(args, packageIds));
+  const frontendContent = stripFrontmatter(generateFrontendRulesFile(args, packageIds));
 
   return [
     // .rulesync/rules/ source files (these are the source of truth for root)
-    {content: generateRootRulesFile(args), path: ".rulesync/rules/00-root.md"},
-    {content: generateClaudeCodeRootRulesFile(args), path: ".rulesync/rules/01-claudecode-root.md"},
+    {content: generateRootRulesFile(args, packageIds), path: ".rulesync/rules/00-root.md"},
+    {
+      content: generateClaudeCodeRootRulesFile(args, packageIds),
+      path: ".rulesync/rules/01-claudecode-root.md",
+    },
 
     // Direct output files for backend (AGENTS.md and CLAUDE.md in backend/)
     {content: backendContent, path: "backend/AGENTS.md"},
@@ -2475,7 +2295,7 @@ const generateAiRulesFiles = (args: BootstrapArgs): AiRulesFile[] => {
 export const handleBootstrapAiRulesToolCall = (
   args: Record<string, unknown>
 ): {content: Array<{type: "text"; text: string}>} => {
-  const bootstrapArgs = args as unknown as BootstrapArgs;
+  const bootstrapArgs = args as unknown as BootstrapAiRulesArgs;
 
   if (!bootstrapArgs.appName || !bootstrapArgs.appDisplayName) {
     return {
@@ -2616,6 +2436,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
 
   return [
     // Root files
+    {content: generateRootGitignore(), path: ".gitignore"},
     {content: generateCursorRules(args), path: ".cursorrules"},
     {content: generateMcpSettings(args), path: ".cursor/mcp.json"},
     {content: generateClaudeMd(args), path: "CLAUDE.md"},

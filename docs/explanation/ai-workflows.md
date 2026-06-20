@@ -97,7 +97,7 @@ Each package has its own CI workflow that runs on pull requests and pushes:
 | `api-ci.yml` | @terreno/api | Unit tests, type checking, linting |
 | `ui-ci.yml` | @terreno/ui | Component tests, type checking, linting |
 | `rtk-ci.yml` | @terreno/rtk | Unit tests, type checking, linting |
-| `mcp-server-ci.yml` | @terreno/mcp-server | Integration tests, type checking, linting |
+| `mcp-server-ci.yml` | @terreno/mcp | Integration tests, type checking, linting |
 | `example-backend-ci.yml` | example-backend | Integration tests, type checking |
 | `example-frontend-ci.yml` | example-frontend | Build verification, type checking |
 | `ui-demo-ci.yml` | demo | Build verification, type checking |
@@ -171,7 +171,7 @@ Ensures preview environments don't accumulate and waste resources.
 - @terreno/api
 - @terreno/ui
 - @terreno/rtk
-- @terreno/mcp-server
+- @terreno/mcp
 
 ## Workflow Philosophy
 

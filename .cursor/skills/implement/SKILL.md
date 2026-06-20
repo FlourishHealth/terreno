@@ -94,6 +94,15 @@ If no meaningful automated test can be written for the change, document why befo
 - run broader validation when appropriate
 - preserve existing behavior unless the IP explicitly changes it
 
+## Documentation
+
+If the implementation changes user-facing APIs, components, routes, or setup steps, run the `update-docs` skill before final validation:
+
+```bash
+bun run website:generate   # when UI props/components changed
+bun run website:build      # verify docs site
+```
+
 ## Phased Implementations
 
 If the IP implies phased implementation:

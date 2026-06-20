@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, mock} from "bun:test";
-import type {LanguageModel} from "ai";
+import {jsonSchema, type LanguageModel} from "ai";
 import mongoose from "mongoose";
 
 import {AIRequest} from "../models/aiRequest";
@@ -96,6 +96,147 @@ describe("AIService", () => {
       const logs = await AIRequest.find({});
       expect(logs.length).toBe(1);
       expect(logs[0].error).toBe("API error");
+    });
+  });
+
+  describe("generateJsonValue", () => {
+    it("parses JSON, returns the value, and logs json_value", async () => {
+      const model = createMockModel('{"ok":true,"n":3}');
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const userId = new mongoose.Types.ObjectId();
+
+      const result = await service.generateJsonValue({
+        prompt: "Return a small object",
+        userId,
+      });
+
+      expect(result).toEqual({n: 3, ok: true});
+
+      const logs = await AIRequest.find({userId});
+      expect(logs.length).toBe(1);
+      expect(logs[0].requestType).toBe("json_value");
+      expect(JSON.parse(logs[0].response ?? "{}")).toEqual({n: 3, ok: true});
+    });
+
+    it("parses JSON wrapped in markdown fences (including ```json:)", async () => {
+      const model = createMockModel('```json:\n{"colon":true}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const result = await service.generateJsonValue({
+        prompt: "Return JSON",
+      });
+
+      expect(result).toEqual({colon: true});
+    });
+
+    it("parses JSON wrapped in a generic ```lang fence", async () => {
+      const model = createMockModel("```typescript\n[1,2]\n```");
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const result = await service.generateJsonValue({
+        prompt: "Return JSON",
+      });
+
+      expect(result).toEqual([1, 2]);
+    });
+
+    it("logs errors when JSON output cannot be produced", async () => {
+      const model = createMockModel("not-json");
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      await expect(service.generateJsonValue({prompt: "bad"})).rejects.toThrow();
+
+      const logs = await AIRequest.find({prompt: "bad"});
+      expect(logs.length).toBe(1);
+      expect(logs[0].error).toBeTruthy();
+      expect(logs[0].requestType).toBe("json_value");
+      expect(logs[0].response).toBe("not-json");
+      expect(logs[0].metadata?.rawModelTextCaptured).toBe(true);
+    });
+  });
+
+  describe("generateJsonObject", () => {
+    it("parses against a schema and logs json_object", async () => {
+      const model = createMockModel('{"id":"item-1","count":2}');
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const userId = new mongoose.Types.ObjectId();
+
+      const schema = jsonSchema<{count: number; id: string}>({
+        additionalProperties: false,
+        properties: {
+          count: {type: "number"},
+          id: {type: "string"},
+        },
+        required: ["id", "count"],
+        type: "object",
+      });
+
+      const result = await service.generateJsonObject({
+        prompt: "Extract fields",
+        schema,
+        userId,
+      });
+
+      expect(result).toEqual({count: 2, id: "item-1"});
+
+      const logs = await AIRequest.find({userId});
+      expect(logs[0].requestType).toBe("json_object");
+    });
+
+    it("parses object output wrapped in markdown fences", async () => {
+      const model = createMockModel('```json\n{"id":"fenced","count":9}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+
+      const schema = jsonSchema<{count: number; id: string}>({
+        additionalProperties: false,
+        properties: {
+          count: {type: "number"},
+          id: {type: "string"},
+        },
+        required: ["id", "count"],
+        type: "object",
+      });
+
+      const result = await service.generateJsonObject({
+        prompt: "Extract fields",
+        schema,
+      });
+
+      expect(result).toEqual({count: 9, id: "fenced"});
+    });
+  });
+
+  describe("generateJsonArray", () => {
+    it("parses an array against an element schema and logs json_array", async () => {
+      const model = createMockModel('{"elements":[10,20,30]}');
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const userId = new mongoose.Types.ObjectId();
+
+      const element = jsonSchema<number>({type: "number"});
+
+      const result = await service.generateJsonArray({
+        element,
+        prompt: "List numbers",
+        userId,
+      });
+
+      expect(result).toEqual([10, 20, 30]);
+
+      const logs = await AIRequest.find({userId});
+      expect(logs[0].requestType).toBe("json_array");
+    });
+
+    it("parses array payload when model wraps elements in markdown fences", async () => {
+      const model = createMockModel('```json\n{"elements":[1,2]}\n```');
+      const service = new AIService({model: model as unknown as LanguageModel});
+      const element = jsonSchema<number>({type: "number"});
+
+      const result = await service.generateJsonArray({
+        element,
+        prompt: "List numbers",
+      });
+
+      expect(result).toEqual([1, 2]);
     });
   });
 

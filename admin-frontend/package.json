@@ -20,7 +20,8 @@
   },
   "files": [
     "dist/**/*",
-    "src/**/*"
+    "src/**/*",
+    ".ai/**/*"
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -51,5 +52,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.14.2"
+  "version": "0.20.2"
 }

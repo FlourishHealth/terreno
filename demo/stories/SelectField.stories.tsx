@@ -127,21 +127,10 @@ export const SelectFieldExamples = (): ReactElement => {
           value="first"
         />
       </Box>
+
       <Box marginBottom={2} padding={4}>
         <Box marginBottom={1}>
-          <Heading size="md">With errorText</Heading>
-        </Box>
-        <SelectField
-          errorText="This is an error"
-          onChange={() => {}}
-          options={options}
-          title="Select field"
-          value="second"
-        />
-      </Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">Disabled</Heading>
+          <Heading size="md">Disabled — long label wrapping test</Heading>
         </Box>
         <SelectField
           disabled

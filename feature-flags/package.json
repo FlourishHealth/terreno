@@ -4,6 +4,7 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
+    "@openfeature/server-sdk": "catalog:",
     "@terreno/api": "workspace:*",
     "express": "^5.2.1",
     "lodash": "catalog:"
@@ -51,5 +52,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.14.2"
+  "version": "0.20.2"
 }

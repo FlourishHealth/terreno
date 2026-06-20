@@ -5,6 +5,7 @@ import {
   generateAuthSlice,
   type OfflineState,
   type QueuedMutation,
+  registerTerrenoDevStore,
 } from "@terreno/rtk";
 import {createSentryReduxEnhancer} from "@utils";
 import {DateTime} from "luxon";
@@ -219,6 +220,8 @@ const store = configureStore({
   },
   reducer: persistedReducer,
 });
+
+registerTerrenoDevStore(store);
 
 export const persistor = persistStore(store);
 
