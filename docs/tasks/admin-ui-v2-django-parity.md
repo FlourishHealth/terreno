@@ -4,6 +4,8 @@
 
 **Status:** All phases below are complete. See `docs/implementationPlans/admin-ui-v2-django-parity.md` for acceptance criteria (also marked complete) and verification pointers.
 
+**Companion:** **Admin script runner** — `docs/implementationPlans/admin-script-runner.md` + `docs/tasks/admin-script-runner.md` (same delivery; documents `/admin/scripts/*`, `BackgroundTask`, and UI).
+
 See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 1: Admin config contract (backend)

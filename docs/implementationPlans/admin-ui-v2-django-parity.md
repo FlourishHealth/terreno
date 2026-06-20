@@ -6,6 +6,8 @@
 **Created:** 2026-06-15  
 **Source:** Claude Design handoff (`Admin UI v2.html`, `admin/v2/schema.jsx`, design transcripts). Design blend plan approved in-session.
 
+**Companion IP — Admin script runner:** Maintenance scripts (`AdminApp` `scripts[]`, `/admin/scripts/*`, `AdminScriptList` / `scriptRunner` widget) are specified in **`docs/implementationPlans/admin-script-runner.md`** with tasks in **`docs/tasks/admin-script-runner.md`**.
+
 ## Goal
 
 Evolve Terreno’s admin stack (`@terreno/admin-backend`, `@terreno/admin-frontend`, `@terreno/admin-spa`) so a **single `/admin/config` payload** can drive a **Django-style admin**: grouped sidebar, declarative **home `slots`** (header strip, above-the-fold band, main column, sidebar — analogous to Django admin template blocks), changelist with typed filters / search / sort allowlists / pagination / bulk actions (sync + background), schema-driven forms with fieldsets and readonly enforcement, permission-gated UI (e.g. delete off), and deep links to plugin screens (document storage, AI explorer). **REST-first:** every persisted entity uses `modelRouter` CRUD; only gated custom routes for bulk jobs and config aggregation.
@@ -171,6 +173,8 @@ All **`Permissions.IsAdmin`** (or stricter consumer override).
 ## Task List
 
 See **`docs/tasks/admin-ui-v2-django-parity.md`** for the executable, phased checklist (audit log / recent actions **last**).
+
+**Script runner tasks** (same release train): **`docs/tasks/admin-script-runner.md`**.
 
 ## Acceptance Criteria (summary)
 
