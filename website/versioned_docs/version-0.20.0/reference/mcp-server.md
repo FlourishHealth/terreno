@@ -331,7 +331,19 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 
 Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).
 
-**Parameters:** Same as `terreno_bootstrap_app` (`appName`, `appDisplayName` required).
+**Parameters:**
+
+``````typescript
+{
+  appName: string;
+  appDisplayName: string;
+  description?: string;
+  /** Optional — which @terreno/* packages to merge into rules. Use ids like `api`, `ui`, `rtk`, `admin-backend`, `admin-frontend`, or `@terreno/api`. Omit or pass only what the app uses so admin guidelines stay out of projects without the admin panel. */
+  packages?: string[];
+}
+``````
+
+Guideline bodies are composed from per-package `.ai/guidelines/core.md` files, copied into this package at build time (`bun run sync-package-guidelines` in `mcp-server/`).
 
 **Returns:** Rules files and instructions for installing/syncing with rulesync.
 
@@ -498,6 +510,10 @@ bun install
 
 # Build
 bun run build
+
+# (Build runs sync-ui-docs, sync-versioned-docs, and sync-package-guidelines before tsc.)
+# To refresh only bundled package AI guidelines from the monorepo:
+# bun run sync-package-guidelines
 
 # Watch mode (rebuilds on changes)
 bun run dev

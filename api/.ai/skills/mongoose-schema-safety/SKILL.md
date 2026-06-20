@@ -4,11 +4,11 @@ description: >-
   Invoke when making any Mongoose schema change: adding/removing/renaming
   fields, creating a new model, adding indexes, or writing a backfill migration.
   Provides the five-type pattern, risk matrix, type file checklist, and rollout
-  safety steps for terreno backends.
+  safety steps for Terreno backends.
 ---
 # Mongoose Schema Safety — Terreno
 
-Consumer-oriented copy for agents using `@terreno/api` from npm also lives under **`api/.ai/skills/mongoose-schema-safety/SKILL.md`** (synced into the MCP server bundle).
+Typical Terreno apps keep models under `backend/src/models/` and types under `backend/src/types/models/`. The Terreno monorepo also uses `example-backend/` and `@terreno/ai` — adjust paths below to match your repo.
 
 ## Where Schemas and Types Live
 
@@ -59,10 +59,14 @@ Define statics and methods by direct assignment on the schema — not via `.meth
 
 ```typescript
 schema.methods = {
-  getDisplayName(this: YourModelDocument): string { return this.name; },
+  getDisplayName(this: YourModelDocument): string {
+    return this.name;
+  },
 };
 schema.statics = {
-  async findByEmail(this: YourModelModel, email: string) { return this.findOne({email}); },
+  async findByEmail(this: YourModelModel, email: string) {
+    return this.findOneOrNone({email});
+  },
 };
 ```
 

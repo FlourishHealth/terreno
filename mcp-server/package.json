@@ -8,16 +8,17 @@
     "terreno-mcp": "./dist/index.js"
   },
   "scripts": {
-    "build": "bun run sync-ui-docs && bun run sync-versioned-docs && tsc && cp -r src/docs dist/",
+    "build": "bun run sync-ui-docs && bun run sync-versioned-docs && bun run sync-package-guidelines && tsc && cp -r src/docs dist/",
     "dev": "bun --watch src/index.ts",
     "start": "bun dist/index.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "bun run sync-ui-docs && bun run sync-versioned-docs && tsc && cp -r src/docs dist/",
+    "compile": "bun run sync-ui-docs && bun run sync-versioned-docs && bun run sync-package-guidelines && tsc && cp -r src/docs dist/",
     "compile:watch": "tsc -w",
     "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
     "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
+    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
     "test": "bun test --max-concurrency=1 src/",
     "test:ci": "bun test --max-concurrency=1 src/",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
@@ -35,7 +36,8 @@
     "typescript": "catalog:"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/docs"
   ],
   "keywords": [
     "mcp",

@@ -21,6 +21,13 @@ describe("bootstrap", () => {
         expect(tool.inputSchema.required).toContain("appDisplayName");
       }
     });
+
+    test("terreno_bootstrap_ai_rules should expose optional packages in inputSchema", () => {
+      const tool = bootstrapTools.find((t) => t.name === "terreno_bootstrap_ai_rules");
+      expect(tool).toBeDefined();
+      const props = tool?.inputSchema.properties as Record<string, {type?: string}> | undefined;
+      expect(props?.packages?.type).toBe("array");
+    });
   });
 
   describe("bootstrapPrompts", () => {
@@ -261,6 +268,40 @@ describe("bootstrap", () => {
         expect(backendAgentsMatch[1].startsWith("---")).toBe(false);
         expect(backendAgentsMatch[1]).toContain("Strip App Backend");
       }
+    });
+
+    test("packages filter omits admin-backend guidelines from backend rules", () => {
+      const filtered = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "No Admin BE",
+        appName: "no-admin-be",
+        packages: ["api", "ui", "rtk"],
+      });
+      const filteredText = filtered.content[0].text;
+      expect(filteredText).not.toContain("## Admin Panel (backend)");
+
+      const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "With Admin BE",
+        appName: "with-admin-be",
+      });
+      const fullText = full.content[0].text;
+      expect(fullText).toContain("## Admin Panel (backend)");
+    });
+
+    test("packages filter omits admin-frontend guidelines from frontend rules", () => {
+      const filtered = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "No Admin FE",
+        appName: "no-admin-fe",
+        packages: ["api", "ui", "rtk"],
+      });
+      const filteredText = filtered.content[0].text;
+      expect(filteredText).not.toContain("AdminModelList");
+
+      const full = handleBootstrapToolCall("terreno_bootstrap_ai_rules", {
+        appDisplayName: "With Admin FE",
+        appName: "with-admin-fe",
+      });
+      const fullText = full.content[0].text;
+      expect(fullText).toContain("AdminModelList");
     });
   });
 
