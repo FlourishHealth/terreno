@@ -407,9 +407,7 @@ export const RNPickerSelect = ({
           multiline
           {...textInputProps}
           style={
-            textInputProps?.style
-              ? [baseTextInputStyle, textInputProps.style]
-              : baseTextInputStyle
+            textInputProps?.style ? [baseTextInputStyle, textInputProps.style] : baseTextInputStyle
           }
           testID={textInputProps?.testID ?? "text_input"}
           value={selectedLabel}
