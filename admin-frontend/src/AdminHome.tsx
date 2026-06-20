@@ -1,13 +1,4 @@
-import {
-  Box,
-  Button,
-  Card,
-  Heading,
-  Page,
-  printDateAndTime,
-  Spinner,
-  Text,
-} from "@terreno/ui";
+import {Box, Button, Card, Heading, Page, printDateAndTime, Spinner, Text} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback, useMemo} from "react";
@@ -55,6 +46,11 @@ interface AdminHomeProps {
   apiBase?: string;
   routeBase?: string;
   api: AdminApi;
+  /**
+   * When true, omits the outer {@link Page} wrapper so the dashboard can sit under a parent
+   * screen (for example, the Expo admin index together with tools and model cards).
+   */
+  embedded?: boolean;
 }
 
 const ModelStatRow: React.FC<{
@@ -257,9 +253,7 @@ const RecentActivityWidget: React.FC<{
             const label = String(row.recordLabel ?? row.recordId ?? "");
             const created = row.createdAt ?? row.created;
             const when =
-              typeof created === "string"
-                ? printDateAndTime(created, {defaultValue: created})
-                : "";
+              typeof created === "string" ? printDateAndTime(created, {defaultValue: created}) : "";
             return (
               <Box border="default" key={id || `${verb}-${label}`} padding={2} rounding="sm">
                 <Text size="sm">
@@ -320,9 +314,7 @@ const renderWidget = (params: {
     case "feature-flags-overrides":
       return <FeatureFlagsOverridesWidget model={featureFlagModel} routeBase={routeBase} />;
     case "versionConfig":
-      return (
-        <AdminVersionConfig api={api} apiBase={apiBase} embedded routeBase={routeBase} />
-      );
+      return <AdminVersionConfig api={api} apiBase={apiBase} embedded routeBase={routeBase} />;
     case "scriptRunner":
       return <ScriptRunnerWidget routeBase={routeBase} />;
     case "recentActivity":
@@ -336,7 +328,13 @@ const renderWidget = (params: {
  * Config-driven admin home dashboard: renders `home.slots` from `/admin/config` with built-in
  * widgets (stats, model grid, scripts, version config, audit recent activity).
  */
-export const AdminHome: React.FC<AdminHomeProps> = ({baseUrl, apiBase, routeBase, api}) => {
+export const AdminHome: React.FC<AdminHomeProps> = ({
+  baseUrl,
+  apiBase,
+  routeBase,
+  api,
+  embedded = false,
+}) => {
   const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
     apiBase,
     baseUrl,
@@ -361,21 +359,33 @@ export const AdminHome: React.FC<AdminHomeProps> = ({baseUrl, apiBase, routeBase
   const sidebar = normalizeSidebarWidgets(slots?.sidebar);
 
   if (isLoading) {
+    const loadingBody = (
+      <Box alignItems="center" justifyContent="center" padding={6} testID="admin-home-loading">
+        <Spinner />
+      </Box>
+    );
+    if (embedded) {
+      return loadingBody;
+    }
     return (
       <Page maxWidth="100%" title={config?.home?.title ?? "Admin"}>
-        <Box alignItems="center" justifyContent="center" padding={6} testID="admin-home-loading">
-          <Spinner />
-        </Box>
+        {loadingBody}
       </Page>
     );
   }
 
   if (error || !config) {
+    const errorBody = (
+      <Box padding={4} testID="admin-home-error">
+        <Text color="error">Failed to load admin configuration.</Text>
+      </Box>
+    );
+    if (embedded) {
+      return errorBody;
+    }
     return (
       <Page maxWidth="100%" title="Admin">
-        <Box padding={4} testID="admin-home-error">
-          <Text color="error">Failed to load admin configuration.</Text>
-        </Box>
+        {errorBody}
       </Page>
     );
   }
@@ -391,49 +401,58 @@ export const AdminHome: React.FC<AdminHomeProps> = ({baseUrl, apiBase, routeBase
     routeBase: resolvedRouteBase,
   };
 
+  const dashboardBody = (
+    <Box gap={4} padding={embedded ? 0 : 4}>
+      {!embedded ? <Heading size="md">{title}</Heading> : null}
+
+      {navGlobal.length > 0 ? (
+        <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
+          {navGlobal.map((id) => (
+            <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+          ))}
+        </Box>
+      ) : null}
+
+      {contentTop.length > 0 ? (
+        <Box direction="column" gap={3} testID="admin-home-slot-contentTop">
+          {contentTop.map((id) => (
+            <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+          ))}
+        </Box>
+      ) : null}
+
+      <Box direction="row" gap={4} wrap>
+        {main.length > 0 ? (
+          <Box flex="grow" gap={3} minWidth={280} testID="admin-home-slot-main">
+            {main.map((id) => (
+              <Box key={`mn-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+            ))}
+          </Box>
+        ) : null}
+        {sidebar.length > 0 ? (
+          <Box
+            direction="column"
+            gap={3}
+            minWidth={280}
+            testID="admin-home-slot-sidebar"
+            width={320}
+          >
+            {sidebar.map((id) => (
+              <Box key={`sb-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+            ))}
+          </Box>
+        ) : null}
+      </Box>
+    </Box>
+  );
+
+  if (embedded) {
+    return dashboardBody;
+  }
+
   return (
     <Page maxWidth="100%" scroll title={title}>
-      <Box gap={4} padding={4}>
-        <Heading size="md">{title}</Heading>
-
-        {navGlobal.length > 0 ? (
-          <Box
-            direction="row"
-            gap={3}
-            testID="admin-home-slot-navGlobal"
-            wrap
-          >
-            {navGlobal.map((id) => (
-              <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-            ))}
-          </Box>
-        ) : null}
-
-        {contentTop.length > 0 ? (
-          <Box direction="column" gap={3} testID="admin-home-slot-contentTop">
-            {contentTop.map((id) => (
-              <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-            ))}
-          </Box>
-        ) : null}
-
-        <Box direction="row" gap={4} wrap>
-          {main.length > 0 ? (
-            <Box flex="grow" gap={3} minWidth={280} testID="admin-home-slot-main">
-              {main.map((id) => (
-                <Box key={`mn-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-              ))}
-            </Box>
-          ) : null}
-          {sidebar.length > 0 ? (
-            <Box direction="column" gap={3} minWidth={280} testID="admin-home-slot-sidebar" width={320}>
-              {sidebar.map((id) => (
-                <Box key={`sb-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-              ))}
-            </Box>
-          ) : null}
-        </Box>
-      </Box>
+      {dashboardBody}
     </Page>
   );
 };

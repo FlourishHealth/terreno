@@ -22,6 +22,10 @@ interface AdminModelListProps {
   configurationPath?: string;
   /** Additional custom screens to display as cards. Merged with any custom screens from the backend config. */
   customScreens?: AdminCustomScreen[];
+  /** When true, omits the outer {@link Page} wrapper for composition under a parent screen. */
+  embedded?: boolean;
+  /** When true, hides the model grid (for example when models are shown in {@link AdminHome}). */
+  hideModelsSection?: boolean;
 }
 
 const ScriptsCard: React.FC<{count: number; onPress: () => void}> = ({count, onPress}) => (
@@ -133,6 +137,8 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   api,
   configurationPath,
   customScreens: propCustomScreens,
+  embedded = false,
+  hideModelsSection = false,
 }) => {
   const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
     apiBase,
@@ -149,21 +155,33 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   );
 
   if (isLoading) {
+    const loadingBody = (
+      <Box alignItems="center" justifyContent="center" padding={6}>
+        <Spinner />
+      </Box>
+    );
+    if (embedded) {
+      return loadingBody;
+    }
     return (
       <Page maxWidth="100%" title="Admin">
-        <Box alignItems="center" justifyContent="center" padding={6}>
-          <Spinner />
-        </Box>
+        {loadingBody}
       </Page>
     );
   }
 
   if (error || !config) {
+    const errorBody = (
+      <Box padding={4}>
+        <Text color="error">Failed to load admin configuration.</Text>
+      </Box>
+    );
+    if (embedded) {
+      return errorBody;
+    }
     return (
       <Page maxWidth="100%" title="Admin">
-        <Box padding={4}>
-          <Text color="error">Failed to load admin configuration.</Text>
-        </Box>
+        {errorBody}
       </Page>
     );
   }
@@ -173,29 +191,29 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   const scripts = config.scripts ?? [];
   const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
 
-  return (
-    <Page maxWidth="100%" scroll title="Admin">
-      <Box gap={4} padding={4}>
-        {hasToolCards && (
-          <Box gap={2}>
-            <Heading size="sm">Tools</Heading>
-            <Box direction="row" gap={4} wrap>
-              {allCustomScreens.map((screen) => (
-                <CustomScreenCard
-                  key={screen.name}
-                  onPress={() => handlePress(screen.name)}
-                  screen={screen}
-                />
-              ))}
-              {scripts.length > 0 && (
-                <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
-              )}
-              {configurationPath && (
-                <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
-              )}
-            </Box>
+  const listBody = (
+    <Box gap={4} padding={embedded ? 0 : 4}>
+      {hasToolCards ? (
+        <Box gap={2}>
+          <Heading size="sm">Tools</Heading>
+          <Box direction="row" gap={4} wrap>
+            {allCustomScreens.map((screen) => (
+              <CustomScreenCard
+                key={screen.name}
+                onPress={() => handlePress(screen.name)}
+                screen={screen}
+              />
+            ))}
+            {scripts.length > 0 ? (
+              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+            ) : null}
+            {configurationPath ? (
+              <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
+            ) : null}
           </Box>
-        )}
+        </Box>
+      ) : null}
+      {!hideModelsSection ? (
         <Box gap={2}>
           <Heading size="sm">Models</Heading>
           <Box direction="row" gap={4} wrap>
@@ -204,7 +222,17 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
             ))}
           </Box>
         </Box>
-      </Box>
+      ) : null}
+    </Box>
+  );
+
+  if (embedded) {
+    return listBody;
+  }
+
+  return (
+    <Page maxWidth="100%" scroll title="Admin">
+      {listBody}
     </Page>
   );
 };

@@ -241,9 +241,17 @@ export async function start(skipListen = false): Promise<express.Application> {
       )
       .register(
         new AdminApp({
+          customScreens: [
+            {
+              description: "How this example wires Terreno admin UI v2",
+              displayName: "Admin UI v2 map",
+              name: "showcase",
+            },
+          ],
           home: {
             slots: {
-              main: ["modelsGrid"],
+              contentTop: ["feature-flags-overrides"],
+              main: ["modelStats", "modelsGrid"],
               navGlobal: ["scriptRunner"],
               sidebar: ["versionConfig", "recentActivity"],
             },
@@ -280,8 +288,21 @@ export async function start(skipListen = false): Promise<express.Application> {
               sortableFields: ["key", "name", "type", "enabled", "archived", "created"],
             },
             {
+              actions: [
+                {
+                  confirm: "Mark selected todos as completed?",
+                  id: "markComplete",
+                  label: "Mark completed",
+                  patchKeys: ["completed"],
+                },
+              ],
+              bulkPatchAllowlist: ["completed", "priority", "tags"],
               defaultSort: "-created",
               displayName: "Todos",
+              fieldsets: [
+                {fields: ["title", "tags", "priority", "completed"], title: "Task"},
+                {fields: ["ownerId"], title: "Ownership"},
+              ],
               filters: [
                 {field: "completed", kind: "boolean", label: "Completed"},
                 {
@@ -294,25 +315,37 @@ export async function start(skipListen = false): Promise<express.Application> {
                   kind: "choice",
                   label: "Priority",
                 },
+                {field: "created", kind: "dateRange", label: "Created"},
+                {field: "ownerId", kind: "ref", label: "Owner", refModel: "User"},
               ],
               group: "Examples",
+              listDisplay: ["title", "completed", "priority", "ownerId", "created", "tags"],
+              listDisplayLinks: ["title"],
               listFields: ["title", "completed", "ownerId", "created", "priority", "tags"],
               model: Todo,
               pageSize: 25,
               permissions: {delete: false},
+              readonlyFields: ["ownerId"],
+              realtime: true,
               routePath: "/todos",
               searchFields: ["title", "tags"],
               sortableFields: ["title", "completed", "created", "priority"],
             },
             {
               displayName: "Users",
+              fieldsets: [
+                {fields: ["email", "name"], title: "Profile"},
+                {fields: ["admin", "oauthProvider"], title: "Access"},
+              ],
               filters: [{field: "admin", kind: "boolean", label: "Admin user"}],
               group: "Users",
               hiddenFields: ["hash", "salt"],
+              listDisplayLinks: ["email"],
               listFields: ["email", "name", "admin", "created"],
               // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
               model: User as any,
               pageSize: 50,
+              readonlyFields: ["email"],
               routePath: "/users",
               searchFields: ["email", "name"],
               sortableFields: ["email", "name", "admin", "created"],
@@ -341,6 +374,25 @@ export async function start(skipListen = false): Promise<express.Application> {
                 content: {widget: "locale-content"},
                 defaultLocale: {widget: "locale-default"},
               },
+              fieldsets: [
+                {
+                  fields: ["title", "slug", "type", "version", "order", "active", "required"],
+                  title: "Basics",
+                },
+                {
+                  fields: ["content", "defaultLocale", "requireScrollToBottom", "checkboxes"],
+                  title: "Content",
+                },
+                {
+                  fields: [
+                    "captureSignature",
+                    "agreeButtonText",
+                    "allowDecline",
+                    "declineButtonText",
+                  ],
+                  title: "Actions",
+                },
+              ],
               filters: [
                 {field: "active", kind: "boolean", label: "Active"},
                 {
@@ -358,6 +410,7 @@ export async function start(skipListen = false): Promise<express.Application> {
                 },
               ],
               group: "Compliance",
+              listDisplay: ["title", "type", "version", "active", "order"],
               listFields: ["title", "type", "version", "active", "order"],
               model: ConsentForm,
               routePath: "/consent-forms",
