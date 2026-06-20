@@ -4,6 +4,7 @@ import {
   bootstrapTools,
   handleBootstrapPromptRequest,
   handleBootstrapToolCall,
+  PLAYWRIGHT_MCP_PACKAGE_VERSION,
 } from "../bootstrap.js";
 
 describe("bootstrap", () => {
@@ -200,6 +201,10 @@ describe("bootstrap", () => {
         expect(parsed.mcpServers["terreno-local"]).toBeDefined();
         expect(parsed.mcpServers.expo).toBeDefined();
         expect(parsed.mcpServers.playwright).toBeDefined();
+        expect(parsed.mcpServers.playwright.args).toEqual([
+          "-y",
+          `@playwright/mcp@${PLAYWRIGHT_MCP_PACKAGE_VERSION}`,
+        ]);
       }
     });
 

@@ -8,6 +8,9 @@ import {
   resolveBootstrapGuidelinePackages,
 } from "./packageGuidelines.js";
 
+/** Pinned so `npx -y` does not resolve a moving `@latest` target in generated MCP configs. */
+export const PLAYWRIGHT_MCP_PACKAGE_VERSION = "0.0.76";
+
 export const bootstrapTools: Tool[] = [
   {
     description:
@@ -168,7 +171,7 @@ const generateMcpSettings = (args: BootstrapArgs): string => {
           url: "https://mcp.expo.dev/mcp",
         },
         playwright: {
-          args: ["-y", "@playwright/mcp@latest"],
+          args: ["-y", `@playwright/mcp@${PLAYWRIGHT_MCP_PACKAGE_VERSION}`],
           command: "npx",
         },
         terreno: {

@@ -32,6 +32,11 @@ const readEnvValue = (envPath: string, key: string): string | undefined => {
 
 const FORBIDDEN_AGG_KEYS = new Set(["$out", "$merge", "$function"]);
 
+/** Operators that must not appear anywhere in a `find`-style filter document. */
+const FORBIDDEN_FILTER_KEYS = new Set(["$where", "$function", "$accumulator"]);
+
+const QUERY_MAX_TIME_MS = 10_000;
+
 const aggregateContainsForbidden = (value: unknown): boolean => {
   if (value === null || typeof value !== "object") {
     return false;
@@ -50,7 +55,30 @@ const aggregateContainsForbidden = (value: unknown): boolean => {
   return false;
 };
 
+const filterContainsForbidden = (value: unknown): boolean => {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return value.some(filterContainsForbidden);
+  }
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (FORBIDDEN_FILTER_KEYS.has(key)) {
+      return true;
+    }
+    if (filterContainsForbidden(child)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 const ALLOWED = new Set(["find", "aggregate", "countDocuments", "distinct"]);
+
+/** Exported for unit tests; local `database_query` rejects filters that include these operators. */
+export const databaseQueryFilterUsesForbiddenOperators = (filter: unknown): boolean => {
+  return filterContainsForbidden(filter ?? {});
+};
 
 export interface DatabaseQueryArgs {
   collection: string;
@@ -78,6 +106,12 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
     return "No Mongo URI found. Set `MONGO_URI` in `backend/.env` or export `MONGO_URI`.";
   }
 
+  if (op === "find" || op === "countDocuments" || op === "distinct") {
+    if (filterContainsForbidden(args.filter ?? {})) {
+      return "Filter rejected: `$where`, `$function`, and `$accumulator` are not allowed.";
+    }
+  }
+
   const mongoose = await import("mongoose");
   try {
     if (mongoose.connection.readyState !== 1) {
@@ -94,7 +128,7 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
 
     if (op === "find") {
       const filter = (args.filter ?? {}) as Record<string, unknown>;
-      const rows = await coll.find(filter).limit(cap).toArray();
+      const rows = await coll.find(filter, {maxTimeMS: QUERY_MAX_TIME_MS}).limit(cap).toArray();
       return JSON.stringify({collection: args.collection, count: rows.length, rows}, null, 2);
     }
 
@@ -107,7 +141,7 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
         return "Pipeline rejected: `$out`, `$merge`, and `$function` are not allowed.";
       }
       const rows = await coll
-        .aggregate(pipeline as never[], {allowDiskUse: false})
+        .aggregate(pipeline as never[], {allowDiskUse: false, maxTimeMS: QUERY_MAX_TIME_MS})
         .limit(cap)
         .toArray();
       return JSON.stringify({collection: args.collection, count: rows.length, rows}, null, 2);
@@ -115,7 +149,7 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
 
     if (op === "countDocuments") {
       const filter = (args.filter ?? {}) as Record<string, unknown>;
-      const count = await coll.countDocuments(filter);
+      const count = await coll.countDocuments(filter, {maxTimeMS: QUERY_MAX_TIME_MS});
       return JSON.stringify({collection: args.collection, count}, null, 2);
     }
 
@@ -125,7 +159,7 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
         return "`field` is required for distinct.";
       }
       const filter = (args.filter ?? {}) as Record<string, unknown>;
-      const values = await coll.distinct(field, filter);
+      const values = await coll.distinct(field, filter, {maxTimeMS: QUERY_MAX_TIME_MS});
       const trimmed = values.slice(0, cap);
       return JSON.stringify(
         {collection: args.collection, field, truncated: values.length > cap, values: trimmed},
