@@ -15,7 +15,7 @@ model instances.
 - **Authentication** — JWT with email/password and GitHub OAuth support
 - **Permissions** — Fine-grained access control (IsAuthenticated, IsOwner, IsAdmin, etc.)
 - **OpenAPI** — Automatic spec generation from models and routes
-- **Logging** — Winston-based logging with Google Cloud and Sentry support
+- **Logging** — Winston-based logging with scoped & feature-flagged loggers, automatic request correlation, and Google Cloud / Sentry support
 
 ## Getting started
 
@@ -164,6 +164,59 @@ setupServer({
 ```
 
 **Learn more:** See the [GitHub OAuth how-to guide](../docs/how-to/add-github-oauth.md) for complete setup instructions.
+
+## Logging
+
+@terreno/api provides a Winston-based `logger`, two helpers (`createScopedLogger` and
+`createFeatureFlaggedLogger`), and automatic request/job correlation. Always use these instead of
+`console.log` for permanent server logs.
+
+```typescript
+import {createFeatureFlaggedLogger, createScopedLogger, logger} from "@terreno/api";
+
+// Global logger
+logger.info("Server started", {port: 4000});
+logger.error("Failed to process", {error});
+await chargeCard(id).catch(logger.catch); // logs + captures the exception
+
+// Scoped logger: a stable prefix + labels on every line, ideal for multi-step workflows
+const log = createScopedLogger({
+  prefix: "[InvoicePay]",
+  labels: {invoiceId: invoice._id.toString()},
+});
+log.info("Starting capture"); // -> "[InvoicePay] Starting capture invoiceId=… requestId=…"
+
+// Feature-flagged logger: silent until isEnabled() returns true (no redeploy needed)
+const debugLog = createFeatureFlaggedLogger({
+  isEnabled: () => process.env.DEBUG_BILLING === "true",
+  target: log,
+});
+debugLog.debug("optional detail");
+```
+
+### Correlation
+
+While a request or job scope is active, every log line is automatically tagged with `requestId`,
+`userId`, `traceId`, and related fields, so all lines for one request can be grouped together. HTTP
+requests get a scope automatically (the framework also echoes an `X-Request-ID` response header).
+For background jobs, scripts, and cron tasks, open a scope with `runWithRequestContext`:
+
+```typescript
+import {createScopedLogger, runWithRequestContext} from "@terreno/api";
+
+await runWithRequestContext({jobId: "nightly-sync"}, async () => {
+  const log = createScopedLogger({prefix: "[NightlySync]"});
+  log.info("started"); // includes jobId + a generated requestId on every line
+  await sync();
+});
+```
+
+In production, pass a structured transport (e.g. `@google-cloud/logging-winston`) via
+`loggingOptions`/`setupLogging` so the correlation fields and labels reach Log Explorer as
+`jsonPayload`.
+
+**Learn more:** See the [Logging & Tracing reference](../docs/reference/api.md#logging--tracing) for
+the full API, label conventions, and Google Cloud Logging / Sentry details.
 
 ## Sentry
 To enable Sentry, create a "src/sentryInstrumment.ts" file in your project.

@@ -177,7 +177,7 @@ export const getBaseServer = (): Express => {
 
   // Express 5 defaults to 'simple' query parser (Node querystring) which doesn't
   // support nested bracket notation like name[$regex]=Green. Use qs to match
-  // what setupServer() configures.
+  // what TerrenoApp.build() configures.
   app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
 
   // Record mount paths on layers for Express 5 → OpenAPI compat
