@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, test} from "bun:test";
-import {mkdirSync, rmSync, writeFileSync} from "node:fs";
+import {mkdirSync, rmSync, symlinkSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
 
 import {chunkMarkdown, standaloneDocumentChunk} from "../search/chunker.js";
@@ -111,6 +111,33 @@ describe("docIndex", () => {
 
     const small = searchDocs({queries: ["Section"], tokenLimit: 5});
     expect(small).toContain("Truncated to approximate token budget");
+  });
+
+  test("invalid or non-positive tokenLimit matches default budget behavior", () => {
+    writeFileSync(
+      join(tmp, "resources", "api.md"),
+      ["# API", "", "alpha unique token xyz123"].join("\n")
+    );
+    const baseline = searchDocs({queries: ["alpha"]});
+    expect(searchDocs({queries: ["alpha"], tokenLimit: -1})).toBe(baseline);
+    expect(searchDocs({queries: ["alpha"], tokenLimit: Number.NaN})).toBe(baseline);
+    expect(searchDocs({queries: ["alpha"], tokenLimit: 0})).toBe(baseline);
+  });
+
+  test("does not index markdown reached only via symlink under versioned/", () => {
+    const outsideDir = join(tmp, "outside-leak");
+    mkdirSync(outsideDir, {recursive: true});
+    const secretToken = "symlinkLeakTokenOutsideTree998877";
+    writeFileSync(join(outsideDir, "secret.md"), ["# Secret", "", secretToken].join("\n"));
+    const versionedNested = join(tmp, "versioned", "0.1", "nested");
+    mkdirSync(versionedNested, {recursive: true});
+    try {
+      symlinkSync(join(outsideDir, "secret.md"), join(versionedNested, "alias.md"));
+    } catch {
+      return;
+    }
+    const out = searchDocs({queries: [secretToken]});
+    expect(out).toContain("No matching chunks found");
   });
 
   test("getComponentDocsMarkdown returns not-found message without typedoc", () => {

@@ -1,4 +1,4 @@
-import {existsSync, readdirSync, readFileSync, statSync} from "node:fs";
+import {existsSync, readdirSync, readFileSync} from "node:fs";
 import {extname, join, relative} from "node:path";
 import MiniSearch from "minisearch";
 
@@ -29,16 +29,22 @@ interface IndexedDoc {
 let cachedIndex: MiniSearch<IndexedDoc> | null = null;
 let cachedChunks: SearchableChunk[] | null = null;
 
+/**
+ * Collects `.md` paths under `dir` without following symbolic links (avoids
+ * indexing targets outside the docs tree via symlinked paths).
+ */
 const walkMarkdownFiles = (dir: string, acc: string[] = []): string[] => {
   if (!existsSync(dir)) {
     return acc;
   }
-  for (const name of readdirSync(dir)) {
-    const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) {
+  for (const ent of readdirSync(dir, {withFileTypes: true})) {
+    if (ent.isSymbolicLink()) {
+      continue;
+    }
+    const full = join(dir, ent.name);
+    if (ent.isDirectory()) {
       walkMarkdownFiles(full, acc);
-    } else if (extname(name).toLowerCase() === ".md") {
+    } else if (ent.isFile() && extname(ent.name).toLowerCase() === ".md") {
       acc.push(full);
     }
   }
@@ -152,7 +158,19 @@ export interface SearchDocsParams {
 }
 
 const approxCharsForTokens = (tokens: number): number => {
-  return Math.floor(Math.min(tokens, 8000) * 3.5);
+  const safe = Math.max(0, Math.min(Math.floor(tokens), 8000));
+  return Math.floor(safe * 3.5);
+};
+
+/** Clamps tool `tokenLimit` so invalid or hostile values cannot widen the response budget. */
+const normalizeTokenLimit = (raw: number | undefined): number => {
+  if (raw === undefined) {
+    return 3000;
+  }
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return 3000;
+  }
+  return Math.min(8000, Math.floor(raw));
 };
 
 const chunkMatchesPackages = (chunk: SearchableChunk, normalizedFilters: string[]): boolean => {
@@ -169,7 +187,8 @@ export const searchDocs = (params: SearchDocsParams): string => {
   }
 
   const packageFilters = (params.packages ?? []).map(normalizePackageFilter).filter(Boolean);
-  const charBudget = approxCharsForTokens(params.tokenLimit ?? 3000);
+  const tokenLimit = normalizeTokenLimit(params.tokenLimit);
+  const charBudget = approxCharsForTokens(tokenLimit);
 
   const {chunks, index} = ensureIndex();
   const scoreById = new Map<string, number>();
@@ -218,10 +237,10 @@ export const searchDocs = (params: SearchDocsParams): string => {
 
     let block = rawBlock;
     if (block.length > charBudget && included === 0) {
-      block = `${rawBlock.slice(0, charBudget)}\n\n_…Truncated to approximate token budget (~${params.tokenLimit ?? 3000} tokens)._`;
+      block = `${rawBlock.slice(0, charBudget)}\n\n_…Truncated to approximate token budget (~${tokenLimit} tokens)._`;
     } else if (used + block.length > charBudget && included > 0) {
       lines.push(
-        `_Additional matches omitted to stay within token budget (~${params.tokenLimit ?? 3000} tokens)._`
+        `_Additional matches omitted to stay within token budget (~${tokenLimit} tokens)._`
       );
       break;
     }
