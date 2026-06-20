@@ -38,8 +38,8 @@ test("admin logs in with email/password and sees the admin home", async ({page})
   // Successful sign-in routes back to the SPA root, which renders AdminHome
   // from the (mocked) /admin/config response.
   await page.waitForURL(/\/console\/?$/, {timeout: 20_000});
-  await expect(page.getByTestId("admin-home-model-stat-Todo")).toBeVisible({timeout: 20_000});
-  await expect(page.getByTestId("admin-home-model-stat-User")).toBeVisible();
+  await expect(page.getByTestId("admin-home-models-grid-Todo")).toBeVisible({timeout: 20_000});
+  await expect(page.getByTestId("admin-home-models-grid-User")).toBeVisible();
 });
 
 /**

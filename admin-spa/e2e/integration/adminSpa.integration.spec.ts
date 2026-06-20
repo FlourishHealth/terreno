@@ -31,7 +31,7 @@ test.describe("admin SPA served by example-backend", () => {
     // Successful sign-in routes back to the SPA root, which renders AdminHome
     // from the backend's /admin/config (only reachable as an admin).
     await page.waitForURL(/\/console\/?$/, {timeout: 30_000});
-    await expect(page.getByTestId("admin-home-model-stat-Todo")).toBeVisible({timeout: 30_000});
-    await expect(page.getByTestId("admin-home-model-stat-User")).toBeVisible();
+    await expect(page.getByTestId("admin-home-models-grid-Todo")).toBeVisible({timeout: 30_000});
+    await expect(page.getByTestId("admin-home-models-grid-User")).toBeVisible();
   });
 });
