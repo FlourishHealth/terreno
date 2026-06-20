@@ -403,7 +403,7 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
             gap={3}
             minWidth={embedded ? 0 : 280}
             testID="admin-home-slot-main"
-            width={embedded ? "100%" : undefined}
+            {...(embedded ? {width: "100%"} : {})}
           >
             {main.map((id) => (
               <Box key={`mn-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
