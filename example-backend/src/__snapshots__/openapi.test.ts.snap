@@ -5279,6 +5279,42 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "created_gte",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created_lte",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "type": "number",
