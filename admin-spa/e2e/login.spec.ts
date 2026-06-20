@@ -25,9 +25,9 @@ test("anonymous visitor is redirected to the login screen", async ({page}) => {
  * End-to-end: email/password login against the test server's mock better-auth
  * endpoints. Exercises the login form, `authClient.signIn.email`, the session cookie,
  * `syncSession` (get-session), and AdminGate's admin check (`/admin/config` 200) before
- * rendering the admin model list.
+ * rendering the admin home (model stats from config).
  */
-test("admin logs in with email/password and sees the admin model list", async ({page}) => {
+test("admin logs in with email/password and sees the admin home", async ({page}) => {
   await page.goto("/console/login");
   await expect(page.getByTestId("admin-spa-login-email")).toBeVisible();
 
@@ -35,11 +35,11 @@ test("admin logs in with email/password and sees the admin model list", async ({
   await page.getByTestId("admin-spa-login-password").fill(E2E_ADMIN_PASSWORD);
   await page.getByTestId("admin-spa-login-submit").click();
 
-  // Successful sign-in routes back to the SPA root, which renders AdminModelList
+  // Successful sign-in routes back to the SPA root, which renders AdminHome
   // from the (mocked) /admin/config response.
   await page.waitForURL(/\/console\/?$/, {timeout: 20_000});
-  await expect(page.getByTestId("admin-model-card-Todo")).toBeVisible({timeout: 20_000});
-  await expect(page.getByTestId("admin-model-card-User")).toBeVisible();
+  await expect(page.getByTestId("admin-home-model-stat-Todo")).toBeVisible({timeout: 20_000});
+  await expect(page.getByTestId("admin-home-model-stat-User")).toBeVisible();
 });
 
 /**
