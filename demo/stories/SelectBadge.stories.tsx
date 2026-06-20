@@ -94,12 +94,7 @@ export const BadgeSelectBadgeComparison = () => {
         <Badge status="info" value="Text" />
         <Badge iconName="check" status="success" value="" variant="iconOnly" />
         <Badge maxValue={99} status="error" value="5" variant="numberOnly" />
-        <SelectBadge
-          onChange={() => {}}
-          options={statusOptions}
-          status="info"
-          value="active"
-        />
+        <SelectBadge onChange={() => {}} options={statusOptions} status="info" value="active" />
       </Box>
     </StorybookContainer>
   );
