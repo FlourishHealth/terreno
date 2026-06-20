@@ -251,7 +251,7 @@ export async function start(skipListen = false): Promise<express.Application> {
           home: {
             slots: {
               contentTop: ["feature-flags-overrides"],
-              main: ["modelStats", "modelsGrid"],
+              main: ["modelStats"],
               navGlobal: ["scriptRunner"],
               sidebar: ["versionConfig", "recentActivity"],
             },

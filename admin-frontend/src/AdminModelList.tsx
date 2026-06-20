@@ -191,38 +191,43 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   const scripts = config.scripts ?? [];
   const hasToolCards = allCustomScreens.length > 0 || scripts.length > 0 || !!configurationPath;
 
+  const toolsSection = hasToolCards ? (
+    <Box gap={2} width="100%">
+      <Heading size="sm">Tools</Heading>
+      <Box direction="row" gap={4} width="100%" wrap>
+        {allCustomScreens.map((screen) => (
+          <CustomScreenCard
+            key={screen.name}
+            onPress={() => handlePress(screen.name)}
+            screen={screen}
+          />
+        ))}
+        {scripts.length > 0 ? (
+          <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
+        ) : null}
+        {configurationPath ? (
+          <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
+        ) : null}
+      </Box>
+    </Box>
+  ) : null;
+
+  const modelsSection = !hideModelsSection ? (
+    <Box gap={2} width="100%">
+      <Heading size="sm">Models</Heading>
+      <Box direction="row" gap={4} width="100%" wrap>
+        {config.models.map((model: AdminModelConfig) => (
+          <ModelCard key={model.name} model={model} onPress={handlePress} />
+        ))}
+      </Box>
+    </Box>
+  ) : null;
+
+  /** Models first so embedded home + list layouts read top-to-bottom; tools stay full-width below. */
   const listBody = (
-    <Box gap={4} padding={embedded ? 0 : 4}>
-      {hasToolCards ? (
-        <Box gap={2}>
-          <Heading size="sm">Tools</Heading>
-          <Box direction="row" gap={4} wrap>
-            {allCustomScreens.map((screen) => (
-              <CustomScreenCard
-                key={screen.name}
-                onPress={() => handlePress(screen.name)}
-                screen={screen}
-              />
-            ))}
-            {scripts.length > 0 ? (
-              <ScriptsCard count={scripts.length} onPress={() => handlePress("__scripts")} />
-            ) : null}
-            {configurationPath ? (
-              <ConfigurationCard onPress={() => router.push(configurationPath as Href)} />
-            ) : null}
-          </Box>
-        </Box>
-      ) : null}
-      {!hideModelsSection ? (
-        <Box gap={2}>
-          <Heading size="sm">Models</Heading>
-          <Box direction="row" gap={4} wrap>
-            {config.models.map((model: AdminModelConfig) => (
-              <ModelCard key={model.name} model={model} onPress={handlePress} />
-            ))}
-          </Box>
-        </Box>
-      ) : null}
+    <Box gap={4} padding={embedded ? 0 : 4} width="100%">
+      {modelsSection}
+      {toolsSection}
     </Box>
   );
 

@@ -52,7 +52,7 @@ bun run dev
 
 ## Admin (`AdminApp`)
 
-`src/server.ts` registers `@terreno/admin-backend` with a **full admin UI v2** surface for the example app: home dashboard slots (stats, model grid, feature-flag shortcut, scripts, version config, recent audit), per-model filters, fieldsets, list display and row links, read-only fields, bulk row actions, `onAdminAudit` → `AdminAuditLog`, maintenance scripts, and a `customScreens` entry for the Expo “Admin UI v2 map” route. Pair with `example-frontend` Profile → Admin to explore the UI.
+`src/server.ts` registers `@terreno/admin-backend` with a **full admin UI v2** surface for the example app: home dashboard slots (stats, feature-flag shortcut, scripts, version config, recent audit), per-model filters, fieldsets, list display and row links, read-only fields, bulk row actions, `onAdminAudit` → `AdminAuditLog`, maintenance scripts, and a `customScreens` entry for the Expo “Admin UI v2 map” route. Pair with `example-frontend` Profile → Admin to explore the UI (model cards and tools render on the list screen below the home widgets).
 
 ## Scripts
 

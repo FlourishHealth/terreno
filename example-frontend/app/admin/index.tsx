@@ -24,7 +24,6 @@ const AdminListScreen: React.FC = () => {
           configurationPath="/admin/configuration"
           customScreens={CUSTOM_SCREENS}
           embedded
-          hideModelsSection
         />
       </Box>
     </Page>
