@@ -31,7 +31,10 @@ test.describe("admin SPA served by example-backend", () => {
     // Successful sign-in routes back to the SPA root, which renders AdminHome
     // from the backend's /admin/config (only reachable as an admin).
     await page.waitForURL(/\/console\/?$/, {timeout: 30_000});
-    await expect(page.getByTestId("admin-home-models-grid-Todo")).toBeVisible({timeout: 30_000});
-    await expect(page.getByTestId("admin-home-models-grid-User")).toBeVisible();
+    // @terreno/ui Box with onClick exposes testID as `${id}-clickable` (see ui/src/Box.tsx).
+    await expect(page.getByTestId("admin-home-models-grid-Todo-clickable")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId("admin-home-models-grid-User-clickable")).toBeVisible();
   });
 });
