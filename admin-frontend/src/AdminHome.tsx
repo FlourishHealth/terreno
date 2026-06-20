@@ -431,19 +431,28 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
     <Box gap={4} padding={embedded ? 0 : 4} width="100%">
       {!embedded ? <Heading size="md">{title}</Heading> : null}
 
-      {navGlobal.length > 0 ? (
-        <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
-          {navGlobal.map((id) => (
-            <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-          ))}
-        </Box>
-      ) : null}
-
-      {contentTop.length > 0 ? (
-        <Box direction="column" gap={3} testID="admin-home-slot-contentTop">
-          {contentTop.map((id) => (
-            <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-          ))}
+      {navGlobal.length > 0 || contentTop.length > 0 ? (
+        <Box
+          direction="row"
+          gap={3}
+          testID="admin-home-slot-topStrip"
+          width="100%"
+          wrap
+        >
+          {navGlobal.length > 0 ? (
+            <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
+              {navGlobal.map((id) => (
+                <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+              ))}
+            </Box>
+          ) : null}
+          {contentTop.length > 0 ? (
+            <Box direction="row" gap={3} testID="admin-home-slot-contentTop" wrap>
+              {contentTop.map((id) => (
+                <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+              ))}
+            </Box>
+          ) : null}
         </Box>
       ) : null}
 
