@@ -12,7 +12,7 @@ const MOBILE_SMALL_DISPLAY_CARD_WIDTH = 200;
 const MOBILE_ROW_IMAGE_WIDTH = 100;
 const DESKTOP_ROW_IMAGE_WIDTH = 160;
 const MOBILE_LARGE_IMAGE_HEIGHT = 300;
-const TITLE_DESCRIPTION_GAP = 1;
+const TITLE_DESCRIPTION_GAP = 2;
 const MOBILE_BREAKPOINT = 768;
 
 const getDisplayCardWidth = ({
@@ -135,6 +135,14 @@ const ContainerCard = ({
   padding,
   isMobile,
   variant: _variant,
+  size: _size,
+  title: _title,
+  description: _description,
+  buttonText: _buttonText,
+  buttonOnClick: _buttonOnClick,
+  imageUri: _imageUri,
+  imageAlt: _imageAlt,
+  imageHeight: _imageHeight,
   ...rest
 }: ContainerCardProps): React.ReactElement => {
   return (
@@ -156,23 +164,12 @@ const ContainerCard = ({
 };
 
 export const Card = ({variant = "container", ...props}: CardProps): React.ReactElement => {
+  const {width: windowWidth} = useWindowDimensions();
+  const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+
   if (variant === "display") {
-    const DisplayCardWithLayout = (): React.ReactElement => {
-      const {width: windowWidth} = useWindowDimensions();
-      const isMobile = windowWidth <= MOBILE_BREAKPOINT;
-
-      return <DisplayCard {...props} isMobile={isMobile} />;
-    };
-
-    return <DisplayCardWithLayout />;
+    return <DisplayCard {...props} isMobile={isMobile} variant={variant} />;
   }
 
-  const ContainerCardWithLayout = (): React.ReactElement => {
-    const {width: windowWidth} = useWindowDimensions();
-    const isMobile = windowWidth <= MOBILE_BREAKPOINT;
-
-    return <ContainerCard {...props} isMobile={isMobile} />;
-  };
-
-  return <ContainerCardWithLayout />;
+  return <ContainerCard {...props} isMobile={isMobile} variant={variant} />;
 };

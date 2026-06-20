@@ -111,7 +111,7 @@ describe("Card", () => {
       expect(getByText("Check out this new feature")).toBeTruthy();
     });
 
-    it("uses 4px spacing between the title and description", () => {
+    it("uses 8px spacing between the title and description", () => {
       const {toJSON} = renderWithTheme(
         <Card description="Body text" title="Feature Title" variant="display" />
       );
@@ -119,7 +119,7 @@ describe("Card", () => {
       const contentBox = json.children?.[0] as ReactTestRendererJSON;
       const titleDescriptionBox = contentBox.children?.[0] as ReactTestRendererJSON;
 
-      expect(titleDescriptionBox.props.style.gap).toBe(4);
+      expect(titleDescriptionBox.props.style.gap).toBe(8);
     });
 
     it("uses a 600px width for the default display card size on desktop", () => {
