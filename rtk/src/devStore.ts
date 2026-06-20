@@ -14,5 +14,6 @@ export const registerTerrenoDevStore = (store: Store<Record<string, unknown>>): 
   if (typeof __DEV__ === "undefined" || !__DEV__) {
     return;
   }
-  globalThis.__TERRENO_STORE__ = store;
+  const g = globalThis as typeof globalThis & {__TERRENO_STORE__?: Store<Record<string, unknown>>};
+  g.__TERRENO_STORE__ = store;
 };
