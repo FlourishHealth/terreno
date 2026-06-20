@@ -1,5 +1,5 @@
 import {beforeAll, beforeEach, describe, expect, it} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp} from "@terreno/api";
 import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
@@ -25,11 +25,11 @@ userSchema.plugin(createdUpdatedPlugin);
 const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
 
 const buildApp = (plugin: LangfuseApp) =>
-  setupServer({
-    addRoutes: (router) => plugin.register(router as unknown as express.Application),
+  new TerrenoApp({
+    configureApp: (router) => plugin.register(router as unknown as express.Application),
     skipListen: true,
     userModel: UserModel,
-  });
+  }).build();
 
 describe("LangfuseApp", () => {
   beforeAll(async () => {
