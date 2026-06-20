@@ -422,6 +422,24 @@ export class AdminApp {
     const modelConfigs = this.options.models;
     const onAdminAudit = this.options.onAdminAudit;
 
+    /** Audit is best-effort: failures must not change HTTP outcomes after mutations succeed. */
+    const safeOnAdminAudit = async (
+      request: express.Request,
+      event: AdminAuditEvent
+    ): Promise<void> => {
+      if (!onAdminAudit) {
+        return;
+      }
+      try {
+        await onAdminAudit(event, request);
+      } catch (err: unknown) {
+        const detail = err instanceof Error ? err.message : String(err);
+        logger.error(
+          `onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`
+        );
+      }
+    };
+
     // Build config response with field metadata from Mongoose schemas
     const configModels: AdminModelMeta[] = modelConfigs.map((config) => {
       const {properties, required} = getOpenApiSpecForModel(config.model) as {
@@ -896,58 +914,48 @@ export class AdminApp {
 
       const auditEligible =
         Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
-      const auditHooks =
-        auditEligible && onAdminAudit
-          ? {
-              postCreate: async (value: unknown, request: express.Request): Promise<void> => {
-                const doc = auditDocumentToPlain(value);
-                const rid = doc._id;
-                await onAdminAudit(
-                  {
-                    actorId: auditActorId(request),
-                    modelName: config.model.modelName,
-                    recordId: rid != null ? String(rid) : undefined,
-                    recordLabel: auditLabelFromListFields(doc, config.listFields),
-                    verb: "created",
-                  },
-                  request
-                );
-              },
-              postDelete: async (request: express.Request, value: unknown): Promise<void> => {
-                const doc = auditDocumentToPlain(value);
-                const rid = doc._id;
-                await onAdminAudit(
-                  {
-                    actorId: auditActorId(request),
-                    modelName: config.model.modelName,
-                    recordId: rid != null ? String(rid) : undefined,
-                    recordLabel: auditLabelFromListFields(doc, config.listFields),
-                    verb: "deleted",
-                  },
-                  request
-                );
-              },
-              postUpdate: async (
-                value: unknown,
-                _cleanedBody: unknown,
-                request: express.Request,
-                _prev: unknown
-              ): Promise<void> => {
-                const doc = auditDocumentToPlain(value);
-                const rid = doc._id;
-                await onAdminAudit(
-                  {
-                    actorId: auditActorId(request),
-                    modelName: config.model.modelName,
-                    recordId: rid != null ? String(rid) : undefined,
-                    recordLabel: auditLabelFromListFields(doc, config.listFields),
-                    verb: "updated",
-                  },
-                  request
-                );
-              },
-            }
-          : {};
+      const auditHooks = auditEligible
+        ? {
+            postCreate: async (value: unknown, request: express.Request): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "created",
+              });
+            },
+            postDelete: async (request: express.Request, value: unknown): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "deleted",
+              });
+            },
+            postUpdate: async (
+              value: unknown,
+              _cleanedBody: unknown,
+              request: express.Request,
+              _prev: unknown
+            ): Promise<void> => {
+              const doc = auditDocumentToPlain(value);
+              const rid = doc._id;
+              await safeOnAdminAudit(request, {
+                actorId: auditActorId(request),
+                modelName: config.model.modelName,
+                recordId: rid != null ? String(rid) : undefined,
+                recordLabel: auditLabelFromListFields(doc, config.listFields),
+                verb: "updated",
+              });
+            },
+          }
+        : {};
 
       // biome-ignore lint/suspicious/noExplicitAny: matches the Model<any> from AdminModelConfig above.
       const routerOptions: ModelRouterOptions<any> = {

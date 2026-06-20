@@ -666,6 +666,48 @@ describe("AdminApp onAdminAudit", () => {
   });
 });
 
+describe("AdminApp onAdminAudit is best-effort", () => {
+  beforeEach(async () => {
+    await setupDb();
+  });
+
+  afterEach(async () => {
+    await FoodModel.deleteMany({});
+  });
+
+  const throwingAudit = {
+    onAdminAudit: async (): Promise<void> => {
+      throw new Error("audit sink failure");
+    },
+  };
+
+  it("returns 201 on POST when onAdminAudit throws", async () => {
+    const localApp = buildApp([foodModelConfig], throwingAudit);
+    const agent = await authAsUser(localApp, "admin");
+    const res = await agent.post("/admin/foods").send({calories: 5, name: "StillCreated"}).expect(201);
+    const stored = await FoodModel.findById(res.body.data._id).lean();
+    expect(stored?.name).toBe("StillCreated");
+  });
+
+  it("returns 200 on PATCH when onAdminAudit throws", async () => {
+    const localApp = buildApp([foodModelConfig], throwingAudit);
+    const agent = await authAsUser(localApp, "admin");
+    const food = await FoodModel.create({calories: 10, name: "PatchMe"});
+    const res = await agent.patch(`/admin/foods/${food._id}`).send({calories: 99}).expect(200);
+    expect(res.body.data.calories).toBe(99);
+    const stored = await FoodModel.findById(food._id).lean();
+    expect(stored?.calories).toBe(99);
+  });
+
+  it("returns 204 on DELETE when onAdminAudit throws", async () => {
+    const localApp = buildApp([foodModelConfig], throwingAudit);
+    const agent = await authAsUser(localApp, "admin");
+    const food = await FoodModel.create({calories: 1, name: "DeleteMe"});
+    await agent.delete(`/admin/foods/${food._id}`).expect(204);
+    expect(await FoodModel.findById(food._id)).toBeNull();
+  });
+});
+
 describe("AdminApp per-model queryFilter", () => {
   beforeEach(async () => {
     await setupDb();
