@@ -53,7 +53,7 @@ const DisplayCard = ({
   variant: _variant,
   ...rest
 }: DisplayCardProps): React.ReactElement => {
-  const isRow = (!isMobile && size !== "small") || (isMobile && size === "default");
+  const isRow = !isMobile && size !== "small";
   const cardWidth = getDisplayCardWidth({isMobile, size});
 
   const columnImageHeight = isMobile && size === "large" ? MOBILE_LARGE_IMAGE_HEIGHT : imageHeight;
@@ -99,9 +99,8 @@ const DisplayCard = ({
         direction="column"
         flex={isRow ? "shrink" : undefined}
         gap={4}
-        minWidth={isRow ? 0 : undefined}
         padding={isMobile ? 4 : 0}
-        {...(isRow ? {} : {width: "100%"})}
+        {...(isRow ? {minWidth: 0} : {width: "100%"})}
       >
         {(Boolean(title) || Boolean(description)) && (
           <Box direction="column" gap={TITLE_DESCRIPTION_GAP} minWidth={0} width="100%">

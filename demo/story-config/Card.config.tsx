@@ -53,7 +53,7 @@ export const CardConfiguration: DemoConfiguration = {
     },
     DisplaySizes: {
       description:
-        "Display cards support three sizes. On desktop, large and default lay out horizontally; small is always vertical. On mobile, default is horizontal while large and small are vertical.",
+        "Display cards support three sizes. On desktop, large and default lay out horizontally; small is always vertical. On mobile, all sizes use a vertical layout.",
       render: DisplaySizes,
     },
     WithImage: {
