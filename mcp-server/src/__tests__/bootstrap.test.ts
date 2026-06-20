@@ -197,6 +197,9 @@ describe("bootstrap", () => {
         const parsed = JSON.parse(match[1]);
         expect(parsed.mcpServers.terreno).toBeDefined();
         expect(parsed.mcpServers.terreno.type).toBe("http");
+        expect(parsed.mcpServers["terreno-local"]).toBeDefined();
+        expect(parsed.mcpServers.expo).toBeDefined();
+        expect(parsed.mcpServers.playwright).toBeDefined();
       }
     });
 

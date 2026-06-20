@@ -1,6 +1,7 @@
 import type {Tool} from "@modelcontextprotocol/sdk/types.js";
 import {bootstrapTools, handleBootstrapToolCall} from "./bootstrap.js";
 import {getComponentDocsMarkdown, searchDocs} from "./search/docIndex.js";
+import {getUpgradeGuideMarkdown} from "./upgradeGuide.js";
 
 const docSearchTools: Tool[] = [
   {
@@ -44,6 +45,25 @@ const docSearchTools: Tool[] = [
       type: "object",
     },
     name: "terreno_get_component_docs",
+  },
+  {
+    description:
+      "Return bundled Terreno lockstep upgrade notes between two semver versions (markdown). Use before major bumps to @terreno/* packages.",
+    inputSchema: {
+      properties: {
+        fromVersion: {
+          description: "Installed @terreno/* semver (e.g. 0.19.0)",
+          type: "string",
+        },
+        toVersion: {
+          description: "Target semver to upgrade to (e.g. 0.20.0)",
+          type: "string",
+        },
+      },
+      required: ["fromVersion", "toVersion"],
+      type: "object",
+    },
+    name: "terreno_get_upgrade_guide",
   },
 ];
 
@@ -1095,6 +1115,23 @@ export const handleToolCall = (
   if (name === "terreno_get_component_docs") {
     const component = typeof args.component === "string" ? args.component : "";
     result = getComponentDocsMarkdown(component);
+    return {content: [{text: result, type: "text"}]};
+  }
+
+  if (name === "terreno_get_upgrade_guide") {
+    const fromVersion = typeof args.fromVersion === "string" ? args.fromVersion.trim() : "";
+    const toVersion = typeof args.toVersion === "string" ? args.toVersion.trim() : "";
+    if (!fromVersion || !toVersion) {
+      return {
+        content: [
+          {
+            text: 'Provide `fromVersion` and `toVersion` semver strings, e.g. { "fromVersion": "0.19.0", "toVersion": "0.20.0" }.',
+            type: "text",
+          },
+        ],
+      };
+    }
+    result = getUpgradeGuideMarkdown(fromVersion, toVersion);
     return {content: [{text: result, type: "text"}]};
   }
 

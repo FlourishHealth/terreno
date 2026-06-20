@@ -1,6 +1,11 @@
-# @terreno/mcp-server
+# @terreno/mcp
 
-Model Context Protocol (MCP) server for Terreno. Provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
+Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
+
+- **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned)
+
+It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 
 ## Table of Contents
 
@@ -23,7 +28,7 @@ The MCP server exposes Terreno's documentation and code generation capabilities 
 **Key concepts:**
 
 - **Resources**: Read-only documentation from `docs/` directory
-- **Tools**: Code generators that return text (AI writes files), plus documentation search (`terreno_search_docs`, `terreno_get_component_docs`) over bundled Diátaxis docs and UI type reference
+- **Tools**: Code generators that return text (AI writes files), documentation search (`terreno_search_docs`, `terreno_get_component_docs`), upgrade notes (`terreno_get_upgrade_guide`), plus local-only tools when using `terreno-mcp-local`
 - **Prompts**: Pre-built multi-step instructions for complex workflows
 
 ## Installation

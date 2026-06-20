@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {join} from "node:path";
 import {inspect} from "node:util";
 import * as Sentry from "@sentry/bun";
 import winston from "winston";
@@ -52,6 +53,56 @@ const printf = (timestamp = false) => {
   };
 };
 
+
+let terrenoDevJsonlAttached = false;
+
+const shouldAttachTerrenoDevJsonl = (): boolean => {
+  if (process.env.TERRENO_LOG_FILE === "false" || process.env.TERRENO_LOG_FILE === "0") {
+    return false;
+  }
+  if (process.env.TERRENO_LOG_FILE === "true" || process.env.TERRENO_LOG_FILE === "1") {
+    return true;
+  }
+  return process.env.NODE_ENV !== "production";
+};
+
+const attachTerrenoDevJsonlTransportIfEnabled = (
+  logger: winston.Logger,
+  options?: {disable?: boolean}
+): void => {
+  if (options?.disable) {
+    return;
+  }
+  if (!shouldAttachTerrenoDevJsonl()) {
+    return;
+  }
+  if (terrenoDevJsonlAttached) {
+    return;
+  }
+  const logDir = join(process.cwd(), ".terreno", "logs");
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, {recursive: true});
+  }
+  const maxBytes = 5 * 1024 * 1024;
+  logger.add(
+    new winston.transports.File({
+      filename: join(logDir, "app.log"),
+      format: winston.format.combine(
+        addRequestContextFormat(),
+        winston.format.timestamp(),
+        winston.format.json()
+      ),
+      handleExceptions: true,
+      handleRejections: true,
+      level: "debug",
+      maxFiles: 3,
+      maxsize: maxBytes,
+      options: {flags: "a", mode: 0o600},
+    })
+  );
+  terrenoDevJsonlAttached = true;
+};
+
 // Setup a global, default rejection handler.
 winston.add(
   new winston.transports.Console({
@@ -87,6 +138,8 @@ export const winstonLogger = winston.createLogger({
     }),
   ],
 });
+
+attachTerrenoDevJsonlTransportIfEnabled(winstonLogger);
 
 // Helper function to send logs to Sentry if enabled
 const sendToSentry = (message: string, level: "debug" | "info" | "warn" | "error"): void => {
@@ -145,10 +198,13 @@ export interface LoggingOptions {
   logSlowRequestsReadMs?: number;
   // The threshold in ms for logging slow requests. Defaults to 500ms for write requests.
   logSlowRequestsWriteMs?: number;
+  /** When true, skips the dev JSONL file under `.terreno/logs/app.log`. */
+  disableTerrenoDevJsonlLog?: boolean;
 }
 
 export const setupLogging = (options?: LoggingOptions): void => {
   winstonLogger.clear();
+  terrenoDevJsonlAttached = false;
   if (!options?.disableConsoleLogging) {
     const formats: winston.Logform.Format[] = [addRequestContextFormat(), winston.format.simple()];
     if (!options?.disableConsoleColors) {
@@ -217,4 +273,8 @@ export const setupLogging = (options?: LoggingOptions): void => {
       winstonLogger.add(transport);
     }
   }
+
+  attachTerrenoDevJsonlTransportIfEnabled(winstonLogger, {
+    disable: options?.disableTerrenoDevJsonlLog === true,
+  });
 };

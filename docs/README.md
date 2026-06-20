@@ -20,7 +20,7 @@ Documentation for the Terreno monorepo: shared packages for full-stack applicati
 | [@terreno/admin-backend](reference/admin-backend.md) | Admin panel backend plugin |
 | [@terreno/admin-frontend](reference/admin-frontend.md) | Admin panel frontend screens |
 | [@terreno/api-health](reference/api-health.md) | Health check endpoint plugin |
-| [@terreno/mcp-server](reference/mcp-server.md) | AI coding assistant integration (MCP) |
+| [@terreno/mcp](reference/mcp-server.md) | AI coding assistant integration (MCP) |
 
 ## Quick links
 

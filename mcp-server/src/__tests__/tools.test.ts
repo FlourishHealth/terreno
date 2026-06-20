@@ -15,6 +15,7 @@ describe("tools", () => {
     expect(toolNames).toContain("terreno_bootstrap_ai_rules");
     expect(toolNames).toContain("terreno_search_docs");
     expect(toolNames).toContain("terreno_get_component_docs");
+    expect(toolNames).toContain("terreno_get_upgrade_guide");
   });
 
   test("should have valid tool structure", () => {
@@ -629,6 +630,21 @@ describe("tools", () => {
     test("should run terreno_get_component_docs with component name", () => {
       const out = handleToolCall("terreno_get_component_docs", {component: "Button"});
       expect(out.content[0].text.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("terreno_get_upgrade_guide", () => {
+    test("should require fromVersion and toVersion", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {fromVersion: "0.20.0"});
+      expect(out.content[0].text).toContain("fromVersion");
+    });
+
+    test("should return bundled upgrade markdown for a range", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "0.20.0",
+        toVersion: "0.20.0",
+      });
+      expect(out.content[0].text).toContain("0.20.0");
     });
   });
 });

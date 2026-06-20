@@ -163,15 +163,45 @@ const generateMcpSettings = (args: BootstrapArgs): string => {
   return JSON.stringify(
     {
       mcpServers: {
+        expo: {
+          type: "http",
+          url: "https://mcp.expo.dev/mcp",
+        },
+        playwright: {
+          args: ["-y", "@playwright/mcp@latest"],
+          command: "npx",
+        },
         terreno: {
           type: "http",
           url: `${mcpUrl}/mcp`,
+        },
+        "terreno-local": {
+          args: ["terreno-mcp-local"],
+          command: "bunx",
         },
       },
     },
     null,
     2
   );
+};
+
+const generateRootGitignore = (): string => {
+  return [
+    "# Dependencies",
+    "node_modules/",
+    "",
+    "# Local Terreno dev logs (winston JSONL + optional browser fallback)",
+    ".terreno/",
+    "",
+    "# Build outputs",
+    "dist/",
+    "build/",
+    "",
+    "# OS",
+    ".DS_Store",
+    "",
+  ].join("\n");
 };
 
 const generateClaudeMd = (args: BootstrapArgs): string => {
@@ -691,21 +721,22 @@ const generateFrontendPackageJson = (args: BootstrapArgs): string => {
         "@biomejs/biome": "^2.3.6",
         "@playwright/test": "^1.58.2",
         "@types/react": "~19.1.10",
+        "expo-mcp": "^0.2.4",
         typescript: "~5.9.2",
       },
       main: "expo-router/entry",
       name: `@${appName}/frontend`,
       private: true,
       scripts: {
-        android: "bun expo start --android --port 8082",
-        ios: "bun expo start --ios --port 8082",
+        android: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --android --port 8082",
+        ios: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --ios --port 8082",
         lint: "bun biome check .",
         "lint:fix": "bun biome check --write .",
         "lint:unsafefix": "biome check --write . --unsafe",
         sdk: "bun scripts/generate-sdk.ts && bun biome check --write scripts/generate-sdk.ts",
-        start: "bun expo start --port 8082",
+        start: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --port 8082",
         test: "bun test",
-        web: "bun expo start --web --port 8082",
+        web: "EXPO_UNSTABLE_MCP_SERVER=1 bun expo start --web --port 8082",
       },
       version: "1.0.0",
     },
@@ -1356,7 +1387,7 @@ export default NotFoundScreen;
 const generateFrontendStoreIndex = (): string => {
   return `import AsyncStorage from "@react-native-async-storage/async-storage";
 import {combineReducers, configureStore} from "@reduxjs/toolkit";
-import {generateAuthSlice} from "@terreno/rtk";
+import {generateAuthSlice, registerTerrenoDevStore} from "@terreno/rtk";
 import {DateTime} from "luxon";
 import {useDispatch} from "react-redux";
 import type {Storage} from "redux-persist";
@@ -1434,6 +1465,8 @@ const store = configureStore({
   },
   reducer: persistedReducer,
 });
+
+registerTerrenoDevStore(store);
 
 export const persistor = persistStore(store);
 
@@ -2161,7 +2194,19 @@ bun run lint     # Lint code
 - Never modify \`openApiSdk.ts\` manually - regenerate with \`bun run sdk\`
 - Use Luxon for date operations
 - Use Redux Toolkit for state management
-${admin}## Adding a New Screen
+${admin}## Expo SDK upgrades
+
+- For Expo/React Native dependency upgrades, install and use the official \`upgrading-expo\` skill from \`expo/skills\` (\`bunx skills add expo/skills\` when using the Skills CLI). It covers \`expo install\`, doctor, caches, and SDK breaking changes.
+- Terreno-specific upgrade notes ship with \`@terreno/mcp\` as bundled markdown; call the \`terreno_get_upgrade_guide\` tool (hosted Terreno MCP) for lockstep \`@terreno/*\` release notes.
+
+## MCP servers (dev)
+
+- **terreno** (HTTP): codegen, docs search, bootstrap tools.
+- **terreno-local** (stdio): Mongo introspection, dev logs, RTK state (via \`registerTerrenoDevStore\`).
+- **expo** (HTTP): Expo docs + local simulator automation when \`EXPO_UNSTABLE_MCP_SERVER=1\` dev server is running.
+- **playwright**: web UI automation for \`expo start --web\`.
+
+## Adding a New Screen
 
 1. Regenerate SDK if backend changed: \`bun run sdk\`
 2. Create screen in \`app/\` directory
@@ -2388,6 +2433,7 @@ const generateAllFiles = (args: BootstrapArgs): GeneratedFile[] => {
 
   return [
     // Root files
+    {content: generateRootGitignore(), path: ".gitignore"},
     {content: generateCursorRules(args), path: ".cursorrules"},
     {content: generateMcpSettings(args), path: ".cursor/mcp.json"},
     {content: generateClaudeMd(args), path: "CLAUDE.md"},

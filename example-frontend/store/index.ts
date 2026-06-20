@@ -3,6 +3,7 @@ import {combineReducers, configureStore} from "@reduxjs/toolkit";
 import {
   createOfflineMiddleware,
   generateAuthSlice,
+  registerTerrenoDevStore,
   type OfflineState,
   type QueuedMutation,
 } from "@terreno/rtk";
@@ -219,6 +220,8 @@ const store = configureStore({
   },
   reducer: persistedReducer,
 });
+
+registerTerrenoDevStore(store);
 
 export const persistor = persistStore(store);
 

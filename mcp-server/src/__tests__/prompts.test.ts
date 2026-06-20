@@ -12,6 +12,7 @@ describe("prompts", () => {
     expect(promptNames).toContain("terreno_add_authentication");
     expect(promptNames).toContain("terreno_style_guide");
     expect(promptNames).toContain("terreno_migrate_to_terreno_app");
+    expect(promptNames).toContain("terreno_upgrade");
     expect(promptNames).toContain("terreno_bootstrap");
   });
 
@@ -339,6 +340,16 @@ describe("prompts", () => {
       expect(content).toContain("Your Task");
       expect(content).toContain("TerrenoApp.create");
       expect(content).toContain("HealthApp");
+    });
+  });
+
+  describe("terreno_upgrade", () => {
+    test("should include workflow steps", () => {
+      const result = handlePromptRequest("terreno_upgrade", {targetVersion: "0.21.0"});
+      const content = result.messages[0].content.text;
+      expect(content).toContain("0.21.0");
+      expect(content).toContain("terreno_get_upgrade_guide");
+      expect(content).toContain("upgrading-expo");
     });
   });
 
