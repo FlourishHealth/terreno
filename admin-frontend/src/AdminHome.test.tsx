@@ -116,6 +116,43 @@ describe("AdminHome", () => {
     expect(countTestIdInSubtree(mainSlot, "admin-home-widget-scriptRunner")).toBe(0);
   });
 
+  it("shows per-model row counts on each model card", () => {
+    configState.config = buildConfig();
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    const modelCountLabels = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-home-model-count-Widget"
+    );
+    expect(modelCountLabels.length).toBeGreaterThan(0);
+  });
+
+  it("normalizes legacy modelStats to a single modelsGrid widget", () => {
+    configState.config = buildConfig({
+      home: {
+        slots: {
+          main: ["modelStats", "modelsGrid"],
+          navGlobal: [],
+          sidebar: [],
+        },
+        title: "Test Admin",
+      },
+    });
+    const {UNSAFE_root} = renderWithTheme(
+      <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
+    );
+    const mainSlots = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-main"
+    );
+    expect(mainSlots.length).toBeGreaterThan(0);
+    const mainSlot = mainSlots[0] as ReactTestInstance;
+    const directWidgetWrappers = mainSlot.children.filter(
+      (child) => typeof child === "object" && child !== null
+    );
+    expect(directWidgetWrappers.length).toBe(1);
+    expect(countTestIdInSubtree(mainSlot, "admin-home-widget-modelsGrid")).toBeGreaterThan(0);
+  });
+
   it("places recentActivity after other sidebar widgets when configured first in sidebar", () => {
     configState.config = buildConfig({
       home: {

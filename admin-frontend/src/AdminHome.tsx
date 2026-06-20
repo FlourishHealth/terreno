@@ -17,16 +17,34 @@ const BUILTIN_WIDGET_IDS = new Set([
   "recentActivity",
 ]);
 
-const normalizeSidebarWidgets = (ids: string[] | undefined): string[] => {
+const normalizeWidgetIds = (ids: string[] | undefined): string[] => {
   if (!ids?.length) {
     return [];
   }
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    const normalized = id === "modelStats" ? "modelsGrid" : id;
+    if (seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+};
+
+const normalizeSidebarWidgets = (ids: string[] | undefined): string[] => {
+  const normalized = normalizeWidgetIds(ids);
+  if (!normalized.length) {
+    return normalized;
+  }
   const tail = "recentActivity";
-  const without = ids.filter((id) => id !== tail);
-  if (ids.includes(tail)) {
+  const without = normalized.filter((id) => id !== tail);
+  if (normalized.includes(tail)) {
     return [...without, tail];
   }
-  return [...ids];
+  return normalized;
 };
 
 const warnUnknownWidget = (widgetId: string): void => {
@@ -53,7 +71,7 @@ interface AdminHomeProps {
   embedded?: boolean;
 }
 
-const ModelStatRow: React.FC<{
+const ModelGridCard: React.FC<{
   api: AdminApi;
   model: AdminModelConfig;
   routeBase: string;
@@ -61,6 +79,7 @@ const ModelStatRow: React.FC<{
   const {useListQuery} = useAdminApi(api, model.routePath, model.name);
   const {data, isLoading} = useListQuery({limit: 1, page: 1}, {skip: !model.routePath});
   const total = (data as {total?: number} | undefined)?.total;
+  const fieldCount = Object.keys(model.fields).length;
 
   const onOpen = useCallback((): void => {
     const prefix = routeBase.endsWith("/") ? routeBase.slice(0, -1) : routeBase;
@@ -70,89 +89,45 @@ const ModelStatRow: React.FC<{
 
   return (
     <Box
-      alignItems="center"
-      direction="row"
-      justifyContent="between"
-      paddingY={1}
-      testID={`admin-home-model-stat-${model.name}`}
+      accessibilityHint={`Open ${model.displayName} admin`}
+      accessibilityLabel={model.displayName}
+      border="default"
+      onClick={onOpen}
+      padding={3}
+      rounding="md"
+      testID={`admin-home-models-grid-${model.name}`}
+      width={200}
     >
-      <Text size="sm">{model.displayName}</Text>
-      {isLoading ? (
-        <Spinner />
-      ) : (
-        <Text color="secondaryDark" size="sm">
-          {total != null ? `${total}` : "—"}
-        </Text>
-      )}
-      <Box
-        accessibilityHint={`Opens ${model.displayName} list`}
-        accessibilityLabel={`Open ${model.displayName}`}
-        onClick={onOpen}
-      >
-        <Text color="link" size="sm">
-          Open
-        </Text>
+      <Text bold>{model.displayName}</Text>
+      <Text color="secondaryDark" size="sm">
+        {`${fieldCount} fields`}
+      </Text>
+      <Box marginTop={1}>
+        {isLoading ? (
+          <Spinner />
+        ) : (
+          <Text
+            color="secondaryDark"
+            size="sm"
+            testID={`admin-home-model-count-${model.name}`}
+          >{`${total != null ? total : "—"} rows`}</Text>
+        )}
       </Box>
     </Box>
   );
 };
 
-const ModelStatsWidget: React.FC<{
+const ModelsGridWidget: React.FC<{
   api: AdminApi;
   models: AdminModelConfig[];
   routeBase: string;
 }> = ({api, models, routeBase}) => {
-  const slice = useMemo(() => models.slice(0, 8), [models]);
-  return (
-    <Card padding={4} testID="admin-home-widget-modelStats">
-      <Heading size="sm">Model activity</Heading>
-      <Text color="secondaryDark" size="sm">
-        Row counts (first page totals)
-      </Text>
-      <Box marginTop={2}>
-        {slice.map((m) => (
-          <ModelStatRow api={api} key={m.name} model={m} routeBase={routeBase} />
-        ))}
-      </Box>
-    </Card>
-  );
-};
-
-const ModelsGridWidget: React.FC<{
-  models: AdminModelConfig[];
-  routeBase: string;
-}> = ({models, routeBase}) => {
-  const onOpen = useCallback(
-    (name: string) => {
-      const prefix = routeBase.endsWith("/") ? routeBase.slice(0, -1) : routeBase;
-      router.push(`${prefix}/${name}` as Href);
-    },
-    [routeBase]
-  );
-
   return (
     <Card padding={4} testID="admin-home-widget-modelsGrid">
       <Heading size="sm">Models</Heading>
       <Box direction="row" gap={3} marginTop={2} wrap>
         {models.map((m) => (
-          <Box
-            accessibilityHint={`Open ${m.displayName} admin`}
-            accessibilityLabel={m.displayName}
-            border="default"
-            key={m.name}
-            onClick={() => {
-              onOpen(m.name);
-            }}
-            padding={3}
-            rounding="md"
-            testID={`admin-home-models-grid-${m.name}`}
-            width={200}
-          >
-            <Text bold>{m.displayName}</Text>
-            <Text color="secondaryDark" size="sm">
-              {Object.keys(m.fields).length} fields
-            </Text>
-          </Box>
+          <ModelGridCard api={api} key={m.name} model={m} routeBase={routeBase} />
         ))}
       </Box>
     </Card>
@@ -308,9 +283,9 @@ const renderWidget = (params: {
   warnUnknownWidget(widgetId);
   switch (widgetId) {
     case "modelStats":
-      return <ModelStatsWidget api={api} models={models} routeBase={routeBase} />;
+      return <ModelsGridWidget api={api} models={models} routeBase={routeBase} />;
     case "modelsGrid":
-      return <ModelsGridWidget models={models} routeBase={routeBase} />;
+      return <ModelsGridWidget api={api} models={models} routeBase={routeBase} />;
     case "feature-flags-overrides":
       return <FeatureFlagsOverridesWidget model={featureFlagModel} routeBase={routeBase} />;
     case "versionConfig":
@@ -326,7 +301,7 @@ const renderWidget = (params: {
 
 /**
  * Config-driven admin home dashboard: renders `home.slots` from `/admin/config` with built-in
- * widgets (stats, model grid, scripts, version config, audit recent activity).
+ * widgets (model grid with counts, scripts, version config, audit recent activity).
  */
 export const AdminHome: React.FC<AdminHomeProps> = ({
   baseUrl,
@@ -353,9 +328,9 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
   );
 
   const slots = config?.home?.slots;
-  const navGlobal = slots?.navGlobal ?? [];
-  const contentTop = slots?.contentTop ?? [];
-  const main = slots?.main ?? [];
+  const navGlobal = normalizeWidgetIds(slots?.navGlobal);
+  const contentTop = normalizeWidgetIds(slots?.contentTop);
+  const main = normalizeWidgetIds(slots?.main);
   const sidebar = normalizeSidebarWidgets(slots?.sidebar);
 
   if (isLoading) {
