@@ -2,7 +2,7 @@ import {afterEach, beforeEach, describe, expect, test} from "bun:test";
 import {mkdirSync, rmSync, writeFileSync} from "node:fs";
 import {join} from "node:path";
 
-import {chunkMarkdown} from "../search/chunker.js";
+import {chunkMarkdown, standaloneDocumentChunk} from "../search/chunker.js";
 import {
   getComponentDocsMarkdown,
   resetDocSearchIndexForTests,
@@ -18,6 +18,38 @@ describe("chunkMarkdown", () => {
     expect(sub).toBeDefined();
     expect(sub?.breadcrumb).toContain("Title");
     expect(sub?.text).toContain("Body here");
+  });
+
+  test("pops heading stack when encountering a same-level sibling heading", () => {
+    const md = ["# Section", "## A", "## B", "", "Under B"].join("\n");
+    const chunks = chunkMarkdown("sibling.md", md, ["docs"]);
+    const b = chunks.find((c) => c.title === "B");
+    expect(b).toBeDefined();
+    expect(b?.breadcrumb).toContain("Section");
+    expect(b?.text).toContain("Under B");
+  });
+
+  test("handles CRLF line endings", () => {
+    const md = "# One\r\n\r\nBody\r\n## Two\r\nMore";
+    const chunks = chunkMarkdown("crlf.md", md, ["docs"]);
+    expect(chunks.some((c) => c.title === "Two")).toBe(true);
+  });
+
+  test("returns a single intro chunk for body text without headings", () => {
+    const chunks = chunkMarkdown("plain.md", "Only paragraph text.", ["docs"]);
+    expect(chunks.length).toBe(1);
+    expect(chunks[0]?.title).toBe("(intro)");
+  });
+
+  test("returns no chunks for whitespace-only markdown", () => {
+    expect(chunkMarkdown("empty.md", "\n\n\n", ["docs"])).toEqual([]);
+  });
+
+  test("standaloneDocumentChunk matches fallback shape used by chunkMarkdown", () => {
+    const chunk = standaloneDocumentChunk("only.md", "  hello  ", ["docs"]);
+    expect(chunk.title).toBe("(document)");
+    expect(chunk.text).toBe("hello");
+    expect(chunk.breadcrumb).toBe("only.md");
   });
 });
 
@@ -84,5 +116,82 @@ describe("docIndex", () => {
   test("getComponentDocsMarkdown returns not-found message without typedoc", () => {
     const msg = getComponentDocsMarkdown("Button");
     expect(msg).toContain("unavailable");
+  });
+
+  test("searchDocs returns guidance when queries are empty or whitespace-only", () => {
+    expect(searchDocs({queries: []})).toContain("No search queries provided");
+    expect(searchDocs({queries: ["", "  "]})).toContain("No search queries provided");
+  });
+
+  test("searchDocs reports no matches for nonsense query", () => {
+    writeFileSync(join(tmp, "resources", "api.md"), ["# API", "", "Some content here."].join("\n"));
+    const out = searchDocs({queries: ["zzzznonexistenttoken99999"]});
+    expect(out).toContain("No matching chunks found");
+  });
+
+  test("searchDocs omits additional matches when token budget is exhausted", () => {
+    writeFileSync(
+      join(tmp, "resources", "one.md"),
+      ["# One", "", "sharedkeyword onebody short."].join("\n")
+    );
+    writeFileSync(
+      join(tmp, "resources", "two.md"),
+      ["# Two", "", "sharedkeyword twobody short."].join("\n")
+    );
+    const out = searchDocs({queries: ["sharedkeyword"], tokenLimit: 45});
+    expect(out).toContain("sharedkeyword");
+    expect(out).toContain("Additional matches omitted");
+  });
+
+  test("indexes nested versioned markdown files", () => {
+    const vDir = join(tmp, "versioned", "0.19.0", "nested");
+    mkdirSync(vDir, {recursive: true});
+    writeFileSync(
+      join(vDir, "guide.md"),
+      ["# Guide", "", "versionedUniqueToken7654321"].join("\n")
+    );
+    const out = searchDocs({queries: ["versionedUniqueToken7654321"]});
+    expect(out).toContain("versionedUniqueToken7654321");
+    expect(out).toContain("nested/guide.md");
+  });
+
+  test("getComponentDocsMarkdown resolves component case-insensitively and adds related excerpts", () => {
+    const typeDoc = {
+      children: [
+        {
+          children: [
+            {
+              children: [
+                {
+                  flags: {},
+                  name: "label",
+                  type: {name: "string", type: "intrinsic"},
+                },
+              ],
+              kind: 256,
+              name: "ButtonProps",
+            },
+          ],
+          name: "Common",
+        },
+      ],
+    };
+    writeFileSync(join(tmp, "ui-types-documentation.json"), JSON.stringify(typeDoc));
+    writeFileSync(
+      join(tmp, "resources", "extra.md"),
+      ["# UI patterns", "", "Extra notes about Button props for search."].join("\n")
+    );
+
+    const lower = getComponentDocsMarkdown("button");
+    expect(lower).toContain("# Button");
+    expect(lower).toContain("Related markdown excerpts");
+
+    const unknown = getComponentDocsMarkdown("NotARealComponent999");
+    expect(unknown).toContain('No component named "NotARealComponent999"');
+    expect(unknown).toContain("Examples:");
+  });
+
+  test("getComponentDocsMarkdown asks for component when name is blank", () => {
+    expect(getComponentDocsMarkdown("   ")).toContain("Pass `component`");
   });
 });

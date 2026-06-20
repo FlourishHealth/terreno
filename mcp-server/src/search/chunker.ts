@@ -17,24 +17,31 @@ export interface MarkdownChunk {
 
 const HEADING_RE = /^(#{1,6})\s+(.+)$/;
 
-const slugPart = (s: string): string => {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-};
-
-const stableChunkId = (sourcePath: string, headingTrail: string[], body: string): string => {
-  const h = createHash("sha256")
+const stableChunkId = (sourcePath: string, headingTrail: string[], body: string): string =>
+  createHash("sha256")
     .update(sourcePath)
     .update("\0")
     .update(headingTrail.join(">"))
     .update("\0")
-    .update(body.slice(0, 4000));
-  return `${slugPart(sourcePath).slice(0, 60)}-${h.digest("hex").slice(0, 16)}`;
-};
+    .update(body)
+    .digest("hex");
+
+/**
+ * Fallback chunk when markdown has no extractable heading sections but is non-empty.
+ * Exported for unit tests (the `chunkMarkdown` path delegates here).
+ */
+export const standaloneDocumentChunk = (
+  sourcePath: string,
+  raw: string,
+  packageTags: string[]
+): MarkdownChunk => ({
+  breadcrumb: sourcePath,
+  id: stableChunkId(sourcePath, [], raw),
+  packageTags: [...packageTags],
+  sourcePath,
+  text: raw.trim(),
+  title: "(document)",
+});
 
 /**
  * Split markdown into heading-scoped chunks with breadcrumb titles for search indexing.
@@ -92,14 +99,7 @@ export const chunkMarkdown = (
   flush();
 
   if (chunks.length === 0 && raw.trim()) {
-    chunks.push({
-      breadcrumb: sourcePath,
-      id: stableChunkId(sourcePath, [], raw),
-      packageTags: [...packageTags],
-      sourcePath,
-      text: raw.trim(),
-      title: "(document)",
-    });
+    chunks.push(standaloneDocumentChunk(sourcePath, raw, packageTags));
   }
 
   return chunks;

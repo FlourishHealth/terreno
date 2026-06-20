@@ -90,7 +90,17 @@ const loadAllChunks = (): SearchableChunk[] => {
     }
   }
 
-  return chunks;
+  const seenIds = new Set<string>();
+  const deduped: SearchableChunk[] = [];
+  for (const c of chunks) {
+    if (seenIds.has(c.id)) {
+      continue;
+    }
+    seenIds.add(c.id);
+    deduped.push(c);
+  }
+
+  return deduped;
 };
 
 const buildMiniSearch = (chunks: SearchableChunk[]): MiniSearch<IndexedDoc> => {
