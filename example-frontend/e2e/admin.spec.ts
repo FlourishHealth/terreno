@@ -10,26 +10,39 @@ test.describe("Admin Panel", () => {
   });
 
   test("admin panel renders model list", async ({page}) => {
-    await page.getByTestId("admin-model-card-User").waitFor({state: "visible"});
-    await expect(page.getByTestId("admin-model-card-User")).toBeVisible();
-    await expect(page.getByTestId("admin-model-card-Todo")).toBeVisible();
+    const userEntry = page
+      .getByTestId("admin-model-card-User")
+      .or(page.getByTestId("admin-home-models-grid-User"));
+    const todoEntry = page
+      .getByTestId("admin-model-card-Todo")
+      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    await userEntry.first().waitFor({state: "visible"});
+    await expect(userEntry.first()).toBeVisible();
+    await expect(todoEntry.first()).toBeVisible();
   });
 
   test("admin panel shows custom screens", async ({page}) => {
     await page.getByTestId("admin-custom-screen-card-ai-admin").waitFor({state: "visible"});
     await expect(page.getByTestId("admin-custom-screen-card-ai-admin")).toBeVisible();
+    await expect(page.getByTestId("admin-custom-screen-card-showcase")).toBeVisible();
   });
 
   test("can navigate to model table", async ({page}) => {
-    await page.getByTestId("admin-model-card-Todo").waitFor({state: "visible"});
-    await page.getByTestId("admin-model-card-Todo").click();
+    const todoEntry = page
+      .getByTestId("admin-model-card-Todo")
+      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    await todoEntry.first().waitFor({state: "visible"});
+    await todoEntry.first().click();
     await page.getByTestId("admin-create-button").waitFor({state: "visible"});
     await expect(page.getByTestId("admin-create-button")).toBeVisible();
   });
 
   test("can navigate to create form", async ({page}) => {
-    await page.getByTestId("admin-model-card-Todo").waitFor({state: "visible"});
-    await page.getByTestId("admin-model-card-Todo").click();
+    const todoEntry = page
+      .getByTestId("admin-model-card-Todo")
+      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    await todoEntry.first().waitFor({state: "visible"});
+    await todoEntry.first().click();
     await page.getByTestId("admin-create-button").waitFor({state: "visible"});
     await page.getByTestId("admin-create-button").click();
     await page.getByTestId("admin-save-button").waitFor({state: "visible"});
@@ -57,8 +70,11 @@ test.describe("Admin Panel", () => {
     expect(createRes.ok()).toBeTruthy();
 
     // Navigate to the Todos admin table
-    await page.getByTestId("admin-model-card-Todo").waitFor({state: "visible"});
-    await page.getByTestId("admin-model-card-Todo").click();
+    const todoEntry = page
+      .getByTestId("admin-model-card-Todo")
+      .or(page.getByTestId("admin-home-models-grid-Todo"));
+    await todoEntry.first().waitFor({state: "visible"});
+    await todoEntry.first().click();
     await page.waitForLoadState("networkidle");
 
     // Verify the todo appears in the admin table. Other screens (e.g. the
