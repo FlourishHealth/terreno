@@ -2,6 +2,8 @@
 
 *Structured task breakdown for automated implementation. Each task should be independently implementable and testable.*
 
+**Status:** All phases below are complete. See `docs/implementationPlans/admin-ui-v2-django-parity.md` for acceptance criteria (also marked complete) and verification pointers.
+
 See: `docs/implementationPlans/admin-ui-v2-django-parity.md` for full plan.
 
 ## Phase 1: Admin config contract (backend)
