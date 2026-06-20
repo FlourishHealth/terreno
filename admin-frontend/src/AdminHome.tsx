@@ -376,87 +376,54 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
     routeBase: resolvedRouteBase,
   };
 
-  const mainSidebarRow = (
-    <Box
-      direction={embedded ? "column" : "row"}
-      gap={4}
-      lgDirection={embedded ? "row" : undefined}
-      testID="admin-home-main-sidebar"
-      width="100%"
-      wrap
-    >
-      {main.length > 0 ? (
-        <Box
-          dangerouslySetInlineStyle={
-            embedded
-              ? {
-                  __style: {
-                    flexBasis: 0,
-                    flexGrow: 1,
-                    maxWidth: "100%",
-                    minWidth: 0,
-                  },
-                }
-              : undefined
-          }
-          flex="grow"
-          gap={3}
-          minWidth={embedded ? 0 : 280}
-          testID="admin-home-slot-main"
-          {...(embedded ? {width: "100%"} : {})}
-        >
-          {main.map((id) => (
-            <Box key={`mn-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-          ))}
-        </Box>
-      ) : null}
-      {sidebar.length > 0 ? (
-        <Box
-          direction="column"
-          gap={3}
-          maxWidth="100%"
-          minWidth={280}
-          testID="admin-home-slot-sidebar"
-          width={embedded ? "100%" : 320}
-        >
-          {sidebar.map((id) => (
-            <Box key={`sb-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-          ))}
-        </Box>
-      ) : null}
-    </Box>
-  );
-
   const dashboardBody = (
     <Box gap={4} padding={embedded ? 0 : 4} width="100%">
       {!embedded ? <Heading size="md">{title}</Heading> : null}
 
-      {navGlobal.length > 0 || contentTop.length > 0 ? (
-        <Box
-          direction="row"
-          gap={3}
-          testID="admin-home-slot-topStrip"
-          width="100%"
-          wrap
-        >
-          {navGlobal.length > 0 ? (
-            <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
-              {navGlobal.map((id) => (
-                <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-              ))}
-            </Box>
-          ) : null}
-          {contentTop.length > 0 ? (
-            <Box direction="row" gap={3} testID="admin-home-slot-contentTop" wrap>
-              {contentTop.map((id) => (
-                <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-              ))}
-            </Box>
-          ) : null}
+      {navGlobal.length > 0 ? (
+        <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
+          {navGlobal.map((id) => (
+            <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+          ))}
         </Box>
       ) : null}
 
-      {mainSidebarRow}
+      {contentTop.length > 0 ? (
+        <Box direction="column" gap={3} testID="admin-home-slot-contentTop">
+          {contentTop.map((id) => (
+            <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+          ))}
+        </Box>
+      ) : null}
+
+      <Box alignItems="start" direction={embedded ? "column" : "row"} gap={4}>
+        {main.length > 0 ? (
+          <Box
+            flex="grow"
+            gap={3}
+            minWidth={embedded ? 0 : 280}
+            testID="admin-home-slot-main"
+            width={embedded ? "100%" : undefined}
+          >
+            {main.map((id) => (
+              <Box key={`mn-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+            ))}
+          </Box>
+        ) : null}
+        {sidebar.length > 0 ? (
+          <Box
+            direction="column"
+            gap={3}
+            minWidth={embedded ? 0 : 280}
+            testID="admin-home-slot-sidebar"
+            width={embedded ? "100%" : 320}
+          >
+            {sidebar.map((id) => (
+              <Box key={`sb-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+            ))}
+          </Box>
+        ) : null}
+      </Box>
     </Box>
   );
 
