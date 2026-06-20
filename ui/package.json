@@ -26,6 +26,7 @@
     "@react-native-community/slider": "catalog:",
     "@react-native-picker/picker": "catalog:",
     "@react-navigation/native": "catalog:",
+    "@shopify/react-native-skia": "catalog:",
     "emoji-datasource": "^16.0.0",
     "expo-clipboard": "~8.0.8",
     "expo-document-picker": "~14.0.8",
@@ -67,12 +68,10 @@
     "react-native-reanimated": "catalog:",
     "react-native-safe-area-context": "catalog:",
     "react-native-screens": "catalog:",
-    "react-native-signature-canvas": "catalog:",
     "react-native-svg": "catalog:",
     "react-native-swiper-flatlist": "catalog:",
     "react-native-web": "catalog:",
     "react-native-webview": "catalog:",
-    "react-signature-canvas": "^1.1.0-alpha.2",
     "react-time-picker": "^8.0.2"
   },
   "devDependencies": {
@@ -87,7 +86,6 @@
     "@types/minimatch": "^6.0.0",
     "@types/react": "catalog:",
     "@types/react-datetime-picker": "^5.0.0",
-    "@types/react-signature-canvas": "^1.0.5",
     "@types/react-time-picker": "^6.0.0",
     "babel-preset-react-app": "^10.0.1",
     "expo-modules-core": "~3.0.29",
@@ -103,7 +101,8 @@
   },
   "files": [
     "dist/**/*",
-    "src/**/*"
+    "src/**/*",
+    ".ai/**/*"
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
@@ -138,5 +137,5 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.13.3"
+  "version": "0.20.2"
 }

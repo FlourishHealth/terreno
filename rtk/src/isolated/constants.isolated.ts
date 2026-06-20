@@ -36,9 +36,14 @@ describe("expo tunnel warning", () => {
 describe("AUTH_DEBUG enabled path", () => {
   it("logs debug messages from logAuth when AUTH_DEBUG is true on module load", async () => {
     const debugCalls: unknown[][] = [];
+    const infoCalls: unknown[][] = [];
     const originalDebug = console.debug;
+    const originalInfo = console.info;
     console.debug = (...args: unknown[]): void => {
       debugCalls.push(args);
+    };
+    console.info = (...args: unknown[]): void => {
+      infoCalls.push(args);
     };
     mock.module("expo-constants", () => ({
       default: {expoConfig: {extra: {AUTH_DEBUG: "true", WEBSOCKETS_DEBUG: "true"}}},
@@ -51,9 +56,34 @@ describe("AUTH_DEBUG enabled path", () => {
       loaded.logAuth("hello");
       expect(debugCalls.length).toBe(preLength + 1);
       loaded.logSocket(undefined, "ws on");
-      expect(debugCalls.some((args) => args[0] === "[websocket]" && args[1] === "ws on")).toBe(
-        true
+      expect(infoCalls.some((args) => args[0] === "[websocket]" && args[1] === "ws on")).toBe(true);
+    } finally {
+      console.debug = originalDebug;
+      console.info = originalInfo;
+      mock.module("expo-constants", () => ({default: {expoConfig: {extra: {}}}}));
+    }
+  });
+
+  it("emits AUTH_DEBUG enabled and WEBSOCKETS_DEBUG enabled messages on module load", async () => {
+    const debugCalls: unknown[][] = [];
+    const originalDebug = console.debug;
+    console.debug = (...args: unknown[]): void => {
+      debugCalls.push(args);
+    };
+    mock.module("expo-constants", () => ({
+      default: {expoConfig: {extra: {AUTH_DEBUG: "true", WEBSOCKETS_DEBUG: "true"}}},
+    }));
+    try {
+      const testId = `${Date.now()}-${Math.random()}`;
+      await import(`../constants?debug=${testId}`);
+      const authMsg = debugCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("AUTH_DEBUG is enabled"))
       );
+      const wsMsg = debugCalls.find((args) =>
+        args.some((v) => typeof v === "string" && v.includes("WEBSOCKETS_DEBUG is enabled"))
+      );
+      expect(authMsg).toBeDefined();
+      expect(wsMsg).toBeDefined();
     } finally {
       console.debug = originalDebug;
       mock.module("expo-constants", () => ({default: {expoConfig: {extra: {}}}}));

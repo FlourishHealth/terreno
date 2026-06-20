@@ -1,8 +1,8 @@
 import {describe, expect, it, mock} from "bun:test";
-import {act, fireEvent, waitFor} from "@testing-library/react-native";
+import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
-import {renderWithTheme} from "./test-utils";
+import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 
 describe("Button", () => {
   it("renders correctly with default props", () => {
@@ -262,5 +262,54 @@ describe("Button", () => {
       <Button onClick={() => {}} text="Hover me" tooltipText="Tooltip text" />
     );
     expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders without a ThemeProvider using default context theme", () => {
+    const {toJSON} = render(<Button onClick={() => {}} text="No theme" />);
+    // The ThemeContext provides a default computed theme, so the button renders
+    expect(toJSON()).toBeTruthy();
+  });
+
+  it("uses Pressable when disabled (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button disabled onClick={() => {}} text="Disabled" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("uses Pressable when loading (not PressableScale)", () => {
+    const tree = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />).toJSON();
+    expect(Array.isArray(tree)).toBe(false);
+    expect(tree?.type).toBe("Pressable");
+  });
+
+  it("renders with custom confirmationText and modalSubTitle", () => {
+    const {toJSON} = renderWithTheme(
+      <Button
+        confirmationText="Custom confirmation text"
+        modalSubTitle="Custom subtitle"
+        modalTitle="Custom Title"
+        onClick={() => {}}
+        text="Confirm Btn"
+        withConfirmation
+      />
+    );
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  describe("custom icons", () => {
+    it("renders a registered custom icon by name", () => {
+      const {queryByTestId} = renderWithIcons(
+        <Button iconName="testCustomIcon" onClick={() => {}} text="Custom" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).not.toBeNull();
+    });
+
+    it("renders a FontAwesome icon (not the custom one) for unregistered names", () => {
+      const {queryByTestId, getByText} = renderWithIcons(
+        <Button iconName="check" onClick={() => {}} text="FontAwesome" />
+      );
+      expect(queryByTestId(TEST_CUSTOM_ICON_TEST_ID)).toBeNull();
+      expect(getByText("FontAwesome")).toBeTruthy();
+    });
   });
 });

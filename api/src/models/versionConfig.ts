@@ -1,7 +1,7 @@
 import mongoose, {type Document} from "mongoose";
 
 import type {APIErrorConstructor} from "../errors";
-import {createdUpdatedPlugin, findOneOrNone} from "../plugins";
+import {createdUpdatedPlugin, findExactlyOne, findOneOrNone, isDeletedPlugin} from "../plugins";
 
 export interface VersionConfigDocument extends mongoose.Document {
   webWarningVersion: number;
@@ -11,6 +11,8 @@ export interface VersionConfigDocument extends mongoose.Document {
   warningMessage: string;
   requiredMessage: string;
   updateUrl?: string;
+  /** How often clients should poll for version updates, in minutes. Defaults to 1440 (24 hours). */
+  pollingIntervalMinutes: number;
   created?: Date;
   updated?: Date;
 }
@@ -22,7 +24,7 @@ export interface VersionConfigModel extends mongoose.Model<VersionConfigDocument
   ): Promise<(Document & VersionConfigDocument) | null>;
 }
 
-const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
+const versionConfigSchema = new mongoose.Schema<VersionConfigDocument, VersionConfigModel>(
   {
     mobileRequiredVersion: {
       default: 0,
@@ -34,6 +36,13 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
       default: 0,
       description: "Build number at which mobile users see a warning toast",
       min: 0,
+      type: Number,
+    },
+    pollingIntervalMinutes: {
+      default: 1440,
+      description:
+        "How often clients poll for version updates, in minutes (default: 1440 = 24 hours)",
+      min: 1,
       type: Number,
     },
     requiredMessage: {
@@ -84,7 +93,9 @@ const versionConfigSchema = new mongoose.Schema<VersionConfigDocument>(
 versionConfigSchema.index({_singleton: 1}, {unique: true});
 
 versionConfigSchema.plugin(createdUpdatedPlugin);
+versionConfigSchema.plugin(isDeletedPlugin);
 versionConfigSchema.plugin(findOneOrNone);
+versionConfigSchema.plugin(findExactlyOne);
 
 export const VersionConfig = mongoose.model<VersionConfigDocument, VersionConfigModel>(
   "VersionConfig",

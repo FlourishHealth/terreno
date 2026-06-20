@@ -2,7 +2,7 @@
 name: create-pr
 description: Create a draft pull request for the current branch
 disable-model-invocation: true
-model: sonnet
+model: haiku
 ---
 
 # Create Pull Request
@@ -18,6 +18,8 @@ Create a pull request for the current branch.
    ```
 
 2. If there are uncommitted changes, commit them first (run `/commit` command).
+
+2b. If the branch changes public APIs (exports, components, routes, env vars), run the `update-docs` skill and include docs preview verification in the PR body.
 
 3. Push the branch if not already pushed:
    ```

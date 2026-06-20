@@ -1,6 +1,7 @@
 import {LoggingWinston} from "@google-cloud/logging-winston";
 import * as Sentry from "@sentry/bun";
 import {AdminApp, DocumentStorageApp} from "@terreno/admin-backend";
+import {AdminSpaServeApp} from "@terreno/admin-spa";
 import {LangfuseApp} from "@terreno/ai";
 import {
   type AuthProvider,
@@ -14,6 +15,7 @@ import {
   logger,
   type ModelRouterOptions,
   type ModelRouterRegistration,
+  RealtimeApp,
   syncConsents,
   TerrenoApp,
   VersionCheckPlugin,
@@ -25,9 +27,9 @@ import mongoose from "mongoose";
 import {addAdminUserRoutes} from "./api/adminUsers";
 import {addAiRoutes} from "./api/ai";
 import {addSettingsRoutes} from "./api/settings";
-import {addTodoRoutes} from "./api/todos";
+import {todoRouter} from "./api/todos";
 import {addUserRoutes} from "./api/users";
-import {isDeployed} from "./conf";
+import {isDeployed, isWebsocketService, WEBSOCKETS_DEBUG} from "./conf";
 import {consentDefinitions} from "./consentDefinitions";
 import {AppConfiguration} from "./models/appConfiguration";
 import {Configuration} from "./models/configuration";
@@ -35,6 +37,7 @@ import {Todo} from "./models/todo";
 import {User} from "./models/user";
 import {seedFeatureFlags} from "./scripts/seed-feature-flags";
 import {connectToMongoDB} from "./utils/database";
+import {io} from "./websockets";
 
 const BOOT_START_TIME = process.hrtime();
 
@@ -153,6 +156,9 @@ export async function start(skipListen = false): Promise<express.Application> {
   try {
     const betterAuthConfig = buildBetterAuthConfig();
 
+    const adminWebsocketsDebug = await AppConfiguration.getConfig("debug.websocketsDebug");
+    const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
+
     const terraApp = new TerrenoApp({
       loggingOptions: {
         disableConsoleColors: isDeployed,
@@ -165,14 +171,23 @@ export async function start(skipListen = false): Promise<express.Application> {
       skipListen,
       // biome-ignore lint/suspicious/noExplicitAny: Typing this User model is a pain.
       userModel: User as any,
-    })
-      .configure(AppConfiguration)
+    }).configure(AppConfiguration);
+
+    // Register Better Auth first: registrations mount in order, so its session
+    // middleware must be installed before any routes (admin, SPA, model routers)
+    // that rely on req.user being populated from the better-auth session.
+    if (betterAuthConfig) {
+      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
+      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    }
+
+    terraApp
       .register(createOpenApiAwareRouteRegistration(addAiRoutes))
       .register(
         createOpenApiAwareRouteRegistration(addAdminUserRoutes as RegisterRoutesWithOptions)
       )
       .register(createOpenApiAwareRouteRegistration(addSettingsRoutes))
-      .register(createOpenApiAwareRouteRegistration(addTodoRoutes as RegisterRoutesWithOptions))
+      .register(todoRouter)
       .register(createOpenApiAwareRouteRegistration(addUserRoutes as RegisterRoutesWithOptions))
       .register(new VersionCheckPlugin())
       .register(
@@ -188,9 +203,27 @@ export async function start(skipListen = false): Promise<express.Application> {
             };
           },
         })
-      )
+      );
+
+    if (isWebsocketService) {
+      terraApp.register(
+        new RealtimeApp({
+          changeStream: {
+            ignoredCollections: ["socketio", "sessions", "socketio_realtime"],
+          },
+          debug: websocketsDebug,
+        })
+      );
+    } else {
+      logger.info("RealtimeApp disabled because BACKEND_SERVICE is not websockets/all");
+    }
+
+    terraApp
       .register(
         new FeatureFlagsApp({
+          liveUpdates: {
+            socketIoServer: () => io,
+          },
           segments: {
             "admin-users": (user: unknown) => (user as {admin?: boolean}).admin === true,
             "has-name": (user: unknown) => Boolean((user as {name?: string}).name),
@@ -330,10 +363,23 @@ export async function start(skipListen = false): Promise<express.Application> {
         })
       );
 
-    // Register Better Auth plugin if configured
-    if (betterAuthConfig) {
-      // biome-ignore lint/suspicious/noExplicitAny: User model type mismatch
-      terraApp.register(new BetterAuthApp({config: betterAuthConfig, userModel: User as any}));
+    // Register the standalone admin SPA serve plugin when opted in. Gated on an env
+    // flag so it stays off in tests and for backend-only consumers.
+    if (process.env.ADMIN_SPA_ENABLED === "true") {
+      terraApp.register(
+        new AdminSpaServeApp({
+          appConfig: {
+            brandName: "Terreno Example",
+            primaryColor: "#7C3AED",
+            providers: ["email", "google"],
+          },
+          basePath: "/console",
+          devProxyTarget: process.env.ADMIN_SPA_DEV_PROXY,
+          // Compiled deploys (Cloud Run) must point at the bundled SPA export, since the
+          // plugin's __dirname-relative default cannot resolve inside a bun-compiled binary.
+          distDir: process.env.ADMIN_SPA_DIST_DIR,
+        })
+      );
     }
 
     // Register Langfuse plugin if configured

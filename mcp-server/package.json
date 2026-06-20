@@ -1,30 +1,35 @@
 {
-  "name": "@terreno/mcp-server",
+  "name": "@terreno/mcp",
   "version": "1.0.0",
   "description": "MCP server for Terreno - provides documentation, tools, and prompts for building full-stack apps",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "terreno-mcp": "./dist/index.js"
+    "terreno-mcp": "./dist/index.js",
+    "terreno-mcp-local": "./dist/local/index.js"
   },
   "scripts": {
-    "build": "bun run sync-ui-docs && tsc && cp -r src/docs dist/",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
     "dev": "bun --watch src/index.ts",
     "start": "bun dist/index.js",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "lint:unsafefix": "biome check --fix --unsafe src/",
-    "compile": "bun run sync-ui-docs && tsc && cp -r src/docs dist/",
+    "compile": "NODE_OPTIONS=--max-old-space-size=8192 bun run sync-ui-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-versioned-docs && NODE_OPTIONS=--max-old-space-size=8192 bun run sync-package-guidelines && NODE_OPTIONS=--max-old-space-size=8192 tsc && cp -r src/docs dist/",
     "compile:watch": "tsc -w",
     "sync-ui-docs": "cp ../demo/ui-types-documentation.json src/docs/ 2>/dev/null || true",
-    "test": "bun test src/",
-    "test:ci": "bun test src/",
+    "sync-versioned-docs": "bun run scripts/sync-versioned-docs.ts",
+    "sync-package-guidelines": "bun run scripts/sync-package-guidelines.ts",
+    "test": "bun test --max-concurrency=1 src/",
+    "test:ci": "bun test --max-concurrency=1 src/",
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
     "@sentry/bun": "^10.39.0",
-    "@terreno/api": "workspace:*"
+    "@terreno/api": "workspace:*",
+    "minisearch": "^7.2.0",
+    "mongoose": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
@@ -33,7 +38,8 @@
     "typescript": "catalog:"
   },
   "files": [
-    "dist"
+    "dist",
+    "src/docs"
   ],
   "keywords": [
     "mcp",

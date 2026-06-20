@@ -1,0 +1,44 @@
+Configuration for real-time sync on a modelRouter.
+Determines which CRUD methods emit WebSocket events and how they are routed.
+
+## Properties
+
+### methods
+
+> **methods**: (`"delete"` \| `"create"` \| `"update"`)[]
+
+Which CRUD methods should emit real-time sync events
+
+***
+
+### realtimeResponseHandler?
+
+> `optional` **realtimeResponseHandler?**: (`doc`, `method`) => `any`
+
+Custom serializer for real-time events. Falls back to the modelRouter responseHandler.
+
+#### Parameters
+
+##### doc
+
+`any`
+
+##### method
+
+`string`
+
+#### Returns
+
+`any`
+
+***
+
+### roomStrategy
+
+> **roomStrategy**: `"model"` \| `"owner"` \| `"broadcast"` \| ((`doc`, `method`, `req`) => `string`[])
+
+Strategy for determining which Socket.io rooms receive events.
+- 'owner': emit to `user:{doc.ownerId}` room
+- 'model': emit to `model:{modelName}` room (clients must subscribe)
+- 'broadcast': emit to all authenticated sockets
+- function: custom room resolver returning room name(s)

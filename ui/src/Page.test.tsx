@@ -2,6 +2,7 @@ import {afterAll, describe, expect, it, mock} from "bun:test";
 import {act, fireEvent, waitFor} from "@testing-library/react-native";
 import React, {type ReactNode} from "react";
 import {Pressable, Text as RNText} from "react-native";
+import {SafeAreaView} from "react-native-safe-area-context";
 
 // Override the IconButton mock so the inline onClick arrows fire when pressed.
 mock.module("./IconButton", () => ({
@@ -271,6 +272,33 @@ describe("Page", () => {
     );
     fireEvent.press(getByTestId("icon-button-xmark"));
     expect(routerBack).toHaveBeenCalled();
+  });
+
+  it("wraps content in SafeAreaView when safeArea is true", () => {
+    const {UNSAFE_root} = renderWithTheme(
+      <Page navigation={mockNavigation} safeArea>
+        <Text>Content</Text>
+      </Page>
+    );
+    expect(UNSAFE_root.findAllByType(SafeAreaView).length).toBeGreaterThan(0);
+  });
+
+  it("does not wrap content in SafeAreaView when safeArea is omitted", () => {
+    const {UNSAFE_root} = renderWithTheme(
+      <Page navigation={mockNavigation}>
+        <Text>Content</Text>
+      </Page>
+    );
+    expect(UNSAFE_root.findAllByType(SafeAreaView)).toHaveLength(0);
+  });
+
+  it("does not wrap content in SafeAreaView when safeArea is false", () => {
+    const {UNSAFE_root} = renderWithTheme(
+      <Page navigation={mockNavigation} safeArea={false}>
+        <Text>Content</Text>
+      </Page>
+    );
+    expect(UNSAFE_root.findAllByType(SafeAreaView)).toHaveLength(0);
   });
 
   it("safely handles a missing rightButtonOnClick callback", async () => {

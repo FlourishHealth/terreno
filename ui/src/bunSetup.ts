@@ -548,21 +548,6 @@ mock.module("@react-native-async-storage/async-storage", () => ({
   setItem: mock(() => Promise.resolve()),
 }));
 
-// Mock react-native-signature-canvas
-mock.module("react-native-signature-canvas", () => ({
-  Signature: mock(() => null),
-}));
-
-// Mock react-signature-canvas (web). The real module references `window` at
-// import time, which doesn't exist under bun test.
-mock.module("react-signature-canvas", () => {
-  const SignatureCanvasMock = React.forwardRef(
-    ({backgroundColor}: {backgroundColor?: string}, _ref) =>
-      React.createElement("View", {style: {backgroundColor}, testID: "signature-canvas"})
-  );
-  return {__esModule: true, default: SignatureCanvasMock};
-});
-
 // Mock react-native-portalize. The real `Host` wraps children in an extra View
 // whose presence makes snapshots brittle, and individual tests already mock
 // this to render inline; hoisting the mock to setup keeps test ordering from
@@ -570,9 +555,9 @@ mock.module("react-signature-canvas", () => {
 // mock used by Tooltip.test.tsx so the two don't disagree.
 mock.module("react-native-portalize", () => ({
   Host: ({children}: MockComponentProps) =>
-    React.createElement("View", {style: undefined, testID: "portal-host"}, children),
+    React.createElement("View", {testID: "portal-host"}, children),
   Portal: ({children}: MockComponentProps) =>
-    React.createElement("View", {style: undefined, testID: "portal"}, children),
+    React.createElement("View", {testID: "portal"}, children),
 }));
 
 // Mock IconButton component
@@ -722,14 +707,6 @@ mock.module("@expo/vector-icons/FontAwesome6", () => ({
 // Mock linkify-it - need to mock the Hyperlink component directly instead
 mock.module("./Hyperlink", () => ({
   Hyperlink: ({children}: MockComponentProps) => React.createElement("View", {}, children),
-}));
-
-// Mock react-native-portalize so Portal renders inline in tests
-mock.module("react-native-portalize", () => ({
-  Host: ({children}: {children?: React.ReactNode}) =>
-    React.createElement("View", {testID: "portal-host"}, children),
-  Portal: ({children}: {children?: React.ReactNode}) =>
-    React.createElement("View", {testID: "portal"}, children),
 }));
 
 // Mock react-native internal modules with Flow types
@@ -1195,10 +1172,6 @@ mock.module("react-native/Libraries/vendor/core/ErrorUtils", () => ({
     getGlobalHandler: mock(() => () => {}),
     setGlobalHandler: mock(() => {}),
   },
-}));
-
-mock.module("react-native/Libraries/Core/ReactNativeVersion", () => ({
-  version: {major: 0, minor: 81, patch: 5},
 }));
 
 mock.module("react-native/Libraries/Core/NativeExceptionsManager", () => ({

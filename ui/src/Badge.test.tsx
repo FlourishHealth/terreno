@@ -34,6 +34,13 @@ describe("Badge", () => {
     expect(getByText("50")).toBeTruthy();
   });
 
+  it("keeps number badges scannable with a minimum width", () => {
+    const {getByTestId} = renderWithTheme(
+      <Badge testID="number-badge" value={5} variant="numberOnly" />
+    );
+    expect(getByTestId("number-badge")).toHaveStyle({minWidth: 20});
+  });
+
   it("applies correct status colors", () => {
     const statuses = ["error", "warning", "info", "success", "neutral"] as const;
 

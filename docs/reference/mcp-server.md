@@ -1,6 +1,11 @@
-# @terreno/mcp-server
+# @terreno/mcp
 
-Model Context Protocol (MCP) server for Terreno. Provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
+Published npm package for the Terreno Model Context Protocol (MCP) server. The monorepo directory is still `mcp-server/`. The package exposes:
+
+- **`terreno-mcp`** — HTTP server used in Cloud Run and local debugging (`src/index.ts`)
+- **`terreno-mcp-local`** — stdio server for project runtime tools (`src/local/index.ts`): `application_info`, `database_schema`, `database_query`, `read_logs`, `last_error`, `get_rtk_state`, `evaluate` (gated by `TERRENO_MCP_EVAL`), `navigate` (CDP wiring planned)
+
+It provides AI coding assistants with documentation access, code generation tools, and workflow prompts.
 
 ## Table of Contents
 
@@ -23,7 +28,7 @@ The MCP server exposes Terreno's documentation and code generation capabilities 
 **Key concepts:**
 
 - **Resources**: Read-only documentation from `docs/` directory
-- **Tools**: Executable code generators that return text (AI writes files)
+- **Tools**: Code generators that return text (AI writes files), documentation search (`terreno_search_docs`, `terreno_get_component_docs`), upgrade notes (`terreno_get_upgrade_guide`), plus local-only tools when using `terreno-mcp-local`
 - **Prompts**: Pre-built multi-step instructions for complex workflows
 
 ## Installation
@@ -96,6 +101,32 @@ Set `TERRENO_MCP_DOCS_DIR` environment variable to override default path.
 ## Tools
 
 Code generation tools that return TypeScript/JavaScript code as text. **Tools do not write files** — the AI assistant receives the code and writes it to appropriate locations.
+
+### terreno_search_docs
+
+BM25-style keyword search over markdown bundled with the MCP server: `docs/resources/*.md`, synced Diátaxis docs under `docs/versioned/`, and per-component excerpts derived from `ui-types-documentation.json`. **Prefer this tool before guessing** Terreno APIs (same posture as Laravel Boost `search-docs`).
+
+**Parameters:**
+
+``````typescript
+{
+  queries: string[];       // Required — one or more search phrases
+  packages?: string[];     // Optional — filter by package id or scope, e.g. ["api", "@terreno/ui"]
+  tokenLimit?: number;      // Approximate max tokens of markdown (default 3000)
+}
+``````
+
+### terreno_get_component_docs
+
+Returns the full props table for a single `@terreno/ui` component from `ui-types-documentation.json`, plus short related markdown excerpts when the search index finds matches.
+
+**Parameters:**
+
+``````typescript
+{
+  component: string;        // e.g. "Button", "TextField"
+}
+``````
 
 ### terreno_generate_model
 
@@ -305,7 +336,19 @@ Scaffold a new full-stack Terreno application (Expo frontend, Express/Mongoose b
 
 Scaffold AI coding assistant rules (AGENTS.md, Cursor/Windsurf rules, Copilot instructions, rulesync config).
 
-**Parameters:** Same as `terreno_bootstrap_app` (`appName`, `appDisplayName` required).
+**Parameters:**
+
+``````typescript
+{
+  appName: string;
+  appDisplayName: string;
+  description?: string;
+  /** Optional — which @terreno/* packages to merge into rules. Use ids like `api`, `ui`, `rtk`, `admin-backend`, `admin-frontend`, or `@terreno/api`. Omit or pass only what the app uses so admin guidelines stay out of projects without the admin panel. */
+  packages?: string[];
+}
+``````
+
+Guideline bodies are composed from per-package `.ai/guidelines/core.md` files, copied into this package at build time (`bun run sync-package-guidelines` in `mcp-server/`).
 
 **Returns:** Rules files and instructions for installing/syncing with rulesync.
 
@@ -472,6 +515,10 @@ bun install
 
 # Build
 bun run build
+
+# (Build runs sync-ui-docs, sync-versioned-docs, and sync-package-guidelines before tsc.)
+# To refresh only bundled package AI guidelines from the monorepo:
+# bun run sync-package-guidelines
 
 # Watch mode (rebuilds on changes)
 bun run dev

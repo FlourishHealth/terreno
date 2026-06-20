@@ -1,41 +1,47 @@
+// noExplicitAny: test mocks use type-erased RTK Query API doubles and UNSAFE_root traversal
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {beforeEach, describe, expect, it, mock} from "bun:test";
 import {renderWithTheme} from "@terreno/ui/src/test-utils";
 import React from "react";
-import {act} from "../../../ui/node_modules/@testing-library/react-native";
+import type {ReactTestInstance} from "react-test-renderer";
+import {act, fireEvent} from "../../../ui/node_modules/@testing-library/react-native";
+import type {AdminApi} from "../types";
 
 // Mock @terreno/ui so the Modal renders its children inline. The real Modal
 // portal isn't mounted by the test renderer, which hides the cancel button.
 mock.module("@terreno/ui", () => {
   const RN = require("react-native");
   const ReactMod = require("react");
-  const Box = ({children, ...rest}: any) => ReactMod.createElement(RN.View, rest, children);
-  const Button = ({text, onClick, testID}: any) =>
+  const Box = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.View, rest, children);
+  const Button = ({text, onClick, testID}: Record<string, unknown>) =>
     ReactMod.createElement(
       RN.Pressable,
       {onPress: onClick, testID},
       ReactMod.createElement(RN.Text, {}, text)
     );
-  const Heading = ({children}: any) => ReactMod.createElement(RN.Text, {}, children);
+  const Heading = ({children}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, {}, children);
   const Icon = () => ReactMod.createElement(RN.View, {});
-  const Modal = ({children, visible}: any) => {
+  const Modal = ({children, visible}: Record<string, unknown>) => {
     if (!visible) return null;
     return ReactMod.createElement(RN.View, {testID: "mock-modal"}, children);
   };
   const Spinner = () => ReactMod.createElement(RN.View, {testID: "spinner"});
-  const Text = ({children, ...rest}: any) => ReactMod.createElement(RN.Text, rest, children);
+  const Text = ({children, ...rest}: Record<string, unknown>) =>
+    ReactMod.createElement(RN.Text, rest, children);
   return {Box, Button, Heading, Icon, Modal, Spinner, Text};
 });
 
 interface TaskState {
-  data: {task: any} | undefined;
-  error: any;
+  data: {task: Record<string, unknown>} | undefined;
+  error: unknown;
   isLoading: boolean;
 }
 interface MockState {
   task: TaskState;
-  runImpl: (arg: any) => {unwrap: () => Promise<any>};
-  cancelImpl: (arg: any) => {unwrap: () => Promise<any>};
+  runImpl: (arg: unknown) => {unwrap: () => Promise<unknown>};
+  cancelImpl: (arg: unknown) => {unwrap: () => Promise<unknown>};
 }
 
 const state: MockState = {
@@ -44,16 +50,16 @@ const state: MockState = {
   task: {data: undefined, error: null, isLoading: false},
 };
 
-const runCalls: any[] = [];
-const cancelCalls: any[] = [];
+const runCalls: unknown[] = [];
+const cancelCalls: unknown[] = [];
 
 // Stable function references so useEffect deps are reference-equal across
 // renders (avoids re-firing the auto-start effect on every setState).
-const stableRunScript = (arg: any): {unwrap: () => Promise<any>} => {
+const stableRunScript = (arg: unknown): {unwrap: () => Promise<unknown>} => {
   runCalls.push(arg);
   return state.runImpl(arg);
 };
-const stableCancelTask = (arg: any): {unwrap: () => Promise<any>} => {
+const stableCancelTask = (arg: unknown): {unwrap: () => Promise<unknown>} => {
   cancelCalls.push(arg);
   return state.cancelImpl(arg);
 };
@@ -70,12 +76,19 @@ mock.module("../useAdminScripts", () => ({
 
 import {AdminScriptRunModal} from "../AdminScriptRunModal";
 
-const mockApi = {} as any;
+const mockApi = {} as unknown as AdminApi;
 
 const waitTicks = async (ms = 40): Promise<void> => {
   await act(async () => {
     await new Promise((r) => setTimeout(r, ms));
   });
+};
+
+const pressDryRun = async (getByTestId: (id: string) => ReactTestInstance): Promise<void> => {
+  await act(async () => {
+    fireEvent.press(getByTestId("admin-script-dry-run-button"));
+  });
+  await waitTicks();
 };
 
 describe("AdminScriptRunModal", () => {
@@ -101,19 +114,112 @@ describe("AdminScriptRunModal", () => {
     expect(runCalls.length).toBe(0);
   });
 
-  it("auto-starts script when modal opens", async () => {
-    renderWithTheme(
+  it("shows confirm-phase Dry Run, Run, and Cancel buttons when visible", () => {
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
-        onDismiss={() => {}}
-        scriptName="test-script"
-        visible={true}
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
       />
     );
-    await waitTicks();
+
+    expect(getByTestId("admin-script-dry-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-wet-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-confirm-cancel-button")).toBeTruthy();
+    expect(runCalls.length).toBe(0);
+  });
+
+  it("calls onDismiss from confirm Cancel without starting a run", async () => {
+    const onDismiss = mock(() => undefined);
+
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={onDismiss}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-confirm-cancel-button"));
+    });
+
+    expect(onDismiss).toHaveBeenCalled();
+    expect(runCalls.length).toBe(0);
+  });
+
+  it("starts a dry run when Dry Run is pressed", async () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    await pressDryRun(getByTestId);
+
     expect(runCalls.length).toBe(1);
-    expect(runCalls[0]).toEqual({name: "test-script", wetRun: true});
+    expect(runCalls[0]).toEqual({name: "my-script", wetRun: false});
+  });
+
+  it("starts a wet run when the Run button is pressed", async () => {
+    const {getByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-wet-run-button"));
+    });
+    await waitTicks();
+
+    expect(runCalls.length).toBe(1);
+    expect(runCalls[0]).toEqual({name: "my-script", wetRun: true});
+  });
+
+  it("hides the wet-run button when dryRunOnly is true", () => {
+    const {getByTestId, queryByTestId} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        dryRunOnly
+        onDismiss={() => undefined}
+        scriptName="my-script"
+        visible
+      />
+    );
+
+    expect(getByTestId("admin-script-dry-run-button")).toBeTruthy();
+    expect(getByTestId("admin-script-confirm-cancel-button")).toBeTruthy();
+    expect(queryByTestId("admin-script-wet-run-button")).toBeNull();
+  });
+
+  it("renders the script description in the confirm phase", () => {
+    const {getByText} = renderWithTheme(
+      <AdminScriptRunModal
+        api={mockApi}
+        baseUrl="/admin"
+        onDismiss={() => undefined}
+        scriptDescription="Migrates legacy records"
+        scriptName="migrate-data"
+        visible
+      />
+    );
+
+    expect(getByText("Migrates legacy records")).toBeTruthy();
+    expect(getByText("migrate-data")).toBeTruthy();
   });
 
   it("renders running phase with progress details", async () => {
@@ -223,8 +329,8 @@ describe("AdminScriptRunModal", () => {
     expect(toJSON()).toBeDefined();
   });
 
-  it("early-returns when scriptName is null", () => {
-    renderWithTheme(
+  it("early-returns when scriptName is null", async () => {
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -233,6 +339,10 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-dry-run-button"));
+    });
+    await waitTicks();
     expect(runCalls.length).toBe(0);
   });
 
@@ -251,16 +361,12 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks();
+    await pressDryRun(getByTestId);
     await act(async () => {
-      try {
-        const btn = getByTestId("admin-script-cancel-button");
-        (btn as any).props.onClick?.();
-      } catch {
-        /* accept missing testID */
-      }
+      fireEvent.press(getByTestId("admin-script-cancel-button"));
       await new Promise((r) => setTimeout(r, 20));
     });
+    expect(cancelCalls).toEqual(["task-123"]);
   });
 
   it("swallows cancel errors so UI stays responsive", async () => {
@@ -270,7 +376,7 @@ describe("AdminScriptRunModal", () => {
       error: null,
       isLoading: false,
     };
-    const {UNSAFE_root} = renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -279,23 +385,19 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks();
-    const cancelBtns = UNSAFE_root.findAll(
-      (n: any) => n.props?.testID === "admin-script-cancel-button"
-    );
-    if (cancelBtns.length > 0) {
-      await act(async () => {
-        (cancelBtns[0] as any).props.onClick?.();
-        await new Promise((r) => setTimeout(r, 20));
-      });
-    }
+    await pressDryRun(getByTestId);
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-cancel-button"));
+      await new Promise((r) => setTimeout(r, 20));
+    });
+    expect(cancelCalls).toEqual(["task-123"]);
   });
 
   it("handles runScript rejection with error.data.detail", async () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject({data: {detail: "Detailed failure"}}),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -304,7 +406,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -312,7 +414,7 @@ describe("AdminScriptRunModal", () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject({data: {title: "Title failure"}}),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -321,7 +423,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -329,7 +431,7 @@ describe("AdminScriptRunModal", () => {
     state.runImpl = () => ({
       unwrap: () => Promise.reject(new Error("network boom")),
     });
-    renderWithTheme(
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -338,7 +440,7 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks(200);
+    await pressDryRun(getByTestId);
     expect(runCalls.length).toBe(1);
   });
 
@@ -367,9 +469,15 @@ describe("AdminScriptRunModal", () => {
   });
 
   it("returns early from handleCancel when taskId is still null", async () => {
-    // Never set a taskId: runImpl never resolves to set one.
+    // Never set a taskId: runImpl never resolves to set one. The Modal stays in
+    // the running phase with taskId === null, so pressing cancel hits the guard.
     state.runImpl = () => ({unwrap: () => new Promise(() => {})});
-    const {UNSAFE_root} = renderWithTheme(
+    state.task = {
+      data: {task: {status: "running"}},
+      error: null,
+      isLoading: false,
+    };
+    const {getByTestId} = renderWithTheme(
       <AdminScriptRunModal
         api={mockApi}
         baseUrl="/admin"
@@ -378,15 +486,10 @@ describe("AdminScriptRunModal", () => {
         visible={true}
       />
     );
-    await waitTicks();
-    const cancelBtns = UNSAFE_root.findAll(
-      (n) => (n.props as {testID?: string})?.testID === "admin-script-cancel-button"
-    );
-    if (cancelBtns.length > 0) {
-      await act(async () => {
-        (cancelBtns[0].props as {onClick?: () => void}).onClick?.();
-      });
-    }
+    await pressDryRun(getByTestId);
+    await act(async () => {
+      fireEvent.press(getByTestId("admin-script-cancel-button"));
+    });
     // No cancel mutation should have been called since taskId was null
     expect(cancelCalls.length).toBe(0);
   });

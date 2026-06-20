@@ -6,10 +6,9 @@ import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
 import {type ModelRouterOptions, modelRouter} from "./api";
-import {addAuthRoutes, setupAuth} from "./auth";
-import {setupServer} from "./expressServer";
 import {createOpenApiBuilder, OpenApiMiddlewareBuilder} from "./openApiBuilder";
 import {Permissions} from "./permissions";
+import {TerrenoApp} from "./terrenoApp";
 import {FoodModel, UserModel} from "./tests";
 
 function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptions<any>>): void {
@@ -145,13 +144,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
     process.env.ENABLE_SWAGGER = "true";
 
-    app = setupServer({
-      addRoutes: addRoutesWithBuilder,
+    app = new TerrenoApp({
+      configureApp: addRoutesWithBuilder,
       skipListen: true,
       userModel: UserModel as any,
-    });
-    setupAuth(app, UserModel as any);
-    addAuthRoutes(app, UserModel as any);
+    }).build();
   });
 
   describe("builder pattern", () => {
@@ -302,7 +299,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("stats endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/stats").expect(200);
-      expect(res.body).toEqual({avgCalories: 250, count: 10});
+      expect(res.body).toEqual({
+        avgCalories: 250,
+        count: 10,
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("reports endpoint returns correct data", async () => {
@@ -311,7 +312,10 @@ describe("OpenApiMiddlewareBuilder", () => {
         .post("/food/reports")
         .send({endDate: "2024-12-31", startDate: "2024-01-01"})
         .expect(201);
-      expect(res.body).toEqual({reportId: "report-123"});
+      expect(res.body).toEqual({
+        reportId: "report-123",
+        requestId: res.headers["x-request-id"],
+      });
     });
 
     it("categories endpoint returns array data", async () => {
@@ -325,7 +329,11 @@ describe("OpenApiMiddlewareBuilder", () => {
     it("category by id endpoint returns correct data", async () => {
       server = supertest(app);
       const res = await server.get("/food/categories/cat-123").expect(200);
-      expect(res.body).toEqual({id: "cat-123", name: "Fruits"});
+      expect(res.body).toEqual({
+        id: "cat-123",
+        name: "Fruits",
+        requestId: res.headers["x-request-id"],
+      });
     });
   });
 

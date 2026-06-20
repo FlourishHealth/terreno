@@ -11,10 +11,10 @@ import {
   cronjob,
   logRequests,
   setupEnvironment,
-  setupServer,
   wrapScript,
 } from "./expressServer";
 import {logger, winstonLogger} from "./logger";
+import {TerrenoApp} from "./terrenoApp";
 import {UserModel} from "./tests";
 
 describe("expressServer", () => {
@@ -75,8 +75,8 @@ describe("expressServer", () => {
         stream: logStream,
       });
 
-      const app = setupServer({
-        addRoutes: (router) => {
+      const app = new TerrenoApp({
+        configureApp: (router) => {
           router.get("/context-test", (req, res) => {
             logger.info("context route log");
             return res.json({requestId: req.requestId, sessionId: req.sessionId});
@@ -85,7 +85,7 @@ describe("expressServer", () => {
         logRequests: false,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
       winstonLogger.add(transport);
 
       const res = await supertest(app)
@@ -410,7 +410,7 @@ describe("expressServer", () => {
     });
   });
 
-  describe("setupServer", () => {
+  describe("TerrenoApp", () => {
     const originalEnv = process.env;
 
     beforeEach(() => {
@@ -429,61 +429,60 @@ describe("expressServer", () => {
     });
 
     it("creates server with skipListen option", () => {
-      const addRoutes = () => {};
+      const configureApp = (): void => {};
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       expect(app).toBeDefined();
     });
 
-    it("creates server with addMiddleware option", () => {
+    it("creates server with beforeJsonSetup option", () => {
       let middlewareCalled = false;
-      const addMiddleware = (app: any) => {
-        middlewareCalled = true;
-        app.use((_req: any, _res: any, next: any) => next());
-      };
-      const addRoutes = () => {};
+      const configureApp = (): void => {};
 
-      const app = setupServer({
-        addMiddleware,
-        addRoutes,
+      const app = new TerrenoApp({
+        beforeJsonSetup: (httpApp: any) => {
+          middlewareCalled = true;
+          httpApp.use((_req: any, _res: any, next: any) => next());
+        },
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       expect(app).toBeDefined();
       expect(middlewareCalled).toBe(true);
     });
 
     it("creates server with custom corsOrigin", () => {
-      const addRoutes = () => {};
+      const configureApp = (): void => {};
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         corsOrigin: "https://example.com",
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       expect(app).toBeDefined();
     });
 
     it("creates server with authOptions", () => {
-      const addRoutes = () => {};
+      const configureApp = (): void => {};
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
         authOptions: {
           generateJWTPayload: (user) => ({customField: "test", id: user._id}),
           generateTokenExpiration: () => "2h",
         },
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       expect(app).toBeDefined();
     });
@@ -514,7 +513,7 @@ describe("expressServer", () => {
     });
   });
 
-  describe("setupServer with full integration", () => {
+  describe("TerrenoApp with full integration", () => {
     const originalEnv = process.env;
 
     beforeEach(() => {
@@ -533,49 +532,49 @@ describe("expressServer", () => {
     });
 
     it("sets Sentry transaction ID tag from header", async () => {
-      const addRoutes = (app: any) => {
-        app.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: any) => {
+        httpApp.get("/test", (_req: any, res: any) => {
           res.json({ok: true});
         });
       };
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       await supertest(app).get("/test").set("X-Transaction-ID", "txn-123").expect(200);
     });
 
     it("sets Sentry session ID tag from header", async () => {
-      const addRoutes = (app: any) => {
-        app.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: any) => {
+        httpApp.get("/test", (_req: any, res: any) => {
           res.json({ok: true});
         });
       };
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       await supertest(app).get("/test").set("X-Session-ID", "session-456").expect(200);
     });
 
     it("sets both transaction and session ID tags", async () => {
-      const addRoutes = (app: any) => {
-        app.get("/test", (_req: any, res: any) => {
+      const configureApp = (httpApp: any) => {
+        httpApp.get("/test", (_req: any, res: any) => {
           res.json({ok: true});
         });
       };
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       await supertest(app)
         .get("/test")
@@ -585,52 +584,52 @@ describe("expressServer", () => {
     });
 
     it("handles fallthrough error handler", async () => {
-      const addRoutes = (app: any) => {
-        app.get("/error", (_req: any, _res: any) => {
+      const configureApp = (httpApp: any) => {
+        httpApp.get("/error", (_req: any, _res: any) => {
           throw new Error("Unexpected error");
         });
       };
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       await supertest(app).get("/error").expect(500);
     });
 
-    it("handles loggingOptions passed to setupServer", async () => {
-      const addRoutes = (app: any) => {
-        app.get("/test", (_req: any, res: any) => {
+    it("handles loggingOptions passed to TerrenoApp", async () => {
+      const configureApp = (httpApp: any) => {
+        httpApp.get("/test", (_req: any, res: any) => {
           res.json({ok: true});
         });
       };
 
-      const app = setupServer({
-        addRoutes,
+      const app = new TerrenoApp({
+        configureApp,
         loggingOptions: {
           logSlowRequests: true,
           logSlowRequestsReadMs: 100,
         },
         skipListen: true,
         userModel: UserModel as any,
-      });
+      }).build();
 
       await supertest(app).get("/test").expect(200);
     });
 
-    it("re-throws when addRoutes throws during route initialization", () => {
-      const addRoutes = () => {
+    it("re-throws when configureApp throws during build", () => {
+      const configureApp = () => {
         throw new Error("Route init boom");
       };
 
       expect(() =>
-        setupServer({
-          addRoutes,
+        new TerrenoApp({
+          configureApp,
           skipListen: true,
           userModel: UserModel as any,
-        })
+        }).build()
       ).toThrow("Route init boom");
     });
   });
@@ -770,9 +769,182 @@ describe("expressServer", () => {
 
       expect(func).toHaveBeenCalled();
     });
+
+    it("fires warning timeout callback when script is slow", async () => {
+      // terminateTimeout = 0.3s → warnTime = 150ms, closeTime = 300ms
+      // The func takes 200ms, so the warn callback fires at 150ms,
+      // but func completes at 200ms before the terminate callback at 300ms.
+      // afterEach clears the terminate timer.
+      const func = mock(
+        () => new Promise<string>((resolve) => originalSetTimeout(() => resolve("done"), 200))
+      );
+      try {
+        await wrapScript(func, {terminateTimeout: 0.3});
+      } catch {
+        // process.exit(0) throws
+      }
+      expect(process.exit).toHaveBeenCalledWith(0);
+    });
   });
 
-  describe("setupServer error handling", () => {
+  describe("TerrenoApp with listen (skipListen false)", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0", // Use port 0 to let OS assign a random free port
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("starts the server when skipListen is false", async () => {
+      const configureApp = (): void => {};
+      const http = await import("node:http");
+      const originalListen = http.Server.prototype.listen;
+      http.Server.prototype.listen = mock(function (this: unknown, ...args: unknown[]) {
+        const cb = args.find((a: unknown) => typeof a === "function") as (() => void) | undefined;
+        if (cb) {
+          cb();
+        }
+        return this;
+      }) as unknown as typeof originalListen;
+      try {
+        const app = new TerrenoApp({
+          configureApp,
+          skipListen: false,
+          userModel: UserModel as any,
+        }).start();
+        expect(app).toBeDefined();
+      } finally {
+        http.Server.prototype.listen = originalListen;
+      }
+    });
+
+    it("handles listen error with invalid port", () => {
+      process.env.PORT = "-1";
+      const configureApp = (): void => {};
+      const originalExit = process.exit;
+      process.exit = (() => {}) as unknown as typeof process.exit;
+      try {
+        new TerrenoApp({
+          configureApp,
+          skipListen: false,
+          userModel: UserModel as any,
+        }).start();
+      } catch {
+        // May throw
+      }
+      process.exit = originalExit;
+    });
+  });
+
+  describe("TerrenoApp with listen", () => {
+    const originalEnv = process.env;
+    const http = require("node:http");
+    let activeServer: any = null;
+    let originalListen: any = null;
+
+    beforeEach(() => {
+      process.env = {
+        ...originalEnv,
+        PORT: "0",
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+
+      originalListen = http.Server.prototype.listen;
+      http.Server.prototype.listen = function (...args: any[]) {
+        activeServer = this;
+        return originalListen.apply(this, args);
+      };
+    });
+
+    afterEach(async () => {
+      process.env = originalEnv;
+      http.Server.prototype.listen = originalListen;
+      if (activeServer) {
+        await new Promise<void>((resolve) => activeServer.close(() => resolve()));
+        activeServer = null;
+      }
+    });
+
+    it("starts listening on a port when skipListen is false", async () => {
+      const configureApp = (): void => {};
+
+      const app = new TerrenoApp({
+        configureApp,
+        skipListen: false,
+        userModel: UserModel as any,
+      }).start();
+
+      expect(app).toBeDefined();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+  });
+
+  describe("wrapScript timeout callbacks", () => {
+    const originalEnv = process.env;
+    const originalExit = process.exit;
+    const originalSetTimeout = globalThis.setTimeout;
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
+    const timerCallbacks: Array<{callback: () => void; delay: number}> = [];
+
+    beforeEach(() => {
+      process.env = {
+        ...process.env,
+        REFRESH_TOKEN_SECRET: "test-refresh-secret",
+        SESSION_SECRET: "test-session-secret",
+        TOKEN_EXPIRES_IN: "1h",
+        TOKEN_ISSUER: "test-issuer",
+        TOKEN_SECRET: "test-secret",
+      };
+      process.exit = mock(() => {
+        throw new Error("__EXIT__");
+      }) as unknown as typeof process.exit;
+
+      timerCallbacks.length = 0;
+      timerIds.length = 0;
+      globalThis.setTimeout = ((cb: () => void, delay: number) => {
+        timerCallbacks.push({callback: cb, delay});
+        const id = originalSetTimeout(cb, delay);
+        timerIds.push(id);
+        return id;
+      }) as typeof setTimeout;
+    });
+
+    afterEach(() => {
+      for (const id of timerIds) {
+        clearTimeout(id);
+      }
+      globalThis.setTimeout = originalSetTimeout;
+      process.exit = originalExit;
+      process.env = originalEnv;
+    });
+
+    it("registers warn and terminate timeouts with correct delays", async () => {
+      const func = async () => "ok";
+      await expect(wrapScript(func, {terminateTimeout: 100})).rejects.toThrow("__EXIT__");
+
+      const warnTimer = timerCallbacks.find((t) => t.delay === 50000);
+      const closeTimer = timerCallbacks.find((t) => t.delay === 100000);
+      expect(warnTimer).toBeDefined();
+      expect(closeTimer).toBeDefined();
+    });
+  });
+
+  describe("TerrenoApp error handling", () => {
     const originalEnv = process.env;
 
     beforeEach(() => {
@@ -790,17 +962,17 @@ describe("expressServer", () => {
       process.env = originalEnv;
     });
 
-    it("catches and rethrows errors from initializeRoutes", () => {
-      const addRoutes = () => {
+    it("throws when configureApp throws during build", () => {
+      const configureApp = () => {
         throw new Error("route initialization failed");
       };
 
       expect(() =>
-        setupServer({
-          addRoutes,
+        new TerrenoApp({
+          configureApp,
           skipListen: true,
           userModel: UserModel as any,
-        })
+        }).build()
       ).toThrow("route initialization failed");
     });
   });

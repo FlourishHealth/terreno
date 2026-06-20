@@ -31,6 +31,7 @@ export const TextFieldWithHelperTextDemo = (): ReactElement => {
       helperText="Helpful information for filling out the form field."
       onChange={(v) => setValue(v)}
       placeholder="This is placeholder text."
+      testID="demo-text-field"
       title="Form field title"
       value={value}
     />

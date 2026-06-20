@@ -63,7 +63,7 @@ export interface BetterAuthConfig {
 }
 
 /**
- * Auth provider selection for setupServer.
+ * Auth provider selection for TerrenoApp.
  * - "jwt": Traditional JWT/Passport authentication (default)
  * - "better-auth": Better Auth with OAuth support
  */

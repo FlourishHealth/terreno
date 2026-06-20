@@ -50,6 +50,8 @@ git push origin HEAD
 
 ### If no PR exists
 
+Use this template for the **initial** body only:
+
 ```bash
 gh pr create --title "<title>" --body "$(cat <<'EOF'
 ## Summary
@@ -69,7 +71,7 @@ EOF
 
 ### If a PR already exists
 
-Read the current title and body, then compare against the full set of commits on the branch:
+1. Read the current PR title and body, then compare against commits and diff on the branch:
 
 ```bash
 gh pr view --json title,body,baseRefName
@@ -77,22 +79,28 @@ git log $(gh pr view --json baseRefName -q .baseRefName)..HEAD --oneline
 git diff $(gh pr view --json baseRefName -q .baseRefName)...HEAD --stat
 ```
 
-Decide whether the description still reflects what's on the branch — pay attention to commits added since the PR was opened:
-- **Summary** still matches the actual goal of the changes
-- **Changes** list covers the new commits, not just the original ones
-- **Human Testing Steps** still cover what reviewers need to verify
-- **Automated Tests** section reflects current test state
+2. **Merge policy (mandatory):** Treat the `body` from `gh pr view` as the source document.
 
-If the description is stale or incomplete, update it. Preserve sections the user has clearly edited by hand — only rewrite what's actually out of date, and merge new bullets into existing lists rather than replacing them wholesale:
+- **Do not replace the entire description** with a fresh template or a short stub. Build the next body by **editing a copy of the existing Markdown**.
+- Keep narrative, reviewer context, links, embedded media/HTML, `<!-- -->` comments, and manual checklist edits unless they are factually wrong for the branch.
+- Prefer **additive** updates: append bullets under **Changes** for new work; extend **Summary** with a brief "Update:" line (and date if helpful) when scope grows, instead of deleting the original explanation.
+- Refresh **Human Testing Steps** / **Automated Tests** only when verification needs changed; add or adjust bullets rather than wiping sections unless an item is now false.
+- If new work does not fit existing headings, add a **new section at the end** instead of removing unrelated content.
+- Change the PR **title** only when the overall branch goal changed; otherwise keep the existing title.
+
+3. Compare your merged draft against the `git log` / `git diff` output above. Revise only what is stale.
+
+4. Apply the **full** merged body once (avoid shell quoting breakage):
 
 ```bash
-gh pr edit --title "<title>" --body "$(cat <<'EOF'
-<updated body>
-EOF
-)"
+gh pr edit --title "<title-or-keep-existing>" --body-file /tmp/submit-pr-body.md
 ```
 
-If the description is already accurate, skip the edit and note that it's up to date.
+Write `/tmp/submit-pr-body.md` with the complete merged Markdown. Do not pass a placeholder body.
+
+If nothing needs changing, skip `gh pr edit` and tell the user the PR description is already current.
+
+If you use a PR management tool instead of `gh`, apply the same policy: when supplying a `body`, pass the **full merged Markdown** only—never a template or stub that drops existing reviewer context unless the user explicitly asked for a full rewrite.
 
 ## Step 5: Print PR Link
 

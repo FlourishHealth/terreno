@@ -1,5 +1,6 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, setupServer} from "@terreno/api";
+import {createdUpdatedPlugin, TerrenoApp, type TerrenoAppOptions} from "@terreno/api";
+import type express from "express";
 import mongoose from "mongoose";
 import passportLocalMongoose from "passport-local-mongoose";
 import supertest from "supertest";
@@ -56,7 +57,7 @@ const authAsUser = async (
   return agent;
 };
 
-let app: ReturnType<typeof setupServer>;
+let app: express.Application;
 
 describe("Langfuse routes", () => {
   beforeAll(async () => {
@@ -97,16 +98,16 @@ describe("Langfuse routes", () => {
     client.prompt.get = promptGet;
     client.score.create = scoreCreate;
 
-    app = setupServer({
-      addRoutes: (router) => {
+    app = new TerrenoApp({
+      configureApp: (router) => {
         addPromptRoutes(router, "/admin/langfuse");
         addTraceRoutes(router, "/admin/langfuse");
         addPlaygroundRoutes(router, "/admin/langfuse");
         addEvaluationRoutes(router, "/admin/langfuse", []);
       },
       skipListen: true,
-      userModel: UserModel as Parameters<typeof setupServer>[0]["userModel"],
-    });
+      userModel: UserModel as unknown as TerrenoAppOptions["userModel"],
+    }).build();
   });
 
   describe("prompt routes", () => {

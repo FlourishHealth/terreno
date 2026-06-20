@@ -6,8 +6,15 @@
 import * as Sentry from "@sentry/bun";
 import express, {type NextFunction, type Request, type Response} from "express";
 import cloneDeep from "lodash/cloneDeep";
+import {DateTime} from "luxon";
 import mongoose, {type Document, type Model} from "mongoose";
 
+import {
+  assertNoActionCollisions,
+  type CollectionActionConfig,
+  type InstanceActionConfig,
+  registerActionRoutes,
+} from "./actions";
 import {authenticateMiddleware, type User} from "./auth";
 import {
   APIError,
@@ -33,6 +40,8 @@ import {
 } from "./openApiValidator";
 import {checkPermissions, permissionMiddleware, type RESTPermissions} from "./permissions";
 import type {PopulatePath} from "./populate";
+import {registerRealtime} from "./realtime/registry";
+import type {RealtimeConfig} from "./realtime/types";
 import {
   defaultResponseHandler,
   serialize,
@@ -196,6 +205,10 @@ export interface ModelRouterOptions<T> {
   maxLimit?: number; // defaults to 500
   /** Custom route setup function. Receives the router and optionally the full options (including openApi). */
   endpoints?: (router: express.Router, options?: Partial<ModelRouterOptions<T>>) => void;
+  /** Named instance-scoped operations at `/:id/:actionName` (GET or POST). */
+  instanceActions?: Record<string, InstanceActionConfig<T, unknown, unknown, unknown>>;
+  /** Named collection-scoped operations at `/:actionName` (GET or POST). */
+  collectionActions?: Record<string, CollectionActionConfig<unknown, unknown, unknown>>;
   /**
    * Hook that runs after `transformer.transform` but before the object is created.
    * Can update the body fields based on the request or the user.
@@ -319,6 +332,14 @@ export interface ModelRouterOptions<T> {
    * This option overrides the global setting for this specific router.
    */
   validation?: boolean | ModelRouterValidationOptions;
+  /**
+   * Enable real-time sync for this model via WebSocket events.
+   * When configured, CRUD operations will emit events to connected clients
+   * through the RealtimeApp plugin's change stream watcher.
+   *
+   * Requires the RealtimeApp plugin to be registered with TerrenoApp.
+   */
+  realtime?: RealtimeConfig;
 }
 
 // Ensures query params are allowed. Also checks nested query params when using $and/$or.
@@ -500,6 +521,16 @@ export function modelRouter<T>(
   const router = _buildModelRouter(model, options);
 
   if (path !== undefined) {
+    // Register for real-time sync if configured
+    if (options.realtime) {
+      registerRealtime({
+        collectionName: model.collection.collectionName,
+        config: options.realtime,
+        modelName: model.modelName,
+        options,
+        routePath: path,
+      });
+    }
     return {
       __type: "modelRouter",
       _buildWithOpenApi: (openApi: OpenApiMiddleware) =>
@@ -508,13 +539,24 @@ export function modelRouter<T>(
       router,
     };
   }
+
+  if (options.realtime) {
+    logger.warn(
+      `modelRouter for ${model.modelName} has realtime config but was called without a path. ` +
+        "Realtime sync only works with the three-argument form: modelRouter('/path', Model, options)"
+    );
+  }
+
   return router;
 }
 
 function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): express.Router {
   const router = express.Router();
 
-  // Do before the other router options so endpoints take priority.
+  assertNoActionCollisions(model, options);
+  registerActionRoutes(router, model, options);
+
+  // User endpoints run after actions; actions win on path conflicts.
   if (options.endpoints) {
     options.endpoints(router, options);
   }
@@ -853,12 +895,15 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
         });
       }
 
+      // Remove _updatedAt from body before preUpdate processes it
+      const bodyUpdatedAt = req.body._updatedAt;
+      delete req.body._updatedAt;
+      if (body && typeof body === "object") {
+        delete (body as Record<string, unknown>)._updatedAt;
+      }
+
       if (options.preUpdate) {
         try {
-          // TODO: Send flattened dot notation body to preUpdate, then merge the returned body
-          // with the original body, maintaining the dot notation. This way we don't have to write
-          // two preUpdate branches downstream, one looking at the dot notation style and
-          // one looking at normal object style.
           body = await options.preUpdate(body, req);
         } catch (error: unknown) {
           if (isAPIError(error)) {
@@ -883,6 +928,64 @@ function _buildModelRouter<T>(model: Model<T>, options: ModelRouterOptions<T>): 
             detail: `preUpdate hook on ${req.params.id} returned null`,
             status: 403,
             title: "Update not allowed",
+          });
+        }
+      }
+
+      // Conflict detection runs after preUpdate so that unauthorized mutations
+      // are rejected before we leak document data in a 409 response.
+      const preciseUnmodifiedSince = req.headers["x-unmodified-since-iso"];
+      const httpUnmodifiedSince = req.headers["if-unmodified-since"];
+      const timestampValue = Array.isArray(preciseUnmodifiedSince)
+        ? preciseUnmodifiedSince[0]
+        : preciseUnmodifiedSince;
+      const httpTimestampValue = Array.isArray(httpUnmodifiedSince)
+        ? httpUnmodifiedSince[0]
+        : httpUnmodifiedSince;
+      if (timestampValue || httpTimestampValue || bodyUpdatedAt) {
+        const usingPreciseHeader = Boolean(timestampValue);
+        const usingHttpHeader = !usingPreciseHeader && Boolean(httpTimestampValue);
+        const clientTimestamp = timestampValue
+          ? DateTime.fromISO(timestampValue)
+          : httpTimestampValue
+            ? DateTime.fromHTTP(httpTimestampValue)
+            : DateTime.fromISO(bodyUpdatedAt);
+
+        if (!clientTimestamp.isValid) {
+          throw new APIError({
+            detail: usingPreciseHeader
+              ? "X-Unmodified-Since-ISO header could not be parsed as an ISO date"
+              : usingHttpHeader
+                ? "If-Unmodified-Since header could not be parsed as an HTTP date"
+                : "_updatedAt body field could not be parsed as an ISO date",
+            status: 400,
+            title: "Invalid conflict-detection timestamp",
+          });
+        }
+
+        const docRecord = doc as {created?: Date | string; updated?: Date | string};
+        let serverTimestamp: DateTime | null = null;
+        const serverTimestampValue = docRecord.updated ?? docRecord.created;
+        if (serverTimestampValue instanceof Date) {
+          serverTimestamp = DateTime.fromJSDate(serverTimestampValue);
+        } else if (typeof serverTimestampValue === "string") {
+          serverTimestamp = DateTime.fromISO(serverTimestampValue);
+        }
+
+        if (serverTimestamp && !serverTimestamp.isValid) {
+          throw new APIError({
+            detail: "Document timestamp could not be parsed as a date",
+            status: 400,
+            title: "Invalid server timestamp",
+          });
+        }
+
+        if (serverTimestamp && clientTimestamp < serverTimestamp) {
+          const serialized = await responseHandler(doc, "update", req, options);
+          return res.status(409).json({
+            data: serialized,
+            error: "Conflict",
+            message: "Document was modified since your last read",
           });
         }
       }
