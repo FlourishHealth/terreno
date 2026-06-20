@@ -95,6 +95,29 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
     return `Unsupported operation "${op}". Allowed: ${[...ALLOWED].join(", ")}.`;
   }
 
+  if (op === "find" || op === "countDocuments" || op === "distinct") {
+    if (filterContainsForbidden(args.filter ?? {})) {
+      return "Filter rejected: `$where`, `$function`, and `$accumulator` are not allowed.";
+    }
+  }
+
+  if (op === "distinct") {
+    const field = typeof args.field === "string" ? args.field : "";
+    if (!field) {
+      return "`field` is required for distinct.";
+    }
+  }
+
+  if (op === "aggregate") {
+    const pipeline = args.pipeline ?? [];
+    if (!Array.isArray(pipeline)) {
+      return "`pipeline` must be an array of aggregation stages.";
+    }
+    if (aggregateContainsForbidden(pipeline)) {
+      return "Pipeline rejected: `$out`, `$merge`, and `$function` are not allowed.";
+    }
+  }
+
   const root = resolveTerrenoProjectRoot();
   const envPath = join(root, "backend", ".env");
   const mongoUri =
@@ -104,12 +127,6 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
 
   if (!mongoUri) {
     return "No Mongo URI found. Set `MONGO_URI` in `backend/.env` or export `MONGO_URI`.";
-  }
-
-  if (op === "find" || op === "countDocuments" || op === "distinct") {
-    if (filterContainsForbidden(args.filter ?? {})) {
-      return "Filter rejected: `$where`, `$function`, and `$accumulator` are not allowed.";
-    }
   }
 
   const mongoose = await import("mongoose");
@@ -134,12 +151,6 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
 
     if (op === "aggregate") {
       const pipeline = args.pipeline ?? [];
-      if (!Array.isArray(pipeline)) {
-        return "`pipeline` must be an array of aggregation stages.";
-      }
-      if (aggregateContainsForbidden(pipeline)) {
-        return "Pipeline rejected: `$out`, `$merge`, and `$function` are not allowed.";
-      }
       const rows = await coll
         .aggregate(pipeline as never[], {allowDiskUse: false, maxTimeMS: QUERY_MAX_TIME_MS})
         .limit(cap)
@@ -155,9 +166,6 @@ export const databaseQuery = async (args: DatabaseQueryArgs): Promise<string> =>
 
     if (op === "distinct") {
       const field = typeof args.field === "string" ? args.field : "";
-      if (!field) {
-        return "`field` is required for distinct.";
-      }
       const filter = (args.filter ?? {}) as Record<string, unknown>;
       const values = await coll.distinct(field, filter, {maxTimeMS: QUERY_MAX_TIME_MS});
       const trimmed = values.slice(0, cap);
