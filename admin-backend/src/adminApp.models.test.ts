@@ -684,7 +684,10 @@ describe("AdminApp onAdminAudit is best-effort", () => {
   it("returns 201 on POST when onAdminAudit throws", async () => {
     const localApp = buildApp([foodModelConfig], throwingAudit);
     const agent = await authAsUser(localApp, "admin");
-    const res = await agent.post("/admin/foods").send({calories: 5, name: "StillCreated"}).expect(201);
+    const res = await agent
+      .post("/admin/foods")
+      .send({calories: 5, name: "StillCreated"})
+      .expect(201);
     const stored = await FoodModel.findById(res.body.data._id).lean();
     expect(stored?.name).toBe("StillCreated");
   });

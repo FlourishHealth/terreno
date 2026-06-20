@@ -1,5 +1,6 @@
 export type {
   AdminAuditEvent,
+  AdminCustomScreenConfig,
   AdminFieldOverride,
   AdminModelConfig,
   AdminOptions,

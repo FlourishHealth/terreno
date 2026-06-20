@@ -131,6 +131,14 @@ export interface AdminAuditEvent {
   verb: "created" | "deleted" | "updated";
 }
 
+/** Declares an extra admin UI screen route merged with built-ins (e.g. version-config). */
+export interface AdminCustomScreenConfig {
+  displayName: string;
+  name: string;
+  /** Optional subtitle or help text shown with the screen card in the admin UI */
+  description?: string;
+}
+
 /**
  * Configuration options for the AdminApp plugin.
  */
@@ -144,7 +152,7 @@ export interface AdminOptions {
   /** Optional home dashboard layout (schema v2 slots) */
   home?: AdminHomeInput;
   /** Extra custom screens merged with built-ins (e.g. version-config) */
-  customScreens?: {displayName: string; name: string}[];
+  customScreens?: AdminCustomScreenConfig[];
   /**
    * Optional audit sink for admin CRUD after modelRouter succeeds.
    * Consumers typically persist to an `AdminAuditLog` collection.
@@ -201,7 +209,7 @@ interface AdminScriptMeta {
 }
 
 interface AdminConfigResponse {
-  customScreens?: {displayName: string; name: string}[];
+  customScreens?: AdminCustomScreenConfig[];
   home: ReturnType<typeof normalizeAdminHome>;
   models: AdminModelMeta[];
   schemaVersion: number;
@@ -434,9 +442,7 @@ export class AdminApp {
         await onAdminAudit(event, request);
       } catch (err: unknown) {
         const detail = err instanceof Error ? err.message : String(err);
-        logger.error(
-          `onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`
-        );
+        logger.error(`onAdminAudit failed after ${event.verb} on ${event.modelName}: ${detail}`);
       }
     };
 
@@ -577,6 +583,7 @@ export class AdminApp {
             customScreens: {
               items: {
                 properties: {
+                  description: {type: "string"},
                   displayName: {type: "string"},
                   name: {type: "string"},
                 },
@@ -912,8 +919,7 @@ export class AdminApp {
             .build()
         : undefined;
 
-      const auditEligible =
-        Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
+      const auditEligible = Boolean(onAdminAudit) && config.model.modelName !== "AdminAuditLog";
       const auditHooks = auditEligible
         ? {
             postCreate: async (value: unknown, request: express.Request): Promise<void> => {
