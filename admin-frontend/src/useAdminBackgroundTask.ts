@@ -15,10 +15,8 @@ export interface AdminBackgroundTaskBody {
 export const useAdminBackgroundTaskMutation = (
   api: AdminApi,
   adminApiRoot: string
-): ReturnType<
-  // biome-ignore lint/suspicious/noExplicitAny: RTK mutation type from dynamic injectEndpoints
-  any
-> => {
+): ReturnType<// biome-ignore lint/suspicious/noExplicitAny: RTK mutation type from dynamic injectEndpoints
+any> => {
   const enhancedApi = useMemo(() => {
     const root = adminApiRoot.replace(/\/$/, "");
     return api.enhanceEndpoints({addTagTypes: ["AdminBackgroundTask"]}).injectEndpoints({

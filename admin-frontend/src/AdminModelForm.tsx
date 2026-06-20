@@ -400,12 +400,12 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
         }
       }
       if (entries.length > 0) {
-        sections.push({title: fs.title, entries});
+        sections.push({entries, title: fs.title});
       }
     }
     const remaining = visibleFields.filter(([k]) => !used.has(k));
     if (remaining.length > 0) {
-      sections.push({title: "Other", entries: remaining});
+      sections.push({entries: remaining, title: "Other"});
     }
     return sections;
   }, [modelConfig?.fieldsets, visibleFields]);

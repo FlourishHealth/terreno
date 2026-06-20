@@ -25,11 +25,27 @@ export const buildAdminListQueryParams = (input: {
   const {filterState, modelConfig, searchDebounced} = input;
   const filters = modelConfig.filters ?? [];
   for (const f of filters) {
+    if (f.kind === "dateRange") {
+      const gteKey = `${f.field}_gte`;
+      const lteKey = `${f.field}_lte`;
+      const gteVal = filterState[gteKey];
+      const lteVal = filterState[lteKey];
+      if (gteVal !== undefined && String(gteVal).trim() !== "") {
+        out[gteKey] = String(gteVal).trim();
+      }
+      if (lteVal !== undefined && String(lteVal).trim() !== "") {
+        out[lteKey] = String(lteVal).trim();
+      }
+      continue;
+    }
     const raw = filterState[f.field];
     if (raw === undefined || raw === "") {
       continue;
     }
     if (f.kind === "boolean") {
+      if (raw === "all") {
+        continue;
+      }
       out[f.field] = raw === true || raw === "true";
       continue;
     }

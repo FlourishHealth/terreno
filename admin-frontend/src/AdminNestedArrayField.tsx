@@ -318,7 +318,7 @@ export const AdminNestedArrayField: React.FC<AdminNestedArrayFieldProps> = ({
       {arrayValue.length === 0 ? (
         <Box alignItems="center" padding={3}>
           <Text color="secondaryDark">
-            {isReadOnly ? "No items." : "No items. Click \"Add\" to create one."}
+            {isReadOnly ? "No items." : 'No items. Click "Add" to create one.'}
           </Text>
         </Box>
       ) : isReadOnly ? (

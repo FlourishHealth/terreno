@@ -8,6 +8,7 @@ describe("buildAdminModelQueryFields", () => {
       filters: [
         {field: "completed", kind: "boolean"},
         {choices: [{label: "L", value: "low"}], field: "priority", kind: "choice"},
+        {field: "created", kind: "dateRange"},
       ],
       listDisplay: ["title", "created"],
       listFields: ["title", "ownerId"],
@@ -20,6 +21,8 @@ describe("buildAdminModelQueryFields", () => {
     expect(fields).toContain("tags");
     expect(fields).toContain("completed");
     expect(fields).toContain("priority");
+    expect(fields).toContain("created_gte");
+    expect(fields).toContain("created_lte");
     expect(new Set(fields).size).toBe(fields.length);
   });
 });

@@ -105,7 +105,9 @@ describe("AdminHome", () => {
     const nav = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-navGlobal"
     );
-    const main = UNSAFE_root.findAll((n: ReactTestInstance) => n.props?.testID === "admin-home-slot-main");
+    const main = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-main"
+    );
     expect(nav.length).toBeGreaterThan(0);
     expect(main.length).toBeGreaterThan(0);
     const navSlot = nav[0] as ReactTestInstance;

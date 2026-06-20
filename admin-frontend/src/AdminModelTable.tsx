@@ -24,8 +24,8 @@ import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {Pressable} from "react-native";
 import {
   ADMIN_LIST_MAX_SELECTION,
-  buildAdminListQueryParams,
   type AdminListFilterState,
+  buildAdminListQueryParams,
 } from "./adminModelListQueryParams";
 import {
   type AdminApi,
@@ -188,7 +188,11 @@ const AdminSelectCell: React.FC<{column: DataTableColumn; cellData: DataTableCel
     selected: boolean;
   };
   return (
-    <Pressable accessibilityRole="checkbox" accessibilityState={{checked: selected}} onPress={() => onToggle(id, !selected)}>
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{checked: selected}}
+      onPress={() => onToggle(id, !selected)}
+    >
       <Box alignItems="center" justifyContent="center" padding={1}>
         <Text size="lg">{selected ? "\u2611" : "\u2610"}</Text>
       </Box>
@@ -205,7 +209,12 @@ const AdminInlineBoolCell: React.FC<{column: DataTableColumn; cellData: DataTabl
     value: boolean;
   };
   return (
-    <Pressable accessibilityRole="switch" accessibilityState={{checked: Boolean(value), disabled}} disabled={disabled} onPress={() => !disabled && onToggle()}>
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{checked: Boolean(value), disabled}}
+      disabled={disabled}
+      onPress={() => !disabled && onToggle()}
+    >
       <Box alignItems="center" justifyContent="center" padding={1}>
         <Text color={value ? "success" : "secondaryDark"} size="lg">
           {value ? "\u2713" : "\u2014"}
@@ -280,6 +289,9 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     for (const f of modelConfig.filters ?? []) {
       if (f.kind === "boolean") {
         next[f.field] = undefined;
+      } else if (f.kind === "dateRange") {
+        next[`${f.field}_gte`] = "";
+        next[`${f.field}_lte`] = "";
       } else {
         next[f.field] = "";
       }
@@ -342,11 +354,8 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const {data: listData, isLoading: isListLoading} = useListQuery(listParams, {skip: !modelConfig});
   const [deleteItem] = useDeleteMutation();
   const [patchItem] = useUpdateMutation();
-  const [bulkPatch, {isLoading: isBulkPatching}] = useBulkPatchMutation();
-  const [enqueueBackground] = useAdminBackgroundTaskMutation(
-    api,
-    resolvedApiBase
-  );
+  const [bulkPatch] = useBulkPatchMutation();
+  const [enqueueBackground] = useAdminBackgroundTaskMutation(api, resolvedApiBase);
 
   const deleteEnabled = modelConfig?.permissions?.delete !== false;
   const createEnabled = modelConfig?.permissions?.create !== false;
@@ -363,21 +372,24 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     [deleteItem]
   );
 
-  const toggleSelected = useCallback((id: string, next: boolean) => {
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      if (next) {
-        if (n.size >= ADMIN_LIST_MAX_SELECTION) {
-          toast.warn(`You can select at most ${ADMIN_LIST_MAX_SELECTION} rows.`);
-          return prev;
+  const toggleSelected = useCallback(
+    (id: string, next: boolean) => {
+      setSelectedIds((prev) => {
+        const n = new Set(prev);
+        if (next) {
+          if (n.size >= ADMIN_LIST_MAX_SELECTION) {
+            toast.warn(`You can select at most ${ADMIN_LIST_MAX_SELECTION} rows.`);
+            return prev;
+          }
+          n.add(id);
+        } else {
+          n.delete(id);
         }
-        n.add(id);
-      } else {
-        n.delete(id);
-      }
-      return n;
-    });
-  }, [toast]);
+        return n;
+      });
+    },
+    [toast]
+  );
 
   const toggleSelectPage = useCallback(() => {
     const ids = (listData?.data ?? []).map((row: {_id?: string}) => String(row._id));
@@ -505,13 +517,10 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
     const sortable =
       sortableFieldSet === undefined ? true : Boolean(sortableFieldSet.has(fieldKey));
     const isLink = linkFieldSet.has(fieldKey);
-    const isInlineBool = fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
+    const isInlineBool =
+      fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
     return {
-      columnType: isInlineBool
-        ? INLINE_BOOL_COLUMN_TYPE
-        : isLink
-          ? LINK_COLUMN_TYPE
-          : columnType,
+      columnType: isInlineBool ? INLINE_BOOL_COLUMN_TYPE : isLink ? LINK_COLUMN_TYPE : columnType,
       sortable,
       title: startCase(fieldKey),
       width: widthOverride ?? getColumnWidth(fieldKey, columnType),
@@ -542,22 +551,21 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
   const data = listItems.map((item) => {
     const id = String(item._id ?? "");
     const selected = selectedIds.has(id);
-    const selectCell = selectColumn
-      ? [{value: {id, onToggle: toggleSelected, selected}}]
-      : [];
+    const selectCell = selectColumn ? [{value: {id, onToggle: toggleSelected, selected}}] : [];
 
     const fieldCells = displayFields.map((fieldKey) => {
       const fieldConfig = modelConfig.fields[fieldKey];
       const columnType = getColumnType(fieldKey, fieldConfig);
       const formatted = formatCellValue(item[fieldKey], columnType);
       const isLink = linkFieldSet.has(fieldKey);
-      const isInlineBool = fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
+      const isInlineBool =
+        fieldConfig?.type === "boolean" && modelConfig.permissions?.update !== false;
 
       if (isInlineBool) {
         return {
           value: {
             disabled: modelConfig.permissions?.update === false,
-            onToggle: () => handleInlineBooleanToggle(id, fieldKey, !Boolean(item[fieldKey])),
+            onToggle: () => handleInlineBooleanToggle(id, fieldKey, !item[fieldKey]),
             value: Boolean(item[fieldKey]),
           },
         };
@@ -628,12 +636,45 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
                 </Box>
               );
             }
+            if (f.kind === "dateRange") {
+              const gteKey = `${f.field}_gte`;
+              const lteKey = `${f.field}_lte`;
+              return (
+                <Box direction="row" gap={2} key={f.field} wrap>
+                  <Box minWidth={160}>
+                    <TextField
+                      helperText="ISO date or datetime"
+                      onChange={(next: string) => {
+                        setFilterState((prev) => ({...prev, [gteKey]: next}));
+                        setPage(1);
+                      }}
+                      title={`${f.label ?? startCase(f.field)} from`}
+                      value={String(filterState[gteKey] ?? "")}
+                    />
+                  </Box>
+                  <Box minWidth={160}>
+                    <TextField
+                      helperText="ISO date or datetime"
+                      onChange={(next: string) => {
+                        setFilterState((prev) => ({...prev, [lteKey]: next}));
+                        setPage(1);
+                      }}
+                      title={`${f.label ?? startCase(f.field)} to`}
+                      value={String(filterState[lteKey] ?? "")}
+                    />
+                  </Box>
+                </Box>
+              );
+            }
             if (f.kind === "choice") {
               return (
                 <Box key={f.field} minWidth={180}>
                   <SelectField
                     onChange={(next: string) => {
-                      setFilterState((prev) => ({...prev, [f.field]: next === "__all__" ? "" : next}));
+                      setFilterState((prev) => ({
+                        ...prev,
+                        [f.field]: next === "__all__" ? "" : next,
+                      }));
                       setPage(1);
                     }}
                     options={[

@@ -134,6 +134,10 @@ export const buildAdminModelQueryFields = (config: AdminModelQueryFieldSource): 
   }
   for (const filter of config.filters ?? []) {
     fields.add(filter.field);
+    if (filter.kind === "dateRange") {
+      fields.add(`${filter.field}_gte`);
+      fields.add(`${filter.field}_lte`);
+    }
   }
   return [...fields];
 };

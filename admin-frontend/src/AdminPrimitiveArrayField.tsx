@@ -210,7 +210,7 @@ export const AdminPrimitiveArrayField: React.FC<AdminPrimitiveArrayFieldProps> =
       {arrayValue.length === 0 ? (
         <Box alignItems="center" padding={3}>
           <Text color="secondaryDark">
-            {isReadOnly ? "No items." : "No items. Click \"Add\" to create one."}
+            {isReadOnly ? "No items." : 'No items. Click "Add" to create one.'}
           </Text>
         </Box>
       ) : (

@@ -179,8 +179,7 @@ export const AdminObjectPicker: React.FC<AdminObjectPickerProps> = ({
 
   if (readOnly) {
     const roValue =
-      selectedDisplay ||
-      (value && isSelectedLoading ? "Loading…" : value ? String(value) : "");
+      selectedDisplay || (value && isSelectedLoading ? "Loading…" : value ? String(value) : "");
     return (
       <TextField
         disabled
