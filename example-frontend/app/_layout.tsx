@@ -9,6 +9,7 @@ import {OpenFeatureProvider} from "@openfeature/react-sdk";
 import {
   baseUrl,
   getAuthToken,
+  installTerrenoDevConsoleLogger,
   setRealtimeSocket,
   useRealtimeDebug,
   useSelectCurrentUserId,
@@ -23,6 +24,8 @@ import {PersistGate} from "redux-persist/integration/react";
 import {useReadProfile} from "@/hooks/useReadProfile";
 import store, {logout, persistor, useAppDispatch} from "@/store";
 import {terrenoApi} from "@/store/sdk";
+
+installTerrenoDevConsoleLogger();
 
 const OpenFeatureBridge: FC<{
   children: ReactNode;
