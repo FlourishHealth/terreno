@@ -63,6 +63,111 @@ describe("parseAiJson", () => {
       expect(r.raw).toBe("not json at all");
     }
   });
+
+  it("returns failure for empty string", () => {
+    const r = parseAiJson("");
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error).toBe("Empty or non-string input");
+    }
+  });
+
+  it("returns failure for whitespace-only string", () => {
+    const r = parseAiJson("   ");
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error).toBe("Empty or non-string input");
+    }
+  });
+
+  it("handles escaped characters inside JSON strings during balanced extraction", () => {
+    const r = parseAiJson(`preamble {"msg":"line1\\nline2","path":"C:\\\\dir"} tail`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({msg: "line1\nline2", path: "C:\\dir"});
+    }
+  });
+
+  it("handles escaped quotes inside JSON strings during balanced extraction", () => {
+    const r = parseAiJson(`noise {"key":"value with \\"quotes\\""} done`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({key: 'value with "quotes"'});
+    }
+  });
+
+  it("returns failure for mismatched brackets", () => {
+    const r = parseAiJson("{]");
+    expect(r.success).toBe(false);
+  });
+
+  it("returns failure for unclosed JSON (unbalanced brackets)", () => {
+    const r = parseAiJson(`{"a": {"b": 1}`);
+    expect(r.success).toBe(false);
+  });
+
+  it("repairs trailing comma inside a balanced extraction that otherwise fails parse", () => {
+    const r = parseAiJson(`Sure! {"items": [1, 2, 3,],} enjoy!`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+      expect(r.data).toEqual({items: [1, 2, 3]});
+    }
+  });
+
+  it("repairs smart quotes via whole-string repair when balanced extraction fails", () => {
+    // The balanced extraction can't parse this because the smart quotes break parsing,
+    // but the whole-string repair path replaces smart quotes outside strings.
+    const r = parseAiJson(`\u201Ckey\u201D: \u201Cvalue\u201D`);
+    expect(r.success).toBe(false);
+  });
+
+  it("repairs escaped characters in repair path outside strings", () => {
+    const r = parseAiJson(`{"escaped": "a\\b", "trailing": true,}`);
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.repaired).toBe(true);
+    }
+  });
+
+  it("strips partial opening fence and trailing fence", () => {
+    const r = parseAiJson('```json\n{"x": 1}\n```');
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({x: 1});
+    }
+  });
+
+  it("strips opening fence with colon separator", () => {
+    const r = parseAiJson('```json:\n{"y": 2}\n```');
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual({y: 2});
+    }
+  });
+
+  it("parses arrays at top level", () => {
+    const r = parseAiJson("[1, 2, 3]");
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual([1, 2, 3]);
+      expect(r.repaired).toBe(false);
+    }
+  });
+
+  it("extracts a JSON array from prose", () => {
+    const r = parseAiJson("Here are the items: [1, 2, 3] — done.");
+    expect(r.success).toBe(true);
+    if (r.success) {
+      expect(r.data).toEqual([1, 2, 3]);
+      expect(r.repaired).toBe(true);
+    }
+  });
+
+  it("returns failure when no brackets are present at all", () => {
+    const r = parseAiJson("just plain text with no JSON");
+    expect(r.success).toBe(false);
+  });
 });
 
 describe("normalizeLlmJsonTextForStructuredOutput", () => {

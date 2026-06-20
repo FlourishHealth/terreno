@@ -10,6 +10,7 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 - [Mongoose Plugins](#mongoose-plugins)
 - [Request Validation](#request-validation)
 - [Middleware](#middleware)
+- [Logging & Tracing](#logging--tracing)
 - [Extensibility](#extensibility)
 - [Webhooks & Notifications](#webhooks--notifications)
 - [Utilities](#utilities)
@@ -19,6 +20,8 @@ REST API framework built on Express and Mongoose. Provides modelRouter (CRUD end
 
 - `TerrenoApp`, `setupServer`, `modelRouter`, `Permissions`, `OwnerQueryFilter`
 - `APIError`, `logger`, `asyncHandler`, `authenticateMiddleware`
+- Logging: `logger`, `createScopedLogger`, `createFeatureFlaggedLogger`, `setupLogging`, `formatLogContextSuffix`
+- Correlation: `runWithRequestContext`, `getCurrentLogContext`, `requestContextMiddleware`, `REQUEST_CONTEXT_ATTRIBUTE_NAMES`
 - `createOpenApiBuilder`
 - `githubUserPlugin`, `setupGitHubAuth`, `addGitHubAuthRoutes`
 - Mongoose plugins: `findExactlyOne`, `findOneOrNone`, `upsertPlugin`, `DateOnly`
@@ -624,6 +627,202 @@ app.use(sentryAppVersionMiddleware);
 **Sentry tag:** `app_version: 1.2.3`
 
 **Use case:** Filter Sentry errors by app version to identify version-specific bugs.
+
+## Logging & Tracing
+
+@terreno/api ships a Winston-based logger plus two helpers — **scoped loggers** and
+**feature-flagged loggers** — and automatic **request correlation** so a single request or
+background job can be followed across many log lines, both in plain-text consoles and in structured
+transports (Google Cloud Logging, Sentry).
+
+> Never use `console.log` for permanent server logs — use `logger` or a scoped logger. Request
+> logging already redacts `password` on bodies; never log secrets, full auth tokens, or raw
+> passwords.
+
+### Quick reference
+
+| Export | Purpose |
+|--------|---------|
+| `logger` | Global logger: `debug` / `info` / `warn` / `error` / `catch`. |
+| `createScopedLogger(options)` | Logger that prepends a `prefix` and/or attaches `labels` to every line. |
+| `createFeatureFlaggedLogger(options)` | Wraps a logger behind an `isEnabled()` gate (feature flags, env, etc.). |
+| `setupLogging(options)` | Configures transports and levels (console/file + custom transports). |
+| `formatLogContextSuffix(fields)` | Builds the trailing ` key=value` suffix (for custom formatters/tests). |
+| `runWithRequestContext(ctx, cb)` | Opens a correlation scope for jobs/scripts (HTTP gets one automatically). |
+| `getCurrentLogContext()` | Reads the active correlation fields as a plain object. |
+| `REQUEST_CONTEXT_ATTRIBUTE_NAMES` | Header names for propagating correlation to other services. |
+
+### The global logger
+
+``````typescript
+import {logger} from "@terreno/api";
+
+logger.info("Server started", {port: 4000});
+logger.warn("Slow query", {ms: 500});
+logger.error("Failed to process", {error});
+logger.debug("Request details", {body: req.body});
+
+// `.catch` logs and captures the exception — handy as a promise handler:
+await chargeCard(id).catch(logger.catch);
+``````
+
+Each method writes through Winston (console/file transports) and, when `USE_SENTRY_LOGGING=true`,
+mirrors the line to Sentry with the active request context attached.
+
+### Scoped loggers
+
+Use **`createScopedLogger`** when a handler, job, or service runs multiple steps and you want a
+consistent prefix and/or extra dimensions on every line. Create the logger once and reuse the same
+instance for the whole operation so every line shares identifiers.
+
+``````typescript
+import {createScopedLogger} from "@terreno/api";
+
+const log = createScopedLogger({
+  prefix: "[InvoicePay]",
+  labels: {invoiceId: invoice._id.toString(), attempt: String(attemptNumber)},
+});
+
+log.info("Starting capture");
+log.warn("Stripe rate limited, backing off");
+await capture(invoice).catch(log.catch);
+``````
+
+This produces lines like:
+
+``````text
+info: [InvoicePay] Starting capture invoiceId=665f… attempt=1 requestId=…
+``````
+
+- **`prefix`** — prepended to the human-readable message (easy grep / Log Explorer text search) and
+  also stored as the Winston metadata field **`terrenoLogPrefix`** so structured transports get it
+  as its own field, not only embedded in `message`.
+- **`labels`** — normalized to strings and stored as the Winston metadata field **`terrenoLabels`**.
+  They appear in the same ` key=value` suffix as request fields and are emitted as discrete fields
+  for structured transports (for example `@google-cloud/logging-winston`).
+
+**Reserved keys:** do not use label keys that collide with framework metadata — `requestId`,
+`jobId`, `sessionId`, `userId`, `traceId`, `spanId`, `terrenoLogPrefix`, `terrenoRequestLog`,
+`terrenoLabels`. Prefer domain names: `invoiceId`, `syncBatchId`, `webhookDeliveryId`.
+
+If both `prefix` and `labels` are empty, `createScopedLogger({})` returns the global `logger` (the
+same object).
+
+### Feature-flagged (toggle) logging
+
+Use **`createFeatureFlaggedLogger`** to keep verbose diagnostics in the code but silent until a
+flag turns them on — no redeploy required. All `debug` / `info` / `warn` / `error` calls are
+dropped while `isEnabled()` returns false.
+
+`isEnabled` is evaluated on **every** call, so flags can flip without a process restart. Wire it to
+any source: an environment variable, a cached/remote flag map, or a call into a feature-flag service
+from your app.
+
+``````typescript
+import {createFeatureFlaggedLogger, createScopedLogger} from "@terreno/api";
+
+const jobLog = createFeatureFlaggedLogger({
+  isEnabled: () => process.env.JOB_TRACE_LOGS === "true",
+  target: createScopedLogger({prefix: "[Job]", labels: {jobName: "nightly-sync"}}),
+});
+
+jobLog.info("step 1"); // silent unless JOB_TRACE_LOGS=true
+``````
+
+Driving it from a feature-flag service in app code:
+
+``````typescript
+const debugLog = createFeatureFlaggedLogger({
+  isEnabled: () => flags.isEnabled("debug.billing"),
+  target: createScopedLogger({prefix: "[Billing]"}),
+  gateCatch: true, // also silence `catch` while the flag is off
+});
+``````
+
+Options:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `isEnabled` | — (required) | `() => boolean` predicate; checked on every log call. |
+| `target` | global `logger` | The `ScopedLogger` (or `logger`) that receives forwarded lines. |
+| `gateCatch` | `false` | When `false`, `catch` still records errors while disabled (so `promise.catch(log.catch)` keeps working). Set `true` to silence `catch` too. |
+
+> `@terreno/api` deliberately does **not** import a feature-flags package — you pass the predicate.
+> This avoids a package cycle and lets the gate read from anywhere.
+
+### How loggers correlate
+
+While a request or job scope is active, **every** log line — from `logger`, a scoped logger, or a
+feature-flagged logger — is automatically enriched with correlation fields. You never thread them
+through function arguments. This is built on Node's `AsyncLocalStorage` (see `requestContext.ts`).
+
+What you get:
+
+- **HTTP requests**: `requestContextMiddleware` (mounted early by `TerrenoApp` / `setupServer`)
+  resolves a `requestId` from incoming headers (`x-request-id`, `x-correlation-id`,
+  `x-cloud-trace-context`, W3C `traceparent`, …) or generates one, echoes it back as the
+  `X-Request-ID` response header, and runs the request inside the scope. After auth runs, `userId`
+  and `sessionId` are added.
+- **Correlation fields**: `requestId`, `jobId`, `sessionId`, `userId`, `traceId`, `spanId` (when
+  available) are merged onto every line as top-level Winston metadata.
+- **Structured object**: every line also carries **`terrenoRequestLog`**: `{requestId, userId}`
+  (with `userId: null` for anonymous requests) so Log Explorer and BigQuery can always filter on a
+  single nested object. This object is structured metadata only — it is not repeated in the
+  plain-text suffix.
+- **Plain-text suffix**: console/file lines append a ` key=value` suffix built by
+  `formatLogContextSuffix`, including `logPrefix=…` and any scoped `labels`.
+
+Correlating background jobs, cron tasks, and scripts — wrap the work in `runWithRequestContext` so
+it gets the same treatment as an HTTP request:
+
+``````typescript
+import {createScopedLogger, runWithRequestContext} from "@terreno/api";
+
+await runWithRequestContext({jobId: "nightly-sync"}, async () => {
+  const log = createScopedLogger({prefix: "[NightlySync]"});
+  log.info("started"); // every line includes jobId + a generated requestId
+  await sync();
+});
+``````
+
+Propagating correlation to other services (so the same `requestId` / `traceId` follows the call):
+
+``````typescript
+import {getCurrentRequestContextAttributes} from "@terreno/api";
+
+await fetch(downstreamUrl, {headers: getCurrentRequestContextAttributes()});
+``````
+
+### Configuring transports
+
+`setupLogging` is called for you by `TerrenoApp` / `setupServer` (pass `loggingOptions`). Console
+and file transports are enabled by default; add custom transports (such as Google Cloud Logging) to
+forward the structured metadata above:
+
+``````typescript
+import {setupLogging} from "@terreno/api";
+import {LoggingWinston} from "@google-cloud/logging-winston";
+
+setupLogging({
+  level: "info",
+  disableFileLogging: isDeployed,
+  disableConsoleColors: isDeployed,
+  transports: isDeployed ? [new LoggingWinston()] : [],
+});
+``````
+
+When deployed, Winston metadata (`terrenoRequestLog`, `terrenoLabels`, `terrenoLogPrefix`, and the
+top-level request fields) flows into Google Cloud Logging `jsonPayload` for Log Explorer filtering.
+To correlate with Cloud Trace, ensure clients or load balancers send `x-cloud-trace-context` or W3C
+`traceparent`.
+
+### Message style
+
+- Start with what happened, then optional detail: `User export finished`, not `finished`.
+- Use **low-cardinality** prefixes in brackets (`[WebhookStripe]`, `[NightlyJob]`); put unique IDs
+  in `labels`, not in the prefix.
+- Keep the first ~80 characters useful for grouping; push highly variable data to the end or into
+  splat args.
 
 ## Extensibility
 

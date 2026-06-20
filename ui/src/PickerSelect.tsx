@@ -38,7 +38,6 @@ import {
   Text,
   TextInput,
   type TextInputProps,
-  type TextProps,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -389,37 +388,30 @@ export const RNPickerSelect = ({
       return <View style={{pointerEvents: "box-only"}}>{children}</View>;
     }
 
-    const textProps = textInputProps as Partial<TextProps> | undefined;
+    const selectedLabel = selectedItem?.inputLabel ?? selectedItem?.label ?? "";
+    const baseTextInputStyle = {
+      color: disabled ? theme.text.secondaryLight : theme.text.primary,
+      flex: 1,
+    };
     return (
       <View
         style={{
+          alignItems: "center",
           flexDirection: "row",
-          justifyContent: "space-between",
           pointerEvents: "box-only",
           width: "100%",
         }}
       >
-        {disabled ? (
-          <Text
-            {...textProps}
-            style={
-              textProps?.style
-                ? [{color: theme.text.secondaryLight, flex: 1}, textProps.style]
-                : {color: theme.text.secondaryLight, flex: 1}
-            }
-            testID={textInputProps?.testID ?? "text_input"}
-          >
-            {selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-          </Text>
-        ) : (
-          <TextInput
-            readOnly
-            style={{color: theme.text.primary}}
-            testID="text_input"
-            value={selectedItem?.inputLabel ? selectedItem?.inputLabel : selectedItem?.label}
-            {...textInputProps}
-          />
-        )}
+        <TextInput
+          editable={false}
+          multiline
+          {...textInputProps}
+          style={
+            textInputProps?.style ? [baseTextInputStyle, textInputProps.style] : baseTextInputStyle
+          }
+          testID={textInputProps?.testID ?? "text_input"}
+          value={selectedLabel}
+        />
         {renderIcon()}
       </View>
     );
@@ -440,6 +432,7 @@ export const RNPickerSelect = ({
         ]}
       >
         <Pressable
+          disabled={disabled}
           onPress={() => {
             togglePicker(true);
           }}
@@ -448,7 +441,8 @@ export const RNPickerSelect = ({
             flexDirection: "row",
             justifyContent: "center",
             minHeight: 40,
-            width: "95%",
+            paddingHorizontal: 8,
+            width: "100%",
           }}
           testID="ios_touchable_wrapper"
           {...touchableWrapperProps}
@@ -507,7 +501,12 @@ export const RNPickerSelect = ({
       children?: ReactNode;
     }>;
     return (
-      <Component onPress={onOpen} testID="android_touchable_wrapper" {...touchableWrapperProps}>
+      <Component
+        {...(!fixAndroidTouchableBug ? {disabled} : {})}
+        onPress={onOpen}
+        testID="android_touchable_wrapper"
+        {...touchableWrapperProps}
+      >
         <View>
           {renderTextInputOrChildren()}
           <Picker
@@ -636,7 +635,6 @@ export const RNPickerSelect = ({
           style={{
             alignItems: "center",
             flexDirection: "row",
-            justifyContent: "space-between",
             minHeight: 40,
             paddingHorizontal: 8,
             width: "100%",

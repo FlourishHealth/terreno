@@ -49,6 +49,12 @@
       "import": "./dist/langfuseApp.js",
       "require": "./dist/langfuseApp.js",
       "default": "./dist/langfuseApp.js"
+    },
+    "./parseAiJson": {
+      "types": "./dist/service/parseAiJson.d.ts",
+      "import": "./dist/service/parseAiJson.js",
+      "require": "./dist/service/parseAiJson.js",
+      "default": "./dist/service/parseAiJson.js"
     }
   },
   "homepage": "https://github.com/FlourishHealth/terreno#readme",
@@ -84,5 +90,5 @@
     "test:coverage": "bun run ../scripts/check-coverage.ts"
   },
   "types": "dist/index.d.ts",
-  "version": "0.20.0"
+  "version": "0.20.2"
 }

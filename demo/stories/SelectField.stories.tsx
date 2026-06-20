@@ -1,4 +1,5 @@
 import {Box, type FieldOption, Heading, SelectField} from "@terreno/ui";
+import {useState} from "react";
 
 const options: FieldOption[] = [
   {label: "First", value: "first"},
@@ -17,16 +18,16 @@ export const SelectFieldDemo = (props: {
   withTitle: boolean;
   disabled: boolean;
 }) => {
+  const [value, setValue] = useState<string>("");
   return (
     <SelectField
-      // disabled={props.disabled}
+      disabled={props.disabled}
       errorText={props.withErrorText ? "This is an error" : undefined}
       helperText={props.withHelperText ? "This is some helper text" : undefined}
-      onChange={() => {}}
+      onChange={setValue}
       options={options}
       title={props.withTitle ? "Select field" : undefined}
-      value=""
-      {...props}
+      value={value}
     />
   );
 };
@@ -58,21 +59,10 @@ export const SelectFieldExamples = () => {
           value="first"
         />
       </Box>
+
       <Box marginBottom={2} padding={4}>
         <Box marginBottom={1}>
-          <Heading size="md">With errorText</Heading>
-        </Box>
-        <SelectField
-          errorText="This is an error"
-          onChange={() => {}}
-          options={options}
-          title="Select field"
-          value="second"
-        />
-      </Box>
-      <Box marginBottom={2} padding={4}>
-        <Box marginBottom={1}>
-          <Heading size="md">Disabled</Heading>
+          <Heading size="md">Disabled — long label wrapping test</Heading>
         </Box>
         <SelectField
           disabled
