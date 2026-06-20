@@ -169,7 +169,6 @@ const printf = (timestamp = false) => {
   };
 };
 
-
 let terrenoDevJsonlAttached = false;
 
 const shouldAttachTerrenoDevJsonl = (): boolean => {

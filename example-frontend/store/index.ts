@@ -3,9 +3,9 @@ import {combineReducers, configureStore} from "@reduxjs/toolkit";
 import {
   createOfflineMiddleware,
   generateAuthSlice,
-  registerTerrenoDevStore,
   type OfflineState,
   type QueuedMutation,
+  registerTerrenoDevStore,
 } from "@terreno/rtk";
 import {createSentryReduxEnhancer} from "@utils";
 import {DateTime} from "luxon";
