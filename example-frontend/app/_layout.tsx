@@ -29,7 +29,11 @@ const OpenFeatureBridge: FC<{
   socket: ReturnType<typeof useSocketConnection>["socket"];
 }> = ({children, socket}) => {
   const bridgeUserId = useSelectCurrentUserId();
-  useTerrenoFeatureFlags(terrenoApi, {socket, userId: bridgeUserId});
+  useTerrenoFeatureFlags(terrenoApi, {
+    skip: !bridgeUserId,
+    socket,
+    userId: bridgeUserId,
+  });
   return <OpenFeatureProvider domain="feature-flags">{children}</OpenFeatureProvider>;
 };
 
