@@ -1,23 +1,11 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: change stream and socket handlers use dynamic document shapes
+
 import * as Sentry from "@sentry/bun";
 import type express from "express";
 import {DateTime} from "luxon";
+import type {ChangeStream, ChangeStreamDocument, ChangeStreamOptions} from "mongodb";
 import mongoose from "mongoose";
 import type {Server, Socket} from "socket.io";
-
-type ChangeStream = mongoose.mongo.ChangeStream;
-type ChangeStreamDocument = mongoose.mongo.ChangeStreamDocument;
-type ChangeStreamOptions = mongoose.mongo.ChangeStreamOptions;
-
-/**
- * The subset of ChangeStreamDocument variants this watcher actually processes.
- * The pipeline filters for ["insert", "update", "replace", "delete"], so we never
- * see drop / rename / invalidate / index events at runtime.
- */
-type WatchedChange = Extract<
-  ChangeStreamDocument,
-  {operationType: "insert" | "update" | "replace" | "delete"}
->;
 
 import type {User} from "../auth";
 import {APIError} from "../errors";
@@ -28,6 +16,16 @@ import {getQuerySubscriptionsForCollection} from "./queryStore";
 import {findRegistryEntryByCollection, type RealtimeRegistryEntry} from "./registry";
 import {getSocketUser, type SocketWithDecodedToken} from "./socketUser";
 import type {ChangeStreamConfig, RealtimeEvent} from "./types";
+
+/**
+ * The subset of ChangeStreamDocument variants this watcher actually processes.
+ * The pipeline filters for ["insert", "update", "replace", "delete"], so we never
+ * see drop / rename / invalidate / index events at runtime.
+ */
+type WatchedChange = Extract<
+  ChangeStreamDocument,
+  {operationType: "insert" | "update" | "replace" | "delete"}
+>;
 
 let changeWatcher: ChangeStream | null = null;
 

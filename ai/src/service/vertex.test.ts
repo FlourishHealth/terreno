@@ -190,9 +190,9 @@ describe("vertex helpers", () => {
 
   describe("createVertexProvider without vertexFactory", () => {
     it("returns undefined when @ai-sdk/google-vertex is not installed (no factory)", () => {
-      // When no vertexFactory is passed, loadVertexModule is called.
-      // Since @ai-sdk/google-vertex is likely not installed in the test env, it returns undefined.
-      const provider = createVertexProvider({project: "demo-project"});
+      // Inject a loader that simulates the module being unavailable so the fallback is
+      // deterministic even when @ai-sdk/google-vertex is hoisted into the monorepo.
+      const provider = createVertexProvider({loadModule: () => undefined, project: "demo-project"});
       expect(provider).toBeUndefined();
     });
   });

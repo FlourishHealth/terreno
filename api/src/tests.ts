@@ -1,6 +1,7 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
-import passportLocalMongoose, {type PassportLocalMongooseDocument} from "passport-local-mongoose";
+import passportLocalMongoose from "passport-local-mongoose";
+import type {PassportLocalMongooseDocument} from "passport-local-mongoose/dist/types";
 import qs from "qs";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";

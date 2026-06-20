@@ -1,5 +1,5 @@
 ---
-targets: ["cursor", "windsurf", "copilot", "claudecode"]
+targets: ["cursor", "copilot", "claudecode"]
 description: "terreno-demo - Interactive showcase for @terreno/ui components"
 globs: ["**/*"]
 ---

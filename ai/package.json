@@ -28,7 +28,7 @@
     "mongoose": "catalog:",
     "passport-local-mongoose": "^9.0.1",
     "supertest": "^7.0.0",
-    "typescript": "5.8.2",
+    "typescript": "catalog:",
     "winston": "^3.18.3"
   },
   "exports": {

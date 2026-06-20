@@ -1949,6 +1949,9 @@ describe("@terreno/api", () => {
 
     it("returns 409 when If-Unmodified-Since is older than doc.updated", async () => {
       const staleTimestamp = DateTime.fromISO("2025-06-15T11:00:00.000Z").toHTTP();
+      if (staleTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1965,6 +1968,9 @@ describe("@terreno/api", () => {
 
     it("succeeds when If-Unmodified-Since matches or is newer than doc.updated", async () => {
       const freshTimestamp = DateTime.fromISO("2025-06-15T13:00:00.000Z").toHTTP();
+      if (freshTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1986,6 +1992,9 @@ describe("@terreno/api", () => {
 
     it("succeeds when If-Unmodified-Since exactly matches doc.updated", async () => {
       const exactTimestamp = DateTime.fromISO("2025-06-15T12:00:00.000Z").toHTTP();
+      if (exactTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)
@@ -1998,6 +2007,9 @@ describe("@terreno/api", () => {
 
     it("prefers precise conflict timestamp header when present", async () => {
       const roundedStaleTimestamp = DateTime.fromISO("2025-06-15T11:59:59.000Z").toHTTP();
+      if (roundedStaleTimestamp === null) {
+        throw new Error("expected HTTP If-Unmodified-Since value");
+      }
 
       const res = await agent
         .patch(`/food/${spinach._id}`)

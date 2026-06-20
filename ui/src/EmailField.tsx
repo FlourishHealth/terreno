@@ -36,7 +36,7 @@ export const EmailField: FC<EmailFieldProps> = ({
       setLocalValue(e);
       const err = validateEmail(e);
       // remove error if valid email
-      if (!err && Boolean(localError)) {
+      if (!err && localError) {
         setLocalError(undefined);
       }
       if (!err && onChange) {
