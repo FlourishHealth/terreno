@@ -39,6 +39,7 @@ describe("ConsentApp", () => {
     it("returns empty list when no forms exist", async () => {
       const res = await adminAgent.get("/consent-forms").expect(200);
       expect(res.body.data).toHaveLength(0);
+      expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     });
 
     it("lists consent forms for admins", async () => {
