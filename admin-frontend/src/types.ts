@@ -66,6 +66,11 @@ export interface AdminModelConfig {
   fieldOrder?: string[];
   /** Optional per-column pixel widths used by AdminModelTable when rendering listFields. */
   listColumnWidths?: Record<string, number>;
+  /**
+   * Field key used for the edit screen title (stack / document title). When unset, the form
+   * picks a scalar label from common keys (`name`, `title`, …) then the first list column.
+   */
+  recordTitleField?: string;
   /** Admin UI v2 — declarative bulk actions */
   actions?: {
     background?: boolean;

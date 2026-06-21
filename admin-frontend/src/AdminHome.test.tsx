@@ -43,6 +43,7 @@ const buildConfig = (overrides?: Partial<AdminConfigResponse>): AdminConfigRespo
   customScreens: [],
   home: {
     slots: {
+      contentTop: ["feature-flags-overrides"],
       main: ["modelsGrid"],
       navGlobal: ["scriptRunner"],
       sidebar: ["recentActivity", "versionConfig"],
@@ -50,6 +51,14 @@ const buildConfig = (overrides?: Partial<AdminConfigResponse>): AdminConfigRespo
     title: "Test Admin",
   },
   models: [
+    {
+      defaultSort: "-created",
+      displayName: "Feature Flags",
+      fields: {key: {required: true, type: "string"}},
+      listFields: ["key"],
+      name: "FeatureFlag",
+      routePath: "/admin/feature-flags",
+    },
     {
       defaultSort: "-created",
       displayName: "Widget",
@@ -97,22 +106,25 @@ describe("AdminHome", () => {
     configState.isLoading = false;
   });
 
-  it("renders scriptRunner only inside navGlobal, not inside main", () => {
+  it("renders scriptRunner in the top band with contentTop widgets on the same row, not inside main", () => {
     configState.config = buildConfig();
     const {UNSAFE_root} = renderWithTheme(
       <AdminHome api={{} as unknown as AdminApi} baseUrl="/admin" />
     );
-    const nav = UNSAFE_root.findAll(
-      (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-navGlobal"
+    const top = UNSAFE_root.findAll(
+      (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-top"
     );
     const main = UNSAFE_root.findAll(
       (n: ReactTestInstance) => n.props?.testID === "admin-home-slot-main"
     );
-    expect(nav.length).toBeGreaterThan(0);
+    expect(top.length).toBeGreaterThan(0);
     expect(main.length).toBeGreaterThan(0);
-    const navSlot = nav[0] as ReactTestInstance;
+    const topSlot = top[0] as ReactTestInstance;
     const mainSlot = main[0] as ReactTestInstance;
-    expect(countTestIdInSubtree(navSlot, "admin-home-widget-scriptRunner")).toBeGreaterThan(0);
+    expect(countTestIdInSubtree(topSlot, "admin-home-widget-scriptRunner")).toBeGreaterThan(0);
+    expect(
+      countTestIdInSubtree(topSlot, "admin-home-widget-feature-flags-overrides")
+    ).toBeGreaterThan(0);
     expect(countTestIdInSubtree(mainSlot, "admin-home-widget-scriptRunner")).toBe(0);
   });
 

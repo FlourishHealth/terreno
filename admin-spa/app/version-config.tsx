@@ -1,4 +1,4 @@
-import {AdminShell, AdminVersionConfig} from "@terreno/admin-frontend";
+import {AdminShellLayout, AdminVersionConfig} from "@terreno/admin-frontend";
 import React from "react";
 import {useAppConfig} from "../components/AppConfigGate";
 import {terrenoApi} from "../store/sdk";
@@ -8,7 +8,7 @@ const VersionConfigRoute: React.FC = () => {
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
 
   return (
-    <AdminShell
+    <AdminShellLayout
       api={terrenoApi}
       apiBase={apiBase}
       breadcrumbs={[{href: "/", label: "Admin"}, {label: "Version configuration"}]}
@@ -16,7 +16,7 @@ const VersionConfigRoute: React.FC = () => {
       routeBase=""
     >
       <AdminVersionConfig api={terrenoApi} apiBase={apiBase} routeBase="" />
-    </AdminShell>
+    </AdminShellLayout>
   );
 };
 

@@ -164,7 +164,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
       return loadingBody;
     }
     return (
-      <Page maxWidth="100%" title="Admin">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Admin">
         {loadingBody}
       </Page>
     );
@@ -180,7 +180,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
       return errorBody;
     }
     return (
-      <Page maxWidth="100%" title="Admin">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Admin">
         {errorBody}
       </Page>
     );
@@ -236,7 +236,7 @@ export const AdminModelList: React.FC<AdminModelListProps> = ({
   }
 
   return (
-    <Page maxWidth="100%" scroll title="Admin">
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Admin">
       {listBody}
     </Page>
   );

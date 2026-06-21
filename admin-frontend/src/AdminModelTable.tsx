@@ -509,7 +509,7 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   if (isConfigLoading || !modelConfig) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <LoadingContent />
       </Page>
     );
@@ -606,169 +606,188 @@ export const AdminModelTable: React.FC<AdminModelTableProps> = ({
 
   const pendingAction = modelConfig.actions?.find((a) => a.id === confirmActionId);
 
+  const hasFilterRail =
+    Boolean(modelConfig.searchFields?.length) || Boolean((modelConfig.filters ?? []).length);
+
   return (
-    <Page maxWidth="100%">
-      <Box gap={3} padding={4} testID={`admin-list-${modelName}`}>
-        <Card padding={3}>
-          <Heading size="sm">Filters</Heading>
-          <Box direction="row" gap={3} marginTop={2} wrap>
-            {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
-              <Box maxWidth={360} minWidth={220}>
-                <TextField
-                  helperText={`Filter by ${modelConfig.searchFields[0]} (exact match)`}
-                  onChange={setSearchText}
-                  title="Search"
-                  value={searchText}
-                />
-              </Box>
+    <Page color="transparent" maxWidth="100%" padding={0}>
+      <Box gap={3} padding={0} testID={`admin-list-${modelName}`}>
+        <Box alignItems="stretch" direction="column" gap={3} mdDirection="row">
+          <Box direction="column" flex="grow" gap={3} minWidth={0} width="100%">
+            {selectColumn ? (
+              <Card padding={3}>
+                <Box direction="column" gap={3} testID="bulk-action">
+                  <Box alignItems="end" direction="row" gap={3} wrap>
+                    {modelConfig.actions && modelConfig.actions.length > 0 ? (
+                      <Box minWidth={260}>
+                        <SelectField
+                          onChange={(next: string) => {
+                            if (next === "__none__" || !next) {
+                              return;
+                            }
+                            const act = modelConfig.actions?.find((a) => a.id === next);
+                            if (!act) {
+                              return;
+                            }
+                            if (act.confirm) {
+                              setConfirmActionId(act.id);
+                            } else {
+                              void runBulkAction(act.id);
+                            }
+                          }}
+                          options={[
+                            {label: "Bulk actions\u2026", value: "__none__"},
+                            ...modelConfig.actions.map((a) => ({label: a.label, value: a.id})),
+                          ]}
+                          title="Actions"
+                          value="__none__"
+                        />
+                      </Box>
+                    ) : null}
+                    <Text color="secondaryDark" size="sm">
+                      {selectedIds.size} selected
+                    </Text>
+                  </Box>
+                  <Button
+                    onClick={toggleSelectPage}
+                    text="Toggle page selection"
+                    variant="outline"
+                  />
+                </Box>
+              </Card>
             ) : null}
-            {(modelConfig.filters ?? []).map((f) => {
-              if (f.kind === "boolean") {
-                const v = filterState[f.field];
-                return (
-                  <Box key={f.field} minWidth={180}>
-                    <SelectField
-                      onChange={(next: string) => {
-                        setFilterState((prev) => ({...prev, [f.field]: next}));
-                        setPage(1);
-                      }}
-                      options={[
-                        {label: f.label ?? startCase(f.field), value: "all"},
-                        {label: "Yes", value: "true"},
-                        {label: "No", value: "false"},
-                      ]}
-                      title={f.label ?? startCase(f.field)}
-                      value={v === true ? "true" : v === false ? "false" : "all"}
-                    />
-                  </Box>
-                );
-              }
-              if (f.kind === "dateRange") {
-                const gteKey = `${f.field}_gte`;
-                const lteKey = `${f.field}_lte`;
-                return (
-                  <Box direction="row" gap={2} key={f.field} wrap>
-                    <Box minWidth={220}>
-                      <TextField
-                        helperText="ISO date or datetime"
-                        onChange={(next: string) => {
-                          setFilterState((prev) => ({...prev, [gteKey]: next}));
-                          setPage(1);
-                        }}
-                        title={`${f.label ?? startCase(f.field)} from`}
-                        value={String(filterState[gteKey] ?? "")}
-                      />
-                    </Box>
-                    <Box minWidth={220}>
-                      <TextField
-                        helperText="ISO date or datetime"
-                        onChange={(next: string) => {
-                          setFilterState((prev) => ({...prev, [lteKey]: next}));
-                          setPage(1);
-                        }}
-                        title={`${f.label ?? startCase(f.field)} to`}
-                        value={String(filterState[lteKey] ?? "")}
-                      />
-                    </Box>
-                  </Box>
-                );
-              }
-              if (f.kind === "choice") {
-                return (
-                  <Box key={f.field} minWidth={220}>
-                    <SelectField
-                      onChange={(next: string) => {
-                        setFilterState((prev) => ({
-                          ...prev,
-                          [f.field]: next === "__all__" ? "" : next,
-                        }));
-                        setPage(1);
-                      }}
-                      options={[
-                        {label: "All", value: "__all__"},
-                        ...((f.choices ?? []) as {label: string; value: string}[]).map((c) => ({
-                          label: c.label,
-                          value: c.value,
-                        })),
-                      ]}
-                      title={f.label ?? startCase(f.field)}
-                      value={String(filterState[f.field] ?? "__all__")}
-                    />
-                  </Box>
-                );
-              }
-              return (
-                <Box key={f.field} minWidth={220}>
-                  <TextField
-                    onChange={(next: string) => {
-                      setFilterState((prev) => ({...prev, [f.field]: next}));
-                      setPage(1);
-                    }}
-                    title={f.label ?? startCase(f.field)}
-                    value={String(filterState[f.field] ?? "")}
-                  />
-                </Box>
-              );
-            })}
+
+            <Card padding={2}>
+              {isListLoading ? (
+                <LoadingContent />
+              ) : data.length === 0 ? (
+                <EmptyContent />
+              ) : (
+                <DataTable
+                  columns={columns}
+                  customColumnComponentMap={customColumnComponentMap}
+                  data={data}
+                  page={page}
+                  pinnedColumns={selectColumn ? 1 : 0}
+                  setPage={setPage}
+                  setSortColumn={setSortColumn}
+                  sortColumn={sortColumn}
+                  totalPages={totalPages}
+                />
+              )}
+            </Card>
           </Box>
-        </Card>
 
-        {selectColumn ? (
-          <Card padding={3}>
-            <Box alignItems="center" direction="row" gap={3} testID="bulk-action" wrap>
-              <Button onClick={toggleSelectPage} text="Toggle page selection" variant="outline" />
-              {modelConfig.actions && modelConfig.actions.length > 0 ? (
-                <Box minWidth={260}>
-                  <SelectField
-                    onChange={(next: string) => {
-                      if (next === "__none__" || !next) {
-                        return;
-                      }
-                      const act = modelConfig.actions?.find((a) => a.id === next);
-                      if (!act) {
-                        return;
-                      }
-                      if (act.confirm) {
-                        setConfirmActionId(act.id);
-                      } else {
-                        void runBulkAction(act.id);
-                      }
-                    }}
-                    options={[
-                      {label: "Bulk actions\u2026", value: "__none__"},
-                      ...modelConfig.actions.map((a) => ({label: a.label, value: a.id})),
-                    ]}
-                    title="Actions"
-                    value="__none__"
-                  />
+          {hasFilterRail ? (
+            <Box alignSelf="stretch" maxWidth={360} minWidth={260}>
+              <Card padding={3}>
+                <Heading size="sm">Filters</Heading>
+                <Box direction="column" gap={3} marginTop={2} width="100%">
+                  {modelConfig.searchFields && modelConfig.searchFields.length > 0 ? (
+                    <Box width="100%">
+                      <TextField
+                        helperText={`Filter by ${modelConfig.searchFields[0]} (exact match)`}
+                        onChange={setSearchText}
+                        title="Search"
+                        value={searchText}
+                      />
+                    </Box>
+                  ) : null}
+                  {(modelConfig.filters ?? []).map((f) => {
+                    if (f.kind === "boolean") {
+                      const v = filterState[f.field];
+                      return (
+                        <Box key={f.field} width="100%">
+                          <SelectField
+                            onChange={(next: string) => {
+                              setFilterState((prev) => ({...prev, [f.field]: next}));
+                              setPage(1);
+                            }}
+                            options={[
+                              {label: f.label ?? startCase(f.field), value: "all"},
+                              {label: "Yes", value: "true"},
+                              {label: "No", value: "false"},
+                            ]}
+                            title={f.label ?? startCase(f.field)}
+                            value={v === true ? "true" : v === false ? "false" : "all"}
+                          />
+                        </Box>
+                      );
+                    }
+                    if (f.kind === "dateRange") {
+                      const gteKey = `${f.field}_gte`;
+                      const lteKey = `${f.field}_lte`;
+                      return (
+                        <Box direction="column" gap={2} key={f.field} width="100%">
+                          <Box width="100%">
+                            <TextField
+                              helperText="ISO date or datetime"
+                              onChange={(next: string) => {
+                                setFilterState((prev) => ({...prev, [gteKey]: next}));
+                                setPage(1);
+                              }}
+                              title={`${f.label ?? startCase(f.field)} from`}
+                              value={String(filterState[gteKey] ?? "")}
+                            />
+                          </Box>
+                          <Box width="100%">
+                            <TextField
+                              helperText="ISO date or datetime"
+                              onChange={(next: string) => {
+                                setFilterState((prev) => ({...prev, [lteKey]: next}));
+                                setPage(1);
+                              }}
+                              title={`${f.label ?? startCase(f.field)} to`}
+                              value={String(filterState[lteKey] ?? "")}
+                            />
+                          </Box>
+                        </Box>
+                      );
+                    }
+                    if (f.kind === "choice") {
+                      return (
+                        <Box key={f.field} width="100%">
+                          <SelectField
+                            onChange={(next: string) => {
+                              setFilterState((prev) => ({
+                                ...prev,
+                                [f.field]: next === "__all__" ? "" : next,
+                              }));
+                              setPage(1);
+                            }}
+                            options={[
+                              {label: "All", value: "__all__"},
+                              ...((f.choices ?? []) as {label: string; value: string}[]).map(
+                                (c) => ({
+                                  label: c.label,
+                                  value: c.value,
+                                })
+                              ),
+                            ]}
+                            title={f.label ?? startCase(f.field)}
+                            value={String(filterState[f.field] ?? "__all__")}
+                          />
+                        </Box>
+                      );
+                    }
+                    return (
+                      <Box key={f.field} width="100%">
+                        <TextField
+                          onChange={(next: string) => {
+                            setFilterState((prev) => ({...prev, [f.field]: next}));
+                            setPage(1);
+                          }}
+                          title={f.label ?? startCase(f.field)}
+                          value={String(filterState[f.field] ?? "")}
+                        />
+                      </Box>
+                    );
+                  })}
                 </Box>
-              ) : null}
-              <Text color="secondaryDark" size="sm">
-                {selectedIds.size} selected
-              </Text>
+              </Card>
             </Box>
-          </Card>
-        ) : null}
-
-        <Card padding={2}>
-          {isListLoading ? (
-            <LoadingContent />
-          ) : data.length === 0 ? (
-            <EmptyContent />
-          ) : (
-            <DataTable
-              columns={columns}
-              customColumnComponentMap={customColumnComponentMap}
-              data={data}
-              page={page}
-              pinnedColumns={selectColumn ? 1 : 0}
-              setPage={setPage}
-              setSortColumn={setSortColumn}
-              sortColumn={sortColumn}
-              totalPages={totalPages}
-            />
-          )}
-        </Card>
+          ) : null}
+        </Box>
       </Box>
 
       <Modal

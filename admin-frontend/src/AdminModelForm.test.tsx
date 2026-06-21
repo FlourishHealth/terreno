@@ -124,7 +124,11 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
-    expect(setOptions).toHaveBeenCalled();
+    expect(setOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "New User",
+      })
+    );
   });
 
   it("renders spinner during edit when the item is loading", () => {
@@ -140,6 +144,7 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "User"}));
   });
 
   it("initializes form state from fetched item data in edit mode", () => {
@@ -160,6 +165,39 @@ describe("AdminModelForm", () => {
       />
     );
     expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "Existing"}));
+  });
+
+  it("uses recordTitleField from model config for the navigation title", () => {
+    configState.config = {
+      ...config,
+      models: [
+        {
+          ...modelConfig,
+          fieldOrder: ["email", "name"],
+          fields: {
+            email: {required: false, type: "string"},
+            name: {required: false, type: "string"},
+          },
+          recordTitleField: "email",
+        },
+      ],
+    };
+    readState.data = {
+      email: "pick@me.com",
+      name: "Other",
+    };
+    const {toJSON} = renderWithTheme(
+      <AdminModelForm
+        api={{} as unknown as AdminApi}
+        baseUrl="/admin"
+        itemId="u1"
+        mode="edit"
+        modelName="User"
+      />
+    );
+    expect(toJSON()).toBeDefined();
+    expect(setOptions).toHaveBeenCalledWith(expect.objectContaining({title: "pick@me.com"}));
   });
 
   it("renders 'No editable fields' when the model has only system fields", () => {

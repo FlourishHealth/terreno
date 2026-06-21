@@ -420,7 +420,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   if (isEditMode && isFormLoading) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -435,6 +435,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
 
   return (
     <Page
+      color="transparent"
       footer={
         <Box direction="row" gap={2} justifyContent="between" padding={2}>
           <Box>
@@ -457,6 +458,7 @@ export const ConsentFormEditor: React.FC<ConsentFormEditorProps> = ({
         </Box>
       }
       maxWidth="100%"
+      padding={0}
       scroll
     >
       <Box gap={4} padding={4}>

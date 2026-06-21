@@ -13,6 +13,15 @@ import {resolveAdminBases, SYSTEM_FIELDS} from "./types";
 import {useAdminApi} from "./useAdminApi";
 import {useAdminConfig} from "./useAdminConfig";
 
+/** Parameters for {@link AdminModelFormProps.getScreenTitle}. */
+export interface AdminModelFormScreenTitleParams {
+  mode: "create" | "edit";
+  modelConfig: AdminModelConfig;
+  formState: Record<string, AdminFieldValue>;
+  itemData: Record<string, AdminFieldValue> | undefined;
+  itemId?: string;
+}
+
 interface AdminModelFormProps {
   /** @deprecated Use `apiBase`/`routeBase`. Kept as a backward-compatible alias. */
   baseUrl?: string;
@@ -41,6 +50,18 @@ interface AdminModelFormProps {
    * inside nested/primitive arrays) can be rendered with a consumer-provided component.
    */
   refRenderers?: RefRendererMap;
+  /** When set, used as the stack / document title as-is (including empty string). */
+  screenTitle?: string;
+  /**
+   * Field key for the edit-mode title. Overrides {@link AdminModelConfig.recordTitleField}
+   * from the server config.
+   */
+  recordTitleField?: string;
+  /**
+   * Custom title resolver. Return a non-empty string to override defaults; return undefined to
+   * fall back to {@link screenTitle}, config, or built-in heuristics.
+   */
+  getScreenTitle?: (params: AdminModelFormScreenTitleParams) => string | undefined;
 }
 
 const getEditableFields = (
@@ -124,6 +145,74 @@ const DeleteButton: React.FC<{loading: boolean; onDelete: () => void}> = ({loadi
 
 const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fields.</Text>;
 
+const TITLE_PREFERENCE_KEYS = ["name", "title", "label", "email", "username", "displayName"];
+
+const readScalarTitleFromRecord = (
+  record: Record<string, unknown>,
+  fieldKey: string
+): string | undefined => {
+  const fieldValue = record[fieldKey];
+  if (fieldValue == null || typeof fieldValue === "object") {
+    return undefined;
+  }
+  const s = String(fieldValue).trim();
+  if (s.length === 0) {
+    return undefined;
+  }
+  return s;
+};
+
+const mergeItemAndFormState = (
+  itemData: unknown,
+  formState: Record<string, AdminFieldValue>
+): Record<string, unknown> => {
+  const out: Record<string, unknown> = {};
+  if (itemData && typeof itemData === "object" && !Array.isArray(itemData)) {
+    Object.assign(out, itemData as Record<string, unknown>);
+  }
+  for (const [k, v] of Object.entries(formState)) {
+    out[k] = v;
+  }
+  return out;
+};
+
+const inferEditRecordTitle = (params: {
+  displayName: string;
+  explicitField: string | undefined;
+  fieldKeys: Set<string>;
+  itemId: string | undefined;
+  listFields: string[];
+  record: Record<string, unknown>;
+}): string => {
+  const {displayName, explicitField, fieldKeys, itemId, listFields, record} = params;
+  if (explicitField) {
+    const fromExplicit = readScalarTitleFromRecord(record, explicitField);
+    if (fromExplicit) {
+      return fromExplicit;
+    }
+  }
+  for (const key of TITLE_PREFERENCE_KEYS) {
+    if (!fieldKeys.has(key)) {
+      continue;
+    }
+    const fromPreferred = readScalarTitleFromRecord(record, key);
+    if (fromPreferred) {
+      return fromPreferred;
+    }
+  }
+  for (const key of listFields) {
+    const fromList = readScalarTitleFromRecord(record, key);
+    if (fromList) {
+      return fromList;
+    }
+  }
+  if (itemId) {
+    const short = itemId.length > 12 ? `${itemId.slice(0, 8)}…` : itemId;
+    return `${displayName} · ${short}`;
+  }
+  return displayName;
+};
+
 /**
  * Form screen for creating or editing a model instance in the admin panel.
  *
@@ -138,6 +227,9 @@ const EmptyFields: React.FC = () => <Text color="secondaryDark">No editable fiel
  * @param props.modelName - Name of the model to create/edit (e.g., "User")
  * @param props.mode - Form mode: "create" for new items, "edit" for existing items
  * @param props.itemId - ID of the item to edit (required when mode is "edit")
+ * @param props.screenTitle - Optional fixed stack / document title (overrides all title logic)
+ * @param props.recordTitleField - Optional field key for edit-mode title (overrides server `recordTitleField`)
+ * @param props.getScreenTitle - Optional callback to derive the title; return undefined to use defaults
  *
  * @example
  * ```typescript
@@ -187,6 +279,9 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
   transformPayload,
   onSaveSuccess,
   refRenderers,
+  screenTitle,
+  recordTitleField: recordTitleFieldProp,
+  getScreenTitle,
 }) => {
   const {apiBase: resolvedApiBase, routeBase: resolvedRouteBase} = resolveAdminBases({
     apiBase,
@@ -342,7 +437,53 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   const isSaving = isCreating || isUpdating;
 
-  // Set header action buttons (save/delete)
+  const navigationTitle = useMemo((): string => {
+    if (!modelConfig) {
+      return "";
+    }
+    if (screenTitle !== undefined) {
+      return screenTitle;
+    }
+    const fromCallback = getScreenTitle?.({
+      formState,
+      itemData: itemData as Record<string, AdminFieldValue> | undefined,
+      itemId,
+      mode,
+      modelConfig,
+    });
+    if (typeof fromCallback === "string" && fromCallback.trim().length > 0) {
+      return fromCallback.trim();
+    }
+    if (mode === "create") {
+      return `New ${modelConfig.displayName}`;
+    }
+    if (isItemLoading) {
+      return modelConfig.displayName;
+    }
+    const explicitField = recordTitleFieldProp ?? modelConfig.recordTitleField;
+    const fieldKeys = new Set(Object.keys(modelConfig.fields));
+    const record = mergeItemAndFormState(itemData, formState);
+    return inferEditRecordTitle({
+      displayName: modelConfig.displayName,
+      explicitField,
+      fieldKeys,
+      itemId,
+      listFields: modelConfig.listFields ?? [],
+      record,
+    });
+  }, [
+    formState,
+    getScreenTitle,
+    itemData,
+    itemId,
+    isItemLoading,
+    mode,
+    modelConfig,
+    recordTitleFieldProp,
+    screenTitle,
+  ]);
+
+  // Set stack / document title and header action buttons (save/delete)
   useEffect(() => {
     if (!modelConfig) {
       return;
@@ -362,8 +503,18 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
           />
         </Box>
       ),
+      title: navigationTitle,
     });
-  }, [navigation, modelConfig, mode, isSaving, isDeleting, handleSave, handleDelete]);
+  }, [
+    navigation,
+    navigationTitle,
+    modelConfig,
+    mode,
+    isSaving,
+    isDeleting,
+    handleSave,
+    handleDelete,
+  ]);
 
   const visibleFields = useMemo((): [string, AdminFieldConfig][] => {
     if (!modelConfig) {
@@ -412,7 +563,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   if (isConfigLoading || !modelConfig) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -422,7 +573,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
 
   if (mode === "edit" && isItemLoading) {
     return (
-      <Page maxWidth="100%">
+      <Page color="transparent" maxWidth="100%" padding={0}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -434,7 +585,7 @@ export const AdminModelForm: React.FC<AdminModelFormProps> = ({
     config?.models.map((m: AdminModelConfig) => ({name: m.name, routePath: m.routePath})) ?? [];
 
   return (
-    <Page maxWidth="100%" scroll>
+    <Page color="transparent" maxWidth="100%" padding={0} scroll>
       <Box gap={3} padding={4}>
         {fieldSections
           ? fieldSections.map((section, sectionIndex) => (

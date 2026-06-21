@@ -18,9 +18,14 @@ const AdminUiV2ShowcaseScreen: React.FC = () => {
       </Text>
       <Heading size="md">Home dashboard</Heading>
       <Text size="sm">
-        From Profile → Admin: per-model counts, model grid, feature-flag quick access, scripts,
-        version config, and recent audit activity — wired via home.slots in
-        example-backend/src/server.ts.
+        From Profile → Admin: per-model counts, model grid with add (+) shortcuts, feature flags and
+        scripts on one top row, version config, and recent audit activity — wired via home.slots in
+        example-backend/src/server.ts (navGlobal + contentTop render together).
+      </Text>
+      <Heading size="md">Sidebar</Heading>
+      <Text size="sm">
+        Admin shell lists Tools (each registered script plus version), then Models (grouped by
+        AdminModelConfig.group from the server), then custom Screens.
       </Text>
       <Heading size="md">Models and changelist</Heading>
       <Box direction="column" gap={2}>
@@ -34,6 +39,9 @@ const AdminUiV2ShowcaseScreen: React.FC = () => {
         </Text>
         <Text size="sm">
           • Users — profile/access fieldsets, email read-only on edit, admin filter.
+        </Text>
+        <Text size="sm">
+          {`• Todos & Users share one sidebar group label ("Demo: shared app data") so multiple models appear under a single custom heading.`}
         </Text>
         <Text size="sm">
           • Consent forms — locale and checkbox-list widgets, fieldsets, list display, filters.

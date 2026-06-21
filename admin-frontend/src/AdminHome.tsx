@@ -1,4 +1,14 @@
-import {Box, Button, Card, Heading, Page, printDateAndTime, Spinner, Text} from "@terreno/ui";
+import {
+  Box,
+  Button,
+  Card,
+  Heading,
+  IconButton,
+  Page,
+  printDateAndTime,
+  Spinner,
+  Text,
+} from "@terreno/ui";
 import type {Href} from "expo-router";
 import {router} from "expo-router";
 import React, {useCallback, useMemo} from "react";
@@ -80,6 +90,7 @@ const ModelGridCard: React.FC<{
   const {data, isLoading} = useListQuery({limit: 1, page: 1}, {skip: !model.routePath});
   const total = (data as {total?: number} | undefined)?.total;
   const fieldCount = Object.keys(model.fields).length;
+  const createEnabled = model.permissions?.create !== false;
 
   const onOpen = useCallback((): void => {
     const prefix = routeBase.endsWith("/") ? routeBase.slice(0, -1) : routeBase;
@@ -87,31 +98,59 @@ const ModelGridCard: React.FC<{
     router.push(href);
   }, [routeBase, model.name]);
 
+  const onCreate = useCallback((): void => {
+    if (!createEnabled) {
+      return;
+    }
+    const prefix = routeBase.endsWith("/") ? routeBase.slice(0, -1) : routeBase;
+    router.push(`${prefix}/${model.name}/create` as Href);
+  }, [createEnabled, routeBase, model.name]);
+
   return (
     <Box
       accessibilityHint={`Open ${model.displayName} admin`}
       accessibilityLabel={model.displayName}
       border="default"
-      onClick={onOpen}
       padding={3}
       rounding="md"
       testID={`admin-home-models-grid-${model.name}`}
-      width={200}
+      width={220}
     >
-      <Text bold>{model.displayName}</Text>
-      <Text color="secondaryDark" size="sm">
-        {`${fieldCount} fields`}
-      </Text>
-      <Box marginTop={1}>
-        {isLoading ? (
-          <Spinner />
-        ) : (
-          <Text
-            color="secondaryDark"
-            size="sm"
-            testID={`admin-home-model-count-${model.name}`}
-          >{`${total != null ? total : "—"} rows`}</Text>
-        )}
+      <Box alignItems="start" direction="row" gap={2} justifyContent="between">
+        <Box
+          accessibilityHint={`View ${model.displayName} list`}
+          accessibilityLabel={model.displayName}
+          flex="grow"
+          minWidth={0}
+          onClick={onOpen}
+        >
+          <Text bold>{model.displayName}</Text>
+          <Text color="secondaryDark" size="sm">
+            {`${fieldCount} fields`}
+          </Text>
+          <Box marginTop={1}>
+            {isLoading ? (
+              <Spinner />
+            ) : (
+              <Text
+                color="secondaryDark"
+                size="sm"
+                testID={`admin-home-model-count-${model.name}`}
+              >{`${total != null ? total : "—"} rows`}</Text>
+            )}
+          </Box>
+        </Box>
+        {createEnabled ? (
+          <IconButton
+            accessibilityHint={`Create new ${model.displayName}`}
+            accessibilityLabel={`Add ${model.displayName}`}
+            iconName="plus"
+            onClick={onCreate}
+            testID={`admin-home-model-add-${model.name}`}
+            tooltipText="Add new"
+            variant="secondary"
+          />
+        ) : null}
       </Box>
     </Box>
   );
@@ -302,6 +341,8 @@ const renderWidget = (params: {
 /**
  * Config-driven admin home dashboard: renders `home.slots` from `/admin/config` with built-in
  * widgets (model grid with counts, scripts, version config, audit recent activity).
+ * `navGlobal` and `contentTop` widget ids render together in one top row (same flex line, wrapping
+ * as needed) so strips like scripts + feature flags stay side by side.
  */
 export const AdminHome: React.FC<AdminHomeProps> = ({
   baseUrl,
@@ -330,6 +371,8 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
   const slots = config?.home?.slots;
   const navGlobal = normalizeWidgetIds(slots?.navGlobal);
   const contentTop = normalizeWidgetIds(slots?.contentTop);
+  /** Shown in one horizontal band so scripts, feature flags, etc. align on the same row. */
+  const topBandWidgetIds = useMemo(() => [...navGlobal, ...contentTop], [navGlobal, contentTop]);
   const main = normalizeWidgetIds(slots?.main);
   const sidebar = normalizeSidebarWidgets(slots?.sidebar);
 
@@ -343,7 +386,7 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
       return loadingBody;
     }
     return (
-      <Page maxWidth="100%" title={config?.home?.title ?? "Admin"}>
+      <Page color="transparent" maxWidth="100%" padding={0} title={config?.home?.title ?? "Admin"}>
         {loadingBody}
       </Page>
     );
@@ -359,7 +402,7 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
       return errorBody;
     }
     return (
-      <Page maxWidth="100%" title="Admin">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Admin">
         {errorBody}
       </Page>
     );
@@ -377,21 +420,13 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
   };
 
   const dashboardBody = (
-    <Box gap={4} padding={embedded ? 0 : 4} width="100%">
+    <Box gap={4} padding={0} width="100%">
       {!embedded ? <Heading size="md">{title}</Heading> : null}
 
-      {navGlobal.length > 0 ? (
-        <Box direction="row" gap={3} testID="admin-home-slot-navGlobal" wrap>
-          {navGlobal.map((id) => (
-            <Box key={`ng-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
-          ))}
-        </Box>
-      ) : null}
-
-      {contentTop.length > 0 ? (
-        <Box direction="column" gap={3} testID="admin-home-slot-contentTop">
-          {contentTop.map((id) => (
-            <Box key={`ct-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
+      {topBandWidgetIds.length > 0 ? (
+        <Box direction="row" gap={3} testID="admin-home-slot-top" wrap>
+          {topBandWidgetIds.map((id) => (
+            <Box key={`top-${id}`}>{renderWidget({...widgetParams, widgetId: id})}</Box>
           ))}
         </Box>
       ) : null}
@@ -432,7 +467,7 @@ export const AdminHome: React.FC<AdminHomeProps> = ({
   }
 
   return (
-    <Page maxWidth="100%" scroll title={title}>
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title={title}>
       {dashboardBody}
     </Page>
   );

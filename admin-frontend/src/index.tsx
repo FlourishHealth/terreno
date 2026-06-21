@@ -1,7 +1,7 @@
 export {type AdminBreadcrumbSegment, AdminBreadcrumbs} from "./AdminBreadcrumbs";
 export {AdminFieldRenderer} from "./AdminFieldRenderer";
 export {AdminHome} from "./AdminHome";
-export {AdminModelForm} from "./AdminModelForm";
+export {AdminModelForm, type AdminModelFormScreenTitleParams} from "./AdminModelForm";
 export {AdminModelList} from "./AdminModelList";
 export {AdminModelTable} from "./AdminModelTable";
 export {AdminNestedArrayField} from "./AdminNestedArrayField";
@@ -10,7 +10,8 @@ export {AdminPrimitiveArrayField} from "./AdminPrimitiveArrayField";
 export {AdminRefField, type AdminRefFieldProps} from "./AdminRefField";
 export {AdminScriptList} from "./AdminScriptList";
 export {AdminScriptRunModal} from "./AdminScriptRunModal";
-export {AdminShell, type AdminShellProps} from "./AdminShell";
+export {AdminShell, type AdminShellProps, type AdminShellSidebarVariant} from "./AdminShell";
+export {AdminShellLayout, type AdminShellLayoutProps} from "./AdminShellLayout";
 export {AdminVersionConfig} from "./AdminVersionConfig";
 export {groupAdminModelsByGroup} from "./adminShellNav";
 export {CheckboxListEditor} from "./CheckboxListEditor";

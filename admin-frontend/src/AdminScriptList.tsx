@@ -44,7 +44,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
 
   if (isLoading) {
     return (
-      <Page maxWidth="100%" title="Scripts">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Scripts">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -54,7 +54,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
 
   if (error || !config) {
     return (
-      <Page maxWidth="100%" title="Scripts">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Scripts">
         <Box padding={4}>
           <Text color="error">Failed to load admin configuration.</Text>
         </Box>
@@ -66,7 +66,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
 
   if (scripts.length === 0) {
     return (
-      <Page maxWidth="100%" title="Scripts">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Scripts">
         <Box alignItems="center" padding={6}>
           <Text color="secondaryDark">No scripts registered.</Text>
         </Box>
@@ -75,7 +75,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   }
 
   return (
-    <Page maxWidth="100%" scroll title="Scripts">
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Scripts">
       <Box gap={3} padding={4}>
         {scripts.map((script: AdminScriptConfig) => (
           <Card key={script.name} padding={4} testID={`admin-script-card-${script.name}`}>

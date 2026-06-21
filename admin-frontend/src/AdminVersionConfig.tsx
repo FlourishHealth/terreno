@@ -147,7 +147,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
       );
     }
     return (
-      <Page maxWidth="100%" title="Version Config">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -166,7 +166,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
       );
     }
     return (
-      <Page maxWidth="100%" title="Version Config">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" gap={4} justifyContent="center" padding={6}>
           <Text color="error">Failed to load version config. Please try again later.</Text>
           <Button onClick={handleBack} text="Back" variant="outline" />
@@ -282,7 +282,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   }
 
   return (
-    <Page maxWidth="100%" scroll title="Version Config">
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Version Config">
       <Box gap={4} padding={4}>
         {formInner}
       </Box>

@@ -124,19 +124,19 @@ All **`Permissions.IsAdmin`** (or stricter consumer override).
 ## UI
 
 - **Shell:** `Box` / `Page`, grouped sidebar (`Text` section headers, `Button` / `IconButton`, `Avatar`), sticky top bar with breadcrumbs (`Heading`, `Link`).  
-- **Home:** Render in order: **`navGlobal`** row → **`contentTop`** band → two-column **`main`** + **`sidebar`** (Terreno `Box` / `SplitPage`-style layout). Each slot iterates widget ids from `home.slots`; **`recentActivity` last inside `sidebar`** when present.  
+- **Home:** Render in order: **`navGlobal` + `contentTop` merged into one horizontal top band** (same flex row, wrapping) → two-column **`main`** + **`sidebar`** (Terreno `Box` / `SplitPage`-style layout). Each slot iterates widget ids from `home.slots`; **`recentActivity` last inside `sidebar`** when present.  
 - **List:** `DataTable`, `Pagination`, `TextField` (debounced search), filter rail (`Card` + fields) or chip mode (`SelectField` / date inputs), row selection, bulk `SelectField` + `Modal` confirms, inline boolean via PATCH.  
 - **Form:** `Accordion` or stacked `Card` for fieldsets; `TextField`, `NumberField`, `BooleanField`, `SelectField`, `DateTimeField`; readonly fields disabled + helper copy; ref picker = debounced list fetch.  
 - **Danger zone:** `Button` destructive + `Modal`; **hidden** when delete permission false.  
 - **Background run:** `Modal` + `Spinner` + log `Text` (reuse `AdminScriptRunModal` patterns).  
-- **testIDs:** `admin-home`, `admin-home-slot-navGlobal`, `admin-home-slot-contentTop`, `admin-home-slot-main`, `admin-home-slot-sidebar`, `admin-list-{model}`, `admin-form-{model}`, `filter-{field}`, `bulk-action`, `widget-recent-activity` (last in **sidebar** slot).
+- **testIDs:** `admin-home`, `admin-home-slot-top` (combined `navGlobal` + `contentTop` widgets), `admin-home-slot-main`, `admin-home-slot-sidebar`, `admin-list-{model}`, `admin-form-{model}`, `filter-{field}`, `bulk-action`, `widget-recent-activity` (last in **sidebar** slot).
 
 ## Phases
 
 1. **Backend contracts** — extend config response; bulk-patch; background enqueue; OpenAPI + tests.  
 2. **CRUD parity** — ensure each registered model’s `queryFields`, sort, response stripping align with config lists.  
 3. **Frontend shell + list + form** — consume v2 config; `DataTable` list; form fieldsets/readonly/autocomplete.  
-4. **Home widgets** — registry + **`home.slots`** layout + plugin widget IDs + version/scripts placement (`navGlobal` vs `contentTop` vs `main` vs `sidebar`).  
+4. **Home widgets** — registry + **`home.slots`** layout + plugin widget IDs + placement (`navGlobal` and `contentTop` render in one top row; `main` vs `sidebar`).  
 5. **admin-spa + example** — runnable demo; link plugin screens.  
 6. **Audit log & recent actions (last)** — `AdminAuditLog` model (if approved for deployment), logging hooks, `GET` list, wire **`recentActivity` as the final id in `home.slots.sidebar`**.
 

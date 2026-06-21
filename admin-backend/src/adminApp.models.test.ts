@@ -91,6 +91,13 @@ describe("AdminApp /admin/config", () => {
     expect(foodMeta.fieldOrder).toEqual(["name", "calories", "tags"]);
   });
 
+  it("includes recordTitleField in config when set on the model", async () => {
+    const appWithTitle = buildApp([{...foodModelConfig, recordTitleField: "name"}]);
+    const agent = await authAsUser(appWithTitle, "admin");
+    const res = await agent.get("/admin/config").expect(200);
+    expect(res.body.models[0].recordTitleField).toBe("name");
+  });
+
   it("applies fieldOverrides to generated config", async () => {
     const res = await adminAgent.get("/admin/config").expect(200);
     const [foodMeta] = res.body.models;

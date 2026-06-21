@@ -26,7 +26,7 @@ export const AdminBreadcrumbs: React.FC<AdminBreadcrumbsProps> = ({segments}) =>
   }
 
   return (
-    <Box alignItems="center" direction="row" gap={2} paddingY={2} testID="admin-breadcrumbs">
+    <Box alignItems="center" direction="row" gap={2} testID="admin-breadcrumbs">
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         return (

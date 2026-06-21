@@ -89,6 +89,12 @@ export interface AdminModelConfig {
   pageSize?: number;
   /** UI-only hint that live updates may be available */
   realtime?: boolean;
+  /**
+   * Field key used for the edit screen title (browser tab / stack header). When omitted, the
+   * admin UI derives a label from common keys (`name`, `title`, …) then the first scalar
+   * {@link listFields} column, matching audit label heuristics.
+   */
+  recordTitleField?: string;
   /** Allowlisted keys for POST .../bulk-patch (defaults from listFields minus system/readonly/hidden) */
   bulkPatchAllowlist?: string[];
   /**
@@ -198,6 +204,7 @@ interface AdminModelMeta {
   permissions: {create: boolean; delete: boolean; update: boolean};
   readonlyFields: string[];
   realtime: boolean;
+  recordTitleField?: string;
   routePath: string;
   searchFields: string[];
   sortableFields: string[];
@@ -551,6 +558,7 @@ export class AdminApp {
         },
         readonlyFields,
         realtime: config.realtime ?? false,
+        recordTitleField: config.recordTitleField,
         routePath: `${basePath}${config.routePath}`,
         searchFields,
         sortableFields,
@@ -798,10 +806,6 @@ export class AdminApp {
           }
         }
       }
-      logger.info(`Admin search fields for ${config.model.modelName}`, {
-        objectIdFields,
-        searchableFields,
-      });
 
       app.get(
         `${basePath}${config.routePath}/search`,

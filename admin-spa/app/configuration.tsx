@@ -1,4 +1,4 @@
-import {AdminShell, ConfigurationScreen} from "@terreno/admin-frontend";
+import {AdminShellLayout, ConfigurationScreen} from "@terreno/admin-frontend";
 import React from "react";
 import {useAppConfig} from "../components/AppConfigGate";
 import {terrenoApi} from "../store/sdk";
@@ -8,7 +8,7 @@ const ConfigurationRoute: React.FC = () => {
   const apiBase = appConfig.adminApiBasePath ?? "/admin";
 
   return (
-    <AdminShell
+    <AdminShellLayout
       api={terrenoApi}
       apiBase={apiBase}
       breadcrumbs={[{href: "/", label: "Admin"}, {label: "Configuration"}]}
@@ -16,7 +16,7 @@ const ConfigurationRoute: React.FC = () => {
       routeBase=""
     >
       <ConfigurationScreen api={terrenoApi} title="App Configuration" />
-    </AdminShell>
+    </AdminShellLayout>
   );
 };
 

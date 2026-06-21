@@ -12,6 +12,7 @@
 
 import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+import {Configuration} from "../models/configuration";
 import {User} from "../models/user";
 import {connectToMongoDB} from "../utils/database";
 
@@ -82,9 +83,8 @@ const main = async (): Promise<void> => {
   }
   logger.info(`Promoted ${ADMIN_EMAIL} to admin (id: ${user._id})`);
 
+  await Configuration.shutdown();
   await mongoose.disconnect();
-  // The Configuration change stream opened by connectToMongoDB keeps the event
-  // loop alive, so exit explicitly once seeding is complete.
   process.exit(0);
 };
 

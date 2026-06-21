@@ -1,7 +1,7 @@
 import {
   AdminModelTable,
   AdminScriptList,
-  AdminShell,
+  AdminShellLayout,
   AdminVersionConfig,
   useAdminConfig,
 } from "@terreno/admin-frontend";
@@ -44,7 +44,7 @@ const ModelTableScreen: React.FC = () => {
   })();
 
   return (
-    <AdminShell
+    <AdminShellLayout
       api={terrenoApi}
       apiBase={apiBase}
       breadcrumbs={breadcrumbs}
@@ -52,7 +52,7 @@ const ModelTableScreen: React.FC = () => {
       routeBase=""
     >
       {inner}
-    </AdminShell>
+    </AdminShellLayout>
   );
 };
 
