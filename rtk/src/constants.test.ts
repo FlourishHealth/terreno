@@ -415,3 +415,36 @@ describe("SAME_ORIGIN_SENTINEL", () => {
 
 // Mock.module tests (expo tunnel warning, AUTH_DEBUG) moved to
 // src/isolated/constants.isolated.ts to avoid coverage tracking interference.
+
+describe("logSocket with runtime debug via setRealtimeDebug", () => {
+  const originalInfo = console.info;
+  const calls: unknown[][] = [];
+
+  beforeEach(() => {
+    calls.length = 0;
+    console.info = (...args: unknown[]): void => {
+      calls.push(args);
+    };
+  });
+
+  afterEach(() => {
+    console.info = originalInfo;
+    setRealtimeDebug(false);
+  });
+
+  it("logSocket logs with user object when runtime debug is enabled", () => {
+    setRealtimeDebug(true);
+    logSocket({featureFlags: {debugWebsockets: {enabled: false}}}, "via runtime");
+    expect(calls).toEqual([["[websocket]", "via runtime"]]);
+  });
+
+  it("logSocket does not log when user featureFlags is undefined and runtime debug is off", () => {
+    logSocket({}, "no flags");
+    expect(calls).toEqual([]);
+  });
+
+  it("logSocket does not log with user featureFlags.debugWebsockets undefined", () => {
+    logSocket({featureFlags: {}}, "no ws");
+    expect(calls).toEqual([]);
+  });
+});
