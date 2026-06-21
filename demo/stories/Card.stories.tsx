@@ -55,6 +55,7 @@ export const Plain = () => {
       display="flex"
       height="100%"
       padding={12}
+      testID="card-story-plain"
       width="100%"
     >
       <Card>
@@ -83,7 +84,14 @@ export const Plain = () => {
 
 export const DisplayCardDemo = (): React.ReactElement => {
   return (
-    <Box color="neutralLight" direction="column" gap={4} padding={4} width="100%">
+    <Box
+      color="neutralLight"
+      direction="column"
+      gap={4}
+      padding={4}
+      testID="card-story-display"
+      width="100%"
+    >
       <Card
         buttonOnClick={() => console.info("Learn more clicked")}
         buttonText="Learn More"
@@ -109,7 +117,14 @@ export const DisplayCardDemo = (): React.ReactElement => {
 
 export const CardVariants = (): React.ReactElement => {
   return (
-    <Box color="neutralLight" direction="column" gap={4} padding={4} width="100%">
+    <Box
+      color="neutralLight"
+      direction="column"
+      gap={4}
+      padding={4}
+      testID="card-story-variants"
+      width="100%"
+    >
       <Heading size="sm">Container (default)</Heading>
       <Card>
         <Box direction="column" gap={2}>
@@ -135,7 +150,14 @@ export const CardVariants = (): React.ReactElement => {
 
 export const DisplaySizes = (): React.ReactElement => {
   return (
-    <Box color="neutralLight" direction="column" gap={6} padding={4} width="100%">
+    <Box
+      color="neutralLight"
+      direction="column"
+      gap={6}
+      padding={4}
+      testID="card-story-display-sizes"
+      width="100%"
+    >
       <Box direction="column" gap={1}>
         <Heading size="sm">Large — horizontal on desktop, vertical on mobile</Heading>
         <Card
@@ -183,7 +205,7 @@ export const DisplaySizes = (): React.ReactElement => {
 
 export const LightAndDark = (): React.ReactElement => {
   return (
-    <Box direction="column" display="flex" gap={4} width="100%">
+    <Box direction="column" display="flex" gap={4} testID="card-story-light-and-dark" width="100%">
       <Box color="neutralLight" padding={4} rounding="md">
         <Box marginBottom={2}>
           <Text bold color="secondaryLight">
@@ -216,7 +238,7 @@ export const LightAndDark = (): React.ReactElement => {
 
 export const WithImage = (): React.ReactElement => {
   return (
-    <Box direction="row" display="flex" gap={4} wrap>
+    <Box direction="row" display="flex" gap={4} testID="card-story-with-image" wrap>
       <Box flex="grow">
         <Card
           buttonOnClick={() => console.info("clicked")}
