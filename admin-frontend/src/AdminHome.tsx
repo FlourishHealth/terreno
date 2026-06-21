@@ -113,7 +113,6 @@ const ModelGridCard: React.FC<{
       border="default"
       padding={3}
       rounding="md"
-      testID={`admin-home-models-grid-${model.name}`}
       width={220}
     >
       <Box alignItems="start" direction="row" gap={2} justifyContent="between">
@@ -123,6 +122,7 @@ const ModelGridCard: React.FC<{
           flex="grow"
           minWidth={0}
           onClick={onOpen}
+          testID={`admin-home-models-grid-${model.name}`}
         >
           <Text bold>{model.displayName}</Text>
           <Text color="secondaryDark" size="sm">
