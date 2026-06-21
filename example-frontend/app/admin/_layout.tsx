@@ -1,7 +1,7 @@
-import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "@constants/adminConstants";
 import {AdminShellLayout} from "@terreno/admin-frontend";
 import {Stack} from "expo-router";
 import React from "react";
+import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "@/constants/adminConstants";
 import {terrenoApi} from "@/store/sdk";
 
 /**
