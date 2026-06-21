@@ -10,7 +10,7 @@ import {
   Spinner,
   Text,
 } from "@terreno/ui";
-import React, {useCallback, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useState} from "react";
 import {AdminScriptRunModal} from "./AdminScriptRunModal";
 import {
   formatDuration,
@@ -62,14 +62,39 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const {useListScriptRunsQuery} = useAdminScripts(api, resolvedApiBase);
 
   const [tab, setTab] = useState<Tab>("scripts");
-  const [historyLimit, setHistoryLimit] = useState(HISTORY_PAGE_SIZE);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyScriptName, setHistoryScriptName] = useState<string | null>(null);
+  const [historyRuns, setHistoryRuns] = useState<ScriptRun[]>([]);
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [selectedRun, setSelectedRun] = useState<SelectedRun | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const {data: runsData} = useListScriptRunsQuery({limit: historyLimit, page: 1});
-  const runs: ScriptRun[] = useMemo(() => runsData?.data ?? [], [runsData]);
-  const lastRuns = useMemo(() => latestRunByScript(runs), [runs]);
+  // Unfiltered most-recent runs power the per-script "Last run" badges on the Scripts tab.
+  const {data: latestRunsData} = useListScriptRunsQuery({limit: HISTORY_PAGE_SIZE, page: 1});
+  const latestRuns: ScriptRun[] = useMemo(() => latestRunsData?.data ?? [], [latestRunsData]);
+  const lastRuns = useMemo(() => latestRunByScript(latestRuns), [latestRuns]);
+
+  // Paginated history, optionally scoped to a single script via the per-script History link.
+  const {data: historyData} = useListScriptRunsQuery({
+    limit: HISTORY_PAGE_SIZE,
+    name: historyScriptName ?? undefined,
+    page: historyPage,
+  });
+
+  // Accumulate each loaded history page (de-duplicated by id) so "Load more" advances through
+  // pages instead of re-requesting a server-capped first page.
+  useEffect(() => {
+    if (!historyData?.data) {
+      return;
+    }
+    setHistoryRuns((prev) => {
+      const byId = new Map(prev.map((run) => [run._id, run]));
+      for (const run of historyData.data ?? []) {
+        byId.set(run._id, run);
+      }
+      return Array.from(byId.values());
+    });
+  }, [historyData]);
 
   const handleRunScript = useCallback((script: AdminScriptConfig) => {
     setSelectedRun(null);
@@ -83,8 +108,21 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
     setModalVisible(true);
   }, []);
 
-  const handleViewHistory = useCallback(() => {
+  const handleViewHistory = useCallback((scriptName?: string) => {
+    setHistoryScriptName(scriptName ?? null);
+    setHistoryPage(1);
+    setHistoryRuns([]);
     setTab("history");
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    setHistoryPage((page) => page + 1);
+  }, []);
+
+  const handleClearHistoryFilter = useCallback(() => {
+    setHistoryScriptName(null);
+    setHistoryPage(1);
+    setHistoryRuns([]);
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -94,7 +132,15 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   }, []);
 
   const handleTabChange = useCallback((index: number) => {
-    setTab(index === 1 ? "history" : "scripts");
+    if (index === 1) {
+      // Selecting the global history tab clears any per-script filter.
+      setHistoryScriptName(null);
+      setHistoryPage(1);
+      setHistoryRuns([]);
+      setTab("history");
+      return;
+    }
+    setTab("scripts");
   }, []);
 
   if (isLoading) {
@@ -152,9 +198,10 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
           {meta.label.toLowerCase()}
         </Text>
         <Box
-          accessibilityHint="Opens the run history tab"
-          accessibilityLabel="View run history"
-          onClick={handleViewHistory}
+          accessibilityHint={`Opens run history for ${script.name}`}
+          accessibilityLabel={`View run history for ${script.name}`}
+          onClick={() => handleViewHistory(script.name)}
+          testID={`admin-script-history-${script.name}`}
         >
           <Text color="link" size="sm">
             History
@@ -260,23 +307,35 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
       <Box gap={1}>
         <Heading size="sm">Run history</Heading>
         <Text color="secondaryDark" size="sm">
-          Every dry and live run is logged. Open a run to review its output.
+          {historyScriptName
+            ? `Showing runs for ${historyScriptName}. Open a run to review its output.`
+            : "Every dry and live run is logged. Open a run to review its output."}
         </Text>
+        {historyScriptName ? (
+          <Box
+            accessibilityHint="Shows runs for every script"
+            accessibilityLabel="Show all scripts"
+            onClick={handleClearHistoryFilter}
+            testID="admin-script-history-clear-filter"
+          >
+            <Text color="link" size="sm">
+              Show all scripts
+            </Text>
+          </Box>
+        ) : null}
       </Box>
-      {runs.length === 0 ? (
+      {historyRuns.length === 0 ? (
         <Box alignItems="center" padding={6}>
-          <Text color="secondaryDark">No runs logged yet.</Text>
+          <Text color="secondaryDark">
+            {historyScriptName ? "No runs logged for this script yet." : "No runs logged yet."}
+          </Text>
         </Box>
       ) : (
         <Box gap={2}>
-          {runs.map((run) => renderRunRow(run))}
-          {runsData?.more && (
+          {historyRuns.map((run) => renderRunRow(run))}
+          {historyData?.more && (
             <Box alignItems="center" paddingY={2}>
-              <Button
-                onClick={() => setHistoryLimit((limit) => limit + HISTORY_PAGE_SIZE)}
-                text="Load more"
-                variant="muted"
-              />
+              <Button onClick={handleLoadMore} text="Load more" variant="muted" />
             </Box>
           )}
         </Box>
@@ -290,7 +349,9 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
         <SegmentedControl
           items={[
             "Scripts",
-            runs.length > 0 ? `Run history (${runsData?.total ?? runs.length})` : "Run history",
+            (latestRunsData?.total ?? latestRuns.length) > 0
+              ? `Run history (${latestRunsData?.total ?? latestRuns.length})`
+              : "Run history",
           ]}
           onChange={handleTabChange}
           selectedIndex={tab === "history" ? 1 : 0}
