@@ -2702,6 +2702,11 @@ export interface FieldOption {
   label: string;
 
   /**
+   * Optional secondary line shown under the label in custom web dropdown menus.
+   */
+  helperText?: string;
+
+  /**
    * The key of the option. Useful for uniquely identifying the option.
    */
   key?: string;

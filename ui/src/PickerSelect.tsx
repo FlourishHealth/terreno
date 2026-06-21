@@ -91,6 +91,8 @@ export interface PickerSelectItem {
   key?: string | number;
   color?: string;
   inputLabel?: string;
+  /** Shown under the label in the web custom dropdown only. */
+  helperText?: string;
 }
 
 export interface RNPickerSelectProps {
@@ -648,6 +650,7 @@ export const RNPickerSelect = ({
       }
       menuOptions.push({
         color: item.color,
+        helperText: item.helperText,
         key: item.key,
         label: item.label,
         value: String(item.value ?? ""),
@@ -673,7 +676,9 @@ export const RNPickerSelect = ({
     const filteredWebMenuOptionIndexes: number[] = [];
     for (let i = 0; i < webMenuOptions.length; i++) {
       const item = webMenuOptions[i];
-      if (item.label.toLowerCase().includes(normalizedQuery)) {
+      const matchesLabel = item.label.toLowerCase().includes(normalizedQuery);
+      const matchesHelper = item.helperText?.toLowerCase().includes(normalizedQuery) ?? false;
+      if (matchesLabel || matchesHelper) {
         filteredWebMenuOptions.push(item);
         filteredWebMenuOptionIndexes.push(webMenuOptionIndexes[i] ?? i);
       }
@@ -705,9 +710,12 @@ export const RNPickerSelect = ({
     const triggerTextStyle = {
       color: disabled ? theme.text.secondaryLight : theme.text.primary,
       flex: 1,
+      fontFamily: "text" as const,
       fontSize: 14,
+      paddingLeft: 0,
       paddingRight: 8,
-      ...(Platform.OS === "web" ? {outline: "none"} : {}),
+      paddingVertical: 0,
+      ...(Platform.OS === "web" ? {outline: "none" as const} : {}),
     };
 
     return (

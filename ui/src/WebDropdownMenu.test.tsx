@@ -165,6 +165,46 @@ describe("WebDropdownMenu", () => {
     expect(hoveredStyle.backgroundColor).toBeDefined();
     expect(pressedStyle.backgroundColor).toBeDefined();
   });
+
+  it("renders option helper text under the label", () => {
+    const optsWithHelper = [
+      {helperText: "Extra detail", label: "Alpha", value: "a"},
+      {label: "Beta", value: "b"},
+    ];
+    const {getByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={optsWithHelper}
+        searchable={false}
+        visible
+      />
+    );
+    expect(getByText("Extra detail")).toBeTruthy();
+    expect(getByText("Alpha")).toBeTruthy();
+  });
+
+  it("filters options by helper text in the menu search", async () => {
+    const optsWithHelper = [
+      {helperText: "red berry", label: "Apple", value: "apple"},
+      {label: "Banana", value: "banana"},
+    ];
+    const {getByText, getByTestId, queryByText} = renderWithTheme(
+      <WebDropdownMenu
+        anchor={anchor}
+        onClose={() => {}}
+        onSelect={() => {}}
+        options={optsWithHelper}
+        visible
+      />
+    );
+    await act(async () => {
+      fireEvent.changeText(getByTestId("web_dropdown_search"), "berry");
+    });
+    expect(getByText("Apple")).toBeTruthy();
+    expect(queryByText("Banana")).toBeNull();
+  });
 });
 
 describe("WebDropdownMenu positioning", () => {

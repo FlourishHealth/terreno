@@ -365,6 +365,35 @@ describe("PickerSelect", () => {
       }
     });
 
+    it("filters web dropdown options by option helper text from the trigger search", async () => {
+      ensureDocument();
+      savedOS = PlatformModule.OS;
+      try {
+        PlatformModule.OS = "web";
+        const itemsWithHelper = [
+          {helperText: "small red fruit", label: "Cherry", value: "c"},
+          {label: "Melon", value: "m"},
+        ];
+        const props = {
+          ...defaultProps,
+          items: itemsWithHelper,
+          placeholder: {label: "Select", value: ""},
+        };
+        const {getByTestId, queryByTestId} = renderWithTheme(
+          <RNPickerSelect {...props} value="c" />
+        );
+        await openSearchableWebPicker(getByTestId);
+        await act(async () => {
+          fireEvent.changeText(getByTestId("text_input"), "red");
+        });
+        expect(getByTestId("web_dropdown_option_c")).toBeTruthy();
+        expect(queryByTestId("web_dropdown_option_m")).toBeNull();
+      } finally {
+        PlatformModule.OS = savedOS;
+        restoreDocument();
+      }
+    });
+
     it("shows no matching options when trigger search matches nothing", async () => {
       ensureDocument();
       savedOS = PlatformModule.OS;

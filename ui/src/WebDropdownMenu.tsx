@@ -29,6 +29,8 @@ export interface WebDropdownMenuOption {
   label: string;
   value: string;
   color?: string;
+  /** Secondary line under the label (web dropdown only). */
+  helperText?: string;
 }
 
 export interface WebDropdownAnchor {
@@ -137,10 +139,18 @@ export const WebDropdownMenu = ({
   }, [visible, searchable]);
 
   const normalizedQuery = searchQuery.toLowerCase();
+  const optionMatchesQuery = (item: WebDropdownMenuOption): boolean => {
+    if (item.label.toLowerCase().includes(normalizedQuery)) {
+      return true;
+    }
+    const helper = item.helperText?.toLowerCase();
+    if (helper && helper.includes(normalizedQuery)) {
+      return true;
+    }
+    return false;
+  };
   const filteredOptions =
-    searchable && normalizedQuery.length > 0
-      ? options.filter((item) => item.label.toLowerCase().includes(normalizedQuery))
-      : options;
+    searchable && normalizedQuery.length > 0 ? options.filter(optionMatchesQuery) : options;
 
   const menuMaxHeight = 300;
   const gap = 4;
@@ -226,15 +236,30 @@ export const WebDropdownMenu = ({
               })}
               testID={`${testIDPrefix}_option_${item.value}`}
             >
-              <Text
-                style={{
-                  color: item.color ?? theme.text.primary,
-                  fontWeight: isSelected ? "600" : "400",
-                  ...optionTextStyle,
-                }}
-              >
-                {item.label}
-              </Text>
+              <View style={{alignSelf: "stretch"}}>
+                <Text
+                  style={{
+                    color: item.color ?? theme.text.primary,
+                    fontWeight: isSelected ? "600" : "400",
+                    ...optionTextStyle,
+                  }}
+                >
+                  {item.label}
+                </Text>
+                {Boolean(item.helperText) && (
+                  <Text
+                    style={{
+                      color: theme.text.secondaryDark,
+                      fontSize: 12,
+                      fontWeight: "400",
+                      lineHeight: 16,
+                      marginTop: 2,
+                    }}
+                  >
+                    {item.helperText}
+                  </Text>
+                )}
+              </View>
             </Pressable>
           );
         })}
