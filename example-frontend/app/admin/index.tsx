@@ -1,8 +1,8 @@
+import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "@constants/adminConstants";
 import {AdminHome, AdminModelList} from "@terreno/admin-frontend";
 import {Box, Page} from "@terreno/ui";
 import React from "react";
 import {terrenoApi} from "@/store/sdk";
-import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "./adminConstants";
 
 const AdminListScreen: React.FC = () => {
   return (

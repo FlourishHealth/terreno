@@ -1,8 +1,8 @@
+import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "@constants/adminConstants";
 import {AdminShellLayout} from "@terreno/admin-frontend";
 import {Stack} from "expo-router";
 import React from "react";
 import {terrenoApi} from "@/store/sdk";
-import {ADMIN_CUSTOM_SCREENS, ADMIN_ROUTE} from "./adminConstants";
 
 /**
  * Admin UI v2 shell for the whole `/admin/**` stack: sidebar (models, tools, screens) + main

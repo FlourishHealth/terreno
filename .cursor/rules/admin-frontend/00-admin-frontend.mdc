@@ -27,6 +27,7 @@ src/
   AdminModelList.tsx     # List of all admin models (entry screen)
   AdminModelTable.tsx    # Table view for a specific model (list with pagination)
   AdminModelForm.tsx     # Create/edit form for a model instance
+  AdminShellLayout.tsx   # Sidebar + main column shell for Expo admin apps
   AdminFieldRenderer.tsx # Renders individual fields in table cells
   AdminRefField.tsx      # Renders reference fields as clickable links
   useAdminConfig.tsx     # Hook to fetch admin config from backend
