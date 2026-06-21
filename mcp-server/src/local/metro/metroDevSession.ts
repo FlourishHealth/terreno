@@ -22,6 +22,7 @@ const pendingCdp = new Map<number, {reject: (e: Error) => void; resolve: (v: unk
 let cdpConnectPromise: Promise<void> | undefined;
 let lastCdpStatus = "not connected";
 let metroEventsStatus = "not connected";
+let metroConnectPromise: Promise<void> | undefined;
 
 const pushRing = (ring: RingEntry[], entry: RingEntry): void => {
   ring.push(entry);
@@ -273,12 +274,21 @@ export const ensureMetroEventsConnected = async (): Promise<{ok: boolean; detail
     metroEventsStatus = "connected";
     return {detail: metroEventsStatus, ok: true};
   }
+  if (metroConnectPromise !== undefined) {
+    try {
+      await metroConnectPromise;
+      const ok = metroWs?.readyState === WebSocket.OPEN;
+      return {detail: metroEventsStatus, ok};
+    } catch {
+      return {detail: metroEventsStatus, ok: false};
+    }
+  }
 
   const base = resolveMetroHttpBase();
   const wsBase = httpToWsBase(base);
   const url = `${wsBase}/events`;
 
-  try {
+  metroConnectPromise = (async () => {
     await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(url);
       metroWs = ws;
@@ -287,6 +297,9 @@ export const ensureMetroEventsConnected = async (): Promise<{ok: boolean; detail
         resolve();
       });
       ws.addEventListener("error", () => {
+        if (metroWs === ws) {
+          metroWs = undefined;
+        }
         reject(new Error(`Metro /events unreachable at ${url}`));
       });
       ws.addEventListener("message", (ev) => {
@@ -323,8 +336,26 @@ export const ensureMetroEventsConnected = async (): Promise<{ok: boolean; detail
         }
       });
     });
-    return {detail: metroEventsStatus, ok: true};
+  })();
+
+  try {
+    await metroConnectPromise;
+    metroConnectPromise = undefined;
+    const ok = metroWs?.readyState === WebSocket.OPEN;
+    if (!ok) {
+      metroEventsStatus = "Metro /events socket not open after connect";
+    }
+    return {detail: metroEventsStatus, ok};
   } catch (e) {
+    metroConnectPromise = undefined;
+    if (metroWs) {
+      try {
+        metroWs.close();
+      } catch {
+        // ignore
+      }
+      metroWs = undefined;
+    }
     metroEventsStatus = String(e);
     return {detail: metroEventsStatus, ok: false};
   }
