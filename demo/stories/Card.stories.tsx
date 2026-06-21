@@ -20,28 +20,38 @@ const darkPrimitives = {
 
 const SAMPLE_IMAGE = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80";
 
+const ProfileCardContent = (): React.ReactElement => {
+  return (
+    <Box alignItems="center" direction="row" display="flex">
+      <Box
+        alignItems="center"
+        color="primary"
+        display="flex"
+        height={50}
+        justifyContent="center"
+        marginRight={2}
+        rounding="circle"
+        width={50}
+      >
+        <Text color="inverted">JG</Text>
+      </Box>
+      <Box direction="column" flex="shrink" minWidth={0} paddingX={2}>
+        <Text bold truncate>
+          Josh Gachnang
+        </Text>
+        <Text color="secondaryLight" truncate>
+          joined 2 years ago
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
 export const CardDemo = () => {
   return (
     <Box color="neutralLight" direction="column" display="flex" height="100%" width="100%">
       <Card>
-        <Box alignItems="center" direction="row" display="flex">
-          <Box
-            alignItems="center"
-            color="primary"
-            display="flex"
-            height={50}
-            justifyContent="center"
-            marginRight={2}
-            rounding="circle"
-            width={50}
-          >
-            <Text color="inverted">JG</Text>
-          </Box>
-          <Box direction="column" paddingX={2}>
-            <Text bold>Josh Gachnang</Text>
-            <Text color="secondaryLight">joined 2 years ago</Text>
-          </Box>
-        </Box>
+        <ProfileCardContent />
       </Card>
     </Box>
   );
@@ -59,24 +69,7 @@ export const Plain = () => {
       width="100%"
     >
       <Card>
-        <Box alignItems="center" direction="row" display="flex">
-          <Box
-            alignItems="center"
-            color="primary"
-            display="flex"
-            height={50}
-            justifyContent="center"
-            marginRight={2}
-            rounding="circle"
-            width={50}
-          >
-            <Text color="inverted">JG</Text>
-          </Box>
-          <Box direction="column" paddingX={2}>
-            <Text bold>Josh Gachnang</Text>
-            <Text color="secondaryLight">joined 2 years ago</Text>
-          </Box>
-        </Box>
+        <ProfileCardContent />
       </Card>
     </Box>
   );
