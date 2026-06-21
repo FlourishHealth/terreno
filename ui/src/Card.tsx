@@ -50,6 +50,9 @@ const DisplayCard = ({
   imageAlt,
   imageHeight = 160,
   isMobile,
+  maxWidth = "100%",
+  minWidth = 0,
+  overflow = "hidden",
   variant: _variant,
   ...rest
 }: DisplayCardProps): React.ReactElement => {
@@ -81,7 +84,9 @@ const DisplayCard = ({
       color={color}
       direction={isRow ? "row" : "column"}
       gap={isMobile ? 0 : 6}
-      overflow="hidden"
+      maxWidth={maxWidth}
+      minWidth={minWidth}
+      overflow={overflow}
       padding={padding ?? (isMobile ? 0 : 6)}
       rounding="md"
       width={cardWidth ?? (isMobile ? "100%" : undefined)}
@@ -99,8 +104,9 @@ const DisplayCard = ({
         direction="column"
         flex={isRow ? "shrink" : undefined}
         gap={4}
+        minWidth={0}
         padding={isMobile ? 4 : 0}
-        {...(isRow ? {minWidth: 0} : {width: "100%"})}
+        {...(isRow ? {} : {width: "100%"})}
       >
         {(Boolean(title) || Boolean(description)) && (
           <Box direction="column" gap={TITLE_DESCRIPTION_GAP} minWidth={0} width="100%">
@@ -134,6 +140,9 @@ const ContainerCard = ({
   color = "base",
   padding,
   isMobile,
+  maxWidth = "100%",
+  minWidth = 0,
+  overflow = "hidden",
   variant: _variant,
   size: _size,
   title: _title,
@@ -145,19 +154,24 @@ const ContainerCard = ({
   imageHeight: _imageHeight,
   ...rest
 }: ContainerCardProps): React.ReactElement => {
+  const containerBoxProps = {
+    borderBottom: "default" as const,
+    borderLeft: isMobile ? undefined : ("default" as const),
+    borderRight: isMobile ? undefined : ("default" as const),
+    borderTop: "default" as const,
+    color,
+    direction: "column" as const,
+    display: "flex" as const,
+    maxWidth,
+    minWidth,
+    overflow,
+    padding: padding ?? (isMobile ? 4 : 6),
+    rounding: isMobile ? undefined : ("md" as const),
+    ...rest,
+  };
+
   return (
-    <Box
-      borderBottom="default"
-      borderLeft={isMobile ? undefined : "default"}
-      borderRight={isMobile ? undefined : "default"}
-      borderTop="default"
-      color={color}
-      direction="column"
-      display="flex"
-      padding={padding ?? (isMobile ? 4 : 6)}
-      rounding={isMobile ? undefined : "md"}
-      {...rest}
-    >
+    <Box {...containerBoxProps}>
       {children}
     </Box>
   );
