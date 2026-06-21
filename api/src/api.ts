@@ -343,6 +343,22 @@ export interface ModelRouterOptions<T> {
 }
 
 /**
+ * Parses a date-range query bound from an ISO-8601 string using Luxon, throwing a 400
+ * APIError when the value cannot be parsed. Centralizes date-string parsing so the repo's
+ * Luxon convention is honored for admin changelist date-range filters.
+ */
+const parseDateRangeBound = (rawValue: unknown, queryKey: string): Date => {
+  const parsed = DateTime.fromISO(String(rawValue), {zone: "utc"});
+  if (!parsed.isValid) {
+    throw new APIError({
+      status: 400,
+      title: `Invalid date for query parameter ${queryKey}`,
+    });
+  }
+  return parsed.toJSDate();
+};
+
+/**
  * Collapses `field_gte` / `field_lte` query pairs into `{ field: { $gte, $lte } }` for Date paths,
  * so admin changelist date-range filters map to valid Mongoose range queries.
  */
@@ -372,24 +388,10 @@ const mergeDateRangeQueryParams = <T>(
     const lteRaw = result[lteKey];
     const bounds: {$gte?: Date; $lte?: Date} = {};
     if (gteRaw !== undefined && gteRaw !== null && String(gteRaw).trim() !== "") {
-      const parsed = new Date(String(gteRaw));
-      if (Number.isNaN(parsed.getTime())) {
-        throw new APIError({
-          status: 400,
-          title: `Invalid date for query parameter ${gteKey}`,
-        });
-      }
-      bounds.$gte = parsed;
+      bounds.$gte = parseDateRangeBound(gteRaw, gteKey);
     }
     if (lteRaw !== undefined && lteRaw !== null && String(lteRaw).trim() !== "") {
-      const parsed = new Date(String(lteRaw));
-      if (Number.isNaN(parsed.getTime())) {
-        throw new APIError({
-          status: 400,
-          title: `Invalid date for query parameter ${lteKey}`,
-        });
-      }
-      bounds.$lte = parsed;
+      bounds.$lte = parseDateRangeBound(lteRaw, lteKey);
     }
     if (Object.keys(bounds).length === 0) {
       continue;
