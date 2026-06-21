@@ -170,11 +170,7 @@ const ContainerCard = ({
     ...rest,
   };
 
-  return (
-    <Box {...containerBoxProps}>
-      {children}
-    </Box>
-  );
+  return <Box {...containerBoxProps}>{children}</Box>;
 };
 
 export const Card = ({variant = "container", ...props}: CardProps): React.ReactElement => {
