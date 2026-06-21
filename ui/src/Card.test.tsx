@@ -91,6 +91,18 @@ describe("Card", () => {
       );
       expect(getByTestId("test-card")).toBeTruthy();
     });
+
+    it("clips overflowing content so it stays contained when small", () => {
+      const {toJSON} = renderWithTheme(
+        <Card>
+          <Text>Content</Text>
+        </Card>
+      );
+      const json = toJSON() as ReactTestRendererJSON;
+
+      expect(json.props.style.overflow).toBe("hidden");
+      expect(json.props.style.minWidth).toBe(0);
+    });
   });
 
   describe("display variant", () => {

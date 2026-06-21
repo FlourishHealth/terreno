@@ -154,6 +154,8 @@ const ContainerCard = ({
       color={color}
       direction="column"
       display="flex"
+      minWidth={0}
+      overflow="hidden"
       padding={padding ?? (isMobile ? 4 : 6)}
       rounding={isMobile ? undefined : "md"}
       {...rest}
