@@ -30,7 +30,8 @@ const resolvedSpecs =
 
 const configuredSpecFileRetries = parseEnvNumber(process.env.APPIUM_SPEC_FILE_RETRIES);
 const specFileRetries = configuredSpecFileRetries ?? (isQuickLoop ? 0 : isCi ? 1 : 0);
-const quickLoopConnectionRetryTimeout = isIosRun ? 480000 : 120000;
+// iOS simulator + WDA startup can exceed 8 minutes on GitHub-hosted macOS runners.
+const quickLoopConnectionRetryTimeout = isIosRun ? 720000 : 120000;
 const resolvedConnectionRetryTimeout = isQuickLoop
   ? quickLoopConnectionRetryTimeout
   : isCi
