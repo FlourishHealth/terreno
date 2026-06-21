@@ -115,7 +115,7 @@ export const SelectFieldExamples = (): ReactElement => {
         </Box>
         <SelectField onChange={() => {}} options={options} title="Select field" value="" />
       </Box>
-      <Box marginBottom={4} padding={2}>
+      <Box marginBottom={4} padding={4}>
         <Box marginBottom={1}>
           <Heading size="md">With helperText</Heading>
         </Box>

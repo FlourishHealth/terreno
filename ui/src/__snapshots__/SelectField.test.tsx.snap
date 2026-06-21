@@ -15,71 +15,58 @@ exports[`SelectField renders correctly with default props 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Please select an option.",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Please select an option.",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -90,10 +77,92 @@ exports[`SelectField renders correctly with default props 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -105,166 +174,111 @@ exports[`SelectField renders correctly with default props 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Please select an option.",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Please select an option.",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -272,6 +286,7 @@ exports[`SelectField renders correctly with default props 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -310,71 +325,58 @@ exports[`SelectField renders with title 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Please select an option.",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Please select an option.",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -385,10 +387,92 @@ exports[`SelectField renders with title 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -400,166 +484,111 @@ exports[`SelectField renders with title 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Please select an option.",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Please select an option.",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -567,6 +596,7 @@ exports[`SelectField renders with title 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -590,71 +620,58 @@ exports[`SelectField renders with selected value 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Option 2",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Option 2",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -665,10 +682,92 @@ exports[`SelectField renders with selected value 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -680,166 +779,111 @@ exports[`SelectField renders with selected value 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Please select an option.",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "opt2",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Please select an option.",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "opt2",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -847,6 +891,7 @@ exports[`SelectField renders with selected value 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -870,71 +915,58 @@ exports[`SelectField renders with custom placeholder 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Choose one...",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Choose one...",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -945,10 +977,92 @@ exports[`SelectField renders with custom placeholder 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -960,166 +1074,111 @@ exports[`SelectField renders with custom placeholder 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Choose one...",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Choose one...",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -1127,6 +1186,7 @@ exports[`SelectField renders with custom placeholder 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -1150,71 +1210,58 @@ exports[`SelectField renders disabled state 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#686868",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#686868",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Please select an option.",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Please select an option.",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": true,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": true,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -1225,10 +1272,92 @@ exports[`SelectField renders disabled state 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -1240,168 +1369,113 @@ exports[`SelectField renders disabled state 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Please select an option.",
+                            "value": "",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Please select an option.",
-                        "value": "",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              {
+                "backgroundColor": "#D9D9D9",
+              },
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          {
-            "backgroundColor": "#D9D9D9",
-          },
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -1409,6 +1483,7 @@ exports[`SelectField renders disabled state 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,
@@ -1432,71 +1507,58 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
               "children": [
                 {
                   "$$typeof": Symbol(react.test.json),
-                  "children": null,
-                  "props": {
-                    "editable": false,
-                    "multiline": true,
-                    "style": {
-                      "color": "#1C1C1C",
-                      "flex": 1,
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "editable": false,
+                        "multiline": true,
+                        "style": {
+                          "color": "#1C1C1C",
+                          "flex": 1,
+                        },
+                        "testID": "text_input",
+                        "value": "Option 1",
+                      },
+                      "type": "TextInput",
                     },
-                    "testID": "text_input",
-                    "value": "Option 1",
-                  },
-                  "type": "TextInput",
-                },
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": null,
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "pointerEvents": "none",
+                        },
+                        "testID": "icon_container",
+                      },
+                      "type": "View",
+                    },
+                  ],
                   "props": {
                     "style": {
-                      "pointerEvents": "none",
+                      "alignItems": "center",
+                      "flexDirection": "row",
+                      "pointerEvents": "box-only",
+                      "width": "100%",
                     },
-                    "testID": "icon_container",
+                    "testID": undefined,
                   },
                   "type": "View",
                 },
               ],
               "props": {
+                "disabled": false,
+                "onPress": [Function],
                 "style": {
                   "alignItems": "center",
                   "flexDirection": "row",
-                  "pointerEvents": "box-only",
+                  "justifyContent": "center",
+                  "minHeight": 40,
+                  "paddingHorizontal": 8,
                   "width": "100%",
                 },
-                "testID": undefined,
-              },
-              "type": "View",
-            },
-          ],
-          "props": {
-            "disabled": false,
-            "onPress": [Function],
-            "style": {
-              "alignItems": "center",
-              "flexDirection": "row",
-              "justifyContent": "center",
-              "minHeight": 40,
-              "paddingHorizontal": 8,
-              "width": "100%",
-            },
-            "testID": "ios_touchable_wrapper",
-          },
-          "type": "Pressable",
-        },
-        {
-          "$$typeof": Symbol(react.test.json),
-          "children": [
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": null,
-              "props": {
-                "aria-role": "button",
-                "onPress": [Function],
-                "style": {
-                  "flex": 1,
-                },
-                "testID": "ios_modal_top",
+                "testID": "ios_touchable_wrapper",
               },
               "type": "Pressable",
             },
@@ -1507,10 +1569,92 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                   "$$typeof": Symbol(react.test.json),
                   "children": null,
                   "props": {
+                    "aria-role": "button",
+                    "onPress": [Function],
                     "style": {
-                      "flexDirection": "row",
+                      "flex": 1,
                     },
-                    "testID": undefined,
+                    "testID": "ios_modal_top",
+                  },
+                  "type": "Pressable",
+                },
+                {
+                  "$$typeof": Symbol(react.test.json),
+                  "children": [
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": null,
+                      "props": {
+                        "style": {
+                          "flexDirection": "row",
+                        },
+                        "testID": undefined,
+                      },
+                      "type": "View",
+                    },
+                    {
+                      "$$typeof": Symbol(react.test.json),
+                      "children": [
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": [
+                            {
+                              "$$typeof": Symbol(react.test.json),
+                              "children": [
+                                "Done",
+                              ],
+                              "props": {
+                                "allowFontScaling": false,
+                                "style": [
+                                  {
+                                    "color": "#007aff",
+                                    "fontSize": 17,
+                                    "fontWeight": "600",
+                                    "paddingRight": 11,
+                                    "paddingTop": 1,
+                                  },
+                                  {},
+                                ],
+                                "testID": "done_text",
+                              },
+                              "type": "Text",
+                            },
+                          ],
+                          "props": {
+                            "style": undefined,
+                            "testID": "needed_for_touchable",
+                          },
+                          "type": "View",
+                        },
+                      ],
+                      "props": {
+                        "hitSlop": {
+                          "bottom": 4,
+                          "left": 4,
+                          "right": 4,
+                          "top": 4,
+                        },
+                        "onPress": [Function],
+                        "onPressIn": [Function],
+                        "onPressOut": [Function],
+                        "testID": "done_button",
+                      },
+                      "type": "Pressable",
+                    },
+                  ],
+                  "props": {
+                    "style": {
+                      "alignItems": "center",
+                      "backgroundColor": "#f8f8f8",
+                      "borderTopColor": "#dedede",
+                      "borderTopWidth": 1,
+                      "flexDirection": "row",
+                      "height": 45,
+                      "justifyContent": "space-between",
+                      "paddingHorizontal": 10,
+                      "zIndex": 2,
+                    },
+                    "testID": "input_accessory_view",
                   },
                   "type": "View",
                 },
@@ -1522,156 +1666,101 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
                       "children": [
                         {
                           "$$typeof": Symbol(react.test.json),
-                          "children": [
-                            "Done",
-                          ],
+                          "children": null,
                           "props": {
-                            "allowFontScaling": false,
-                            "style": [
-                              {
-                                "color": "#007aff",
-                                "fontSize": 17,
-                                "fontWeight": "600",
-                                "paddingRight": 11,
-                                "paddingTop": 1,
-                              },
-                              {},
-                            ],
-                            "testID": "done_text",
+                            "color": undefined,
+                            "label": "Option 1",
+                            "value": "opt1",
                           },
-                          "type": "Text",
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 2",
+                            "value": "opt2",
+                          },
+                          "type": "Picker.Item",
+                        },
+                        {
+                          "$$typeof": Symbol(react.test.json),
+                          "children": null,
+                          "props": {
+                            "color": undefined,
+                            "label": "Option 3",
+                            "value": "opt3",
+                          },
+                          "type": "Picker.Item",
                         },
                       ],
                       "props": {
-                        "style": undefined,
-                        "testID": "needed_for_touchable",
+                        "onValueChange": [Function],
+                        "selectedValue": "opt1",
+                        "testID": "ios_picker",
                       },
-                      "type": "View",
+                      "type": "Picker",
                     },
                   ],
                   "props": {
-                    "hitSlop": {
-                      "bottom": 4,
-                      "left": 4,
-                      "right": 4,
-                      "top": 4,
-                    },
-                    "onPress": [Function],
-                    "onPressIn": [Function],
-                    "onPressOut": [Function],
-                    "testID": "done_button",
+                    "style": [
+                      {
+                        "backgroundColor": "#d0d4da",
+                        "justifyContent": "center",
+                      },
+                      {
+                        "height": 215,
+                      },
+                    ],
+                    "testID": undefined,
                   },
-                  "type": "Pressable",
+                  "type": "View",
                 },
               ],
               "props": {
-                "style": {
-                  "alignItems": "center",
-                  "backgroundColor": "#f8f8f8",
-                  "borderTopColor": "#dedede",
-                  "borderTopWidth": 1,
-                  "flexDirection": "row",
-                  "height": 45,
-                  "justifyContent": "space-between",
-                  "paddingHorizontal": 10,
-                  "zIndex": 2,
-                },
-                "testID": "input_accessory_view",
-              },
-              "type": "View",
-            },
-            {
-              "$$typeof": Symbol(react.test.json),
-              "children": [
-                {
-                  "$$typeof": Symbol(react.test.json),
-                  "children": [
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 1",
-                        "value": "opt1",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 2",
-                        "value": "opt2",
-                      },
-                      "type": "Picker.Item",
-                    },
-                    {
-                      "$$typeof": Symbol(react.test.json),
-                      "children": null,
-                      "props": {
-                        "color": undefined,
-                        "label": "Option 3",
-                        "value": "opt3",
-                      },
-                      "type": "Picker.Item",
-                    },
-                  ],
-                  "props": {
-                    "onValueChange": [Function],
-                    "selectedValue": "opt1",
-                    "testID": "ios_picker",
-                  },
-                  "type": "Picker",
-                },
-              ],
-              "props": {
-                "style": [
-                  {
-                    "backgroundColor": "#d0d4da",
-                    "justifyContent": "center",
-                  },
-                  {
-                    "height": 215,
-                  },
+                "animationType": undefined,
+                "onOrientationChange": [Function],
+                "supportedOrientations": [
+                  "portrait",
+                  "landscape",
                 ],
-                "testID": undefined,
+                "testID": "ios_modal",
+                "transparent": true,
+                "visible": false,
               },
-              "type": "View",
+              "type": "Modal",
             },
           ],
           "props": {
-            "animationType": undefined,
-            "onOrientationChange": [Function],
-            "supportedOrientations": [
-              "portrait",
-              "landscape",
+            "style": [
+              {
+                "alignItems": "center",
+                "alignSelf": "stretch",
+                "borderRadius": 4,
+                "borderWidth": 1,
+                "flexDirection": "row",
+                "justifyContent": "flex-start",
+                "minHeight": 40,
+                "width": "100%",
+              },
+              {
+                "backgroundColor": "#FFFFFF",
+                "borderColor": "#9A9A9A",
+              },
+              false,
             ],
-            "testID": "ios_modal",
-            "transparent": true,
-            "visible": false,
+            "testID": undefined,
           },
-          "type": "Modal",
+          "type": "View",
         },
       ],
       "props": {
-        "style": [
-          {
-            "alignItems": "center",
-            "alignSelf": "stretch",
-            "borderRadius": 4,
-            "borderWidth": 1,
-            "flexDirection": "row",
-            "justifyContent": "center",
-            "minHeight": 40,
-            "width": "100%",
-          },
-          {
-            "backgroundColor": "#FFFFFF",
-            "borderColor": "#9A9A9A",
-          },
-          false,
-        ],
+        "style": {
+          "alignSelf": "stretch",
+          "minWidth": 0,
+          "width": "100%",
+        },
         "testID": undefined,
       },
       "type": "View",
@@ -1679,6 +1768,7 @@ exports[`SelectField renders with requireValue (no clear option) 1`] = `
   ],
   "props": {
     "style": {
+      "minWidth": 0,
       "width": "100%",
     },
     "testID": undefined,

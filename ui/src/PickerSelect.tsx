@@ -78,7 +78,7 @@ export const defaultStyles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     flexDirection: "row",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     minHeight: 40,
     width: "100%",
   },
