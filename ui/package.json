@@ -101,7 +101,8 @@
   },
   "files": [
     "dist/**/*",
-    "src/**/*"
+    "src/**/*",
+    ".ai/**/*"
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",

@@ -13,6 +13,9 @@ describe("tools", () => {
     expect(toolNames).toContain("terreno_install_admin");
     expect(toolNames).toContain("terreno_bootstrap_app");
     expect(toolNames).toContain("terreno_bootstrap_ai_rules");
+    expect(toolNames).toContain("terreno_search_docs");
+    expect(toolNames).toContain("terreno_get_component_docs");
+    expect(toolNames).toContain("terreno_get_upgrade_guide");
   });
 
   test("should have valid tool structure", () => {
@@ -603,6 +606,45 @@ describe("tools", () => {
         appName: "rules-app",
       });
       expect(result.content[0].text).toContain("Bootstrap AI Rules for Rules App");
+    });
+  });
+
+  describe("terreno_search_docs and terreno_get_component_docs", () => {
+    test("should reject terreno_search_docs when queries is not an array of strings", () => {
+      const bad = handleToolCall("terreno_search_docs", {queries: "modelRouter"});
+      expect(bad.content[0].text).toContain("must be an array of strings");
+
+      const bad2 = handleToolCall("terreno_search_docs", {queries: [1, 2]});
+      expect(bad2.content[0].text).toContain("must be an array of strings");
+    });
+
+    test("should run terreno_search_docs with valid arguments", () => {
+      const ok = handleToolCall("terreno_search_docs", {
+        packages: ["api"],
+        queries: ["Terreno"],
+        tokenLimit: 2000,
+      });
+      expect(ok.content[0].text).toContain("Terreno documentation search results");
+    });
+
+    test("should run terreno_get_component_docs with component name", () => {
+      const out = handleToolCall("terreno_get_component_docs", {component: "Button"});
+      expect(out.content[0].text.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("terreno_get_upgrade_guide", () => {
+    test("should require fromVersion and toVersion", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {fromVersion: "0.20.0"});
+      expect(out.content[0].text).toContain("fromVersion");
+    });
+
+    test("should return bundled upgrade markdown for a range", () => {
+      const out = handleToolCall("terreno_get_upgrade_guide", {
+        fromVersion: "0.20.0",
+        toVersion: "0.20.0",
+      });
+      expect(out.content[0].text).toContain("0.20.0");
     });
   });
 });

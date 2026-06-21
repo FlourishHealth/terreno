@@ -1,8 +1,8 @@
 ---
-title: '@terreno/mcp-server - MCP server for AI assistant integration'
+title: '@terreno/mcp - MCP server for AI assistant integration'
 trigger: always_on
 ---
-# @terreno/mcp-server
+# @terreno/mcp
 
 Model Context Protocol (MCP) server that provides tools, prompts, and resources for AI coding assistants to generate Terreno-compatible code. Built with Express and JSON-RPC 2.0.
 

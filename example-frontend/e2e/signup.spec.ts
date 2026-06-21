@@ -36,6 +36,8 @@ test.describe("Signup", () => {
     consoleGuard.allow("Failed to load resource: the server responded with a status of 500");
     consoleGuard.allow("A user with the given username is already registered");
     consoleGuard.allow(/^Object$/);
+    // Feature-flags query rejects before auth; Sentry logs in dev without full SDK init.
+    consoleGuard.allow("terrenoFlagConfiguration");
     await page.getByTestId("signup-screen-name-input").fill("Duplicate User");
     await page.getByTestId("signup-screen-email-input").fill(TEST_USER.email);
     await page.getByTestId("signup-screen-password-input").fill("TestPassword123!");
