@@ -65,6 +65,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const [historyPage, setHistoryPage] = useState(1);
   const [historyScriptName, setHistoryScriptName] = useState<string | null>(null);
   const [historyRuns, setHistoryRuns] = useState<ScriptRun[]>([]);
+  const [historyRunsKey, setHistoryRunsKey] = useState<string | null>(null);
   const historyKeyRef = useRef<string | null>(null);
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [selectedRun, setSelectedRun] = useState<SelectedRun | null>(null);
@@ -93,14 +94,21 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
     const filterKey = historyScriptName ?? "__all__";
     setHistoryRuns((prev) => {
       const base = historyKeyRef.current === filterKey ? prev : [];
-      historyKeyRef.current = filterKey;
       const byId = new Map(base.map((run) => [run._id, run]));
       for (const run of historyData.data ?? []) {
         byId.set(run._id, run);
       }
       return Array.from(byId.values());
     });
+    historyKeyRef.current = filterKey;
+    setHistoryRunsKey(filterKey);
   }, [historyData, historyScriptName]);
+
+  // The accumulated list belongs to whichever filter last loaded. While a newly-selected filter
+  // is still fetching, the list does not yet match the active scope; render a spinner instead of
+  // stale runs from the previous filter.
+  const activeFilterKey = historyScriptName ?? "__all__";
+  const historyMatchesFilter = historyRunsKey === activeFilterKey;
 
   const handleRunScript = useCallback((script: AdminScriptConfig) => {
     setSelectedRun(null);
@@ -327,7 +335,11 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
           </Box>
         ) : null}
       </Box>
-      {historyRuns.length === 0 ? (
+      {!historyMatchesFilter ? (
+        <Box alignItems="center" justifyContent="center" padding={6}>
+          <Spinner />
+        </Box>
+      ) : historyRuns.length === 0 ? (
         <Box alignItems="center" padding={6}>
           <Text color="secondaryDark">
             {historyScriptName ? "No runs logged for this script yet." : "No runs logged yet."}
