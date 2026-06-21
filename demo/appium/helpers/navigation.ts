@@ -49,6 +49,14 @@ export const byTestId = (testId: string): string =>
 const toDemoDeepLink = (componentName: string): string =>
   `${DEMO_DEEP_LINK_SCHEME}:///demo/${encodeURIComponent(componentName)}`;
 
+const toDevStoryDeepLink = (componentName: string, story: string): string =>
+  `${DEMO_DEEP_LINK_SCHEME}:///dev/${encodeURIComponent(componentName)}?story=${encodeURIComponent(story)}`;
+
+// expo-router renders dev stories inside an ErrorBoundary that swaps the story
+// content for this copy when a render throws. Appium asserts the text is absent
+// to prove the story mounted successfully on both platforms.
+const DEV_STORY_ERROR_BOUNDARY_TEXT = "Failed to render";
+
 const toSafeLogSegment = (value: string): string =>
   value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
@@ -214,6 +222,24 @@ const waitForDemoHomeReady = async (): Promise<void> => {
 const openDemoDeepLink = async (componentName: string): Promise<void> => {
   const url = toDemoDeepLink(componentName);
   console.info(`Opening demo deep link: ${url}`);
+
+  if (driver.isAndroid) {
+    await driver.execute("mobile: deepLink", {
+      url,
+      package: DEMO_APP_PACKAGE,
+    });
+    return;
+  }
+
+  await driver.execute("mobile: deepLink", {
+    url,
+    bundleId: DEMO_APP_BUNDLE_ID,
+  });
+};
+
+const openDevStoryDeepLink = async (componentName: string, story: string): Promise<void> => {
+  const url = toDevStoryDeepLink(componentName, story);
+  console.info(`Opening dev story deep link: ${url}`);
 
   if (driver.isAndroid) {
     await driver.execute("mobile: deepLink", {
@@ -418,7 +444,7 @@ const tryTapSelectors = async (selectors: string[]): Promise<boolean> => {
 };
 
 const waitForDeepLinkTarget = async (
-  componentName: string,
+  issueDeepLink: () => Promise<void>,
   selector: string,
   options: {timeout: number; timeoutMsg: string}
 ): Promise<void> => {
@@ -430,7 +456,7 @@ const waitForDeepLinkTarget = async (
       // Metro bundle load, so an early deep link is dropped before expo-router mounts.
       // Resending is idempotent once the app is interactive.
       if (Date.now() - lastDeepLinkAt > 4000) {
-        await openDemoDeepLink(componentName);
+        await issueDeepLink();
         lastDeepLinkAt = Date.now();
       }
 
@@ -546,7 +572,7 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
 
   // Deep links work from any screen; prefer them over requiring the home list to render.
   try {
-    await waitForDeepLinkTarget(componentName, targetSelector, {
+    await waitForDeepLinkTarget(() => openDemoDeepLink(componentName), targetSelector, {
       timeout: deepLinkTargetTimeoutMs,
       timeoutMsg: `Element "~${testId}" did not display after deep-link navigation`,
     });
@@ -573,6 +599,65 @@ export const openDemoComponent = async (componentName: string): Promise<void> =>
       componentName,
       error,
       stage: "fallback-navigation",
+    });
+    throw error;
+  }
+};
+
+const isDevStoryErrorVisible = async (): Promise<boolean> => {
+  try {
+    const pageSource = await driver.getPageSource();
+    return pageSource.includes(DEV_STORY_ERROR_BOUNDARY_TEXT);
+  } catch {
+    return false;
+  }
+};
+
+export interface DevStoryTarget {
+  // The demo configuration name, e.g. "Card".
+  component: string;
+  // The story key registered in the component's config, e.g. "DisplaySizes".
+  story: string;
+  // The testID rendered at the root of the story so Appium can locate it.
+  testId: string;
+}
+
+// Navigates to a story in the demo app's "dev" mode via deep link and asserts it
+// rendered. Dev mode renders a single story per screen (terreno:///dev/<component>?story=<story>),
+// which keeps the assertion isolated to one story at a time on both iOS and Android.
+export const openDevStory = async (target: DevStoryTarget): Promise<void> => {
+  const {component, story, testId} = target;
+  const diagnosticsName = `${component}-${story}`;
+
+  await waitForAppForeground();
+  await ensureDevClientAppLoaded(diagnosticsName);
+  await ensureNotInDevLauncher(diagnosticsName);
+  await dismissDevMenuOverlay();
+
+  const targetSelector = byTestId(testId);
+
+  try {
+    await waitForDeepLinkTarget(() => openDevStoryDeepLink(component, story), targetSelector, {
+      timeout: deepLinkTargetTimeoutMs,
+      timeoutMsg: `Element "~${testId}" did not display after dev story deep-link navigation`,
+    });
+  } catch (error) {
+    await captureNavigationDiagnostics({
+      componentName: diagnosticsName,
+      error,
+      stage: "deep-link-navigation",
+    });
+    throw error;
+  }
+
+  if (await isDevStoryErrorVisible()) {
+    const error = new Error(
+      `Dev story "${component}/${story}" rendered the ErrorBoundary fallback ("${DEV_STORY_ERROR_BOUNDARY_TEXT}")`
+    );
+    await captureNavigationDiagnostics({
+      componentName: diagnosticsName,
+      error,
+      stage: "deep-link-navigation",
     });
     throw error;
   }
