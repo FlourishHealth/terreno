@@ -158,6 +158,21 @@ export interface BackgroundTask {
   updated: string;
 }
 
+/** A single past script run, as returned by `GET {apiBase}/scripts/runs`. */
+export interface ScriptRun extends BackgroundTask {
+  /** Display name (or email) of the admin who triggered the run, when available. */
+  createdByName?: string;
+}
+
+/** Paginated response from the script run-history endpoint. */
+export interface ScriptRunListResponse {
+  data: ScriptRun[];
+  limit: number;
+  more: boolean;
+  page: number;
+  total: number;
+}
+
 /**
  * Common props for admin screens.
  *

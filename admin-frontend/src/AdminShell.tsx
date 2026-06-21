@@ -157,17 +157,16 @@ export const AdminShell: React.FC<AdminShellProps> = ({
             <Text bold color={sectionLabelColor} size="sm">
               Tools
             </Text>
-            {scripts.map((script) => (
+            {scripts.length > 0 ? (
               <NavButton
-                key={script.name}
-                label={script.name}
+                label="Scripts"
                 onPress={() => {
                   navigate("/__scripts");
                 }}
                 sidebarVariant={sidebarVariant}
-                testID={`admin-shell-nav-tool-${script.name}`}
+                testID="admin-shell-nav-scripts"
               />
-            ))}
+            ) : null}
             <NavButton
               label="Version"
               onPress={() => {

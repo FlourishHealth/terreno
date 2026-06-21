@@ -1094,6 +1094,59 @@ export class AdminApp {
 
   private mountScriptRoutes(router: express.Router, scripts: AdminScriptConfig[]): void {
     const scriptsByName = new Map(scripts.map((s) => [s.name, s]));
+    const scriptNames = scripts.map((s) => s.name);
+
+    // GET /admin/scripts/runs — Paginated history of script runs (BackgroundTasks)
+    router.get(
+      "/runs",
+      asyncHandler(async (req: express.Request, res: express.Response) => {
+        const user = req.user as {admin?: boolean} | undefined;
+        if (!user?.admin) {
+          throw new APIError({status: 403, title: "Only admins can view run history"});
+        }
+
+        const limit = Math.min(Math.max(Number(req.query.limit) || 25, 1), 100);
+        const page = Math.max(Number(req.query.page) || 1, 1);
+        const skip = (page - 1) * limit;
+
+        // Scope history to currently-registered scripts. An optional `name` query
+        // narrows to a single script (used by the per-script "History" link).
+        const requestedName = typeof req.query.name === "string" ? req.query.name : undefined;
+        const taskTypeFilter =
+          requestedName && scriptNames.includes(requestedName) ? [requestedName] : scriptNames;
+
+        const query =
+          taskTypeFilter.length > 0
+            ? {taskType: {$in: taskTypeFilter}}
+            : {taskType: {$in: [] as string[]}};
+
+        const [tasks, total] = await Promise.all([
+          BackgroundTask.find(query)
+            .sort({created: -1})
+            .skip(skip)
+            .limit(limit)
+            .populate({path: "createdBy", select: "name email"})
+            .lean(),
+          BackgroundTask.countDocuments(query),
+        ]);
+
+        const data = tasks.map((task) => {
+          const createdBy = task.createdBy as unknown as
+            | {name?: string; email?: string}
+            | mongoose.Types.ObjectId
+            | undefined;
+          const createdByName =
+            createdBy &&
+            typeof createdBy === "object" &&
+            !(createdBy instanceof mongoose.Types.ObjectId)
+              ? (createdBy.name ?? createdBy.email)
+              : undefined;
+          return {...task, createdByName};
+        });
+
+        return res.json({data, limit, more: skip + tasks.length < total, page, total});
+      })
+    );
 
     // POST /admin/scripts/:name/run — Execute a script
     router.post(
