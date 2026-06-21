@@ -325,6 +325,17 @@ describe("AdminApp script routes", () => {
       expect(res.body.data[0].taskType).toBe("cleanup");
     });
 
+    it("returns no runs when the name query is not a registered script", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await adminAgent.post("/admin/scripts/cleanup/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs?name=does-not-exist").expect(200);
+
+      expect(res.body.data).toHaveLength(0);
+      expect(res.body.total).toBe(0);
+    });
+
     it("excludes tasks whose taskType is not a registered script", async () => {
       await BackgroundTask.create({
         isDryRun: false,

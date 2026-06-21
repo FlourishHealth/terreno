@@ -1110,10 +1110,16 @@ export class AdminApp {
         const skip = (page - 1) * limit;
 
         // Scope history to currently-registered scripts. An optional `name` query
-        // narrows to a single script (used by the per-script "History" link).
+        // narrows to a single script (used by the per-script "History" link). A
+        // provided-but-unregistered name resolves to an empty filter so callers can
+        // distinguish "unknown script" (no runs) from "show all".
         const requestedName = typeof req.query.name === "string" ? req.query.name : undefined;
-        const taskTypeFilter =
-          requestedName && scriptNames.includes(requestedName) ? [requestedName] : scriptNames;
+        let taskTypeFilter: string[];
+        if (requestedName !== undefined) {
+          taskTypeFilter = scriptNames.includes(requestedName) ? [requestedName] : [];
+        } else {
+          taskTypeFilter = scriptNames;
+        }
 
         const query =
           taskTypeFilter.length > 0
