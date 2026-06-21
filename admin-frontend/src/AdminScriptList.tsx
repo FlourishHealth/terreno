@@ -10,7 +10,7 @@ import {
   Spinner,
   Text,
 } from "@terreno/ui";
-import React, {useCallback, useEffect, useMemo, useState} from "react";
+import React, {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AdminScriptRunModal} from "./AdminScriptRunModal";
 import {
   formatDuration,
@@ -65,6 +65,7 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const [historyPage, setHistoryPage] = useState(1);
   const [historyScriptName, setHistoryScriptName] = useState<string | null>(null);
   const [historyRuns, setHistoryRuns] = useState<ScriptRun[]>([]);
+  const historyKeyRef = useRef<string | null>(null);
   const [selectedScript, setSelectedScript] = useState<AdminScriptConfig | null>(null);
   const [selectedRun, setSelectedRun] = useState<SelectedRun | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -82,19 +83,24 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   });
 
   // Accumulate each loaded history page (de-duplicated by id) so "Load more" advances through
-  // pages instead of re-requesting a server-capped first page.
+  // pages instead of re-requesting a server-capped first page. Keying on the active filter lets
+  // a filter change replace the list (rather than blanking state and risking an empty render when
+  // RTK Query serves a cached, same-reference page).
   useEffect(() => {
     if (!historyData?.data) {
       return;
     }
+    const filterKey = historyScriptName ?? "__all__";
     setHistoryRuns((prev) => {
-      const byId = new Map(prev.map((run) => [run._id, run]));
+      const base = historyKeyRef.current === filterKey ? prev : [];
+      historyKeyRef.current = filterKey;
+      const byId = new Map(base.map((run) => [run._id, run]));
       for (const run of historyData.data ?? []) {
         byId.set(run._id, run);
       }
       return Array.from(byId.values());
     });
-  }, [historyData]);
+  }, [historyData, historyScriptName]);
 
   const handleRunScript = useCallback((script: AdminScriptConfig) => {
     setSelectedRun(null);
@@ -111,7 +117,6 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const handleViewHistory = useCallback((scriptName?: string) => {
     setHistoryScriptName(scriptName ?? null);
     setHistoryPage(1);
-    setHistoryRuns([]);
     setTab("history");
   }, []);
 
@@ -122,7 +127,6 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
   const handleClearHistoryFilter = useCallback(() => {
     setHistoryScriptName(null);
     setHistoryPage(1);
-    setHistoryRuns([]);
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -136,7 +140,6 @@ export const AdminScriptList: React.FC<AdminScriptListProps> = ({
       // Selecting the global history tab clears any per-script filter.
       setHistoryScriptName(null);
       setHistoryPage(1);
-      setHistoryRuns([]);
       setTab("history");
       return;
     }
