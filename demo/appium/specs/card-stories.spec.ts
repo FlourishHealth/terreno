@@ -1,6 +1,7 @@
 import {$} from "@wdio/globals";
 
 import {byTestId, type DevStoryTarget, openDevStory} from "../helpers/navigation";
+import {captureStorySnapshot} from "../helpers/snapshots";
 
 const CARD_COMPONENT = "Card";
 
@@ -23,6 +24,10 @@ describe("Card dev stories render correctly", () => {
 
       const storyRoot = await $(byTestId(testId));
       await expect(storyRoot).toBeDisplayed();
+
+      // Capture a per-platform snapshot of the rendered story so visual changes
+      // surface as an image diff under appium/screenshots/<platform>.
+      await captureStorySnapshot({element: storyRoot, name: `${CARD_COMPONENT}-${story}`});
     });
   }
 });

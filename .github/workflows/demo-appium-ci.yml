@@ -122,6 +122,15 @@ jobs:
           NODE_ENV: production
           NODE_OPTIONS: --openssl-legacy-provider
 
+      - name: Upload Appium story snapshots
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-android-screenshots
+          path: demo/appium/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload Appium logs
         if: failure()
         uses: actions/upload-artifact@v7.0.1
@@ -256,6 +265,15 @@ jobs:
           else
             echo "Skipping full iOS diagnostics in smoke mode" >> demo/logs/diag-env.txt
           fi
+
+      - name: Upload Appium story snapshots
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: demo-appium-ios-screenshots
+          path: demo/appium/screenshots/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Upload Appium logs
         if: failure()
