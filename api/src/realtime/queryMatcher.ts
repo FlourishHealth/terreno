@@ -79,26 +79,34 @@ const matchesCondition = (rawValue: unknown, condition: unknown): boolean => {
           return false;
         }
         break;
-      case "$gt":
-        if (compareValues(value, normOp) <= 0) {
+      case "$gt": {
+        const cmp = compareValues(value, normOp);
+        if (Number.isNaN(cmp) || cmp <= 0) {
           return false;
         }
         break;
-      case "$gte":
-        if (compareValues(value, normOp) < 0) {
+      }
+      case "$gte": {
+        const cmp = compareValues(value, normOp);
+        if (Number.isNaN(cmp) || cmp < 0) {
           return false;
         }
         break;
-      case "$lt":
-        if (compareValues(value, normOp) >= 0) {
+      }
+      case "$lt": {
+        const cmp = compareValues(value, normOp);
+        if (Number.isNaN(cmp) || cmp >= 0) {
           return false;
         }
         break;
-      case "$lte":
-        if (compareValues(value, normOp) > 0) {
+      }
+      case "$lte": {
+        const cmp = compareValues(value, normOp);
+        if (Number.isNaN(cmp) || cmp > 0) {
           return false;
         }
         break;
+      }
       case "$in": {
         if (!Array.isArray(operand)) {
           return false;
