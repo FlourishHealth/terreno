@@ -10,7 +10,7 @@
  * Run with: bun run src/scripts/seed-admin-spa-admin.ts
  */
 
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
 import {User} from "../models/user";
 import {connectToMongoDB} from "../utils/database";
@@ -37,7 +37,10 @@ const signUpOrSignIn = async (): Promise<string> => {
   if (signUpRes.ok) {
     const cookie = extractCookieHeader(signUpRes);
     if (!cookie) {
-      throw new Error("Better Auth sign-up succeeded but returned no session cookie");
+      throw new APIError({
+        status: 500,
+        title: "Better Auth sign-up succeeded but returned no session cookie",
+      });
     }
     logger.info(`Signed up Better Auth user: ${ADMIN_EMAIL}`);
     return cookie;
@@ -51,13 +54,17 @@ const signUpOrSignIn = async (): Promise<string> => {
   });
   if (!signInRes.ok) {
     const body = await signInRes.text();
-    throw new Error(
-      `Better Auth sign-up (${signUpRes.status}) and sign-in (${signInRes.status}) both failed: ${body}`
-    );
+    throw new APIError({
+      status: 500,
+      title: `Better Auth sign-up (${signUpRes.status}) and sign-in (${signInRes.status}) both failed: ${body}`,
+    });
   }
   const cookie = extractCookieHeader(signInRes);
   if (!cookie) {
-    throw new Error("Better Auth sign-in succeeded but returned no session cookie");
+    throw new APIError({
+      status: 500,
+      title: "Better Auth sign-in succeeded but returned no session cookie",
+    });
   }
   logger.info(`Signed in existing Better Auth user: ${ADMIN_EMAIL}`);
   return cookie;
@@ -73,12 +80,15 @@ const main = async (): Promise<void> => {
   await connectToMongoDB();
   const result = await User.updateOne({email: ADMIN_EMAIL}, {$set: {admin: true}});
   if (result.matchedCount === 0) {
-    throw new Error(`No User document found for ${ADMIN_EMAIL} - Better Auth sync did not run`);
+    throw new APIError({
+      status: 404,
+      title: `No User document found for ${ADMIN_EMAIL} - Better Auth sync did not run`,
+    });
   }
 
   const user = await User.findByEmail(ADMIN_EMAIL);
   if (!user?.admin) {
-    throw new Error(`Failed to promote ${ADMIN_EMAIL} to admin`);
+    throw new APIError({status: 500, title: `Failed to promote ${ADMIN_EMAIL} to admin`});
   }
   logger.info(`Promoted ${ADMIN_EMAIL} to admin (id: ${user._id})`);
 
