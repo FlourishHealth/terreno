@@ -1,6 +1,6 @@
 import {SecretManagerServiceClient} from "@google-cloud/secret-manager";
 import * as Sentry from "@sentry/bun";
-import {logger} from "@terreno/api";
+import {APIError, logger} from "@terreno/api";
 import mongoose from "mongoose";
 import type {ConfigurationDocument, ConfigurationModel, ConfigValueType} from "../types";
 import {addDefaultPlugins} from "./modelPlugins";
@@ -82,9 +82,10 @@ export class Configuration {
    * This class should only be used through its static methods
    */
   private constructor() {
-    throw new Error(
-      "Configuration is a singleton and cannot be instantiated. Use static methods instead."
-    );
+    throw new APIError({
+      status: 500,
+      title: "Configuration is a singleton and cannot be instantiated. Use static methods instead.",
+    });
   }
 
   /**
@@ -165,7 +166,7 @@ export class Configuration {
 
     // Validate if validator is provided
     if (definition?.validator && !definition.validator(value)) {
-      throw new Error(`Configuration validation failed for ${key}`);
+      throw new APIError({status: 400, title: `Configuration validation failed for ${key}`});
     }
 
     runtimeOverrides.set(key, value);
@@ -184,14 +185,17 @@ export class Configuration {
    */
   static async setDB<T extends ConfigValueType>(key: string, value: T): Promise<void> {
     if (value === undefined) {
-      throw new Error("Cannot set undefined value in database. Use null instead.");
+      throw new APIError({
+        status: 400,
+        title: "Cannot set undefined value in database. Use null instead.",
+      });
     }
 
     const definition = configRegistry.get(key);
 
     // Validate if validator is provided
     if (definition?.validator && !definition.validator(value)) {
-      throw new Error(`Configuration validation failed for ${key}`);
+      throw new APIError({status: 400, title: `Configuration validation failed for ${key}`});
     }
 
     await ConfigurationDB.setValue(key, value as ConfigValueType);
@@ -261,7 +265,10 @@ export class Configuration {
     } else {
       const projectId = Configuration.get<string>("GCP_PROJECT_ID");
       if (!projectId) {
-        throw new Error("GCP_PROJECT_ID is required to resolve secret names");
+        throw new APIError({
+          status: 500,
+          title: "GCP_PROJECT_ID is required to resolve secret names",
+        });
       }
       resourceName = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     }
@@ -270,7 +277,7 @@ export class Configuration {
     const [version] = await client.accessSecretVersion({name: resourceName});
     const payload = version.payload?.data;
     if (!payload) {
-      throw new Error(`Secret ${secretName} has no payload data`);
+      throw new APIError({status: 500, title: `Secret ${secretName} has no payload data`});
     }
     return typeof payload === "string" ? payload : new TextDecoder().decode(payload);
   }
