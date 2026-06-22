@@ -137,5 +137,5 @@
     "test:coverage": "TZ=America/New_York bun run ../scripts/check-coverage.ts",
     "types": "bun typedoc"
   },
-  "version": "0.20.2"
+  "version": "0.21.0"
 }
