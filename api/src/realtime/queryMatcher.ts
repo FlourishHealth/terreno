@@ -1,4 +1,3 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: MongoDB query matcher evaluates dynamic filter shapes
 /**
  * Simple in-memory MongoDB query matcher.
  * Evaluates a MongoDB-style query object against a document without hitting the database.
@@ -6,35 +5,52 @@
  * Supports: equality, $eq, $ne, $gt, $gte, $lt, $lte, $in, $nin, $exists, $and, $or, $not.
  */
 
-const getNestedValue = (doc: any, path: string): any => {
+const getNestedValue = (doc: Record<string, unknown>, path: string): unknown => {
   const parts = path.split(".");
-  let current = doc;
+  let current: unknown = doc;
   for (const part of parts) {
     if (current === null || current === undefined) {
       return undefined;
     }
-    current = current[part];
+    current = (current as Record<string, unknown>)[part];
   }
   return current;
 };
 
-const normalize = (value: any): any => {
+const normalize = (value: unknown): unknown => {
   if (value === null || value === undefined) {
     return value;
   }
   // Handle ObjectId-like objects with toString
-  if (
-    typeof value === "object" &&
-    typeof value.toString === "function" &&
-    value.constructor?.name !== "Object" &&
-    !Array.isArray(value)
-  ) {
-    return value.toString();
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    const ctorName = (obj.constructor as {name?: string} | undefined)?.name;
+    if (typeof obj.toString === "function" && ctorName !== "Object") {
+      return String(value);
+    }
   }
   return value;
 };
 
-const matchesCondition = (rawValue: any, condition: any): boolean => {
+/**
+ * JS abstract relational comparison on unknown values.
+ * Numeric operands compare numerically; everything else compares as strings.
+ * This mirrors the coercion behaviour of `>` / `<` on the `any`-typed values
+ * that MongoDB in-memory matching historically received.
+ */
+const compareValues = (a: unknown, b: unknown): number => {
+  if (typeof a === "number" && typeof b === "number") {
+    return a - b;
+  }
+  if (typeof a === "string" && typeof b === "string") {
+    return a < b ? -1 : a > b ? 1 : 0;
+  }
+  const numA = Number(a);
+  const numB = Number(b);
+  return numA - numB;
+};
+
+const matchesCondition = (rawValue: unknown, condition: unknown): boolean => {
   const value = normalize(rawValue);
 
   // Direct equality (non-object condition)
@@ -49,7 +65,7 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
   }
 
   // Operator object
-  for (const [op, operand] of Object.entries(condition)) {
+  for (const [op, operand] of Object.entries(condition as Record<string, unknown>)) {
     const normOp = normalize(operand);
 
     switch (op) {
@@ -64,22 +80,22 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
         }
         break;
       case "$gt":
-        if (!(value > normOp)) {
+        if (compareValues(value, normOp) <= 0) {
           return false;
         }
         break;
       case "$gte":
-        if (!(value >= normOp)) {
+        if (compareValues(value, normOp) < 0) {
           return false;
         }
         break;
       case "$lt":
-        if (!(value < normOp)) {
+        if (compareValues(value, normOp) >= 0) {
           return false;
         }
         break;
       case "$lte":
-        if (!(value <= normOp)) {
+        if (compareValues(value, normOp) > 0) {
           return false;
         }
         break;
@@ -88,7 +104,7 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
           return false;
         }
         const inValues = operand.map(normalize);
-        if (!inValues.some((v: any) => v === value || String(v) === String(value))) {
+        if (!inValues.some((v) => v === value || String(v) === String(value))) {
           return false;
         }
         break;
@@ -98,7 +114,7 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
           return false;
         }
         const ninValues = operand.map(normalize);
-        if (ninValues.some((v: any) => v === value || String(v) === String(value))) {
+        if (ninValues.some((v) => v === value || String(v) === String(value))) {
           return false;
         }
         break;
@@ -132,14 +148,17 @@ const matchesCondition = (rawValue: any, condition: any): boolean => {
  * @param query - MongoDB-style query object
  * @returns true if the document matches all query conditions
  */
-export const matchesQuery = (doc: any, query: Record<string, any>): boolean => {
+export const matchesQuery = (
+  doc: Record<string, unknown>,
+  query: Record<string, unknown>
+): boolean => {
   for (const [key, condition] of Object.entries(query)) {
     if (key === "$and") {
       if (!Array.isArray(condition)) {
         return false;
       }
       for (const subQuery of condition) {
-        if (!matchesQuery(doc, subQuery)) {
+        if (!matchesQuery(doc, subQuery as Record<string, unknown>)) {
           return false;
         }
       }
@@ -152,7 +171,7 @@ export const matchesQuery = (doc: any, query: Record<string, any>): boolean => {
       }
       let matched = false;
       for (const subQuery of condition) {
-        if (matchesQuery(doc, subQuery)) {
+        if (matchesQuery(doc, subQuery as Record<string, unknown>)) {
           matched = true;
           break;
         }
