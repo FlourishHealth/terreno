@@ -475,6 +475,777 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
+    "/admin/audit-logs/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "_id",
+            "schema": {
+              "properties": {
+                "$in": {
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+              },
+              "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "verb",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Mutation kind",
+                  "enum": [
+                    "created",
+                    "deleted",
+                    "updated",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "modelName",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Mongoose model name affected",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "recordLabel",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Human-readable label for the record",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "recordId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Primary key of the affected document",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "actorId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "User who performed the action",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "createdAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "number",
+            },
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+            },
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "number",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                          },
+                          "actorId": {
+                            "description": "User who performed the action",
+                            "type": "schemaobjectid",
+                          },
+                          "created": {
+                            "description": "When this document was created",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "deleted": {
+                            "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                            "type": "boolean",
+                          },
+                          "modelName": {
+                            "description": "Mongoose model name affected",
+                            "type": "string",
+                          },
+                          "recordId": {
+                            "description": "Primary key of the affected document",
+                            "type": "schemaobjectid",
+                          },
+                          "recordLabel": {
+                            "description": "Human-readable label for the record",
+                            "type": "string",
+                          },
+                          "updated": {
+                            "description": "When this document was last updated",
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string",
+                          },
+                          "verb": {
+                            "description": "Mutation kind",
+                            "enum": [
+                              "created",
+                              "deleted",
+                              "updated",
+                            ],
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "modelName",
+                          "verb",
+                          "_id",
+                          "created",
+                          "updated",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "limit": {
+                      "type": "number",
+                    },
+                    "more": {
+                      "type": "boolean",
+                    },
+                    "page": {
+                      "type": "number",
+                    },
+                    "total": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful list",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "adminauditlogs",
+        ],
+      },
+    },
+    "/admin/audit-logs/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch AdminAuditLog documents",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/audit-logs/{id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+            },
+          },
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                    },
+                    "actorId": {
+                      "description": "User who performed the action",
+                      "type": "schemaobjectid",
+                    },
+                    "created": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "deleted": {
+                      "description": "Deleted objects are not returned in any find() or findOne() by default. Add {deleted: true} to find them.",
+                      "type": "boolean",
+                    },
+                    "modelName": {
+                      "description": "Mongoose model name affected",
+                      "type": "string",
+                    },
+                    "recordId": {
+                      "description": "Primary key of the affected document",
+                      "type": "schemaobjectid",
+                    },
+                    "recordLabel": {
+                      "description": "Human-readable label for the record",
+                      "type": "string",
+                    },
+                    "updated": {
+                      "description": "When this document was last updated",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "updatedAt": {
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "verb": {
+                      "description": "Mutation kind",
+                      "enum": [
+                        "created",
+                        "deleted",
+                        "updated",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "modelName",
+                    "verb",
+                    "_id",
+                    "created",
+                    "updated",
+                  ],
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Successful read",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "tags": [
+          "adminauditlogs",
+        ],
+      },
+    },
+    "/admin/background-tasks": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Optional target document ids",
+                    "items": {
+                      "type": "string",
+                    },
+                    "type": "array",
+                  },
+                  "kind": {
+                    "description": "Task kind label persisted as taskType",
+                    "required": true,
+                    "type": "string",
+                  },
+                  "metadata": {
+                    "description": "Opaque JSON metadata for workers",
+                    "type": "object",
+                  },
+                  "resourceRoute": {
+                    "description": "Optional admin model route this task relates to",
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "kind",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "taskId": {
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Enqueue a generic admin background task",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
+    "/admin/config": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "customScreens": {
+                      "items": {
+                        "properties": {
+                          "description": {
+                            "type": "string",
+                          },
+                          "displayName": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "home": {
+                      "type": "object",
+                    },
+                    "models": {
+                      "type": "array",
+                    },
+                    "schemaVersion": {
+                      "type": "number",
+                    },
+                    "scripts": {
+                      "items": {
+                        "properties": {
+                          "description": {
+                            "type": "string",
+                          },
+                          "name": {
+                            "type": "string",
+                          },
+                        },
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Admin panel configuration",
+        "tags": [
+          "admin",
+        ],
+      },
+    },
     "/admin/consent-forms/": {
       "get": {
         "parameters": [
@@ -491,6 +1262,183 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "title",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Human-readable title of the consent form",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Category of consent form",
+                  "enum": [
+                    "agreement",
+                    "privacy",
+                    "hipaa",
+                    "research",
+                    "terms",
+                    "custom",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": 1,
+                  "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "default": 1,
+                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "default": 1,
+                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "default": 1,
+                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "default": 1,
+                      "description": "Version number of this form. Incrementing the version requires users to re-consent",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "active",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Whether this consent form is currently active and available to users",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": 0,
+                  "description": "Display order relative to other consent forms (lower numbers appear first)",
+                  "type": "number",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "default": 0,
+                      "description": "Display order relative to other consent forms (lower numbers appear first)",
+                      "type": "number",
+                    },
+                    "$gte": {
+                      "default": 0,
+                      "description": "Display order relative to other consent forms (lower numbers appear first)",
+                      "type": "number",
+                    },
+                    "$lt": {
+                      "default": 0,
+                      "description": "Display order relative to other consent forms (lower numbers appear first)",
+                      "type": "number",
+                    },
+                    "$lte": {
+                      "default": 0,
+                      "description": "Display order relative to other consent forms (lower numbers appear first)",
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "URL-safe identifier for this form, combined with version to uniquely identify a form",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -1014,6 +1962,106 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         },
         "tags": [
           "consentforms",
+        ],
+      },
+    },
+    "/admin/consent-forms/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch ConsentForm documents",
+        "tags": [
+          "admin",
         ],
       },
     },
@@ -1604,6 +2652,113 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "userId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Reference to the User who submitted this response",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "agreed",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Whether the user agreed (true) or declined (false) the consent form",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "locale",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Locale code of the content version the user viewed when responding",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "agreedAt",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Timestamp when the user submitted their agreement or declination",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "Timestamp when the user submitted their agreement or declination",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "Timestamp when the user submitted their agreement or declination",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "Timestamp when the user submitted their agreement or declination",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "Timestamp when the user submitted their agreement or declination",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "type": "number",
@@ -2010,21 +3165,55 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/admin/consent-responses/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
+    "/admin/consent-responses/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
             },
           },
-        ],
+          "required": true,
+        },
         "responses": {
-          "204": {
-            "description": "Successful delete",
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
           },
           "400": {
             "content": {
@@ -2070,10 +3259,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "description": "The user is not allowed to perform this action on any document",
           },
         },
+        "summary": "Bulk patch ConsentResponse documents",
         "tags": [
-          "consentresponses",
+          "admin",
         ],
       },
+    },
+    "/admin/consent-responses/{id}": {
       "get": {
         "parameters": [
           {
@@ -2477,6 +3669,214 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "key",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Unique identifier for the flag, e.g., 'new-checkout-flow'",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Human-readable display name",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "boolean",
+                  "description": "Boolean toggle or multi-variant A/B test",
+                  "enum": [
+                    "boolean",
+                    "variant",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "enabled",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Global kill switch — if false, flag is off for everyone",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "archived",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Archived flags are excluded from evaluation. Use this instead of deleting flags to prevent bloat as new features are added.",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "defaultVariant",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "OpenFeature defaultVariant key. Returned when the flag is disabled or errors during evaluation. For boolean flags, must be 'on' or 'off'. For variant flags, must be one of the keys in \`variants\`. Auto-populated on save when omitted (boolean → 'off', variant → first variant key).",
+                  "required": false,
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When this document was created",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "description",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": "",
+                  "description": "Explanation of what this flag controls",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -3013,6 +4413,106 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         },
         "tags": [
           "featureflags",
+        ],
+      },
+    },
+    "/admin/feature-flags/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch FeatureFlag documents",
+        "tags": [
+          "admin",
         ],
       },
     },
@@ -3616,6 +5116,205 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
           },
           {
             "in": "query",
+            "name": "title",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The title of the todo item",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "completed",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Whether the todo item has been completed",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "ownerId",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user who owns this todo",
+                  "type": "schemaobjectid",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "schemaobjectid",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When this document was created",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "priority",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "Priority level of the todo",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "tags",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": [],
+                  "description": "Free-form tags for categorization",
+                  "items": {
+                    "type": "string",
+                  },
+                  "type": "array",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "array",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created_gte",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created_lte",
+            "schema": {
+              "oneOf": [
+                null,
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {},
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {
               "type": "number",
@@ -3941,21 +5640,55 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         ],
       },
     },
-    "/admin/todos/{id}": {
-      "delete": {
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "type": "string",
+    "/admin/todos/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
             },
           },
-        ],
+          "required": true,
+        },
         "responses": {
-          "204": {
-            "description": "Successful delete",
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
           },
           "400": {
             "content": {
@@ -4001,10 +5734,13 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
             "description": "The user is not allowed to perform this action on any document",
           },
         },
+        "summary": "Bulk patch Todo documents",
         "tags": [
-          "todos",
+          "admin",
         ],
       },
+    },
+    "/admin/todos/{id}": {
       "get": {
         "parameters": [
           {
@@ -4327,6 +6063,114 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                 },
               },
               "type": "object",
+            },
+          },
+          {
+            "in": "query",
+            "name": "email",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user's email address, used for authentication",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "The user's display name",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "string",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "admin",
+            "schema": {
+              "oneOf": [
+                {
+                  "default": false,
+                  "description": "Whether the user has admin privileges",
+                  "type": "boolean",
+                },
+                {
+                  "properties": {
+                    "$in": {
+                      "items": {
+                        "type": "boolean",
+                      },
+                      "type": "array",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+          },
+          {
+            "in": "query",
+            "name": "created",
+            "schema": {
+              "oneOf": [
+                {
+                  "description": "When this document was created",
+                  "format": "date-time",
+                  "type": "string",
+                },
+                {
+                  "properties": {
+                    "$gt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$gte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lt": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                    "$lte": {
+                      "description": "When this document was created",
+                      "format": "date-time",
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+              ],
             },
           },
           {
@@ -4665,6 +6509,106 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
         },
         "tags": [
           "users",
+        ],
+      },
+    },
+    "/admin/users/bulk-patch": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ids": {
+                    "description": "Document ids to update",
+                    "items": {
+                      "type": "string",
+                    },
+                    "required": true,
+                    "type": "array",
+                  },
+                  "patch": {
+                    "description": "Partial document; keys must be allowlisted for this model",
+                    "required": true,
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "ids",
+                  "patch",
+                ],
+                "type": "object",
+              },
+            },
+          },
+          "required": true,
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "failures": {
+                      "type": "array",
+                    },
+                    "updated": {
+                      "type": "number",
+                    },
+                  },
+                  "type": "object",
+                },
+              },
+            },
+            "description": "Success",
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Bad request",
+          },
+          "401": {
+            "description": "The user must be authenticated",
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on this document",
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "Document not found",
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError",
+                },
+              },
+            },
+            "description": "The user is not allowed to perform this action on any document",
+          },
+        },
+        "summary": "Bulk patch User documents",
+        "tags": [
+          "admin",
         ],
       },
     },

@@ -332,6 +332,10 @@ GitHub Actions workflows that use secrets or environment variables must validate
     fi
 ```
 
+## @terreno/admin-backend — tests
+
+`bunfig.toml` preloads [`src/tests/testEnv.ts`](./src/tests/testEnv.ts) (sets `TERRENO_TEST_USE_MEMORY_MONGO`) then [`api/src/tests/bunSetup.ts`](../api/src/tests/bunSetup.ts), which starts **mongodb-memory-server** and connects Mongoose (no local `mongod` required). To use a real MongoDB instead, remove or edit `testEnv.ts`, or set `TERRENO_TEST_MONGODB_URI` before running tests. Set `BUN_TEST_DISABLE_DB=true` to skip DB hooks entirely.
+
 ## Dependency Management
 
 Uses [Bun Catalogs](https://bun.sh/docs/install/catalogs) - shared versions defined in root `package.json` under `catalog`. Reference with `catalog:` in workspace packages.

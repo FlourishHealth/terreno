@@ -11,6 +11,7 @@ Example Expo app demonstrating full-stack Terreno usage with @terreno/api backen
 - **Profile Management**: User profile viewing and editing
 - **Tab Navigation**: Expo Router with file-based routing
 - **Cross-platform**: Runs on web, iOS, and Android
+- **Admin UI v2**: Profile → Admin uses `@terreno/admin-frontend` with `AdminShellLayout` (sidebar + `AdminHome` dashboard from `/admin/config`), tools/model cards, configuration, scripts, and a static “Admin UI v2 map” screen — backed by the rich `AdminApp` setup in `example-backend`
 
 ## Prerequisites
 

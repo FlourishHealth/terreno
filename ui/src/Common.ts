@@ -2056,7 +2056,8 @@ export interface PageProps {
   closeButton?: boolean;
   direction?: "row" | "column";
   padding?: UnsignedUpTo12;
-  color?: SurfaceColor;
+  /** Page body surface; use `transparent` when a parent (e.g. admin shell) supplies the canvas color. */
+  color?: BoxColor;
   maxWidth?: number | string;
   keyboardOffset?: number;
   footer?: ReactNode;

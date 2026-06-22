@@ -100,7 +100,9 @@ export class Page extends React.Component<PageProps, {}> {
         {Boolean(this.props.footer) && (
           <Box
             alignSelf="center"
-            color={this.props.color || "neutralLight"}
+            color={
+              this.props.color === "transparent" ? "base" : (this.props.color ?? "neutralLight")
+            }
             direction={this.props.direction || "column"}
             display={this.props.display || "flex"}
             flex="shrink"

@@ -66,6 +66,33 @@ const resetGsmClient = (): void => {
  */
 let changeStream: ReturnType<typeof ConfigurationDB.watch> | null = null;
 
+/** Cleared in stopWatching so disconnect does not fire a delayed restart on a closed client */
+let changeStreamRestartTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearChangeStreamRestartTimer = (): void => {
+  if (changeStreamRestartTimer) {
+    clearTimeout(changeStreamRestartTimer);
+    changeStreamRestartTimer = null;
+  }
+};
+
+/** Errors when the Mongo client is closing or not connected — not actionable as "retry in 5s" */
+const isConnectionLifecycleChangeStreamError = (error: unknown): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const {message, name} = error as {message?: string; name?: string};
+  const errorName = String(name ?? "");
+  const errorMessage = String(message ?? "");
+  return (
+    errorName === "MongoClientClosedError" ||
+    errorName === "MongoNotConnectedError" ||
+    errorMessage.includes("client was closed") ||
+    errorMessage.includes("must be connected before running operations") ||
+    errorMessage.includes("Topology is closed")
+  );
+};
+
 /**
  * Flag to track if configuration has been initialized
  */
@@ -402,6 +429,11 @@ export class Configuration {
       return true;
     }
 
+    if (mongoose.connection.readyState !== 1) {
+      logger.warn("Skipping configuration change stream — MongoDB is not connected");
+      return false;
+    }
+
     try {
       changeStream = ConfigurationDB.watch([], {
         fullDocument: "updateLookup",
@@ -452,10 +484,20 @@ export class Configuration {
           Configuration.stopWatching();
           return;
         }
+        if (isConnectionLifecycleChangeStreamError(error)) {
+          logger.debug(`Configuration change stream closed: ${errorMessage}`);
+          Configuration.stopWatching();
+          return;
+        }
         logger.error(`Configuration change stream error: ${error}`);
         // Attempt to restart the stream for other errors
         Configuration.stopWatching();
-        setTimeout(() => {
+        clearChangeStreamRestartTimer();
+        changeStreamRestartTimer = setTimeout(() => {
+          changeStreamRestartTimer = null;
+          if (mongoose.connection.readyState !== 1) {
+            return;
+          }
           Configuration.startWatching().catch((err: unknown) => {
             Sentry.captureException(err);
             logger.error(`Failed to restart configuration change stream: ${err}`);
@@ -482,6 +524,7 @@ export class Configuration {
    * Stop watching the configuration change stream
    */
   static stopWatching(): void {
+    clearChangeStreamRestartTimer();
     if (changeStream) {
       changeStream.close().catch((error: unknown) => {
         logger.error(`Error closing configuration change stream: ${error}`);

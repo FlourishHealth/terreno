@@ -289,6 +289,101 @@ describe("AdminApp script routes", () => {
     });
   });
 
+  describe("GET /admin/scripts/runs", () => {
+    beforeEach(async () => {
+      await setupDb();
+      app = buildApp([
+        createTestScript({description: "Migrate old data", name: "migrate-data"}),
+        createTestScript({description: "Clean up orphans", name: "cleanup"}),
+      ]);
+      adminAgent = await authAsUser(app, "admin");
+      notAdminAgent = await authAsUser(app, "notAdmin");
+    });
+
+    it("returns runs for registered scripts, newest first", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await adminAgent.post("/admin/scripts/cleanup/run?wetRun=true").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs").expect(200);
+
+      expect(res.body.data).toHaveLength(2);
+      expect(res.body.total).toBe(2);
+      // Newest run (cleanup) is listed first.
+      expect(res.body.data[0].taskType).toBe("cleanup");
+      expect(res.body.data[1].taskType).toBe("migrate-data");
+    });
+
+    it("narrows history to a single script via the name query", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await adminAgent.post("/admin/scripts/cleanup/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs?name=cleanup").expect(200);
+
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].taskType).toBe("cleanup");
+    });
+
+    it("returns no runs when the name query is not a registered script", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await adminAgent.post("/admin/scripts/cleanup/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs?name=does-not-exist").expect(200);
+
+      expect(res.body.data).toHaveLength(0);
+      expect(res.body.total).toBe(0);
+    });
+
+    it("excludes tasks whose taskType is not a registered script", async () => {
+      await BackgroundTask.create({
+        isDryRun: false,
+        logs: [],
+        status: "completed",
+        taskType: "some-other-task",
+      });
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs").expect(200);
+
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.data[0].taskType).toBe("migrate-data");
+    });
+
+    it("paginates and reports `more`", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await adminAgent.post("/admin/scripts/cleanup/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs?limit=1&page=1").expect(200);
+
+      expect(res.body.data).toHaveLength(1);
+      expect(res.body.limit).toBe(1);
+      expect(res.body.more).toBe(true);
+      expect(res.body.total).toBe(2);
+    });
+
+    it("includes the triggering admin's display name", async () => {
+      await adminAgent.post("/admin/scripts/migrate-data/run").expect(201);
+      await waitForScripts();
+
+      const res = await adminAgent.get("/admin/scripts/runs").expect(200);
+
+      expect(res.body.data[0].createdByName).toBeDefined();
+    });
+
+    it("returns 403 for non-admin user", async () => {
+      const res = await notAdminAgent.get("/admin/scripts/runs").expect(403);
+      expect(res.body.title).toInclude("Only admins can view run history");
+    });
+
+    it("returns 401 for unauthenticated user", async () => {
+      await supertest(app).get("/admin/scripts/runs").expect(401);
+    });
+  });
+
   describe("GET /admin/config with scripts", () => {
     beforeEach(async () => {
       await setupDb();

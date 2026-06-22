@@ -210,10 +210,23 @@ export const authAsUser = async (
   return agent;
 };
 
+const defaultTestMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
+
+/** Ensures Mongoose is connected without replacing an existing test connection (e.g. MongoMemoryServer from bunSetup). */
+const ensureTestMongooseConnected = async (): Promise<void> => {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  if (mongoose.connection.readyState === 2) {
+    await mongoose.connection.asPromise();
+    return;
+  }
+  const uri = process.env.TERRENO_TEST_MONGODB_URI?.trim() || defaultTestMongoUri;
+  await mongoose.connect(uri).catch(logger.catch);
+};
+
 export const setupDb = async () => {
-  await mongoose
-    .connect("mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000")
-    .catch(logger.catch);
+  await ensureTestMongooseConnected();
 
   process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
   process.env.TOKEN_SECRET = "secret";

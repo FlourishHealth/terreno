@@ -10,6 +10,7 @@
 import {logger} from "@terreno/api";
 import {FeatureFlag} from "@terreno/feature-flags";
 import mongoose from "mongoose";
+import {Configuration} from "../models/configuration";
 import {connectToMongoDB} from "../utils/database";
 
 export const SEED_FLAGS = [
@@ -134,6 +135,7 @@ const main = async (): Promise<void> => {
       logger.info(line);
     }
 
+    await Configuration.shutdown();
     await mongoose.disconnect();
   } catch (error: unknown) {
     logger.error(`Error seeding feature flags: ${error}`);

@@ -278,7 +278,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
   const isInitialLoading = (isMetaLoading && !configMeta) || (isValuesLoading && !configValues);
   if (isInitialLoading) {
     return (
-      <Page maxWidth="100%" title={title}>
+      <Page color="transparent" maxWidth="100%" padding={0} title={title}>
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -288,7 +288,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
 
   if (!configMeta) {
     return (
-      <Page maxWidth="100%" title={title}>
+      <Page color="transparent" maxWidth="100%" padding={0} title={title}>
         <Box padding={4}>
           <Text color="secondaryDark">No configuration metadata available.</Text>
         </Box>
@@ -298,6 +298,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
 
   return (
     <Page
+      color="transparent"
       footer={
         <Box direction="row" justifyContent="end" padding={2}>
           <Button
@@ -311,6 +312,7 @@ export const ConfigurationScreen: React.FC<ConfigurationScreenProps> = ({
         </Box>
       }
       maxWidth={800}
+      padding={0}
       scroll
       title={title}
     >

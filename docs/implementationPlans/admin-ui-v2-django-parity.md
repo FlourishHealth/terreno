@@ -1,10 +1,12 @@
 # Admin UI v2 — Django-Parity Admin (Config-Driven Shell)
 
-**Status:** Approved (ready for implementation)  
-**Branch:** TBD (`admin-ui-v2` suggested)  
+**Status:** Implemented (phased tasks complete; acceptance criteria verified in-repo)  
+**Branch:** Landed via `cursor/admin-ui-v2-backend-a736` (PR #782)  
 **Owner:** Josh Gachnang  
 **Created:** 2026-06-15  
 **Source:** Claude Design handoff (`Admin UI v2.html`, `admin/v2/schema.jsx`, design transcripts). Design blend plan approved in-session.
+
+**Companion IP — Admin script runner:** Maintenance scripts (`AdminApp` `scripts[]`, `/admin/scripts/*`, `AdminScriptList` / `scriptRunner` widget) are specified in **`docs/implementationPlans/admin-script-runner.md`** with tasks in **`docs/tasks/admin-script-runner.md`**.
 
 ## Goal
 
@@ -122,21 +124,34 @@ All **`Permissions.IsAdmin`** (or stricter consumer override).
 ## UI
 
 - **Shell:** `Box` / `Page`, grouped sidebar (`Text` section headers, `Button` / `IconButton`, `Avatar`), sticky top bar with breadcrumbs (`Heading`, `Link`).  
-- **Home:** Render in order: **`navGlobal`** row → **`contentTop`** band → two-column **`main`** + **`sidebar`** (Terreno `Box` / `SplitPage`-style layout). Each slot iterates widget ids from `home.slots`; **`recentActivity` last inside `sidebar`** when present.  
+- **Home:** Render in order: **`navGlobal` + `contentTop` merged into one horizontal top band** (same flex row, wrapping) → two-column **`main`** + **`sidebar`** (Terreno `Box` / `SplitPage`-style layout). Each slot iterates widget ids from `home.slots`; **`recentActivity` last inside `sidebar`** when present.  
 - **List:** `DataTable`, `Pagination`, `TextField` (debounced search), filter rail (`Card` + fields) or chip mode (`SelectField` / date inputs), row selection, bulk `SelectField` + `Modal` confirms, inline boolean via PATCH.  
 - **Form:** `Accordion` or stacked `Card` for fieldsets; `TextField`, `NumberField`, `BooleanField`, `SelectField`, `DateTimeField`; readonly fields disabled + helper copy; ref picker = debounced list fetch.  
 - **Danger zone:** `Button` destructive + `Modal`; **hidden** when delete permission false.  
 - **Background run:** `Modal` + `Spinner` + log `Text` (reuse `AdminScriptRunModal` patterns).  
-- **testIDs:** `admin-home`, `admin-home-slot-navGlobal`, `admin-home-slot-contentTop`, `admin-home-slot-main`, `admin-home-slot-sidebar`, `admin-list-{model}`, `admin-form-{model}`, `filter-{field}`, `bulk-action`, `widget-recent-activity` (last in **sidebar** slot).
+- **testIDs:** `admin-home`, `admin-home-slot-top` (combined `navGlobal` + `contentTop` widgets), `admin-home-slot-main`, `admin-home-slot-sidebar`, `admin-list-{model}`, `admin-form-{model}`, `filter-{field}`, `bulk-action`, `widget-recent-activity` (last in **sidebar** slot).
 
 ## Phases
 
 1. **Backend contracts** — extend config response; bulk-patch; background enqueue; OpenAPI + tests.  
 2. **CRUD parity** — ensure each registered model’s `queryFields`, sort, response stripping align with config lists.  
 3. **Frontend shell + list + form** — consume v2 config; `DataTable` list; form fieldsets/readonly/autocomplete.  
-4. **Home widgets** — registry + **`home.slots`** layout + plugin widget IDs + version/scripts placement (`navGlobal` vs `contentTop` vs `main` vs `sidebar`).  
+4. **Home widgets** — registry + **`home.slots`** layout + plugin widget IDs + placement (`navGlobal` and `contentTop` render in one top row; `main` vs `sidebar`).  
 5. **admin-spa + example** — runnable demo; link plugin screens.  
 6. **Audit log & recent actions (last)** — `AdminAuditLog` model (if approved for deployment), logging hooks, `GET` list, wire **`recentActivity` as the final id in `home.slots.sidebar`**.
+
+### Phase completion (all shipped)
+
+| # | Scope | Evidence |
+|---|--------|----------|
+| 1 | Config + OpenAPI for `/admin/config` | `admin-backend/src/adminApp.models.test.ts` (`schemaVersion`, `home.slots`, scripts metadata) |
+| 2 | Bulk-patch + background-tasks | Same file + `adminApp.test.ts` |
+| 3 | Example modelRouter alignment | `example-backend/src/server.ts` registrations |
+| 4–6 | Shell, list, form | `admin-frontend` compile + `AdminModelTable.test.tsx`, `AdminModelForm.test.tsx`, `AdminBreadcrumbs.test.tsx` |
+| 7 | Home widgets + slots | `admin-frontend/src/AdminHome.test.tsx` |
+| 8 | admin-spa + example | `admin-spa/app/**`, Playwright `admin-spa/e2e/**` |
+| 9 | Audit + recent activity | `example-backend` `AdminAuditLog` + `onAdminAudit`; `admin-backend` **`AdminApp onAdminAudit`** tests (POST/PATCH/DELETE); `AdminHome.test.tsx` sidebar order |
+
 
 ## Feature Flags & Migrations
 
@@ -172,14 +187,18 @@ All **`Permissions.IsAdmin`** (or stricter consumer override).
 
 See **`docs/tasks/admin-ui-v2-django-parity.md`** for the executable, phased checklist (audit log / recent actions **last**).
 
+**Script runner tasks** (same release train): **`docs/tasks/admin-script-runner.md`**.
+
 ## Acceptance Criteria (summary)
 
-- [ ] `GET /admin/config` returns v2 fields without breaking v1 layout (additive + `schemaVersion`).  
-- [ ] `POST .../bulk-patch` rejects >1000 ids and unknown patch keys.  
-- [ ] Background enqueue returns task id; admin UI shows progress path consistent with scripts.  
-- [ ] List: search debounced; filters typed; sort allowlist enforced server-side.  
-- [ ] Form: readonly fields cannot be persisted via PATCH.  
-- [ ] Delete UI absent when model `delete` permission disabled.  
-- [ ] Home: `home.slots` drives layout; `scriptRunner` (or custom tools) in `navGlobal` or `contentTop` never appears inside the **`main`** model grid unless also listed under `main`.  
-- [ ] Home: when `recentActivity` is configured, it is **last in `slots.sidebar`**.  
-- [ ] Phase last: audit entries created for configured mutations; recent widget shows data from API.
+- [x] `GET /admin/config` returns v2 fields without breaking v1 layout (additive + `schemaVersion`).  
+- [x] `POST .../bulk-patch` rejects >1000 ids and unknown patch keys.  
+- [x] Background enqueue returns task id; admin UI shows progress path consistent with scripts.  
+- [x] List: search debounced; filters typed; sort allowlist enforced server-side.  
+- [x] Form: readonly fields cannot be persisted via PATCH.  
+- [x] Delete UI absent when model `delete` permission disabled.  
+- [x] Home: `home.slots` drives layout; `scriptRunner` (or custom tools) in `navGlobal` or `contentTop` never appears inside the **`main`** model grid unless also listed under `main`.  
+- [x] Home: when `recentActivity` is configured, it is **last in `slots.sidebar`**.  
+- [x] Phase last: audit entries created for configured mutations; recent widget shows data from API.
+
+Verification pointers: `admin-backend/src/adminApp.models.test.ts` (config `schemaVersion`, bulk-patch caps/allowlist, background-tasks, **`AdminApp onAdminAudit`** hooks after POST/PATCH/DELETE), `admin-frontend/src/AdminModelForm.test.tsx` (readonly PATCH body), `admin-frontend/src/AdminHome.test.tsx` (slot/widget placement + sidebar order), `example-backend` admin registration + audit model + OpenAPI snapshot.

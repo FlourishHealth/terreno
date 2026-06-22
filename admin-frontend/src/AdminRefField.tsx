@@ -17,6 +17,7 @@ export const AdminRefField: React.FC<RefFieldRendererProps> = ({
   onChange,
   errorText,
   helperText,
+  readOnly,
 }) => {
   return (
     <AdminObjectPicker
@@ -24,6 +25,7 @@ export const AdminRefField: React.FC<RefFieldRendererProps> = ({
       errorText={errorText}
       helperText={helperText}
       onChange={onChange}
+      readOnly={readOnly}
       refModelName={refModelName}
       routePath={routePath}
       title={title}

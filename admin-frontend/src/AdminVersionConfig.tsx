@@ -23,6 +23,11 @@ interface AdminVersionConfigProps {
   apiBase?: string;
   /** Base path used for in-app navigation. Falls back to `baseUrl`. */
   routeBase?: string;
+  /**
+   * When true, renders a compact bordered panel without a surrounding {@link Page} or Back
+   * button — for embedding on the admin home dashboard.
+   */
+  embedded?: boolean;
 }
 
 const VERSION_CONFIG_ENDPOINT = "adminVersionConfig";
@@ -32,6 +37,7 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   baseUrl,
   apiBase,
   routeBase,
+  embedded,
 }) => {
   const {apiBase: resolvedApiBase} = resolveAdminBases({apiBase, baseUrl, routeBase});
   const [formState, setFormState] = useState<VersionConfigData>({});
@@ -133,8 +139,15 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   }, []);
 
   if (isFetching) {
+    if (embedded) {
+      return (
+        <Box padding={4} testID="admin-version-config-widget-loading">
+          <Spinner />
+        </Box>
+      );
+    }
     return (
-      <Page maxWidth="100%" title="Version Config">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" justifyContent="center" padding={6}>
           <Spinner />
         </Box>
@@ -143,8 +156,17 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
   }
 
   if (fetchError) {
+    if (embedded) {
+      return (
+        <Box padding={3} testID="admin-version-config-widget-error">
+          <Text color="error" size="sm">
+            Version config unavailable.
+          </Text>
+        </Box>
+      );
+    }
     return (
-      <Page maxWidth="100%" title="Version Config">
+      <Page color="transparent" maxWidth="100%" padding={0} title="Version Config">
         <Box alignItems="center" gap={4} justifyContent="center" padding={6}>
           <Text color="error">Failed to load version config. Please try again later.</Text>
           <Button onClick={handleBack} text="Back" variant="outline" />
@@ -153,94 +175,116 @@ export const AdminVersionConfig: React.FC<AdminVersionConfigProps> = ({
     );
   }
 
-  return (
-    <Page maxWidth="100%" scroll title="Version Config">
-      <Box gap={4} padding={4}>
+  const formInner = (
+    <>
+      {!embedded ? (
         <Text color="secondaryDark" size="sm">
           Configure version thresholds for upgrade warnings and blocks. Use build numbers (e.g. from
           git rev-list --count HEAD). Set to 0 to disable.
         </Text>
+      ) : (
+        <Text bold size="sm">
+          Client version thresholds
+        </Text>
+      )}
 
-        <Box gap={2}>
-          <Text bold size="md">
-            Web
-          </Text>
-          <NumberField
-            onChange={(v) => handleFieldChange("webWarningVersion", parseInt(v, 10) || 0)}
-            title="Warning version (build number)"
-            type="number"
-            value={String(formState.webWarningVersion ?? 0)}
-          />
-          <NumberField
-            onChange={(v) => handleFieldChange("webRequiredVersion", parseInt(v, 10) || 0)}
-            title="Required version (build number)"
-            type="number"
-            value={String(formState.webRequiredVersion ?? 0)}
-          />
-        </Box>
+      <Box gap={2}>
+        <Text bold size="md">
+          Web
+        </Text>
+        <NumberField
+          onChange={(v) => handleFieldChange("webWarningVersion", parseInt(v, 10) || 0)}
+          title="Warning version (build number)"
+          type="number"
+          value={String(formState.webWarningVersion ?? 0)}
+        />
+        <NumberField
+          onChange={(v) => handleFieldChange("webRequiredVersion", parseInt(v, 10) || 0)}
+          title="Required version (build number)"
+          type="number"
+          value={String(formState.webRequiredVersion ?? 0)}
+        />
+      </Box>
 
-        <Box gap={2}>
-          <Text bold size="md">
-            Mobile
-          </Text>
-          <NumberField
-            onChange={(v) => handleFieldChange("mobileWarningVersion", parseInt(v, 10) || 0)}
-            title="Warning version (build number)"
-            type="number"
-            value={String(formState.mobileWarningVersion ?? 0)}
-          />
-          <NumberField
-            onChange={(v) => handleFieldChange("mobileRequiredVersion", parseInt(v, 10) || 0)}
-            title="Required version (build number)"
-            type="number"
-            value={String(formState.mobileRequiredVersion ?? 0)}
-          />
-        </Box>
+      <Box gap={2}>
+        <Text bold size="md">
+          Mobile
+        </Text>
+        <NumberField
+          onChange={(v) => handleFieldChange("mobileWarningVersion", parseInt(v, 10) || 0)}
+          title="Warning version (build number)"
+          type="number"
+          value={String(formState.mobileWarningVersion ?? 0)}
+        />
+        <NumberField
+          onChange={(v) => handleFieldChange("mobileRequiredVersion", parseInt(v, 10) || 0)}
+          title="Required version (build number)"
+          type="number"
+          value={String(formState.mobileRequiredVersion ?? 0)}
+        />
+      </Box>
 
-        <Box gap={2}>
-          <Text bold size="md">
-            Messages
-          </Text>
-          <TextField
-            onChange={(v) => handleFieldChange("warningMessage", v)}
-            title="Warning message"
-            value={formState.warningMessage ?? ""}
-          />
-          <TextField
-            onChange={(v) => handleFieldChange("requiredMessage", v)}
-            title="Required (blocking) message"
-            value={formState.requiredMessage ?? ""}
-          />
-        </Box>
+      <Box gap={2}>
+        <Text bold size="md">
+          Messages
+        </Text>
+        <TextField
+          onChange={(v) => handleFieldChange("warningMessage", v)}
+          title="Warning message"
+          value={formState.warningMessage ?? ""}
+        />
+        <TextField
+          onChange={(v) => handleFieldChange("requiredMessage", v)}
+          title="Required (blocking) message"
+          value={formState.requiredMessage ?? ""}
+        />
+      </Box>
 
-        <Box gap={2}>
-          <TextField
-            onChange={(v) => handleFieldChange("updateUrl", v)}
-            title="Update URL (optional, for mobile app store link)"
-            value={formState.updateUrl ?? ""}
-          />
-        </Box>
+      <Box gap={2}>
+        <TextField
+          onChange={(v) => handleFieldChange("updateUrl", v)}
+          title="Update URL (optional, for mobile app store link)"
+          value={formState.updateUrl ?? ""}
+        />
+      </Box>
 
-        <Box gap={2}>
-          <Text bold size="md">
-            Polling
-          </Text>
-          <NumberField
-            onChange={(v) => handleFieldChange("pollingIntervalMinutes", parseInt(v, 10) || 1440)}
-            title="Update check interval (minutes)"
-            type="number"
-            value={String(formState.pollingIntervalMinutes ?? 1440)}
-          />
+      <Box gap={2}>
+        <Text bold size="md">
+          Polling
+        </Text>
+        <NumberField
+          onChange={(v) => handleFieldChange("pollingIntervalMinutes", parseInt(v, 10) || 1440)}
+          title="Update check interval (minutes)"
+          type="number"
+          value={String(formState.pollingIntervalMinutes ?? 1440)}
+        />
+        {!embedded ? (
           <Text color="secondaryDark" size="sm">
             How often clients check for updates in the background. Default: 1440 (24 hours).
             Minimum: 1.
           </Text>
-        </Box>
+        ) : null}
+      </Box>
 
-        <Box direction="row" gap={2}>
-          <Button onClick={handleBack} text="Back" variant="outline" />
-          <Button loading={isSaving} onClick={handleSave} text="Save" variant="primary" />
-        </Box>
+      <Box direction="row" gap={2}>
+        {!embedded ? <Button onClick={handleBack} text="Back" variant="outline" /> : null}
+        <Button loading={isSaving} onClick={handleSave} text="Save" variant="primary" />
+      </Box>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <Box border="default" gap={3} padding={3} rounding="md" testID="admin-version-config-widget">
+        {formInner}
+      </Box>
+    );
+  }
+
+  return (
+    <Page color="transparent" maxWidth="100%" padding={0} scroll title="Version Config">
+      <Box gap={4} padding={4}>
+        {formInner}
       </Box>
     </Page>
   );
