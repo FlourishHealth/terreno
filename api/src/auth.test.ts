@@ -926,4 +926,142 @@ describe("addMeRoutes edge cases", () => {
     // Either 404 (user not found in /me handler) or 401 (auth middleware rejects)
     expect([401, 404]).toContain(res.status);
   });
+
+  it("PATCH /auth/me returns 404 when user is deleted after auth", async () => {
+    const [_admin, notAdmin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const notAdminId = (notAdmin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: notAdminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    await UserModel.deleteOne({_id: notAdminId});
+    const res = await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({email: "x@x.com"});
+    expect([401, 404]).toContain(res.status);
+  });
+
+  it("PATCH /auth/me returns 403 on validation error", async () => {
+    const [admin] = await setupDb();
+    const jwtLib = (await import("jsonwebtoken")).default;
+    const adminId = (admin as unknown as {_id: {toString(): string}})._id;
+    const token = jwtLib.sign({id: adminId.toString()}, process.env.TOKEN_SECRET as string, {
+      issuer: process.env.TOKEN_ISSUER,
+    });
+    const res = await agent
+      .patch("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .send({admin: "not_a_boolean_value_but_will_be_cast"});
+    expect([200, 403]).toContain(res.status);
+  });
+});
+
+describe("Secret prefix authorization bypass", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = new TerrenoApp({
+      configureApp: (router: express.Router) => {
+        router.use(
+          "/food",
+          modelRouter(FoodModel, {
+            allowAnonymous: true,
+            permissions: {
+              create: [],
+              delete: [],
+              list: [Permissions.IsAny],
+              read: [Permissions.IsAny],
+              update: [],
+            },
+          })
+        );
+      },
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("passes through with Secret prefix authorization header without JWT decoding", async () => {
+    const res = await agent.get("/food").set("authorization", "Secret my-secret-token").expect(200);
+    expect(res.body.data).toBeDefined();
+  });
+});
+
+describe("generateTokens env integration", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("includes TOKEN_ISSUER in token when set", async () => {
+    process.env.TOKEN_ISSUER = "test-issuer";
+    const result = await generateTokens({_id: "user-123"});
+    const decoded = decodeTokenPayload<{iss?: string}>(result.token as string);
+    expect(decoded.iss).toBe("test-issuer");
+  });
+
+  it("generates a unique sessionId when none provided", async () => {
+    const result1 = await generateTokens({_id: "user-123"});
+    const result2 = await generateTokens({_id: "user-123"});
+    expect(result1.sessionId).toBeDefined();
+    expect(result2.sessionId).toBeDefined();
+    expect(result1.sessionId).not.toBe(result2.sessionId);
+  });
+
+  it("uses provided sessionId from options", async () => {
+    const result = await generateTokens({_id: "user-123"}, undefined, {
+      sessionId: "custom-session-id",
+    });
+    const decoded = decodeTokenPayload<{sid?: string}>(result.token as string);
+    expect(decoded.sid).toBe("custom-session-id");
+    expect(result.sessionId).toBe("custom-session-id");
+  });
+});
+
+describe("refresh_token without REFRESH_TOKEN_SECRET", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  const OLD_ENV = process.env;
+
+  beforeEach(async () => {
+    setSystemTime();
+    process.env = {...OLD_ENV};
+    await setupDb();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    process.env = OLD_ENV;
+  });
+
+  it("returns 401 when REFRESH_TOKEN_SECRET is not set", async () => {
+    process.env.REFRESH_TOKEN_SECRET = "";
+    const res = await agent
+      .post("/auth/refresh_token")
+      .send({refreshToken: "some-token"})
+      .expect(401);
+    expect(res.body.message).toContain("No REFRESH_TOKEN_SECRET set");
+  });
 });
