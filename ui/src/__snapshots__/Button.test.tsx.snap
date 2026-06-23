@@ -346,7 +346,7 @@ exports[`Button renders outline variant 1`] = `
       "flexDirection": "column",
       "justifyContent": "center",
       "paddingHorizontal": 20,
-      "paddingVertical": 8,
+      "paddingVertical": 6,
       "width": "auto",
     },
     "testID": undefined,
