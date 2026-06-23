@@ -47,7 +47,7 @@ jobs:
       COMMENT_MARKER: "<!-- fingerprint-gate:example-frontend -->"
     steps:
       - name: Checkout PR head
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           path: pr
 
@@ -96,7 +96,7 @@ jobs:
           echo "android=$android" >> "$GITHUB_OUTPUT"
 
       - name: Checkout master
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.3
         with:
           ref: master
           path: master
