@@ -4,12 +4,11 @@ import {Platform} from "react-native";
 
 import {
   CONTENT_WIDTH,
-  MARGIN_LEFT,
-  MARGIN_RIGHT,
-  PAGE_HEIGHT,
-  PAGE_WIDTH,
   ensureSpace,
   formatDate,
+  MARGIN_LEFT,
+  MARGIN_RIGHT,
+  PAGE_WIDTH,
 } from "./pdfUtils";
 
 interface ConsentResponseData {
