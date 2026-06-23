@@ -16,6 +16,7 @@ function addRoutesWithBuilder(router: Router, options?: Partial<ModelRouterOptio
   const statsMiddleware = createOpenApiBuilder(options ?? {})
     .withTags(["Stats"])
     .withSummary("Get food statistics")
+    .withOperationId("getFoodStats")
     .withDescription("Returns aggregated statistics about food items")
     .withQueryParameter(
       "category",
@@ -193,6 +194,14 @@ describe("OpenApiMiddlewareBuilder", () => {
       expect(categoryParam.schema.type).toBe("string");
       expect(categoryParam.description).toBe("Filter by food category");
       expect(categoryParam.required).toBe(false);
+    });
+
+    it("includes the explicit operationId in OpenAPI spec", async () => {
+      server = supertest(app);
+      const res = await server.get("/openapi.json").expect(200);
+
+      const statsPath = res.body.paths["/food/stats"];
+      expect(statsPath.get.operationId).toBe("getFoodStats");
     });
 
     it("includes request body schema in OpenAPI spec", async () => {
