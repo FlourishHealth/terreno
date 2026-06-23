@@ -1667,10 +1667,15 @@ export interface ButtonProps {
    */
   tooltipText?: string;
   /**
+   * The size of the button.
+   * @default "default"
+   */
+  size?: "default" | "sm";
+  /**
    * The type of the button, which determines its style.
    * @default "primary"
    */
-  variant?: "primary" | "secondary" | "muted" | "outline" | "destructive";
+  variant?: "primary" | "secondary" | "muted" | "outline" | "destructive" | "ghost";
   /**
    * If true, a confirmation modal will be shown before the onClick action.
    */
