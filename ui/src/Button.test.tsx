@@ -312,4 +312,16 @@ describe("Button", () => {
       expect(getByText("FontAwesome")).toBeTruthy();
     });
   });
+
+  it("renders disabled button and does not call onClick", () => {
+    const handleClick = mock(() => Promise.resolve());
+    const {getByText} = renderWithTheme(<Button disabled onClick={handleClick} text="Disabled" />);
+    fireEvent.press(getByText("Disabled"));
+    expect(handleClick).not.toHaveBeenCalled();
+  });
+
+  it("shows loading indicator when loading prop is true", () => {
+    const {toJSON} = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />);
+    expect(toJSON()).toMatchSnapshot();
+  });
 });
