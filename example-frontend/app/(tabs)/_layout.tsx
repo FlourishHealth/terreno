@@ -2,10 +2,11 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import {useTheme} from "@terreno/ui";
 import {Tabs} from "expo-router";
 import type React from "react";
+import type {ColorValue} from "react-native";
 
 const TabBarIcon: React.FC<{
   name: React.ComponentProps<typeof FontAwesome>["name"];
-  color: string;
+  color: ColorValue;
 }> = ({name, color}) => {
   return <FontAwesome color={color} name={name} size={24} style={{marginBottom: -3}} />;
 };
@@ -47,6 +48,13 @@ const TabLayout: React.FC = () => {
         options={{
           tabBarIcon: ({color}) => <TabBarIcon color={color} name="file-text" />,
           title: "Consents",
+        }}
+      />
+      <Tabs.Screen
+        name="pdf"
+        options={{
+          tabBarIcon: ({color}) => <TabBarIcon color={color} name="file-pdf-o" />,
+          title: "PDF",
         }}
       />
       <Tabs.Screen

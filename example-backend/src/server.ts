@@ -162,6 +162,7 @@ export const start = async (skipListen = false): Promise<express.Application> =>
     const websocketsDebug = WEBSOCKETS_DEBUG || adminWebsocketsDebug === true;
 
     const terraApp = new TerrenoApp({
+      corsOrigin: true,
       loggingOptions: {
         disableConsoleColors: isDeployed,
         disableConsoleLogging: isDeployed,
