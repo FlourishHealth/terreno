@@ -45,7 +45,7 @@ jobs:
       tasks: ${{ steps.filter.outputs.tasks }}
       mcp: ${{ steps.filter.outputs.mcp }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -80,7 +80,7 @@ jobs:
     if: needs.detect.outputs.terraform == 'true' || github.event.inputs.run_terraform == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: 1.9.8
@@ -96,7 +96,7 @@ jobs:
       github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -146,7 +146,7 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Validate required vars
         run: |
           missing=()
@@ -200,7 +200,7 @@ jobs:
       backend_url: ${{ steps.deploy.outputs.url }}
       deployment_id: ${{ steps.create-deployment.outputs.deployment_id }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Create GitHub Deployment
         id: create-deployment
         uses: actions/github-script@v9.0.0
@@ -331,7 +331,7 @@ jobs:
       (needs.terraform-preview.result == 'success' || needs.terraform-preview.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Deactivate previous preview deployments
         uses: actions/github-script@v9.0.0
         with:
@@ -480,7 +480,7 @@ jobs:
       (needs.terraform-apply.result == 'success' || needs.terraform-apply.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - name: Validate required vars
         run: |
           missing=()
@@ -545,7 +545,7 @@ jobs:
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -570,7 +570,7 @@ jobs:
       needs.mcp-test.result == 'success'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6.0.3
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
