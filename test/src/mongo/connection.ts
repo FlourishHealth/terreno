@@ -1,5 +1,6 @@
-import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+
+import {testLogger} from "../logging/testLogger";
 
 export const DEFAULT_LOCAL_MONGO_URI = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
 
@@ -59,6 +60,6 @@ export const ensureTestMongooseConnected = async (
       options.onConnectError(error);
       return;
     }
-    logger.catch(error);
+    testLogger.catch(error);
   }
 };

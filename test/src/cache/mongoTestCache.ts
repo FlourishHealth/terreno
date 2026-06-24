@@ -1,8 +1,9 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+
+import {testLogger} from "../logging/testLogger";
 
 import {buildDatabaseUri} from "../mongo/connection";
 import {restartMongoServer, startMongoServer, waitForDatabaseReady} from "../mongo/mongoServer";
@@ -197,7 +198,18 @@ const loadTestDataIntoDb = async (cachedCollections: Record<string, unknown[]>):
     );
   }
 
-  await Promise.allSettled(restorePromises);
+  const restoreResults = await Promise.allSettled(restorePromises);
+  for (const result of restoreResults) {
+    if (result.status === "rejected") {
+      const error = result.reason as {code?: number; writeErrors?: Array<{code?: number}>};
+      const isDuplicateKey =
+        error?.code === 11000 ||
+        error?.writeErrors?.every((writeError) => writeError.code === 11000);
+      if (!isDuplicateKey) {
+        throw result.reason;
+      }
+    }
+  }
   await ensureAllIndexes();
 };
 
@@ -258,7 +270,7 @@ export const createMongoTestCache = (options: MongoTestCacheOptions): MongoTestC
     );
     saveHash(options.cacheDir, currentHash);
     cachedCollectionsInMemory = cachedCollections;
-    logger.info(`[mongoTestCache] Test data cached to ${options.cacheDir}`);
+    testLogger.info(`[mongoTestCache] Test data cached to ${options.cacheDir}`);
   };
 
   const loadTestDataFromCache = async (): Promise<void> => {

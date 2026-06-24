@@ -4,7 +4,6 @@
     "url": "https://github.com/FlourishHealth/terreno/issues"
   },
   "dependencies": {
-    "@terreno/api": "workspace:*",
     "express": "^5.2.1",
     "lodash": "catalog:",
     "qs": "catalog:",

@@ -1,6 +1,7 @@
 import {afterAll, afterEach, beforeAll, beforeEach, jest, mock, setSystemTime} from "bun:test";
-import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+
+import {testLogger} from "../logging/testLogger";
 
 import {setTerrenoTestEnv, type TerrenoTestEnvOptions} from "../env/setTerrenoTestEnv";
 import {
@@ -134,21 +135,26 @@ export const registerBackendPreload = (options: BackendPreloadOptions = {}): voi
  * Simple Mongo preload: single memory server or external URI, no transactions.
  * Matches the historical `@terreno/api` `bunSetup.ts` behavior.
  */
-export const registerSimpleMongoPreload = (
-  options: Omit<BackendPreloadOptions, "useTransactions" | "connectMongoInBeforeAll"> = {}
-): void => {
+export interface SimpleMongoPreloadOptions
+  extends Omit<BackendPreloadOptions, "useTransactions" | "connectMongoInBeforeAll"> {
+  /** Fallback URI when no env override or memory server is configured. */
+  defaultLocalMongoUri?: string;
+}
+
+export const registerSimpleMongoPreload = (options: SimpleMongoPreloadOptions = {}): void => {
   let memoryMongo: {getUri: () => string; stop: () => Promise<boolean>} | undefined;
-  const defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
+  const {defaultLocalMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000", ...preloadOptions} =
+    options;
 
   registerBackendPreload({
-    ...options,
+    ...preloadOptions,
     connectMongoInBeforeAll: false,
     onAfterAll: async () => {
       await mongoose.connection.close();
       if (memoryMongo) {
         await memoryMongo.stop();
       }
-      await options.onAfterAll?.();
+      await preloadOptions.onAfterAll?.();
     },
     onBeforeAll: async () => {
       let uri = process.env.TERRENO_TEST_MONGODB_URI?.trim();
@@ -159,9 +165,9 @@ export const registerSimpleMongoPreload = (
       }
       const connectUri = uri ?? defaultLocalMongoUri;
       if (mongoose.connection.readyState === 0) {
-        await mongoose.connect(connectUri).catch(logger.catch);
+        await mongoose.connect(connectUri).catch(testLogger.catch);
       }
-      await options.onBeforeAll?.();
+      await preloadOptions.onBeforeAll?.();
     },
     useTransactions: false,
   });

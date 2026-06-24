@@ -1,11 +1,12 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: test mock typing
 import {afterEach, beforeEach} from "bun:test";
 import {Writable} from "node:stream";
-import {winstonLogger} from "@terreno/api";
 import winston from "winston";
 
 export interface SilenceLogsOptions {
   showAllLogs?: boolean;
+  /** Extra winston loggers to silence (e.g. @terreno/api winstonLogger). */
+  additionalWinstonLoggers?: winston.Logger[];
   onBeforeEach?: () => void;
   onAfterEach?: () => void;
 }
@@ -16,6 +17,17 @@ export interface SilenceLogsController {
   restore: () => void;
   reapply: () => void;
 }
+
+const getApiWinstonLogger = (): winston.Logger | undefined => {
+  try {
+    // Runtime-only so @terreno/test compiles without @terreno/api.
+    // biome-ignore lint/suspicious/noExplicitAny: optional peer resolved at preload time
+    const api = require("@terreno/api") as any;
+    return api.winstonLogger as winston.Logger | undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 const createLogStream = (logs: string[], showAllLogs: boolean): Writable => {
   return new Writable({
@@ -67,8 +79,17 @@ export const createLogSilencer = (options: SilenceLogsOptions = {}): SilenceLogs
   const applySilencing = (): void => {
     winston.clear();
     winston.add(silentTransport);
-    winstonLogger.clear();
-    winstonLogger.add(silentTransport);
+
+    const extraLoggers = [
+      ...(options.additionalWinstonLoggers ?? []),
+      getApiWinstonLogger(),
+    ].filter(Boolean) as winston.Logger[];
+
+    for (const extraLogger of extraLoggers) {
+      extraLogger.clear();
+      extraLogger.add(silentTransport);
+    }
+
     captureConsoleMethod("log");
     captureConsoleMethod("info");
     captureConsoleMethod("warn");

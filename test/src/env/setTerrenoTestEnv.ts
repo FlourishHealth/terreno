@@ -1,4 +1,4 @@
-import {setupEnvironment} from "@terreno/api";
+import {setupTestEnvironment} from "../logging/setupEnvironment";
 
 export interface TerrenoTestEnvOptions {
   tokenIssuer?: string;
@@ -18,8 +18,7 @@ const DEFAULT_AUTH_ENV = {
 } as const;
 
 /**
- * Applies the canonical Terreno backend test `process.env` surface for auth secrets
- * and delegates to `setupEnvironment()` from `@terreno/api`.
+ * Applies the canonical Terreno backend test `process.env` surface for auth secrets.
  */
 export const setTerrenoTestEnv = (options: TerrenoTestEnvOptions = {}): void => {
   process.env.NODE_ENV = "test";
@@ -47,5 +46,5 @@ export const setTerrenoTestEnv = (options: TerrenoTestEnvOptions = {}): void => 
     }
   }
 
-  setupEnvironment();
+  setupTestEnvironment();
 };

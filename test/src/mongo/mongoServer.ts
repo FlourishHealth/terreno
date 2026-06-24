@@ -1,5 +1,6 @@
-import {logger} from "@terreno/api";
 import mongoose from "mongoose";
+
+import {testLogger} from "../logging/testLogger";
 
 import {buildDatabaseUri} from "./connection";
 
@@ -51,7 +52,7 @@ export const waitForDatabaseReady = async (maxAttempts = 15, delayMs = 1000): Pr
         throw error;
       }
       if (process.env.DEBUG_MONGO_PRELOAD === "true") {
-        logger.debug(
+        testLogger.debug(
           `[mongoServer] Database not ready (attempt ${attempt}/${maxAttempts}, code=${code}), retrying in ${delayMs}ms...`
         );
       }
@@ -125,7 +126,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
   if (externalUri) {
     uri = externalUri;
     if (process.env.DEBUG_MONGO_PRELOAD === "true") {
-      logger.debug(`[mongoServer] Using external MongoDB at ${externalUri}`);
+      testLogger.debug(`[mongoServer] Using external MongoDB at ${externalUri}`);
     }
   } else {
     uri = await startMemoryServer(shouldUseReplSet(options));
@@ -147,7 +148,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
   const {modelCount, modelInitMs} = await initializeModels();
 
   if (process.env.DEBUG_MONGO_PRELOAD === "true") {
-    logger.debug(
+    testLogger.debug(
       `[mongoServer] Initialized ${modelCount} models in ${modelInitMs}ms, connected in ${Date.now() - startTime}ms`
     );
   }
@@ -159,7 +160,7 @@ export const startMongoServer = async (options: MongoServerOptions = {}): Promis
 export const restartMongoServer = async (options: MongoServerOptions = {}): Promise<void> => {
   const merged = {...DEFAULT_OPTIONS, ...options};
   const startTime = Date.now();
-  logger.warn("[mongoServer] Force-restarting MongoDB server...");
+  testLogger.warn("[mongoServer] Force-restarting MongoDB server...");
 
   try {
     await mongoose.disconnect();
@@ -198,7 +199,7 @@ export const restartMongoServer = async (options: MongoServerOptions = {}): Prom
   initializedModelNames.clear();
   await initializeModels();
 
-  logger.warn(`[mongoServer] MongoDB server restarted in ${Date.now() - startTime}ms`);
+  testLogger.warn(`[mongoServer] MongoDB server restarted in ${Date.now() - startTime}ms`);
 };
 
 export const stopMongoServer = async (): Promise<void> => {

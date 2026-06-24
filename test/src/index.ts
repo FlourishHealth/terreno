@@ -49,4 +49,5 @@ export {
   registerBackendPreload,
   registerSimpleMongoPreload,
   type BackendPreloadOptions,
+  type SimpleMongoPreloadOptions,
 } from "./preload/registerBackendPreload";
