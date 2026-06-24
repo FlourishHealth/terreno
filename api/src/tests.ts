@@ -1,10 +1,13 @@
 import express, {type Express} from "express";
 import mongoose, {type Model, model, Schema} from "mongoose";
 import passportLocalMongoose, {type PassportLocalMongooseDocument} from "passport-local-mongoose";
-import qs from "qs";
-import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
 
+import {
+  authAsUser as authAsUserWithCredentials,
+  ensureTestMongooseConnected,
+  getBaseServer as createBaseTestServer,
+} from "@terreno/test";
 import {logger} from "./logger";
 import {patchAppUse} from "./openApiCompat";
 import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "./plugins";
@@ -172,29 +175,9 @@ const requiredSchema = new Schema<RequiredField>({
 export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
 export const getBaseServer = (): Express => {
-  const app = express();
-  app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
-
-  // Express 5 defaults to 'simple' query parser (Node querystring) which doesn't
-  // support nested bracket notation like name[$regex]=Green. Use qs to match
-  // what TerrenoApp.build() configures.
-  app.set("query parser", (str: string) => qs.parse(str, {arrayLimit: 200}));
-
-  // Record mount paths on layers for Express 5 → OpenAPI compat
-  patchAppUse(app);
-
-  app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "*");
-    // intercepts OPTIONS method
-    if (req.method === "OPTIONS") {
-      res.send(200);
-    } else {
-      next();
-    }
+  return createBaseTestServer({
+    patchOpenApiCompat: patchAppUse,
   });
-  app.use(express.json());
-  return app;
 };
 
 export const authAsUser = async (
@@ -203,30 +186,16 @@ export const authAsUser = async (
 ): Promise<TestAgent> => {
   const email = type === "admin" ? "admin@example.com" : "notAdmin@example.com";
   const password = type === "admin" ? "securePassword" : "password";
-
-  const agent = supertest.agent(app);
-  const res = await agent.post("/auth/login").send({email, password}).expect(200);
-  await agent.set("authorization", `Bearer ${res.body.data.token}`);
-  return agent;
+  return authAsUserWithCredentials(app, {email, password});
 };
 
 const defaultTestMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
 
-/** Ensures Mongoose is connected without replacing an existing test connection (e.g. MongoMemoryServer from bunSetup). */
-const ensureTestMongooseConnected = async (): Promise<void> => {
-  if (mongoose.connection.readyState === 1) {
-    return;
-  }
-  if (mongoose.connection.readyState === 2) {
-    await mongoose.connection.asPromise();
-    return;
-  }
-  const uri = process.env.TERRENO_TEST_MONGODB_URI?.trim() || defaultTestMongoUri;
-  await mongoose.connect(uri).catch(logger.catch);
-};
-
 export const setupDb = async () => {
-  await ensureTestMongooseConnected();
+  await ensureTestMongooseConnected({
+    defaultUri: defaultTestMongoUri,
+    onConnectError: logger.catch,
+  });
 
   process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
   process.env.TOKEN_SECRET = "secret";

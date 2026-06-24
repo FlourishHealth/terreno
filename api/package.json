@@ -46,6 +46,7 @@
   "description": "Styled after the Django & Django REST Framework, a batteries-include framework for building REST APIs with Node/Express/Mongoose.",
   "devDependencies": {
     "@biomejs/biome": "^2.3.6",
+    "@terreno/test": "workspace:*",
     "@types/bcrypt": "^6.0.0",
     "@types/bun": "^1.2.4",
     "@types/cors": "^2.8.17",

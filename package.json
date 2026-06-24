@@ -139,6 +139,9 @@
     "rtk:dev": "bun run --filter '@terreno/rtk' dev",
     "rtk:lint": "bun run --filter '@terreno/rtk' lint",
     "rtk:test": "bun run --filter '@terreno/rtk' test:ci",
+    "test:compile": "bun run --filter '@terreno/test' compile",
+    "test:lint": "bun run --filter '@terreno/test' lint",
+    "test:test": "bun run --filter '@terreno/test' test:ci",
     "rtk:web": "bun run --filter '@terreno/rtk' web",
     "rules": "bunx rulesync generate",
     "rules:check": "bunx rulesync generate && git diff --exit-code",
@@ -166,6 +169,7 @@
     "feature-flags",
     "mcp-server",
     "rtk",
+    "test",
     "ui",
     "website"
   ]

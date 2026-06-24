@@ -1,4 +1,4 @@
-import {registerSimpleMongoPreload} from "@terreno/test";
+import {registerSimpleMongoPreload} from "./registerBackendPreload";
 
 registerSimpleMongoPreload({
   testEnv: {
