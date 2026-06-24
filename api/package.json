@@ -81,6 +81,16 @@
   ],
   "license": "Apache-2.0",
   "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/tests.d.ts",
+      "default": "./dist/tests.js"
+    }
+  },
   "name": "@terreno/api",
   "publishConfig": {
     "access": "public"

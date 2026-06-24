@@ -1,15 +1,28 @@
 import {beforeAll, beforeEach, describe, expect, it, mock} from "bun:test";
-import {createdUpdatedPlugin, TerrenoApp, type TerrenoAppOptions} from "@terreno/api";
+import {TerrenoApp, type TerrenoAppOptions} from "@terreno/api";
 import type express from "express";
-import mongoose from "mongoose";
-import passportLocalMongoose from "passport-local-mongoose";
-import supertest from "supertest";
 
 import {getLangfuseClient, initLangfuseClient} from "./langfuseClient";
 import {addEvaluationRoutes} from "./langfuseRoutesEvaluations";
 import {addPlaygroundRoutes} from "./langfuseRoutesPlayground";
 import {addPromptRoutes} from "./langfuseRoutesPrompts";
 import {addTraceRoutes} from "./langfuseRoutesTraces";
+import {
+  authAsUserWithCredentials,
+  ensureTestUsers,
+  type StandardAiTestUserRole,
+  UserModel,
+} from "./tests/helpers";
+
+const LANGFUSE_TEST_USERS = [
+  {admin: true, email: "lf-admin@example.com", name: "LF Admin", password: "adminPass123"},
+  {admin: false, email: "lf-user@example.com", name: "LF User", password: "userPass123"},
+] as const;
+
+const authAsUser = async (appInstance: express.Application, type: StandardAiTestUserRole) => {
+  const user = LANGFUSE_TEST_USERS[type === "admin" ? 0 : 1];
+  return authAsUserWithCredentials(appInstance, {email: user.email, password: user.password});
+};
 
 const scoreCreate = mock(() => {});
 const promptCreate = mock(async (_params: Record<string, unknown>) => ({}));
@@ -33,47 +46,11 @@ const traceList = mock(async () => ({
 const traceGet = mock(async (traceId: string) => ({id: traceId, name: "Trace"}));
 const flush = mock(async () => {});
 
-const userSchema = new mongoose.Schema({
-  admin: {default: false, type: Boolean},
-  email: {index: true, type: String},
-  name: String,
-});
-userSchema.plugin(passportLocalMongoose as Parameters<typeof userSchema.plugin>[0], {
-  usernameField: "email",
-});
-userSchema.plugin(createdUpdatedPlugin);
-
-const UserModel = mongoose.models.User || mongoose.model("User", userSchema);
-
-const authAsUser = async (
-  appInstance: Parameters<typeof supertest>[0],
-  type: "admin" | "notAdmin"
-) => {
-  const email = type === "admin" ? "lf-admin@example.com" : "lf-user@example.com";
-  const password = type === "admin" ? "adminPass123" : "userPass123";
-  const agent = supertest.agent(appInstance);
-  const res = await agent.post("/auth/login").send({email, password}).expect(200);
-  await agent.set("authorization", `Bearer ${res.body.data.token}`);
-  return agent;
-};
-
 let app: express.Application;
 
 describe("Langfuse routes", () => {
   beforeAll(async () => {
-    await UserModel.deleteMany({email: {$in: ["lf-admin@example.com", "lf-user@example.com"]}});
-
-    const admin = await UserModel.create({
-      admin: true,
-      email: "lf-admin@example.com",
-      name: "LF Admin",
-    });
-    await (admin as {setPassword: (p: string) => Promise<void>}).setPassword("adminPass123");
-    await admin.save();
-
-    const user = await UserModel.create({email: "lf-user@example.com", name: "LF User"});
-    await (user as {setPassword: (p: string) => Promise<void>}).setPassword("userPass123");
-    await user.save();
+    await ensureTestUsers([...LANGFUSE_TEST_USERS]);
   });
 
   beforeEach(() => {

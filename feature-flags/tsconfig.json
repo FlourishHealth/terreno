@@ -11,6 +11,9 @@
     "lib": ["es2017", "dom", "es2017.object"],
     "module": "commonjs",
     "moduleResolution": "node",
+    "paths": {
+      "@terreno/api/testing": ["../api/src/tests.ts"]
+    },
     "noEmit": false,
     "noImplicitAny": false,
     "noImplicitReturns": true,

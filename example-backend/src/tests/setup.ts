@@ -1,58 +1,43 @@
-import {afterAll, afterEach, beforeAll, beforeEach} from "bun:test";
-import {logger} from "@terreno/api";
+import {registerSimpleMongoPreload} from "@terreno/test";
 import mongoose from "mongoose";
 
-// Test database URI
-const TEST_MONGO_URI =
-  process.env.TEST_MONGO_URI || "mongodb://localhost:27017/terreno-example-test";
+process.env.TERRENO_TEST_USE_MEMORY_MONGO = "true";
 
-beforeAll(async () => {
-  process.env.NODE_ENV = "test";
-  process.env.MONGO_CONNECTION = `${process.env.MONGO_URI}/terreno-example-test`;
-  process.env.TOKEN_SECRET = "secret";
-  process.env.TOKEN_ISSUER = "terreno-example.test";
-  process.env.SESSION_SECRET = "sessionSecret";
-  process.env.CRON_SECRET_KEY = "cronSecret";
-  process.env.REFRESH_TOKEN_SECRET = "refreshTokenSecret";
-  process.env.API_URL = "http://localhost:4000";
-  process.env.TASKS_URL = "http://localhost:4000";
-  process.env.GCP_PROJECT = "TESTproject";
-  process.env.GCP_LOCATION = "TESTlocation";
-  process.env.GCP_SERVICE_ACCOUNT_EMAIL = "TESTserviceAccountEmail@terreno-example.test";
-  process.env.GCP_TASKS_NOTIFICATIONS_QUEUE = "TESTnotificationsQueue";
-  process.env.GCP_TASK_PROCESSOR_QUEUE = "TESTtaskProcessorQueue";
-  process.env.GEMINI_API_KEY = "test-api-key";
-  process.env.SLACK_WEBHOOKS = '{"default": "http://localhost:3000/slack/TEST"}';
-  process.env.GOOGLE_CHAT_WEBHOOKS = '{"default": "http://localhost:3000/googleChat/TEST"}';
-  process.env.TOKEN_EXPIRES_IN = "1h";
-  process.env.REFRESH_TOKEN_EXPIRES_IN = "90d";
-  // Connect to test database
-  try {
-    await mongoose.connect(TEST_MONGO_URI);
-    logger.info("Connected to test database");
-  } catch (error) {
-    logger.error("Failed to connect to test database:", error);
-    throw error;
-  }
-});
+const defaultLocalMongoUri =
+  process.env.TEST_MONGO_URI || "mongodb://127.0.0.1:27017/terreno-example-test?connectTimeoutMS=360000";
 
-beforeEach(() => {
-  process.env.ADMIN_SPA_ENABLED = "false";
-  Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
-  Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
-});
-
-afterEach(async () => {
-  // Clean up database after each test
-  const collections = mongoose.connection.collections;
-  for (const key in collections) {
-    await collections[key].deleteMany({});
-  }
-});
-
-afterAll(async () => {
-  // Disconnect from test database
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  logger.info("Disconnected from test database");
+registerSimpleMongoPreload({
+  defaultLocalMongoUri,
+  testEnv: {
+    extra: {
+      API_URL: "http://localhost:4000",
+      CRON_SECRET_KEY: "cronSecret",
+      GCP_LOCATION: "TESTlocation",
+      GCP_PROJECT: "TESTproject",
+      GCP_SERVICE_ACCOUNT_EMAIL: "TESTserviceAccountEmail@terreno-example.test",
+      GCP_TASK_PROCESSOR_QUEUE: "TESTtaskProcessorQueue",
+      GCP_TASKS_NOTIFICATIONS_QUEUE: "TESTnotificationsQueue",
+      GEMINI_API_KEY: "test-api-key",
+      GOOGLE_CHAT_WEBHOOKS: '{"default": "http://localhost:3000/googleChat/TEST"}',
+      MONGO_CONNECTION: defaultLocalMongoUri.replace(/\?.*$/, ""),
+      MONGO_URI: "mongodb://127.0.0.1:27017",
+      REFRESH_TOKEN_EXPIRES_IN: "90d",
+      SLACK_WEBHOOKS: '{"default": "http://localhost:3000/slack/TEST"}',
+      TASKS_URL: "http://localhost:4000",
+      TEST_MONGO_URI: defaultLocalMongoUri,
+      TOKEN_EXPIRES_IN: "1h",
+    },
+    tokenIssuer: "terreno-example.test",
+  },
+  onAfterEach: async () => {
+    const collections = mongoose.connection.collections;
+    for (const key of Object.keys(collections)) {
+      await collections[key].deleteMany({});
+    }
+  },
+  onBeforeEach: () => {
+    process.env.ADMIN_SPA_ENABLED = "false";
+    Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
+    Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
+  },
 });

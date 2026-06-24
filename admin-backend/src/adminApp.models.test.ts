@@ -15,7 +15,7 @@ import {
   RequiredModel,
   setupDb,
   UserModel,
-} from "@terreno/api/src/tests";
+} from "@terreno/api/testing";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";

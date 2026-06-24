@@ -8,7 +8,7 @@ import {
   setupAuth,
   type UserModel as UserModelType,
 } from "@terreno/api";
-import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/src/tests";
+import {authAsUser, getBaseServer, setupDb, UserModel} from "@terreno/api/testing";
 import type express from "express";
 import supertest from "supertest";
 import type TestAgent from "supertest/lib/agent";
