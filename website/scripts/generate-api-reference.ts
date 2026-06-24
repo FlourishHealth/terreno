@@ -28,7 +28,9 @@ const runTypedoc = (target: PackageTarget): void => {
   mkdirSync(outDir, {recursive: true});
 
   const entryPath = join(REPO_ROOT, target.packageDir, target.entryFile);
-  const tsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.json");
+  const typedocTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.typedoc.json");
+  const defaultTsconfigPath = join(REPO_ROOT, target.packageDir, "tsconfig.json");
+  const tsconfigPath = existsSync(typedocTsconfigPath) ? typedocTsconfigPath : defaultTsconfigPath;
 
   const result = spawnSync(
     "bunx",

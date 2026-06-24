@@ -97,7 +97,6 @@ versionConfigSchema.plugin(isDeletedPlugin);
 versionConfigSchema.plugin(findOneOrNone);
 versionConfigSchema.plugin(findExactlyOne);
 
-export const VersionConfig = mongoose.model<VersionConfigDocument, VersionConfigModel>(
-  "VersionConfig",
-  versionConfigSchema
-);
+export const VersionConfig =
+  (mongoose.models.VersionConfig as VersionConfigModel | undefined) ??
+  mongoose.model<VersionConfigDocument, VersionConfigModel>("VersionConfig", versionConfigSchema);

@@ -10,7 +10,7 @@ import {addAuthRoutes, addMeRoutes, generateTokens, setupAuth} from "./auth";
 import {Permissions} from "./permissions";
 import {getCurrentRequestContext} from "./requestContext";
 import {TerrenoApp} from "./terrenoApp";
-import {type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {type Food, FoodModel, getBaseServer, setupDb, setupTestData, UserModel} from "./tests";
 import {AdminOwnerTransformer} from "./transformers";
 import {timeout} from "./utils";
 
@@ -29,37 +29,15 @@ describe("auth tests", () => {
     stage: string;
     userId?: string;
   }>;
-  let notAdmin: any;
   let agent: TestAgent;
 
   beforeEach(async () => {
     // Reset to real time - don't freeze time here as passport-local-mongoose
     // lockout mechanism needs real time to progress
     setSystemTime();
-    [admin, notAdmin] = await setupDb();
+    const testData = await setupTestData();
+    admin = testData.users.admin;
     contextEvents = [];
-
-    await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date(),
-        name: "Spinach",
-        ownerId: notAdmin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        hidden: true,
-        name: "Apple",
-        ownerId: admin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        name: "Carrots",
-        ownerId: admin._id,
-      }),
-    ]);
 
     function addRoutes(router: express.Router): void {
       router.use(
@@ -217,7 +195,7 @@ describe("auth tests", () => {
     // Use token to see 2 foods + the one we just created
     const getRes = await agent.get("/food").expect(200);
 
-    expect(getRes.body.data).toHaveLength(3);
+    expect(getRes.body.data).toHaveLength(4);
     expect(getRes.body.data.find((f: any) => f.name === "Peas")).toBeDefined();
 
     const updateRes = await agent
@@ -396,7 +374,7 @@ describe("auth tests", () => {
     // Use token to see admin foods
     const getRes = await agent.get("/food").expect(200);
 
-    expect(getRes.body.data).toHaveLength(3);
+    expect(getRes.body.data).toHaveLength(4);
     const food = getRes.body.data.find((f: any) => f.name === "Apple");
     expect(food).toBeDefined();
 
@@ -826,7 +804,7 @@ describe("addAuthRoutes /refresh_token error paths", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
@@ -891,7 +869,7 @@ describe("addMeRoutes edge cases", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
@@ -963,7 +941,7 @@ describe("Secret prefix authorization bypass", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: (router: express.Router) => {
         router.use(
@@ -1042,7 +1020,7 @@ describe("refresh_token without REFRESH_TOKEN_SECRET", () => {
   beforeEach(async () => {
     setSystemTime();
     process.env = {...OLD_ENV};
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
@@ -1108,7 +1086,7 @@ describe("JWT cookie extraction and /me routes edge cases", () => {
   beforeEach(async () => {
     setSystemTime();
     process.env = {...OLD_ENV};
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,
@@ -1156,7 +1134,7 @@ describe("login error and disabled user paths", () => {
 
   beforeEach(async () => {
     setSystemTime();
-    await setupDb();
+    await setupTestData();
     app = new TerrenoApp({
       configureApp: () => {},
       skipListen: true,

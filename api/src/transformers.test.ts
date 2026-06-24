@@ -10,7 +10,7 @@ import {modelRouter} from "./api";
 import {addAuthRoutes, setupAuth} from "./auth";
 import {APIError} from "./errors";
 import {Permissions} from "./permissions";
-import {authAsUser, type Food, FoodModel, getBaseServer, setupDb, UserModel} from "./tests";
+import {authAsUser, type Food, FoodModel, getBaseServer, setupTestData, UserModel} from "./tests";
 import {AdminOwnerTransformer, defaultResponseHandler, transform} from "./transformers";
 
 describe("query and transform", () => {
@@ -22,29 +22,9 @@ describe("query and transform", () => {
   beforeEach(async () => {
     process.env.REFRESH_TOKEN_SECRET = "testsecret1234";
 
-    [admin, notAdmin] = await setupDb();
-
-    await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date(),
-        name: "Spinach",
-        ownerId: notAdmin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        hidden: true,
-        name: "Apple",
-        ownerId: admin._id,
-      }),
-      FoodModel.create({
-        calories: 100,
-        created: Date.now() - 10,
-        name: "Carrots",
-        ownerId: admin._id,
-      }),
-    ]);
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    notAdmin = testData.users.notAdmin;
     app = getBaseServer();
     setupAuth(app, UserModel as any);
     addAuthRoutes(app, UserModel as any);
@@ -83,19 +63,19 @@ describe("query and transform", () => {
   it("filters list for non-admin", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
   });
 
   it("does not filter list for admin", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(3);
+    expect(foodRes.body.data).toHaveLength(4);
   });
 
   it("admin read transform", async () => {
     const agent = await authAsUser(app, "admin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(3);
+    expect(foodRes.body.data).toHaveLength(4);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.created).toBeDefined();
     expect(spinach.id).toBeDefined();
@@ -116,7 +96,7 @@ describe("query and transform", () => {
   it("owner read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.id).toBeDefined();
     expect(spinach.name).toBe("Spinach");
@@ -149,7 +129,7 @@ describe("query and transform", () => {
   it("auth read transform", async () => {
     const agent = await authAsUser(app, "notAdmin");
     const foodRes = await agent.get("/food").expect(200);
-    expect(foodRes.body.data).toHaveLength(2);
+    expect(foodRes.body.data).toHaveLength(3);
     const spinach = foodRes.body.data.find((food: Food) => food.name === "Spinach");
     expect(spinach.id).toBeDefined();
     expect(spinach.name).toBe("Spinach");
@@ -192,9 +172,10 @@ describe("query and transform", () => {
 
   it("anon read transform", async () => {
     const res = await server.get("/food");
-    expect(res.body.data).toHaveLength(2);
+    expect(res.body.data).toHaveLength(3);
     expect(res.body.data.find((f: Food) => f.name === "Spinach")).toBeDefined();
     expect(res.body.data.find((f: Food) => f.name === "Carrots")).toBeDefined();
+    expect(res.body.data.find((f: Food) => f.name === "Pizza")).toBeDefined();
   });
 
   it("anon write transform fails", async () => {

@@ -12,6 +12,7 @@
   "description": "Feature flags and A/B testing plugin for @terreno/api",
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@terreno/test": "workspace:*",
     "@types/bun": "^1.2.4",
     "@types/express": "^5.0.6",
     "@types/lodash": "catalog:",
