@@ -324,4 +324,14 @@ describe("Button", () => {
     const {toJSON} = renderWithTheme(<Button loading onClick={() => {}} text="Loading" />);
     expect(toJSON()).toMatchSnapshot();
   });
+
+  it("renders ghost variant with correct styles", () => {
+    const {toJSON} = renderWithTheme(<Button onClick={() => {}} text="Ghost" variant="ghost" />);
+    expect(toJSON()).toMatchSnapshot();
+  });
+
+  it("renders with size sm", () => {
+    const tree = renderWithTheme(<Button onClick={() => {}} size="sm" text="Small" />).toJSON();
+    expect(tree).toBeTruthy();
+  });
 });

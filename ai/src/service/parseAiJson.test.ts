@@ -216,6 +216,12 @@ describe("parseAiJson", () => {
       expect(r.data).toBe("hello");
     }
   });
+
+  it("falls through balanced extraction when neither direct nor repaired parse succeeds", () => {
+    // extractBalancedJson finds {invalid: json broken} but neither parse nor repair can fix it
+    const r = parseAiJson("prefix {invalid: json broken} suffix");
+    expect(r.success).toBe(false);
+  });
 });
 
 describe("normalizeLlmJsonTextForStructuredOutput", () => {
