@@ -37,7 +37,7 @@
     },
     "admin-frontend": {
       "name": "@terreno/admin-frontend",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@terreno/ui": "workspace:*",
         "expo-router": "catalog:",
@@ -68,7 +68,7 @@
     },
     "admin-spa": {
       "name": "@terreno/admin-spa",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@expo/vector-icons": "catalog:",
         "@react-native-async-storage/async-storage": "catalog:",
@@ -155,7 +155,7 @@
     },
     "api": {
       "name": "@terreno/api",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
         "@sentry/bun": "^10.25.0",
@@ -231,7 +231,7 @@
     },
     "api-health": {
       "name": "@terreno/api-health",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@terreno/api": "workspace:*",
         "express": "^5.2.1",
@@ -460,7 +460,7 @@
     },
     "mcp-server": {
       "name": "@terreno/mcp",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "bin": {
         "terreno-mcp": "./dist/index.js",
         "terreno-mcp-local": "./dist/local/index.js",
@@ -481,7 +481,7 @@
     },
     "rtk": {
       "name": "@terreno/rtk",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@better-auth/expo": "^1.2.8",
         "@openfeature/core": "catalog:",
@@ -550,7 +550,7 @@
     },
     "ui": {
       "name": "@terreno/ui",
-      "version": "0.21.0",
+      "version": "0.22.0",
       "dependencies": {
         "@expo-google-fonts/nunito": "^0.4.2",
         "@expo-google-fonts/titillium-web": "^0.4.1",
@@ -714,6 +714,7 @@
     "mongoose": "8.23.0",
     "pressto": "^0.6.1",
     "prettier": "^3.3.3",
+    "qs": "^6.14.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
