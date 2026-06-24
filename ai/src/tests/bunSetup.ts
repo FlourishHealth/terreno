@@ -3,12 +3,12 @@ import {registerSimpleMongoPreload} from "@terreno/test";
 
 registerSimpleMongoPreload({
   defaultLocalMongoUri: "mongodb://127.0.0.1/terreno-ai-test?&connectTimeoutMS=360000",
-  testEnv: {
-    tokenIssuer: "terreno-ai.test",
-  },
   onBeforeEach: async () => {
     const {shutdownLangfuseClient} = await import("../langfuseClient");
     await shutdownLangfuseClient();
+  },
+  testEnv: {
+    tokenIssuer: "terreno-ai.test",
   },
 });
 

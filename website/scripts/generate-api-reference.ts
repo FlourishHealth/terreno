@@ -50,6 +50,12 @@ const runTypedoc = (target: PackageTarget): void => {
       "--hidePageHeader",
       "--hideBreadcrumbs",
       "--hidePageTitle",
+      "--exclude",
+      "**/*.test.ts",
+      "--exclude",
+      "**/tests/**",
+      "--exclude",
+      "**/tests.ts",
     ],
     {cwd: WEBSITE_ROOT, env: process.env, stdio: "inherit"}
   );
