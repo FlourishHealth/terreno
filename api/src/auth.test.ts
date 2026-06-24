@@ -1065,3 +1065,135 @@ describe("refresh_token without REFRESH_TOKEN_SECRET", () => {
     expect(res.body.message).toContain("No REFRESH_TOKEN_SECRET set");
   });
 });
+
+describe("generateTokens with custom TOKEN_EXPIRES_IN", () => {
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    process.env = {...OLD_ENV};
+    process.env.TOKEN_SECRET = "secret";
+    process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
+  });
+
+  afterEach(() => {
+    process.env = OLD_ENV;
+  });
+
+  it("uses TOKEN_EXPIRES_IN when set to a valid duration", async () => {
+    process.env.TOKEN_EXPIRES_IN = "1h";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.token).toBeDefined();
+    const decoded = decodeTokenPayload<{exp: number; iat: number}>(result.token as string);
+    const diffSeconds = decoded.exp - decoded.iat;
+    // 1h = 3600s
+    expect(diffSeconds).toBe(3600);
+  });
+
+  it("uses REFRESH_TOKEN_EXPIRES_IN when set to a valid duration", async () => {
+    process.env.REFRESH_TOKEN_EXPIRES_IN = "7d";
+    const result = await generateTokens({_id: "user-123"});
+    expect(result.refreshToken).toBeDefined();
+    const decoded = decodeTokenPayload<{exp: number; iat: number}>(result.refreshToken as string);
+    const diffSeconds = decoded.exp - decoded.iat;
+    // 7d = 604800s
+    expect(diffSeconds).toBe(604800);
+  });
+});
+
+describe("JWT cookie extraction and /me routes edge cases", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+  const OLD_ENV = process.env;
+
+  beforeEach(async () => {
+    setSystemTime();
+    process.env = {...OLD_ENV};
+    await setupDb();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+    process.env = OLD_ENV;
+  });
+
+  it("returns 401 for /me when no user is authenticated", async () => {
+    const res = await agent.get("/auth/me").expect(401);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 401 for PATCH /me when no user is authenticated", async () => {
+    const res = await agent.patch("/auth/me").send({name: "Updated"}).expect(401);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 for /me when user is deleted from database", async () => {
+    // Login, then delete the user, then try /me
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    // Delete the user from DB
+    await UserModel.deleteOne({_id: userId});
+
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent.get("/auth/me").set("authorization", `Bearer ${token}`);
+    // Without the user, the JWT verify succeeds but findById returns null
+    expect([401, 404]).toContain(res.status);
+  });
+});
+
+describe("login error and disabled user paths", () => {
+  let app: express.Application;
+  let agent: TestAgent;
+
+  beforeEach(async () => {
+    setSystemTime();
+    await setupDb();
+    app = new TerrenoApp({
+      configureApp: () => {},
+      skipListen: true,
+      userModel: UserModel as any,
+    }).build();
+    agent = supertest.agent(app);
+  });
+
+  afterEach(() => {
+    setSystemTime();
+  });
+
+  it("returns 401 with message for invalid credentials (no user found)", async () => {
+    const res = await agent
+      .post("/auth/login")
+      .send({email: "nonexistent@example.com", password: "wrong"})
+      .expect(401);
+    expect(res.body.message).toBeDefined();
+  });
+
+  it("returns 401 when disabled user tries to access protected route", async () => {
+    // Login to get token
+    const loginRes = await agent
+      .post("/auth/login")
+      .send({email: "notAdmin@example.com", password: "password"})
+      .expect(200);
+    const {token, userId} = loginRes.body.data;
+
+    // Disable the user
+    await UserModel.findByIdAndUpdate(userId, {disabled: true});
+
+    // Try to access /me with disabled user's token
+    const freshAgent = supertest.agent(app);
+    const res = await freshAgent
+      .get("/auth/me")
+      .set("authorization", `Bearer ${token}`)
+      .expect(401);
+    expect(res.body.title).toContain("disabled");
+  });
+});
