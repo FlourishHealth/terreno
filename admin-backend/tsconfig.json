@@ -11,9 +11,6 @@
     "lib": ["es2017", "dom", "es2017.object"],
     "module": "commonjs",
     "moduleResolution": "node",
-    "paths": {
-      "@terreno/api/testing": ["../api/src/tests.ts"]
-    },
     "noEmit": false,
     "noImplicitAny": false,
     "noImplicitReturns": true,
@@ -29,6 +26,6 @@
     "strictNullChecks": true,
     "target": "es5"
   },
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "src/**/*.test.ts", "src/tests/**"],
   "include": ["src/**/*.ts*", "src/*.ts"]
 }
