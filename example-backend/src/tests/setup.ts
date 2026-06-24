@@ -4,10 +4,22 @@ import mongoose from "mongoose";
 process.env.TERRENO_TEST_USE_MEMORY_MONGO = "true";
 
 const defaultLocalMongoUri =
-  process.env.TEST_MONGO_URI || "mongodb://127.0.0.1:27017/terreno-example-test?connectTimeoutMS=360000";
+  process.env.TEST_MONGO_URI ||
+  "mongodb://127.0.0.1:27017/terreno-example-test?connectTimeoutMS=360000";
 
 registerSimpleMongoPreload({
   defaultLocalMongoUri,
+  onAfterEach: async () => {
+    const collections = mongoose.connection.collections;
+    for (const key of Object.keys(collections)) {
+      await collections[key].deleteMany({});
+    }
+  },
+  onBeforeEach: () => {
+    process.env.ADMIN_SPA_ENABLED = "false";
+    Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
+    Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
+  },
   testEnv: {
     extra: {
       API_URL: "http://localhost:4000",
@@ -28,16 +40,5 @@ registerSimpleMongoPreload({
       TOKEN_EXPIRES_IN: "1h",
     },
     tokenIssuer: "terreno-example.test",
-  },
-  onAfterEach: async () => {
-    const collections = mongoose.connection.collections;
-    for (const key of Object.keys(collections)) {
-      await collections[key].deleteMany({});
-    }
-  },
-  onBeforeEach: () => {
-    process.env.ADMIN_SPA_ENABLED = "false";
-    Reflect.deleteProperty(process.env, "ADMIN_SPA_DEV_PROXY");
-    Reflect.deleteProperty(process.env, "ADMIN_SPA_DIST_DIR");
   },
 });
