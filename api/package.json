@@ -97,7 +97,7 @@
     "json5": "2.2.3"
   },
   "scripts": {
-    "compile": "bun tsc",
+    "compile": "node ../.github/scripts/compile-workspace-deps.js && bun tsc",
     "compile:watch": "bun tsc -w",
     "dev": "bun tsc -w",
     "docs": "typedoc --out docs src/index.ts",
