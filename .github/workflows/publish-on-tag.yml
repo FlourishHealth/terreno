@@ -146,6 +146,85 @@ jobs:
       - name: Summary
         run: echo "Published @terreno/api@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
+  publish-test:
+    needs: check-changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: test
+    steps:
+      - uses: actions/checkout@v6.0.3
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate required secrets
+        run: |
+          missing=()
+          if [ -z "${{ secrets.NPM_TOKEN }}" ]; then missing+=("NPM_TOKEN"); fi
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ github.ref }}-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ github.ref }}-
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update version
+        run: |
+          VERSION="${{ needs.check-changes.outputs.version }}"
+          node -e "const fs = require('fs'); const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')); pkg.version = '$VERSION'; fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');"
+
+      - name: Replace catalog references
+        run: |
+          node -e "
+          const fs = require('fs');
+          const rootPkg = JSON.parse(fs.readFileSync('../package.json', 'utf8'));
+          const catalog = rootPkg.catalog || {};
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          for (const depType of ['dependencies', 'devDependencies', 'peerDependencies']) {
+            if (!pkg[depType]) continue;
+            for (const [key, value] of Object.entries(pkg[depType])) {
+              if (value === 'catalog:') {
+                if (!catalog[key]) throw new Error(\`Catalog entry not found for \${key}\`);
+                pkg[depType][key] = catalog[key];
+              }
+            }
+          }
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Compile
+        run: bun run compile
+
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Summary
+        run: echo "Published @terreno/test@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+
   publish-ui:
     needs: check-changes
     runs-on: ubuntu-latest
@@ -1151,13 +1230,13 @@ jobs:
         run: echo "Published @terreno/mcp@${{ needs.check-changes.outputs.version }}" >> $GITHUB_STEP_SUMMARY
 
   update-version-on-master:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
     # Run if any package was published and this is not a prerelease (beta/alpha) tag
     if: |
       always() &&
       !contains(needs.check-changes.outputs.version, '-beta') &&
       !contains(needs.check-changes.outputs.version, '-alpha') &&
-      (needs.publish-api.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success' || needs.publish-mcp.result == 'success')
+      (needs.publish-api.result == 'success' || needs.publish-test.result == 'success' || needs.publish-ui.result == 'success' || needs.publish-rtk.result == 'success' || needs.publish-admin-backend.result == 'success' || needs.publish-admin-frontend.result == 'success' || needs.publish-admin-spa.result == 'success' || needs.publish-ai.result == 'success' || needs.publish-api-health.result == 'success' || needs.publish-feature-flags.result == 'success' || needs.publish-mcp.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1196,6 +1275,7 @@ jobs:
           }
 
           update_version api "${{ needs.publish-api.result }}"
+          update_version test "${{ needs.publish-test.result }}"
           update_version ui "${{ needs.publish-ui.result }}"
           update_version rtk "${{ needs.publish-rtk.result }}"
           update_version admin-backend "${{ needs.publish-admin-backend.result }}"
@@ -1286,7 +1366,7 @@ jobs:
           fi
 
   notify:
-    needs: [check-changes, publish-api, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
+    needs: [check-changes, publish-api, publish-test, publish-ui, publish-rtk, publish-admin-backend, publish-admin-frontend, publish-admin-spa, publish-ai, publish-api-health, publish-feature-flags, publish-mcp]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -1309,6 +1389,7 @@ jobs:
           }
 
           add_status "@terreno/api" "${{ needs.publish-api.result }}"
+          add_status "@terreno/test" "${{ needs.publish-test.result }}"
           add_status "@terreno/ui" "${{ needs.publish-ui.result }}"
           add_status "@terreno/rtk" "${{ needs.publish-rtk.result }}"
           add_status "@terreno/admin-backend" "${{ needs.publish-admin-backend.result }}"
