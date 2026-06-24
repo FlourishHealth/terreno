@@ -3,7 +3,7 @@ import {beforeEach, describe, expect, it} from "bun:test";
 import mongoose, {type Document, type HydratedDocument, Schema} from "mongoose";
 
 import {fixMixedFields, getOpenApiSpecForModel, unpopulate} from "./populate";
-import {FoodModel, setupDb, type User, UserModel} from "./tests";
+import {FoodModel, setupTestData, type User, UserModel} from "./tests";
 
 describe("populate functions", () => {
   let admin: HydratedDocument<User>;
@@ -13,32 +13,17 @@ describe("populate functions", () => {
   let spinach: any;
 
   beforeEach(async () => {
-    [admin, notAdmin] = await setupDb();
-
-    [spinach] = await Promise.all([
-      FoodModel.create({
-        calories: 1,
-        created: new Date("2021-12-03T00:00:20.000Z"),
-        eatenBy: [admin._id],
-        hidden: false,
-        likesIds: [
-          {likes: true, userId: admin._id},
-          {likes: false, userId: notAdmin._id},
-        ],
-        name: "Spinach",
-        ownerId: admin._id,
-        source: {
-          name: "Brand",
-        },
-      }),
-    ]);
+    const testData = await setupTestData();
+    admin = testData.users.admin;
+    notAdmin = testData.users.notAdmin;
+    spinach = testData.foods.spinach;
   });
 
   it("unpopulate", async () => {
     let populated = await spinach.populate("ownerId");
     populated = await populated.populate("eatenBy");
     populated = await populated.populate("likesIds.userId");
-    expect(populated.ownerId.name).toBe("Admin");
+    expect(populated.ownerId.name).toBe("Not Admin");
     expect(populated.eatenBy[0].id).toBe(admin.id);
     expect(populated.eatenBy[0].name).toBe("Admin");
     expect(populated.likesIds[0].userId.id).toBe(admin.id);
@@ -49,7 +34,7 @@ describe("populate functions", () => {
     // noExplicitAny: unpopulate returns Document<T> which doesn't expose model properties; would require refactoring the return type
     let unpopulated: any = unpopulate(populated, "ownerId");
     expect(spinach.ownerId.name).toBeUndefined();
-    expect(unpopulated.ownerId.toString()).toBe(admin.id);
+    expect(unpopulated.ownerId.toString()).toBe(notAdmin.id);
     // Ensure nothing else was touched.
     expect(populated.likesIds[0].userId.id).toBe(admin.id);
     expect(populated.likesIds[0].userId.name).toBe("Admin");

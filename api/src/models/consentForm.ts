@@ -126,7 +126,6 @@ consentFormSchema.plugin(isDeletedPlugin);
 consentFormSchema.plugin(findOneOrNone);
 consentFormSchema.plugin(findExactlyOne);
 
-export const ConsentForm = mongoose.model<ConsentFormDocument, ConsentFormModel>(
-  "ConsentForm",
-  consentFormSchema
-);
+export const ConsentForm =
+  (mongoose.models.ConsentForm as ConsentFormModel | undefined) ??
+  mongoose.model<ConsentFormDocument, ConsentFormModel>("ConsentForm", consentFormSchema);

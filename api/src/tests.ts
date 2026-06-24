@@ -1,178 +1,43 @@
 import {
   authAsUser as authAsUserWithCredentials,
   getBaseServer as createBaseTestServer,
-  ensureTestMongooseConnected,
 } from "@terreno/test";
 import type express from "express";
 import type {Express} from "express";
-import mongoose, {type Model, model, Schema} from "mongoose";
-import passportLocalMongoose, {type PassportLocalMongooseDocument} from "passport-local-mongoose";
 import type TestAgent from "supertest/lib/agent";
-import {logger} from "./logger";
+
 import {patchAppUse} from "./openApiCompat";
-import {createdUpdatedPlugin, DateOnly, isDisabledPlugin} from "./plugins";
+import {createTestData} from "./tests/createTestData";
+import {
+  type Food,
+  type FoodCategory,
+  FoodModel,
+  type RequiredField,
+  RequiredModel,
+  type StaffUser,
+  StaffUserModel,
+  type SuperUser,
+  SuperUserModel,
+  type User,
+  UserModel,
+} from "./tests/models";
+import {loadTestDataFromCache, setupTestCache} from "./tests/mongoTestSetup";
+import {setupDb, setupTestData} from "./tests/testHelper";
+import type {TestData} from "./tests/types";
 
-export interface User {
-  admin: boolean;
-  name?: string;
-  username: string;
-  email: string;
-  age?: number;
-  disabled?: boolean;
-}
-
-export interface SuperUser extends User {
-  superTitle: string;
-}
-
-export interface StaffUser extends User {
-  department: string;
-}
-
-export interface FoodCategory {
-  _id?: string;
-  name: string;
-  show: boolean;
-  created: Date;
-  updated: Date;
-}
-
-export interface Food {
-  _id: string;
-  name: string;
-  calories: number;
-  created: Date;
-  ownerId: mongoose.Types.ObjectId | User;
-  hidden?: boolean;
-  source: {
-    name: string;
-    href?: string;
-    dateAdded?: string;
-  };
-  tags: string[];
-  eatenBy: [Schema.Types.ObjectId | User];
-  // We want to test that map type works.
-  lastEatenWith: {[name: string]: Date};
-  categories: FoodCategory[];
-  expiration: string;
-  likesIds: {userId: string; likes: boolean}[];
-}
-
-const userSchema = new Schema<User>({
-  admin: {default: false, description: "Whether the user has admin privileges", type: Boolean},
-  age: {description: "The user's age", type: Number},
-  name: {description: "The user's display name", type: String},
-  username: {description: "The user's username", type: String},
-});
-
-userSchema.plugin(
-  passportLocalMongoose as unknown as (schema: Schema, options?: Record<string, unknown>) => void,
-  {
-    attemptsField: "attempts",
-    interval: process.env.NODE_ENV === "test" ? 1 : 100,
-    limitAttempts: true,
-    maxAttempts: 3,
-    maxInterval: process.env.NODE_ENV === "test" ? 1 : 300000,
-    usernameCaseInsensitive: true,
-    usernameField: "email",
-  }
-);
-// userSchema.plugin(tokenPlugin);
-userSchema.plugin(createdUpdatedPlugin);
-userSchema.plugin(isDisabledPlugin);
-userSchema.methods.postCreate = async function (body: {age?: number}) {
-  this.age = body.age;
-  return this.save();
+export type {Food, FoodCategory, RequiredField, StaffUser, SuperUser, TestData, User};
+export {
+  createTestData,
+  FoodModel,
+  loadTestDataFromCache,
+  RequiredModel,
+  StaffUserModel,
+  SuperUserModel,
+  setupDb,
+  setupTestCache,
+  setupTestData,
+  UserModel,
 };
-
-export const UserModel = model<User>("User", userSchema);
-
-const superUserSchema = new Schema<SuperUser>({
-  superTitle: {description: "The super user's title", required: true, type: String},
-});
-export const SuperUserModel = UserModel.discriminator("SuperUser", superUserSchema);
-
-const staffUserSchema = new Schema<StaffUser>({
-  department: {
-    description: "The department the staff member belongs to",
-    required: true,
-    type: String,
-  },
-});
-export const StaffUserModel = UserModel.discriminator("Staff", staffUserSchema);
-
-const foodCategorySchema = new Schema<FoodCategory>(
-  {
-    name: {description: "The name of the food category", type: String},
-    show: {description: "Whether this category is visible", type: Boolean},
-  },
-  {timestamps: {createdAt: "created", updatedAt: "updated"}}
-);
-
-interface Likes {
-  likes: boolean;
-  userId: mongoose.Types.ObjectId;
-}
-
-const likesSchema = new Schema<Likes>({
-  likes: {description: "Whether the user liked the item", type: Boolean},
-  userId: {description: "The user who liked the item", ref: "User", type: "ObjectId"},
-});
-
-const foodSchema = new Schema<Food>(
-  {
-    calories: {description: "Number of calories in the food", type: Number},
-    categories: {description: "Categories this food belongs to", type: [foodCategorySchema]},
-    created: {description: "When this food was created", type: Date},
-    eatenBy: [
-      {
-        description: "Users who have eaten this food",
-        ref: "User",
-        required: true,
-        type: Schema.Types.ObjectId,
-      },
-    ],
-    // biome-ignore lint/suspicious/noExplicitAny: DateOnly is a custom SchemaType not recognized by Mongoose's built-in type definitions
-    expiration: {description: "Expiration date of the food", type: DateOnly as any},
-    hidden: {
-      default: false,
-      description: "Whether this food is hidden from listings",
-      type: Boolean,
-    },
-    lastEatenWith: {
-      description: "Map of user names to dates they last ate this food with",
-      of: Date,
-      type: Map,
-    },
-    likesIds: {description: "User likes for this food", required: true, type: [likesSchema]},
-    name: {description: "The name of the food", type: String},
-    ownerId: {description: "The user who owns this food entry", ref: "User", type: "ObjectId"},
-    source: {
-      dateAdded: {description: "When the source was added", type: String},
-      href: {description: "URL of the source", type: String},
-      name: {description: "Name of the source", type: String},
-    },
-    tags: {description: "Tags associated with this food", type: [String]},
-  },
-  {strict: "throw", toJSON: {virtuals: true}, toObject: {virtuals: true}}
-);
-
-foodSchema.virtual("description").get(function (this: Food) {
-  return `${this.name} has ${this.calories} calories`;
-});
-
-export const FoodModel: Model<Food> = model<Food>("Food", foodSchema);
-
-interface RequiredField {
-  name: string;
-  about?: string;
-}
-
-const requiredSchema = new Schema<RequiredField>({
-  about: {description: "Information about the item", type: String},
-  name: {description: "The name of the item", required: true, type: String},
-});
-export const RequiredModel = model<RequiredField>("Required", requiredSchema);
 
 export const getBaseServer = (): Express => {
   return createBaseTestServer({
@@ -189,42 +54,4 @@ export const authAsUser = async (
   return authAsUserWithCredentials(app, {email, password});
 };
 
-const defaultTestMongoUri = "mongodb://127.0.0.1/terreno?&connectTimeoutMS=360000";
-
-export const setupDb = async () => {
-  await ensureTestMongooseConnected({
-    defaultUri: defaultTestMongoUri,
-    onConnectError: logger.catch,
-  });
-
-  process.env.REFRESH_TOKEN_SECRET = "refresh_secret";
-  process.env.TOKEN_SECRET = "secret";
-  process.env.TOKEN_EXPIRES_IN = "30m";
-  process.env.TOKEN_ISSUER = "example.com";
-  process.env.SESSION_SECRET = "session";
-
-  // Broken out of the try/catch below so you can test the catch logger by shutting down mongo.
-  await Promise.all([UserModel.deleteMany({}), FoodModel.deleteMany({})]).catch(logger.catch);
-
-  try {
-    const [notAdmin, admin, adminOther] = await Promise.all([
-      UserModel.create({email: "notAdmin@example.com", name: "Not Admin"}),
-      UserModel.create({admin: true, email: "admin@example.com", name: "Admin"}),
-      UserModel.create({admin: true, email: "admin+other@example.com", name: "Admin Other"}),
-    ]);
-    await (notAdmin as unknown as PassportLocalMongooseDocument).setPassword("password");
-    await notAdmin.save();
-
-    await (admin as unknown as PassportLocalMongooseDocument).setPassword("securePassword");
-    await admin.save();
-
-    await (adminOther as unknown as PassportLocalMongooseDocument).setPassword("otherPassword");
-
-    await adminOther.save();
-
-    return [admin, notAdmin, adminOther];
-  } catch (error) {
-    logger.error("Error setting up DB", error);
-    throw error;
-  }
-};
+export {loadTestData} from "./tests/mongoTestSetup";
