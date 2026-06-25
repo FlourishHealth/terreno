@@ -211,6 +211,7 @@ export const parseScriptArgs = (
 
   const values: Record<string, ScriptArgValue> = {};
   const positional: string[] = [];
+  const missingValueErrors: string[] = [];
 
   const assign = (key: string, value: ScriptArgValue): void => {
     const name = aliasToName.get(key) ?? key;
@@ -247,7 +248,17 @@ export const parseScriptArgs = (
     const def = defByName.get(canonical);
     const next = tokens[i + 1];
     const nextIsValue = next !== undefined && (next === "-" || !next.startsWith("-"));
-    if (def?.type === "boolean" || !nextIsValue) {
+    if (def?.type === "boolean") {
+      assign(flag, true);
+      continue;
+    }
+    if (!nextIsValue) {
+      // A declared string/number flag was given without a value. Record an error
+      // instead of silently storing `true` (which would coerce to 1 / "true").
+      if (def) {
+        missingValueErrors.push(`Argument --${canonical} expects a ${def.type ?? "string"} value`);
+        continue;
+      }
       assign(flag, true);
       continue;
     }
@@ -255,7 +266,8 @@ export const parseScriptArgs = (
     i++;
   }
 
-  return createScriptArgs({defs, positional, values});
+  const {args, errors} = createScriptArgs({defs, positional, values});
+  return {args, errors: [...missingValueErrors, ...errors]};
 };
 
 export class TaskCancelledError extends Error {

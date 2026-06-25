@@ -59,6 +59,25 @@ describe("parseScriptArgs", () => {
     expect(args.getString("model")).toBe("todos");
     expect(args.getBoolean("wet")).toBe(true);
   });
+
+  it("errors when a declared string flag is missing its value", () => {
+    const defs: ScriptArgDef[] = [{description: "model", name: "model", type: "string"}];
+    const {errors} = parseScriptArgs(["--model"], defs);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toInclude("--model expects a string value");
+  });
+
+  it("errors when a declared number flag is followed by another flag", () => {
+    const defs: ScriptArgDef[] = [{description: "limit", name: "limit", type: "number"}];
+    const {errors} = parseScriptArgs(["--limit", "--wet"], defs);
+    expect(errors.some((e) => e.includes("--limit expects a number value"))).toBe(true);
+  });
+
+  it("still treats an undeclared value-less flag as boolean true", () => {
+    const {args, errors} = parseScriptArgs(["--unknown"]);
+    expect(errors).toHaveLength(0);
+    expect(args.getBoolean("unknown")).toBe(true);
+  });
 });
 
 describe("createScriptArgs", () => {
