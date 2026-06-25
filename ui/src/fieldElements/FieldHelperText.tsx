@@ -13,8 +13,10 @@ export const FieldHelperText: FC<FieldHelperTextProps> = ({text}) => {
   const {theme} = useTheme();
 
   return (
-    <View style={{marginTop: 2}}>
-      <Text style={{color: theme.text.primary, fontSize: 12, lineHeight: 16}}>{text}</Text>
+    <View style={{alignSelf: "stretch", marginTop: 2, maxWidth: "100%"}}>
+      <Text style={{color: theme.text.primary, flexShrink: 1, fontSize: 12, lineHeight: 16}}>
+        {text}
+      </Text>
     </View>
   );
 };

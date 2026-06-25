@@ -2764,6 +2764,11 @@ export interface FieldOption {
   label: string;
 
   /**
+   * Optional secondary line shown under the label in custom web dropdown menus.
+   */
+  helperText?: string;
+
+  /**
    * The key of the option. Useful for uniquely identifying the option.
    */
   key?: string;
@@ -2808,6 +2813,13 @@ export interface SelectFieldPropsBase {
    * The placeholder text to display when no option is selected.
    */
   placeholder?: string;
+
+  /**
+   * When true, the web select field becomes a searchable input that filters
+   * options by label as the user types in the field itself. Only affects web.
+   * @default true
+   */
+  searchable?: boolean;
 
   /**
    * The title of the select field.
