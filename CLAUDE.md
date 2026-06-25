@@ -379,6 +379,10 @@ When present, these are injected as environment variables holding GCP service-ac
 - `GCP_SA_TERRENO` — terreno GCP service account (viewer + some write); use it for gcloud / GCP API access for terreno.
 - The sibling apps in this workspace have their own: `GCP_SA_PRD` (flourish production), `GCP_SA_STG` (flourish staging), and `GCP_SA_ZAPLING` (zapling).
 
+### Sentry API access
+
+When present, `SENTRY_CLIENT_SECRET` is injected as an environment variable holding the Sentry API key (auth token) for programmatic Sentry API access.
+
 ### Gotchas
 
 - **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
