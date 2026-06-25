@@ -6,6 +6,7 @@ import {ActivityIndicator, Pressable, Text, View} from "react-native";
 import {Box} from "./Box";
 import type {SocialLoginButtonProps} from "./Common";
 import {useTheme} from "./Theme";
+import {pickTestId} from "./testing/resolveTestId";
 import {Unifier} from "./Unifier";
 
 /**
@@ -71,10 +72,12 @@ export const SocialLoginButton: FC<SocialLoginButtonProps> = ({
   disabled = false,
   fullWidth = true,
   text,
+  testId,
   testID,
 }) => {
   const [loading, setLoading] = useState(propsLoading);
   const {theme} = useTheme();
+  const resolvedTestId = pickTestId({testID, testId}) ?? `social-login-${provider}`;
 
   const {backgroundColor, borderColor, textColor} = useMemo(() => {
     const colors = PROVIDER_COLORS[provider];
@@ -146,7 +149,7 @@ export const SocialLoginButton: FC<SocialLoginButtonProps> = ({
         paddingVertical: 12,
         width: fullWidth ? "100%" : "auto",
       }}
-      testID={testID ?? `social-login-${provider}`}
+      testID={resolvedTestId}
     >
       <View style={{alignItems: "center", flexDirection: "row"}}>
         {Boolean(iconName) && (

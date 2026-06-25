@@ -27,6 +27,7 @@ import {Pagination} from "./Pagination";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TableTitle} from "./table/TableTitle";
+import {resolveDataTableTestIdsFromProps} from "./testing/resolveTestId";
 
 // TODO: Add permanent horizontal scroll bar so users with only a mouse can scroll left/right
 // easily.
@@ -313,6 +314,7 @@ interface DataTableHeaderProps {
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>, isHeader: boolean) => void;
   rowHeight: number;
   headerHeight?: number;
+  testID?: string;
 }
 
 const DataTableHeader: FC<DataTableHeaderProps> = ({
@@ -326,11 +328,12 @@ const DataTableHeader: FC<DataTableHeaderProps> = ({
   onScroll,
   rowHeight,
   headerHeight,
+  testID,
 }) => {
   const {theme} = useTheme();
 
   return (
-    <View style={{flexDirection: "row", position: "relative"}}>
+    <View style={{flexDirection: "row", position: "relative"}} testID={testID}>
       {/* Fixed-width container for "more" content button if present */}
       {hasMoreContent && (
         <View
@@ -568,8 +571,12 @@ export const DataTable: FC<DataTableProps> = ({
   rowHeight = 54,
   headerHeight,
   defaultTextSize = "md",
+  testId,
+  testID,
+  testIds,
 }) => {
   const {theme} = useTheme();
+  const tableTestIds = resolveDataTableTestIdsFromProps({testID, testId, testIds});
   const headerScrollRef = useRef<ScrollView>(null);
   const bodyScrollRef = useRef<ScrollView>(null);
 
@@ -622,7 +629,10 @@ export const DataTable: FC<DataTableProps> = ({
   }, [data, defaultTextSize]);
 
   return (
-    <View style={{display: "flex", flexDirection: "column", height: "100%"}}>
+    <View
+      style={{display: "flex", flexDirection: "column", height: "100%"}}
+      testID={tableTestIds.root}
+    >
       <View
         style={{
           borderColor: theme.border.default,
@@ -631,6 +641,7 @@ export const DataTable: FC<DataTableProps> = ({
           height: "100%",
           minHeight: 0,
         }}
+        testID={tableTestIds.body}
       >
         <DataTableHeader
           columns={columns}
@@ -643,6 +654,7 @@ export const DataTable: FC<DataTableProps> = ({
           pinnedColumns={pinnedColumns}
           rowHeight={rowHeight}
           sortColumn={sortColumn}
+          testID={tableTestIds.header}
         />
 
         <View style={{flex: 1, minHeight: 0}}>
@@ -670,7 +682,12 @@ export const DataTable: FC<DataTableProps> = ({
             padding: 16,
           }}
         >
-          <Pagination page={page} setPage={setPage!} totalPages={totalPages} />
+          <Pagination
+            page={page}
+            setPage={setPage!}
+            testId={tableTestIds.pagination}
+            totalPages={totalPages}
+          />
         </View>
       )}
     </View>

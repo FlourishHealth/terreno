@@ -8,6 +8,7 @@ import {Text as NativeText, Platform, type StyleProp, type TextStyle} from "reac
 
 import type {HeadingProps} from "./Common";
 import {useTheme} from "./Theme";
+import {pickTestId} from "./testing/resolveTestId";
 
 const fontSizeAndWeightWeb = {
   "2xl": {size: 48, weight: "bold"},
@@ -32,9 +33,11 @@ export const Heading = ({
   children,
   color = "primary",
   size,
+  testId,
   testID,
 }: HeadingProps): React.ReactElement => {
   const {theme} = useTheme();
+  const resolvedTestId = pickTestId({testID, testId});
 
   // TODO: make fonts part of theme.
   useFonts({
@@ -59,7 +62,7 @@ export const Heading = ({
 
   const lines = 0;
   return (
-    <NativeText numberOfLines={lines} style={style} testID={testID}>
+    <NativeText numberOfLines={lines} style={style} testID={resolvedTestId}>
       {children}
     </NativeText>
   );

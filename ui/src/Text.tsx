@@ -13,6 +13,7 @@ import {Text as NativeText, Platform, type TextStyle} from "react-native";
 import type {TextProps} from "./Common";
 import {Hyperlink} from "./Hyperlink";
 import {useTheme} from "./Theme";
+import {pickTestId} from "./testing/resolveTestId";
 
 const fontSizeAndWeightWeb = {
   "2xl": {size: 48, weight: "medium"},
@@ -43,9 +44,11 @@ export const Text = ({
   underline,
   numberOfLines,
   skipLinking,
+  testId,
   testID,
 }: TextProps): React.ReactElement => {
   const {theme} = useTheme();
+  const resolvedTestId = pickTestId({testID, testId});
 
   useFonts({
     text: Nunito_400Regular,
@@ -110,7 +113,7 @@ export const Text = ({
     lines = 1;
   }
   const inner = (
-    <NativeText numberOfLines={lines} selectable={undefined} style={style} testID={testID}>
+    <NativeText numberOfLines={lines} selectable={undefined} style={style} testID={resolvedTestId}>
       {children}
     </NativeText>
   );

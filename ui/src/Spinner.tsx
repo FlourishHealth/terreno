@@ -3,8 +3,9 @@ import {ActivityIndicator} from "react-native";
 
 import type {SpinnerProps} from "./Common";
 import {useTheme} from "./Theme";
+import {pickTestId} from "./testing/resolveTestId";
 
-export const Spinner: FC<SpinnerProps> = ({size = "md", color = "light"}) => {
+export const Spinner: FC<SpinnerProps> = ({size = "md", color = "light", testId, testID}) => {
   const [show, setShow] = useState(false);
   const {theme} = useTheme();
 
@@ -31,5 +32,6 @@ export const Spinner: FC<SpinnerProps> = ({size = "md", color = "light"}) => {
   }
 
   const spinnerSize: "small" | "large" = size === "sm" ? "small" : "large";
-  return <ActivityIndicator color={computedColor} size={spinnerSize} />;
+  const resolvedTestId = pickTestId({testID, testId});
+  return <ActivityIndicator color={computedColor} size={spinnerSize} testID={resolvedTestId} />;
 };

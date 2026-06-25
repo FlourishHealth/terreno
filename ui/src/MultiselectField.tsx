@@ -7,6 +7,7 @@ import {FieldError, FieldHelperText} from "./fieldElements";
 import {Heading} from "./Heading";
 import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";
+import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
 
 interface OptionProps {
   isDefault: boolean;
@@ -61,9 +62,13 @@ export const MultiselectField: FC<MultiselectFieldProps> = ({
   errorText,
   helperText,
   disabled,
+  testId,
+  testID,
+  testIds,
 }) => {
   const isMobile = isMobileDevice();
   const isDefault = variant === "leftText";
+  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
   const [selectedItems, setSelectedItems] = useState<string[]>(value);
   // set the selected items to the value passed in the props
   useEffect(() => {
@@ -87,11 +92,12 @@ export const MultiselectField: FC<MultiselectFieldProps> = ({
         gap: isMobile ? 16 : 8,
         width: "100%",
       }}
+      testID={fieldTestIds.input}
     >
-      <Heading color="primary" size="sm">
+      <Heading color="primary" size="sm" testId={fieldTestIds.label}>
         {title}
       </Heading>
-      {Boolean(errorText) && <FieldError text={errorText!} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIds.error} text={errorText!} />}
       {disabled ? (
         <Text>{value.join(", ")}</Text>
       ) : (
@@ -106,7 +112,7 @@ export const MultiselectField: FC<MultiselectFieldProps> = ({
           />
         ))
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText testID={fieldTestIds.helper} text={helperText!} />}
     </View>
   );
 };

@@ -4,6 +4,7 @@ import {Text, View} from "react-native";
 import type {BadgeProps, SurfaceTheme, TextTheme} from "./Common";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
+import {pickTestId} from "./testing/resolveTestId";
 
 export const Badge = ({
   value,
@@ -17,9 +18,11 @@ export const Badge = ({
   customBorderColor,
   customIconColor,
   customIconName,
+  testId,
   testID,
 }: BadgeProps): React.ReactElement => {
   const {theme} = useTheme();
+  const resolvedTestId = pickTestId({testID, testId});
   const isIconOnly = variant === "iconOnly";
 
   let badgeColor: keyof TextTheme = "inverted";
@@ -111,7 +114,7 @@ export const Badge = ({
           variant === "numberOnly" && {minWidth: 20},
           secondary && {borderColor, borderWidth: 1},
         ]}
-        testID={testID}
+        testID={resolvedTestId}
       >
         {Boolean(variant !== "numberOnly" && iconName) && (
           <View style={{marginRight: variant === "iconOnly" ? 0 : theme.spacing.sm}} testID="icon">

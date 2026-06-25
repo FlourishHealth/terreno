@@ -296,6 +296,7 @@ exports[`SelectField renders with title 1`] = `
           "fontWeight": 600,
           "lineHeight": 22.4,
         },
+        "testID": undefined,
       },
       "type": "Text",
     },

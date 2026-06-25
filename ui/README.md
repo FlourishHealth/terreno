@@ -158,3 +158,29 @@ To upgrade to the latest Expo and upgrade the related dependencies:
 
 This will upgrade Expo, upgrade Expo packages, sync the changes from apps/demo to packages/ui,
 and update bun.lock.
+
+## Test IDs (E2E / component tests)
+
+All public `@terreno/ui` components accept an optional `testId` prop for targeting in Playwright, Detox, or `@testing-library/react-native`.
+
+- **Root id:** `testId="login.email"` sets the primary interactive element (RN `testID`, which maps to `data-testid` on web).
+- **Legacy:** `testID` still works but is deprecated — prefer `testId`.
+- **Compound fields** (`TextField`, `SelectField`, `DateTimeField`, etc.): optional `testIds` overrides sub-elements; otherwise defaults use dot suffixes:
+  - `{testId}.label`, `{testId}` (input), `{testId}.error`, `{testId}.helper`
+- **Modal:** `testIds={{ primaryButton: "confirm.ok", secondaryButton: "confirm.cancel" }}` or defaults `{testId}.primary`, `{testId}.secondary`, `{testId}.dismiss`.
+- **DataTable:** `testIds={{ root, header, body, pagination, row }}`; row cells use `resolveDataTableRowTestId(testIds.row, rowKey)`.
+
+Helpers exported from `@terreno/ui`:
+
+```typescript
+import {
+  pickTestId,
+  resolveTestId,
+  resolveFieldTestIdsFromProps,
+  resolveModalTestIdsFromProps,
+  resolveDataTableTestIdsFromProps,
+  resolveDataTableRowTestId,
+} from "@terreno/ui";
+```
+
+Do not rely on internal CSS class names or DOM structure for tests.

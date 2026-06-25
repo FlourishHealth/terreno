@@ -10,9 +10,10 @@ import {isNative} from "../Utilities";
 
 interface FieldTitleProps {
   text: string;
+  testID?: string;
 }
 
-export const FieldTitle: FC<FieldTitleProps> = ({text}) => {
+export const FieldTitle: FC<FieldTitleProps> = ({text, testID}) => {
   const {theme} = useTheme();
   const isMobileOrNative = isMobileDevice() || isNative();
 
@@ -24,6 +25,7 @@ export const FieldTitle: FC<FieldTitleProps> = ({text}) => {
         fontWeight: 600,
         lineHeight: 22.4,
       }}
+      testID={testID}
     >
       {text}
     </Text>

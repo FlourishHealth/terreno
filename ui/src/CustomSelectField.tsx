@@ -5,6 +5,7 @@ import type {CustomSelectFieldProps} from "./Common";
 import {FieldHelperText} from "./fieldElements";
 import {SelectField} from "./SelectField";
 import {TextField} from "./TextField";
+import {resolveFieldTestIdsFromProps, resolveTestId} from "./testing/resolveTestId";
 
 export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   value,
@@ -15,10 +16,14 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
   title,
   errorText,
   helperText,
+  testId,
+  testID,
+  testIds,
 }) => {
   const [currentValue, setCurrentValue] = useState(value);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const textInputRef = useRef<TextInput | null>(null);
+  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
 
   // Boolean that checks if currentValue is a value from the
   // options prop or if it is a true custom value
@@ -74,6 +79,7 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
       style={{
         width: "100%",
       }}
+      testID={fieldTestIds.input}
     >
       <View
         accessibilityHint="Opens a dropdown menu. Select an option, or select custom to trigger popup to input a custom value"
@@ -86,6 +92,8 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
           onChange={handleCustomSelectListChange}
           options={[...options, {label: "Custom", value: "custom"}]}
           placeholder={placeholder}
+          testId={fieldTestIds.input}
+          testIds={testIds}
           title={title}
           value={isValueCustom ? "custom" : currentValue}
         />
@@ -106,12 +114,13 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
             }}
             onChange={onChange}
             placeholder="None selected"
+            testId={resolveTestId(fieldTestIds.input, "custom")}
             type="text"
             value={value}
           />
         </View>
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText testID={fieldTestIds.helper} text={helperText!} />}
     </View>
   );
 };

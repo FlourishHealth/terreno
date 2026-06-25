@@ -18,6 +18,7 @@ import {Icon} from "./Icon";
 import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
+import {resolveModalTestIdsFromProps} from "./testing/resolveTestId";
 import {isNative} from "./Utilities";
 
 const getModalSize = (size: "sm" | "md" | "lg"): DimensionValue => {
@@ -47,6 +48,7 @@ const ModalContent: FC<{
   sizePx: DimensionValue;
   theme: TerrenoTheme;
   isMobile: boolean;
+  modalTestIds: ReturnType<typeof resolveModalTestIdsFromProps>;
 }> = ({
   children,
   title,
@@ -61,6 +63,7 @@ const ModalContent: FC<{
   sizePx,
   theme,
   isMobile,
+  modalTestIds,
 }) => {
   return (
     <View
@@ -81,6 +84,7 @@ const ModalContent: FC<{
               margin: "auto",
             }),
       }}
+      testID={modalTestIds.root}
     >
       <View style={{alignSelf: "flex-end", position: "relative"}}>
         <Pressable
@@ -98,6 +102,7 @@ const ModalContent: FC<{
             right: -8,
             top: -8,
           }}
+          testID={modalTestIds.dismiss}
         >
           <Icon iconName="x" size="sm" />
         </Pressable>
@@ -108,6 +113,7 @@ const ModalContent: FC<{
           aria-label={title}
           aria-role="header"
           style={{alignSelf: "flex-start"}}
+          testID={modalTestIds.title}
         >
           <Heading size="lg">{title}</Heading>
         </View>
@@ -154,6 +160,7 @@ const ModalContent: FC<{
           <View style={{marginRight: primaryButtonText ? 20 : 0}}>
             <Button
               onClick={secondaryButtonOnClick!}
+              testId={modalTestIds.secondaryButton}
               text={secondaryButtonText as string}
               variant="muted"
             />
@@ -163,6 +170,7 @@ const ModalContent: FC<{
           <Button
             disabled={primaryButtonDisabled}
             onClick={primaryButtonOnClick!}
+            testId={modalTestIds.primaryButton}
             text={primaryButtonText as string}
           />
         )}
@@ -179,6 +187,9 @@ export const Modal: FC<ModalProps> = ({
   secondaryButtonText,
   size = "sm",
   subtitle,
+  testId,
+  testID,
+  testIds,
   text,
   title,
   visible,
@@ -188,6 +199,7 @@ export const Modal: FC<ModalProps> = ({
 }: ModalProps) => {
   const actionSheetRef = useRef<ActionSheetRef>(null);
   const {theme} = useTheme();
+  const modalTestIds = resolveModalTestIdsFromProps({testID, testId, testIds});
 
   const handleDismiss = () => {
     if (visible && onDismiss) {
@@ -240,7 +252,9 @@ export const Modal: FC<ModalProps> = ({
   const sizePx = getModalSize(size);
 
   const modalContentProps = {
+    children,
     isMobile,
+    modalTestIds,
     onDismiss: handleDismiss,
     persistOnBackgroundClick,
     primaryButtonDisabled,

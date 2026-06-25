@@ -10,6 +10,7 @@ import {Modal} from "./Modal";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {Tooltip} from "./Tooltip";
+import {pickTestId} from "./testing/resolveTestId";
 import {Unifier} from "./Unifier";
 import {isNative} from "./Utilities";
 
@@ -56,6 +57,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   indicator,
   indicatorText,
   loading: propsLoading = false,
+  testId,
   testID,
   variant = "primary",
   withConfirmation = false,
@@ -65,6 +67,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
   const [loading, setLoading] = useState(propsLoading);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const {theme} = useTheme();
+  const resolvedTestId = pickTestId({testID, testId});
   const CustomIcon = useCustomIcon(iconName);
   let accessLabel = accessibilityLabel;
   if (tooltipText && accessibilityLabel === "") {
@@ -138,7 +141,7 @@ const IconButtonComponent: FC<IconButtonProps> = ({
         justifyContent: "center",
         width: 32,
       }}
-      testID={testID}
+      testID={resolvedTestId}
     >
       {loading ? (
         <ActivityIndicator color={color} size="small" />

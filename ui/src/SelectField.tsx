@@ -4,6 +4,7 @@ import {View} from "react-native";
 import type {SelectFieldProps} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {RNPickerSelect} from "./PickerSelect";
+import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
 
 export const SelectField: FC<SelectFieldProps> = ({
   disabled = false,
@@ -15,13 +16,17 @@ export const SelectField: FC<SelectFieldProps> = ({
   title,
   value,
   onChange,
+  testId,
+  testID,
+  testIds,
 }) => {
   const clearOption = {label: placeholder ?? "---", value: ""};
+  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
 
   return (
-    <View style={{width: "100%"}}>
-      {Boolean(title) && <FieldTitle text={title!} />}
-      {Boolean(errorText) && <FieldError text={errorText!} />}
+    <View style={{width: "100%"}} testID={fieldTestIds.input}>
+      {Boolean(title) && <FieldTitle testID={fieldTestIds.label} text={title!} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIds.error} text={errorText!} />}
       <RNPickerSelect
         disabled={disabled}
         items={options}
@@ -33,9 +38,10 @@ export const SelectField: FC<SelectFieldProps> = ({
           }
         }}
         placeholder={!requireValue ? clearOption : {}}
+        textInputProps={{testID: fieldTestIds.input}}
         value={value ?? ""}
       />
-      {Boolean(helperText) && <FieldHelperText text={helperText!} />}
+      {Boolean(helperText) && <FieldHelperText testID={fieldTestIds.helper} text={helperText!} />}
     </View>
   );
 };

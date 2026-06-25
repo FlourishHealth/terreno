@@ -8,13 +8,14 @@ import {useTheme} from "../Theme";
 
 interface FieldErrorProps {
   text: string;
+  testID?: string;
 }
 
-export const FieldError: FC<FieldErrorProps> = ({text}) => {
+export const FieldError: FC<FieldErrorProps> = ({text, testID}) => {
   const {theme} = useTheme();
 
   return (
-    <View style={{alignItems: "center", flexDirection: "row", marginVertical: 2}}>
+    <View style={{alignItems: "center", flexDirection: "row", marginVertical: 2}} testID={testID}>
       <Icon color="error" iconName="triangle-exclamation" size="sm" />
       <View style={{marginLeft: 4}}>
         <Text style={{color: theme.text.error, fontSize: 12}}>{text}</Text>

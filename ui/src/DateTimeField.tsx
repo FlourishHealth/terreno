@@ -13,6 +13,7 @@ import {SelectField} from "./SelectField";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TimezonePicker} from "./TimezonePicker";
+import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
 
 interface SeparatorProps {
   type: "date" | "time";
@@ -416,8 +417,12 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
   errorText,
   disabled,
   helperText,
+  testId,
+  testID,
+  testIds,
 }): React.ReactElement => {
   const {theme} = useTheme();
+  const fieldTestIds = resolveFieldTestIdsFromProps({testID, testId, testIds});
   // biome-ignore lint/suspicious/noExplicitAny: ActionSheet class is defined in ActionSheet.tsx which imports from Common.ts indirectly; using its type here would create a circular dependency
   const dateActionSheetRef: React.RefObject<any> = React.createRef();
   const [amPm, setAmPm] = useState<"am" | "pm">("am");
@@ -969,8 +974,8 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
 
   return (
     <>
-      {Boolean(title) && <FieldTitle text={title as string} />}
-      {Boolean(errorText) && <FieldError text={errorText as string} />}
+      {Boolean(title) && <FieldTitle testID={fieldTestIds.label} text={title as string} />}
+      {Boolean(errorText) && <FieldError testID={fieldTestIds.error} text={errorText as string} />}
 
       {isMobileTimeOnly && (
         <MobileTimeDisplay
@@ -1004,6 +1009,7 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
             minWidth: isMobileDatetime ? 200 : minimumWidth,
             paddingHorizontal: 6,
           }}
+          testID={fieldTestIds.input}
         >
           {showDateSection && (
             <DateRowWithIcon
@@ -1055,7 +1061,9 @@ export const DateTimeField: FC<DateTimeFieldProps> = ({
           visible={showDate}
         />
       )}
-      {Boolean(helperText) && <FieldHelperText text={helperText as string} />}
+      {Boolean(helperText) && (
+        <FieldHelperText testID={fieldTestIds.helper} text={helperText as string} />
+      )}
     </>
   );
 };

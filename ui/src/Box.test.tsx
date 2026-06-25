@@ -27,6 +27,14 @@ describe("Box", () => {
       const {getByTestId} = renderWithTheme(<Box testID="test-box" />);
       expect(getByTestId("test-box")).toBeTruthy();
     });
+
+    it("should prefer testId over testID", () => {
+      const {getByTestId, queryByTestId} = renderWithTheme(
+        <Box testID="legacy-box" testId="preferred-box" />
+      );
+      expect(getByTestId("preferred-box")).toBeTruthy();
+      expect(queryByTestId("legacy-box")).toBeNull();
+    });
   });
 
   describe("layout props", () => {

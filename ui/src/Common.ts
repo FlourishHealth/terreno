@@ -19,12 +19,26 @@ import type {
   FontAwesome6RegularNames,
   FontAwesome6SolidNames,
 } from "./CommonIconTypes";
+import type {DataTableTestIds, FieldTestIds, ModalTestIds, WithTestId} from "./testing/types";
+
+export {
+  pickTestId,
+  resolveDataTableRowTestId,
+  resolveDataTableTestIdsFromProps,
+  resolveFieldTestIdsFromProps,
+  resolveModalTestIdsFromProps,
+  resolveTestId,
+  toDomTestProps,
+  toPlatformTestProps,
+  toTestProps,
+} from "./testing";
+export type {DataTableTestIds, FieldTestIds, ModalTestIds, WithTestId} from "./testing/types";
 
 export type PercentageString = `${number}%`;
 
 export type NumberOrPercentage = number | PercentageString | string;
 
-export interface InfoModalIconProps {
+export interface InfoModalIconProps extends WithTestId {
   /**
    * The content of the information modal.
    */
@@ -384,12 +398,11 @@ export type IconName =
   | CustomIconName;
 
 /** Props passed to a custom icon component when it is rendered. */
-export interface CustomIconProps {
+export interface CustomIconProps extends WithTestId {
   /** Resolved color string, already mapped from the active theme. */
   color: string;
   /** Resolved icon size in pixels. */
   size: number;
-  testID?: string;
 }
 
 /** A component that renders a custom (non-FontAwesome) icon. */
@@ -494,7 +507,7 @@ export interface AccessibilityProps {
   accessibilityHint: string;
 }
 
-export interface BoxPropsBase {
+export interface BoxPropsBase extends WithTestId {
   alignContent?: AlignContent;
   alignItems?: AlignItems;
   alignSelf?: AlignSelf;
@@ -596,7 +609,6 @@ export interface BoxPropsBase {
   scrollRef?: React.RefObject<ScrollView | null>;
   onScroll?: (offsetY: number) => void;
   onLayout?: (event: LayoutChangeEvent) => void;
-  testID?: string;
 }
 
 // If onClick is provided, add accessibility props.
@@ -666,7 +678,7 @@ export interface ErrorBoundaryProps {
   children?: ReactNode;
 }
 
-export interface IconProps {
+export interface IconProps extends WithTestId {
   iconName: IconName;
   type?:
     | "regular"
@@ -680,7 +692,6 @@ export interface IconProps {
     | "sharp";
   color?: IconColor;
   size?: IconSize;
-  testID?: string;
 }
 
 export type TooltipPosition = "top" | "bottom" | "left" | "right";
@@ -713,9 +724,9 @@ export interface TextStyleWithOutline extends TextStyle {
   outline?: string;
 }
 
-interface BaseFieldProps {
+interface BaseFieldProps extends WithTestId {
   id?: string;
-  testID?: string;
+  testIds?: FieldTestIds;
   title?: string;
   placeholder?: string;
   iconName?: IconName;
@@ -856,14 +867,13 @@ export const getRounding = (rounding: Rounding) => {
   return ROUNDING_MAP[rounding];
 };
 
-export interface HeadingProps {
+export interface HeadingProps extends WithTestId {
   align?: "left" | "right" | "center" | "justify"; // default "left"
   children?: React.ReactNode;
   color?: TextColor;
   overflow?: "normal" | "breakWord"; // default "breakWord"
   size?: "sm" | "md" | "lg" | "xl" | "2xl"; // default "sm"
   truncate?: boolean; // default false
-  testID?: string;
 }
 
 export interface MetaProps {
@@ -897,7 +907,8 @@ export interface BackButtonInterface {
   onBack: () => void;
 }
 
-export interface BooleanFieldProps extends HelperTextProps, ErrorTextProps {
+export interface BooleanFieldProps extends WithTestId, HelperTextProps, ErrorTextProps {
+  testIds?: FieldTestIds;
   title?: string;
   variant?: "simple" | "title"; // default "simple"
   disabled?: boolean;
@@ -906,7 +917,7 @@ export interface BooleanFieldProps extends HelperTextProps, ErrorTextProps {
   onChange: (value: boolean) => void;
 }
 
-export interface CheckBoxProps {
+export interface CheckBoxProps extends WithTestId {
   /**
    * The background color of the checkbox.
    * @default "default"
@@ -1017,7 +1028,7 @@ export type ReactChild = ReactNode;
 export type ReactChildren = ReactNode;
 export type WithChildren<P> = P & {children?: ReactNode};
 
-export interface AddressAutocompleteProps {
+export interface AddressAutocompleteProps extends WithTestId {
   disabled?: boolean;
   googleMapsApiKey?: string;
   includeCounty?: boolean;
@@ -1026,10 +1037,9 @@ export interface AddressAutocompleteProps {
   handleAddressChange: OnChangeCallback;
   handleAutoCompleteChange: (value: AddressInterface) => void;
   googlePlacesMobileStyles?: Styles;
-  testID?: string;
 }
 
-export interface ActionSheetProps {
+export interface ActionSheetProps extends WithTestId {
   children?: React.ReactNode;
   ref?: React.MutableRefObject<{
     /**
@@ -1351,11 +1361,6 @@ export interface ActionSheetProps {
   keyboardMode?: "padding" | "position";
 
   /**
-   * Test ID for unit testing
-   */
-  testID?: string;
-
-  /**
    *
    Event called when the ActionSheet closes.
 
@@ -1399,7 +1404,7 @@ export interface CustomSvgProps extends SvgProps {
   doNotDisturb?: boolean;
 }
 
-export interface AvatarProps {
+export interface AvatarProps extends WithTestId {
   /**
    * The name of the user. This is used for the placeholder treatment if an image is not available.
    */
@@ -1432,13 +1437,9 @@ export interface AvatarProps {
    * Accessibility label for the avatar image.
    */
   accessibilityLabel?: string;
-  /**
-   * Test ID for unit testing
-   */
-  testID?: string;
 }
 
-export interface BadgeProps {
+export interface BadgeProps extends WithTestId {
   /**
    * When status is "custom", determines the badge's background color.
    */
@@ -1484,11 +1485,6 @@ export interface BadgeProps {
    * @default "info"
    */
   status?: "info" | "error" | "warning" | "success" | "neutral" | "custom";
-
-  /**
-   * Test ID for unit testing
-   */
-  testID?: string;
 
   /**
    * The text or number to display inside the badge.
@@ -1602,7 +1598,7 @@ export interface BodyProps {
 
 export type ButtonPressAnimation = "scale" | "opacity" | "none";
 
-export interface ButtonProps {
+export interface ButtonProps extends WithTestId {
   /**
    * The text content of the confirmation modal.
    * @default "Are you sure you want to continue?"
@@ -1646,10 +1642,6 @@ export interface ButtonProps {
    */
   pressAnimation?: ButtonPressAnimation;
   /**
-   * The test ID for the button, used for testing purposes.
-   */
-  testID?: string;
-  /**
    * The text content of the button.
    */
   text: string;
@@ -1690,7 +1682,7 @@ export interface ButtonProps {
  * Props for the SocialLoginButton component.
  * Used for OAuth social login buttons (Google, GitHub, Apple).
  */
-export interface SocialLoginButtonProps {
+export interface SocialLoginButtonProps extends WithTestId {
   /**
    * The OAuth provider for the social login.
    */
@@ -1731,14 +1723,10 @@ export interface SocialLoginButtonProps {
    * Custom text for the button. Defaults to "Continue with {Provider}".
    */
   text?: string;
-
-  /**
-   * Test ID for testing purposes.
-   */
-  testID?: string;
 }
 
-export interface CustomSelectFieldProps {
+export interface CustomSelectFieldProps extends WithTestId {
+  testIds?: FieldTestIds;
   /**
    * The current value of the custom select field.
    */
@@ -1885,7 +1873,7 @@ export interface HyperlinkProps {
   style?: StyleProp<any>;
 }
 
-export interface IconButtonProps {
+export interface IconButtonProps extends WithTestId {
   /**
    * The accessibility hint describes the results of performing an action on a control or view.
    * It should be a very brief description of the result of interacting with the button.
@@ -1938,11 +1926,6 @@ export interface IconButtonProps {
   loading?: boolean;
 
   /**
-   * The test ID for the button, used for testing purposes.
-   */
-  testID?: string;
-
-  /**
    * The ideal position of the tooltip.
    */
   tooltipIdealPosition?: TooltipPosition;
@@ -1981,7 +1964,8 @@ export interface InfoTooltipButtonProps {
   size?: IconSize;
 }
 
-export interface ModalProps {
+export interface ModalProps extends WithTestId {
+  testIds?: ModalTestIds;
   /**
    * The content of the modal.
    */
@@ -2049,7 +2033,7 @@ export interface NumberPickerActionSheetProps {
   actionSheetRef: React.RefObject<any>;
 }
 
-export interface PageProps {
+export interface PageProps extends WithTestId {
   // biome-ignore lint/suspicious/noExplicitAny: React Navigation type varies by navigation stack configuration
   navigation?: any;
   scroll?: boolean;
@@ -2124,7 +2108,7 @@ export interface SideDrawerProps {
   drawerStyles?: StyleProp<ViewStyle>;
 }
 
-export interface SpinnerProps {
+export interface SpinnerProps extends WithTestId {
   size?: "sm" | "md";
   color?: "light" | "dark" | "accent" | "secondary";
 }
@@ -2200,7 +2184,7 @@ export interface TableProps {
   extraControls?: React.ReactElement;
 }
 
-export interface PaginationProps {
+export interface PaginationProps extends WithTestId {
   page: number;
   setPage: (page: number) => void;
   totalPages: number;
@@ -2228,7 +2212,8 @@ export interface DataTableColumn {
   infoModalText?: string;
 }
 
-export interface DataTableProps {
+export interface DataTableProps extends WithTestId {
+  testIds?: DataTableTestIds;
   data: DataTableCellData[][];
   columns: DataTableColumn[];
   alternateRowBackground?: boolean;
@@ -2361,7 +2346,7 @@ export interface TableContextProviderProps extends TableContextType {
   children: React.ReactNode;
 }
 
-export interface TextProps {
+export interface TextProps extends WithTestId {
   align?: "left" | "right" | "center" | "justify"; // default "left"
   children?: React.ReactNode;
   bold?: boolean; // default false
@@ -2372,7 +2357,6 @@ export interface TextProps {
   underline?: boolean;
   numberOfLines?: number;
   skipLinking?: boolean;
-  testID?: string;
 }
 
 export interface TextFieldPickerActionSheetProps {
@@ -2654,7 +2638,8 @@ export interface ModelAdminCustomComponentProps extends Omit<FieldProps, "name">
   editing: boolean; // Allow for inline editing of the field.
 }
 
-export interface MultiselectFieldProps extends HelperTextProps, ErrorTextProps {
+export interface MultiselectFieldProps extends WithTestId, HelperTextProps, ErrorTextProps {
+  testIds?: FieldTestIds;
   /**
    * The available options for the multiselect field.
    */
@@ -2775,7 +2760,8 @@ export interface FieldOption {
 }
 
 // Split up SelectField so if value is passed as a string,
-export interface SelectFieldPropsBase {
+export interface SelectFieldPropsBase extends WithTestId {
+  testIds?: FieldTestIds;
   /**
    * If true, the select field will be disabled.
    * @default false
