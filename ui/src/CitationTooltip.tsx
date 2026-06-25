@@ -19,6 +19,7 @@ import {useTheme} from "./Theme";
 const POPOVER_OFFSET = 8;
 const POPOVER_OVERFLOW_PADDING = 20;
 const POPOVER_WIDTH = 280;
+const INLINE_MARKER_MARGIN_HORIZONTAL = 5;
 // Distance in pixels a touch on the backdrop may travel before it is treated as a scroll attempt.
 const SCROLL_DISMISS_SLOP = 8;
 
@@ -296,7 +297,7 @@ export const CitationTooltip: FC<CitationTooltipProps> = ({
   const position = getPopoverPosition(measurement, idealPosition);
 
   return (
-    <View style={{alignSelf: "flex-start"}}>
+    <View style={{alignSelf: "flex-start", marginHorizontal: INLINE_MARKER_MARGIN_HORIZONTAL}}>
       {visible && (
         <Portal>
           {/* Full-screen backdrop dismisses on outside click or scroll attempt. Only rendered
