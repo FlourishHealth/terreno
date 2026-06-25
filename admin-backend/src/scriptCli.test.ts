@@ -177,6 +177,13 @@ describe("runScriptCli", () => {
     expect(seen.keep).toBe("yes");
   });
 
+  it("errors when a declared value flag is missing its value", async () => {
+    const {output, result} = await run(["countRecords", "--model"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.success).toBe(false);
+    expect(output).toInclude("--model expects a string value");
+  });
+
   it("fails when a required argument is missing", async () => {
     const {output, result} = await run(["needsEmail"]);
     expect(result.exitCode).toBe(1);

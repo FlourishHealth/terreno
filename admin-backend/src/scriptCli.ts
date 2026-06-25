@@ -9,11 +9,13 @@ import {
 import type {AdminScriptConfig} from "./adminApp";
 
 /**
- * Flag names reserved by the CLI itself. They control how a script is invoked and
- * are stripped from the arguments handed to the script runner, so script authors
- * should avoid declaring args with these names.
+ * Flag names reserved by the script runner itself. They control how a script is
+ * invoked (CLI flags and the HTTP `wetRun` query) and are stripped from the
+ * arguments handed to the script runner, so script authors should avoid declaring
+ * args with these names. Exported so the admin HTTP route can strip the same set
+ * and keep `ctx.args` identical across CLI and HTTP invocations.
  */
-const RESERVED_FLAGS = ["help", "h", "list", "json", "wet", "wetRun", "dry"];
+export const RESERVED_SCRIPT_FLAGS = ["help", "h", "list", "json", "wet", "wetRun", "dry"];
 
 export interface RunScriptCliOptions {
   /** The same script configs registered on {@link AdminApp}. */
@@ -184,7 +186,7 @@ export const runScriptCli = async (options: RunScriptCliOptions): Promise<RunScr
   const dryRequested = args.getBoolean("dry");
   const wetRequested = args.getBoolean("wet") || args.getBoolean("wetRun");
   const wetRun = wetRequested && !dryRequested;
-  for (const reserved of RESERVED_FLAGS) {
+  for (const reserved of RESERVED_SCRIPT_FLAGS) {
     delete args.raw[reserved];
   }
 

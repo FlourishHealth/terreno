@@ -247,6 +247,30 @@ describe("AdminApp script routes", () => {
         .expect(400);
       expect(res.body.detail).toInclude("expected a number");
     });
+
+    it("strips reserved runner flags from ctx.args over HTTP", async () => {
+      const echoScript = {
+        description: "Echoes arg keys",
+        name: "echoArgs",
+        runner: async (_wetRun: boolean, ctx?: {args: {raw: Record<string, unknown>}}) => ({
+          results: [
+            Object.keys(ctx?.args.raw ?? {})
+              .sort()
+              .join(","),
+          ],
+          success: true,
+        }),
+      };
+      app = buildApp([echoScript]);
+      const agent = await authAsUser(app, "admin");
+      const res = await agent
+        .post("/admin/scripts/echoArgs/run?wetRun=true&json=true&keep=yes")
+        .expect(201);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      const task = await BackgroundTask.findById(res.body.taskId);
+      expect(task?.result?.[0]).toBe("keep");
+    });
   });
 
   describe("GET /admin/scripts/tasks/:id", () => {

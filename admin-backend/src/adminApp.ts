@@ -41,6 +41,7 @@ import {
   normalizeAdminHome,
   SYSTEM_ADMIN_FIELDS,
 } from "./adminUiV2";
+import {RESERVED_SCRIPT_FLAGS} from "./scriptCli";
 
 /**
  * Configuration for a single model in the admin panel.
@@ -1182,13 +1183,13 @@ export class AdminApp {
 
         const isWetRun = req.query.wetRun === "true";
 
-        // Collect flexible arguments from the request. Query params (except wetRun)
-        // and a JSON body are both accepted; an explicit `args` object in the body
-        // takes precedence. This mirrors the CLI so scripts read args identically
-        // regardless of how they were invoked.
+        // Collect flexible arguments from the request. Query params and a JSON body
+        // are both accepted; an explicit `args` object in the body takes precedence.
+        // Reserved runner flags (wetRun, wet, dry, json, ...) are stripped so scripts
+        // read args identically over HTTP and via the CLI.
         const argValues: Record<string, ScriptArgValue> = {};
         for (const [key, value] of Object.entries(req.query)) {
-          if (key === "wetRun" || value === undefined) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key) || value === undefined) {
             continue;
           }
           argValues[key] = value as ScriptArgValue;
@@ -1201,7 +1202,12 @@ export class AdminApp {
           rawBody.args && typeof rawBody.args === "object" && !Array.isArray(rawBody.args)
             ? (rawBody.args as Record<string, ScriptArgValue>)
             : (rawBody as Record<string, ScriptArgValue>);
-        Object.assign(argValues, bodyValues);
+        for (const [key, value] of Object.entries(bodyValues)) {
+          if (RESERVED_SCRIPT_FLAGS.includes(key)) {
+            continue;
+          }
+          argValues[key] = value;
+        }
 
         const {args, errors: argErrors} = createScriptArgs({
           defs: script.args ?? [],
