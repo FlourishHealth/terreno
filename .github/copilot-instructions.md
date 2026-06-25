@@ -372,6 +372,13 @@ Shared install script (in **flourish** repo): `bash /agent/repos/flourish/script
 - `bun run lint`, `bun run api:test`, `bun run ui:test` (root `bun run test` may fail if optional workspace packages lack tests).
 - `demo:start` serves the UI component demo on port **8085**.
 
+### GCP service account secrets
+
+When present, these are injected as environment variables holding GCP service-account credentials (each scoped with viewer plus some write permissions for its environment):
+
+- `GCP_SA_TERRENO` — terreno GCP service account (viewer + some write); use it for gcloud / GCP API access for terreno.
+- The sibling apps in this workspace have their own: `GCP_SA_PRD` (flourish production), `GCP_SA_STG` (flourish staging), and `GCP_SA_ZAPLING` (zapling).
+
 ### Gotchas
 
 - **Port 8082** is shared by `example-frontend` and the separate **gitsight** app in this workspace — run only one web UI on 8082 at a time.
