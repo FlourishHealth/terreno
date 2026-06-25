@@ -168,7 +168,7 @@ All public `@terreno/ui` components accept an optional `testId` prop for targeti
 - **Compound fields** (`TextField`, `SelectField`, `DateTimeField`, etc.): optional `testIds` overrides sub-elements; otherwise defaults use dot suffixes:
   - `{testId}.label`, `{testId}` (input), `{testId}.error`, `{testId}.helper`
 - **Modal:** `testIds={{ primaryButton: "confirm.ok", secondaryButton: "confirm.cancel" }}` or defaults `{testId}.primary`, `{testId}.secondary`, `{testId}.dismiss`.
-- **DataTable:** `testIds={{ root, header, body, pagination, row }}`; row cells use `resolveDataTableRowTestId(testIds.row, rowKey)`.
+- **DataTable:** `testIds={{ root, header, body, pagination, row }}`; row cells use `resolveDataTableRowTestId(testIds.row, rowKey)`. Pass `getRowTestId={(row, index) => rowId}` for stable ids when sorting or paginating.
 
 Helpers exported from `@terreno/ui`:
 

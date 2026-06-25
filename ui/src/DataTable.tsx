@@ -433,6 +433,7 @@ interface DataTableContentProps {
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
   rowTestIdBase?: string;
+  getRowTestId?: (row: DataTableCellData[], rowIndex: number) => string | number;
 }
 
 const DataTableContent: FC<DataTableContentProps> = ({
@@ -449,9 +450,15 @@ const DataTableContent: FC<DataTableContentProps> = ({
   moreContentSize = "md",
   rowHeight,
   rowTestIdBase,
+  getRowTestId,
 }) => {
   const [modalRow, setModalRow] = useState<number | null>(null);
   const {theme} = useTheme();
+
+  const resolveRowTestId = (row: DataTableCellData[], rowIndex: number): string | undefined => {
+    const rowKey = getRowTestId ? getRowTestId(row, rowIndex) : rowIndex;
+    return resolveDataTableRowTestId(rowTestIdBase, rowKey);
+  };
 
   return (
     <>
@@ -508,11 +515,7 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(0, pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
-                  testID={
-                    pinnedColumns > 0
-                      ? resolveDataTableRowTestId(rowTestIdBase, rowIndex)
-                      : undefined
-                  }
+                  testID={pinnedColumns > 0 ? resolveRowTestId(row, rowIndex) : undefined}
                 />
               ))}
             </View>
@@ -544,11 +547,7 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
-                  testID={
-                    pinnedColumns === 0
-                      ? resolveDataTableRowTestId(rowTestIdBase, rowIndex)
-                      : undefined
-                  }
+                  testID={pinnedColumns === 0 ? resolveRowTestId(row, rowIndex) : undefined}
                 />
               ))}
             </View>
@@ -593,6 +592,7 @@ export const DataTable: FC<DataTableProps> = ({
   testId,
   testID,
   testIds,
+  getRowTestId,
 }) => {
   const {theme} = useTheme();
   const tableTestIds = resolveDataTableTestIdsFromProps({testID, testId, testIds});
@@ -684,6 +684,7 @@ export const DataTable: FC<DataTableProps> = ({
             columnWidths={columnWidths}
             customColumnComponentMap={customColumnComponentMap}
             data={processedData}
+            getRowTestId={getRowTestId}
             moreContentComponent={moreContentComponent}
             moreContentExtraData={moreContentExtraData}
             onScroll={handleScroll}

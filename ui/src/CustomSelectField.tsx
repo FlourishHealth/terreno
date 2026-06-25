@@ -79,7 +79,6 @@ export const CustomSelectField: FC<CustomSelectFieldProps> = ({
       style={{
         width: "100%",
       }}
-      testID={fieldTestIds.input}
     >
       <View
         accessibilityHint="Opens a dropdown menu. Select an option, or select custom to trigger popup to input a custom value"

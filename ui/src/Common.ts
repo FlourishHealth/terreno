@@ -2240,6 +2240,10 @@ export interface DataTableProps extends WithTestId {
   moreContentExtraData?: Record<string, unknown>[];
   // Allows handling of custom column types.
   customColumnComponentMap?: DataTableCustomComponentMap;
+  /**
+   * Returns a stable key for row test ids. Defaults to row index when omitted.
+   */
+  getRowTestId?: (row: DataTableCellData[], rowIndex: number) => string | number;
 }
 
 export interface DataTableCellProps {

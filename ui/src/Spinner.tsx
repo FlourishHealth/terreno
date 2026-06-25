@@ -33,5 +33,7 @@ export const Spinner: FC<SpinnerProps> = ({size = "md", color = "light", testId,
 
   const spinnerSize: "small" | "large" = size === "sm" ? "small" : "large";
   const resolvedTestId = pickTestId({testID, testId});
-  return <ActivityIndicator color={computedColor} size={spinnerSize} {...toTestProps(resolvedTestId)} />;
+  return (
+    <ActivityIndicator color={computedColor} size={spinnerSize} {...toTestProps(resolvedTestId)} />
+  );
 };
