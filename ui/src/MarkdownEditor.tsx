@@ -43,7 +43,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       <Box alignItems="stretch" direction={isDesktop ? "row" : "column"} gap={3}>
         <Box dangerouslySetInlineStyle={{__style: {flexBasis: 0}}} direction="column" flex="grow">
           <Heading size="sm">Edit</Heading>
-          <Box marginTop={1} dangerouslySetInlineStyle={{__style: paneContainerStyle}} overflow="hidden">
+          <Box
+            dangerouslySetInlineStyle={{__style: paneContainerStyle}}
+            marginTop={1}
+            overflow="hidden"
+          >
             <ScrollView style={{flex: 1}}>
               <TextField
                 disabled={disabled}
@@ -62,11 +66,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           <Heading size="sm">Preview</Heading>
           <Box
             border="default"
+            dangerouslySetInlineStyle={{__style: paneContainerStyle}}
             marginTop={1}
             overflow="hidden"
             rounding="sm"
             testID={testID ? `${testID}-preview` : undefined}
-            dangerouslySetInlineStyle={{__style: paneContainerStyle}}
           >
             <ScrollView style={{flex: 1}}>
               <Box padding={3}>
