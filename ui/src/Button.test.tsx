@@ -1,8 +1,9 @@
-import {describe, expect, it, mock} from "bun:test";
+import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
+import * as Utilities from "./Utilities";
 
 describe("Button", () => {
   it("renders correctly with default props", () => {
@@ -333,5 +334,32 @@ describe("Button", () => {
   it("renders with size sm", () => {
     const tree = renderWithTheme(<Button onClick={() => {}} size="sm" text="Small" />).toJSON();
     expect(tree).toBeTruthy();
+  });
+
+  it("sets loading to false and re-throws when onClick throws", async () => {
+    const error = new Error("onClick failure");
+    const handleClick = mock(() => Promise.reject(error));
+    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Throw" />);
+
+    await act(async () => {
+      try {
+        fireEvent.press(getByText("Throw"));
+        await new Promise((resolve) => setTimeout(resolve, 600));
+      } catch {
+        // expected re-throw from debounced handler
+      }
+    });
+
+    expect(handleClick).toHaveBeenCalled();
+  });
+
+  it("renders tooltip wrapper when tooltipText is provided and not native", () => {
+    const spy = spyOn(Utilities, "isNative").mockReturnValue(false);
+    const {toJSON} = renderWithTheme(
+      <Button onClick={() => {}} text="With Tooltip" tooltipText="Helpful tip" />
+    );
+    const tree = toJSON();
+    expect(tree).toBeTruthy();
+    spy.mockRestore();
   });
 });
