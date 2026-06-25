@@ -27,7 +27,11 @@ import {Pagination} from "./Pagination";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
 import {TableTitle} from "./table/TableTitle";
-import {resolveDataTableTestIdsFromProps} from "./testing/resolveTestId";
+import {
+  resolveDataTableRowTestId,
+  resolveDataTableTestIdsFromProps,
+  toTestProps,
+} from "./testing/resolveTestId";
 
 // TODO: Add permanent horizontal scroll bar so users with only a mouse can scroll left/right
 // easily.
@@ -120,6 +124,7 @@ interface DataTableRowProps {
   alternateRowBackground: boolean;
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
+  testID?: string;
 }
 
 const DataTableRow: FC<DataTableRowProps> = ({
@@ -131,6 +136,7 @@ const DataTableRow: FC<DataTableRowProps> = ({
   alternateRowBackground,
   customColumnComponentMap,
   rowHeight,
+  testID,
 }) => {
   const {theme} = useTheme();
   const backgroundColor =
@@ -144,6 +150,7 @@ const DataTableRow: FC<DataTableRowProps> = ({
         flexDirection: "row",
         height: rowHeight,
       }}
+      {...toTestProps(testID)}
     >
       {rowData.map((cell, colIndex) => (
         <DataTableCell
@@ -425,6 +432,7 @@ interface DataTableContentProps {
   moreContentSize?: "sm" | "md" | "lg";
   customColumnComponentMap?: DataTableCustomComponentMap;
   rowHeight: number;
+  rowTestIdBase?: string;
 }
 
 const DataTableContent: FC<DataTableContentProps> = ({
@@ -440,6 +448,7 @@ const DataTableContent: FC<DataTableContentProps> = ({
   moreContentExtraData,
   moreContentSize = "md",
   rowHeight,
+  rowTestIdBase,
 }) => {
   const [modalRow, setModalRow] = useState<number | null>(null);
   const {theme} = useTheme();
@@ -499,6 +508,11 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(0, pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
+                  testID={
+                    pinnedColumns > 0
+                      ? resolveDataTableRowTestId(rowTestIdBase, rowIndex)
+                      : undefined
+                  }
                 />
               ))}
             </View>
@@ -530,6 +544,11 @@ const DataTableContent: FC<DataTableContentProps> = ({
                   rowData={row.slice(pinnedColumns)}
                   rowHeight={rowHeight}
                   rowIndex={rowIndex}
+                  testID={
+                    pinnedColumns === 0
+                      ? resolveDataTableRowTestId(rowTestIdBase, rowIndex)
+                      : undefined
+                  }
                 />
               ))}
             </View>
@@ -670,6 +689,7 @@ export const DataTable: FC<DataTableProps> = ({
             onScroll={handleScroll}
             pinnedColumns={pinnedColumns}
             rowHeight={rowHeight}
+            rowTestIdBase={tableTestIds.row}
           />
         </View>
       </View>

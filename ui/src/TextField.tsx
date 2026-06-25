@@ -15,7 +15,7 @@ import type {TextFieldProps, TextStyleWithOutline} from "./Common";
 import {FieldError, FieldHelperText, FieldTitle} from "./fieldElements";
 import {Icon} from "./Icon";
 import {useTheme} from "./Theme";
-import {resolveFieldTestIdsFromProps, resolveTestId} from "./testing/resolveTestId";
+import {resolveFieldTestIdsFromProps} from "./testing/resolveTestId";
 
 const keyboardMap: {[id: string]: string | undefined} = {
   date: "default",
@@ -168,7 +168,7 @@ export const TextField: FC<TextFieldProps> = ({
       >
         {Boolean(aiSuggestion) && (
           <AiSuggestionBox
-            testID={resolveTestId(fieldTestIds.input, "ai-suggestion")}
+            testID={fieldTestIds.input ? `${fieldTestIds.input}-ai-suggestion` : undefined}
             {...aiSuggestion!}
           />
         )}

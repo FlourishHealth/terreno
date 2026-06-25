@@ -6,6 +6,7 @@ import {Text} from "react-native";
 
 import {isMobileDevice} from "../MediaQuery";
 import {useTheme} from "../Theme";
+import {toTestProps} from "../testing/resolveTestId";
 import {isNative} from "../Utilities";
 
 interface FieldTitleProps {
@@ -25,7 +26,7 @@ export const FieldTitle: FC<FieldTitleProps> = ({text, testID}) => {
         fontWeight: 600,
         lineHeight: 22.4,
       }}
-      testID={testID}
+      {...toTestProps(testID)}
     >
       {text}
     </Text>

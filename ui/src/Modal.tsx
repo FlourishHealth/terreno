@@ -18,7 +18,7 @@ import {Icon} from "./Icon";
 import {isMobileDevice} from "./MediaQuery";
 import {Text} from "./Text";
 import {useTheme} from "./Theme";
-import {resolveModalTestIdsFromProps} from "./testing/resolveTestId";
+import {resolveModalTestIdsFromProps, toTestProps} from "./testing/resolveTestId";
 import {isNative} from "./Utilities";
 
 const getModalSize = (size: "sm" | "md" | "lg"): DimensionValue => {
@@ -84,7 +84,7 @@ const ModalContent: FC<{
               margin: "auto",
             }),
       }}
-      testID={modalTestIds.root}
+      {...toTestProps(modalTestIds.root)}
     >
       <View style={{alignSelf: "flex-end", position: "relative"}}>
         <Pressable
@@ -102,7 +102,7 @@ const ModalContent: FC<{
             right: -8,
             top: -8,
           }}
-          testID={modalTestIds.dismiss}
+          {...toTestProps(modalTestIds.dismiss)}
         >
           <Icon iconName="x" size="sm" />
         </Pressable>
@@ -113,7 +113,7 @@ const ModalContent: FC<{
           aria-label={title}
           aria-role="header"
           style={{alignSelf: "flex-start"}}
-          testID={modalTestIds.title}
+          {...toTestProps(modalTestIds.title)}
         >
           <Heading size="lg">{title}</Heading>
         </View>
