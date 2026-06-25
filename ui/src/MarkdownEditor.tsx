@@ -18,6 +18,7 @@ interface MarkdownEditorProps {
 const DEFAULT_MAX_HEIGHT = 500;
 const MIN_PANE_HEIGHT = 200;
 const TEXT_FIELD_ROW_HEIGHT = 40;
+const TEXT_FIELD_CHROME_HEIGHT = 20;
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
@@ -39,7 +40,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   };
 
   const editorRows = useMemo(
-    () => Math.max(5, Math.floor(maxHeight / TEXT_FIELD_ROW_HEIGHT)),
+    () => Math.max(3, Math.floor((maxHeight - TEXT_FIELD_CHROME_HEIGHT) / TEXT_FIELD_ROW_HEIGHT)),
     [maxHeight]
   );
 

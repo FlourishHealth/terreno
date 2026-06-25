@@ -38,7 +38,7 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
 
 const DEFAULT_MAX_HEIGHT = 500;
 const MIN_PANE_HEIGHT = 200;
-const TOOLBAR_HEIGHT = 34;
+const TOOLBAR_MIN_HEIGHT = 34;
 
 export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
   title,
@@ -67,7 +67,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
     minHeight: MIN_PANE_HEIGHT,
   };
 
-  const editorAreaHeight = disabled ? maxHeight : maxHeight - TOOLBAR_HEIGHT;
+  const editorAreaMinHeight = Math.max(MIN_PANE_HEIGHT - TOOLBAR_MIN_HEIGHT, 120);
 
   return (
     <View testID={testID}>
@@ -81,32 +81,34 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
         rounding="md"
       >
         <View style={{...paneContainerStyle, flexDirection: "column"}}>
-          <TextInput
-            editable={!disabled}
-            multiline
-            onChangeText={onChange}
-            placeholder={placeholder ?? "Enter markdown..."}
-            placeholderTextColor={theme.text.secondaryDark}
-            ref={inputRef}
-            scrollEnabled
-            style={{
-              backgroundColor: theme.surface.base,
-              borderBottomWidth: isWeb ? 0 : 1,
-              borderColor: theme.border.default,
-              borderRightWidth: isWeb ? 1 : 0,
-              color: theme.text.primary,
-              fontFamily: monoFont,
-              fontSize: 14,
-              height: editorAreaHeight,
-              maxHeight: editorAreaHeight,
-              minHeight: Math.max(MIN_PANE_HEIGHT - TOOLBAR_HEIGHT, 120),
-              padding: 12,
-              textAlignVertical: "top",
-              width: "100%",
-            }}
-            testID={testID ? `${testID}-input` : undefined}
-            value={value}
-          />
+          <View style={{flex: 1, minHeight: editorAreaMinHeight}}>
+            <TextInput
+              editable={!disabled}
+              multiline
+              onChangeText={onChange}
+              placeholder={placeholder ?? "Enter markdown..."}
+              placeholderTextColor={theme.text.secondaryDark}
+              ref={inputRef}
+              scrollEnabled
+              style={{
+                backgroundColor: theme.surface.base,
+                borderBottomWidth: isWeb ? 0 : 1,
+                borderColor: theme.border.default,
+                borderRightWidth: isWeb ? 1 : 0,
+                color: theme.text.primary,
+                flex: 1,
+                fontFamily: monoFont,
+                fontSize: 14,
+                height: "100%",
+                minHeight: editorAreaMinHeight,
+                padding: 12,
+                textAlignVertical: "top",
+                width: "100%",
+              }}
+              testID={testID ? `${testID}-input` : undefined}
+              value={value}
+            />
+          </View>
           {!disabled && (
             <View
               style={{
@@ -114,9 +116,10 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
                 borderColor: theme.border.default,
                 borderTopWidth: 1,
                 flexDirection: "row",
+                flexShrink: 0,
                 flexWrap: "wrap",
                 gap: 2,
-                height: TOOLBAR_HEIGHT,
+                minHeight: TOOLBAR_MIN_HEIGHT,
                 paddingHorizontal: 4,
                 paddingVertical: 3,
               }}
