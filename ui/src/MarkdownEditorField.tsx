@@ -36,6 +36,10 @@ const TOOLBAR_BUTTONS: ToolbarButton[] = [
   {insert: (v) => `${v}[text](url)`, label: "🔗"},
 ];
 
+const DEFAULT_MAX_HEIGHT = 500;
+const MIN_PANE_HEIGHT = 200;
+const TOOLBAR_HEIGHT = 34;
+
 export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
   title,
   value = "",
@@ -45,7 +49,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
   errorText,
   helperText,
   testID,
-  maxHeight = 500,
+  maxHeight = DEFAULT_MAX_HEIGHT,
 }) => {
   const {theme} = useTheme();
   const isWeb = Platform.OS === "web";
@@ -56,42 +60,53 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
     [isWeb]
   );
 
+  const paneContainerStyle = {
+    flex: 1,
+    height: maxHeight,
+    maxHeight,
+    minHeight: MIN_PANE_HEIGHT,
+  };
+
+  const editorAreaHeight = disabled ? maxHeight : maxHeight - TOOLBAR_HEIGHT;
+
   return (
     <View testID={testID}>
       {Boolean(title) && <FieldTitle text={title!} />}
       <Box
+        alignItems="stretch"
         border={errorText ? "error" : "default"}
         direction={isWeb ? "row" : "column"}
         gap={0}
         overflow="hidden"
         rounding="md"
       >
-        <View style={{flex: 1, maxHeight, minHeight: 200}}>
-          <ScrollView style={{flex: 1}}>
-            <TextInput
-              editable={!disabled}
-              multiline
-              onChangeText={onChange}
-              placeholder={placeholder ?? "Enter markdown..."}
-              placeholderTextColor={theme.text.secondaryDark}
-              ref={inputRef}
-              style={{
-                backgroundColor: theme.surface.base,
-                borderBottomWidth: isWeb ? 0 : 1,
-                borderColor: theme.border.default,
-                borderRightWidth: isWeb ? 1 : 0,
-                color: theme.text.primary,
-                flex: 1,
-                fontFamily: monoFont,
-                fontSize: 14,
-                minHeight: 200,
-                padding: 12,
-                textAlignVertical: "top",
-              }}
-              testID={testID ? `${testID}-input` : undefined}
-              value={value}
-            />
-          </ScrollView>
+        <View style={{...paneContainerStyle, flexDirection: "column"}}>
+          <TextInput
+            editable={!disabled}
+            multiline
+            onChangeText={onChange}
+            placeholder={placeholder ?? "Enter markdown..."}
+            placeholderTextColor={theme.text.secondaryDark}
+            ref={inputRef}
+            scrollEnabled
+            style={{
+              backgroundColor: theme.surface.base,
+              borderBottomWidth: isWeb ? 0 : 1,
+              borderColor: theme.border.default,
+              borderRightWidth: isWeb ? 1 : 0,
+              color: theme.text.primary,
+              fontFamily: monoFont,
+              fontSize: 14,
+              height: editorAreaHeight,
+              maxHeight: editorAreaHeight,
+              minHeight: Math.max(MIN_PANE_HEIGHT - TOOLBAR_HEIGHT, 120),
+              padding: 12,
+              textAlignVertical: "top",
+              width: "100%",
+            }}
+            testID={testID ? `${testID}-input` : undefined}
+            value={value}
+          />
           {!disabled && (
             <View
               style={{
@@ -101,6 +116,7 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
                 flexDirection: "row",
                 flexWrap: "wrap",
                 gap: 2,
+                height: TOOLBAR_HEIGHT,
                 paddingHorizontal: 4,
                 paddingVertical: 3,
               }}
@@ -139,17 +155,19 @@ export const MarkdownEditorField: React.FC<MarkdownEditorFieldProps> = ({
             </View>
           )}
         </View>
-        <ScrollView style={{flex: 1, maxHeight, minHeight: 200}}>
-          <Box color="base" padding={3} style={{minHeight: 200}}>
-            {value ? (
-              <MarkdownView>{value}</MarkdownView>
-            ) : (
-              <Text color="secondaryDark" size="sm">
-                Preview
-              </Text>
-            )}
-          </Box>
-        </ScrollView>
+        <View style={paneContainerStyle}>
+          <ScrollView style={{flex: 1, height: maxHeight, maxHeight}}>
+            <Box color="base" padding={3} style={{minHeight: MIN_PANE_HEIGHT}}>
+              {value ? (
+                <MarkdownView>{value}</MarkdownView>
+              ) : (
+                <Text color="secondaryDark" size="sm">
+                  Preview
+                </Text>
+              )}
+            </Box>
+          </ScrollView>
+        </View>
       </Box>
       {Boolean(errorText) && <FieldError text={errorText!} />}
       {Boolean(helperText) && <FieldHelperText text={helperText!} />}

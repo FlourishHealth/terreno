@@ -1,4 +1,4 @@
-import React from "react";
+import React, {useMemo} from "react";
 import {ScrollView, useWindowDimensions} from "react-native";
 import {Box} from "./Box";
 import {Heading} from "./Heading";
@@ -17,6 +17,7 @@ interface MarkdownEditorProps {
 
 const DEFAULT_MAX_HEIGHT = 500;
 const MIN_PANE_HEIGHT = 200;
+const TEXT_FIELD_ROW_HEIGHT = 40;
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
@@ -37,6 +38,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
     minHeight: MIN_PANE_HEIGHT,
   };
 
+  const editorRows = useMemo(
+    () => Math.max(5, Math.floor(maxHeight / TEXT_FIELD_ROW_HEIGHT)),
+    [maxHeight]
+  );
+
   return (
     <Box direction="column" gap={2} testID={testID}>
       {Boolean(title) && <Heading size="sm">{title}</Heading>}
@@ -48,18 +54,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             marginTop={1}
             overflow="hidden"
           >
-            <ScrollView style={{flex: 1}}>
+            <Box height="100%" overflow="hidden">
               <TextField
                 disabled={disabled}
-                grow
                 multiline
                 onChange={onChange}
                 placeholder={placeholder}
-                rows={10}
+                rows={editorRows}
                 testID={testID ? `${testID}-input` : undefined}
                 value={value}
               />
-            </ScrollView>
+            </Box>
           </Box>
         </Box>
         <Box dangerouslySetInlineStyle={{__style: {flexBasis: 0}}} direction="column" flex="grow">
@@ -72,7 +77,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             rounding="sm"
             testID={testID ? `${testID}-preview` : undefined}
           >
-            <ScrollView style={{flex: 1}}>
+            <ScrollView style={{flex: 1, height: maxHeight, maxHeight}}>
               <Box padding={3}>
                 <MarkdownView>{value || " "}</MarkdownView>
               </Box>
