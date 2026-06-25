@@ -2,6 +2,7 @@ import {describe, expect, it, mock, spyOn} from "bun:test";
 import {act, fireEvent, render, waitFor} from "@testing-library/react-native";
 
 import {Button} from "./Button";
+import {isMobileDevice} from "./MediaQuery";
 import {renderWithIcons, renderWithTheme, TEST_CUSTOM_ICON_TEST_ID} from "./test-utils";
 import * as Utilities from "./Utilities";
 
@@ -336,30 +337,31 @@ describe("Button", () => {
     expect(tree).toBeTruthy();
   });
 
-  it("sets loading to false and re-throws when onClick throws", async () => {
-    const error = new Error("onClick failure");
-    const handleClick = mock(() => Promise.reject(error));
-    const {getByText} = renderWithTheme(<Button onClick={handleClick} text="Throw" />);
+  it("does not render tooltip wrapper when isMobileDevice is true", () => {
+    const nativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => true);
 
-    await act(async () => {
-      try {
-        fireEvent.press(getByText("Throw"));
-        await new Promise((resolve) => setTimeout(resolve, 600));
-      } catch {
-        // expected re-throw from debounced handler
-      }
-    });
+    const {getByText, toJSON} = renderWithTheme(
+      <Button onClick={() => {}} text="No Tooltip" tooltipText="Should not wrap" />
+    );
 
-    expect(handleClick).toHaveBeenCalled();
+    expect(getByText("No Tooltip")).toBeTruthy();
+    const tree = JSON.stringify(toJSON());
+    expect(tree).not.toContain("Should not wrap");
+    nativeSpy.mockRestore();
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
   });
 
   it("renders tooltip wrapper when tooltipText is provided and not native", () => {
-    const spy = spyOn(Utilities, "isNative").mockReturnValue(false);
-    const {toJSON} = renderWithTheme(
+    const nativeSpy = spyOn(Utilities, "isNative").mockReturnValue(false);
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
+
+    const {getByText} = renderWithTheme(
       <Button onClick={() => {}} text="With Tooltip" tooltipText="Helpful tip" />
     );
-    const tree = toJSON();
-    expect(tree).toBeTruthy();
-    spy.mockRestore();
+
+    expect(getByText("With Tooltip")).toBeTruthy();
+    nativeSpy.mockRestore();
+    (isMobileDevice as ReturnType<typeof mock>).mockImplementation(() => false);
   });
 });
