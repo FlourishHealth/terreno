@@ -1178,6 +1178,9 @@ exports[`OpenAPI spec generation matches snapshot 1`] = `
                     "scripts": {
                       "items": {
                         "properties": {
+                          "args": {
+                            "type": "array",
+                          },
                           "description": {
                             "type": "string",
                           },
