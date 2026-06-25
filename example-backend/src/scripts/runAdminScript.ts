@@ -25,7 +25,14 @@ import {connectToMongoDB} from "../utils/database";
 
 const main = async (): Promise<void> => {
   const argv = process.argv.slice(2);
-  const needsDb = !argv.includes("--list") && !argv.includes("--help") && !argv.includes("-h");
+
+  // Only connect to MongoDB when an actual registered script will run. Help, list,
+  // no-args, and unknown-script invocations just print text and need no database.
+  const scriptName = argv.find((token) => !token.startsWith("-"));
+  const wantsHelp = argv.includes("--help") || argv.includes("-h");
+  const wantsList = argv.includes("--list");
+  const needsDb =
+    !!scriptName && !wantsHelp && !wantsList && adminScripts.some((s) => s.name === scriptName);
 
   if (needsDb) {
     await connectToMongoDB();
