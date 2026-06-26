@@ -65,11 +65,16 @@ Implemented:
 - `createSyncDbClient` lifecycle (start / save / destroy), aggregate sync status,
   and transport-driven status setters.
 
+Also implemented:
+
+- Conflict store + `useServer`/`keepMine` resolver.
+- Encryption at rest: pluggable `PayloadCodec` (AES-GCM via Web Crypto) and a
+  key-value persister that encrypts the serialized store blob (opt-in via
+  `createEncryptedPersisterFactory`).
+
 Not yet implemented (later phases):
 
-- Web Crypto / at-rest encryption envelope.
 - Websocket delta-sync transport and cursor-aware delta applier.
-- Conflict capture/resolution (`useServer` / `keepMine`) wiring.
 - React hooks/provider and the Redux migration bridge.
 - `example-frontend` todos integration behind `USE_SYNCDB`.
 - `@terreno/syncdb-codegen`.
