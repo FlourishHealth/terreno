@@ -1,8 +1,12 @@
+import {type ConflictStore, createConflictStore} from "./mutations/conflicts";
 import {createOutbox, type Outbox} from "./mutations/outbox";
+import type {ConflictStrategy} from "./mutations/resolveConflict";
+import {type ConflictResolver, createConflictResolver} from "./mutations/resolveConflict";
 import {createDefaultPersisterFactory} from "./persisters/defaultPersisterFactory";
 import type {SyncDbPersister} from "./persisters/types";
 import {createSyncStore, type SyncStore} from "./storage/store";
-import {SYNC_TABLES} from "./storage/types";
+import {createDeltaApplier, type DeltaApplier} from "./sync/deltaApplier";
+import {createReplayCoordinator, type ReplayCoordinator} from "./sync/replayCoordinator";
 import type {SyncDbClientConfig, SyncStatus} from "./types";
 
 export interface SyncDbClient {
@@ -10,10 +14,22 @@ export interface SyncDbClient {
   readonly store: SyncStore;
   /** Durable mutation outbox. */
   readonly outbox: Outbox;
+  /** Unresolved-conflict store. */
+  readonly conflicts: ConflictStore;
+  /** Cursor-aware delta applier (for advanced/manual use). */
+  readonly deltaApplier: DeltaApplier;
   /** Initialize persistence: load persisted content and (optionally) auto-save. */
   start(): Promise<void>;
   /** Force a persistence flush. */
   save(): Promise<void>;
+  /** Connect the configured transport and begin replay/delta sync. */
+  connectSync(): Promise<void>;
+  /** Disconnect the transport and stop sync. */
+  disconnectSync(): void;
+  /** Replay queued mutations now (no-op if not connected). */
+  replayOutbox(): void;
+  /** Resolve a conflict with the given strategy. */
+  resolveConflict(args: {conflictId: string; strategy: ConflictStrategy}): void;
   /** Current aggregate sync status. */
   getSyncStatus(): SyncStatus;
   /** Update perceived network connectivity (driven by the transport layer). */
@@ -24,7 +40,7 @@ export interface SyncDbClient {
   setAuthBlocked(args: {authBlocked: boolean}): void;
   /** Subscribe to status changes (returns an unsubscribe function). */
   addStatusListener(listener: (status: SyncStatus) => void): () => void;
-  /** Stop auto-save and release persister resources. */
+  /** Stop auto-save, disconnect sync, and release resources. */
   destroy(): Promise<void>;
 }
 
@@ -36,55 +52,26 @@ interface MutableStatus {
 
 /**
  * Create a local-first sync client: a schema-bound TinyBase MergeableStore, a
- * durable outbox, and a platform persister. Reads/writes are local-first; the
- * websocket delta-sync transport and conflict reconciliation land in later
- * phases and will drive the network/syncing/auth-blocked status flags.
+ * durable outbox, a conflict store, a platform persister, and (when a transport
+ * is configured) websocket-style delta sync with ack/nack-driven outbox replay.
+ * Reads/writes are local-first; the server reconciles asynchronously.
  */
 export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClient => {
   const store = createSyncStore({storeId: config.storeId});
   const outbox = createOutbox({store: store.raw});
+  const conflicts = createConflictStore({store: store.raw});
+  const deltaApplier = createDeltaApplier({store});
   const status: MutableStatus = {authBlocked: false, isOnline: true, isSyncing: false};
   const statusListeners = new Set<(status: SyncStatus) => void>();
 
   let persister: SyncDbPersister | undefined;
   let startPromise: Promise<void> | undefined;
+  let replayCoordinator: ReplayCoordinator | undefined;
+  let transportUnsubs: Array<() => void> = [];
 
-  const initialize = async (): Promise<void> => {
-    const factory =
-      config.persisterFactory ?? createDefaultPersisterFactory({databaseName: config.databaseName});
-    persister = await factory(store.raw);
-    await persister.load();
-    if (config.autoSave !== false) {
-      await persister.startAutoSave();
-    }
-  };
+  const conflictResolver: ConflictResolver = createConflictResolver({conflicts, outbox, store});
 
-  // Cache the in-flight promise so concurrent start() calls share one
-  // initialization rather than creating duplicate persisters/listeners.
-  const start = async (): Promise<void> => {
-    if (!startPromise) {
-      startPromise = initialize();
-    }
-    return startPromise;
-  };
-
-  const save = async (): Promise<void> => {
-    if (!persister) {
-      throw new Error("SyncDbClient.save() called before start()");
-    }
-    await persister.save();
-  };
-
-  const countUnresolvedConflicts = (): number => {
-    const table = store.raw.getTable(SYNC_TABLES.conflicts);
-    let unresolved = 0;
-    for (const row of Object.values(table)) {
-      if (!(row as {dismissed?: boolean}).dismissed) {
-        unresolved += 1;
-      }
-    }
-    return unresolved;
-  };
+  const countUnresolvedConflicts = (): number => conflicts.count();
 
   const getSyncStatus = (): SyncStatus => ({
     authBlocked: status.authBlocked,
@@ -116,6 +103,99 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     notifyStatus();
   };
 
+  const updateSyncing = (): void => {
+    setSyncing({isSyncing: outbox.count({status: "inFlight"}) > 0});
+  };
+
+  const initialize = async (): Promise<void> => {
+    const factory =
+      config.persisterFactory ?? createDefaultPersisterFactory({databaseName: config.databaseName});
+    persister = await factory(store.raw);
+    await persister.load();
+    if (config.autoSave !== false) {
+      await persister.startAutoSave();
+    }
+  };
+
+  // Cache the in-flight promise so concurrent start() calls share one
+  // initialization rather than creating duplicate persisters/listeners.
+  const start = async (): Promise<void> => {
+    if (!startPromise) {
+      startPromise = initialize();
+    }
+    return startPromise;
+  };
+
+  const save = async (): Promise<void> => {
+    if (!persister) {
+      throw new Error("SyncDbClient.save() called before start()");
+    }
+    await persister.save();
+  };
+
+  const replayOutbox = (): void => {
+    if (!replayCoordinator) {
+      return;
+    }
+    replayCoordinator.replay();
+    updateSyncing();
+  };
+
+  const connectSync = async (): Promise<void> => {
+    const transport = config.transport;
+    if (!transport) {
+      throw new Error("SyncDbClient.connectSync() requires a configured transport");
+    }
+    if (replayCoordinator) {
+      return;
+    }
+
+    replayCoordinator = createReplayCoordinator({
+      conflicts,
+      onAuthBlocked: (authBlocked) => setAuthBlocked({authBlocked}),
+      outbox,
+      store,
+      transport,
+    });
+
+    transportUnsubs.push(replayCoordinator.start());
+    transportUnsubs.push(
+      transport.onEvent((event) => {
+        if (event.type === "sync:delta") {
+          deltaApplier.apply(event);
+        }
+        updateSyncing();
+      })
+    );
+    transportUnsubs.push(
+      transport.onStatus((connectionStatus) => {
+        const isOnline = connectionStatus === "connected";
+        setOnline({isOnline});
+        if (isOnline) {
+          setAuthBlocked({authBlocked: false});
+          replayOutbox();
+        }
+      })
+    );
+
+    await transport.connect();
+  };
+
+  const disconnectSync = (): void => {
+    for (const unsubscribe of transportUnsubs) {
+      unsubscribe();
+    }
+    transportUnsubs = [];
+    config.transport?.disconnect();
+    replayCoordinator = undefined;
+    setSyncing({isSyncing: false});
+  };
+
+  const resolveConflict = (args: {conflictId: string; strategy: ConflictStrategy}): void => {
+    conflictResolver.resolve(args);
+    notifyStatus();
+  };
+
   const addStatusListener = (listener: (status: SyncStatus) => void): (() => void) => {
     statusListeners.add(listener);
     return () => {
@@ -124,6 +204,7 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   };
 
   const destroy = async (): Promise<void> => {
+    disconnectSync();
     if (persister) {
       persister.stopAutoSave();
       persister.destroy();
@@ -134,9 +215,15 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
 
   return {
     addStatusListener,
+    conflicts,
+    connectSync,
+    deltaApplier,
     destroy,
+    disconnectSync,
     getSyncStatus,
     outbox,
+    replayOutbox,
+    resolveConflict,
     save,
     setAuthBlocked,
     setOnline,

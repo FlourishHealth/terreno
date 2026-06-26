@@ -1,4 +1,5 @@
 import type {SyncDbPersisterFactory} from "./persisters/types";
+import type {SyncTransport} from "./sync/types";
 
 /** Aggregate, UI-facing sync state surfaced by the client. */
 export interface SyncStatus {
@@ -27,4 +28,6 @@ export interface SyncDbClientConfig {
   persisterFactory?: SyncDbPersisterFactory;
   /** Persist on every change after start (default: true). */
   autoSave?: boolean;
+  /** Optional sync transport. Required to use connectSync/replayOutbox. */
+  transport?: SyncTransport;
 }

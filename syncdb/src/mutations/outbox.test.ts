@@ -159,6 +159,16 @@ describe("createOutbox", () => {
     expect(outbox.get({mutationId: "m1"})?.attemptCount).toBe(2);
   });
 
+  it("markQueued returns an in-flight mutation to the queue and rejects other states", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "create"});
+
+    expect(() => outbox.markQueued({mutationId: "m1"})).toThrow();
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markQueued({mutationId: "m1"});
+    expect(outbox.get({mutationId: "m1"})?.status).toBe("queued");
+  });
+
   it("round-trips entityId and baseVersion, reading empties back as undefined", () => {
     const outbox = makeOutbox();
     outbox.enqueue({

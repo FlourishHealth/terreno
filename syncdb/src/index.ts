@@ -14,4 +14,8 @@ export * from "./persisters/types";
 export * from "./storage/schema";
 export * from "./storage/store";
 export * from "./storage/types";
+export * from "./sync/deltaApplier";
+export * from "./sync/fakeTransport";
+export * from "./sync/replayCoordinator";
+export * from "./sync/types";
 export * from "./types";

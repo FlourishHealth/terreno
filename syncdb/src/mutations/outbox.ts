@@ -69,6 +69,8 @@ export interface Outbox {
   list<TArgs>(args?: {status?: OutboxStatus}): OutboxMutation<TArgs>[];
   count(args?: {status?: OutboxStatus}): number;
   markInFlight(args: {mutationId: string}): void;
+  /** Return an in-flight mutation to the queue (e.g. auth-blocked replay). */
+  markQueued(args: {mutationId: string}): void;
   markAcked(args: {mutationId: string}): void;
   markConflicted(args: {mutationId: string}): void;
   markFailed(args: {mutationId: string}): void;
@@ -145,6 +147,16 @@ export const createOutbox = ({store}: {store: MergeableStore}): Outbox => {
     store.setCell(SYNC_TABLES.outbox, mutationId, "lastAttemptAt", nowIso());
   };
 
+  const markQueued = ({mutationId}: {mutationId: string}): void => {
+    const row = requireRow(mutationId);
+    if (row.status !== "inFlight") {
+      throw new Error(
+        `Cannot requeue (markQueued) from status "${row.status}" (mutation ${mutationId})`
+      );
+    }
+    store.setCell(SYNC_TABLES.outbox, mutationId, "status", "queued");
+  };
+
   const markAcked = ({mutationId}: {mutationId: string}): void => {
     const row = requireRow(mutationId);
     if (row.status !== "inFlight") {
@@ -211,6 +223,7 @@ export const createOutbox = ({store}: {store: MergeableStore}): Outbox => {
     markConflicted,
     markFailed,
     markInFlight,
+    markQueued,
     remove,
     requeue,
   };

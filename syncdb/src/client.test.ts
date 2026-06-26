@@ -3,6 +3,7 @@ import {describe, expect, it} from "bun:test";
 import {createSyncDbClient} from "./client";
 import {createMemoryPersisterFactory, type MemoryStorage} from "./persisters/memoryPersister";
 import {SYNC_TABLES} from "./storage/types";
+import {createFakeTransport} from "./sync/fakeTransport";
 
 describe("createSyncDbClient", () => {
   it("exposes a started status with zero counts by default", async () => {
@@ -157,6 +158,110 @@ describe("createSyncDbClient", () => {
     client.store.upsertEntity({collection: "todos", data: {title: "x"}, id: "t1"});
     expect(client.getSyncStatus().queuedCount).toBe(0);
     expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({title: "x"});
+    await client.destroy();
+  });
+
+  it("connectSync replays queued mutations and applies inbound deltas", async () => {
+    const transport = createFakeTransport();
+    const client = createSyncDbClient({
+      persisterFactory: createMemoryPersisterFactory(),
+      transport,
+    });
+    await client.start();
+    client.outbox.enqueue({
+      args: {title: "offline"},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "create",
+    });
+
+    await client.connectSync();
+
+    // Connecting replays the queued mutation.
+    expect(transport.sent).toHaveLength(1);
+    expect(client.getSyncStatus().isOnline).toBe(true);
+    expect(client.getSyncStatus().isSyncing).toBe(true);
+
+    // Server acks it -> queue drains, syncing clears.
+    transport.emit({mutationId: "m1", type: "sync:ack"});
+    expect(client.getSyncStatus().queuedCount).toBe(0);
+    expect(client.getSyncStatus().isSyncing).toBe(false);
+
+    // Inbound delta updates the local store.
+    transport.emit({
+      changes: [{collection: "todos", data: {title: "from server"}, entityId: "t2", op: "upsert"}],
+      cursor: "1",
+      stream: "todos",
+      type: "sync:delta",
+    });
+    expect(client.store.getEntity({collection: "todos", id: "t2"})?.data).toEqual({
+      title: "from server",
+    });
+    await client.destroy();
+  });
+
+  it("conflict nack surfaces a conflict that resolveConflict can clear", async () => {
+    const transport = createFakeTransport();
+    const client = createSyncDbClient({
+      persisterFactory: createMemoryPersisterFactory(),
+      transport,
+    });
+    await client.start();
+    client.store.upsertEntity({collection: "todos", data: {title: "Mine"}, id: "t1"});
+    client.outbox.enqueue({
+      args: {title: "Mine"},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "update",
+    });
+    await client.connectSync();
+    transport.emit({
+      mutationId: "m1",
+      reason: "conflict",
+      serverData: {title: "Server"},
+      type: "sync:nack",
+    });
+
+    expect(client.getSyncStatus().conflictCount).toBe(1);
+    const [conflict] = client.conflicts.list();
+    client.resolveConflict({conflictId: conflict.conflictId, strategy: "useServer"});
+
+    expect(client.getSyncStatus().conflictCount).toBe(0);
+    expect(client.store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({
+      title: "Server",
+    });
+    await client.destroy();
+  });
+
+  it("auth nack pauses replay without clearing the queue", async () => {
+    const transport = createFakeTransport();
+    const client = createSyncDbClient({
+      persisterFactory: createMemoryPersisterFactory(),
+      transport,
+    });
+    await client.start();
+    client.outbox.enqueue({
+      args: {title: "x"},
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "m1",
+      operation: "create",
+    });
+    await client.connectSync();
+    transport.emit({mutationId: "m1", reason: "auth", type: "sync:nack"});
+
+    const statusAfter = client.getSyncStatus();
+    expect(statusAfter.authBlocked).toBe(true);
+    expect(statusAfter.queuedCount).toBe(1);
+    await client.destroy();
+  });
+
+  it("connectSync throws without a configured transport", async () => {
+    const client = createSyncDbClient({persisterFactory: createMemoryPersisterFactory()});
+    await client.start();
+    await expect(client.connectSync()).rejects.toThrow();
     await client.destroy();
   });
 
