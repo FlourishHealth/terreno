@@ -1,3 +1,4 @@
+export * from "./client";
 export * from "./mutations/outbox";
 export * from "./persisters/adapt";
 export * from "./persisters/defaultPersisterFactory";
@@ -7,3 +8,4 @@ export * from "./platform";
 export * from "./storage/schema";
 export * from "./storage/store";
 export * from "./storage/types";
+export * from "./types";
