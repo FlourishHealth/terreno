@@ -18,7 +18,20 @@ import {ConsentForm} from "./models/consentForm";
 import {ConsentResponse} from "./models/consentResponse";
 import {Permissions} from "./permissions";
 import type {TerrenoPlugin} from "./terrenoPlugin";
+import type {PopulatePath} from "./populate";
 import type {ConsentFormDocument} from "./types/consentForm";
+
+/** Shared populate config for consent response list/read endpoints. */
+export const consentResponsePopulatePaths: PopulatePath[] = [
+  {
+    fields: ["title", "slug", "version", "type"],
+    path: "consentFormId",
+  },
+  {
+    fields: ["name", "email"],
+    path: "userId",
+  },
+];
 
 export interface ConsentAppOptions {
   auditTrail?: boolean;
@@ -188,12 +201,7 @@ export class ConsentApp implements TerrenoPlugin {
           read: [Permissions.IsAdmin],
           update: [],
         },
-        populatePaths: [
-          {
-            fields: ["title", "slug", "version", "type"],
-            path: "consentFormId",
-          },
-        ],
+        populatePaths: consentResponsePopulatePaths,
       })
     );
 

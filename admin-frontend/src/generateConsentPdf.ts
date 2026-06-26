@@ -14,7 +14,7 @@ interface ConsentResponseData {
   signature?: string;
   signedAt?: string;
   userAgent?: string;
-  userId?: {_id?: string; email?: string; name?: string} | string;
+  userId?: {_id?: string; email?: string; id?: string; name?: string} | string;
 }
 
 const PAGE_WIDTH = 210;
@@ -64,7 +64,7 @@ export const generateConsentPdf = async (response: ConsentResponseData): Promise
 
   const userId =
     typeof response.userId === "object"
-      ? (response.userId?._id ?? String(response.userId))
+      ? String(response.userId?._id ?? response.userId?.id ?? response.userId)
       : String(response.userId ?? "");
 
   const userEmail = typeof response.userId === "object" ? (response.userId?.email ?? "") : "";
