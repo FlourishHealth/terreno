@@ -24,7 +24,13 @@ const decodeArgs = <TArgs>(raw: string | undefined): TArgs => {
   if (!raw) {
     return {} as TArgs;
   }
-  return JSON.parse(raw) as TArgs;
+  try {
+    return JSON.parse(raw) as TArgs;
+  } catch (error) {
+    // A corrupt row must not break outbox listing/replay for every mutation.
+    console.warn("[syncdb] failed to decode outbox args; returning empty", error);
+    return {} as TArgs;
+  }
 };
 
 const rowToMutation = <TArgs>(
@@ -140,7 +146,10 @@ export const createOutbox = ({store}: {store: MergeableStore}): Outbox => {
   };
 
   const markAcked = ({mutationId}: {mutationId: string}): void => {
-    requireRow(mutationId);
+    const row = requireRow(mutationId);
+    if (row.status !== "inFlight") {
+      throw new Error(`Cannot ack from status "${row.status}" (mutation ${mutationId})`);
+    }
     store.delRow(SYNC_TABLES.outbox, mutationId);
   };
 
@@ -179,6 +188,9 @@ export const createOutbox = ({store}: {store: MergeableStore}): Outbox => {
   };
 
   const clearForOtherUsers = ({currentUserId}: {currentUserId: string}): void => {
+    // Replay isolation (AC-10): on user switch, drop any mutation not owned by
+    // the current user. Anonymously-enqueued mutations (userId === "") are also
+    // dropped, since they cannot be safely attributed to the new session.
     const table = store.getTable(SYNC_TABLES.outbox);
     for (const [mutationId, row] of Object.entries(table)) {
       const userId = (row as Partial<OutboxRow>).userId ?? "";

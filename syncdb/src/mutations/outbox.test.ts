@@ -122,4 +122,66 @@ describe("createOutbox", () => {
     outbox.clear();
     expect(outbox.count()).toBe(0);
   });
+
+  it("removes a specific mutation and no-ops for a missing id", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "create"});
+
+    outbox.remove({mutationId: "m1"});
+    expect(outbox.get({mutationId: "m1"})).toBeUndefined();
+    expect(() => outbox.remove({mutationId: "missing"})).not.toThrow();
+  });
+
+  it("rejects invalid lifecycle transitions", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "update"});
+
+    // queued cannot go straight to conflicted/failed/acked, and cannot requeue.
+    expect(() => outbox.markConflicted({mutationId: "m1"})).toThrow();
+    expect(() => outbox.markFailed({mutationId: "m1"})).toThrow();
+    expect(() => outbox.markAcked({mutationId: "m1"})).toThrow();
+    expect(() => outbox.requeue({mutationId: "m1"})).toThrow();
+
+    // inFlight cannot requeue (only conflicted/failed can).
+    outbox.markInFlight({mutationId: "m1"});
+    expect(() => outbox.requeue({mutationId: "m1"})).toThrow();
+  });
+
+  it("accumulates attemptCount across a failed retry cycle", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({args: {}, collection: "todos", mutationId: "m1", operation: "update"});
+
+    outbox.markInFlight({mutationId: "m1"});
+    outbox.markFailed({mutationId: "m1"});
+    outbox.requeue({mutationId: "m1"});
+    outbox.markInFlight({mutationId: "m1"});
+
+    expect(outbox.get({mutationId: "m1"})?.attemptCount).toBe(2);
+  });
+
+  it("round-trips entityId and baseVersion, reading empties back as undefined", () => {
+    const outbox = makeOutbox();
+    outbox.enqueue({
+      args: {},
+      baseVersion: "v1",
+      collection: "todos",
+      entityId: "t1",
+      mutationId: "withMeta",
+      operation: "update",
+    });
+    outbox.enqueue({
+      args: {},
+      collection: "todos",
+      mutationId: "noMeta",
+      operation: "create",
+    });
+
+    const withMeta = outbox.get({mutationId: "withMeta"});
+    expect(withMeta?.entityId).toBe("t1");
+    expect(withMeta?.baseVersion).toBe("v1");
+
+    const noMeta = outbox.get({mutationId: "noMeta"});
+    expect(noMeta?.entityId).toBeUndefined();
+    expect(noMeta?.baseVersion).toBeUndefined();
+  });
 });

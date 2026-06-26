@@ -22,6 +22,8 @@ export interface SyncDbClient {
   setSyncing(args: {isSyncing: boolean}): void;
   /** Update whether replay is paused on auth refresh failure. */
   setAuthBlocked(args: {authBlocked: boolean}): void;
+  /** Subscribe to status changes (returns an unsubscribe function). */
+  addStatusListener(listener: (status: SyncStatus) => void): () => void;
   /** Stop auto-save and release persister resources. */
   destroy(): Promise<void>;
 }
@@ -42,14 +44,12 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
   const store = createSyncStore({storeId: config.storeId});
   const outbox = createOutbox({store: store.raw});
   const status: MutableStatus = {authBlocked: false, isOnline: true, isSyncing: false};
+  const statusListeners = new Set<(status: SyncStatus) => void>();
 
   let persister: SyncDbPersister | undefined;
-  let started = false;
+  let startPromise: Promise<void> | undefined;
 
-  const start = async (): Promise<void> => {
-    if (started) {
-      return;
-    }
+  const initialize = async (): Promise<void> => {
     const factory =
       config.persisterFactory ?? createDefaultPersisterFactory({databaseName: config.databaseName});
     persister = await factory(store.raw);
@@ -57,7 +57,15 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     if (config.autoSave !== false) {
       await persister.startAutoSave();
     }
-    started = true;
+  };
+
+  // Cache the in-flight promise so concurrent start() calls share one
+  // initialization rather than creating duplicate persisters/listeners.
+  const start = async (): Promise<void> => {
+    if (!startPromise) {
+      startPromise = initialize();
+    }
+    return startPromise;
   };
 
   const save = async (): Promise<void> => {
@@ -67,24 +75,52 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
     await persister.save();
   };
 
+  const countUnresolvedConflicts = (): number => {
+    const table = store.raw.getTable(SYNC_TABLES.conflicts);
+    let unresolved = 0;
+    for (const row of Object.values(table)) {
+      if (!(row as {dismissed?: boolean}).dismissed) {
+        unresolved += 1;
+      }
+    }
+    return unresolved;
+  };
+
   const getSyncStatus = (): SyncStatus => ({
     authBlocked: status.authBlocked,
-    conflictCount: store.raw.getRowIds(SYNC_TABLES.conflicts).length,
+    conflictCount: countUnresolvedConflicts(),
     isOnline: status.isOnline,
     isSyncing: status.isSyncing,
     queuedCount: outbox.count(),
   });
 
+  const notifyStatus = (): void => {
+    const snapshot = getSyncStatus();
+    for (const listener of statusListeners) {
+      listener(snapshot);
+    }
+  };
+
   const setOnline = ({isOnline}: {isOnline: boolean}): void => {
     status.isOnline = isOnline;
+    notifyStatus();
   };
 
   const setSyncing = ({isSyncing}: {isSyncing: boolean}): void => {
     status.isSyncing = isSyncing;
+    notifyStatus();
   };
 
   const setAuthBlocked = ({authBlocked}: {authBlocked: boolean}): void => {
     status.authBlocked = authBlocked;
+    notifyStatus();
+  };
+
+  const addStatusListener = (listener: (status: SyncStatus) => void): (() => void) => {
+    statusListeners.add(listener);
+    return () => {
+      statusListeners.delete(listener);
+    };
   };
 
   const destroy = async (): Promise<void> => {
@@ -93,10 +129,11 @@ export const createSyncDbClient = (config: SyncDbClientConfig = {}): SyncDbClien
       persister.destroy();
       persister = undefined;
     }
-    started = false;
+    startPromise = undefined;
   };
 
   return {
+    addStatusListener,
     destroy,
     getSyncStatus,
     outbox,

@@ -16,7 +16,13 @@ const decodeData = <TData>(raw: string | undefined): TData => {
   if (!raw) {
     return {} as TData;
   }
-  return JSON.parse(raw) as TData;
+  try {
+    return JSON.parse(raw) as TData;
+  } catch (error) {
+    // A single corrupt/legacy row must never take down a local-first list read.
+    console.warn("[syncdb] failed to decode entity payload; returning empty", error);
+    return {} as TData;
+  }
 };
 
 const rowToRecord = <TData>(key: string, row: Partial<EntityRow>): LocalEntityRecord<TData> => ({
@@ -64,6 +70,9 @@ export interface CreateSyncStoreArgs {
  */
 export const createSyncStore = ({storeId}: CreateSyncStoreArgs = {}): SyncStore => {
   const raw = createMergeableStore(storeId);
+  // NOTE: TinyBase applies schema default values non-mergeably (outside the
+  // HLC/CRDT layer). Defaults here are stable primitives, but revisit this when
+  // wiring delta-sync so default-only cells don't produce surprising merges.
   raw.setTablesSchema(SYNC_TABLES_SCHEMA);
   raw.setValuesSchema(SYNC_VALUES_SCHEMA);
 

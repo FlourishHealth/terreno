@@ -12,7 +12,6 @@
     "@types/react": "catalog:",
     "expo-sqlite": "~15.2.14",
     "react": "catalog:",
-    "react-native": "catalog:",
     "typescript": "catalog:"
   },
   "exports": {
@@ -31,8 +30,7 @@
   "name": "@terreno/syncdb",
   "peerDependencies": {
     "expo-sqlite": "*",
-    "react": "catalog:",
-    "react-native": "catalog:"
+    "react": "catalog:"
   },
   "peerDependenciesMeta": {
     "expo-sqlite": {

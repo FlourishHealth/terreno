@@ -51,4 +51,20 @@ describe("memory persister", () => {
     await persisterC.load();
     expect(storeC.getEntity({collection: "todos", id: "t2"})).toBeUndefined();
   });
+
+  it("destroy stops auto-save", async () => {
+    const backing: MemoryStorage = {};
+    const factory = createMemoryPersisterFactory(backing);
+
+    const storeA = createSyncStore();
+    const persisterA = await factory(storeA.raw);
+    await persisterA.startAutoSave();
+    persisterA.destroy();
+    storeA.upsertEntity({collection: "todos", data: {title: "after-destroy"}, id: "t1"});
+
+    const storeB = createSyncStore();
+    const persisterB = await factory(storeB.raw);
+    await persisterB.load();
+    expect(storeB.getEntity({collection: "todos", id: "t1"})).toBeUndefined();
+  });
 });

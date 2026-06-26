@@ -45,10 +45,10 @@ export const SYNC_TABLES_SCHEMA: TablesSchema = {
   },
 };
 
-/** Store-level values schema (reserved for future sync metadata). */
-export const SYNC_VALUES_SCHEMA: ValuesSchema = {
-  schemaVersion: {default: 1, type: "number"},
-};
-
 /** Current local schema version. Bump when the table shapes change. */
 export const SYNC_SCHEMA_VERSION = 1;
+
+/** Store-level values schema (reserved for future sync metadata). */
+export const SYNC_VALUES_SCHEMA: ValuesSchema = {
+  schemaVersion: {default: SYNC_SCHEMA_VERSION, type: "number"},
+};

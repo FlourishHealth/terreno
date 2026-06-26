@@ -1,4 +1,5 @@
 import {describe, expect, it} from "bun:test";
+import {DateTime} from "luxon";
 
 import {createSyncStore, entityKey} from "./store";
 
@@ -98,5 +99,51 @@ describe("createSyncStore", () => {
 
     expect(store.getCollectionEntities({collection: "todos"})).toEqual([]);
     expect(store.getCollectionEntities({collection: "notes"})).toEqual([]);
+  });
+
+  it("round-trips an explicit version and reads empty version back as undefined", () => {
+    const store = createSyncStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1", version: "v1"});
+    store.upsertEntity({collection: "todos", data: {title: "b"}, id: "t2"});
+
+    expect(store.getEntity({collection: "todos", id: "t1"})?.version).toBe("v1");
+    expect(store.getEntity({collection: "todos", id: "t2"})?.version).toBeUndefined();
+  });
+
+  it("generates a valid ISO updatedAt when none is provided", () => {
+    const store = createSyncStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+
+    const updatedAt = store.getEntity({collection: "todos", id: "t1"})?.updatedAt ?? "";
+    expect(DateTime.fromISO(updatedAt).isValid).toBe(true);
+  });
+
+  it("soft delete bumps updatedAt", () => {
+    const store = createSyncStore();
+    store.upsertEntity({
+      collection: "todos",
+      data: {title: "a"},
+      id: "t1",
+      updatedAt: "2020-01-01T00:00:00.000Z",
+    });
+    store.deleteEntity({collection: "todos", id: "t1"});
+
+    const tombstone = store.getEntity({collection: "todos", id: "t1"});
+    expect(tombstone?.updatedAt).not.toBe("2020-01-01T00:00:00.000Z");
+    expect(DateTime.fromISO(tombstone?.updatedAt ?? "").isValid).toBe(true);
+  });
+
+  it("soft-deleting a missing entity is a harmless no-op", () => {
+    const store = createSyncStore();
+    expect(() => store.deleteEntity({collection: "todos", id: "missing"})).not.toThrow();
+    expect(store.getEntity({collection: "todos", id: "missing"})).toBeUndefined();
+  });
+
+  it("recovers from a corrupt payload by returning an empty object", () => {
+    const store = createSyncStore();
+    store.upsertEntity({collection: "todos", data: {title: "a"}, id: "t1"});
+    store.raw.setCell("entities", "todos:t1", "data", "{not valid json");
+
+    expect(store.getEntity({collection: "todos", id: "t1"})?.data).toEqual({});
   });
 });
